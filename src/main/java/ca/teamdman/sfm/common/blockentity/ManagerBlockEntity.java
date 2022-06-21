@@ -53,6 +53,20 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
             return 1;
         }
     };
+    private             int                    unprocessedRedstonePulses = 0; // used by redstone trigger
+    private             boolean                redstonePulseDebounce = false;
+
+    public void trackRedstonePulseUnprocessed() {
+        unprocessedRedstonePulses++;
+    }
+
+    public void trackRedstonePulseProcessed() {
+        unprocessedRedstonePulses--;
+    }
+
+    public int getUnprocessedRedstonePulseCount() {
+        return unprocessedRedstonePulses;
+    }
 
     public ManagerBlockEntity(BlockPos blockPos, BlockState blockState) {
         super(SFMBlockEntities.MANAGER_BLOCK_ENTITY.get(), blockPos, blockState);
@@ -229,6 +243,14 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
             setItem(0, disk);
             setChanged();
         });
+    }
+
+    public boolean isRedstonePulseDebounce() {
+        return redstonePulseDebounce;
+    }
+
+    public void setRedstonePulseDebounce(boolean redstonePulseDebounce) {
+        this.redstonePulseDebounce = redstonePulseDebounce;
     }
 
     public enum State {

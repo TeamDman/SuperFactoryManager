@@ -15,10 +15,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.block.BaseEntityBlock;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.RenderShape;
-import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -41,6 +38,27 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
 
     public RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
+    }
+
+
+    @Override
+    public void neighborChanged(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Block block,
+            BlockPos neighbourPos,
+            boolean movedByPiston
+    ) {
+        if (level.getBlockEntity(pos) instanceof ManagerBlockEntity mgr) {
+            if (level.hasNeighborSignal(pos) || level.hasNeighborSignal(pos.above())) {
+                if (!mgr.isRedstonePulseDebounce()) {
+                    mgr.trackRedstonePulseUnprocessed();
+                }
+            } else if (mgr.isRedstonePulseDebounce()) {
+                mgr.setRedstonePulseDebounce(false);
+            }
+        }
     }
 
     @Override
