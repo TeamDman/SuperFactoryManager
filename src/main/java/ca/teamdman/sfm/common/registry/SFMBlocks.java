@@ -18,6 +18,7 @@ public class SFMBlocks {
     );
     public static final RegistryObject<Block> WATER_TANK_BLOCK = BLOCKS.register("water_tank", WaterTankBlock::new);
     public static final RegistryObject<Block> CABLE_BLOCK = BLOCKS.register("cable", CableBlock::new);
+    public static final RegistryObject<Block> CABLE_BLOCK_BLOCK = BLOCKS.register("cable_block", CableBlockBlock::new);
     public static final RegistryObject<Block> BATTERY_BLOCK = BLOCKS.register("battery", BatteryBlock::new);
     public static final RegistryObject<Block> TEST_BARREL_BLOCK = BLOCKS.register("test_barrel", TestBarrelBlock::new);
 

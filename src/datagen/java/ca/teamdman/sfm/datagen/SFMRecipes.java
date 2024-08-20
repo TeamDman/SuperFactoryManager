@@ -35,6 +35,13 @@ public class SFMRecipes extends RecipeProvider {
                 .unlockedBy("has_chest", RecipeProvider.has(Tags.Items.CHESTS))
                 .save(consumer);
 
+        ShapelessRecipeBuilder
+                .shapeless(SFMBlocks.CABLE_BLOCK_BLOCK.get())
+                .requires(SFMBlocks.CABLE_BLOCK.get(), 1)
+                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .unlockedBy("has_chest", RecipeProvider.has(Tags.Items.CHESTS))
+                .save(consumer);
+
         ShapedRecipeBuilder
                 .shaped(SFMBlocks.MANAGER_BLOCK.get())
                 .define('A', Tags.Items.CHESTS)

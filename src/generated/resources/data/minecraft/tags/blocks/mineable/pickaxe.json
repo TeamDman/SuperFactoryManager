@@ -1,8 +1,8 @@
 {
   "values": [
     "sfm:cable",
+    "sfm:cable_block",
     "sfm:manager",
-    "sfm:printing_press",
-    "sfm:cable"
+    "sfm:printing_press"
   ]
 }

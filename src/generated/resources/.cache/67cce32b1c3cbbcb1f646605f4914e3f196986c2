@@ -1,5 +1,6 @@
-// 1.19.2	2023-05-05T11:27:12.6522234	LootTables
+// 1.19.2	2024-07-25T09:55:45.3381719	LootTables
 5286db740244722d7db672fc22de815fdd8ab330 data/sfm/loot_tables/blocks/cable.json
+bb227724f2892f8b94d5ac5766fc5c8e533eeb53 data/sfm/loot_tables/blocks/cable_block.json
 ef4bb95208a13cbe51de891c102654406caee78e data/sfm/loot_tables/blocks/manager.json
 c0a6bdf7e2d285eb10d05e1515ffede8d52f6c0f data/sfm/loot_tables/blocks/printing_press.json
 27422621ac079ae70ed818918f4b2cbd190547f0 data/sfm/loot_tables/blocks/water_tank.json

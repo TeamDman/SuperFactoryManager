@@ -22,6 +22,7 @@ public class SFMItems {
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, SFM.MOD_ID);
     public static final RegistryObject<Item> MANAGER_ITEM = register("manager", SFMBlocks.MANAGER_BLOCK);
     public static final RegistryObject<Item> CABLE_ITEM = register("cable", SFMBlocks.CABLE_BLOCK);
+    public static final RegistryObject<Item> CABLE_BLOCK_ITEM = register("cable_block", SFMBlocks.CABLE_BLOCK_BLOCK);
     public static final RegistryObject<Item> PRINTING_PRESS_ITEM = ITEMS.register(
             "printing_press",
             PrintingPressBlockItem::new

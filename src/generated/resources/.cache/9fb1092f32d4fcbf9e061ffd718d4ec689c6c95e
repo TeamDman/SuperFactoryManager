@@ -1,6 +1,7 @@
-// 1.19.2	2024-06-11T17:07:36.0665485	Recipes
+// 1.19.2	2024-07-25T09:55:45.34074	Recipes
 1b709571a4d702e0d4da0cfbec3d5a7e51c68c2f data/minecraft/recipes/disk_reset.json
 347a9db1dc51c336dab23358554282348afd7a8f data/sfm/advancements/recipes/sfm/cable.json
+d32dd478d56502a5a1a968a3b17247bee9855b67 data/sfm/advancements/recipes/sfm/cable_block.json
 3812a02ebe30dcd7536c329803d6a65d05a14800 data/sfm/advancements/recipes/sfm/disk.json
 616162c2b792f2ef012fa3c1a0f7c737c73dfa80 data/sfm/advancements/recipes/sfm/labelgun.json
 6c7cda7b36500f3d8a4dd623c9dd6bfd14d301b4 data/sfm/advancements/recipes/sfm/manager.json
@@ -9,6 +10,7 @@
 f57e452f6174d91142cb36348ce9213d590f2951 data/sfm/advancements/recipes/sfm/water_tank.json
 30018c3475a9b1bb19e6721c158d47a800804fe2 data/sfm/advancements/recipes/sfm/xp_goop.json
 dee9d372b6ed949c32f2f6617c0b7b68c27f1e2a data/sfm/recipes/cable.json
+e54659423d0431fe4896c304ab640000d51d2256 data/sfm/recipes/cable_block.json
 ce43b2a22f3ad72b5360ec9203dbfb1e91a4a671 data/sfm/recipes/disk.json
 86b45396d6e685d9f816a6da3434eb5d7f49f178 data/sfm/recipes/enchanted_book_copy.json
 32925307f65ae8813cb0426a93f322c1cb6315bc data/sfm/recipes/labelgun.json

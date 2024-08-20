@@ -1,10 +1,13 @@
-// 1.19.2	2023-05-05T11:27:12.654223	Block States: sfm
-f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable.json
+// 1.19.2	2024-07-25T09:56:57.4670856	Block States: sfm
+d8b018d157fe963b63df0f6f0eccce3f93d39640 assets/sfm/blockstates/cable.json
+d0129543755b9714fe4fbb3f8a54b5f333e09406 assets/sfm/blockstates/cable_block.json
 01e9d7d54169b7f6bbd287f4b896629f66f25305 assets/sfm/blockstates/manager.json
 a351025a2054b6ce2ddc21dc14734cc8b5b635bc assets/sfm/blockstates/printing_press.json
 9be344941a18ad0d8dccbcd6536d52bf7295c1c8 assets/sfm/blockstates/test_barrel.json
 f3c25839c6554e631061f91277bc687aebc38fd7 assets/sfm/blockstates/water_tank.json
-a76567fd4e65d191d69cf166b98776786d47a8e2 assets/sfm/models/block/cable.json
+39d78db65092cc1607594577015b38ccaa447d40 assets/sfm/models/block/cable_block.json
+9bb58c8a9962038f4b4aaf8f5eb616617a913dad assets/sfm/models/block/cable_connection.json
+00cc5fc1c59f5c93a806852e97a60eccc00f6397 assets/sfm/models/block/cable_core.json
 953313d31931040aa2bd9a8742d4a54a2c632b8d assets/sfm/models/block/manager.json
 220cea2f958589873eff05d62905d9e088c08951 assets/sfm/models/block/water_tank_active.json
 5c39779ee6f051e682c82c8534c2fae85779747d assets/sfm/models/block/water_tank_inactive.json

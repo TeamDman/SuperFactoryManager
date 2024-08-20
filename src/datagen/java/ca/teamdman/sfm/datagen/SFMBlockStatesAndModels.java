@@ -1,13 +1,12 @@
 package ca.teamdman.sfm.datagen;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.block.CableBlock;
 import ca.teamdman.sfm.common.block.WaterTankBlock;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraftforge.client.model.generators.BlockStateProvider;
-import net.minecraftforge.client.model.generators.ConfiguredModel;
-import net.minecraftforge.client.model.generators.ModelFile;
+import net.minecraftforge.client.model.generators.*;
 import net.minecraftforge.data.event.GatherDataEvent;
 
 public class SFMBlockStatesAndModels extends BlockStateProvider {
@@ -25,9 +24,9 @@ public class SFMBlockStatesAndModels extends BlockStateProvider {
                 modLoc("block/manager_top")
         ).texture("particle", "#top"));
 
-        simpleBlock(SFMBlocks.CABLE_BLOCK.get());
+        registerCableBlock();
+        simpleBlock(SFMBlocks.CABLE_BLOCK_BLOCK.get());
         simpleBlock(SFMBlocks.PRINTING_PRESS_BLOCK.get(), models().getExistingFile(modLoc("block/printing_press")));
-
 
         ModelFile waterIntakeModelActive = models()
                 .cubeAll(
@@ -93,6 +92,78 @@ public class SFMBlockStatesAndModels extends BlockStateProvider {
                                 .rotationY(y)
                                 .build();
                     });
+        }
+    }
+
+    private void registerCableBlock() {
+        var coreModel = models().withExistingParent(modLoc("block/cable_core").getPath(), "block/block")
+                .element()
+                .from(4, 4, 4)
+                .to(12, 12, 12)
+                .shade(false)
+                .allFaces((direction, faceBuilder) -> faceBuilder.uvs(8, 0, 16, 8).texture("#cable"))
+                .end()
+                .texture("cable", modLoc("block/cable"))
+                .texture("particle", modLoc("block/cable"));
+        var connectionModel = models().withExistingParent(modLoc("block/cable_connection").getPath(), "block/block")
+                .element()
+                .from(5, 5, 0)
+                .to(11, 11, 5)
+                .shade(false)
+                .allFaces((direction, faceBuilder) -> {
+                    switch (direction) {
+                        case NORTH:
+                        case SOUTH: {
+                            faceBuilder.uvs(9, 1, 15, 7);
+                            break;
+                        }
+                        case EAST:
+                        case WEST: {
+                            faceBuilder.uvs(0, 0, 5, 6);
+                            break;
+                        }
+                        case UP:
+                        case DOWN: {
+                            faceBuilder.uvs(0, 0, 5, 6)
+                                .rotation(ModelBuilder.FaceRotation.CLOCKWISE_90);
+                            break;
+                        }
+                    }
+
+                    faceBuilder.texture("#cable");
+                })
+                .end()
+                .texture("cable", modLoc("block/cable"));
+
+        var multipartBuilder = getMultipartBuilder(SFMBlocks.CABLE_BLOCK.get());
+
+        // Core
+        multipartBuilder.part()
+                .modelFile(coreModel)
+                .addModel()
+                .end();
+
+        // Parts (connections)
+        for (Direction direction: Direction.values()) {
+            var rotX = 0;
+            var rotY = 0;
+
+            switch (direction) {
+                case SOUTH -> rotY = 180;
+                case EAST -> rotY = 90;
+                case WEST -> rotY = 270;
+                case UP -> rotX = 270;
+                case DOWN -> rotX = 90;
+            }
+
+            multipartBuilder.part()
+                    .modelFile(connectionModel)
+                    .rotationX(rotX)
+                    .rotationY(rotY)
+                    .uvLock(false)
+                    .addModel()
+                    .condition(CableBlock.DIRECTION_PROPERTIES.get(direction), true)
+                    .end();
         }
     }
 }
