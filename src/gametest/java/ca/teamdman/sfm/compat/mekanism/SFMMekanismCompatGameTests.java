@@ -7,10 +7,10 @@ import ca.teamdman.sfm.common.program.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.common.registry.SFMItems;
 import mekanism.api.RelativeSide;
-import mekanism.api.chemical.infuse.InfusionStack;
+import mekanism.api.chemical.ChemicalStack;
 import mekanism.common.lib.transmitter.TransmissionType;
 import mekanism.common.registries.MekanismBlocks;
-import mekanism.common.registries.MekanismInfuseTypes;
+import mekanism.common.registries.MekanismChemicals;
 import mekanism.common.tier.BinTier;
 import mekanism.common.tier.ChemicalTankTier;
 import mekanism.common.tier.EnergyCubeTier;
@@ -101,11 +101,11 @@ public class SFMMekanismCompatGameTests extends SFMGameTestBase {
 
 
         // ensure it can move into an empty tank
-        leftTank.getInfusionTank().setStack(new InfusionStack(MekanismInfuseTypes.REDSTONE.get(), 1_000_000L));
-        rightTank.getInfusionTank().setStack(InfusionStack.EMPTY);
+        leftTank.getChemicalTank().setStack(new ChemicalStack(MekanismChemicals.REDSTONE.get(), 1_000_000L));
+        rightTank.getChemicalTank().setStack(ChemicalStack.EMPTY);
         succeedIfManagerDidThingWithoutLagging(helper, manager, () -> {
-            assertTrue(leftTank.getInfusionTank().getStack().isEmpty(), "Contents did not depart");
-            assertTrue(rightTank.getInfusionTank().getStack().getAmount() == 1_000_000L, "Contents did not arrive");
+            assertTrue(leftTank.getChemicalTank().getStack().isEmpty(), "Contents did not depart");
+            assertTrue(rightTank.getChemicalTank().getStack().getAmount() == 1_000_000L, "Contents did not arrive");
         });
     }
 
@@ -141,11 +141,11 @@ public class SFMMekanismCompatGameTests extends SFMGameTestBase {
 
 
         // ensure it can move when there's already some in the destination
-        leftTank.getInfusionTank().setStack(new InfusionStack(MekanismInfuseTypes.REDSTONE.get(), 1_000_000L));
-        rightTank.getInfusionTank().setStack(new InfusionStack(MekanismInfuseTypes.REDSTONE.get(), 1_000_000L));
+        leftTank.getChemicalTank().setStack(new ChemicalStack(MekanismChemicals.REDSTONE.get(), 1_000_000L));
+        rightTank.getChemicalTank().setStack(new ChemicalStack(MekanismChemicals.REDSTONE.get(), 1_000_000L));
         succeedIfManagerDidThingWithoutLagging(helper, manager, () -> {
-            assertTrue(leftTank.getInfusionTank().getStack().isEmpty(), "Contents did not depart");
-            assertTrue(rightTank.getInfusionTank().getStack().getAmount() == 2_000_000L, "Contents did not arrive");
+            assertTrue(leftTank.getChemicalTank().getStack().isEmpty(), "Contents did not depart");
+            assertTrue(rightTank.getChemicalTank().getStack().getAmount() == 2_000_000L, "Contents did not arrive");
         });
     }
 
@@ -180,17 +180,17 @@ public class SFMMekanismCompatGameTests extends SFMGameTestBase {
                 .save(manager.getDisk().get());
 
         // ensure it can move into a nearly full tank
-        leftTank.getInfusionTank().setStack(new InfusionStack(MekanismInfuseTypes.REDSTONE.get(), 2_000_000L));
+        leftTank.getChemicalTank().setStack(new ChemicalStack(MekanismChemicals.REDSTONE.get(), 2_000_000L));
         rightTank
-                .getInfusionTank()
-                .setStack(new InfusionStack(
-                        MekanismInfuseTypes.REDSTONE.get(),
+                .getChemicalTank()
+                .setStack(new ChemicalStack(
+                        MekanismChemicals.REDSTONE.get(),
                         ChemicalTankTier.ULTIMATE.getStorage() - 1_000_000L
                 ));
         succeedIfManagerDidThingWithoutLagging(helper, manager, () -> {
-            assertTrue(leftTank.getInfusionTank().getStack().getAmount() == 1_000_000L, "Contents did not depart");
+            assertTrue(leftTank.getChemicalTank().getStack().getAmount() == 1_000_000L, "Contents did not depart");
             assertTrue(
-                    rightTank.getInfusionTank().getStack().getAmount() == ChemicalTankTier.ULTIMATE.getStorage(),
+                    rightTank.getChemicalTank().getStack().getAmount() == ChemicalTankTier.ULTIMATE.getStorage(),
                     "Contents did not arrive"
             );
             helper.succeed();

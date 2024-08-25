@@ -201,8 +201,8 @@ dependencies {
 //    runtimeOnly "curse.maven:easy-villagers-400514:5153632" // Easy Villagers 1.20.4-1.1.4
 
 
-    implementation "curse.maven:mekanism-268560:5552293" //Mekanism-1.21-10.6.6.53.jar
-    implementation "mekanism:Mekanism:1.21-10.6.6.53:api"
+    implementation "curse.maven:mekanism-268560:5656332" // Mekanism-1.21.1-10.7.4.60.jar
+    implementation "mekanism:Mekanism:1.21.1-10.7.4.60:api"
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

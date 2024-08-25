@@ -27,12 +27,7 @@ public class SFMMekanismCompat {
         return switch (trans) {
             case ITEM -> Optional.of(SFMResourceTypes.ITEM.get());
             case FLUID -> Optional.of(SFMResourceTypes.FLUID.get());
-            case GAS -> Optional.of(SFMResourceTypes.DEFERRED_TYPES.get(ResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "gas")));
-            case INFUSION ->
-                    Optional.of(SFMResourceTypes.DEFERRED_TYPES.get(ResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "infusion")));
-            case PIGMENT ->
-                    Optional.of(SFMResourceTypes.DEFERRED_TYPES.get(ResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "pigment")));
-            case SLURRY -> Optional.of(SFMResourceTypes.DEFERRED_TYPES.get(ResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "slurry")));
+            case CHEMICAL -> Optional.of(SFMResourceTypes.DEFERRED_TYPES.get(ResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "gas")));
             default -> Optional.empty();
         };
     }
@@ -100,10 +95,7 @@ public class SFMMekanismCompat {
     }
 
     public static void register(DeferredRegister<ResourceType<?, ?, ?>> types) {
-        types.register("gas", GasResourceType::new);
-        types.register("infusion", InfuseResourceType::new);
+        types.register("gas", ChemicalResourceType::new);
 
-        types.register("pigment", PigmentResourceType::new);
-        types.register("slurry", SlurryResourceType::new);
     }
 }
