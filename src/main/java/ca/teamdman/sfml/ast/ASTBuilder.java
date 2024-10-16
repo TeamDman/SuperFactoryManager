@@ -15,6 +15,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     private final Set<Label> USED_LABELS = new HashSet<>();
     private final Set<ResourceIdentifier<?, ?, ?>> USED_RESOURCES = new HashSet<>();
     private final List<Pair<ASTNode, ParserRuleContext>> AST_NODE_CONTEXTS = new LinkedList<>();
+    private final List<? extends String> BLACKLISTED_RESOURCES = SFMConfig.getOrDefault(SFMConfig.COMMON.blacklistedResourceTypesForTransfer);
 
     public List<Pair<ASTNode, ParserRuleContext>> getNodesUnderCursor(int cursorPos) {
         return AST_NODE_CONTEXTS
@@ -253,6 +254,14 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     public InputStatement visitInputStatement(SFMLParser.InputStatementContext ctx) {
         var labelAccess = visitLabelAccess(ctx.labelAccess());
         var matchers = visitInputResourceLimits(ctx.inputResourceLimits());
+
+        matchers.resourceLimitList().forEach(resourceLimit -> {
+            resourceLimit.resourceIds().stream().forEach(resourceId -> {
+                if (BLACKLISTED_RESOURCES.contains(resourceId.resourceTypeName))
+                    throw new IllegalArgumentException("Resource type \"" + resourceId.resourceTypeName + "\" is blacklisted");
+            });
+        });
+
         var exclusions = visitResourceExclusion(ctx.resourceExclusion());
         var each = ctx.EACH() != null;
         InputStatement inputStatement = new InputStatement(labelAccess, matchers.withExclusions(exclusions), each);
@@ -264,6 +273,14 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     public OutputStatement visitOutputStatement(SFMLParser.OutputStatementContext ctx) {
         var labelAccess = visitLabelAccess(ctx.labelAccess());
         var matchers = visitOutputResourceLimits(ctx.outputResourceLimits());
+
+        matchers.resourceLimitList().forEach(resourceLimit -> {
+            resourceLimit.resourceIds().stream().forEach(resourceId -> {
+                if (BLACKLISTED_RESOURCES.contains(resourceId.resourceTypeName))
+                    throw new IllegalArgumentException("Resource type \"" + resourceId.resourceTypeName + "\" is blacklisted");
+            });
+        });
+
         var exclusions = visitResourceExclusion(ctx.resourceExclusion());
         var each = ctx.EACH() != null;
         OutputStatement outputStatement = new OutputStatement(labelAccess, matchers.withExclusions(exclusions), each);

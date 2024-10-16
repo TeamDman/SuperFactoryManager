@@ -6,6 +6,8 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.List;
+
 public class SFMConfig {
     public static final ModConfigSpec COMMON_SPEC;
     public static final ModConfigSpec CLIENT_SPEC;
@@ -24,6 +26,7 @@ public class SFMConfig {
         public final ModConfigSpec.IntValue timerTriggerMinimumIntervalInTicks;
         public final ModConfigSpec.IntValue timerTriggerMinimumIntervalInTicksWhenOnlyForgeEnergyIO;
         public final ModConfigSpec.IntValue maxIfStatementsInTriggerBeforeSimulationIsntAllowed;
+        public final ModConfigSpec.ConfigValue<List<? extends String>> blacklistedResourceTypesForTransfer;
 
         Common(ModConfigSpec.Builder builder) {
             timerTriggerMinimumIntervalInTicks = builder
@@ -39,6 +42,9 @@ public class SFMConfig {
                     .comment(
                             "The number of scenarios to check is 2^n where n is the number of if statements in a trigger")
                     .defineInRange("maxIfStatementsInTriggerBeforeSimulationIsntAllowed", 10, 0, Integer.MAX_VALUE);
+            blacklistedResourceTypesForTransfer = builder
+                    .comment("What resource types should SFM not be allowed to move")
+                    .defineListAllowEmpty("blacklistedResourceTypes", List.of(), s -> s instanceof String);
         }
     }
 

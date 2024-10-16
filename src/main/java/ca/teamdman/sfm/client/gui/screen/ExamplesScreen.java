@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.gui.screen;
 
+import ca.teamdman.sfm.common.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfml.ast.Program;
@@ -16,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -43,10 +45,17 @@ public class ExamplesScreen extends Screen {
             try (BufferedReader reader = entry.getValue().openAsReader()) {
                 String program = reader.lines().collect(Collectors.joining("\n"));
                 if (program.contains("$REPLACE_RESOURCE_TYPES_HERE$")) {
+                    List<? extends String> blacklistedResources = SFMConfig.getOrDefault(SFMConfig.COMMON.blacklistedResourceTypesForTransfer);
                     var replacement = SFMResourceTypes.DEFERRED_TYPES.keySet()
                             .stream()
                             .map(ResourceLocation::getPath)
-                            .map(e -> "INPUT " + e + ":: FROM a")
+                            .map(e -> {
+                                String text = "";
+                                if (blacklistedResources.contains(e))
+                                    text += "-- BLACKLISTED: ";
+                                text += "INPUT " + e + ":: FROM a";
+                                return text;
+                            })
                             .collect(Collectors.joining("\n    "));
                     program = program.replace("$REPLACE_RESOURCE_TYPES_HERE$", replacement);
                 }
