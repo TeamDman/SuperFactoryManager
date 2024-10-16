@@ -10,20 +10,20 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
 
 public class LabelGunScreen extends Screen {
     private final InteractionHand HAND;
     private final LabelPositionHolder LABEL_HOLDER;
+    private final ArrayList<Button> labelButtons = new ArrayList<>();
     @SuppressWarnings("NotNullFieldNotInitialized")
     private EditBox labelField;
     private boolean shouldRebuildWidgets = false;
@@ -46,72 +46,39 @@ public class LabelGunScreen extends Screen {
                 20,
                 LocalizationKeys.LABEL_GUN_GUI_LABEL_PLACEHOLDER.getComponent()
         ));
+        this.labelField.setResponder(this::onTextUpdated);
+
         this.setInitialFocus(labelField);
         this.setFocused(labelField);
 
-        this.addRenderableWidget(new Button.Builder(
-                                         LocalizationKeys.LABEL_GUN_GUI_CLEAR_BUTTON.getComponent(),
-                                         __ -> {
-                                             PacketDistributor.sendToServer(new ServerboundLabelGunClearPacket(HAND));
-                                             LABEL_HOLDER.clear();
-                                             shouldRebuildWidgets = true;
-                                         }
-                                 )
-                                         .pos(this.width / 2 - 210, 50)
-                                         .size(50, 20).build()
+        this.addRenderableWidget(
+                new Button.Builder(LocalizationKeys.LABEL_GUN_GUI_CLEAR_BUTTON.getComponent(), __ -> {
+                    PacketDistributor.sendToServer(new ServerboundLabelGunClearPacket(HAND));
+                    LABEL_HOLDER.clear();
+                    shouldRebuildWidgets = true;
+                })
+                        .pos(this.width / 2 - 210, 50)
+                        .size(50, 20)
+                        .build()
         );
-        this.addRenderableWidget(new Button.Builder(
-                LocalizationKeys.LABEL_GUN_GUI_PRUNE_BUTTON.getComponent(),
-                (btn) -> {
+        this.addRenderableWidget(
+                new Button.Builder(LocalizationKeys.LABEL_GUN_GUI_PRUNE_BUTTON.getComponent(), (btn) -> {
                     PacketDistributor.sendToServer(new ServerboundLabelGunPrunePacket(HAND));
                     LABEL_HOLDER.prune();
                     shouldRebuildWidgets = true;
-                }
-        )
-                                         .pos(this.width / 2 + 160, 50)
-                                         .size(50, 20).build());
-        this.addRenderableWidget(new Button.Builder(CommonComponents.GUI_DONE, __ -> this.onDone())
-                                         .pos(this.width / 2 - 2 - 150, this.height - 50)
-                                         .size(300, 20)
-                                         .build());
-        {
-            var labels = LABEL_HOLDER.labels().keySet().stream().sorted(Comparator.naturalOrder()).toList();
-            int i = 0;
-            int buttonWidth = ((Map<String, ? extends Set<BlockPos>>) LABEL_HOLDER.labels())
-                                      .entrySet()
-                                      .stream()
-                                      .map(entry -> LocalizationKeys.LABEL_GUN_GUI_LABEL_BUTTON.getComponent(
-                                              entry.getKey(),
-                                              entry.getValue().size()
-                                      ).getString())
-                                      .mapToInt(this.font::width)
-                                      .max().orElse(50) + 10;
-            int buttonHeight = 20;
-            int paddingX = 5;
-            int paddingY = 5;
-            int buttonsPerRow = this.width / (buttonWidth + paddingX);
-            for (var label : labels) {
-                int x = (this.width - (buttonWidth + paddingX) * Math.min(buttonsPerRow, labels.size())) / 2
-                        + paddingX
-                        + (i % buttonsPerRow) * (
-                        buttonWidth
-                        + paddingX
-                );
-                int y = 80 + (i / buttonsPerRow) * (buttonHeight + paddingY);
-                int count = LABEL_HOLDER.getPositions(label).size();
-                this.addRenderableWidget(new Button.Builder(
-                                                 LocalizationKeys.LABEL_GUN_GUI_LABEL_BUTTON.getComponent(label, count),
-                                                 (btn) -> {
-                                                     this.labelField.setValue(label);
-                                                     this.onDone();
-                                                 }
-                                         )
-                                                 .pos(x, y)
-                                                 .size(buttonWidth, buttonHeight).build()
-                );
-                i++;
-            }
-        }
+                })
+                        .pos(this.width / 2 + 160, 50)
+                        .size(50, 20)
+                        .build()
+        );
+        this.addRenderableWidget(
+                new Button.Builder(CommonComponents.GUI_DONE, __ -> this.onDone())
+                        .pos(this.width / 2 - 2 - 150, this.height - 50)
+                        .size(300, 20)
+                        .build()
+        );
+
+        onTextUpdated(""); // Call once to draw all labels
     }
 
     @Override
@@ -148,5 +115,46 @@ public class LabelGunScreen extends Screen {
         }
         this.renderTransparentBackground(graphics);
         super.render(graphics, mx, my, partialTicks);
+    }
+
+    private void onTextUpdated(String newText) {
+        labelButtons.forEach(this::removeWidget);
+        labelButtons.clear();
+
+        int buttonWidth = LABEL_HOLDER.labels().entrySet().stream()
+                .map(entry -> LocalizationKeys.LABEL_GUN_GUI_LABEL_BUTTON.getComponent(entry.getKey(), entry.getValue()
+                        .size()).getString()).mapToInt(this.font::width).max().orElse(50) + 10;
+        int paddingX = 5;
+        int paddingY = 5;
+        int buttonHeight = 20;
+
+        int buttonsPerRow = this.width / (buttonWidth + paddingX);
+
+        int i = 0;
+        List<String> labels = LABEL_HOLDER.labels().keySet().stream()
+                .filter(text -> text.toLowerCase().contains(newText.toLowerCase()))
+                .sorted(Comparator.naturalOrder()).toList();
+
+        for (String label : labels) {
+            int x = (this.width - (buttonWidth + paddingX) * Math.min(buttonsPerRow, labels.size())) / 2 + paddingX + (i % buttonsPerRow) * (buttonWidth + paddingX);
+            int y = 80 + (i / buttonsPerRow) * (buttonHeight + paddingY);
+            addLabelButton(label, x, y, buttonWidth, buttonHeight);
+
+            i++;
+        }
+    }
+
+    private void addLabelButton(String label, int x, int y, int width, int height) {
+        int count = LABEL_HOLDER.getPositions(label).size();
+        Button button = this.addRenderableWidget(
+                new Button.Builder(
+                        LocalizationKeys.LABEL_GUN_GUI_LABEL_BUTTON.getComponent(label, count), (btn) -> {
+                    this.labelField.setValue(label);
+                    this.onDone();
+                }).pos(x, y)
+                        .size(width, height)
+                        .build());
+
+        labelButtons.add(button);
     }
 }
