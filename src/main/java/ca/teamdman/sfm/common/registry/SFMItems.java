@@ -20,6 +20,7 @@ public class SFMItems {
     public static final Supplier<Item> CABLE_ITEM = register("cable", SFMBlocks.CABLE_BLOCK);
     //    public static final  Supplier<Item>   BATTERY_ITEM    = register("battery", SFMBlocks.BATTERY_BLOCK);
     public static final Supplier<Item> WATER_TANK_ITEM = register("water_tank", SFMBlocks.WATER_TANK_BLOCK);
+    public static final Supplier<Item> PROXY_ITEM = register("proxy", SFMBlocks.PROXY_BLOCK);
     public static final Supplier<Item> DISK_ITEM = ITEMS.register("disk", DiskItem::new);
     public static final Supplier<Item> LABEL_GUN_ITEM = ITEMS.register(
             "labelgun",
@@ -35,6 +36,8 @@ public class SFMItems {
     public static final Supplier<Item> FORM_ITEM = ITEMS.register("form", FormItem::new);
     public static final Supplier<Item> EXPERIENCE_SHARD_ITEM = ITEMS.register("xp_shard", ExperienceShard::new);
     public static final Supplier<Item> EXPERIENCE_GOOP_ITEM = ITEMS.register("xp_goop", ExperienceGoop::new);
+
+
 
     public static void register(IEventBus bus) {
         ITEMS.register(bus);
