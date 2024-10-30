@@ -1,7 +1,5 @@
 package ca.teamdman.sfm.common.blockentity;
 
-//import ca.teamdman.sfm.common.containermenu.ProxyContainerMenu;
-
 import ca.teamdman.sfm.common.containermenu.ProxyContainerMenu;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import ca.teamdman.sfm.common.util.SFMContainerUtil;
@@ -11,14 +9,12 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
-import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -31,12 +27,12 @@ import java.util.Map;
 /*
  * https://github.com/CyclopsMC/CapabilityProxy/blob/master-1.21/loader-neoforge/src/main/java/org/cyclops/capabilityproxy/blockentity/BlockEntityItemCapabilityProxyNeoForge.java
  */
-public class ProxyBlockEntity extends BlockEntity implements MenuProvider, Container {
+public class ProxyBlockEntity extends BaseContainerBlockEntity {
     private static final Component TITLE = Component.literal("Item Capability Proxy");
 
     public static Map<BlockCapability<?, ?>, ItemCapability<?, ?>> BLOCK_TO_ITEM_CAPABILITIES = Map.of();
 
-    private final NonNullList<ItemStack> inventory = NonNullList.withSize(1, ItemStack.EMPTY);
+    private NonNullList<ItemStack> inventory = NonNullList.withSize(4, ItemStack.EMPTY);
 
     public ProxyBlockEntity(BlockPos pPos, BlockState pBlockState) {
         super(SFMBlockEntities.PROXY_BLOCK_ENTITY.get(), pPos, pBlockState);
@@ -53,9 +49,8 @@ public class ProxyBlockEntity extends BlockEntity implements MenuProvider, Conta
         invalidateCapabilities();
     }
 
-
     @Override
-    public @Nullable AbstractContainerMenu createMenu(int windowId, Inventory inventory, Player player) {
+    protected AbstractContainerMenu createMenu(int windowId, Inventory inventory) {
         return new ProxyContainerMenu(windowId, inventory, this);
     }
 
@@ -65,8 +60,18 @@ public class ProxyBlockEntity extends BlockEntity implements MenuProvider, Conta
     }
 
     @Override
-    public Component getDisplayName() {
+    protected Component getDefaultName() {
         return TITLE;
+    }
+
+    @Override
+    protected NonNullList<ItemStack> getItems() {
+        return inventory;
+    }
+
+    @Override
+    protected void setItems(NonNullList<ItemStack> nonNullList) {
+        inventory = nonNullList;
     }
 
     @Override
@@ -130,14 +135,26 @@ public class ProxyBlockEntity extends BlockEntity implements MenuProvider, Conta
 
     @Nullable
     public <T, C1, C2> T getCapability(BlockCapability<T, C1> blockCapability, @Nullable C1 context) {
-        if (context == Direction.UP | context == Direction.DOWN) {
+        if (!(context instanceof Direction ctx)) {
+            return null;
+        }
+
+        if (ctx == Direction.UP | ctx == Direction.DOWN) {
             if (blockCapability == Capabilities.ItemHandler.BLOCK) {
                 return (T) new InvWrapper(this);
             }
             return null;
         }
 
-        ItemStack itemStack = getItem(0);
+        int slot = switch (ctx) {
+            case DOWN, UP -> throw new IllegalStateException("Trying to read UP or DOWN direction of capabilities");
+            case NORTH -> 0;
+            case EAST -> 1;
+            case SOUTH -> 2;
+            case WEST -> 3;
+        };
+
+        ItemStack itemStack = getItem(slot);
         ItemCapability<T, C2> itemCapability = blockCapabilityToItemCapability(blockCapability);
         if (itemCapability == null) {
             return null;
