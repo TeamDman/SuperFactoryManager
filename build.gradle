@@ -218,6 +218,13 @@ dependencies {
     implementation "mekanism:Mekanism:1.21.1-10.7.4.60:api"
 
     implementation "curse.maven:spark-361579:5759671" // spark-1.10.109-neoforge.jar
+
+    implementation "curse.maven:cloth-config-348521:5729127" // cloth-config-15.0.140-neoforge.jar
+    implementation "curse.maven:powah-rearchitected-633483:5735677" // Powah-6.1.2.jar
+
+    implementation "curse.maven:sophisticated-core-618298:5810072" // sophisticatedcore-1.21-0.6.45.722.jar
+    implementation "curse.maven:sophisticated-backpacks-422301:5787622" // sophisticatedbackpacks-1.21-3.20.17.1113.jar
+    implementation "curse.maven:sophisticated-storage-619320:5801696" // sophisticatedstorage-1.21-0.10.45.910.jar
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
