@@ -96,10 +96,10 @@ public final class InputStatement implements IOStatement {
                 // gather slots for each capability found for positions tagged by a provided label
                 Consumer<LimitedInputSlot<?, ?, ?>> finalSlotConsumer = slotConsumer;
                 // TODO: fix #166 forEachCapability advances the round robin when it should be shared between resource types
-                resourceType.forEachCapability(context, labelAccess, (label, pos, direction, cap) -> gatherSlotsForCap(
+                resourceType.forEachCapability(context, labelAccess, (label, pos, direction, cap, count) -> gatherSlotsForCap(
                         context,
                         (ResourceType<Object, Object, Object>) resourceType,
-                        label, pos, direction, cap,
+                        label, pos, direction, cap, count,
                         inputTrackers,
                         finalSlotConsumer
                 ));
@@ -119,12 +119,12 @@ public final class InputStatement implements IOStatement {
 
                 // gather slots for each capability found for positions tagged by a provided label
                 Consumer<LimitedInputSlot<?, ?, ?>> finalSlotConsumer = slotConsumer;
-                resourceType.forEachCapability(context, labelAccess, (label, pos, direction, cap) -> {
+                resourceType.forEachCapability(context, labelAccess, (label, pos, direction, cap, count) -> {
                     List<IInputResourceTracker> inputTrackers = resourceLimits.createInputTrackers();
                     gatherSlotsForCap(
                             context,
                             (ResourceType<Object, Object, Object>) resourceType,
-                            label, pos, direction, cap,
+                            label, pos, direction, cap, count,
                             inputTrackers,
                             finalSlotConsumer
                     );
@@ -237,6 +237,7 @@ public final class InputStatement implements IOStatement {
             BlockPos pos,
             Direction direction,
             CAP capability,
+            int count,
             List<IInputResourceTracker> trackers,
             Consumer<LimitedInputSlot<?, ?, ?>> acceptor
     ) {
@@ -258,12 +259,14 @@ public final class InputStatement implements IOStatement {
                                             stack,
                                             tracker.toString()
                                     )));
-                            acceptor.accept(LimitedInputSlotObjectPool.acquire(
-                                    label, pos, direction, slot, capability,
-                                    tracker,
-                                    stack,
-                                    type
-                            ));
+                            for (int i = 0; i < count; i++) {
+                                acceptor.accept(LimitedInputSlotObjectPool.acquire(
+                                        label, pos, direction, slot, capability,
+                                        tracker,
+                                        stack,
+                                        type
+                                ));
+                            }
                         }
                     }
                 } else {

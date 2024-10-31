@@ -10,6 +10,7 @@ public interface CapabilityConsumer<T> {
             Label label,
             BlockPos pos,
             Direction direction,
-            T cap
+            T cap,
+            int count
     );
 }

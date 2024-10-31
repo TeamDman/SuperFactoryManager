@@ -5,11 +5,8 @@ import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.*;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
-import com.mojang.math.Constants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayDeque;
 import java.util.List;
@@ -357,13 +354,14 @@ public class OutputStatement implements IOStatement {
                                 resourceType.displayAsCapabilityClass()
                         )));
                 resourceType.forEachCapability(context, labelAccess, (
-                        (label, pos, direction, cap) -> gatherSlotsForCap(
+                        (label, pos, direction, cap, count) -> gatherSlotsForCap(
                                 context,
                                 (ResourceType<Object, Object, Object>) resourceType,
                                 label,
                                 pos,
                                 direction,
                                 cap,
+                                count,
                                 outputTracker,
                                 slotConsumer
                         )
@@ -378,7 +376,7 @@ public class OutputStatement implements IOStatement {
                                 resourceType.displayAsCapabilityClass(),
                                 resourceType.displayAsCapabilityClass()
                         )));
-                resourceType.forEachCapability(context, labelAccess, (label, pos, direction, cap) -> {
+                resourceType.forEachCapability(context, labelAccess, (label, pos, direction, cap, count) -> {
                     // create a new list of trackers for each limited slot
                     List<IOutputResourceTracker> outputTracker = resourceLimits.createOutputTrackers();
                     gatherSlotsForCap(
@@ -388,6 +386,7 @@ public class OutputStatement implements IOStatement {
                             pos,
                             direction,
                             cap,
+                            count,
                             outputTracker,
                             slotConsumer
                     );
@@ -461,6 +460,7 @@ public class OutputStatement implements IOStatement {
             BlockPos pos,
             Direction direction,
             CAP capability,
+            int count,
             List<IOutputResourceTracker> trackers,
             Consumer<LimitedOutputSlot<?, ?, ?>> acceptor
     ) {
@@ -485,26 +485,28 @@ public class OutputStatement implements IOStatement {
                                             stack,
                                             tracker.toString()
                                     )));
-                            acceptor.accept(LimitedOutputSlotObjectPool.acquire(
-                                    label,
-                                    pos,
-                                    direction,
-                                    slot,
-                                    capability,
-                                    tracker,
-                                    stack,
-                                    type
-                            ));
+                            for (int i = 0; i < count; i++) {
+                                acceptor.accept(LimitedOutputSlotObjectPool.acquire(
+                                        label,
+                                        pos,
+                                        direction,
+                                        slot,
+                                        capability,
+                                        tracker,
+                                        stack,
+                                        type
+                                ));
+                            }
                         } else {
                             context
                                     .getLogger()
                                     .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_SHOULD_NOT_CREATE.get(
                                             finalSlot,
                                             type.getAmount(stack)
-                                            + " of "
-                                            + Math.min(type.getMaxStackSize(stack), type.getMaxStackSizeForSlot(capability, finalSlot))
-                                            + " "
-                                            + type.getItem(stack)
+                                                    + " of "
+                                                    + Math.min(type.getMaxStackSize(stack), type.getMaxStackSizeForSlot(capability, finalSlot))
+                                                    + " "
+                                                    + type.getItem(stack)
                                     )));
                         }
                     }
