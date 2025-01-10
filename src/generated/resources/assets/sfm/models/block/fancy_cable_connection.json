@@ -1,0 +1,79 @@
+{
+  "parent": "minecraft:block/block",
+  "elements": [
+    {
+      "faces": {
+        "down": {
+          "rotation": 90,
+          "texture": "#cable",
+          "uv": [
+            0.0,
+            0.0,
+            5.0,
+            6.0
+          ]
+        },
+        "east": {
+          "texture": "#cable",
+          "uv": [
+            0.0,
+            0.0,
+            5.0,
+            6.0
+          ]
+        },
+        "north": {
+          "texture": "#cable",
+          "uv": [
+            9.0,
+            1.0,
+            15.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#cable",
+          "uv": [
+            9.0,
+            1.0,
+            15.0,
+            7.0
+          ]
+        },
+        "up": {
+          "rotation": 90,
+          "texture": "#cable",
+          "uv": [
+            0.0,
+            0.0,
+            5.0,
+            6.0
+          ]
+        },
+        "west": {
+          "texture": "#cable",
+          "uv": [
+            0.0,
+            0.0,
+            5.0,
+            6.0
+          ]
+        }
+      },
+      "from": [
+        5,
+        5,
+        0
+      ],
+      "shade": false,
+      "to": [
+        11,
+        11,
+        5
+      ]
+    }
+  ],
+  "textures": {
+    "cable": "sfm:block/fancy_cable"
+  }
+}
