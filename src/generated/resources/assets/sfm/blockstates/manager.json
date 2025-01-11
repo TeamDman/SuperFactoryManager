@@ -1,7 +1,34 @@
 {
   "variants": {
-    "": {
+    "facing=east,triggered=false": {
+      "model": "sfm:block/manager",
+      "y": 90
+    },
+    "facing=east,triggered=true": {
+      "model": "sfm:block/manager",
+      "y": 90
+    },
+    "facing=north,triggered=false": {
       "model": "sfm:block/manager"
+    },
+    "facing=north,triggered=true": {
+      "model": "sfm:block/manager"
+    },
+    "facing=south,triggered=false": {
+      "model": "sfm:block/manager",
+      "y": 180
+    },
+    "facing=south,triggered=true": {
+      "model": "sfm:block/manager",
+      "y": 180
+    },
+    "facing=west,triggered=false": {
+      "model": "sfm:block/manager",
+      "y": 270
+    },
+    "facing=west,triggered=true": {
+      "model": "sfm:block/manager",
+      "y": 270
     }
   }
 }

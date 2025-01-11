@@ -7,55 +7,108 @@
     },
     {
       "apply": {
-        "model": "sfm:block/fancy_cable_connection",
+        "model": "sfm:block/fancy_cable_cable_connection",
         "x": 90
       },
       "when": {
-        "down": "true"
+        "down": "cable"
       }
     },
     {
       "apply": {
-        "model": "sfm:block/fancy_cable_connection",
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "x": 90
+      },
+      "when": {
+        "down": "inv"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection",
         "x": 270
       },
       "when": {
-        "up": "true"
+        "up": "cable"
       }
     },
     {
       "apply": {
-        "model": "sfm:block/fancy_cable_connection"
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "x": 270
       },
       "when": {
-        "north": "true"
+        "up": "inv"
       }
     },
     {
       "apply": {
-        "model": "sfm:block/fancy_cable_connection",
+        "model": "sfm:block/fancy_cable_cable_connection"
+      },
+      "when": {
+        "north": "cable"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_inv_connection"
+      },
+      "when": {
+        "north": "inv"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection",
         "y": 180
       },
       "when": {
-        "south": "true"
+        "south": "cable"
       }
     },
     {
       "apply": {
-        "model": "sfm:block/fancy_cable_connection",
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "y": 180
+      },
+      "when": {
+        "south": "inv"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection",
         "y": 270
       },
       "when": {
-        "west": "true"
+        "west": "cable"
       }
     },
     {
       "apply": {
-        "model": "sfm:block/fancy_cable_connection",
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "y": 270
+      },
+      "when": {
+        "west": "inv"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection",
         "y": 90
       },
       "when": {
-        "east": "true"
+        "east": "cable"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "y": 90
+      },
+      "when": {
+        "east": "inv"
       }
     }
   ]

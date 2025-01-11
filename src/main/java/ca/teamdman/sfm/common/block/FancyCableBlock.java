@@ -1,10 +1,10 @@
 package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -24,16 +24,14 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 public class FancyCableBlock extends CableBlock {
-    public static final BooleanProperty NORTH = BooleanProperty.create("north");
-    public static final BooleanProperty SOUTH = BooleanProperty.create("south");
-    public static final BooleanProperty EAST = BooleanProperty.create("east");
-    public static final BooleanProperty WEST = BooleanProperty.create("west");
-    public static final BooleanProperty UP = BooleanProperty.create("up");
+    public static final EnumProperty<CABLE_CONNECTION_TYPE> NORTH = EnumProperty.create("north",CABLE_CONNECTION_TYPE.class);
+    public static final EnumProperty<CABLE_CONNECTION_TYPE> SOUTH = EnumProperty.create("south",CABLE_CONNECTION_TYPE.class);
+    public static final EnumProperty<CABLE_CONNECTION_TYPE> EAST = EnumProperty.create("east",CABLE_CONNECTION_TYPE.class);
+    public static final EnumProperty<CABLE_CONNECTION_TYPE> WEST = EnumProperty.create("west",CABLE_CONNECTION_TYPE.class);
+    public static final EnumProperty<CABLE_CONNECTION_TYPE> UP = EnumProperty.create("up",CABLE_CONNECTION_TYPE.class);
+    public static final EnumProperty<CABLE_CONNECTION_TYPE> DOWN = EnumProperty.create("down",CABLE_CONNECTION_TYPE.class);
 
-
-    public static final BooleanProperty DOWN = BooleanProperty.create("down");
-
-    public static final VoxelShape SHAPE_CORE = Block.box(4, 4, 4, 12, 12, 12);
+    public static final VoxelShape SHAPE_CORE = Block.box(5, 5, 5, 11, 11, 11);
     public static final VoxelShape SHAPE_NORTH = Block.box(5, 5, 0, 11, 11, 5);
     public static final VoxelShape SHAPE_SOUTH = Block.box(5, 5, 11, 11, 11, 16);
     public static final VoxelShape SHAPE_EAST = Block.box(11, 5, 5, 16, 11, 11);
@@ -41,7 +39,7 @@ public class FancyCableBlock extends CableBlock {
     public static final VoxelShape SHAPE_UP = Block.box(5, 11, 5, 11, 16, 11);
     public static final VoxelShape SHAPE_DOWN = Block.box(5, 0, 5, 11, 5, 11);
 
-    public static final Map<Direction, BooleanProperty> DIRECTION_PROPERTIES = ImmutableMap.of(
+    public static final Map<Direction, EnumProperty<CABLE_CONNECTION_TYPE>> DIRECTION_PROPERTIES = ImmutableMap.of(
             Direction.NORTH, NORTH,
             Direction.SOUTH, SOUTH,
             Direction.EAST, EAST,
@@ -54,12 +52,12 @@ public class FancyCableBlock extends CableBlock {
         super();
         registerDefaultState(
                 defaultBlockState()
-                        .setValue(NORTH, false)
-                        .setValue(SOUTH, false)
-                        .setValue(EAST, false)
-                        .setValue(WEST, false)
-                        .setValue(UP, false)
-                        .setValue(DOWN, false)
+                        .setValue(NORTH, CABLE_CONNECTION_TYPE.AIR)
+                        .setValue(SOUTH, CABLE_CONNECTION_TYPE.AIR)
+                        .setValue(EAST, CABLE_CONNECTION_TYPE.AIR)
+                        .setValue(WEST, CABLE_CONNECTION_TYPE.AIR)
+                        .setValue(UP, CABLE_CONNECTION_TYPE.AIR)
+                        .setValue(DOWN, CABLE_CONNECTION_TYPE.AIR)
         );
     }
 
@@ -110,12 +108,12 @@ public class FancyCableBlock extends CableBlock {
     protected static VoxelShape getShape(BlockState state) {
         var shape = SHAPE_CORE;
 
-        shape = combineShapes(shape, SHAPE_NORTH, () -> state.getValue(NORTH));
-        shape = combineShapes(shape, SHAPE_SOUTH, () -> state.getValue(SOUTH));
-        shape = combineShapes(shape, SHAPE_EAST, () -> state.getValue(EAST));
-        shape = combineShapes(shape, SHAPE_WEST, () -> state.getValue(WEST));
-        shape = combineShapes(shape, SHAPE_UP, () -> state.getValue(UP));
-        shape = combineShapes(shape, SHAPE_DOWN, () -> state.getValue(DOWN));
+        shape = combineShapes(shape, SHAPE_NORTH, () -> state.getValue(NORTH) != CABLE_CONNECTION_TYPE.AIR);
+        shape = combineShapes(shape, SHAPE_SOUTH, () -> state.getValue(SOUTH) != CABLE_CONNECTION_TYPE.AIR);
+        shape = combineShapes(shape, SHAPE_EAST, () -> state.getValue(EAST) != CABLE_CONNECTION_TYPE.AIR);
+        shape = combineShapes(shape, SHAPE_WEST, () -> state.getValue(WEST) != CABLE_CONNECTION_TYPE.AIR);
+        shape = combineShapes(shape, SHAPE_UP, () -> state.getValue(UP) != CABLE_CONNECTION_TYPE.AIR);
+        shape = combineShapes(shape, SHAPE_DOWN, () -> state.getValue(DOWN) != CABLE_CONNECTION_TYPE.AIR);
 
         return shape;
     }
@@ -139,12 +137,12 @@ public class FancyCableBlock extends CableBlock {
             LevelAccessor level,
             BlockPos pos
     ) {
-        boolean north = hasConnection(level, pos, Direction.NORTH);
-        boolean south = hasConnection(level, pos, Direction.SOUTH);
-        boolean east = hasConnection(level, pos, Direction.EAST);
-        boolean west = hasConnection(level, pos, Direction.WEST);
-        boolean up = hasConnection(level, pos, Direction.UP);
-        boolean down = hasConnection(level, pos, Direction.DOWN);
+        CABLE_CONNECTION_TYPE north = getConnection(level, pos, Direction.NORTH);
+        CABLE_CONNECTION_TYPE south = getConnection(level, pos, Direction.SOUTH);
+        CABLE_CONNECTION_TYPE east = getConnection(level, pos, Direction.EAST);
+        CABLE_CONNECTION_TYPE west = getConnection(level, pos, Direction.WEST);
+        CABLE_CONNECTION_TYPE up = getConnection(level, pos, Direction.UP);
+        CABLE_CONNECTION_TYPE down = getConnection(level, pos, Direction.DOWN);
 
         return currentState
                 .setValue(NORTH, north)
@@ -172,5 +170,36 @@ public class FancyCableBlock extends CableBlock {
         }
 
         return blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER, direction.getOpposite()).isPresent();
+    }
+
+    protected CABLE_CONNECTION_TYPE getConnection(
+            LevelAccessor level,
+            BlockPos pos,
+            Direction direction
+    ) {
+        // Directly connect to other cables
+        BlockPos relative = pos.relative(direction);
+        if (level.getBlockState(relative).getBlock() instanceof CableBlock) {
+            return CABLE_CONNECTION_TYPE.CABLE;
+        }
+
+        BlockEntity blockEntity = level.getBlockEntity(relative);
+        if (blockEntity == null) {
+            return CABLE_CONNECTION_TYPE.AIR;
+        } else if (blockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER, direction.getOpposite()).isPresent()){
+            return CABLE_CONNECTION_TYPE.INV;
+        }
+        return CABLE_CONNECTION_TYPE.AIR;
+    }
+
+    public enum CABLE_CONNECTION_TYPE implements StringRepresentable{
+        AIR,
+        CABLE,
+        INV;
+
+        @Override
+        public String getSerializedName() {
+            return this.name().toLowerCase();
+        }
     }
 }

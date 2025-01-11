@@ -26,7 +26,7 @@ public class SFMItemModels extends ItemModelProvider {
         justParent(SFMItems.PRINTING_PRESS_ITEM, SFMBlocks.PRINTING_PRESS_BLOCK);
         justParent(SFMItems.WATER_TANK_ITEM, SFMBlocks.WATER_TANK_BLOCK, "_active");
         basicItem(SFMItems.DISK_ITEM);
-        basicItem(SFMItems.LABEL_GUN_ITEM);
+        //basicItem(SFMItems.LABEL_GUN_ITEM); Using custom 3D texture
         basicItem(SFMItems.EXPERIENCE_GOOP_ITEM);
         basicItem(SFMItems.EXPERIENCE_SHARD_ITEM);
         basicItem(SFMItems.NETWORK_TOOL_ITEM);
