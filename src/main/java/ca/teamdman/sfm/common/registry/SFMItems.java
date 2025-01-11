@@ -19,6 +19,7 @@ public class SFMItems {
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, SFM.MOD_ID);
     public static final RegistryObject<Item> MANAGER_ITEM = register("manager", SFMBlocks.MANAGER_BLOCK);
     public static final RegistryObject<Item> CABLE_ITEM = register("cable", SFMBlocks.CABLE_BLOCK);
+    public static final RegistryObject<Item> FANCY_CABLE_ITEM = register("fancy_cable", SFMBlocks.FANCY_CABLE_BLOCK);
     //    public static final  RegistryObject<Item>   BATTERY_ITEM    = register("battery", SFMBlocks.BATTERY_BLOCK);
     public static final RegistryObject<Item> WATER_TANK_ITEM = register("water_tank", SFMBlocks.WATER_TANK_BLOCK);
     public static final RegistryObject<Item> DISK_ITEM = ITEMS.register("disk", DiskItem::new);

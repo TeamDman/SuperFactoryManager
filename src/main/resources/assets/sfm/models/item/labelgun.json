@@ -1,0 +1,12 @@
+{
+	"parent": "minecraft:item/handheld",
+	"loader": "forge:separate_transforms",
+	"base": {
+		"parent": "sfm:item/labelgun3d"
+	},
+	"perspectives": {
+		"gui": {
+			"parent": "sfm:item/labelgun2d"
+		}
+	}
+}

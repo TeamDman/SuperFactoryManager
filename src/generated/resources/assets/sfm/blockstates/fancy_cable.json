@@ -1,0 +1,115 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_core"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection",
+        "x": 90
+      },
+      "when": {
+        "down": "cable"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "x": 90
+      },
+      "when": {
+        "down": "inv"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection",
+        "x": 270
+      },
+      "when": {
+        "up": "cable"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "x": 270
+      },
+      "when": {
+        "up": "inv"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection"
+      },
+      "when": {
+        "north": "cable"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_inv_connection"
+      },
+      "when": {
+        "north": "inv"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection",
+        "y": 180
+      },
+      "when": {
+        "south": "cable"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "y": 180
+      },
+      "when": {
+        "south": "inv"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection",
+        "y": 270
+      },
+      "when": {
+        "west": "cable"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "y": 270
+      },
+      "when": {
+        "west": "inv"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_cable_connection",
+        "y": 90
+      },
+      "when": {
+        "east": "cable"
+      }
+    },
+    {
+      "apply": {
+        "model": "sfm:block/fancy_cable_inv_connection",
+        "y": 90
+      },
+      "when": {
+        "east": "inv"
+      }
+    }
+  ]
+}

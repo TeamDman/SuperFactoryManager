@@ -4,8 +4,6 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.common.registry.SFMItems;
 import net.minecraft.client.renderer.block.model.BlockModel;
-import net.minecraft.data.DataGenerator;
-import net.minecraft.data.PackOutput;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.client.model.generators.ItemModelProvider;
@@ -24,10 +22,11 @@ public class SFMItemModels extends ItemModelProvider {
     protected void registerModels() {
         justParent(SFMItems.MANAGER_ITEM, SFMBlocks.MANAGER_BLOCK);
         justParent(SFMItems.CABLE_ITEM, SFMBlocks.CABLE_BLOCK);
+        justParent(SFMItems.FANCY_CABLE_ITEM, SFMBlocks.FANCY_CABLE_BLOCK, "_core");
         justParent(SFMItems.PRINTING_PRESS_ITEM, SFMBlocks.PRINTING_PRESS_BLOCK);
         justParent(SFMItems.WATER_TANK_ITEM, SFMBlocks.WATER_TANK_BLOCK, "_active");
         basicItem(SFMItems.DISK_ITEM);
-        basicItem(SFMItems.LABEL_GUN_ITEM);
+        //basicItem(SFMItems.LABEL_GUN_ITEM); Using custom 3D texture
         basicItem(SFMItems.EXPERIENCE_GOOP_ITEM);
         basicItem(SFMItems.EXPERIENCE_SHARD_ITEM);
         basicItem(SFMItems.NETWORK_TOOL_ITEM);
