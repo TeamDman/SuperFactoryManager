@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class RoundRobin implements ASTNode {
@@ -43,17 +44,19 @@ public class RoundRobin implements ASTNode {
         return behaviour != Behaviour.UNMODIFIED;
     }
 
-    public @NotNull ArrayList<Pair<Label, BlockPos>> getPositionsForLabels(
+    public @NotNull HashMap<Pair<Label, BlockPos>, Integer> getPositionsForLabels(
             LabelAccess labelAccess,
             LabelPositionHolder labelPositionHolder
     ) {
-        ArrayList<Pair<Label, BlockPos>> positions = new ArrayList<>();
+        HashMap<Pair<Label, BlockPos>, Integer> positions = new HashMap<>();
+
         switch (getBehaviour()) {
             case BY_LABEL -> {
                 int index = next(labelAccess.labels().size());
                 Label label = labelAccess.labels().get(index);
                 for (BlockPos pos : labelPositionHolder.getPositions(label.name())) {
-                    positions.add(Pair.of(label, pos));
+                    Pair<Label, BlockPos> pair = Pair.of(label, pos);
+                    positions.put(pair, positions.getOrDefault(pair, 0) + 1);
                 }
             }
             case BY_BLOCK -> {
@@ -66,13 +69,15 @@ public class RoundRobin implements ASTNode {
                     }
                 }
                 if (!candidates.isEmpty()) {
-                    positions.add(candidates.get(next(candidates.size())));
+                    Pair<Label, BlockPos> pair = candidates.get(next(candidates.size()));
+                    positions.put(pair, positions.getOrDefault(pair, 0) + 1);
                 }
             }
             case UNMODIFIED -> {
                 for (Label label : labelAccess.labels()) {
                     for (BlockPos pos : labelPositionHolder.getPositions(label.name())) {
-                        positions.add(Pair.of(label, pos));
+                        Pair<Label, BlockPos> pair = Pair.of(label, pos);
+                        positions.put(pair, positions.getOrDefault(pair, 0) + 1);
                     }
                 }
             }

@@ -64,5 +64,10 @@ public final class SFMBlockEntities {
                     .build(null)
     );
 
-
+    public static final Supplier<BlockEntityType<ProxyBlockEntity>> PROXY_BLOCK_ENTITY = BLOCK_ENTITY_TYPES.register(
+            "proxy",
+            () -> BlockEntityType.Builder
+                    .of(ProxyBlockEntity::new, SFMBlocks.PROXY_BLOCK.get())
+                    .build(null)
+    );
 }

@@ -21,6 +21,7 @@ public class SFMBlocks {
     public static final Supplier<Block> CABLE_BLOCK = BLOCKS.register("cable", CableBlock::new);
     public static final Supplier<Block> BATTERY_BLOCK = BLOCKS.register("battery", BatteryBlock::new);
     public static final Supplier<Block> TEST_BARREL_BLOCK = BLOCKS.register("test_barrel", TestBarrelBlock::new);
+    public static final Supplier<Block> PROXY_BLOCK = BLOCKS.register("proxy", ProxyBlock::new);
 
     public static void register(IEventBus bus) {
         BLOCKS.register(bus);

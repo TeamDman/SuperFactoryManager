@@ -21,7 +21,7 @@ public record ResourceComparer<STACK, ITEM, CAP>(
                     AtomicLong overallCount = new AtomicLong(0);
                     // track how many inventories satisfied the condition
                     List<Boolean> satisfiedSet = new ArrayList<>();
-                    type.forEachCapability(context, labelAccess, (label, pos, direction, cap) -> {
+                    type.forEachCapability(context, labelAccess, (label, pos, direction, cap, count) -> {
                         long inThisInv = 0;
                         for (var stack : (Iterable<STACK>) type.getStacksInSlots(cap, labelAccess.slots())::iterator) {
                             if (this.res.matchesStack(stack)) {

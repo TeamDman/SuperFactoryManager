@@ -16,7 +16,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -120,12 +120,12 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
         CableNetwork network = programContext.getNetwork();
         RoundRobin roundRobin = labelAccess.roundRobin();
         LabelPositionHolder labelPositionHolder = programContext.getLabelPositionHolder();
-        ArrayList<Pair<Label, BlockPos>> positions = roundRobin.getPositionsForLabels(
+        HashMap<Pair<Label, BlockPos>, Integer> positions = roundRobin.getPositionsForLabels(
                 labelAccess,
                 labelPositionHolder
         );
 
-        for (var pair : positions) {
+        for (var pair : positions.keySet()) {
             Label label = pair.getFirst();
             BlockPos pos = pair.getSecond();
             // Expand pos to (pos, direction) pairs
@@ -143,7 +143,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
                                         pos,
                                         dir
                                 )));
-                        consumer.accept(label, pos, dir, cap);
+                        consumer.accept(label, pos, dir, cap, positions.get(pair));
                         continue;
                     }
                 }
