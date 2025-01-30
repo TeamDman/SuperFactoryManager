@@ -7,7 +7,6 @@ import ca.teamdman.sfm.common.program.ProgramContext;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public record OutputStatement(
@@ -18,7 +17,7 @@ public record OutputStatement(
     @Override
     public void tick(ProgramContext context) {
         var inputSlots  = context.getInputs().flatMap(x -> x.getSlots(context));
-        var outputSlots = getSlots(context).collect(Collectors.toList());
+        var outputSlots = getSlots(context).toList();
         grabbing:
         for (var in : (Iterable<LimitedInputSlot>) inputSlots::iterator) {
             for (var out : outputSlots) {

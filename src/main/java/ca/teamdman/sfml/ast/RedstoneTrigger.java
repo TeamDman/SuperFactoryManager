@@ -8,8 +8,9 @@ public record RedstoneTrigger(
 
     @Override
     public void tick(ProgramContext context) {
-        context.getManager().trackRedstonePulseProcessed();
-        block.tick(context);
+        for (int i = 0; i < context.getRedstonePulses(); i++) {
+            block.tick(context);
+        }
     }
 
     @Override

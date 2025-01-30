@@ -54,14 +54,13 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
         }
     };
     private             int                    unprocessedRedstonePulses = 0; // used by redstone trigger
-    private             boolean                redstonePulseDebounce = false;
 
     public void trackRedstonePulseUnprocessed() {
         unprocessedRedstonePulses++;
     }
 
-    public void trackRedstonePulseProcessed() {
-        unprocessedRedstonePulses--;
+    public void clearRedstonePulseQueue() {
+        unprocessedRedstonePulses = 0;
     }
 
     public int getUnprocessedRedstonePulseCount() {
@@ -141,6 +140,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
         try {
             programAST = new ASTBuilder().visitProgram(context);
             DiskItem.setProgramName(disk, programAST.name());
+            programAST.addWarnings(disk);
         } catch (ResourceLocationException | IllegalArgumentException e) {
             errors.add(e.getMessage());
         } catch (Throwable t) {
@@ -243,14 +243,6 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
             setItem(0, disk);
             setChanged();
         });
-    }
-
-    public boolean isRedstonePulseDebounce() {
-        return redstonePulseDebounce;
-    }
-
-    public void setRedstonePulseDebounce(boolean redstonePulseDebounce) {
-        this.redstonePulseDebounce = redstonePulseDebounce;
     }
 
     public enum State {

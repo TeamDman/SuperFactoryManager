@@ -19,6 +19,8 @@ public class ProgramExecutor {
 
     public void tick() {
         var context = new ProgramContext(MANAGER);
+
+        // update warnings on disk item every 20 seconds
         if (MANAGER
                     .getLevel()
                     .getGameTime() % 20 == 0) {
@@ -27,6 +29,7 @@ public class ProgramExecutor {
                     .ifPresent(PROGRAM::addWarnings);
         }
         PROGRAM.tick(context);
+        MANAGER.clearRedstonePulseQueue();
     }
 
     public Set<String> getReferencedLabels() {

@@ -33,11 +33,10 @@ public record Program(
     public void tick(ProgramContext context) {
         for (Trigger t : triggers) {
             if (t.shouldTick(context)) {
-                var start = System.nanoTime();
-                t.tick(context);
-                context.clear();
-                var end  = System.nanoTime();
-                var diff = end - start;
+//                var start = System.nanoTime();
+                t.tick(context.fork());
+//                var end  = System.nanoTime();
+//                var diff = end - start;
 //                SFM.LOGGER.debug("Took {}ms ({}us)", diff / 1000000, diff);
             }
         }

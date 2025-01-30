@@ -21,6 +21,9 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.network.NetworkHooks;
@@ -28,13 +31,20 @@ import net.minecraftforge.network.NetworkHooks;
 import javax.annotation.Nullable;
 
 public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable {
+    public static final BooleanProperty TRIGGERED = BlockStateProperties.TRIGGERED;
+
     public ManagerBlock() {
         super(BlockBehaviour.Properties
                       .of(Material.PISTON)
                       .destroyTime(2)
                       .sound(SoundType.METAL));
+        registerDefaultState(getStateDefinition().any().setValue(TRIGGERED, false));
     }
 
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(TRIGGERED);
+    }
 
     public RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
@@ -50,14 +60,14 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             BlockPos neighbourPos,
             boolean movedByPiston
     ) {
-        if (level.getBlockEntity(pos) instanceof ManagerBlockEntity mgr) {
-            if (level.hasNeighborSignal(pos) || level.hasNeighborSignal(pos.above())) {
-                if (!mgr.isRedstonePulseDebounce()) {
-                    mgr.trackRedstonePulseUnprocessed();
-                }
-            } else if (mgr.isRedstonePulseDebounce()) {
-                mgr.setRedstonePulseDebounce(false);
-            }
+        if (!(level.getBlockEntity(pos) instanceof ManagerBlockEntity mgr)) return;
+        var isPowered = level.hasNeighborSignal(pos) || level.hasNeighborSignal(pos.above());
+        var debounce  = state.getValue(TRIGGERED);
+        if (isPowered && !debounce) {
+            mgr.trackRedstonePulseUnprocessed();
+            level.setBlock(pos, state.setValue(TRIGGERED, true), 4);
+        } else if (!isPowered && debounce) {
+            level.setBlock(pos, state.setValue(TRIGGERED, false), 4);
         }
     }
 
