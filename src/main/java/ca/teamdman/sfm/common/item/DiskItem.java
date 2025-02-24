@@ -54,6 +54,12 @@ public class DiskItem extends Item {
         stack.set(SFMDataComponents.PROGRAM_STRING, programString);
     }
 
+    public static void pruneIfDefault(ItemStack stack) {
+        if (getProgram(stack).isBlank() && LabelPositionHolder.from(stack).isEmpty()) {
+            clearData(stack);
+        }
+    }
+
     public static void clearData(ItemStack stack) {
         stack.remove(SFMDataComponents.PROGRAM_STRING);
         stack.remove(SFMDataComponents.PROGRAM_ERRORS);
@@ -191,8 +197,7 @@ public class DiskItem extends Item {
             TooltipFlag detail
     ) {
         String program = DiskItem.getProgram(stack);
-        if (!program.isEmpty()) {
-            if (SFMItemUtils.isClientAndMoreInfoKeyPressed()) {
+            if (SFMItemUtils.isClientAndMoreInfoKeyPressed() && !program.isEmpty()) {
                 // show the program
                 lines.add(SFMItemUtils.getRainbow(getName(stack).getString().length()));
                 lines.addAll(ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false));
@@ -208,11 +213,12 @@ public class DiskItem extends Item {
                         .map(Component::copy)
                         .map(line -> line.withStyle(ChatFormatting.YELLOW))
                         .forEach(lines::add);
-                SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(lines);
+                if (!program.isEmpty()) {
+                    SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(lines);
+                }
             }
-        } else {
-            lines.add(LocalizationKeys.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
+        if (!program.isEmpty()) {
+                lines.add(LocalizationKeys.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
+            }
         }
-    }
-
 }

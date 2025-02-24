@@ -2,10 +2,13 @@ package ca.teamdman.sfm.common.facade;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,7 +26,7 @@ public record FacadeData(
     }
 
     public static @Nullable FacadeData load(
-            Level level,
+            @Nullable Level level,
             CompoundTag tag
     ) {
         if (tag.contains("sfm:facade", CompoundTag.TAG_COMPOUND)) {
@@ -37,10 +40,21 @@ public record FacadeData(
         }
         return null;
     }
+
+    /**
+     * See {@link net.minecraft.world.level.block.piston.MovingPistonBlock::load}
+     */
     @MCVersionDependentBehaviour
-    private static BlockState readBlockState(CompoundTag tag, Level level) {
+    private static BlockState readBlockState(
+            CompoundTag tag,
+            @Nullable Level level
+    ) {
+        @SuppressWarnings("deprecation")
+        HolderGetter<Block> holderGetter = level != null
+                                           ? level.holderLookup(Registries.BLOCK)
+                                           : BuiltInRegistries.BLOCK.asLookup();
         return NbtUtils.readBlockState(
-                level.holderLookup(Registries.BLOCK),
+                holderGetter,
                 tag
         );
     }

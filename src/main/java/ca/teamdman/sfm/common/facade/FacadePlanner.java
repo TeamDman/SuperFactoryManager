@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.facade;
 
 import ca.teamdman.sfm.common.block.IFacadableBlock;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.net.ServerboundFacadePacket;
 import ca.teamdman.sfm.common.util.InPlaceBlockPlaceContext;
@@ -18,6 +19,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -102,8 +104,13 @@ public class FacadePlanner {
             @Stored BlockPos hitPos,
             Block hitBlock
     ) {
-        return switch (msg.spreadLogic()) {
-            case SINGLE -> Set.of(hitPos);
+        Set<BlockPos> positions = switch (msg.spreadLogic()) {
+            case SINGLE -> {
+                // ensure mutable
+                Set<BlockPos> set = new HashSet<>();
+                set.add(hitPos);
+                yield set;
+            }
             case NETWORK -> CableNetwork.discoverCables(level, hitPos).collect(Collectors.toSet());
             case NETWORK_GLOBAL_SAME_PAINT -> {
                 if (level.getBlockEntity(hitPos) instanceof IFacadeBlockEntity startFacadeBlockEntity) {
@@ -185,5 +192,7 @@ public class FacadePlanner {
                 }
             }
         };
+        positions.removeIf(pos -> level.getBlockEntity(pos) instanceof ManagerBlockEntity);
+        return positions;
     }
 }

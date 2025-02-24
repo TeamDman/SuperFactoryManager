@@ -34,6 +34,7 @@ d----          2024-04-14  1:39 PM                SuperFactoryManager 1.20.3
             Push-Location $repo
             Write-Host "Running runGameTestServer for $repo"
             $test_log_file = "logs\test.log"
+            New-Item -ItemType Directory -Path "logs" -ErrorAction SilentlyContinue
             Clear-Content $test_log_file -ErrorAction SilentlyContinue
             .\gradlew.bat runGameTestServer --no-daemon | Tee-Object -FilePath $test_log_file
             # Gradle 

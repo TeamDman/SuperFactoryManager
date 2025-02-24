@@ -18,7 +18,7 @@ tasks.named('wrapper', Wrapper).configure {
 }
 
 base {
-    archivesName = "${mod_name}-${minecraft_version}"
+    archivesName = "${mod_name}-MC${minecraft_version}-${mod_version}"
 }
 
 // Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.

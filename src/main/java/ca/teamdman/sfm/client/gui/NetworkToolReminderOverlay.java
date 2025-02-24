@@ -2,7 +2,6 @@ package ca.teamdman.sfm.client.gui;
 
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.item.NetworkToolItem;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
@@ -57,7 +56,7 @@ public class NetworkToolReminderOverlay implements LayeredDraw.Layer {
         if (player == null) return false;
         if (!SFMConfig.CLIENT.showNetworkToolReminderOverlay.get()) return false;
         ItemStack networkTool = SFMHandUtils.getItemInEitherHand(player, SFMItems.NETWORK_TOOL_ITEM.get());
-        if (networkTool.isEmpty()) return false;
-        return NetworkToolItem.getOverlayEnabled(networkTool);
+//        return !networkTool.isEmpty() && NetworkToolItem.getOverlayEnabled(networkTool);
+        return !networkTool.isEmpty();
     }
 }

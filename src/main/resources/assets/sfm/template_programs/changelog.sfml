@@ -4,7 +4,7 @@ NAME "Changelog"
 -- Official SFM Donation Page:
 -- https://ko-fi.com/teamdman
 
----- 4.20.0-pre ----
+---- 4.20.0 ----
 -- Fix disks having no name when program has no name for 1.21+
 -- VSCode extension updates, thanks @Titop54 for the help <3
 -- Fix max program length ungraceful crash, thanks @Crazy

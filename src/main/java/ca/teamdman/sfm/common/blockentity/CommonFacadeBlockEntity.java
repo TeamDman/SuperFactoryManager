@@ -53,8 +53,6 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
             HolderLookup.Provider pRegistries
     ) {
         super.loadAdditional(pTag, pRegistries);
-
-        assert level != null;
         FacadeData tried = FacadeData.load(level, pTag);
         if (tried != null) {
             this.facadeData = tried;

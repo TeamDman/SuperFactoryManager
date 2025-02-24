@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.render;
 
 
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.FaceBakery;
@@ -51,16 +52,18 @@ public class RetexturedBakedQuad extends BakedQuad {
         return texture;
     }
 
+    @MCVersionDependentBehaviour
     private static float getUnInterpolatedU(TextureAtlasSprite sprite, float u) {
 
         float f = sprite.getU1() - sprite.getU0();
-        return (u - sprite.getU0()) / f * 16.0F;
+        return (u - sprite.getU0()) / f;// * 16.0F; // don't multiple for 1.20.2 and above
     }
 
+    @MCVersionDependentBehaviour
     private static float getUnInterpolatedV(TextureAtlasSprite sprite, float v) {
 
         float f = sprite.getV1() - sprite.getV0();
-        return (v - sprite.getV0()) / f * 16.0F;
+        return (v - sprite.getV0()) / f;// * 16.0F; // don't multiple for 1.20.2 and above
     }
 
 }

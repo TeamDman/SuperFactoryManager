@@ -1,6 +1,7 @@
 package ca.teamdman.sfm;
 
 import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.*;
@@ -31,16 +32,26 @@ public class CompressionTests {
         buf.readNbt();
     }
 
+    @MCVersionDependentBehaviour // In 1.21.0, writeBlockPos uses an intarray instead of compound tag
+    private static CompoundTag writeBlockPosVersionAgnostic(BlockPos pos) {
+        CompoundTag compoundtag = new CompoundTag();
+        compoundtag.putInt("X", pos.getX());
+        compoundtag.putInt("Y", pos.getY());
+        compoundtag.putInt("Z", pos.getZ());
+        return compoundtag;
+    }
+
     @Test
     public void compound_list() {
         Set<BlockPos> positions = new HashSet<>();
         BlockPos first = new BlockPos(14, -58, 22);
         BlockPos second = new BlockPos(32, -25, 3);
         BlockPos.betweenClosedStream(first, second).map(BlockPos::immutable).forEach(positions::add);
+        System.out.println("There are " + positions.size() + " positions");
 
         ListTag tag = positions
                 .stream()
-                .map(NbtUtils::writeBlockPos)
+                .map(CompressionTests::writeBlockPosVersionAgnostic)
                 .collect(ListTag::new, ListTag::add, ListTag::addAll);
         assertThrows(RuntimeException.class, ()-> assertTagSizeOkay(tag));
     }

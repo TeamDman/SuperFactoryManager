@@ -7,7 +7,7 @@ function Get-JarForVersion {
     )
     $jars = Get-ChildItem -Path "D:\Repos\Minecraft\SFM\jars"
     foreach ($jar in $jars) {
-        if ($jar.Name -like "*-$version-*") {
+        if ($jar.Name -like "*-MC$version-*") {
             return $jar
         }
     }
