@@ -10,7 +10,7 @@
   "block.sfm.test_barrel_tank": "Test Barrel Tank",
   "block.sfm.water_tank": "水箱",
   "block.sfm.water_tank.tooltip.1": "需要两个相邻的水源",
-  "block.sfm.water_tank.tooltip.2": "与其他水箱相邻时更有效",
+  "block.sfm.water_tank.tooltip.2": "与其他激活水箱相邻时效果更佳",
   "chat.sfm.config_update_and_sync_result.failed_to_find": "找不到超级工厂管理 toml 配置文件。",
   "chat.sfm.config_update_and_sync_result.internal_failure": "更新超级工厂管理配置时出错，我不知道是否进行了更改。请检查服务器日志。",
   "chat.sfm.config_update_and_sync_result.invalid_config": "提供的超级工厂管理配置无效，未进行任何更改。",
