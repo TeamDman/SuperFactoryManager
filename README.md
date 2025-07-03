@@ -24,6 +24,7 @@ To get started, you will need a factory manager, a label gun, and a disk.
 ## Mod Spotlight
 
 [![mod spotlight](https://i.ytimg.com/vi/W5wY23VxZAc/maxresdefault.jpg)](https://www.youtube.com/watch?v=W5wY23VxZAc)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FTeamDman%2FSuperFactoryManager.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FTeamDman%2FSuperFactoryManager?ref=badge_shield)
 
 ## VSCode Extension
 
@@ -31,3 +32,7 @@ Get the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=T
 for syntax highlighting 🌈
 
 ![](media/vscode%20syntax.png)
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FTeamDman%2FSuperFactoryManager.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FTeamDman%2FSuperFactoryManager?ref=badge_large)
