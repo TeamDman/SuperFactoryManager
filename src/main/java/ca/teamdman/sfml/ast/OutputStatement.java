@@ -433,7 +433,7 @@ public class OutputStatement implements IOStatement {
         if (!each) {
             context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_NOT_EACH.get()));
             // create a single list of trackers to be shared between all limited slots
-            List<IOutputResourceTracker> outputTracker = resourceLimits.createOutputTrackers();
+            List<IOutputResourceTracker> outputTracker = resourceLimits.createOutputTrackers(context);
             for (var resourceType : resourceLimits.getReferencedResourceTypes()) {
                 context
                         .getLogger()
@@ -465,7 +465,7 @@ public class OutputStatement implements IOStatement {
                         )));
                 resourceType.forEachCapability(context, labelAccess, (label, pos, direction, cap) -> {
                     // create a new list of trackers for each limited slot
-                    List<IOutputResourceTracker> outputTracker = resourceLimits.createOutputTrackers();
+                    List<IOutputResourceTracker> outputTracker = resourceLimits.createOutputTrackers(context);
                     gatherSlotsForCap(
                             context,
                             (ResourceType<Object, Object, Object>) resourceType,

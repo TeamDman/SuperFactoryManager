@@ -22,7 +22,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .stream()
                 .filter(pair -> pair.getSecond() != null)
                 .filter(pair -> pair.getSecond().start.getStartIndex() <= cursorPos
-                                && pair.getSecond().stop.getStopIndex() >= cursorPos)
+                        && pair.getSecond().stop.getStopIndex() >= cursorPos)
                 .collect(Collectors.toList());
     }
 
@@ -112,8 +112,8 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         if (label.name().length() > Program.MAX_LABEL_LENGTH) {
             throw new IllegalArgumentException(
                     "Label name cannot be longer than "
-                    + Program.MAX_LABEL_LENGTH
-                    + " characters."
+                            + Program.MAX_LABEL_LENGTH
+                            + " characters."
             );
         }
         USED_LABELS.add(label);
@@ -127,8 +127,8 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         if (label.name().length() > Program.MAX_LABEL_LENGTH) {
             throw new IllegalArgumentException(
                     "Label name cannot be longer than "
-                    + Program.MAX_LABEL_LENGTH
-                    + " characters."
+                            + Program.MAX_LABEL_LENGTH
+                            + " characters."
             );
         }
         USED_LABELS.add(label);
@@ -166,8 +166,8 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
         // get default min interval
         int minInterval = timerTrigger.usesOnlyForgeEnergyResourceIO()
-                          ? SFMConfig.getOrDefault(SFMConfig.SERVER_CONFIG.timerTriggerMinimumIntervalInTicksWhenOnlyForgeEnergyIO)
-                          : SFMConfig.getOrDefault(SFMConfig.SERVER_CONFIG.timerTriggerMinimumIntervalInTicks);
+                ? SFMConfig.getOrDefault(SFMConfig.SERVER_CONFIG.timerTriggerMinimumIntervalInTicksWhenOnlyForgeEnergyIO)
+                : SFMConfig.getOrDefault(SFMConfig.SERVER_CONFIG.timerTriggerMinimumIntervalInTicks);
 
         // validate interval
         if (time.ticks() < minInterval) {
@@ -181,15 +181,12 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     @Override
     public ASTNode visitBooleanRedstone(SFMLParser.BooleanRedstoneContext ctx) {
         ComparisonOperator comp = ComparisonOperator.GREATER_OR_EQUAL;
-        Number num = new Number(0);
-        if (ctx.comparisonOp() != null && ctx.number() != null) {
+        NumExpr rhs = new Number(0);
+        if (ctx.comparisonOp() != null && ctx.numexpr() != null) {
             comp = visitComparisonOp(ctx.comparisonOp());
-            num = visitNumber(ctx.number());
+            rhs = visitNumexpr(ctx.numexpr());
         }
-        if (num.value() > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Redstone signal strength cannot be greater than " + Integer.MAX_VALUE);
-        }
-        BoolExpr boolExpr = new BoolRedstone(comp, (int) num.value());
+        BoolExpr boolExpr = new BoolRedstone(comp, rhs);
         AST_NODE_CONTEXTS.add(new Pair<>(boolExpr, ctx));
         return boolExpr;
     }
@@ -311,8 +308,8 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     public RoundRobin visitRoundrobin(@Nullable SFMLParser.RoundrobinContext ctx) {
         if (ctx == null) return RoundRobin.disabled();
         RoundRobin rtn = ctx.BLOCK() != null
-                         ? new RoundRobin(RoundRobin.Behaviour.BY_BLOCK)
-                         : new RoundRobin(RoundRobin.Behaviour.BY_LABEL);
+                ? new RoundRobin(RoundRobin.Behaviour.BY_BLOCK)
+                : new RoundRobin(RoundRobin.Behaviour.BY_LABEL);
         AST_NODE_CONTEXTS.add(new Pair<>(rtn, ctx));
         return rtn;
     }
@@ -365,7 +362,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         var setOperator = visitSetOp(ctx.setOp());
         var labelAccess = visitLabelAccess(ctx.labelAccess());
         ComparisonOperator comparisonOperator = visitComparisonOp(ctx.comparisonOp());
-        Number num = visitNumber(ctx.number());
+        NumExpr num = visitNumexpr(ctx.numexpr());
         ResourceIdSet resourceIdSet;
         if (ctx.resourceIdDisjunction() == null) {
             resourceIdSet = ResourceIdSet.MATCH_ALL;
@@ -384,7 +381,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         } else {
             except = visitResourceIdList(ctx.resourceIdList());
         }
-        BoolHas rtn = new BoolHas(setOperator, labelAccess, comparisonOperator, num.value(), resourceIdSet, with, except);
+        BoolHas rtn = new BoolHas(setOperator, labelAccess, comparisonOperator, num, resourceIdSet, with, except);
         AST_NODE_CONTEXTS.add(new Pair<>(rtn, ctx));
         return rtn;
     }
@@ -704,10 +701,10 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         if (ctx == null)
             return ResourceQuantity.UNSET;
         ResourceQuantity quantity = new ResourceQuantity(
-                visitNumber(ctx.number()),
+                visitNumexpr(ctx.numexpr()),
                 ctx.EACH() != null
-                ? ResourceQuantity.IdExpansionBehaviour.EXPAND
-                : ResourceQuantity.IdExpansionBehaviour.NO_EXPAND
+                        ? ResourceQuantity.IdExpansionBehaviour.EXPAND
+                        : ResourceQuantity.IdExpansionBehaviour.NO_EXPAND
         );
         AST_NODE_CONTEXTS.add(new Pair<>(quantity, ctx));
         return quantity;
@@ -717,10 +714,10 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     public ResourceQuantity visitQuantity(@Nullable SFMLParser.QuantityContext ctx) {
         if (ctx == null) return ResourceQuantity.MAX_QUANTITY;
         ResourceQuantity quantity = new ResourceQuantity(
-                visitNumber(ctx.number()),
+                visitNumexpr(ctx.numexpr()),
                 ctx.EACH() != null
-                ? ResourceQuantity.IdExpansionBehaviour.EXPAND
-                : ResourceQuantity.IdExpansionBehaviour.NO_EXPAND
+                        ? ResourceQuantity.IdExpansionBehaviour.EXPAND
+                        : ResourceQuantity.IdExpansionBehaviour.NO_EXPAND
         );
         AST_NODE_CONTEXTS.add(new Pair<>(quantity, ctx));
         return quantity;
@@ -766,5 +763,154 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         Block block = new Block(statements);
         AST_NODE_CONTEXTS.add(new Pair<>(block, ctx));
         return block;
+    }
+
+    // --- Numeric expressions ---
+    public NumExpr visitNumexpr(SFMLParser.NumexprContext ctx) {
+        // fold left: numterm ((+|-) numterm)*
+        NumExpr acc = visitNumterm(ctx.numterm(0));
+        int childCount = ctx.getChildCount();
+        NumExpr currentRight;
+        Integer pendingOp = null; // token type: PLUS or DASH
+        for (int i = 0; i < childCount; i++) {
+            ParseTree child = ctx.getChild(i);
+            if (child instanceof SFMLParser.NumtermContext termCtx) {
+                if (pendingOp != null) {
+                    currentRight = visitNumterm(termCtx);
+                    NumExpr lhs = acc;
+                    NumExpr rhs = currentRight;
+                    if (pendingOp == SFMLParser.PLUS) {
+                        acc = new NumExpr() {
+                            final NumExpr L = lhs, R = rhs;
+
+                            @Override
+                            public long eval(ca.teamdman.sfm.common.program.ProgramContext context) {
+                                return L.eval(context) + R.eval(context);
+                            }
+
+                            @Override
+                            public String toString() {
+                                return "(" + L + " + " + R + ")";
+                            }
+                        };
+                    } else {
+                        acc = new NumExpr() {
+                            final NumExpr L = lhs, R = rhs;
+
+                            @Override
+                            public long eval(ca.teamdman.sfm.common.program.ProgramContext context) {
+                                return L.eval(context) - R.eval(context);
+                            }
+
+                            @Override
+                            public String toString() {
+                                return "(" + L + " - " + R + ")";
+                            }
+                        };
+                    }
+                    pendingOp = null;
+                }
+            } else if (child instanceof TerminalNode tn) {
+                int t = tn.getSymbol().getType();
+                if (t == SFMLParser.PLUS || t == SFMLParser.DASH) {
+                    pendingOp = t;
+                }
+            }
+        }
+        AST_NODE_CONTEXTS.add(new Pair<>(acc, ctx));
+        return acc;
+    }
+
+    public NumExpr visitNumterm(SFMLParser.NumtermContext ctx) {
+        // fold left: numfactor ((*|/) numfactor)*
+        NumExpr acc = visitNumfactor(ctx.numfactor(0));
+        int childCount = ctx.getChildCount();
+        NumExpr currentRight;
+        Integer pendingOp = null; // token: STAR or SLASH
+        for (int i = 0; i < childCount; i++) {
+            ParseTree child = ctx.getChild(i);
+            if (child instanceof SFMLParser.NumfactorContext fctx) {
+                if (pendingOp != null) {
+                    currentRight = visitNumfactor(fctx);
+                    NumExpr lhs = acc;
+                    NumExpr rhs = currentRight;
+                    if (pendingOp == SFMLParser.STAR) {
+                        acc = new NumExpr() {
+                            final NumExpr L = lhs, R = rhs;
+
+                            @Override
+                            public long eval(ca.teamdman.sfm.common.program.ProgramContext context) {
+                                return L.eval(context) * R.eval(context);
+                            }
+
+                            @Override
+                            public String toString() {
+                                return "(" + L + " * " + R + ")";
+                            }
+                        };
+                    } else {
+                        acc = new NumExpr() {
+                            final NumExpr L = lhs, R = rhs;
+
+                            @Override
+                            public long eval(ca.teamdman.sfm.common.program.ProgramContext context) {
+                                long d = R.eval(context);
+                                return d == 0 ? 0 : L.eval(context) / d;
+                            }
+
+                            @Override
+                            public String toString() {
+                                return "(" + L + " / " + R + ")";
+                            }
+                        };
+                    }
+                    pendingOp = null;
+                }
+            } else if (child instanceof TerminalNode tn) {
+                int t = tn.getSymbol().getType();
+                if (t == SFMLParser.STAR || t == SFMLParser.SLASH) {
+                    pendingOp = t;
+                }
+            }
+        }
+        AST_NODE_CONTEXTS.add(new Pair<>(acc, ctx));
+        return acc;
+    }
+
+    public NumExpr visitNumfactor(SFMLParser.NumfactorContext ctx) {
+        if (ctx.number() != null) {
+            return visitNumber(ctx.number());
+        }
+        if (ctx.functionCall() != null) {
+            return visitFunctionCall(ctx.functionCall());
+        }
+        // parenthesized
+        NumExpr inner = visitNumexpr(ctx.numexpr());
+        AST_NODE_CONTEXTS.add(new Pair<>(inner, ctx));
+        return inner;
+    }
+
+    public NumExpr visitFunctionCall(SFMLParser.FunctionCallContext ctx) {
+        String fname = ctx.identifier().getText().toLowerCase(Locale.ROOT);
+        List<FunctionArg> ordered = new ArrayList<>();
+        if (ctx.functionArg() != null) {
+            for (SFMLParser.FunctionArgContext arg : ctx.functionArg()) {
+                if (arg.labelAccess() != null) {
+                    ordered.add(FunctionArg.ofLabel(visitLabelAccess(arg.labelAccess())));
+                } else if (arg.resourceIdDisjunction() != null) {
+                    ordered.add(FunctionArg.ofResourceIds(visitResourceIdDisjunction(arg.resourceIdDisjunction())));
+                } else if (arg.numexpr() != null) {
+                    ordered.add(FunctionArg.ofNumExpr(visitNumexpr(arg.numexpr())));
+                } else if (arg.string() != null) {
+                    ordered.add(FunctionArg.ofString(visitString(arg.string())));
+                } else {
+                    throw new IllegalArgumentException("Unrecognized function argument in function: " + fname);
+                }
+            }
+        }
+        FunctionHandler handler = FunctionRegistry.get(fname);
+        NumExpr result = handler.build(new FunctionArgs(ordered));
+        AST_NODE_CONTEXTS.add(new Pair<>(result, ctx));
+        return result;
     }
 }

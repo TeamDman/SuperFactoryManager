@@ -14,14 +14,27 @@ public record BoolHas(
         SetOperator setOperator,
         LabelAccess labelAccess,
         ComparisonOperator comparisonOperator,
-        long quantity,
+        NumExpr quantity,
         ResourceIdSet resourceIdSet,
         With with,
         ResourceIdSet except
 ) implements BoolExpr {
 
+    public BoolHas(
+            SetOperator setOperator,
+            LabelAccess labelAccess,
+            ComparisonOperator comparisonOperator,
+            long quantity,
+            ResourceIdSet resourceIdSet,
+            With with,
+            ResourceIdSet except
+    ) {
+        this(setOperator, labelAccess, comparisonOperator, new Number(quantity), resourceIdSet, with, except);
+    }
+
     @Override
     public boolean test(ProgramContext programContext) {
+        long threshold = this.quantity.eval(programContext);
         AtomicLong overallCount = new AtomicLong(0);
         List<Boolean> satisfactionResults = new ArrayList<>();
         LabelPositionHolder labelPositionHolder = programContext.getLabelPositionHolder();
@@ -38,10 +51,10 @@ public record BoolHas(
                         resourceType
                 );
             }
-            satisfactionResults.add(comparisonOperator.test(inThisInv.get(), quantity));
+            satisfactionResults.add(comparisonOperator.test(inThisInv.get(), threshold));
         }
 
-        var isOverallSatisfied = this.comparisonOperator.test(overallCount.get(), this.quantity);
+        var isOverallSatisfied = this.comparisonOperator.test(overallCount.get(), threshold);
         return setOperator.test(isOverallSatisfied, satisfactionResults);
     }
 

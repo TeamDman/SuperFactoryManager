@@ -84,7 +84,7 @@ public final class InputStatement implements IOStatement {
             context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_NOT_EACH.get()));
 
             // create a single matcher to be shared by all capabilities
-            List<IInputResourceTracker> inputTrackers = resourceLimits.createInputTrackers();
+            List<IInputResourceTracker> inputTrackers = resourceLimits.createInputTrackers(context);
             for (var resourceType : resourceLimits.getReferencedResourceTypes()) { // TODO: Fix #166
                 // log gather for resource type
                 context
@@ -121,7 +121,7 @@ public final class InputStatement implements IOStatement {
                 // gather slots for each capability found for positions tagged by a provided label
                 Consumer<LimitedInputSlot<?, ?, ?>> finalSlotConsumer = slotConsumer;
                 resourceType.forEachCapability(context, labelAccess, (label, pos, direction, cap) -> {
-                    List<IInputResourceTracker> inputTrackers = resourceLimits.createInputTrackers();
+                    List<IInputResourceTracker> inputTrackers = resourceLimits.createInputTrackers(context);
                     gatherSlotsForCap(
                             context,
                             (ResourceType<Object, Object, Object>) resourceType,

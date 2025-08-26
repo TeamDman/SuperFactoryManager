@@ -34,18 +34,18 @@ public final class ResourceLimits implements ASTNode, ToStringPretty {
         this.exclusions = exclusions;
     }
 
-    public List<IInputResourceTracker> createInputTrackers() {
+    public List<IInputResourceTracker> createInputTrackers(ca.teamdman.sfm.common.program.ProgramContext context) {
         List<IInputResourceTracker> rtn = new ObjectArrayList<>(resourceLimitList.size());
         for (ResourceLimit rl : resourceLimitList) {
-            rtn.add(rl.createInputTracker(exclusions));
+            rtn.add(rl.withEvaluated(context).createInputTracker(exclusions));
         }
         return rtn;
     }
 
-    public List<IOutputResourceTracker> createOutputTrackers() {
+    public List<IOutputResourceTracker> createOutputTrackers(ca.teamdman.sfm.common.program.ProgramContext context) {
         List<IOutputResourceTracker> rtn = new ObjectArrayList<>(resourceLimitList.size());
         for (ResourceLimit rl : resourceLimitList) {
-            rtn.add(rl.createOutputTracker(exclusions));
+            rtn.add(rl.withEvaluated(context).createOutputTracker(exclusions));
         }
         return rtn;
     }

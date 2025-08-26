@@ -27,6 +27,14 @@ public record ResourceLimit(
         return new ResourceLimit(resourceIds, limit, with);
     }
 
+    public ResourceLimit withEvaluated(ca.teamdman.sfm.common.program.ProgramContext context) {
+        ResourceQuantity quantityExpr = limit.quantity();
+        ResourceQuantity retentionExpr = limit.retention();
+        ResourceQuantity quantityValue = quantityExpr == ResourceQuantity.UNSET ? ResourceQuantity.UNSET : new ResourceQuantity(new Number(quantityExpr.eval(context)), quantityExpr.idExpansionBehaviour());
+        ResourceQuantity retentionValue = retentionExpr == ResourceQuantity.UNSET ? ResourceQuantity.UNSET : new ResourceQuantity(new Number(retentionExpr.eval(context)), retentionExpr.idExpansionBehaviour());
+        return new ResourceLimit(resourceIds, new Limit(quantityValue, retentionValue), with);
+    }
+
     public IInputResourceTracker createInputTracker(
             ResourceIdSet exclusions
     ) {
@@ -79,8 +87,8 @@ public record ResourceLimit(
         return (
                 limit.toStringCondensed(defaults) + " " + resourceIds.toStringCondensed() + (
                         with == With.ALWAYS_TRUE
-                        ? ""
-                        : " WITH " + with
+                                ? ""
+                                : " WITH " + with
                 )
         ).trim();
     }

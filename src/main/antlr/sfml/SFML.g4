@@ -54,8 +54,8 @@ limit           : quantity retention    #QuantityRetentionLimit
                 | quantity              #QuantityLimit
                 ;
 
-quantity        : number EACH?;
-retention       : RETAIN number EACH?;
+quantity        : numexpr EACH?;
+retention       : RETAIN numexpr EACH?;
 
 resourceExclusion       : EXCEPT resourceIdList;
 
@@ -105,8 +105,23 @@ boolexpr        : TRUE                              #BooleanTrue
                 | NOT boolexpr                      #BooleanNegation
                 | boolexpr AND boolexpr             #BooleanConjunction
                 | boolexpr OR boolexpr              #BooleanDisjunction
-                | setOp? labelAccess HAS comparisonOp number resourceIdDisjunction? with? (EXCEPT resourceIdList)?  #BooleanHas
-                | REDSTONE (comparisonOp number)?   #BooleanRedstone
+                | setOp? labelAccess HAS comparisonOp numexpr resourceIdDisjunction? with? (EXCEPT resourceIdList)?  #BooleanHas
+                | REDSTONE (comparisonOp numexpr)?   #BooleanRedstone
+                ;
+
+numexpr         : numterm ((PLUS | DASH) numterm)*;
+numterm         : numfactor ((STAR | SLASH) numfactor)*;
+numfactor       : number
+                | LPAREN numexpr RPAREN
+                | functionCall
+                ;
+
+// more flexible function args
+functionCall    : identifier LPAREN (functionArg (COMMA functionArg)*)? RPAREN;
+functionArg     : labelAccess
+                | resourceIdDisjunction
+                | numexpr
+                | string
                 ;
 
 comparisonOp    : GT
@@ -142,7 +157,7 @@ label           : (identifier)   #RawLabel
                 | string                  #StringLabel
                 ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS) ;
+identifier : (IDENTIFIER | STAR | REDSTONE | GLOBAL | SECOND | SECONDS) ;
 
 // GENERAL
 string: STRING ;
@@ -244,13 +259,14 @@ COMMA   : ',';
 COLON   : ':';
 SLASH   : '/';
 DASH    : '-';
+STAR    : '*';
 LPAREN  : '(';
 RPAREN  : ')';
 
 
 NUMBER_WITH_G_SUFFIX    : [0-9]+[gG] ;
 NUMBER                  : [0-9]+ ;
-IDENTIFIER              : [a-zA-Z_*][a-zA-Z0-9_*]* | '*'; // Note that the * in the square brackets is a literl
+IDENTIFIER              : [a-zA-Z_*][a-zA-Z0-9_*]* ;
 
 STRING : '"' (~'"'|'\\"')* '"' ;
 
