@@ -6,21 +6,20 @@ import ca.teamdman.sfm.common.logging.TranslatableLogEvent;
 import ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket;
 import ca.teamdman.sfm.common.registry.SFMMenus;
 import ca.teamdman.sfml.ast.Program;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.Slot;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.inventory.Container;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayDeque;
 
-public class ManagerContainerMenu extends AbstractContainerMenu {
-    public final Container CONTAINER;
-    public final Inventory PLAYER_INVENTORY;
+public class ManagerContainerMenu extends Container {
+    public final IInventory CONTAINER;
+    public final InventoryPlayer PLAYER_INVENTORY;
     public final BlockPos MANAGER_POSITION;
     public final ArrayDeque<TranslatableLogEvent> logs;
     public String logLevel;
@@ -32,8 +31,8 @@ public class ManagerContainerMenu extends AbstractContainerMenu {
 
     public ManagerContainerMenu(
             int windowId,
-            Inventory inv,
-            Container container,
+            InventoryPlayer inv,
+            IInventory container,
             BlockPos blockEntityPos,
             String program,
             String logLevel,
@@ -41,8 +40,8 @@ public class ManagerContainerMenu extends AbstractContainerMenu {
             long[] tickTimeNanos,
             ArrayDeque<TranslatableLogEvent> logs
     ) {
-        super(SFMMenus.MANAGER_MENU.get(), windowId);
-        checkContainerSize(container, 1);
+        this.windowId = windowId;
+        assert container.getSizeInventory() == 1;
         this.CONTAINER = container;
         this.PLAYER_INVENTORY = inv;
         this.MANAGER_POSITION = blockEntityPos;
@@ -52,57 +51,57 @@ public class ManagerContainerMenu extends AbstractContainerMenu {
         this.state = state;
         this.tickTimeNanos = tickTimeNanos;
 
-        this.addSlot(new Slot(container, 0, 15, 47) {
+        this.addSlotToContainer(new Slot(container, 0, 15, 47) {
             @Override
-            public int getMaxStackSize() {
+            public int getSlotStackLimit() {
                 return 1;
             }
 
             @Override
-            public boolean mayPlace(ItemStack stack) {
+            public boolean isItemValid(ItemStack stack) {
                 return stack.getItem() instanceof DiskItem;
             }
         });
 
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(inv, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
+                this.addSlotToContainer(new Slot(inv, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
             }
         }
 
         for (int k = 0; k < 9; ++k) {
-            this.addSlot(new Slot(inv, k, 8 + k * 18, 142));
+            this.addSlotToContainer(new Slot(inv, k, 8 + k * 18, 142));
         }
     }
 
     public ManagerContainerMenu(
             int windowId,
-            Inventory inventory,
-            FriendlyByteBuf buf
+            InventoryPlayer inventory,
+            PacketBuffer buf
     ) {
         this(
                 windowId,
                 inventory,
-                new SimpleContainer(1),
+                new net.minecraft.inventory.InventoryBasic("manager", true, 1),
                 buf.readBlockPos(),
-                buf.readUtf(Program.MAX_PROGRAM_LENGTH),
-                buf.readUtf(ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH),
-                buf.readEnum(ManagerBlockEntity.State.class),
-                buf.readLongArray(null, ManagerBlockEntity.TICK_TIME_HISTORY_SIZE),
+                buf.readString(Program.MAX_PROGRAM_LENGTH),
+                buf.readString(ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH),
+                buf.readEnumValue(ManagerBlockEntity.State.class),
+                buf.readLongArray(null),
                 new ArrayDeque<>()
         );
     }
 
     public ManagerContainerMenu(
             int windowId,
-            Inventory inventory,
+            InventoryPlayer inventory,
             ManagerBlockEntity manager
     ) {
         this(
                 windowId,
                 inventory,
                 manager,
-                manager.getBlockPos(),
+                manager.getPos(),
                 manager.getProgramStringOrEmptyIfNull(),
                 manager.logger.getLogLevel().name(),
                 manager.getState(),
@@ -113,53 +112,52 @@ public class ManagerContainerMenu extends AbstractContainerMenu {
 
     public static void encode(
             ManagerBlockEntity manager,
-            FriendlyByteBuf buf
+            PacketBuffer buf
     ) {
-        buf.writeBlockPos(manager.getBlockPos());
-        buf.writeUtf(manager.getProgramStringOrEmptyIfNull(), Program.MAX_PROGRAM_LENGTH);
-        buf.writeUtf(
-                manager.logger.getLogLevel().name(),
-                ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH
+        buf.writeBlockPos(manager.getPos());
+        buf.writeString(manager.getProgramStringOrEmptyIfNull());
+        buf.writeString(
+                manager.logger.getLogLevel().name()
         );
-        buf.writeEnum(manager.getState());
+        buf.writeEnumValue(manager.getState());
         buf.writeLongArray(manager.getTickTimeNanos());
     }
 
     public ItemStack getDisk() {
-        return this.CONTAINER.getItem(0);
+        return this.CONTAINER.getStackInSlot(0);
     }
 
     @Override
-    public boolean stillValid(Player player) {
-        return CONTAINER.stillValid(player);
+    public boolean canInteractWith(EntityPlayer player) {
+        return CONTAINER.isUsableByPlayer(player);
     }
 
     @Override
-    public ItemStack quickMoveStack(
-            Player player,
+    public ItemStack transferStackInSlot(
+            EntityPlayer player,
             int slotIndex
     ) {
-        var slot = this.slots.get(slotIndex);
-        if (!slot.hasItem()) return ItemStack.EMPTY;
+        var slot = this.inventorySlots.get(slotIndex);
+        if (slot == null || !slot.getHasStack()) return ItemStack.EMPTY;
 
-        var containerEnd = CONTAINER.getContainerSize();
-        var inventoryEnd = this.slots.size();
+        var containerEnd = CONTAINER.getSizeInventory();
+        var inventoryEnd = this.inventorySlots.size();
 
-        var contents = slot.getItem();
+        var contents = slot.getStack();
         var result = contents.copy();
 
         if (slotIndex < containerEnd) {
             // clicked slot in container
-            if (!this.moveItemStackTo(contents, containerEnd, inventoryEnd, true)) return ItemStack.EMPTY;
+            if (!this.mergeItemStack(contents, containerEnd, inventoryEnd, true)) return ItemStack.EMPTY;
         } else {
             // clicked slot in inventory
-            if (!this.moveItemStackTo(contents, 0, containerEnd, false)) return ItemStack.EMPTY;
+            if (!this.mergeItemStack(contents, 0, containerEnd, false)) return ItemStack.EMPTY;
         }
 
         if (contents.isEmpty()) {
-            slot.set(ItemStack.EMPTY);
+            slot.putStack(ItemStack.EMPTY);
         } else {
-            slot.setChanged();
+            slot.onSlotChanged();
         }
         return result;
     }

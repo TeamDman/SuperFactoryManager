@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.localization;
 
 import ca.teamdman.sfm.common.util.SFMTranslationUtils;
-import net.minecraft.client.resources.language.I18n;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.text.ITextComponent;
@@ -29,11 +29,11 @@ public record LocalizationEntry(
     }
 
     public String getString() {
-        return I18n.get(key.get());
+        return I18n.format(key.get());
     }
 
     public String getString(Object... args) {
-        return I18n.get(key.get(), args);
+        return I18n.format(key.get(), args);
     }
 
     /**

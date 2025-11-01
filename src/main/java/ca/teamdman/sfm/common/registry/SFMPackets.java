@@ -1,17 +1,17 @@
 package ca.teamdman.sfm.common.registry;
 
-import ca.teamdman.sfm.SuperFactoryManager;
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.net.*;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 
 public class SFMPackets {
-    public static final SimpleNetworkWrapper SFM_CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel(SuperFactoryManager.MOD_ID);
+    public static final SimpleNetworkWrapper SFM_CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel(SFM.MOD_ID);
 
     private static int registrationIndex = 0;
 
-    public static <T extends SFMPacket> void registerPacket(Class<T> packetClass, Side side) {
+    public static <T extends SFMPacket<T>> void registerPacket(Class<T> packetClass, Side side) {
         SFM_CHANNEL.registerMessage(packetClass, packetClass, registrationIndex++, side);
     }
 

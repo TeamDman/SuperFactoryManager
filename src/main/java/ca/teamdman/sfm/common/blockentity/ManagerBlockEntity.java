@@ -19,37 +19,30 @@ import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMContainerUtil;
 import ca.teamdman.sfml.ast.Program;
 import com.google.common.base.Joiner;
-import net.minecraft.ChatFormatting;
-import net.minecraft.CrashReportCategory;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.crash.CrashReportCategory;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.inventory.Container;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.ContainerHelper;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemStackHandler;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
 import org.apache.logging.log4j.core.time.MutableInstant;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Set;
 
-public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITickable {
+public class ManagerBlockEntity extends TileEntity implements IInventory, ITickable {
     public static final int TICK_TIME_HISTORY_SIZE = 20;
     public final TranslatableLogger logger;
     private final NonNullList<ItemStack> ITEMS = NonNullList.withSize(1, ItemStack.EMPTY);
@@ -75,23 +68,6 @@ public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITic
         return "ManagerBlockEntity{" +
                 "hasDisk=" + (getDisk() != null) +
                 '}';
-    }
-
-    @Override
-    public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing) {
-        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-            return true;
-        }
-        return super.hasCapability(capability, facing);
-    }
-
-    @Override
-    @Nullable
-    public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing facing) {
-        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-            return (T) this;
-        }
-        return super.getCapability(capability, facing);
     }
 
     /**
@@ -165,18 +141,9 @@ public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITic
         }
     }
 
-    public static void serverTick(
-            @SuppressWarnings("unused") Level level,
-            @SuppressWarnings("unused") BlockPos pos,
-            @SuppressWarnings("unused") BlockState state,
-            ManagerBlockEntity manager
-    ) {
-
-    }
-
     @Override
-    public void fillCrashReportCategory(CrashReportCategory pReportCategory) {
-        super.fillCrashReportCategory(pReportCategory);
+    public void addCrashReportDetails(CrashReportCategory pReportCategory) {
+        super.addCrashReportDetails(pReportCategory);
         {
             String configPath;
             var found = SFMConfigTracker.getPathForConfig(SFMConfig.SERVER_CONFIG_SPEC);
@@ -186,12 +153,12 @@ public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITic
                 configPath = "sfm-server.toml";
             }
             String configValuePath = Joiner.on(".").join(SFMConfig.SERVER_CONFIG.disableProgramExecution.getPath());
-            pReportCategory.setDetail("SFM Reminder", "You can set `" + configValuePath + " = true` in " + configPath + " to help recover your world.");
+            pReportCategory.addDetail("SFM Reminder", () -> "You can set `" + configValuePath + " = true` in " + configPath + " to help recover your world.");
         }
         {
             ItemStack disk = getDisk();
             if (disk != null && !disk.isEmpty()) {
-                pReportCategory.setDetail("SFM Details", SFMDiagnostics.getDiagnosticsSummary(disk));
+                pReportCategory.addDetail("SFM Details", () -> SFMDiagnostics.getDiagnosticsSummary(disk));
             }
         }
     }
@@ -214,7 +181,7 @@ public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITic
         if (disk != null) {
             DiskItem.setProgram(disk, program.stripTrailing().stripIndent());
             rebuildProgramAndUpdateDisk();
-            setChanged();
+            markDirty();
         }
     }
 
@@ -264,7 +231,7 @@ public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITic
     }
 
     public void rebuildProgramAndUpdateDisk() {
-        if (level != null && level.isClientSide()) return;
+        if (world != null && world.isRemote) return;
         var disk = getDisk();
         if (disk == null) {
             this.program = null;
@@ -276,78 +243,116 @@ public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITic
     }
 
     @Override
-    public int getContainerSize() {
+    public int getSizeInventory() {
         return ITEMS.size();
     }
 
-
-    @NotNull
     @Override
-    public ItemStack getStackInSlot(int slot) {
-        if (slot < 0 || slot >= ITEMS.size()) return ItemStack.EMPTY;
-        return ITEMS.get(slot);
+    public boolean isEmpty() {
+        for (ItemStack itemstack : ITEMS) {
+            if (!itemstack.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
-    public ItemStack removeItem(
-            int slot,
-            int amount
-    ) {
-        var result = ContainerHelper.removeItem(ITEMS, slot, amount);
-        if (slot == 0) rebuildProgramAndUpdateDisk();
-        setChanged();
+    public ItemStack getStackInSlot(int index) {
+        if (index < 0 || index >= ITEMS.size()) return ItemStack.EMPTY;
+        return ITEMS.get(index);
+    }
+
+    @Override
+    public ItemStack decrStackSize(int index, int count) {
+        return this.removeStackFromSlot(index);
+    }
+
+    @Override
+    public ItemStack removeStackFromSlot(int index) {
+        var result = ITEMS.get(index);
+        ITEMS.set(index, ItemStack.EMPTY);
+        if (index == 0) rebuildProgramAndUpdateDisk();
+        markDirty();
         return result;
     }
 
     @Override
-    public ItemStack removeItemNoUpdate(int slot) {
-        var result = ContainerHelper.takeItem(ITEMS, slot);
-        if (slot == 0) rebuildProgramAndUpdateDisk();
-        setChanged();
-        return result;
+    public void setInventorySlotContents(int index, ItemStack stack) {
+        ITEMS.set(index, stack);
+        if (stack.getCount() > getInventoryStackLimit()) {
+            stack.setCount(getInventoryStackLimit());
+        }
+        if (index == 0) rebuildProgramAndUpdateDisk();
+        markDirty();
     }
 
-
     @Override
-    public int getMaxStackSize() {
+    public int getInventoryStackLimit() {
         return 1;
     }
 
     @Override
-    public boolean canPlaceItem(
-            int slot,
-            ItemStack stack
-    ) {
+    public boolean isUsableByPlayer(EntityPlayer player) {
+        return SFMContainerUtil.isUsableByPlayer(this, player);
+    }
+
+    @Override
+    public void openInventory(EntityPlayer player) {
+    }
+
+    @Override
+    public void closeInventory(EntityPlayer player) {
+    }
+
+    @Override
+    public boolean isItemValidForSlot(int index, ItemStack stack) {
         return stack.getItem() instanceof DiskItem;
     }
 
     @Override
-    public boolean stillValid(Player player) {
-        return SFMContainerUtil.stillValid(this, player);
+    public int getField(int id) {
+        return 0;
     }
 
     @Override
-    public void load(NBTTagCompound tag) {
-        super.load(tag);
-        ContainerHelper.loadAllItems(tag, ITEMS);
-        this.shouldRebuildProgram = true;
-        if (level != null) {
-            this.tick = level.random.nextInt();
-        }
+    public void setField(int id, int value) {
     }
 
     @Override
-    public void clearContent() {
+    public int getFieldCount() {
+        return 0;
+    }
+
+    @Override
+    public void clear() {
         ITEMS.clear();
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound tag) {
+        super.writeToNBT(tag);
+        net.minecraft.inventory.InventoryHelper.saveAllItems(tag, ITEMS);
+        return tag;
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound tag) {
+        super.readFromNBT(tag);
+        net.minecraft.inventory.InventoryHelper.loadAllItems(tag, ITEMS);
+        this.shouldRebuildProgram = true;
+        if (world != null) {
+            this.tick = world.rand.nextInt();
+        }
     }
 
     public void reset() {
         var disk = getDisk();
         if (disk != null) {
             LabelPositionHolder.clear(disk);
-            disk.setTag(null);
-            setItem(0, disk);
-            setChanged();
+            disk.setTagCompound(null);
+            setInventorySlotContents(0, disk);
+            markDirty();
         }
     }
 
@@ -360,6 +365,7 @@ public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITic
     }
 
     public void sendUpdatePacket() {
+        if (world.isRemote) return;
         // Create one packet and clone it for each receiver
         var managerUpdatePacket = new ClientboundManagerGuiUpdatePacket(
                 -1,
@@ -373,17 +379,17 @@ public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITic
                     ManagerContainerMenu menu = entry.getValue();
 
                     // Send a copy of the manager update packet
-                    SFMPackets.sendToPlayer(entry::getKey, managerUpdatePacket.cloneWithWindowId(menu.containerId));
+                    SFMPackets.SFM_CHANNEL.sendTo(managerUpdatePacket.cloneWithWindowId(menu.windowId), entry.getKey());
 
                     // The rest of the sync is only relevant if the log screen is open
                     if (!menu.isLogScreenOpen) return;
 
                     // Send log level changes
                     if (!menu.logLevel.equals(logger.getLogLevel().name())) {
-                        SFMPackets.sendToPlayer(entry::getKey, new ClientboundManagerLogLevelUpdatedPacket(
-                                menu.containerId,
+                        SFMPackets.SFM_CHANNEL.sendTo(new ClientboundManagerLogLevelUpdatedPacket(
+                                menu.windowId,
                                 logger.getLogLevel().name()
-                        ));
+                        ), entry.getKey());
                         menu.logLevel = logger.getLogLevel().name();
                     }
 
@@ -401,80 +407,70 @@ public class ManagerBlockEntity extends TileEntity implements IItemHandler, ITic
                         // Send the logs
                         while (!logsToSend.isEmpty()) {
                             int remaining = logsToSend.size();
-                            SFMPackets.sendToPlayer(entry::getKey, ClientboundManagerLogsPacket.drainToCreate(
-                                    menu.containerId,
+                            SFMPackets.SFM_CHANNEL.sendTo(ClientboundManagerLogsPacket.drainToCreate(
+                                    menu.windowId,
                                     logsToSend
-                            ));
+                            ), entry.getKey());
                             if (logsToSend.size() >= remaining) {
                                 throw new IllegalStateException("Failed to send logs, infinite loop detected");
                             }
                         }
                     }
                 });
+        IBlockState state = world.getBlockState(pos);
+        world.notifyBlockUpdate(pos, state, state, 3);
     }
 
     @Override
-    protected Component getDefaultName() {
-        return LocalizationKeys.MANAGER_CONTAINER.getComponent();
+    public ITextComponent getDisplayName() {
+        return new TextComponentString(LocalizationKeys.MANAGER_CONTAINER.get());
     }
 
-    @Override
-    protected AbstractContainerMenu createMenu(
+    public Container createMenu(
             int windowId,
-            Inventory inv
+            InventoryPlayer inv
     ) {
         return new ManagerContainerMenu(windowId, inv, this);
     }
 
+    @Nullable
     @Override
-    protected void saveAdditional(NBTTagCompound tag) {
-        super.saveAdditional(tag);
-        ContainerHelper.saveAllItems(tag, ITEMS);
+    public SPacketUpdateTileEntity getUpdatePacket() {
+        return new SPacketUpdateTileEntity(this.pos, 3, this.getUpdateTag());
     }
 
     @Override
-    public int getSlots() {
-        return 1;
-    }
-
-
-    @NotNull
-    @Override
-    public ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
-        if (slot < 0 || slot >= ITEMS.size()) return;
-        ITEMS.set(slot, stack);
-        if (slot == 0) rebuildProgramAndUpdateDisk();
-        setChanged();
-    }
-
-    @NotNull
-    @Override
-    public ItemStack extractItem(int slot, int amount, boolean simulate) {
-        return null;
+    public NBTTagCompound getUpdateTag() {
+        return this.writeToNBT(new NBTTagCompound());
     }
 
     @Override
-    public int getSlotLimit(int slot) {
-        return 0;
+    public String getName() {
+        return LocalizationKeys.MANAGER_CONTAINER.get();
+    }
+
+    @Override
+    public boolean hasCustomName() {
+        return false;
     }
 
     public enum State {
         NO_PROGRAM(
-                ChatFormatting.RED,
+                TextFormatting.RED,
                 LocalizationKeys.MANAGER_GUI_STATE_NO_PROGRAM
         ), NO_DISK(
-                ChatFormatting.RED,
+                TextFormatting.RED,
                 LocalizationKeys.MANAGER_GUI_STATE_NO_DISK
-        ), RUNNING(ChatFormatting.GREEN, LocalizationKeys.MANAGER_GUI_STATE_RUNNING), INVALID_PROGRAM(
-                ChatFormatting.DARK_RED,
+        ), RUNNING(TextFormatting.GREEN, LocalizationKeys.MANAGER_GUI_STATE_RUNNING), INVALID_PROGRAM(
+                TextFormatting.DARK_RED,
                 LocalizationKeys.MANAGER_GUI_STATE_INVALID_PROGRAM
         );
 
-        public final ChatFormatting COLOR;
+        public final TextFormatting COLOR;
         public final LocalizationEntry LOC;
 
         State(
-                ChatFormatting color,
+                TextFormatting color,
                 LocalizationEntry loc
         ) {
             COLOR = color;

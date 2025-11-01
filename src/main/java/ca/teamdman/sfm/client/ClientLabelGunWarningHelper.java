@@ -8,12 +8,12 @@ import ca.teamdman.sfm.common.label.LabelGunPlanner;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.ConfirmationParams;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.entity.player.EntityPlayer;
 
 public class ClientLabelGunWarningHelper {
     public static void sendLabelGunUsePacketFromClientWithConfirmationIfNecessary(
             ServerboundLabelGunUsePacket msg,
-            Player player
+            EntityPlayer player
     ) {
         LabelGunPlan plan = LabelGunPlanner.getLabelGunPlan(player, msg, false);
         if (plan == null) {
@@ -24,12 +24,12 @@ public class ClientLabelGunWarningHelper {
         ConfirmationParams confirmation = plan.getConfirmation();
         if (confirmation == null) {
             // No confirmation necessary for single updates
-            SFMPackets.sendToServer(msg);
+            SFMPackets.SFM_CHANNEL.sendToServer(msg);
         } else {
             SFMScreenChangeHelpers.setOrPushScreen(new SFMConfirmationScreen(
                     confirmation,
                     10,
-                    () -> SFMPackets.sendToServer(msg)
+                    () -> SFMPackets.SFM_CHANNEL.sendToServer(msg)
             ));
         }
     }

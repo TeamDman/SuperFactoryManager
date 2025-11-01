@@ -7,12 +7,13 @@ import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.util.EnumHand;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 
@@ -27,44 +28,47 @@ public class NetworkToolKeyMappingHandler {
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null) return;
-        Player player = minecraft.player;
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft.world == null) return;
+        EntityPlayerSP player = minecraft.player;
         if (player == null) return;
         handleAltKeyLogic();
     }
 
     private static void handleAltKeyLogic() {
-        Minecraft minecraft = Minecraft.getInstance();
+        Minecraft minecraft = Minecraft.getMinecraft();
 
         // don't do anything if a screen is open
-        if (minecraft.screen != null) return;
+        if (minecraft.currentScreen != null) return;
 
         // only do something if the key was pressed
         boolean alt_down = SFMKeyMappings.isKeyDown(SFMKeyMappings.TOGGLE_NETWORK_TOOL_OVERLAY_KEY);
         switch (toggleKeyState) {
-            case Idle -> {
+            case Idle: {
                 if (alt_down) {
                     toggleKeyState = ToggleKeyState.Pressed;
                 }
+                break;
             }
-            case Pressed -> {
+            case Pressed: {
                 if (!alt_down) {
                     toggleKeyState = ToggleKeyState.Idle;
                     assert minecraft.player != null;
                     EnumHand hand = SFMHandUtils.getHandHoldingItem(
                             minecraft.player,
-                            SFMItems.NETWORK_TOOL_ITEM.get()
+                            SFMItems.NETWORK_TOOL_ITEM
                     );
                     if (hand == null) return;
                     // send packet to server to toggle mode
-                    SFMPackets.sendToServer(new ServerboundNetworkToolToggleOverlayPacket(hand));
+                    SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundNetworkToolToggleOverlayPacket(hand));
                 }
+                break;
             }
-            case PressCancelledExternally -> {
+            case PressCancelledExternally: {
                 if (!alt_down) {
                     toggleKeyState = ToggleKeyState.Idle;
                 }
+                break;
             }
         }
     }

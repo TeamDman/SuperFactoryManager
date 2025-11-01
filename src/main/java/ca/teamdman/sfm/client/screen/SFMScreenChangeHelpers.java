@@ -13,18 +13,19 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.Resource;
-import net.minecraft.util.EnumHand;
+import net.minecraft.client.resources.IResource;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -38,12 +39,12 @@ public class SFMScreenChangeHelpers {
         } else {
             Minecraft
                     .getMinecraft()
-                    .screen(screen);
+                    .displayGuiScreen(screen);
         }
     }
 
     public static void popScreen() {
-        Minecraft.getInstance().popGuiLayer();
+        Minecraft.getMinecraft().displayGuiScreen(null);
     }
 
     public static void showLabelGunScreen(
@@ -71,8 +72,8 @@ public class SFMScreenChangeHelpers {
             ISFMTextEditScreen screen
     ) {
         switch (screen.openBehaviour()) {
-            case Push -> setOrPushScreen(screen.asScreen());
-            case Replace -> setScreen(screen.asScreen());
+            case Push -> setOrPushScreen((GuiScreen) screen);
+            case Replace -> setScreen((GuiScreen) screen);
         }
     }
 
@@ -116,8 +117,8 @@ public class SFMScreenChangeHelpers {
         LogsScreen screen = new LogsScreen(menu);
         setOrPushScreen(screen);
         screen.scrollToBottom();
-        SFMPackets.sendToServer(new ServerboundManagerLogDesireUpdatePacket(
-                menu.containerId,
+        SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundManagerLogDesireUpdatePacket(
+                menu.windowId,
                 menu.MANAGER_POSITION,
                 true
         ));
@@ -126,16 +127,16 @@ public class SFMScreenChangeHelpers {
     // TODO: copy item id, not just NBT
     // TODO: replace with showing a screen with the data
     public static void showItemInspectorScreen(ItemStack stack) {
-        NBTTagCompound tag = stack.getTag();
+        NBTTagCompound tag = stack.getTagCompound();
         if (tag != null) {
             String content = tag.toString();
-            Minecraft minecraft = Minecraft.getInstance();
-            minecraft.keyboardHandler.setClipboard(content);
+            Minecraft minecraft = Minecraft.getMinecraft();
+            GuiScreen.setClipboardString(content);
             SFM.LOGGER.info("Copied {} characters to clipboard", content.length());
             assert minecraft.player != null;
-            minecraft.player.sendSystemMessage(
+            minecraft.player.sendMessage(
                     LocalizationKeys.ITEM_INSPECTOR_COPIED_TO_CLIPBOARD.getComponent(
-                            Component.literal(String.valueOf(content.length())).withStyle(ChatFormatting.AQUA)
+                            new TextComponentString(String.valueOf(content.length())).setStyle(new net.minecraft.util.text.Style().setColor(TextFormatting.AQUA))
                     )
             );
         }
@@ -143,21 +144,20 @@ public class SFMScreenChangeHelpers {
 
     public static void showChangelog() {
         String changelog = null;
-        var irm = Minecraft.getInstance().getResourceManager();
-        Map<ResourceLocation, Resource> found = irm.listResources(
-                "template_programs",
-                (path) -> path.getPath().endsWith(".sfml") || path.getPath().endsWith(".sfm")
-        );
-        for (var entry : found.entrySet()) {
-            if (entry.getKey().getPath().equals("template_programs/changelog.sfml")) {
-                try (var reader = entry.getValue().openAsReader()) {
-                    changelog = reader.lines().collect(Collectors.joining("\n"));
-                    break;
-                } catch (Exception e) {
-                    SFM.LOGGER.error("Failed to read changelog", e);
+        var irm = Minecraft.getMinecraft().getResourceManager();
+        try {
+            for (IResource resource : irm.getAllResources(new ResourceLocation(SFM.MOD_ID, "template_programs"))) {
+                if (resource.getResourceLocation().getPath().equals("template_programs/changelog.sfml")) {
+                    try (var reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
+                        changelog = reader.lines().collect(Collectors.joining("\n"));
+                        break;
+                    }
                 }
             }
+        } catch (java.io.IOException e) {
+            SFM.LOGGER.error("Failed to read changelog", e);
         }
+
         if (changelog == null) {
             SFM.LOGGER.error("Failed to find changelog");
             return;
@@ -174,11 +174,11 @@ public class SFMScreenChangeHelpers {
         screen.scrollToTop();
     }
 
-    public static @Nullable Screen getCurrentScreen() {
-        return Minecraft.getInstance().screen;
+    public static @Nullable GuiScreen getCurrentScreen() {
+        return Minecraft.getMinecraft().currentScreen;
     }
 
-    public static void setScreen(@Nullable Screen screen) {
-        Minecraft.getInstance().setScreen(screen);
+    public static void setScreen(@Nullable GuiScreen screen) {
+        Minecraft.getMinecraft().displayGuiScreen(screen);
     }
 }

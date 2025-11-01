@@ -9,39 +9,39 @@ import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.ConfirmationParams;
 import ca.teamdman.sfm.common.util.SFMPlayerUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.World;
 
 public class ClientFacadeWarningHelper {
     public static void sendFacadePacketFromClientWithConfirmationIfNecessary(ServerboundFacadePacket msg) {
         // Given the incentives for a single cable network to be used,
         // we want to protect users from accidentally clobbering their designs in a single action
-        Minecraft minecraft = Minecraft.getInstance();
-        Player player = minecraft.player;
+        Minecraft minecraft = Minecraft.getMinecraft();
+        EntityPlayer player = minecraft.player;
         assert player != null;
-        Level level = SFMPlayerUtils.getLevel(player);
+        World world = SFMPlayerUtils.getWorld(player);
 
         IFacadePlan facadePlan = FacadePlanner.getFacadePlan(
                 player,
-                level,
+                world,
                 msg
         );
         if (facadePlan == null) return;
-        ConfirmationParams warning = facadePlan.computeWarning(level);
+        ConfirmationParams warning = facadePlan.computeWarning(world);
         if (warning == null) {
             // No confirmation necessary for single updates
-            SFMPackets.sendToServer(msg);
+            SFMPackets.SFM_CHANNEL.sendToServer(msg);
             // Perform eager update
-            facadePlan.apply(level);
+            facadePlan.apply(world);
         } else {
             SFMScreenChangeHelpers.setOrPushScreen(new SFMConfirmationScreen(
                     warning,
                     10,
                     () -> {
                         // Send packet
-                        SFMPackets.sendToServer(msg);
+                        SFMPackets.SFM_CHANNEL.sendToServer(msg);
                         // Perform eager update
-                        facadePlan.apply(level);
+                        facadePlan.apply(world);
                     }
             ));
         }

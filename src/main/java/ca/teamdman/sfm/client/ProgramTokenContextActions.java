@@ -42,7 +42,7 @@ public class ProgramTokenContextActions {
                     .map(Optional::get)
                     .findFirst();
         } catch (Throwable t) {
-            return Optional.of(() -> SFMScreenChangeHelpers.showProgramEditScreen("-- Encountered error, program parse failed:\n--"
+            return Optional.of(() -> SFMScreenChangeHelpers.showProgramEditScreen("-- Encountered error, program parse failed:\n--" 
                                                                                   + t.getMessage()));
         }
     }
@@ -69,7 +69,8 @@ public class ProgramTokenContextActions {
             int cursorPosition
     ) {
         SFM.LOGGER.info("Checking if context action exists for node {} {}", node.getClass(), node);
-        if (node instanceof ResourceIdentifier<?, ?, ?> rid) {
+        if (node instanceof ResourceIdentifier<?, ?, ?>) {
+            ResourceIdentifier<?, ?, ?> rid = (ResourceIdentifier<?, ?, ?>) node;
             SFM.LOGGER.info("Found context action for resource identifier node");
             return Optional.of(() -> {
                 String expansion = rid
@@ -79,9 +80,10 @@ public class ProgramTokenContextActions {
                         .collect(Collectors.joining(",\n"));
                 SFMScreenChangeHelpers.showProgramEditScreen(expansion);
             });
-        } else if (node instanceof Label label) {
+        } else if (node instanceof Label) {
+            Label label = (Label) node;
             SFM.LOGGER.info("Found context action for label node");
-            return Optional.of(() -> SFMPackets.sendToServer(new ServerboundLabelInspectionRequestPacket(
+            return Optional.of(() -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundLabelInspectionRequestPacket(
                     label.name()
             )));
         } else if (node instanceof InputStatement) {
@@ -91,7 +93,7 @@ public class ProgramTokenContextActions {
             }
             SFM.LOGGER.info("Found context action for input node");
             int nodeIndex = builder.getIndexForNode(node);
-            return Optional.of(() -> SFMPackets.sendToServer(new ServerboundInputInspectionRequestPacket(
+            return Optional.of(() -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundInputInspectionRequestPacket(
                     programString,
                     nodeIndex
             )));
@@ -102,21 +104,21 @@ public class ProgramTokenContextActions {
             }
             SFM.LOGGER.info("Found context action for output node");
             int nodeIndex = builder.getIndexForNode(node);
-            return Optional.of(() -> SFMPackets.sendToServer(new ServerboundOutputInspectionRequestPacket(
+            return Optional.of(() -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundOutputInspectionRequestPacket(
                     programString,
                     nodeIndex
             )));
         } else if (node instanceof BoolExpr) {
             SFM.LOGGER.info("Found context action for BoolExpr node");
             int nodeIndex = builder.getIndexForNode(node);
-            return Optional.of(() -> SFMPackets.sendToServer(new ServerboundBoolExprStatementInspectionRequestPacket(
+            return Optional.of(() -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundBoolExprStatementInspectionRequestPacket(
                     programString,
                     nodeIndex
             )));
         } else if (node instanceof IfStatement) {
             SFM.LOGGER.info("Found context action for if statement node");
             int nodeIndex = builder.getIndexForNode(node);
-            return Optional.of(() -> SFMPackets.sendToServer(new ServerboundIfStatementInspectionRequestPacket(
+            return Optional.of(() -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundIfStatementInspectionRequestPacket(
                     programString,
                     nodeIndex
             )));
@@ -126,9 +128,15 @@ public class ProgramTokenContextActions {
     }
 
     public static boolean hasContextAction(Token token) {
-        return switch (token.getType()) {
-            case SFMLLexer.INPUT, SFMLLexer.OUTPUT, SFMLLexer.IDENTIFIER, SFMLLexer.IF, SFMLLexer.HAS -> true;
-            default -> false;
-        };
+        switch (token.getType()) {
+            case SFMLLexer.INPUT:
+            case SFMLLexer.OUTPUT:
+            case SFMLLexer.IDENTIFIER:
+            case SFMLLexer.IF:
+            case SFMLLexer.HAS:
+                return true;
+            default:
+                return false;
+        }
     }
 }
