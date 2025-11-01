@@ -1,0 +1,17 @@
+package ca.teamdman.sfm.client.widget;
+
+import net.minecraft.network.chat.Component;
+import net.minecraftforge.client.gui.widget.ExtendedButton;
+
+public class SFMExtendedButton extends ExtendedButton {
+    public SFMExtendedButton(
+            int xPos,
+            int yPos,
+            int width,
+            int height,
+            Component displayString,
+            OnPress handler
+    ) {
+        super(xPos, yPos, width, height, displayString, handler);
+    }
+}

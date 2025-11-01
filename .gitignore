@@ -5,9 +5,10 @@
 
 # Gradle stuff
 !gradle/
-!gradlew
+!../sfm4/gradlew
 !gradlew.bat
-!build.gradle
+!build.gradle.kts
+!settings.gradle.kts
 !build.properties
 !gradle.properties
 !settings.gradle
