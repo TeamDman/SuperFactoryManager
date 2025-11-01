@@ -1,59 +1,49 @@
 package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.common.item.DiskItem;
-import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ServerboundDiskItemSetProgramPacket(
-        String programString,
-        EnumHand hand
-) implements SFMPacket {
-    public static class Daddy implements SFMPacketDaddy<ServerboundDiskItemSetProgramPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.SERVERBOUND;
-        }
+public class ServerboundDiskItemSetProgramPacket extends SFMPacket<ServerboundDiskItemSetProgramPacket> {
+    private String programString;
+    private EnumHand hand;
 
-        @Override
-        public void encode(
-                ServerboundDiskItemSetProgramPacket msg,
-                ByteBuf buf
-        ) {
-            ByteBufUtils.writeUTF8String(buf, msg.programString);
-            buf.writeInt(msg.hand.ordinal());
-        }
+    public ServerboundDiskItemSetProgramPacket(String programString, EnumHand hand) {
+        this.programString = programString;
+        this.hand = hand;
+    }
 
-        @Override
-        public ServerboundDiskItemSetProgramPacket decode(ByteBuf buf) {
-            return new ServerboundDiskItemSetProgramPacket(
-                    ByteBufUtils.readUTF8String(buf),
-                    EnumHand.class.getEnumConstants()[buf.readInt()]
-            );
-        }
+    public ServerboundDiskItemSetProgramPacket() {
+    }
 
-        @Override
-        public void handle(
-                ServerboundDiskItemSetProgramPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            var sender = context.sender();
-            if (sender == null) {
-                return;
-            }
-            var stack = sender.getItemInHand(msg.hand);
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        programString = ByteBufUtils.readUTF8String(buf);
+        hand = EnumHand.values()[buf.readInt()];
+    }
+
+    @Override
+    public void toBytes(ByteBuf buf) {
+        ByteBufUtils.writeUTF8String(buf, programString);
+        buf.writeInt(hand.ordinal());
+    }
+
+    @Override
+    public IMessage onMessage(ServerboundDiskItemSetProgramPacket message, MessageContext ctx) {
+        EntityPlayerMP player = ctx.getServerHandler().player;
+        player.getServerWorld().addScheduledTask(() -> {
+            ItemStack stack = player.getHeldItem(message.hand);
             if (stack.getItem() instanceof DiskItem) {
-                DiskItem.setProgram(stack, msg.programString);
+                DiskItem.setProgram(stack, message.programString);
                 DiskItem.compileAndUpdateErrorsAndWarnings(stack, null);
                 DiskItem.pruneIfDefault(stack);
             }
-        }
-
-        @Override
-        public Class<ServerboundDiskItemSetProgramPacket> getPacketClass() {
-            return ServerboundDiskItemSetProgramPacket.class;
-        }
+        });
+        return null;
     }
 }

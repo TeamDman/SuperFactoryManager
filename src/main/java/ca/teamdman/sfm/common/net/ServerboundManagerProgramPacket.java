@@ -4,55 +4,60 @@ import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ServerboundManagerProgramPacket(
-        int windowId,
-        BlockPos pos,
-        String program
-) implements SFMPacket {
-    public static class Daddy implements SFMPacketDaddy<ServerboundManagerProgramPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.SERVERBOUND;
-        }
-        @Override
-        public void encode(
-                ServerboundManagerProgramPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeVarInt(msg.windowId());
-            friendlyByteBuf.writeBlockPos(msg.pos());
-            friendlyByteBuf.writeUtf(msg.program(), Program.MAX_PROGRAM_LENGTH);
-        }
+import java.io.IOException;
 
-        @Override
-        public ServerboundManagerProgramPacket decode(ByteBuf friendlyByteBuf) {
-            return new ServerboundManagerProgramPacket(
-                    friendlyByteBuf.readVarInt(),
-                    friendlyByteBuf.readBlockPos(),
-                    friendlyByteBuf.readUtf(Program.MAX_PROGRAM_LENGTH)
-            );
-        }
+public class ServerboundManagerProgramPacket extends SFMPacket<ServerboundManagerProgramPacket> {
+    private int windowId;
+    private BlockPos pos;
+    private String program;
 
-        @Override
-        public void handle(
-                ServerboundManagerProgramPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            context.handleServerboundContainerPacket(
-                    ManagerContainerMenu.class,
-                    ManagerBlockEntity.class,
-                    msg.pos,
-                    msg.windowId,
-                    (menu, manager) -> manager.setProgram(msg.program())
-            );
-        }
+    public ServerboundManagerProgramPacket(int windowId, BlockPos pos, String program) {
+        this.windowId = windowId;
+        this.pos = pos;
+        this.program = program;
+    }
 
-        @Override
-        public Class<ServerboundManagerProgramPacket> getPacketClass() {
-            return ServerboundManagerProgramPacket.class;
+    public ServerboundManagerProgramPacket() {
+    }
+
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        windowId = packetBuffer.readVarInt();
+        pos = packetBuffer.readBlockPos();
+        try {
+            program = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void toBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        packetBuffer.writeVarInt(windowId);
+        packetBuffer.writeBlockPos(pos);
+        packetBuffer.writeString(program);
+    }
+
+    @Override
+    public IMessage onMessage(ServerboundManagerProgramPacket message, MessageContext ctx) {
+        EntityPlayerMP player = ctx.getServerHandler().player;
+        player.getServerWorld().addScheduledTask(() -> {
+            if (player.openContainer instanceof ManagerContainerMenu && player.openContainer.windowId == message.windowId) {
+                TileEntity te = player.world.getTileEntity(message.pos);
+                if (te instanceof ManagerBlockEntity) {
+                    ((ManagerBlockEntity) te).setProgram(message.program);
+                }
+            }
+        });
+        return null;
     }
 }

@@ -2,50 +2,41 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ServerboundLabelGunClearPacket(
-        EnumHand hand
-) implements SFMPacket {
-    public static class Daddy implements SFMPacketDaddy<ServerboundLabelGunClearPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.SERVERBOUND;
-        }
-        @Override
-        public void encode(
-                ServerboundLabelGunClearPacket msg,
-                ByteBuf buf
-        ) {
-            buf.writeEnum(msg.hand);
-        }
+public class ServerboundLabelGunClearPacket extends SFMPacket<ServerboundLabelGunClearPacket> {
+    private EnumHand hand;
 
-        @Override
-        public ServerboundLabelGunClearPacket decode(ByteBuf buf) {
-            return new ServerboundLabelGunClearPacket(buf.readEnum(EnumHand.class));
-        }
+    public ServerboundLabelGunClearPacket(EnumHand hand) {
+        this.hand = hand;
+    }
 
-        @Override
-        public void handle(
-                ServerboundLabelGunClearPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            {
-                var sender = context.sender();
-                if (sender == null) {
-                    return;
-                }
-                var stack = sender.getItemInHand(msg.hand);
-                if (stack.getItem() instanceof LabelGunItem) {
-                    LabelGunItem.clearAll(stack);
-                }
+    public ServerboundLabelGunClearPacket() {
+    }
+
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        hand = EnumHand.values()[buf.readInt()];
+    }
+
+    @Override
+    public void toBytes(ByteBuf buf) {
+        buf.writeInt(hand.ordinal());
+    }
+
+    @Override
+    public IMessage onMessage(ServerboundLabelGunClearPacket message, MessageContext ctx) {
+        EntityPlayerMP player = ctx.getServerHandler().player;
+        player.getServerWorld().addScheduledTask(() -> {
+            ItemStack stack = player.getHeldItem(message.hand);
+            if (stack.getItem() instanceof LabelGunItem) {
+                LabelGunItem.clearAll(stack);
             }
-        }
-
-        @Override
-        public Class<ServerboundLabelGunClearPacket> getPacketClass() {
-            return ServerboundLabelGunClearPacket.class;
-        }
+        });
+        return null;
     }
 }

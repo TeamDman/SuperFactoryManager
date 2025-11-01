@@ -5,60 +5,61 @@ import ca.teamdman.sfm.client.screen.TomlEditScreenOpenContext;
 import ca.teamdman.sfm.common.command.ConfigCommandBehaviourInput;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ClientboundServerConfigCommandPacket(
-        String configToml,
-        ConfigCommandBehaviourInput requestingEditMode
-) implements SFMPacket {
-    public static final int MAX_LENGTH = 20480;
+import java.io.IOException;
 
-    public static class Daddy implements SFMPacketDaddy<ClientboundServerConfigCommandPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.CLIENTBOUND;
+public class ClientboundServerConfigCommandPacket extends SFMPacket<ClientboundServerConfigCommandPacket> {
+    private String configToml;
+    private ConfigCommandBehaviourInput requestingEditMode;
+
+    public ClientboundServerConfigCommandPacket(String configToml, ConfigCommandBehaviourInput requestingEditMode) {
+        this.configToml = configToml;
+        this.requestingEditMode = requestingEditMode;
+    }
+
+    public ClientboundServerConfigCommandPacket() {
+    }
+
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        try {
+            configToml = packetBuffer.readString(20480);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+        requestingEditMode = ConfigCommandBehaviourInput.values()[packetBuffer.readInt()];
+    }
 
-        @Override
-        public void encode(
-                ClientboundServerConfigCommandPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeUtf(msg.configToml(), MAX_LENGTH);
-            friendlyByteBuf.writeEnum(msg.requestingEditMode());
-        }
+    @Override
+    public void toBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        packetBuffer.writeString(configToml);
+        packetBuffer.writeInt(requestingEditMode.ordinal());
+    }
 
-        @Override
-        public ClientboundServerConfigCommandPacket decode(ByteBuf friendlyByteBuf) {
-            return new ClientboundServerConfigCommandPacket(
-                    friendlyByteBuf.readUtf(MAX_LENGTH),
-                    friendlyByteBuf.readEnum(ConfigCommandBehaviourInput.class)
-            );
-        }
-
-        @Override
-        public void handle(
-                ClientboundServerConfigCommandPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            String configTomlString = msg.configToml();
-            configTomlString = configTomlString.replaceAll("\r", "");
-            switch (msg.requestingEditMode()) {
-                case SHOW -> SFMScreenChangeHelpers.showTomlEditScreen(new TomlEditScreenOpenContext(
+    @Override
+    public IMessage onMessage(ClientboundServerConfigCommandPacket message, MessageContext ctx) {
+        String configTomlString = message.configToml;
+        configTomlString = configTomlString.replaceAll("\\r", "");
+        switch (message.requestingEditMode) {
+            case SHOW:
+                SFMScreenChangeHelpers.showTomlEditScreen(new TomlEditScreenOpenContext(
                         configTomlString,
                         $ -> {
                         }
                 ));
-                case EDIT -> SFMScreenChangeHelpers.showTomlEditScreen(new TomlEditScreenOpenContext(
+                break;
+            case EDIT:
+                SFMScreenChangeHelpers.showTomlEditScreen(new TomlEditScreenOpenContext(
                         configTomlString,
-                        (newContent) -> SFMPackets.sendToServer(new ServerboundServerConfigUpdatePacket(newContent))
+                        (newContent) -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundServerConfigUpdatePacket(newContent))
                 ));
-            }
+                break;
         }
-
-        @Override
-        public Class<ClientboundServerConfigCommandPacket> getPacketClass() {
-            return ClientboundServerConfigCommandPacket.class;
-        }
+        return null;
     }
 }

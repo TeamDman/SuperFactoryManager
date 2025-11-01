@@ -7,88 +7,85 @@ import ca.teamdman.sfm.common.util.SFMASTUtils;
 import ca.teamdman.sfml.ast.InputStatement;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ServerboundInputInspectionRequestPacket(
-        String programString,
-        int inputNodeIndex
-) implements SFMPacket {
-    public static class Daddy implements SFMPacketDaddy<ServerboundInputInspectionRequestPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.SERVERBOUND;
+import java.io.IOException;
+
+public class ServerboundInputInspectionRequestPacket extends SFMPacket<ServerboundInputInspectionRequestPacket> {
+    private String programString;
+    private int inputNodeIndex;
+
+    public ServerboundInputInspectionRequestPacket(String programString, int inputNodeIndex) {
+        this.programString = programString;
+        this.inputNodeIndex = inputNodeIndex;
+    }
+
+    public ServerboundInputInspectionRequestPacket() {
+    }
+
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        try {
+            programString = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        @Override
-        public void encode(
-                ServerboundInputInspectionRequestPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeUtf(msg.programString, Program.MAX_PROGRAM_LENGTH);
-            friendlyByteBuf.writeInt(msg.inputNodeIndex());
-        }
+        inputNodeIndex = packetBuffer.readInt();
+    }
 
-        @Override
-        public ServerboundInputInspectionRequestPacket decode(ByteBuf friendlyByteBuf) {
-            return new ServerboundInputInspectionRequestPacket(
-                    friendlyByteBuf.readUtf(Program.MAX_PROGRAM_LENGTH),
-                    friendlyByteBuf.readInt()
-            );
-        }
+    @Override
+    public void toBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        packetBuffer.writeString(programString);
+        packetBuffer.writeInt(inputNodeIndex);
+    }
 
-        @Override
-        public void handle(
-                ServerboundInputInspectionRequestPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            context.compileAndThen(
-                    msg.programString,
-                    (program, player, managerBlockEntity) ->
-                            program.astBuilder()
-                                    .getNodeAtIndex(msg.inputNodeIndex)
-                                    .filter(InputStatement.class::isInstance)
-                                    .map(InputStatement.class::cast)
-                                    .ifPresent(inputStatement -> {
-                                        StringBuilder payload = new StringBuilder();
-                                        payload
-                                                .append(inputStatement.toStringPretty())
-                                                .append("\n-- peek results --\n");
+    @Override
+    public IMessage onMessage(ServerboundInputInspectionRequestPacket message, MessageContext ctx) {
+        EntityPlayerMP player = ctx.getServerHandler().player;
+        player.getServerWorld().addScheduledTask(() -> {
+            Program.compile(message.programString).ifPresent(program -> {
+                program.astBuilder()
+                        .getNodeAtIndex(message.inputNodeIndex)
+                        .filter(InputStatement.class::isInstance)
+                        .map(InputStatement.class::cast)
+                        .ifPresent(inputStatement -> {
+                            StringBuilder payload = new StringBuilder();
+                            payload
+                                    .append(inputStatement.toStringPretty())
+                                    .append("\n-- peek results --\n");
 
-                                        ProgramContext programContext = new ProgramContext(
-                                                program,
-                                                managerBlockEntity,
-                                                new SimulateExploreAllPathsProgramBehaviour()
-                                        );
-                                        int preLen = payload.length();
-                                        inputStatement.gatherSlots(
-                                                programContext,
-                                                slot -> SFMASTUtils
-                                                        .getInputStatementForSlot(
-                                                                slot,
-                                                                inputStatement.labelAccess()
-                                                        )
-                                                        .ifPresent(is -> payload
-                                                                .append(is.toStringPretty())
-                                                                .append("\n"))
-                                        );
-                                        if (payload.length() == preLen) {
-                                            payload.append("none");
-                                        }
+                            ProgramContext programContext = new ProgramContext(
+                                    program,
+                                    null, // managerBlockEntity is not available on the client
+                                    new SimulateExploreAllPathsProgramBehaviour()
+                            );
+                            int preLen = payload.length();
+                            inputStatement.gatherSlots(
+                                    programContext,
+                                    slot -> SFMASTUtils
+                                            .getInputStatementForSlot(
+                                                    slot,
+                                                    inputStatement.labelAccess()
+                                            )
+                                            .ifPresent(is -> payload
+                                                    .append(is.toStringPretty())
+                                                    .append("\n"))
+                            );
+                            if (payload.length() == preLen) {
+                                payload.append("none");
+                            }
 
-                                        SFMPackets.sendToPlayer(
-                                                () -> player,
-                                                new ClientboundInputInspectionResultsPacket(
-                                                        SFMPacketDaddy.truncate(
-                                                                payload.toString(),
-                                                                ClientboundInputInspectionResultsPacket.MAX_RESULTS_LENGTH
-                                                        ))
-                                        );
-                                    })
-            );
-        }
-
-        @Override
-        public Class<ServerboundInputInspectionRequestPacket> getPacketClass() {
-            return ServerboundInputInspectionRequestPacket.class;
-        }
+                            SFMPackets.SFM_CHANNEL.sendTo(new ClientboundInputInspectionResultsPacket(
+                                    payload.toString()
+                            ), player);
+                        });
+            });
+        });
+        return null;
     }
 }

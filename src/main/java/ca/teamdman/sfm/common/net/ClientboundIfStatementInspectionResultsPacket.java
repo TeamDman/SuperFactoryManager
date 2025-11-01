@@ -2,45 +2,39 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ClientboundIfStatementInspectionResultsPacket(
-        String results
-) implements SFMPacket {
-    public static final int MAX_RESULTS_LENGTH = 2048;
+import java.io.IOException;
 
-    public static class Daddy implements SFMPacketDaddy<ClientboundIfStatementInspectionResultsPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.CLIENTBOUND;
-        }
-        @Override
-        public void encode(
-                ClientboundIfStatementInspectionResultsPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeUtf(msg.results(), MAX_RESULTS_LENGTH);
-        }
+public class ClientboundIfStatementInspectionResultsPacket extends SFMPacket<ClientboundIfStatementInspectionResultsPacket> {
+    private String results;
 
-        @Override
-        public ClientboundIfStatementInspectionResultsPacket decode(ByteBuf friendlyByteBuf) {
-            return new ClientboundIfStatementInspectionResultsPacket(
-                    friendlyByteBuf.readUtf(MAX_RESULTS_LENGTH)
-            );
-        }
+    public ClientboundIfStatementInspectionResultsPacket(String results) {
+        this.results = results;
+    }
 
-        @Override
-        public void handle(
-                ClientboundIfStatementInspectionResultsPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            SFMScreenChangeHelpers.showProgramEditScreen(msg.results());
-        }
+    public ClientboundIfStatementInspectionResultsPacket() {
+    }
 
-        @Override
-        public Class<ClientboundIfStatementInspectionResultsPacket> getPacketClass() {
-            return ClientboundIfStatementInspectionResultsPacket.class;
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        try {
+            results = new PacketBuffer(buf).readString(2048);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
+    @Override
+    public void toBytes(ByteBuf buf) {
+        new PacketBuffer(buf).writeString(results);
+    }
+
+    @Override
+    public IMessage onMessage(ClientboundIfStatementInspectionResultsPacket message, MessageContext ctx) {
+        SFMScreenChangeHelpers.showProgramEditScreen(message.results);
+        return null;
+    }
 }

@@ -3,60 +3,54 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.config.SFMConfigReadWriter;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.HandshakeMessages;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ServerboundServerConfigUpdatePacket(
-        String newConfig
-) implements SFMPacket {
-    /**
-     * Value chosen to match {@link HandshakeMessages.S2CConfigData#decode(FriendlyByteBuf)}
-     */
+import java.io.IOException;
+
+public class ServerboundServerConfigUpdatePacket extends SFMPacket<ServerboundServerConfigUpdatePacket> {
     public static final int MAX_CONFIG_LENGTH = 32767;
-    public static class Daddy implements SFMPacketDaddy<ServerboundServerConfigUpdatePacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.SERVERBOUND;
-        }
-        @Override
-        public void encode(
-                ServerboundServerConfigUpdatePacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeUtf(msg.newConfig, MAX_CONFIG_LENGTH);
-        }
+    private String newConfig;
 
-        @Override
-        public ServerboundServerConfigUpdatePacket decode(ByteBuf friendlyByteBuf) {
-            return new ServerboundServerConfigUpdatePacket(friendlyByteBuf.readUtf(MAX_CONFIG_LENGTH));
-        }
+    public ServerboundServerConfigUpdatePacket(String newConfig) {
+        this.newConfig = newConfig;
+    }
 
-        @Override
-        public void handle(
-                ServerboundServerConfigUpdatePacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            ServerPlayer player = context.sender();
-            if (player == null) {
-                SFM.LOGGER.error("Received {} from null player", this.getPacketClass().getName());
-                return;
-            }
-            if (!player.hasPermissions(Commands.LEVEL_OWNERS)) {
+    public ServerboundServerConfigUpdatePacket() {
+    }
+
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        try {
+            newConfig = packetBuffer.readString(MAX_CONFIG_LENGTH);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void toBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        packetBuffer.writeString(newConfig);
+    }
+
+    @Override
+    public IMessage onMessage(ServerboundServerConfigUpdatePacket message, MessageContext ctx) {
+        EntityPlayerMP player = ctx.getServerHandler().player;
+        player.getServerWorld().addScheduledTask(() -> {
+            if (!player.canUseCommand(4, "")) {
                 SFM.LOGGER.fatal(
                         "Player {} tried to WRITE server config but does not have the necessary permissions, this should never happen o-o",
-                        player.getName().getString()
+                        player.getName()
                 );
                 return;
             }
-            SFMConfigReadWriter.ConfigSyncResult result = SFMConfigReadWriter.updateAndSyncServerConfig(msg.newConfig);
-            player.sendSystemMessage(result.component());
-        }
-
-        @Override
-        public Class<ServerboundServerConfigUpdatePacket> getPacketClass() {
-            return ServerboundServerConfigUpdatePacket.class;
-        }
+            SFMConfigReadWriter.ConfigSyncResult result = SFMConfigReadWriter.updateAndSyncServerConfig(message.newConfig);
+            player.sendMessage(result.component());
+        });
+        return null;
     }
 }

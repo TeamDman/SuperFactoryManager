@@ -3,52 +3,49 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ServerboundManagerResetPacket(
-        int windowId,
-        BlockPos pos
-) implements SFMPacket {
-    public static class Daddy implements SFMPacketDaddy<ServerboundManagerResetPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.SERVERBOUND;
-        }
-        @Override
-        public void encode(
-                ServerboundManagerResetPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeVarInt(msg.windowId());
-            friendlyByteBuf.writeBlockPos(msg.pos());
-        }
+public class ServerboundManagerResetPacket extends SFMPacket<ServerboundManagerResetPacket> {
+    private int windowId;
+    private BlockPos pos;
 
-        @Override
-        public ServerboundManagerResetPacket decode(ByteBuf friendlyByteBuf) {
-            return new ServerboundManagerResetPacket(
-                    friendlyByteBuf.readVarInt(),
-                    friendlyByteBuf.readBlockPos()
-            );
-        }
+    public ServerboundManagerResetPacket(int windowId, BlockPos pos) {
+        this.windowId = windowId;
+        this.pos = pos;
+    }
 
-        @Override
-        public void handle(
-                ServerboundManagerResetPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            context.handleServerboundContainerPacket(
-                    ManagerContainerMenu.class,
-                    ManagerBlockEntity.class,
-                    msg.pos,
-                    msg.windowId,
-                    (menu, manager) -> manager.reset()
-            );
-        }
+    public ServerboundManagerResetPacket() {
+    }
 
-        @Override
-        public Class<ServerboundManagerResetPacket> getPacketClass() {
-            return ServerboundManagerResetPacket.class;
-        }
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        windowId = buf.readInt();
+        pos = new BlockPos(buf.readInt(), buf.readInt(), buf.readInt());
+    }
+
+    @Override
+    public void toBytes(ByteBuf buf) {
+        buf.writeInt(windowId);
+        buf.writeInt(pos.getX());
+        buf.writeInt(pos.getY());
+        buf.writeInt(pos.getZ());
+    }
+
+    @Override
+    public IMessage onMessage(ServerboundManagerResetPacket message, MessageContext ctx) {
+        EntityPlayerMP player = ctx.getServerHandler().player;
+        player.getServerWorld().addScheduledTask(() -> {
+            if (player.openContainer instanceof ManagerContainerMenu && player.openContainer.windowId == message.windowId) {
+                TileEntity te = player.world.getTileEntity(message.pos);
+                if (te instanceof ManagerBlockEntity) {
+                    ((ManagerBlockEntity) te).reset();
+                }
+            }
+        });
+        return null;
     }
 }

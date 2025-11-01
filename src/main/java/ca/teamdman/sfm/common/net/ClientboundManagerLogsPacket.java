@@ -6,77 +6,63 @@ import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.inventory.Container;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.util.Collection;
 
-public record ClientboundManagerLogsPacket(
-        int windowId,
-        FriendlyByteBuf logsBuf
-) implements SFMPacket {
+public class ClientboundManagerLogsPacket extends SFMPacket<ClientboundManagerLogsPacket> {
+    private int windowId;
+    private PacketBuffer logsBuf;
+
+    public ClientboundManagerLogsPacket(int windowId, PacketBuffer logsBuf) {
+        this.windowId = windowId;
+        this.logsBuf = logsBuf;
+    }
+
+    public ClientboundManagerLogsPacket() {
+    }
+
     public static ClientboundManagerLogsPacket drainToCreate(
             int windowId,
             Collection<TranslatableLogEvent> logs
     ) {
-        var buf = new FriendlyByteBuf(Unpooled.buffer());
+        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
         TranslatableLogger.encodeAndDrain(logs, buf);
         return new ClientboundManagerLogsPacket(windowId, buf);
     }
 
-    public static class Daddy implements SFMPacketDaddy<ClientboundManagerLogsPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.CLIENTBOUND;
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        windowId = packetBuffer.readVarInt();
+        int size = packetBuffer.readVarInt();
+        logsBuf = new PacketBuffer(Unpooled.buffer(size));
+        packetBuffer.readBytes(logsBuf, size);
+    }
+
+    @Override
+    public void toBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        packetBuffer.writeVarInt(windowId);
+        packetBuffer.writeVarInt(logsBuf.readableBytes());
+        packetBuffer.writeBytes(logsBuf, 0, logsBuf.readableBytes());
+    }
+
+    @Override
+    public IMessage onMessage(ClientboundManagerLogsPacket message, MessageContext ctx) {
+        EntityPlayerSP player = Minecraft.getMinecraft().player;
+        if (player == null) return null;
+        Container container = player.openContainer;
+        if (!(container instanceof ManagerContainerMenu) || container.windowId != message.windowId) {
+            return null;
         }
-        @Override
-        public void encode(
-                ClientboundManagerLogsPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeVarInt(msg.windowId());
-            friendlyByteBuf.writeVarInt(msg.logsBuf.readableBytes());
-            friendlyByteBuf.writeBytes(msg.logsBuf, 0, msg.logsBuf.readableBytes()); // !!!IMPORTANT!!!
-            // We use this write method specifically to NOT modify the reader index.
-            // The encode method may be called multiple times, so we want to ensure it is idempotent.
-
-        }
-
-        @Override
-        public ClientboundManagerLogsPacket decode(ByteBuf friendlyByteBuf) {
-            int windowId = friendlyByteBuf.readVarInt();
-
-            int size = friendlyByteBuf.readVarInt(); // don't trust readableBytes
-            // https://discord.com/channels/313125603924639766/1154167065519861831/1192251649398419506
-
-            FriendlyByteBuf logsBuf = new FriendlyByteBuf(Unpooled.buffer(size));
-            friendlyByteBuf.readBytes(logsBuf, size);
-            return new ClientboundManagerLogsPacket(
-                    windowId,
-                    logsBuf
-            );
-        }
-
-        @Override
-        public void handle(
-                ClientboundManagerLogsPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            LocalPlayer player = Minecraft.getInstance().player;
-            if (player == null
-                || !(player.containerMenu instanceof ManagerContainerMenu menu)
-                || menu.containerId != msg.windowId()) {
-                // We don't log here because this is a common occurrence when the player closes the menu
-//                SFM.LOGGER.error("Invalid logs packet received, ignoring.");
-                return;
-            }
-            var logs = TranslatableLogger.decode(msg.logsBuf);
-            menu.logs.addAll(logs);
-        }
-
-        @Override
-        public Class<ClientboundManagerLogsPacket> getPacketClass() {
-            return ClientboundManagerLogsPacket.class;
-        }
+        ManagerContainerMenu menu = (ManagerContainerMenu) container;
+        var logs = TranslatableLogger.decode(message.logsBuf);
+        menu.logs.addAll(logs);
+        return null;
     }
 }

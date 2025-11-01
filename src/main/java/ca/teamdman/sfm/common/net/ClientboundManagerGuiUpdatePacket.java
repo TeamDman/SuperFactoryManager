@@ -5,67 +5,67 @@ import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.inventory.Container;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ClientboundManagerGuiUpdatePacket(
-        int windowId,
-        String program,
-        ManagerBlockEntity.State state,
-        long[] tickTimes
-) implements SFMPacket {
-    public ClientboundManagerGuiUpdatePacket cloneWithWindowId(int windowId) {
-        return new ClientboundManagerGuiUpdatePacket(windowId, program(), state(), tickTimes());
+import java.io.IOException;
+
+public class ClientboundManagerGuiUpdatePacket extends SFMPacket<ClientboundManagerGuiUpdatePacket> {
+    private int windowId;
+    private String program;
+    private ManagerBlockEntity.State state;
+    private long[] tickTimes;
+
+    public ClientboundManagerGuiUpdatePacket(int windowId, String program, ManagerBlockEntity.State state, long[] tickTimes) {
+        this.windowId = windowId;
+        this.program = program;
+        this.state = state;
+        this.tickTimes = tickTimes;
     }
 
-    public static class Daddy implements SFMPacketDaddy<ClientboundManagerGuiUpdatePacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.CLIENTBOUND;
-        }
-        @Override
-        public Class<ClientboundManagerGuiUpdatePacket> getPacketClass() {
-            return ClientboundManagerGuiUpdatePacket.class;
-        }
+    public ClientboundManagerGuiUpdatePacket() {
+    }
 
-        @Override
-        public void encode(
-                ClientboundManagerGuiUpdatePacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeVarInt(msg.windowId());
-            friendlyByteBuf.writeUtf(msg.program(), Program.MAX_PROGRAM_LENGTH);
-            friendlyByteBuf.writeEnum(msg.state());
-            friendlyByteBuf.writeLongArray(msg.tickTimes());
-        }
+    public ClientboundManagerGuiUpdatePacket cloneWithWindowId(int windowId) {
+        return new ClientboundManagerGuiUpdatePacket(windowId, program, state, tickTimes);
+    }
 
-        @Override
-        public ClientboundManagerGuiUpdatePacket decode(ByteBuf friendlyByteBuf) {
-            return new ClientboundManagerGuiUpdatePacket(
-                    friendlyByteBuf.readVarInt(),
-                    friendlyByteBuf.readUtf(Program.MAX_PROGRAM_LENGTH),
-                    friendlyByteBuf.readEnum(ManagerBlockEntity.State.class),
-                    friendlyByteBuf.readLongArray()
-            );
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        windowId = packetBuffer.readVarInt();
+        try {
+            program = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+        state = packetBuffer.readEnumValue(ManagerBlockEntity.State.class);
+        tickTimes = packetBuffer.readLongArray();
+    }
 
-        @Override
-        public void handle(
-                ClientboundManagerGuiUpdatePacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            LocalPlayer player = Minecraft.getInstance().player;
-            if (player == null
-                || !(player.containerMenu instanceof ManagerContainerMenu menu)
-                || menu.containerId != msg.windowId()) {
-                // we don't log here because this is a common occurrence when the player closes the menu
-//                SFM.LOGGER.error("Invalid manager gui packet received, ignoring.");
-                return;
-            }
-            menu.tickTimeNanos = msg.tickTimes();
-            menu.state = msg.state();
-            menu.program = msg.program();
+    @Override
+    public void toBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        packetBuffer.writeVarInt(windowId);
+        packetBuffer.writeString(program);
+        packetBuffer.writeEnumValue(state);
+        packetBuffer.writeLongArray(tickTimes);
+    }
+
+    @Override
+    public IMessage onMessage(ClientboundManagerGuiUpdatePacket message, MessageContext ctx) {
+        EntityPlayerSP player = Minecraft.getMinecraft().player;
+        if (player == null) return null;
+        Container container = player.openContainer;
+        if (!(container instanceof ManagerContainerMenu menu) || container.windowId != message.windowId) {
+            return null;
         }
-
+        menu.tickTimeNanos = message.tickTimes;
+        menu.state = message.state;
+        menu.program = message.program;
+        return null;
     }
 }

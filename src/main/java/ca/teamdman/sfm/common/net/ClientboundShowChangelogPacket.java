@@ -2,40 +2,25 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ClientboundShowChangelogPacket(
-) implements SFMPacket {
+public class ClientboundShowChangelogPacket extends SFMPacket<ClientboundShowChangelogPacket> {
 
-    public static class Daddy implements SFMPacketDaddy<ClientboundShowChangelogPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.CLIENTBOUND;
-        }
-        @Override
-        public void encode(
-                ClientboundShowChangelogPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-        }
+    public ClientboundShowChangelogPacket() {
+    }
 
-        @Override
-        public ClientboundShowChangelogPacket decode(ByteBuf friendlyByteBuf) {
-            return new ClientboundShowChangelogPacket(
-            );
-        }
+    @Override
+    public void fromBytes(ByteBuf buf) {
+    }
 
-        @Override
-        public void handle(
-                ClientboundShowChangelogPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            SFMScreenChangeHelpers.showChangelog();
-        }
+    @Override
+    public void toBytes(ByteBuf buf) {
+    }
 
-        @Override
-        public Class<ClientboundShowChangelogPacket> getPacketClass() {
-            return ClientboundShowChangelogPacket.class;
-        }
+    @Override
+    public IMessage onMessage(ClientboundShowChangelogPacket message, MessageContext ctx) {
+        SFMScreenChangeHelpers.showChangelog();
+        return null;
     }
 }

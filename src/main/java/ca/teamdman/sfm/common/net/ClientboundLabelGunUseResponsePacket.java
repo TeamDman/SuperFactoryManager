@@ -3,54 +3,46 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.client.ClientLabelGunResponseChatHelper;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ClientboundLabelGunUseResponsePacket(
-        Behaviour behaviour
-) implements SFMPacket {
+public class ClientboundLabelGunUseResponsePacket extends SFMPacket<ClientboundLabelGunUseResponsePacket> {
+    private Behaviour behaviour;
+
+    public ClientboundLabelGunUseResponsePacket(Behaviour behaviour) {
+        this.behaviour = behaviour;
+    }
+
+    public ClientboundLabelGunUseResponsePacket() {
+    }
+
     public enum Behaviour {
         Pushed,
         Pulled
     }
 
-    public void sendToPlayer(Player player) {
-        if (player instanceof ServerPlayer serverPlayer) {
-            SFMPackets.sendToPlayer(serverPlayer, this);
-        }
+    public void sendToPlayer(EntityPlayerMP player) {
+        SFMPackets.SFM_CHANNEL.sendTo(this, player);
     }
-    public static class Daddy implements SFMPacketDaddy<ClientboundLabelGunUseResponsePacket> {
 
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.CLIENTBOUND;
-        }
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        behaviour = Behaviour.values()[buf.readInt()];
+    }
 
-        @Override
-        public Class<ClientboundLabelGunUseResponsePacket> getPacketClass() {
-            return ClientboundLabelGunUseResponsePacket.class;
-        }
+    @Override
+    public void toBytes(ByteBuf buf) {
+        buf.writeInt(behaviour.ordinal());
+    }
 
-        @Override
-        public void encode(
-                ClientboundLabelGunUseResponsePacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeEnum(msg.behaviour());
-        }
+    @Override
+    public IMessage onMessage(ClientboundLabelGunUseResponsePacket message, MessageContext ctx) {
+        ClientLabelGunResponseChatHelper.handle(message, ctx);
+        return null;
+    }
 
-        @Override
-        public ClientboundLabelGunUseResponsePacket decode(ByteBuf friendlyByteBuf) {
-            return new ClientboundLabelGunUseResponsePacket(friendlyByteBuf.readEnum(Behaviour.class));
-        }
-
-        @Override
-        public void handle(
-                ClientboundLabelGunUseResponsePacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            ClientLabelGunResponseChatHelper.handle(msg, context);
-        }
+    public Behaviour getBehaviour() {
+        return behaviour;
     }
 }

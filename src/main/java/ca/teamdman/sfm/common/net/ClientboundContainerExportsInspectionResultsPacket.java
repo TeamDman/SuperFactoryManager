@@ -3,53 +3,51 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.inventory.Container;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ClientboundContainerExportsInspectionResultsPacket(
-        int windowId,
-        String results
-) implements SFMPacket {
-    public static final int MAX_RESULTS_LENGTH = 20480;
+import java.io.IOException;
 
-    public static class Daddy implements SFMPacketDaddy<ClientboundContainerExportsInspectionResultsPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.CLIENTBOUND;
-        }
-        @Override
-        public Class<ClientboundContainerExportsInspectionResultsPacket> getPacketClass() {
-            return ClientboundContainerExportsInspectionResultsPacket.class;
-        }
+public class ClientboundContainerExportsInspectionResultsPacket extends SFMPacket<ClientboundContainerExportsInspectionResultsPacket> {
+    private int windowId;
+    private String results;
 
-        @Override
-        public void encode(
-                ClientboundContainerExportsInspectionResultsPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeVarInt(msg.windowId());
-            friendlyByteBuf.writeUtf(msg.results(), MAX_RESULTS_LENGTH);
-        }
+    public ClientboundContainerExportsInspectionResultsPacket(int windowId, String results) {
+        this.windowId = windowId;
+        this.results = results;
+    }
 
-        @Override
-        public ClientboundContainerExportsInspectionResultsPacket decode(ByteBuf friendlyByteBuf) {
-            return new ClientboundContainerExportsInspectionResultsPacket(
-                    friendlyByteBuf.readVarInt(),
-                    friendlyByteBuf.readUtf(MAX_RESULTS_LENGTH)
-            );
-        }
+    public ClientboundContainerExportsInspectionResultsPacket() {
+    }
 
-        @Override
-        public void handle(
-                ClientboundContainerExportsInspectionResultsPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            LocalPlayer player = Minecraft.getInstance().player;
-            if (player == null) return;
-            var container = player.containerMenu;
-            if (container.containerId != msg.windowId) return;
-            SFMScreenChangeHelpers.showProgramEditScreen(msg.results);
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        windowId = packetBuffer.readVarInt();
+        try {
+            results = packetBuffer.readString(20480);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
+    @Override
+    public void toBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        packetBuffer.writeVarInt(windowId);
+        packetBuffer.writeString(results);
+    }
+
+    @Override
+    public IMessage onMessage(ClientboundContainerExportsInspectionResultsPacket message, MessageContext ctx) {
+        EntityPlayerSP player = Minecraft.getMinecraft().player;
+        if (player == null) return null;
+        Container container = player.openContainer;
+        if (container.windowId != message.windowId) return null;
+        SFMScreenChangeHelpers.showProgramEditScreen(message.results);
+        return null;
+    }
 }

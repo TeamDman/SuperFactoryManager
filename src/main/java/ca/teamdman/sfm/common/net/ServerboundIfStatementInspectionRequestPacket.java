@@ -6,70 +6,71 @@ import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfml.ast.IfStatement;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ServerboundIfStatementInspectionRequestPacket(
-        String programString,
-        int inputNodeIndex
-) implements SFMPacket {
-    public static class Daddy implements SFMPacketDaddy<ServerboundIfStatementInspectionRequestPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.SERVERBOUND;
-        }
-        @Override
-        public void encode(
-                ServerboundIfStatementInspectionRequestPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeUtf(msg.programString, Program.MAX_PROGRAM_LENGTH);
-            friendlyByteBuf.writeInt(msg.inputNodeIndex());
-        }
+import java.io.IOException;
 
-        @Override
-        public ServerboundIfStatementInspectionRequestPacket decode(ByteBuf friendlyByteBuf) {
-            return new ServerboundIfStatementInspectionRequestPacket(
-                    friendlyByteBuf.readUtf(Program.MAX_PROGRAM_LENGTH),
-                    friendlyByteBuf.readInt()
-            );
-        }
+public class ServerboundIfStatementInspectionRequestPacket extends SFMPacket<ServerboundIfStatementInspectionRequestPacket> {
+    private String programString;
+    private int inputNodeIndex;
 
-        @Override
-        public void handle(
-                ServerboundIfStatementInspectionRequestPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            context.compileAndThen(
-                    msg.programString,
-                    (program, player, managerBlockEntity) -> program.astBuilder()
-                            .getNodeAtIndex(msg.inputNodeIndex)
-                            .filter(IfStatement.class::isInstance)
-                            .map(IfStatement.class::cast)
-                            .ifPresent(ifStatement -> {
-                                StringBuilder payload = new StringBuilder();
-                                payload
-                                        .append(ifStatement.toStringCondensed())
-                                        .append("\n-- peek results --\n");
-                                ProgramContext programContext = new ProgramContext(
-                                        program,
-                                        managerBlockEntity,
-                                        new SimulateExploreAllPathsProgramBehaviour()
-                                );
-                                boolean result = ifStatement.condition().test(programContext);
-                                payload.append(result ? "TRUE" : "FALSE");
+    public ServerboundIfStatementInspectionRequestPacket(String programString, int inputNodeIndex) {
+        this.programString = programString;
+        this.inputNodeIndex = inputNodeIndex;
+    }
 
-                                SFMPackets.sendToPlayer(() -> player, new ClientboundIfStatementInspectionResultsPacket(
-                                        SFMPacketDaddy.truncate(
-                                                payload.toString(),
-                                                ClientboundIfStatementInspectionResultsPacket.MAX_RESULTS_LENGTH
-                                        )));
-                            })
-            );
-        }
+    public ServerboundIfStatementInspectionRequestPacket() {
+    }
 
-        @Override
-        public Class<ServerboundIfStatementInspectionRequestPacket> getPacketClass() {
-            return ServerboundIfStatementInspectionRequestPacket.class;
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        try {
+            programString = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+        inputNodeIndex = packetBuffer.readInt();
+    }
+
+    @Override
+    public void toBytes(ByteBuf buf) {
+        PacketBuffer packetBuffer = new PacketBuffer(buf);
+        packetBuffer.writeString(programString);
+        packetBuffer.writeInt(inputNodeIndex);
+    }
+
+    @Override
+    public IMessage onMessage(ServerboundIfStatementInspectionRequestPacket message, MessageContext ctx) {
+        EntityPlayerMP player = ctx.getServerHandler().player;
+        player.getServerWorld().addScheduledTask(() -> {
+            Program.compile(message.programString).ifPresent(program -> {
+                program.astBuilder()
+                        .getNodeAtIndex(message.inputNodeIndex)
+                        .filter(IfStatement.class::isInstance)
+                        .map(IfStatement.class::cast)
+                        .ifPresent(ifStatement -> {
+                            StringBuilder payload = new StringBuilder();
+                            payload
+                                    .append(ifStatement.toStringCondensed())
+                                    .append("\n-- peek results --\n");
+                            ProgramContext programContext = new ProgramContext(
+                                    program,
+                                    null, // managerBlockEntity is not available on the client
+                                    new SimulateExploreAllPathsProgramBehaviour()
+                            );
+                            boolean result = ifStatement.condition().test(programContext);
+                            payload.append(result ? "TRUE" : "FALSE");
+
+                            SFMPackets.SFM_CHANNEL.sendTo(new ClientboundIfStatementInspectionResultsPacket(
+                                    payload.toString()
+                            ), player);
+                        });
+            });
+        });
+        return null;
     }
 }

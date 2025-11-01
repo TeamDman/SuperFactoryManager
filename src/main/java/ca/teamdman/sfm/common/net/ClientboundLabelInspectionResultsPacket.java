@@ -2,45 +2,39 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public record ClientboundLabelInspectionResultsPacket(
-        String results
-) implements SFMPacket {
-    public static final int MAX_RESULTS_LENGTH = 50_000;
+import java.io.IOException;
 
-    public static class Daddy implements SFMPacketDaddy<ClientboundLabelInspectionResultsPacket> {
-        @Override
-        public PacketDirection getPacketDirection() {
-            return PacketDirection.CLIENTBOUND;
-        }
-        @Override
-        public void encode(
-                ClientboundLabelInspectionResultsPacket msg,
-                ByteBuf friendlyByteBuf
-        ) {
-            friendlyByteBuf.writeUtf(msg.results(), MAX_RESULTS_LENGTH);
-        }
+public class ClientboundLabelInspectionResultsPacket extends SFMPacket<ClientboundLabelInspectionResultsPacket> {
+    private String results;
 
-        @Override
-        public ClientboundLabelInspectionResultsPacket decode(ByteBuf friendlyByteBuf) {
-            return new ClientboundLabelInspectionResultsPacket(
-                    friendlyByteBuf.readUtf(MAX_RESULTS_LENGTH)
-            );
-        }
+    public ClientboundLabelInspectionResultsPacket(String results) {
+        this.results = results;
+    }
 
-        @Override
-        public void handle(
-                ClientboundLabelInspectionResultsPacket msg,
-                SFMPacketHandlingContext context
-        ) {
-            SFMScreenChangeHelpers.showProgramEditScreen(msg.results());
-        }
+    public ClientboundLabelInspectionResultsPacket() {
+    }
 
-        @Override
-        public Class<ClientboundLabelInspectionResultsPacket> getPacketClass() {
-            return ClientboundLabelInspectionResultsPacket.class;
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        try {
+            results = new PacketBuffer(buf).readString(50000);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
+    @Override
+    public void toBytes(ByteBuf buf) {
+        new PacketBuffer(buf).writeString(results);
+    }
+
+    @Override
+    public IMessage onMessage(ClientboundLabelInspectionResultsPacket message, MessageContext ctx) {
+        SFMScreenChangeHelpers.showProgramEditScreen(message.results);
+        return null;
+    }
 }
