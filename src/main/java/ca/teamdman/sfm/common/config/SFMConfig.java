@@ -1,96 +1,101 @@
 package ca.teamdman.sfm.common.config;
 
-import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.text_editor.SFMTextEditorIntellisenseLevel;
+import net.minecraftforge.common.config.Config;
+import net.minecraftforge.common.config.Config.Comment;
+import net.minecraftforge.common.config.Config.Name;
+import net.minecraftforge.common.config.Config.RangeInt;
+import net.minecraftforge.common.config.Config.RequiresMcRestart;
+import net.minecraftforge.fml.client.event.ConfigChangedEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-
-/*
-2024-11-12
-- SFM currently uses COMMON when it seems like it should be SERVER
-- SERVER configs are automatically sent to clients
-- Search discord for "send config" and "ConfigTracker" to find discussions
-
-- SFM currently sends a packet and receives a packet to display the server config, this should be replaced with showing the config synced from the server using built-in behaviour
-- SFM wants to send the updated config TOML but the handler is stubbed. Config needs to be updated from toml, saved, and resent to clients.
-
-MehVahdJukaar — 03/19/2021 7:25 PM
-https://discord.com/channels/313125603924639766/725850371834118214/822611868275310592
-so I've managed to sync the common config file by sending to the client its data and then
-using CONFIG.setConfig(TomlFormat.instance().createParser().parse(data)) like it's done in
-ConfigTracker class. However I would like to be able to load the original client side config
-file (still common) back up in case I want to edit it. How can I do that?
-
-sleepy sci, on graveyard duty — 03/19/2021 7:42 PM
-https://discord.com/channels/313125603924639766/725850371834118214/822615931510718514
-the common config is meant for config settings which do not impact any game logic, but would be useful to store/have on both sides (and which can be separate)
-server config is for server-controlled values
-client config is for client only player-controlled values
-common is anything else
-
-sleepy sci, on graveyard duty — 03/19/2021 7:42 PM
-https://discord.com/channels/313125603924639766/725850371834118214/822616037417549835
-data defined by the server that affects client-side ...
-then it should be server config
-
- */
+@Mod.EventBusSubscriber(modid = SFM.MOD_ID)
+@Config(modid = SFM.MOD_ID, name = "superfactorymanager")
 public class SFMConfig {
-    public static final ForgeConfigSpec SERVER_CONFIG_SPEC;
-    public static final SFMServerConfig SERVER_CONFIG;
 
-    public static final ForgeConfigSpec CLIENT_CONFIG_SPEC;
-    public static final SFMClientConfig CLIENT_CONFIG;
+    @Config.Ignore
+    protected static int configRevision = 1;
 
-    public static final ForgeConfigSpec CLIENT_TEXT_EDITOR_CONFIG_SPEC;
-    public static final SFMClientTextEditorConfig CLIENT_TEXT_EDITOR_CONFIG;
+    public static int getConfigRevision() {
+        return configRevision;
+    }
 
-    static {
-        {
-            var pair =
-                    new ForgeConfigSpec.Builder().configure(SFMServerConfig::new);
-            SERVER_CONFIG_SPEC = pair.getRight();
-            SERVER_CONFIG = pair.getLeft();
-        }
-        {
-            var pair =
-                    new ForgeConfigSpec.Builder().configure(SFMClientConfig::new);
-            CLIENT_CONFIG_SPEC = pair.getRight();
-            CLIENT_CONFIG = pair.getLeft();
-        }
-        {
-            var pair =
-                    new ForgeConfigSpec.Builder().configure(SFMClientTextEditorConfig::new);
-            CLIENT_TEXT_EDITOR_CONFIG_SPEC = pair.getRight();
-            CLIENT_TEXT_EDITOR_CONFIG = pair.getLeft();
+    @SubscribeEvent
+    public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
+        if (event.getModID().equals(SFM.MOD_ID)) {
+            configRevision++;
         }
     }
 
-    /**
-     * Get a config value in a way that doesn't fail when running tests
-     */
-    public static <T> T getOrDefault(ForgeConfigSpec.ConfigValue<T> configValue) {
-        try {
-            return configValue.get();
-        } catch (Exception e) {
-            return configValue.getDefault();
-        }
-    }
-    /**
-     * Get a config value in a way that doesn't fail when running tests
-     */
-    public static <T> T getOrFallback(ForgeConfigSpec.ConfigValue<T> configValue, T fallback) {
-        try {
-            return configValue.get();
-        } catch (Exception e) {
-            return fallback;
-        }
+    @Name("client")
+    @Comment("Client-side settings")
+    public static final Client client = new Client();
+
+    @Name("server")
+    @Comment("Server-side settings")
+    @RequiresMcRestart
+    public static final Server server = new Server();
+
+    public static class Client {
+        @Name("showLineNumbers")
+        @Comment("Show line numbers in the text editor")
+        public boolean showLineNumbers = true;
+
+        @Name("intellisenseLevel")
+        @Comment("Controls the level of intellisense in the text editor")
+        public SFMTextEditorIntellisenseLevel intellisenseLevel = SFMTextEditorIntellisenseLevel.ADVANCED;
+
+        @Name("showLabelGunReminderOverlay")
+        @Comment("Show the label gun reminder overlay")
+        public boolean showLabelGunReminderOverlay = true;
+
+        @Name("showNetworkToolReminderOverlay")
+        public boolean showNetworkToolReminderOverlay = true;
     }
 
-    public static void register(ModLoadingContext context) {
-        context.registerConfig(ModConfig.Type.SERVER, SFMConfig.SERVER_CONFIG_SPEC);
-        context.registerConfig(ModConfig.Type.CLIENT, SFMConfig.CLIENT_CONFIG_SPEC);
-        context.registerConfig(ModConfig.Type.CLIENT, SFMConfig.CLIENT_TEXT_EDITOR_CONFIG_SPEC, "sfm-client-program-editor.toml");
+    public static class Server {
+        @Name("disableProgramExecution")
+        @Comment("Prevents factory managers from compiling and running code (for emergencies)")
+        public boolean disableProgramExecution = false;
 
+        @Name("logResourceLossToConsole")
+        @Comment("Log resource loss to console")
+        public boolean logResourceLossToConsole = true;
+
+        @Name("timerTriggerMinimumIntervalInTicks")
+        @RangeInt(min = 1)
+        public int timerTriggerMinimumIntervalInTicks = 20;
+
+        @Name("timerTriggerMinimumIntervalInTicksWhenOnlyForgeEnergyIO")
+        @RangeInt(min = 1)
+        public int timerTriggerMinimumIntervalInTicksWhenOnlyForgeEnergyIO = 1;
+
+        @Name("maxIfStatementsInTriggerBeforeSimulationIsntAllowed")
+        @Comment("The number of scenarios to check is 2^n where n is the number of if statements in a trigger")
+        @RangeInt(min = 0)
+        public int maxIfStatementsInTriggerBeforeSimulationIsntAllowed = 10;
+
+        @Name("disallowedResourceTypesForTransfer")
+        @Comment("What resource types should SFM not be allowed to move")
+        public String[] disallowedResourceTypesForTransfer = new String[0];
+
+        @Name("levelsToShards")
+        @Comment({
+            "How to convert Enchanted Books to Experience Shards",
+            "JustOne = always produces 1 shard regardless of enchantments",
+            "EachOne = produces 1 shard per enchantment on the book.",
+            "SumLevels = produces a number of shards equal to the sum of the enchantments' levels",
+            "SumLevelsScaledExponentially = produces a number of shards equal to the sum of 2 to the power of each enchantment's level (1 -> 1 shard, 2 -> 4 shards, 3 -> 8 shards, etc)"
+        })
+        public LevelsToShards levelsToShards = LevelsToShards.JustOne;
+    }
+
+    public enum LevelsToShards {
+        JustOne,
+        EachOne,
+        SumLevels,
+        SumLevelsScaledExponentially,
     }
 }

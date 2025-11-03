@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.LightTexture;
@@ -52,19 +53,14 @@ public class SFMFontUtils {
      */
     @MCVersionDependentBehaviour
     public static void draw(
-            PoseStack context,
-            Font font,
-            Component text,
+            FontRenderer font,
+            ITextComponent text,
             int x,
             int y,
             int colour,
             boolean shadow
     ) {
-        if (shadow) {
-            font.drawShadow(context, text, x, y, colour);
-        } else {
-            font.draw(context, text, x, y, colour);
-        }
+        font.drawString(text.getFormattedText(), x, y, colour, shadow);
     }
 
     /**
@@ -72,18 +68,13 @@ public class SFMFontUtils {
      */
     @MCVersionDependentBehaviour
     public static void draw(
-            PoseStack context,
-            Font font,
+            FontRenderer font,
             String text,
             int x,
             int y,
             int colour,
             boolean shadow
     ) {
-        if (shadow) {
-            font.drawShadow(context, text, x, y, colour);
-        } else {
-            font.draw(context, text, x, y, colour);
-        }
+        font.drawString(text, x, y, colour, shadow);
     }
 }

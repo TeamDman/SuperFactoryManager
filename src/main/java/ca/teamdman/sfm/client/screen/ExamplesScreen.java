@@ -80,7 +80,7 @@ public class ExamplesScreen extends Screen {
             try (BufferedReader reader = entry.getValue().openAsReader()) {
                 String programString = reader.lines().collect(Collectors.joining("\n"));
                 if (programString.contains("$REPLACE_RESOURCE_TYPES_HERE$")) {
-                    List<? extends String> disallowedResourceTypesForTransfer = SFMConfig.getOrDefault(SFMConfig.SERVER_CONFIG.disallowedResourceTypesForTransfer);
+                    List<String> disallowedResourceTypesForTransfer = java.util.Arrays.asList(SFMConfig.server.disallowedResourceTypesForTransfer);
                     var replacement = SFMResourceTypes.registry().keys()
                             .stream()
                             .map(ResourceLocation::getPath)

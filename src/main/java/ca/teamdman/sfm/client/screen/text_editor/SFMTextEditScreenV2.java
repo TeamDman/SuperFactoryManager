@@ -79,7 +79,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
     }
 
     public boolean shouldShowLineNumbers() {
-        return SFMConfig.getOrDefault(SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.showLineNumbers);
+        return SFMConfig.client.showLineNumbers;
     }
 
     @MCVersionDependentBehaviour
@@ -215,22 +215,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
         super.init();
         SFMScreenRenderUtils.enableKeyRepeating();
 
-        // Add config button like V1 ("#"), bottom-left corner
-        this.addRenderableWidget(
-                new SFMButtonBuilder()
-                        .setPosition(4, this.height - 24)
-                        .setSize(16, 20)
-                        .setText(Component.literal("#"))
-                        .setOnPress((button) -> SFMScreenChangeHelpers.setOrPushScreen(
-                                new SFMTextEditorConfigScreen(
-                                        this,
-                                        SFMConfig.CLIENT_TEXT_EDITOR_CONFIG,
-                                        () -> { /* no-op */ }
-                                )
-                        ))
-                        .setTooltip(this, font, LocalizationKeys.PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP)
-                        .build()
-        );
+
     }
 
     protected void renderTooltip(

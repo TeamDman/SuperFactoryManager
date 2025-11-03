@@ -84,7 +84,7 @@ public class FallingAnvilHandler {
                             var item = e.getItem();
                             var enchantments = EnchantedBookItem.getEnchantments(item);
 
-                            long shardsForEnchantments = switch (SFMConfig.SERVER_CONFIG.levelsToShards.get()) {
+                            long shardsForEnchantments = switch (SFMConfig.server.levelsToShards) {
                                 case JustOne -> 1;
                                 case EachOne -> enchantments.size();
                                 case SumLevels -> {

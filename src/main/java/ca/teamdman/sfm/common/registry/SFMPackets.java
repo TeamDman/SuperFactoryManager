@@ -17,7 +17,7 @@ public class SFMPackets {
 
     public static void register() {
         registerPacket(ClientboundBoolExprStatementInspectionResultsPacket.class, Side.CLIENT);
-        registerPacket(ClientboundClientConfigCommandPacket.class, Side.CLIENT);
+
         registerPacket(ClientboundContainerExportsInspectionResultsPacket.class, Side.CLIENT);
         registerPacket(ClientboundIfStatementInspectionResultsPacket.class, Side.CLIENT);
         registerPacket(ClientboundInputInspectionResultsPacket.class, Side.CLIENT);

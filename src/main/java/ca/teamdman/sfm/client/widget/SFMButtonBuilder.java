@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.widget;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -15,7 +16,7 @@ public class SFMButtonBuilder {
     private int y = 0;
     private int width = 150;
     private int height = 20;
-    private @Nullable Button.OnPress onPress = null;
+    private @Nullable GuiButton.OnPress onPress = null;
     private @MCVersionDependentBehaviour @Nullable Tooltip tooltip = null;
 
     public SFMButtonBuilder setText(LocalizationEntry text) {

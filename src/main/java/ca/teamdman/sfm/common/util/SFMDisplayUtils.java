@@ -94,10 +94,7 @@ public class SFMDisplayUtils {
                 cursorPos,
                 0,
                 LabelPositionHolder.empty(),
-                SFMConfig.getOrFallback(
-                        SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.intellisenseLevel,
-                        SFMTextEditorIntellisenseLevel.BASIC
-                )
+                SFMConfig.client.intellisenseLevel
         ));
         rtn.append('[');
         for (int i = 0; i < suggestions.size(); i++) {

@@ -200,7 +200,7 @@ public class SFMTextEditScreenV1 extends GuiScreen implements ISFMTextEditScreen
                             textarea.getCursorPosition(),
                             textarea.getSelectionCursorPosition(),
                             openContext.labelPositionHolder(),
-                            SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.intellisenseLevel.get()
+                            SFMConfig.client.intellisenseLevel
                     )
             );
             double scrollAmount = textarea.getScrollAmount();
@@ -283,7 +283,7 @@ public class SFMTextEditScreenV1 extends GuiScreen implements ISFMTextEditScreen
     }
 
     private static boolean shouldShowLineNumbers() {
-        return SFMConfig.getOrDefault(SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.showLineNumbers);
+        return SFMConfig.client.showLineNumbers;
     }
 
     protected void renderTooltip(
@@ -334,29 +334,7 @@ public class SFMTextEditScreenV1 extends GuiScreen implements ISFMTextEditScreen
                 new ArrayList<>()
         ));
 
-        this.addRenderableWidget(
-                new SFMButtonBuilder()
-                        .setPosition(this.width / 2 - 200, this.height / 2 - 100 + 195)
-                        .setSize(16, 20)
-                        .setText(Component.literal("#"))
-                        .setOnPress((button) -> {
-                            int cursorPos = textarea.getCursorPosition();
-                            int selectionCursorPos = textarea.getSelectionCursorPosition();
-                            SFMScreenChangeHelpers.setOrPushScreen(
-                                    new SFMTextEditorConfigScreen(
-                                            this,
-                                            SFMConfig.CLIENT_TEXT_EDITOR_CONFIG,
-                                            () -> {
-                                                this.setInitialFocus(textarea);
-                                                textarea.setCursorPosition(cursorPos);
-                                                textarea.setSelectionCursorPosition(selectionCursorPos);
-                                            }
-                                    )
-                            );
-                        })
-                        .setTooltip(this, font, PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP)
-                        .build()
-        );
+
         this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(this.width / 2 - 2 - 150, this.height / 2 - 100 + 195)
@@ -545,7 +523,7 @@ public class SFMTextEditScreenV1 extends GuiScreen implements ISFMTextEditScreen
                     cursorPosition,
                     getSelectionCursorPosition(),
                     openContext.labelPositionHolder(),
-                    SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.intellisenseLevel.get()
+                    SFMConfig.client.intellisenseLevel
             );
             List<IntellisenseAction> suggestions = SFMLIntellisense.getSuggestions(intellisenseContext);
             SFMTextEditScreenV1.this.suggestedActions.setItems(suggestions);

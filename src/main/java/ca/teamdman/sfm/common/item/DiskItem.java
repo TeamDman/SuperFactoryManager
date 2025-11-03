@@ -124,7 +124,7 @@ public class DiskItem extends Item {
                 .map(NBTTagCompound.class::cast)
                 .map(SFMTranslationUtils::deserializeTranslation)
                 .toList()
-                : null;
+                : Collections.emptyList();
     }
 
     public static void setErrors(

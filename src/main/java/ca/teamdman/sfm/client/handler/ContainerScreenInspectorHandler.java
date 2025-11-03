@@ -11,18 +11,28 @@ import ca.teamdman.sfm.common.net.ServerboundContainerExportsInspectionRequestPa
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.realmsclient.gui.ChatFormatting;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.inventory.Container;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.network.chat.Component;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -31,25 +41,25 @@ import org.jetbrains.annotations.Nullable;
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class ContainerScreenInspectorHandler {
     private static boolean visible = false;
-    private static @Nullable AbstractContainerScreen<?> lastScreen = null;
-    private static final Button exportInspectorButton = new SFMButtonBuilder()
+    private static @Nullable GuiContainer<?> lastScreen = null;
+    private static final GuiButton exportInspectorButton = new SFMButtonBuilder()
             .setSize(100, 20)
             .setPosition(5, 50)
             .setText(LocalizationKeys.CONTAINER_INSPECTOR_SHOW_EXPORTS_BUTTON)
             .setOnPress((button) -> {
-                BlockEntity lookBlockEntity = ClientRayCastHelpers.getLookBlockEntity();
+                TileEntity lookBlockEntity = ClientRayCastHelpers.getLookBlockEntity();
                 if (lastScreen != null && lookBlockEntity != null) {
                     SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundContainerExportsInspectionRequestPacket(
-                            lastScreen.getMenu().containerId,
-                            lookBlockEntity.getBlockPos()
+                            lastScreen.inventorySlots.windowId,
+                            lookBlockEntity.getPos()
                     ));
                 }
             })
             .build();
 
     @SubscribeEvent
-    public static void onMouseClick(ScreenEvent.KeyPressed.MouseButtonPressed.Pre event) {
-        boolean shouldCapture = Minecraft.getInstance().screen instanceof AbstractContainerScreen<?>;
+    public static void onMouseClick(GuiScreenEvent.MouseInputEvent.Pre event) {
+        boolean shouldCapture = Minecraft.getMinecraft().currentScreen instanceof GuiContainer;
         if (shouldCapture && visible && exportInspectorButton.clicked(event.getMouseX(), event.getMouseY())) {
             exportInspectorButton.playDownSound(Minecraft.getInstance().getSoundManager());
             exportInspectorButton.onClick(event.getMouseX(), event.getMouseY());
@@ -58,41 +68,40 @@ public class ContainerScreenInspectorHandler {
     }
 
     @SubscribeEvent
-    public static void onGuiRender(ScreenEvent.Render.Post event) {
+    public static void onGuiRender(GuiScreenEvent.DrawScreenEvent.Post event) {
         if (!visible) return;
-        if (event.getScreen() instanceof AbstractContainerScreen<?> screen) {
+        if (event.getGui() instanceof GuiContainer screen) {
             lastScreen = screen;
-            AbstractContainerMenu menu = screen.getMenu();
+            Container menu = screen.inventorySlots;
             int containerSlotCount = 0;
             int inventorySlotCount = 0;
-            PoseStack poseStack = event.getPoseStack();
-            poseStack.pushPose();
-            poseStack.translate(0, 0, 350); // render text over the items but under the tooltips
+//            PoseStack poseStack = event.get();
+//            poseStack.pushPose();
+//            poseStack.translate(0, 0, 350); // render text over the items but under the tooltips
 
             // draw the button
-            exportInspectorButton.render(poseStack, event.getMouseX(), event.getMouseY(), event.getPartialTick());
+            exportInspectorButton.drawButton(Minecraft.getMinecraft(), event.getMouseX(), event.getMouseY(), event.getRenderPartialTicks());
 
 
             // draw index on each slot
-            Font font = Minecraft.getInstance().font;
-            for (var slot : menu.slots) {
-                int colour;
+            FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+            for (var slot : menu.inventorySlots) {
+                TextFormatting colour;
                 // TODO: can we reference-compare this to the capabilities to find out if this matches any of the inventories exposed for automation?
-                if (slot.container instanceof Inventory) {
+                if (slot.inventory instanceof IInventory) {
                     //noinspection DataFlowIssue
-                    colour = ChatFormatting.YELLOW.getColor();
+                    colour = TextFormatting.YELLOW;
                     inventorySlotCount++;
                 } else {
-                    colour = 0xFFF;
+                    colour = TextFormatting.BLACK;
                     containerSlotCount++;
                 }
                 SFMFontUtils.draw(
-                        poseStack,
                         font,
-                        Component.literal(Integer.toString(slot.getSlotIndex())),
-                        screen.getGuiLeft() + slot.x,
-                        screen.getGuiTop() + slot.y,
-                        colour,
+                        new TextComponentString(Integer.toString(slot.getSlotIndex())).getStyle().setColor(color),
+                        screen.getGuiLeft() + slot.xPos,
+                        screen.getGuiTop() + slot.yPos,
+                        -1,
                         false
                 );
             }
@@ -101,7 +110,7 @@ public class ContainerScreenInspectorHandler {
             {
                 var notice = LocalizationKeys.CONTAINER_INSPECTOR_NOTICE_1
                         .getComponent()
-                        .withStyle(ChatFormatting.GOLD);
+                        .setStyle(ChatFormatting.GOLD);
                 int offset = font.width(notice) / 2;
                 SFMFontUtils.draw(
                         poseStack,

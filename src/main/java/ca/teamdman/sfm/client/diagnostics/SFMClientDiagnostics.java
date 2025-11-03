@@ -3,13 +3,11 @@ package ca.teamdman.sfm.client.diagnostics;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import net.minecraft.SharedConstants;
 import net.minecraft.client.ClientBrandRetriever;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.language.I18n;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.versions.forge.ForgeVersion;
+import net.minecraftforge.common.ForgeVersion;
+import net.minecraftforge.fml.common.Loader;
 
 import java.text.SimpleDateFormat;
 
@@ -33,9 +31,9 @@ public class SFMClientDiagnostics {
             content
                     .append("-- Game Version: ")
                     .append("Minecraft ")
-                    .append(SharedConstants.getCurrentVersion().getName())
+                    .append(net.minecraftforge.common.MinecraftForge.MC_VERSION)
                     .append(" (")
-                    .append(Minecraft.getInstance().getLaunchedVersion())
+                    .append(Loader.MC_VERSION)
                     .append("/")
                     .append(ClientBrandRetriever.getClientModName())
                     .append(")")
@@ -45,18 +43,19 @@ public class SFMClientDiagnostics {
                     .append(ForgeVersion.getVersion())
                     .append('\n');
 
+            var modContainer = Loader.instance().getIndexedModList().getOrDefault(SFM.MOD_ID, null);
             //noinspection CodeBlock2Expr
-            ModList.get().getModContainerById(SFM.MOD_ID).ifPresent(mod -> {
-                content.append("-- SFM Version: ")
-                        .append(mod.getModInfo().getVersion())
-                        .append('\n');
-            });
+
+            content.append("-- SFM Version: ")
+                    .append(modContainer.getVersion())
+                    .append('\n');
+
 
             var errors = DiskItem.getErrors(diskStack);
             if (!errors.isEmpty()) {
                 content.append("\n-- Errors\n");
                 for (var error : errors) {
-                    content.append("-- * ").append(I18n.get(error.getKey(), error.getArgs())).append("\n");
+                    content.append("-- * ").append(I18n.format(error.getKey(), error.getFormatArgs())).append("\n");
                 }
             }
 
@@ -64,7 +63,7 @@ public class SFMClientDiagnostics {
             if (!warnings.isEmpty()) {
                 content.append("\n-- Warnings\n");
                 for (var warning : warnings) {
-                    content.append("-- * ").append(I18n.get(warning.getKey(), warning.getArgs())).append("\n");
+                    content.append("-- * ").append(I18n.format(warning.getKey(), warning.getFormatArgs())).append("\n");
                 }
             }
 

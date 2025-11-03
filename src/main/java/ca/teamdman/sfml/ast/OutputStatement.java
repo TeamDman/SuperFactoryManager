@@ -278,7 +278,7 @@ public class OutputStatement implements IOStatement {
             addSlotDetailsToReport(report, destination, level);
 
             context.getLogger().error(x -> x.accept(LOG_PROGRAM_VOIDED_RESOURCES.get(report.toString())));
-            if (SFMConfig.SERVER_CONFIG.logResourceLossToConsole.get()) {
+            if (SFMConfig.server.logResourceLossToConsole) {
                 report.append("\nThis can be silenced in the SFM config.\n");
                 report.append(
                         "Operators can use `/sfm config edit` to open a GUI to change the SFM config while the game is running.\n");

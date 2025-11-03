@@ -2,7 +2,7 @@ package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.config.SFMConfigTracker;
+
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.diagnostics.SFMDiagnostics;
 import ca.teamdman.sfm.common.handler.OpenContainerTracker;
@@ -25,6 +25,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.ItemStackHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
@@ -87,7 +88,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         try {
             long start = System.nanoTime();
             manager.tick++;
-            if (manager.configRevision != SFMConfig.SERVER_CONFIG.getRevision()) {
+            if (manager.configRevision != SFMConfig.getConfigRevision()) {
                 manager.shouldRebuildProgram = true;
             }
             if (manager.shouldRebuildProgram && !manager.shouldRebuildProgramLock) {
@@ -122,44 +123,15 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                     }
                 }
             }
-        } catch (Throwable t) {
-            // tell the user that they can disable the manager in the config
-            String configPath;
-            var found = SFMConfigTracker.getPathForConfig(SFMConfig.SERVER_CONFIG_SPEC);
-            if (found != null) {
-                configPath = found.toString();
-            } else {
-                configPath = "sfm-server.toml";
-            }
-            String configValuePath = Joiner.on(".").join(SFMConfig.SERVER_CONFIG.disableProgramExecution.getPath());
+        } catch (Exception t) {
+            String configPath = "config/superfactorymanager.cfg";
+            String configValuePath = "server.disableProgramExecution";
             SFM.LOGGER.fatal(
                     "SFM detected a problem while ticking a manager. You can set `{} = true` in {} to help recover your world.",
                     configValuePath,
                     configPath
             );
             throw t;
-        }
-    }
-
-    @Override
-    public void addCrashReportDetails(CrashReportCategory pReportCategory) {
-        super.addCrashReportDetails(pReportCategory);
-        {
-            String configPath;
-            var found = SFMConfigTracker.getPathForConfig(SFMConfig.SERVER_CONFIG_SPEC);
-            if (found != null) {
-                configPath = found.toString();
-            } else {
-                configPath = "sfm-server.toml";
-            }
-            String configValuePath = Joiner.on(".").join(SFMConfig.SERVER_CONFIG.disableProgramExecution.getPath());
-            pReportCategory.addDetail("SFM Reminder", () -> "You can set `" + configValuePath + " = true` in " + configPath + " to help recover your world.");
-        }
-        {
-            ItemStack disk = getDisk();
-            if (disk != null && !disk.isEmpty()) {
-                pReportCategory.addDetail("SFM Details", () -> SFMDiagnostics.getDiagnosticsSummary(disk));
-            }
         }
     }
 
@@ -238,7 +210,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         } else {
             this.program = DiskItem.compileAndUpdateErrorsAndWarnings(disk, this);
         }
-        this.configRevision = SFMConfig.SERVER_CONFIG.getRevision();
+        this.configRevision = SFMConfig.getConfigRevision();
         sendUpdatePacket();
     }
 
@@ -294,7 +266,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
 
     @Override
     public boolean isUsableByPlayer(EntityPlayer player) {
-        return SFMContainerUtil.isUsableByPlayer(this, player);
+        return true;
     }
 
     @Override
@@ -332,14 +304,14 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound tag) {
         super.writeToNBT(tag);
-        net.minecraft.inventory.InventoryHelper.saveAllItems(tag, ITEMS);
+        ItemStackHelper.saveAllItems(tag, ITEMS);
         return tag;
     }
 
     @Override
     public void readFromNBT(NBTTagCompound tag) {
         super.readFromNBT(tag);
-        net.minecraft.inventory.InventoryHelper.loadAllItems(tag, ITEMS);
+        ItemStackHelper.loadAllItems(tag, ITEMS);
         this.shouldRebuildProgram = true;
         if (world != null) {
             this.tick = world.rand.nextInt();
@@ -423,7 +395,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
 
     @Override
     public ITextComponent getDisplayName() {
-        return new TextComponentString(LocalizationKeys.MANAGER_CONTAINER.get());
+        return LocalizationKeys.MANAGER_CONTAINER.getComponent();
     }
 
     public Container createMenu(
@@ -446,7 +418,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
 
     @Override
     public String getName() {
-        return LocalizationKeys.MANAGER_CONTAINER.get();
+        return LocalizationKeys.MANAGER_CONTAINER.get().getKey();
     }
 
     @Override

@@ -72,7 +72,7 @@ public class LabelGunReminderOverlay implements IGuiOverlay {
     private static @Nullable LabelGunItem.LabelGunViewMode getViewMode(Minecraft minecraft) {
         LocalPlayer player = minecraft.player;
         if (player == null) return null;
-        if (!SFMConfig.CLIENT_CONFIG.showLabelGunReminderOverlay.get()) return null;
+        if (!SFMConfig.client.showLabelGunReminderOverlay) return null;
         ItemStack labelGun = SFMHandUtils.getItemInEitherHand(player, SFMItems.LABEL_GUN_ITEM.get());
         if (labelGun.isEmpty()) return null;
         return LabelGunItem.getViewMode(labelGun);

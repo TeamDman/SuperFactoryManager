@@ -27,7 +27,7 @@ public class SFM {
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
     public static final String ISSUE_TRACKER_URL = "https://github.com/TeamDman/SuperFactoryManager/issues";
 
-    @Mod.Instance(modid = SFM.MOD_ID)
+    @Mod.Instance(SFM.MOD_ID)
 	public static       SFM instance;
 
 
@@ -41,7 +41,6 @@ public class SFM {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-//        SFMConfig.register();
         proxy.preInit();
 
         devEnvCache = (Boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");
