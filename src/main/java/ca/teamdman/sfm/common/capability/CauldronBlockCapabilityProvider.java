@@ -2,7 +2,7 @@ package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -30,7 +30,7 @@ public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvid
             BlockPos pos,
             BlockState state,
             @Nullable BlockEntity blockEntity,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
         if (state.getBlock() == Blocks.CAULDRON
             || state.getBlock() == Blocks.WATER_CAULDRON

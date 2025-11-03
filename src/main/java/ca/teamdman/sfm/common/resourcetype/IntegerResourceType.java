@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.resourcetype;
 
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 import java.util.stream.Stream;
 

@@ -5,11 +5,12 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 
-public interface IProgramLinter {
+public interface IProgramLinter extends IForgeRegistryEntry {
     ArrayList<TextComponentTranslation> gatherWarnings(
             Program program,
             LabelPositionHolder labelPositionHolder,

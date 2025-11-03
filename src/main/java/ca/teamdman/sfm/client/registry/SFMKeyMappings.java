@@ -1,215 +1,49 @@
 package ca.teamdman.sfm.client.registry;
 
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import com.mojang.blaze3d.platform.InputConstants;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.client.settings.KeyConflictContext;
-import net.minecraftforge.client.settings.KeyModifier;
-import net.minecraftforge.common.util.Lazy;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import org.lwjgl.glfw.GLFW;
-
-import java.util.function.Supplier;
-
-
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD, modid = SFM.MOD_ID, value = Dist.CLIENT)
+import net.minecraftforge.fml.client.registry.ClientRegistry;
+import org.lwjgl.input.Keyboard;
 
 public class SFMKeyMappings {
-    public static final Lazy<KeyBinding> MORE_INFO_TOOLTIP_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.MORE_HOVER_INFO_KEY.key().get(),
-            KeyConflictContext.UNIVERSAL,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_LEFT_SHIFT,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
+    public static final KeyBinding MORE_INFO_TOOLTIP_KEY = new KeyBinding(LocalizationKeys.MORE_HOVER_INFO_KEY.key(), Keyboard.KEY_LSHIFT, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding CYCLE_LABEL_VIEW_KEY = new KeyBinding(LocalizationKeys.CYCLE_LABEL_VIEW_KEY.key(), Keyboard.KEY_LMENU, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding TOGGLE_NETWORK_TOOL_OVERLAY_KEY = new KeyBinding(LocalizationKeys.TOGGLE_NETWORK_TOOL_OVERLAY.key(), Keyboard.KEY_LMENU, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding CONTAINER_INSPECTOR_KEY = new KeyBinding(LocalizationKeys.CONTAINER_INSPECTOR_TOGGLE_KEY.key(), Keyboard.KEY_I, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding ITEM_INSPECTOR_KEY = new KeyBinding(LocalizationKeys.ITEM_INSPECTOR_TOGGLE_KEY.key(), Keyboard.KEY_NONE, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding LABEL_GUN_PICK_BLOCK_MODIFIER_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_PICK_BLOCK_MODIFIER_KEY.key(), Keyboard.KEY_LMENU, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding LABEL_GUN_CONTIGUOUS_MODIFIER_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY.key(), Keyboard.KEY_LCONTROL, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding LABEL_GUN_CLEAR_MODIFIER_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_CLEAR_MODIFIER_KEY.key(), Keyboard.KEY_LSHIFT, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding LABEL_GUN_SCROLL_MODIFIER_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_SCROLL_MODIFIER_KEY.key(), Keyboard.KEY_LSHIFT, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding LABEL_GUN_NEXT_LABEL_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_NEXT_LABEL_KEY.key(), Keyboard.KEY_NONE, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding LABEL_GUN_PREVIOUS_LABEL_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_PREVIOUS_LABEL_KEY.key(), Keyboard.KEY_NONE, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding LABEL_GUN_PULL_MODIFIER_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_PULL_MODIFIER_KEY.key(), Keyboard.KEY_LSHIFT, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY.key(), Keyboard.KEY_RMENU, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY = new KeyBinding(LocalizationKeys.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.key(), Keyboard.KEY_E, LocalizationKeys.SFM_KEY_CATEGORY.key());
+    public static final KeyBinding TITLE_SCREEN_OPEN_TEXT_EDITOR_KEY = new KeyBinding(LocalizationKeys.TITLE_SCREEN_OPEN_TEXT_EDITOR_KEY.key(), Keyboard.KEY_E, LocalizationKeys.SFM_KEY_CATEGORY.key());
 
-    public static final Lazy<KeyBinding> CYCLE_LABEL_VIEW_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.CYCLE_LABEL_VIEW_KEY.key().get(),
-            KeyConflictContext.IN_GAME,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_LEFT_ALT,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-    public static final Lazy<KeyBinding> TOGGLE_NETWORK_TOOL_OVERLAY_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.TOGGLE_NETWORK_TOOL_OVERLAY.key().get(),
-            KeyConflictContext.IN_GAME,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_LEFT_ALT,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> CONTAINER_INSPECTOR_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.CONTAINER_INSPECTOR_TOGGLE_KEY.key().get(),
-            KeyConflictContext.GUI,
-            KeyModifier.CONTROL,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_I,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> ITEM_INSPECTOR_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.ITEM_INSPECTOR_TOGGLE_KEY.key().get(),
-            KeyConflictContext.GUI,
-            KeyModifier.NONE,
-            InputConstants.Type.KEYSYM,
-//            GLFW.GLFW_KEY_GRAVE_ACCENT,
-            InputConstants.UNKNOWN.getValue(),
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> LABEL_GUN_PICK_BLOCK_MODIFIER_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.LABEL_GUN_PICK_BLOCK_MODIFIER_KEY.key().get(),
-            KeyConflictContext.IN_GAME,
-            KeyModifier.NONE,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_LEFT_ALT,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> LABEL_GUN_CONTIGUOUS_MODIFIER_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY.key().get(),
-            KeyConflictContext.IN_GAME,
-            KeyModifier.NONE,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_LEFT_CONTROL,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> LABEL_GUN_CLEAR_MODIFIER_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.LABEL_GUN_CLEAR_MODIFIER_KEY.key().get(),
-            KeyConflictContext.IN_GAME,
-            KeyModifier.NONE,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_LEFT_SHIFT,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> LABEL_GUN_SCROLL_MODIFIER_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.LABEL_GUN_SCROLL_MODIFIER_KEY.key().get(),
-            KeyConflictContext.IN_GAME,
-            KeyModifier.NONE,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_LEFT_SHIFT,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> LABEL_GUN_NEXT_LABEL_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.LABEL_GUN_NEXT_LABEL_KEY.key().get(),
-            KeyConflictContext.IN_GAME,
-            KeyModifier.NONE,
-            InputConstants.Type.KEYSYM,
-            InputConstants.UNKNOWN.getValue(),
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> LABEL_GUN_PREVIOUS_LABEL_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.LABEL_GUN_PREVIOUS_LABEL_KEY.key().get(),
-            KeyConflictContext.IN_GAME,
-            KeyModifier.NONE,
-            InputConstants.Type.KEYSYM,
-            InputConstants.UNKNOWN.getValue(),
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> LABEL_GUN_PULL_MODIFIER_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.LABEL_GUN_PULL_MODIFIER_KEY.key().get(),
-            KeyConflictContext.IN_GAME,
-            KeyModifier.NONE,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_LEFT_SHIFT,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY.key().get(),
-            KeyConflictContext.IN_GAME,
-            KeyModifier.NONE,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_RIGHT_ALT,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.key().get(),
-            KeyConflictContext.GUI,
-            KeyModifier.CONTROL,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_E,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static final Lazy<KeyBinding> TITLE_SCREEN_OPEN_TEXT_EDITOR_KEY = Lazy.of(() -> new KeyBinding(
-            LocalizationKeys.TITLE_SCREEN_OPEN_TEXT_EDITOR_KEY.key().get(),
-            KeyConflictContext.GUI,
-            KeyModifier.CONTROL,
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_E,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-    ));
-
-    public static KeyBinding[] getSFMKeyMappings() {
-        return new KeyBinding[]{
-                MORE_INFO_TOOLTIP_KEY.get(),
-                CONTAINER_INSPECTOR_KEY.get(),
-                ITEM_INSPECTOR_KEY.get(),
-                CYCLE_LABEL_VIEW_KEY.get(),
-                LABEL_GUN_PICK_BLOCK_MODIFIER_KEY.get(),
-                LABEL_GUN_CONTIGUOUS_MODIFIER_KEY.get(),
-                LABEL_GUN_CLEAR_MODIFIER_KEY.get(),
-                LABEL_GUN_SCROLL_MODIFIER_KEY.get(),
-                LABEL_GUN_NEXT_LABEL_KEY.get(),
-                LABEL_GUN_PREVIOUS_LABEL_KEY.get(),
-                LABEL_GUN_PULL_MODIFIER_KEY.get(),
-                LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY.get(),
-                MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.get(),
-                TITLE_SCREEN_OPEN_TEXT_EDITOR_KEY.get(),
-                TOGGLE_NETWORK_TOOL_OVERLAY_KEY.get()
-        };
+    public static void register() {
+        ClientRegistry.registerKeyBinding(MORE_INFO_TOOLTIP_KEY);
+        ClientRegistry.registerKeyBinding(CYCLE_LABEL_VIEW_KEY);
+        ClientRegistry.registerKeyBinding(TOGGLE_NETWORK_TOOL_OVERLAY_KEY);
+        ClientRegistry.registerKeyBinding(CONTAINER_INSPECTOR_KEY);
+        ClientRegistry.registerKeyBinding(ITEM_INSPECTOR_KEY);
+        ClientRegistry.registerKeyBinding(LABEL_GUN_PICK_BLOCK_MODIFIER_KEY);
+        ClientRegistry.registerKeyBinding(LABEL_GUN_CONTIGUOUS_MODIFIER_KEY);
+        ClientRegistry.registerKeyBinding(LABEL_GUN_CLEAR_MODIFIER_KEY);
+        ClientRegistry.registerKeyBinding(LABEL_GUN_SCROLL_MODIFIER_KEY);
+        ClientRegistry.registerKeyBinding(LABEL_GUN_NEXT_LABEL_KEY);
+        ClientRegistry.registerKeyBinding(LABEL_GUN_PREVIOUS_LABEL_KEY);
+        ClientRegistry.registerKeyBinding(LABEL_GUN_PULL_MODIFIER_KEY);
+        ClientRegistry.registerKeyBinding(LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY);
+        ClientRegistry.registerKeyBinding(MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY);
+        ClientRegistry.registerKeyBinding(TITLE_SCREEN_OPEN_TEXT_EDITOR_KEY);
     }
 
-    public static Component getKeyDisplay(KeyBinding key) {
-        return key.getTranslatedKeyMessage().plainCopy().withStyle(ChatFormatting.AQUA);
-    }
-
-    public static Component getKeyDisplay(Supplier<KeyBinding> key) {
-        return getKeyDisplay(key.get());
-    }
-
-    @SubscribeEvent
-    public static void registerBindings(RegisterKeyMappingsEvent event) {
-        for (KeyBinding key : getSFMKeyMappings()) {
-            event.register(key);
-        }
-    }
-
-    public static boolean isKeyDown(Supplier<KeyBinding> key) {
-        KeyBinding keyMapping = key.get();
-        if (keyMapping.getKey().equals(InputConstants.UNKNOWN)) {
+    public static boolean isKeyDown(KeyBinding key) {
+        if (key.getKeyCode() == 0) {
             return false;
         }
-        if (keyMapping.getKey().getType() == InputConstants.Type.MOUSE) {
-            SFM.LOGGER.warn("Attempted to use a mouse key to check if InputConstants.isKeyDown, use .isDown directly on the KeyBinding instead: {}", keyMapping.getKey());
-        }
-        // We cannot use keyMapping.isDown because it fails when a screen is open
-        // https://github.com/mekanism/Mekanism/blob/f92b48a49e0766cd3aa78e95c9c4a47ba90402f5/src/main/java/mekanism/client/key/MekKeyHandler.java
-        long windowHandle = Minecraft.getMinecraft().getWindow().getWindow();
-        boolean keyDown = InputConstants.isKeyDown(
-                windowHandle,
-                keyMapping.getKey().getValue()
-        );
-        if (!keyDown) {
-            return false;
-        } else if (KeyModifier.isKeyCodeModifier(keyMapping.getKey())) {
-            return true;
-        } else {
-            return keyMapping.getKeyModifier().isActive(KeyConflictContext.GUI);
-        }
+        return Keyboard.isKeyDown(key.getKeyCode());
     }
 }

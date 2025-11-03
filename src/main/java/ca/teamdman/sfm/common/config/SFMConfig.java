@@ -45,9 +45,6 @@ public class SFMConfig {
     public static final ForgeConfigSpec CLIENT_TEXT_EDITOR_CONFIG_SPEC;
     public static final SFMClientTextEditorConfig CLIENT_TEXT_EDITOR_CONFIG;
 
-    public static final ForgeConfigSpec AI_CONFIG_SPEC;
-    public static final SFMAIConfig AI_CONFIG;
-
     static {
         {
             var pair =
@@ -66,12 +63,6 @@ public class SFMConfig {
                     new ForgeConfigSpec.Builder().configure(SFMClientTextEditorConfig::new);
             CLIENT_TEXT_EDITOR_CONFIG_SPEC = pair.getRight();
             CLIENT_TEXT_EDITOR_CONFIG = pair.getLeft();
-        }
-        {
-            var pair =
-                    new ForgeConfigSpec.Builder().configure(SFMAIConfig::new);
-            AI_CONFIG_SPEC = pair.getRight();
-            AI_CONFIG = pair.getLeft();
         }
     }
 
@@ -100,8 +91,6 @@ public class SFMConfig {
         context.registerConfig(ModConfig.Type.SERVER, SFMConfig.SERVER_CONFIG_SPEC);
         context.registerConfig(ModConfig.Type.CLIENT, SFMConfig.CLIENT_CONFIG_SPEC);
         context.registerConfig(ModConfig.Type.CLIENT, SFMConfig.CLIENT_TEXT_EDITOR_CONFIG_SPEC, "sfm-client-program-editor.toml");
-        if (SFMEnvironmentUtils.isInIDE()) {
-            context.registerConfig(ModConfig.Type.COMMON, SFMConfig.AI_CONFIG_SPEC, "sfm-ai.toml");
-        }
+
     }
 }

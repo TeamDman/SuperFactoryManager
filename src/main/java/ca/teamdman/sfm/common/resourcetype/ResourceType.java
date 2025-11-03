@@ -12,8 +12,8 @@ import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfm.common.util.Pair;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -159,9 +159,9 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             ProgramContext programContext,
             DirectionQualifier directions,
             @Stored BlockPos pos,
-            BiConsumer<Direction, CAP> consumer
+            BiConsumer<EnumFacing, CAP> consumer
     ) {
-        for (Direction dir : directions) {
+        for (EnumFacing dir : directions) {
             SFMBlockCapabilityResult<CAP> maybeCap = programContext.getNetwork()
                     .getCapability(CAPABILITY_KIND, pos, dir, programContext.getLogger());
             if (maybeCap.isPresent()) {

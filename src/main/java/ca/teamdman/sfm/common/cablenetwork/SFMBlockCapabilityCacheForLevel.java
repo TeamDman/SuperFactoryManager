@@ -8,17 +8,17 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArraySet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.chunk.Chunk;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
 
 public class SFMBlockCapabilityCacheForLevel {
-    // Position => Capability => Direction => LazyOptional
-    // We don't use an EnumMap here for Direction because we need to support the null key
+    // Position => Capability => EnumFacing => LazyOptional
+    // We don't use an EnumMap here for EnumFacing because we need to support the null key
     private final Long2ObjectMap<Object2ObjectOpenHashMap<SFMBlockCapabilityKind<?>, SFMDirections.NullableDirectionEnumMap<SFMBlockCapabilityResult<?>>>> CACHE = new Long2ObjectOpenHashMap<>();
     // Chunk position => Set of Block positions
     private final Long2ObjectMap<LongArraySet> CHUNK_TO_BLOCK_POSITIONS = new Long2ObjectOpenHashMap<>();
@@ -33,9 +33,9 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     public void overwriteFromOther(@NotStored BlockPos pos, SFMBlockCapabilityCacheForLevel other) {
-        var found = other.CACHE.get(pos.asLong());
+        var found = other.CACHE.get(pos.toLong());
         if (found != null) {
-            CACHE.put(pos.asLong(), new Object2ObjectOpenHashMap<>(found));
+            CACHE.put(pos.toLong(), new Object2ObjectOpenHashMap<>(found));
         }
         addToChunkMap(pos);
     }
@@ -43,9 +43,9 @@ public class SFMBlockCapabilityCacheForLevel {
     public <CAP> @Nullable SFMBlockCapabilityResult<CAP> getCapability(
             @NotStored BlockPos pos,
             SFMBlockCapabilityKind<CAP> capKind,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
-        var capMap = CACHE.get(pos.asLong());
+        var capMap = CACHE.get(pos.toLong());
         if (capMap != null) {
             var dirMap = capMap.get(capKind);
             if (dirMap != null) {
@@ -70,10 +70,10 @@ public class SFMBlockCapabilityCacheForLevel {
                 SFMBlockCapabilityKind<?> capKind = e.getKey();
 
                 var dirMap = e.getValue();
-                for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+                for (EnumFacing direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
                     SFMBlockCapabilityResult<?> cap = dirMap.get(direction);
                     if (cap != null) {
-                        putCapability(BlockPos.of(pos), (SFMBlockCapabilityKind) capKind, direction, cap);
+                        putCapability(BlockPos.fromLong(pos), (SFMBlockCapabilityKind) capKind, direction, cap);
                     }
                 }
             }
@@ -81,15 +81,15 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     public Stream<BlockPos> getPositions() {
-        return CACHE.keySet().longStream().mapToObj(BlockPos::of);
+        return CACHE.keySet().stream().map(BlockPos::fromLong);
     }
 
     public void remove(
             @NotStored BlockPos pos,
             SFMBlockCapabilityKind<?> capKind,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
-        var capMap = CACHE.get(pos.asLong());
+        var capMap = CACHE.get(pos.toLong());
         if (capMap != null) {
             var dirMap = capMap.get(capKind);
             if (dirMap != null) {
@@ -97,7 +97,7 @@ public class SFMBlockCapabilityCacheForLevel {
                 if (dirMap.isEmpty()) {
                     capMap.remove(capKind);
                     if (capMap.isEmpty()) {
-                        CACHE.remove(pos.asLong());
+                        CACHE.remove(pos.toLong());
                     }
                 }
                 removeFromChunkMap(pos);
@@ -108,17 +108,18 @@ public class SFMBlockCapabilityCacheForLevel {
     public <CAP> void putCapability(
             @NotStored BlockPos pos,
             SFMBlockCapabilityKind<CAP> capKind,
-            @Nullable Direction direction,
+            @Nullable EnumFacing direction,
             SFMBlockCapabilityResult<CAP> cap
     ) {
-        var capMap = CACHE.computeIfAbsent(pos.asLong(), k -> new Object2ObjectOpenHashMap<>());
+        var capMap = CACHE.computeIfAbsent(pos.toLong(), k -> new Object2ObjectOpenHashMap<>());
         var dirMap = capMap.computeIfAbsent(capKind, k -> new SFMDirections.NullableDirectionEnumMap<>());
         dirMap.put(direction, cap);
         addToChunkMap(pos);
     }
 
-    public void bustCacheForChunk(ChunkAccess chunkAccess) {
-        long chunkKey = chunkAccess.getPos().toLong();
+    public void bustCacheForChunk(Chunk chunkAccess) {
+        var pos = chunkAccess.getPos();
+        long chunkKey = ChunkPos.asLong(pos.x, pos.z);
         LongArraySet blockPositions = CHUNK_TO_BLOCK_POSITIONS.get(chunkKey);
         if (blockPositions != null) {
             for (var blockPos : blockPositions) {
@@ -130,15 +131,15 @@ public class SFMBlockCapabilityCacheForLevel {
 
     private void addToChunkMap(@NotStored BlockPos pos) {
         ChunkPos chunkPos = new ChunkPos(pos);
-        long chunkKey = chunkPos.toLong();
-        long blockPos = pos.asLong();
+        long chunkKey = ChunkPos.asLong(chunkPos.x, chunkPos.z);
+        long blockPos = pos.toLong();
         CHUNK_TO_BLOCK_POSITIONS.computeIfAbsent(chunkKey, k -> new LongArraySet()).add(blockPos);
     }
 
     private void removeFromChunkMap(@NotStored BlockPos pos) {
         ChunkPos chunkPos = new ChunkPos(pos);
-        long chunkKey = chunkPos.toLong();
-        long blockPos = pos.asLong();
+        long chunkKey = ChunkPos.asLong(chunkPos.x, chunkPos.z);
+        long blockPos = pos.toLong();
         LongArraySet blockPosSet = CHUNK_TO_BLOCK_POSITIONS.get(chunkKey);
         if (blockPosSet != null) {
             blockPosSet.remove(blockPos);

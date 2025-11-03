@@ -62,13 +62,13 @@ public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
     }
 
     public LabelPositionHolder save(ItemStack stack) {
-        stack.getOrCreateTag().put("sfm:labels", serialize());
+        stack.setTagInfo("sfm:labels", serialize());
         CACHE.put(stack, new LabelPositionHolder(this));
         return this;
     }
 
     public static void clear(ItemStack stack) {
-        stack.getOrCreateTag().remove("sfm:labels");
+        stack.removeSubCompound("sfm:labels");
         CACHE.remove(stack);
     }
 
@@ -76,7 +76,7 @@ public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
         var tag = new NBTTagCompound();
         for (var entry : labels().entrySet()) {
             String label = entry.getKey();
-            ByteArrayTag positionsTag = CompressedBlockPosSet.from(entry.getValue()).asTag();
+            NBTTagByteArray positionsTag = CompressedBlockPosSet.from(entry.getValue()).asTag();
             tag.put(label, positionsTag);
         }
         return tag;

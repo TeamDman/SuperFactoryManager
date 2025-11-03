@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.block;
 
-import net.minecraft.util.Mth;
+
+import ca.teamdman.sfm.common.util.Mth;
 
 /// Todo: make this used by the buffer, add datagen support instead of hardcoding.
 public enum BufferBlockTier {

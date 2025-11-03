@@ -68,7 +68,7 @@ public class RoundRobin implements ASTNode {
                 LongOpenHashSet seen = new LongOpenHashSet();
                 for (Label label : labels) {
                     for (BlockPos pos : labelPositionHolder.getPositions(label.name())) {
-                        if (!seen.add(pos.asLong())) continue;
+                        if (!seen.add(pos.toLong())) continue;
                         candidates.add(Pair.of(label, pos));
                     }
                 }

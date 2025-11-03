@@ -10,8 +10,8 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.Stored;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -558,7 +558,7 @@ public class OutputStatement implements IOStatement {
     ) {
         report.append("Slot: ").append(slot.getSlot()).append("\n");
         report.append("Position: ").append(slot.getPos()).append("\n");
-        report.append("Direction: ").append(slot.getDirection()).append("\n");
+        report.append("EnumFacing: ").append(slot.getDirection()).append("\n");
         report
                 .append("Capability: ")
                 .append(slot.getHandler())
@@ -593,7 +593,7 @@ public class OutputStatement implements IOStatement {
             ResourceType<STACK, ITEM, CAP> type,
             Label label,
             @Stored BlockPos pos,
-            Direction direction,
+            EnumFacing direction,
             CAP capability,
             List<IOutputResourceTracker> trackers,
             Consumer<LimitedOutputSlot<?, ?, ?>> acceptor

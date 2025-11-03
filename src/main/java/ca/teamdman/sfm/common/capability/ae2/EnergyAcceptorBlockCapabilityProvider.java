@@ -8,7 +8,7 @@ import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.capability.energystorage.EnergyAcceptorEnergyStorageWrapper;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,7 +29,7 @@ public class EnergyAcceptorBlockCapabilityProvider implements SFMBlockCapability
             BlockPos pos,
             BlockState state,
             @Nullable BlockEntity blockEntity,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
         if (blockEntity instanceof EnergyAcceptorBlockEntity energyAcceptor) {
             return SFMBlockCapabilityResult.of(

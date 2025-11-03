@@ -8,16 +8,15 @@ import ca.teamdman.sfm.common.util.SFMStreamUtils;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.World;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraftforge.event.level.ChunkEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,7 +40,7 @@ import java.util.stream.Stream;
  * - Remove the network if it was the only member
  * - Cause a network to split into other networks if it was a "bridge" block
  */
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE, modid = SFM.MOD_ID)
+@Mod.EventBusSubscriber(modid = SFM.MOD_ID)
 public class CableNetworkManager {
     private static final Map<World, Long2ObjectMap<CableNetwork>> NETWORKS_BY_CABLE_POSITION = new Object2ObjectOpenHashMap<>();
     private static final Map<World, List<CableNetwork>> NETWORKS_BY_LEVEL = new Object2ObjectOpenHashMap<>();
@@ -72,24 +71,23 @@ public class CableNetworkManager {
     }
 
     public static Optional<CableNetwork> getOrRegisterNetworkFromManagerPosition(ManagerBlockEntity tile) {
-        World level = tile.getLevel();
-        assert level != null;
-        return getOrRegisterNetworkFromCablePosition(level, tile.getBlockPos());
+        World level = tile.getWorld();
+        return getOrRegisterNetworkFromCablePosition(level, tile.getPos());
     }
 
-    public static Stream<CableNetwork> getNetworksForLevel(Level level) {
-        if (level.isClientSide()) return Stream.empty();
+    public static Stream<CableNetwork> getNetworksForLevel(World level) {
+        if (level.isRemote) return Stream.empty();
         return NETWORKS_BY_LEVEL
                 .getOrDefault(level, Collections.emptyList())
                 .stream();
     }
 
-    public static Stream<CableNetwork> getNetworksInRange(Level level, @NotStored BlockPos pos, double maxDistance) {
-        if (level.isClientSide()) return Stream.empty();
+    public static Stream<CableNetwork> getNetworksInRange(World level, @NotStored BlockPos pos, double maxDistance) {
+        if (level.isRemote) return Stream.empty();
         return getNetworksForLevel(level)
                 .filter(net -> net
                         .getCablePositions()
-                        .anyMatch(cablePos -> cablePos.distSqr(pos) < maxDistance * maxDistance));
+                        .anyMatch(cablePos -> cablePos.distanceSq(pos) < maxDistance * maxDistance));
     }
 
     public static void unregisterNetworkForTestingPurposes(CableNetwork network) {
@@ -101,7 +99,7 @@ public class CableNetworkManager {
         getOrRegisterNetworkFromCablePosition(level, pos);
     }
 
-    public static void onCableRemoved(Level level, @NotStored BlockPos cablePos) {
+    public static void onCableRemoved(World level, @NotStored BlockPos cablePos) {
         getNetworkFromCablePosition(level, cablePos).ifPresent(network -> {
             // Invalidate the original network
             removeNetwork(network);
@@ -117,8 +115,8 @@ public class CableNetworkManager {
     public static void purgeCableNetworkForManager(ManagerBlockEntity manager) {
         //noinspection DataFlowIssue
         getNetworkFromCablePosition(
-                manager.getLevel(),
-                manager.getBlockPos()
+                manager.getWorld(),
+                manager.getPos()
         ).ifPresent(CableNetworkManager::removeNetwork);
     }
 
@@ -146,13 +144,13 @@ public class CableNetworkManager {
 
         {
             BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
-            for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
-                target.set(pos).move(direction);
+            for (EnumFacing direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+                target.setPos(pos).move(direction);
                 Optional<CableNetwork> found = getNetworkFromCablePosition(level, target);
                 if (found.isPresent()) {
                     neighbouringNetworks.add(found.get());
                 } else if (CableNetwork.isCable(level, target)) {
-                    danglingCables.add(target.immutable());
+                    danglingCables.add(target.toImmutable());
                 }
             }
         }
@@ -189,7 +187,7 @@ public class CableNetworkManager {
 
         // add the new cable to the result network
         rtn.addCable(pos);
-        networksByPosition.put(pos.asLong(), rtn);
+        networksByPosition.put(pos.toLong(), rtn);
 
         // add any dangling cables to the result network
         Set<BlockPos> visitDebounce = new HashSet<>();
@@ -197,10 +195,10 @@ public class CableNetworkManager {
                 (current, next, results) -> {
                     results.accept(current);
                     BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
-                    for (Direction d : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
-                        target.set(current).move(d);
+                    for (EnumFacing d : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+                        target.setPos(current).move(d);
                         if (CableNetwork.isCable(rtn.getLevel(), target) && !rtn.containsCablePosition(target)) {
-                            next.accept(target.immutable());
+                            next.accept(target.toImmutable());
                         }
                     }
                 },
@@ -209,14 +207,14 @@ public class CableNetworkManager {
         ).collect(Collectors.toSet());
         for (BlockPos danglingCable : allDanglingCables) {
             rtn.addCable(danglingCable);
-            networksByPosition.put(danglingCable.asLong(), rtn);
+            networksByPosition.put(danglingCable.toLong(), rtn);
         }
 
         onNetworkLookupChanged();
         return Optional.of(rtn);
     }
 
-    public static List<BlockPos> getBadCableCachePositions(Level level) {
+    public static List<BlockPos> getBadCableCachePositions(World level) {
         return getNetworksForLevel(level)
                 .flatMap(CableNetwork::getCablePositions)
                 .filter(pos -> !(level.getBlockState(pos).getBlock() instanceof ICableBlock))
@@ -229,10 +227,11 @@ public class CableNetworkManager {
         onNetworkLookupChanged();
     }
 
+    @NotNull
     private static Optional<CableNetwork> getNetworkFromCablePosition(World level, @NotStored BlockPos pos) {
         return Optional.ofNullable(NETWORKS_BY_CABLE_POSITION
                                            .computeIfAbsent(level, k -> new Long2ObjectOpenHashMap<>())
-                                           .get(pos.asLong()));
+                                           .get(pos.toLong()));
     }
 
     private static void removeNetwork(CableNetwork network) {
@@ -260,20 +259,20 @@ public class CableNetworkManager {
 
     @SubscribeEvent
     public static void onChunkUnload(ChunkEvent.Unload event) {
-        if (event.getLevel().isClientSide()) return;
-        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        if (event.getWorld().isRemote) return;
         var chunk = event.getChunk();
-        purgeChunkFromCableNetworks(level, chunk);
+        purgeChunkFromCableNetworks(event.getWorld(), chunk);
     }
 
     @SubscribeEvent
-    public static void onLevelUnload(LevelEvent.Unload event) {
-        if (!(event.getLevel() instanceof ServerLevel level)) return;
+    public static void onLevelUnload(WorldEvent.Unload event) {
+        var level = event.getWorld();
+        if (level.isRemote) return;
         NETWORKS_BY_LEVEL.remove(level);
         NETWORKS_BY_CABLE_POSITION.remove(level);
     }
 
-    public static void purgeChunkFromCableNetworks(ServerLevel level, ChunkAccess chunkAccess) {
+    public static void purgeChunkFromCableNetworks(World level, Chunk chunkAccess) {
         getNetworksForLevel(level).forEach(network -> network.bustCacheForChunk(chunkAccess));
     }
 }

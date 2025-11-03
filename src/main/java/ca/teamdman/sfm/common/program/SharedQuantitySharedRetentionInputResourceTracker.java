@@ -39,7 +39,7 @@ public class SharedQuantitySharedRetentionInputResourceTracker implements IInput
             @NotStored BlockPos pos,
             int slot
     ) {
-        var posEntry = retention_obligations_by_pos_by_slot.get(pos.asLong());
+        var posEntry = retention_obligations_by_pos_by_slot.get(pos.toLong());
         if (posEntry == null) {
             return 0;
         }
@@ -64,7 +64,7 @@ public class SharedQuantitySharedRetentionInputResourceTracker implements IInput
     ) {
         this.retention_obligation_progress += dedicatingToObligation;
         this.retention_obligations_by_pos_by_slot
-                .computeIfAbsent(pos.asLong(), k -> new Int2LongArrayMap())
+                .computeIfAbsent(pos.toLong(), k -> new Int2LongArrayMap())
                 .merge(slot, dedicatingToObligation, Long::sum);
     }
 

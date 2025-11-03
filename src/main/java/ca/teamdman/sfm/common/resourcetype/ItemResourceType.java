@@ -5,7 +5,7 @@ import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -175,7 +175,7 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
         === Input Slot ===
         Slot: 0
         Position: BlockPos{x=262, y=-60, z=628}
-        Direction: up
+        EnumFacing: up
         Capability: mekanism.common.capabilities.proxy.ProxyItemHandler@49cc116e (mekanism.common.capabilities.proxy.ProxyItemHandler)
         Block Entity: mekanism.common.tile.TileEntityBin (mekanism:creative_bin)
         Block: mekanism.common.block.basic.BlockBin (mekanism:creative_bin)
@@ -183,7 +183,7 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
         === Output Slot ===
         Slot: 1
         Position: BlockPos{x=231, y=-2, z=628}
-        Direction: null
+        EnumFacing: null
         Capability: cofh.lib.inventory.ManagedItemHandler@3141c283 (cofh.lib.inventory.ManagedItemHandler)
         Block Entity: cofh.thermal.expansion.block.entity.machine.MachineInsolatorTile (thermal:machine_insolator)
         Block: cofh.core.block.TileBlockActive4Way (thermal:machine_insolator)

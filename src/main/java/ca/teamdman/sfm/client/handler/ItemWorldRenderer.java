@@ -22,7 +22,7 @@ import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.FastColor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.phys.HitResult;
@@ -343,7 +343,7 @@ public class ItemWorldRenderer {
     private static void writeFaceVertices(
             VertexConsumer builder,
             Matrix4f matrix4f,
-            Direction direction,
+            EnumFacing direction,
             int r,
             int g,
             int b,
@@ -480,7 +480,7 @@ public class ItemWorldRenderer {
                 poseStack.pushPose();
                 poseStack.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
                 Matrix4f matrix4f = poseStack.last().pose();
-                for (Direction face : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+                for (EnumFacing face : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
                     if (!positions.contains(blockPos.relative(face))) {
                         writeFaceVertices(bufferBuilder, matrix4f, face, r, g, b, a);
                     }

@@ -5,9 +5,9 @@ import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfml.ast.Number;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -60,13 +60,13 @@ public class SFMASTUtils {
             String label,
             int slot,
             boolean each,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
         LabelAccess labelAccess = new LabelAccess(
                 List.of(new Label(label)),
                 new DirectionQualifier(
                         direction == null
-                        ? EnumSet.noneOf(Direction.class)
+                        ? EnumSet.noneOf(EnumFacing.class)
                         : EnumSet.of(direction)),
                 new NumberRangeSet(
                         new NumberRange[]{new NumberRange(slot, slot)}

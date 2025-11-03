@@ -6,6 +6,8 @@ import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistry;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,9 +18,9 @@ import java.util.function.Supplier;
 /// Helps reduce {@link MCVersionDependentBehaviour}.
 /// Can be acquired using {@link SFMDeferredRegisterBuilder}
 @MCVersionDependentBehaviour
-public class SFMDeferredRegister<T> {
+public class SFMDeferredRegister<T extends IForgeRegistryEntry<T>> {
     /// The registry that this is registering to
-    private final ResourceKey<? extends Registry<T>> registryKey;
+    private final ResourceKey<? extends ForgeRegistry<T>> registryKey;
 
     /// The internal registration helper
     @MCVersionDependentBehaviour

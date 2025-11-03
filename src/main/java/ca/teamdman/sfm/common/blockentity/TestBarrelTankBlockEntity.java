@@ -6,7 +6,7 @@ import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import ca.teamdman.sfm.common.util.SFMContainerUtil;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.chat.Component;
@@ -47,7 +47,7 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
     @Override
     public <T> LazyOptional<T> getCapability(
             Capability<T> cap,
-            @Nullable Direction side
+            @Nullable EnumFacing side
     ) {
         if (cap == SFMWellKnownCapabilities.ITEM_HANDLER.capabilityKind()) {
             return item_capability.cast();

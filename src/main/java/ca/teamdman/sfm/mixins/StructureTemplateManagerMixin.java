@@ -2,7 +2,7 @@ package ca.teamdman.sfm.mixins;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.gametest.SFMStructureGenerator;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.spongepowered.asm.mixin.Mixin;

@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.facade;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 public record FacadeData(
         BlockState facadeBlockState,
-        Direction facadeDirection,
+        EnumFacing facadeDirection,
         FacadeTextureMode facadeTextureMode
 ) {
     public void save(NBTTagCompound tag) {
@@ -32,7 +32,7 @@ public record FacadeData(
         if (tag.contains("sfm:facade", NBTTagCompound.TAG_COMPOUND)) {
             NBTTagCompound facadeTag = tag.getCompound("sfm:facade");
             BlockState facadeState = readBlockState(facadeTag.getCompound("block_state"), level);
-            Direction facadeDirection = Direction.byName(facadeTag.getString("direction"));
+            EnumFacing facadeDirection = EnumFacing.byName(facadeTag.getString("direction"));
             FacadeTextureMode facadeTextureMode = FacadeTextureMode.byName(facadeTag.getString("texture_mode"));
             if (facadeTextureMode != null && facadeDirection != null) {
                 return new FacadeData(facadeState, facadeDirection, facadeTextureMode);

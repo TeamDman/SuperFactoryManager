@@ -35,7 +35,6 @@ public class SFMProgramLinters {
 
     static {
         if (SFMModCompat.isMekanismLoaded()) {
-//            SFMMekanismCompat.registerProgramLinters(REGISTERER);
         }
     }
 

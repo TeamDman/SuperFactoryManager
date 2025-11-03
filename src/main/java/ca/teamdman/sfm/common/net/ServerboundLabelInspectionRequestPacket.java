@@ -67,7 +67,7 @@ public class ServerboundLabelInspectionRequestPacket extends SFMPacket<Serverbou
             }
             SFM.LOGGER.info("building payload");
             StringBuilder payload = new StringBuilder();
-            payload.append("-- Positions for label \"").append(message.label).append(\" --\n");
+            payload.append("-- Positions for label \"").append(message.label).append("\" --\n");
             payload.append(labelPositionHolder.getPositions(message.label).size()).append(" assignments\n");
             payload.append("-- Summary --\n");
             World world = player.getEntityWorld();

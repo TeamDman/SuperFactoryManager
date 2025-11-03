@@ -9,7 +9,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 @SuppressWarnings("DuplicatedCode")
 public class ExpandedQuantitySharedRetentionInputResourceTracker implements IInputResourceTracker {
@@ -60,7 +60,7 @@ public class ExpandedQuantitySharedRetentionInputResourceTracker implements IInp
             @NotStored BlockPos pos,
             int slot
     ) {
-        var posEntry = retention_obligations_by_pos_by_slot.get(pos.asLong());
+        var posEntry = retention_obligations_by_pos_by_slot.get(pos.toLong());
         if (posEntry == null) {
             return 0;
         }
@@ -85,7 +85,7 @@ public class ExpandedQuantitySharedRetentionInputResourceTracker implements IInp
     ) {
         this.retention_obligation_progress += dedicatingToObligation;
         this.retention_obligations_by_pos_by_slot
-                .computeIfAbsent(pos.asLong(), k -> new Int2LongArrayMap())
+                .computeIfAbsent(pos.toLong(), k -> new Int2LongArrayMap())
                 .merge(slot, dedicatingToObligation, Long::sum);
     }
 

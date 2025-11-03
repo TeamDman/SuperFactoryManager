@@ -7,8 +7,9 @@ import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.level.Level;
 import net.minecraft.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -20,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 
-public class BufferBlockEntity extends BlockEntity {
+public class BufferBlockEntity extends TileEntity {
     private final BufferBlockEntityContents contents;
     private final ArrayList<LazyOptional<?>> toInvalidate = new ArrayList<>();
 
@@ -49,7 +50,7 @@ public class BufferBlockEntity extends BlockEntity {
     @Override
     public @NotNull <T> LazyOptional<T> getCapability(
             @NotNull Capability<T> cap,
-            @Nullable Direction side
+            @Nullable EnumFacing side
     ) {
         SFMBlockCapabilityKind<T> capKind = new SFMBlockCapabilityKind<>(cap);
         BufferBlockCapabilityProvider bufferBlockCapabilityProvider = new BufferBlockCapabilityProvider();

@@ -15,11 +15,6 @@ public class SFMRecipeSerializers {
                     .registry(SFMWellKnownRegistries.RECIPE_SERIALIZERS.registryKey())
                     .build();
 
-    public static final SFMRegistryObject<RecipeSerializer<?>, PrintingPressRecipe.Serializer> PRINTING_PRESS
-            = RECIPE_SERIALIZERS.register(
-            "printing_press",
-            PrintingPressRecipe.Serializer::new
-    );
 
     public static final SFMRegistryObject<RecipeSerializer<?>, SimpleCraftingRecipeSerializer<DiskResetRecipe>> DISK_RESET
             = RECIPE_SERIALIZERS.register(

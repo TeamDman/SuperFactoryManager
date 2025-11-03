@@ -12,7 +12,7 @@ import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.ast.ResourceQuantity;
 import ca.teamdman.sfml.ast.RoundRobin;
 import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
@@ -154,8 +154,8 @@ public class ProgramLinter {
 //                    boolean anySuccess = false;
 //                    ConfigInfo transmissionConfig = mekBlockEntityConfig.getConfig(transmissionType);
 //                    if (transmissionConfig != null) {
-//                        Set<Direction> activeSides = transmissionConfig.getSides(dataTypePredicate);
-//                        for (Direction direction : directions) {
+//                        Set<EnumFacing> activeSides = transmissionConfig.getSides(dataTypePredicate);
+//                        for (EnumFacing direction : directions) {
 //                            if (activeSides.contains(direction)) {
 //                                anySuccess = true;
 //                                break;
@@ -164,7 +164,7 @@ public class ProgramLinter {
 //                        if (!anySuccess) {
 //                            // we want to enable the side for the transmission type
 //                            // pick the first direction in the statement
-//                            Direction statementSide = directions.iterator().next();
+//                            EnumFacing statementSide = directions.iterator().next();
 //                            if (statementSide != null) {
 //                                RelativeSide relativeSide = RelativeSide.fromDirections(
 //                                        mekBlockEntity.getDirection(),
@@ -230,8 +230,8 @@ public class ProgramLinter {
 //                        boolean anySuccess = false;
 //                        ConfigInfo transmissionConfig = config.getConfig(transmissionType);
 //                        if (transmissionConfig != null) {
-//                            Set<Direction> activeSides = transmissionConfig.getSides(dataTypePredicate);
-//                            for (Direction direction : directions) {
+//                            Set<EnumFacing> activeSides = transmissionConfig.getSides(dataTypePredicate);
+//                            for (EnumFacing direction : directions) {
 //                                if (activeSides.contains(direction)) {
 //                                    anySuccess = true;
 //                                    break;

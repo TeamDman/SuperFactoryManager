@@ -39,9 +39,6 @@ public class SFMBlocks {
             =
             REGISTERER.register("printing_press", PrintingPressBlock::new);
 
-    public static final SFMRegistryObject<Block, WaterTankBlock> WATER_TANK_BLOCK
-            =
-            REGISTERER.register("water_tank", WaterTankBlock::new);
 
     public static final SFMRegistryObject<Block, TestBarrelBlock> TEST_BARREL_BLOCK
             =

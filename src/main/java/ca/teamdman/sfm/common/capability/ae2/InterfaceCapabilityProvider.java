@@ -18,7 +18,7 @@ import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.SFMItemUtils;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -48,7 +48,7 @@ public class InterfaceCapabilityProvider implements SFMBlockCapabilityProvider<O
             BlockPos pos,
             BlockState state,
             @Nullable BlockEntity blockEntity,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
         var be = level.getBlockEntity(pos);
         if (!(be instanceof InterfaceBlockEntity in)) {

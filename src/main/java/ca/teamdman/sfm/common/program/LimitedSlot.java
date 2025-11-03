@@ -3,7 +3,7 @@ package ca.teamdman.sfm.common.program;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfml.ast.Label;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 
 public interface LimitedSlot<STACK, ITEM, CAP> {
     ResourceType<STACK, ITEM, CAP> getType();
@@ -14,7 +14,7 @@ public interface LimitedSlot<STACK, ITEM, CAP> {
 
     Label getLabel();
 
-    Direction getDirection();
+    EnumFacing getDirection();
 
     int getSlot();
 }

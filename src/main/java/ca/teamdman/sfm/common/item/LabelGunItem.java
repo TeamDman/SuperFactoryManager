@@ -11,6 +11,7 @@ import ca.teamdman.sfm.common.util.SFMItemUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
+import net.minecraft.nbt.NBTTagString;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.EnumHand;
 import net.minecraft.world.InteractionResult;
@@ -27,8 +28,9 @@ import java.util.Comparator;
 import java.util.List;
 
 public class LabelGunItem extends Item {
-    public LabelGunItem(Properties properties) {
-        super(properties);
+    public LabelGunItem() {
+        super();
+        maxStackSize = 1;
     }
 
     public static void setActiveLabel(
@@ -39,19 +41,19 @@ public class LabelGunItem extends Item {
             clearActiveLabel(stack);
         } else {
             LabelPositionHolder.from(stack).addReferencedLabel(label).save(stack);
-            stack.getOrCreateTag().putString("sfm:active_label", label);
+            stack.setTagInfo("sfm:active_label", new NBTTagString(label));
         }
     }
 
     public static void clearActiveLabel(
             ItemStack gun
     ) {
-        gun.getOrCreateTag().remove("sfm:active_label");
+        gun.removeSubCompound("sfm:active_label");
     }
 
     public static String getActiveLabel(ItemStack stack) {
         //noinspection DataFlowIssue
-        return !stack.hasTag() ? "" : stack.getTag().getString("sfm:active_label");
+        return !stack.hasTagCompound() ? "" : stack.getTagCompound().getString("sfm:active_label");
     }
 
     public static String getNextLabel(

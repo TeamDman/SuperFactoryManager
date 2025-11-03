@@ -75,13 +75,6 @@ public final class SFMBlockEntities {
                     .build(null)
     );
 
-    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<WaterTankBlockEntity>>
-            WATER_TANK_BLOCK_ENTITY = REGISTERER.register(
-            "water_tank",
-            () -> BlockEntityType.Builder
-                    .of(WaterTankBlockEntity::new, SFMBlocks.WATER_TANK_BLOCK.get())
-                    .build(null)
-    );
 
 
     public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<TestBarrelTankBlockEntity>>

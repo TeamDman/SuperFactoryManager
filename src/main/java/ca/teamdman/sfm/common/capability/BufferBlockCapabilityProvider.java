@@ -3,7 +3,7 @@ package ca.teamdman.sfm.common.capability;
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntity;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -25,7 +25,7 @@ public class BufferBlockCapabilityProvider implements SFMBlockCapabilityProvider
             BlockPos pos,
             BlockState state,
             @Nullable BlockEntity blockEntity,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
         if (!(blockEntity instanceof BufferBlockEntity bufferBlockEntity)) return SFMBlockCapabilityResult.empty();
         ResourceType<?, ?, ?> resourceType = capabilityKind.getResourceType();

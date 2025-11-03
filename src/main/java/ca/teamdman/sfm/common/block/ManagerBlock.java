@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.common.block;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
@@ -12,7 +14,16 @@ import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.Stored;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
+import net.minecraft.block.ITileEntityProvider;
+import net.minecraft.block.SoundType;
+import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.PropertyBool;
+import net.minecraft.block.state.BlockStateContainer;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -35,23 +46,22 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.network.NetworkHooks;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ManagerBlock extends BlockContainer implements ICableBlock {
-    public static final BooleanProperty TRIGGERED = BlockStateProperties.TRIGGERED;
+public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEntityProvider {
+    public static final PropertyBool TRIGGERED = PropertyBool.create("triggered");
 
     public ManagerBlock() {
-        super(BlockBehaviour.Properties
-                      .of(Material.PISTON)
-                      .destroyTime(2)
-                      .sound(SoundType.METAL));
-        registerDefaultState(getStateDefinition().any().setValue(TRIGGERED, false));
+        super(Material.PISTON);
+        setHardness(2F);
+        setSoundType(SoundType.METAL);
     }
 
+    @NotNull
     @Override
-    @SuppressWarnings("deprecation")
-    public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.MODEL;
+    protected BlockStateContainer createBlockState() {
+        return new BlockStateContainer(this, TRIGGERED);
     }
 
     @Nullable
@@ -61,36 +71,43 @@ public class ManagerBlock extends BlockContainer implements ICableBlock {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
-    public void neighborChanged(
-            BlockState state,
-            Level level,
-            @NotStored BlockPos pos,
-            Block block,
-            @NotStored BlockPos neighbourPos,
-            boolean movedByPiston
-    ) {
-        if (!(level.getBlockEntity(pos) instanceof ManagerBlockEntity mgr)) return;
-        if (!(level instanceof ServerLevel)) return;
+    public void observedNeighborChange(IBlockState state, World world, @NotStored BlockPos pos, Block changedBlock, @NotStored BlockPos changedBlockPos) {
+        if (!(world.getTileEntity(pos) instanceof ManagerBlockEntity mgr)) return;
+        if ((world.isRemote)) return;
         { // check redstone for triggers
-            var isPowered = level.hasNeighborSignal(pos) || level.hasNeighborSignal(pos.above());
+            var isPowered = world.isBlockPowered(pos) || world.isBlockPowered(pos.up());
             var debounce = state.getValue(TRIGGERED);
             if (isPowered && !debounce) {
                 mgr.trackRedstonePulseUnprocessed();
-                level.setBlock(pos, state.setValue(TRIGGERED, true), 4);
+                world.setBlockState(pos, state.withProperty(TRIGGERED, true), 4);
             } else if (!isPowered && debounce) {
-                level.setBlock(pos, state.setValue(TRIGGERED, false), 4);
+                world.setBlockState(pos, state.withProperty(TRIGGERED, false), 4);
             }
         }
     }
 
+
     @Override
-    public BlockEntity newBlockEntity(
-            @Stored BlockPos pos,
-            BlockState state
-    ) {
-        //noinspection DataFlowIssue
-        return SFMBlockEntities.MANAGER_BLOCK_ENTITY.get().create(pos, state);
+    public boolean onBlockActivated(World level, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+        if (
+                level.getTileEntity(pos) instanceof ManagerBlockEntity manager
+                        && player instanceof EntityPlayerMP serverPlayer
+        ) {
+            // update warnings on disk as we open the gui
+            var disk = manager.getDisk();
+            if (disk != null) {
+                var program = manager.getProgram();
+                if (program != null) {
+                    DiskItem.setWarnings(
+                            disk,
+                            ProgramLinter.gatherWarnings(program, LabelPositionHolder.from(disk), manager)
+                    );
+                }
+            }
+            player.openGui(SFM.instance, CommonProxy.GuiType, buf -> ManagerContainerMenu.encode(manager, buf));
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -103,44 +120,10 @@ public class ManagerBlock extends BlockContainer implements ICableBlock {
             EnumHand hand,
             BlockHitResult hit
     ) {
-        if (level.getBlockEntity(pos) instanceof ManagerBlockEntity manager
-            && player instanceof ServerPlayer serverPlayer) {
-            // update warnings on disk as we open the gui
-            var disk = manager.getDisk();
-            if (disk != null) {
-                var program = manager.getProgram();
-                if (program != null) {
-                    DiskItem.setWarnings(
-                            disk,
-                            ProgramLinter.gatherWarnings(program, LabelPositionHolder.from(disk), manager)
-                    );
-                }
-            }
-            NetworkHooks.openScreen(serverPlayer, manager, buf -> ManagerContainerMenu.encode(manager, buf));
-            return InteractionResult.CONSUME;
-        }
-        return InteractionResult.SUCCESS;
+
     }
 
-    @Override
-    public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-            Level level,
-            BlockState state,
-            BlockEntityType<T> type
-    ) {
-        if (level.isClientSide()) return null;
-        return createTickerHelper(type, SFMBlockEntities.MANAGER_BLOCK_ENTITY.get(), ManagerBlockEntity::serverTick);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public void onPlace(
-            BlockState state,
-            Level world,
-            @NotStored BlockPos pos,
-            BlockState oldState,
-            boolean isMoving
-    ) {
+    public void onBlockAdded(World world, BlockPos pos, IBlockState state) {
         CableNetworkManager.onCablePlaced(world, pos);
     }
 
@@ -163,8 +146,5 @@ public class ManagerBlock extends BlockContainer implements ICableBlock {
         }
     }
 
-    @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(TRIGGERED);
-    }
+
 }

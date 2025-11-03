@@ -1,40 +1,59 @@
 package ca.teamdman.sfm;
 
-import ca.teamdman.sfm.client.registry.SFMMenuScreens;
-import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
-import ca.teamdman.sfm.client.registry.SFMTextEditors;
+import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.registry.*;
-import net.minecraftforge.fml.ModLoadingContext;
+import ca.teamdman.sfm.common.registry.RegistryBlocks;
+import ca.teamdman.sfm.common.registry.RegistryItems;
+import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.common.SidedProxy;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@Mod("sfm")
+@Mod(
+        modid = SFM.MOD_ID,
+        name = SFM.MOD_NAME,
+        version = SFM.VERSION,
+        dependencies = "required-after:forge@[14.23.5.2860,);"
+)
 public class SFM {
     public static final String MOD_ID = "sfm";
-    public static final Logger LOGGER = LogManager.getLogger(SFM.MOD_ID);
+    public static final String MOD_NAME = "Super Factory Manager";
+    public static final String VERSION = "@VERSION@";
+
+    public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
     public static final String ISSUE_TRACKER_URL = "https://github.com/TeamDman/SuperFactoryManager/issues";
-    public SFM() {
-        var bus = FMLJavaModLoadingContext
-                .get()
-                .getModEventBus();
-        SFMBlocks.register(bus);
-        SFMItems.register(bus);
-        SFMResourceTypes.register(bus);
-        SFMProgramLinters.register(bus);
-        SFMBlockEntities.register(bus);
-        SFMGlobalBlockCapabilityProviders.register(bus);
-        SFMTextEditors.register(bus);
-        SFMTextEditorActions.register(bus);
-        SFMMenus.register(bus);
-        SFMRecipeTypes.register(bus);
-        SFMRecipeSerializers.register(bus);
-        SFMConfig.register(ModLoadingContext.get());
-        bus.addListener((FMLClientSetupEvent e) -> SFMMenuScreens.register());
-        bus.addListener((FMLCommonSetupEvent e) -> SFMPackets.register());
+
+    @Mod.Instance(modid = SFM.MOD_ID)
+	public static       SFM instance;
+
+
+    @SidedProxy(clientSide = "ca.teamdman.sfm.client.ClientProxy", serverSide = "ca.teamdman.sfm.common.CommonProxy")
+    public static CommonProxy proxy;
+    private static boolean devEnvCache = false;
+
+    public static boolean isRunningInDevEnvironment() {
+        return devEnvCache;
+    }
+
+    @Mod.EventHandler
+    public void preInit(FMLPreInitializationEvent event) {
+//        SFMConfig.register();
+        proxy.preInit();
+
+        devEnvCache = (Boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");
+    }
+
+    @Mod.EventHandler
+    public void init(FMLInitializationEvent event) {
+        proxy.init();
+    }
+
+    @Mod.EventHandler
+    public void postInit(FMLPostInitializationEvent event) {
+        proxy.postInit();
     }
 }

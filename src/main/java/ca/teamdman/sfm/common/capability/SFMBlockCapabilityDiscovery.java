@@ -13,7 +13,7 @@ import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfml.ast.OutputStatement;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
 /// To discover the right capability for a given block position, we use {@link SFMBlockCapabilityProviderDiscovery} to
 /// iterate over the appropriate {@link SFMBlockCapabilityProvider} to find a {@link SFMBlockCapabilityResult}.
 ///
-/// The discovery results from {@link CableNetwork#getCapability(SFMBlockCapabilityKind, BlockPos, Direction, TranslatableLogger)}
+/// The discovery results from {@link CableNetwork#getCapability(SFMBlockCapabilityKind, BlockPos, EnumFacing, TranslatableLogger)}
 /// will be cached in the {@link CableNetwork#getLevelCapabilityCache()}
 /// so the {@link SFMBlockCapabilityProviderDiscovery} can focus on its job.
 public class SFMBlockCapabilityDiscovery {
@@ -43,7 +43,7 @@ public class SFMBlockCapabilityDiscovery {
             CableNetwork cableNetwork,
             SFMBlockCapabilityKind<CAP> capKind,
             @NotStored BlockPos pos,
-            @Nullable Direction direction,
+            @Nullable EnumFacing direction,
             TranslatableLogger logger
     ) {
         SFMBlockCapabilityCacheForLevel levelCapabilityCache = cableNetwork.getLevelCapabilityCache();
@@ -95,7 +95,7 @@ public class SFMBlockCapabilityDiscovery {
             BlockPos pos
     ) {
         return SFMWellKnownCapabilities.streamCapabilities().anyMatch(cap -> {
-            for (Direction direction : SFMDirections.DIRECTIONS_WITH_NULL) {
+            for (EnumFacing direction : SFMDirections.DIRECTIONS_WITH_NULL) {
                 if (discoverCapabilityFromLevel(level, cap, pos, direction).isPresent()) {
                     return true;
                 }
@@ -109,7 +109,7 @@ public class SFMBlockCapabilityDiscovery {
             LevelAccessor level,
             SFMBlockCapabilityKind<CAP> capKind,
             @NotStored BlockPos pos,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
         return SFMBlockCapabilityProviderDiscovery.getCapabilityFromLevel(
                 capKind,
@@ -124,7 +124,7 @@ public class SFMBlockCapabilityDiscovery {
     private static <CAP> @NotNull SFMBlockCapabilityResult<CAP> discoverCapabilityFromCache(
             SFMBlockCapabilityKind<CAP> capKind,
             @NotStored BlockPos pos,
-            @Nullable Direction direction,
+            @Nullable EnumFacing direction,
             TranslatableLogger logger,
             SFMBlockCapabilityCacheForLevel levelCapabilityCache
     ) {

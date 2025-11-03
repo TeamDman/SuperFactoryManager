@@ -9,7 +9,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 
 @SuppressWarnings("DuplicatedCode")
 public class SharedQuantityExpandedRetentionInputResourceTracker implements IInputResourceTracker {
@@ -55,7 +55,7 @@ public class SharedQuantityExpandedRetentionInputResourceTracker implements IInp
             @NotStored BlockPos pos,
             int slot
     ) {
-        var posEntry = retention_obligations_by_pos_by_slot_by_item.get(pos.asLong());
+        var posEntry = retention_obligations_by_pos_by_slot_by_item.get(pos.toLong());
         if (posEntry != null) {
             var resourceTypeEntry = posEntry.get(slot);
             if (resourceTypeEntry != null) {
@@ -99,7 +99,7 @@ public class SharedQuantityExpandedRetentionInputResourceTracker implements IInp
         retention_obligations_by_item.computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())
                 .addTo(item_id, dedicatingToObligation);
         retention_obligations_by_pos_by_slot_by_item
-                .computeIfAbsent(pos.asLong(), k -> new Int2ObjectArrayMap<>())
+                .computeIfAbsent(pos.toLong(), k -> new Int2ObjectArrayMap<>())
                 .computeIfAbsent(slot, k -> new Object2ObjectOpenHashMap<>())
                 .computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())
                 .addTo(item_id, dedicatingToObligation);

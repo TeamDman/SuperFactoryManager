@@ -8,7 +8,7 @@ import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.registry.SFMRecipeTypes;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
@@ -126,7 +126,7 @@ public class PrintingPressBlockEntity extends BlockEntity implements NotContaine
     }
 
     @Override
-    public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
+    public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable EnumFacing side) {
         if (cap == SFMWellKnownCapabilities.ITEM_HANDLER.capabilityKind()) {
             return ITEMS_CAPABILITY.cast();
         }

@@ -4,7 +4,7 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.Label;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import org.jetbrains.annotations.Nullable;
 
 public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, ITEM, CAP> {
@@ -21,13 +21,13 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
     @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
     public IOutputResourceTracker tracker;
     @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
-    public Direction direction;
+    public EnumFacing direction;
     private @Nullable STACK stackInSlotCache = null;
 
     public LimitedOutputSlot(
             Label label,
             BlockPos pos,
-            Direction direction,
+            EnumFacing direction,
             int slot,
             CAP handler,
             IOutputResourceTracker tracker,
@@ -77,7 +77,7 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
             CAP handler,
             Label label,
             @Stored BlockPos pos,
-            Direction direction,
+            EnumFacing direction,
             int slot,
             IOutputResourceTracker tracker,
             STACK stackCache,
@@ -127,7 +127,7 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
     }
 
     @Override
-    public Direction getDirection() {
+    public EnumFacing getDirection() {
         return direction;
     }
 

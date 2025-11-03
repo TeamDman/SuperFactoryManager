@@ -2,7 +2,7 @@ package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.common.registry.SFMGlobalBlockCapabilityProviders;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.CauldronBlock;
@@ -36,7 +36,7 @@ public interface SFMBlockCapabilityProvider<CAP> {
             BlockState state,
             @Nullable
             BlockEntity blockEntity,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     );
 
     ///  Higher priority providers are checked first. The Default priority is 0.

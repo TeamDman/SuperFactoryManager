@@ -1,14 +1,12 @@
 package ca.teamdman.sfm.common.util;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.nbt.NBTTagByteArray;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.nbt.ByteArrayTag;
-import net.minecraft.network.FriendlyByteBuf;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -53,14 +51,14 @@ public class CompressedBlockPosSet {
         return rtn;
     }
 
-    public void write(FriendlyByteBuf buf) {
+    public void write(PacketBuffer buf) {
         buf.writeVarInt(boundingVolumes.size());
         for (var volume : boundingVolumes) {
             volume.write(buf);
         }
     }
 
-    public static CompressedBlockPosSet read(FriendlyByteBuf buf) {
+    public static CompressedBlockPosSet read(PacketBuffer buf) {
         CompressedBlockPosSet rtn = new CompressedBlockPosSet();
         int count = buf.readVarInt();
         for (int i = 0; i < count; i++) {
@@ -77,45 +75,44 @@ public class CompressedBlockPosSet {
         HashSet<BlockPos> rtn = new HashSet<>(capacity);
         for (var volume : boundingVolumes) {
             BlockPos start = volume.start;
-            BlockPos end = start.relative(volume.direction, volume.extension);
-            for (BlockPos blockPos : BlockPos.betweenClosed(start, end)) {
-                rtn.add(blockPos.immutable());
+            BlockPos end = start.offset(volume.direction, volume.extension);
+            for (BlockPos blockPos : BlockPos.getAllInBox(start, end)) {
+                rtn.add(blockPos.toImmutable());
             }
         }
         return rtn;
     }
 
-    public ByteArrayTag asTag() {
-        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+    public NBTTagByteArray asTag() {
+        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
         this.write(buf);
-        return new ByteArrayTag(buf.array());
+        return new NBTTagByteArray(buf.array());
     }
 
-    public static CompressedBlockPosSet from(ByteArrayTag tag) {
-        return from(tag.getAsByteArray());
+    public static CompressedBlockPosSet from(NBTTagByteArray tag) {
+        return from(tag.getByteArray());
     }
 
     public static CompressedBlockPosSet from(byte[] data) {
-        FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.wrappedBuffer(data));
+        PacketBuffer buf = new PacketBuffer(Unpooled.wrappedBuffer(data));
         return CompressedBlockPosSet.read(buf);
     }
-
 
     private record Volume(
             BlockPos start,
             EnumFacing direction,
             int extension
     ) {
-        public void write(ByteBuf buf) {
+        public void write(PacketBuffer buf) {
             buf.writeBlockPos(start);
-            buf.writeEnum(direction);
+            buf.writeInt(direction.ordinal());
             buf.writeVarInt(extension);
         }
 
-        public static Volume read(ByteBuf buf) {
+        public static Volume read(PacketBuffer buf) {
             return new Volume(
                     buf.readBlockPos(),
-                    buf.readEnum(EnumFacing.class),
+                    EnumFacing.byIndex(buf.readInt()),
                     buf.readVarInt()
             );
         }

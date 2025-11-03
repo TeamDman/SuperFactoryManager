@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.localization;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.lib.ItemsSFM;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.common.registry.SFMItems;
 
@@ -273,7 +274,7 @@ public final class LocalizationKeys {
             () -> "Ctrl-alt-click to facade entire network."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER = new LocalizationEntry(
-            () -> SFMItems.LABEL_GUN_ITEM.get().getDescriptionId() + ".tooltip.toggle_label_reminder",
+            () -> ItemsSFM.LABEL_GUN.getDescriptionId() + ".tooltip.toggle_label_reminder",
             () -> "%s a block to toggle the active label on it."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_PUSH_REMINDER = new LocalizationEntry(

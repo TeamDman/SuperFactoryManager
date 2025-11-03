@@ -10,8 +10,8 @@ import mekanism.api.energy.IMekanismStrictEnergyHandler;
 import mekanism.api.energy.IStrictEnergyHandler;
 import mekanism.api.math.FloatingLong;
 import mekanism.common.capabilities.energy.BasicEnergyContainer;
-import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.CapabilityToken;
 import org.jetbrains.annotations.Nullable;
@@ -38,7 +38,7 @@ public class MekanismEnergyResourceType extends ScalarResourceType<FloatingLong,
             ));
 
             @Override
-            public List<IEnergyContainer> getEnergyContainers(@Nullable Direction direction) {
+            public List<IEnergyContainer> getEnergyContainers(@Nullable EnumFacing direction) {
                 return containers;
             }
 
@@ -46,7 +46,7 @@ public class MekanismEnergyResourceType extends ScalarResourceType<FloatingLong,
             public FloatingLong insertEnergy(
                     int container,
                     FloatingLong amount,
-                    @Nullable Direction side,
+                    @Nullable EnumFacing side,
                     Action action
             ) {
                 boolean canReceive = !this.getEnergy(0).isZero() || contents.isEmpty();

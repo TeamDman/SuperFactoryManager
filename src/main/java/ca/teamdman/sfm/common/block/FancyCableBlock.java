@@ -8,7 +8,7 @@ import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.Stored;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -44,13 +44,13 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
     public static final VoxelShape SHAPE_UP = Block.box(5, 11, 5, 11, 16, 11);
     public static final VoxelShape SHAPE_DOWN = Block.box(5, 0, 5, 11, 5, 11);
 
-    public static final Map<Direction, BooleanProperty> DIRECTION_PROPERTIES = ImmutableMap.of(
-            Direction.NORTH, NORTH,
-            Direction.SOUTH, SOUTH,
-            Direction.EAST, EAST,
-            Direction.WEST, WEST,
-            Direction.UP, UP,
-            Direction.DOWN, DOWN
+    public static final Map<EnumFacing, BooleanProperty> DIRECTION_PROPERTIES = ImmutableMap.of(
+            EnumFacing.NORTH, NORTH,
+            EnumFacing.SOUTH, SOUTH,
+            EnumFacing.EAST, EAST,
+            EnumFacing.WEST, WEST,
+            EnumFacing.UP, UP,
+            EnumFacing.DOWN, DOWN
     );
 
     public FancyCableBlock(Properties properties) {
@@ -102,7 +102,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
     @SuppressWarnings("deprecation")
     public BlockState updateShape(
             BlockState state,
-            Direction dir,
+            EnumFacing dir,
             BlockState facingState,
             LevelAccessor world,
             @NotStored BlockPos pos,
@@ -144,12 +144,12 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             LevelAccessor level,
             @NotStored BlockPos pos
     ) {
-        boolean north = hasConnection(level, pos, Direction.NORTH);
-        boolean south = hasConnection(level, pos, Direction.SOUTH);
-        boolean east = hasConnection(level, pos, Direction.EAST);
-        boolean west = hasConnection(level, pos, Direction.WEST);
-        boolean up = hasConnection(level, pos, Direction.UP);
-        boolean down = hasConnection(level, pos, Direction.DOWN);
+        boolean north = hasConnection(level, pos, EnumFacing.NORTH);
+        boolean south = hasConnection(level, pos, EnumFacing.SOUTH);
+        boolean east = hasConnection(level, pos, EnumFacing.EAST);
+        boolean west = hasConnection(level, pos, EnumFacing.WEST);
+        boolean up = hasConnection(level, pos, EnumFacing.UP);
+        boolean down = hasConnection(level, pos, EnumFacing.DOWN);
 
         return currentState
                 .setValue(NORTH, north)
@@ -163,7 +163,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
     protected boolean hasConnection(
             LevelAccessor level,
             @NotStored BlockPos pos,
-            Direction direction
+            EnumFacing direction
     ) {
         // Directly connect to other cables
         BlockPos relative = pos.relative(direction);

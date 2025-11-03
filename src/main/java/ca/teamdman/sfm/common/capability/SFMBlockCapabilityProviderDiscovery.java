@@ -7,7 +7,7 @@ import ca.teamdman.sfm.common.registry.SFMGlobalBlockCapabilityProviders;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,7 +29,7 @@ public class SFMBlockCapabilityProviderDiscovery {
             BlockPos pos,
             BlockState blockState,
             BlockEntity blockEntity,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
         for (var capabilityProviderMapper : getCapabilityProvidersForKindFast(capKind)) {
             var capability = capabilityProviderMapper.getCapability(

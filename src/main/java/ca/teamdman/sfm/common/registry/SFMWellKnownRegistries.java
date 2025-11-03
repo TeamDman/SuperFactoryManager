@@ -15,7 +15,7 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.material.Fluid;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /// Helps reduce {@link MCVersionDependentBehaviour}

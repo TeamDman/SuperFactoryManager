@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorIntellisenseLevel;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

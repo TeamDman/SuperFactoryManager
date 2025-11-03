@@ -9,7 +9,7 @@ import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
 import net.minecraft.ChatFormatting;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.nbt.ByteArrayTag;
+import net.minecraft.nbt.NBTTagByteArray;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
@@ -123,7 +123,7 @@ public class NetworkToolItem extends Item {
     }
 
     public static Set<BlockPos> getCablePositions(ItemStack stack) {
-        if (stack.getOrCreateTag().get("sfm:cable_positions") instanceof ByteArrayTag byteArrayTag) {
+        if (stack.getOrCreateTag().get("sfm:cable_positions") instanceof NBTTagByteArray byteArrayTag) {
             // new format
             return CompressedBlockPosSet.from(byteArrayTag).into();
         }
@@ -145,7 +145,7 @@ public class NetworkToolItem extends Item {
     }
 
     public static Set<BlockPos> getCapabilityProviderPositions(ItemStack stack) {
-        if (stack.getOrCreateTag().get("sfm:capability_provider_positions") instanceof ByteArrayTag byteArrayTag) {
+        if (stack.getOrCreateTag().get("sfm:capability_provider_positions") instanceof NBTTagByteArray byteArrayTag) {
             // new format
             return CompressedBlockPosSet.from(byteArrayTag).into();
         }

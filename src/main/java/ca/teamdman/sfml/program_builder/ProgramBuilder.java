@@ -14,7 +14,7 @@ import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
 import net.minecraft.ResourceLocationException;
 import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.jetbrains.annotations.Nullable;

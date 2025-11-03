@@ -6,7 +6,7 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.Label;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -32,7 +32,7 @@ public class LimitedOutputSlotObjectPool {
     public static <STACK, ITEM, CAP> LimitedOutputSlot<STACK, ITEM, CAP> acquire(
             Label label,
             @Stored BlockPos pos,
-            Direction direction,
+            EnumFacing direction,
             int slot,
             CAP handler,
             IOutputResourceTracker tracker,

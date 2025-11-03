@@ -2,8 +2,6 @@ package ca.teamdman.sfm.common.localization;
 
 import ca.teamdman.sfm.common.util.SFMTranslationUtils;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 

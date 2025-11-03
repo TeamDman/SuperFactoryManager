@@ -1,7 +1,8 @@
 package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.util.SFMDirections;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -9,23 +10,23 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-public record DirectionQualifier(EnumSet<Direction> directions) implements ASTNode, Iterable<Direction> {
+public record DirectionQualifier(EnumSet<EnumFacing> directions) implements ASTNode, Iterable<EnumFacing> {
 
-    public static final DirectionQualifier NULL_DIRECTION = new DirectionQualifier(EnumSet.noneOf(Direction.class));
-    public static final DirectionQualifier EVERY_DIRECTION = new DirectionQualifier(EnumSet.allOf(Direction.class));
+    public static final DirectionQualifier NULL_DIRECTION = new DirectionQualifier(EnumSet.noneOf(EnumFacing.class));
+    public static final DirectionQualifier EVERY_DIRECTION = new DirectionQualifier(EnumSet.allOf(EnumFacing.class));
 
-    public static Direction lookup(Side side) {
+    public static EnumFacing lookup(Side side) {
         return switch (side) {
-            case TOP -> Direction.UP;
-            case BOTTOM -> Direction.DOWN;
-            case NORTH -> Direction.NORTH;
-            case SOUTH -> Direction.SOUTH;
-            case EAST -> Direction.EAST;
-            case WEST -> Direction.WEST;
+            case TOP -> EnumFacing.UP;
+            case BOTTOM -> EnumFacing.DOWN;
+            case NORTH -> EnumFacing.NORTH;
+            case SOUTH -> EnumFacing.SOUTH;
+            case EAST -> EnumFacing.EAST;
+            case WEST -> EnumFacing.WEST;
         };
     }
 
-    public static String directionToString(@Nullable Direction direction) {
+    public static String directionToString(@Nullable EnumFacing direction) {
         if (direction == null) return "";
         return switch (direction) {
             case UP -> "TOP";
@@ -37,15 +38,16 @@ public record DirectionQualifier(EnumSet<Direction> directions) implements ASTNo
         };
     }
 
-    public Stream<Direction> stream() {
+    public Stream<EnumFacing> stream() {
         if (this == EVERY_DIRECTION)
-            return Stream.concat(directions.stream(), Stream.<Direction>builder().add(null).build());
-        if (directions.isEmpty()) return Stream.<Direction>builder().add(null).build();
+            return Stream.concat(directions.stream(), Stream.<EnumFacing>builder().add(null).build());
+        if (directions.isEmpty()) return Stream.<EnumFacing>builder().add(null).build();
         return directions.stream();
     }
 
     @Override
-    public Iterator<@Nullable Direction> iterator() {
+    @NotNull
+    public Iterator<EnumFacing> iterator() {
         if (this == EVERY_DIRECTION) {
             return new SFMDirections.NullableDirectionIterator();
         }

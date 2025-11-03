@@ -5,7 +5,7 @@ import ca.teamdman.sfm.common.program.*;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.Stored;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
@@ -238,7 +238,7 @@ public final class InputStatement implements IOStatement {
             ResourceType<STACK, ITEM, CAP> type,
             Label label,
             @Stored BlockPos pos,
-            Direction direction,
+            EnumFacing direction,
             CAP capability,
             List<IInputResourceTracker> trackers,
             Consumer<LimitedInputSlot<?, ?, ?>> acceptor

@@ -5,8 +5,15 @@ import ca.teamdman.sfm.common.compat.SFMModCompat;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import net.minecraft.block.ITileEntityProvider;
+import net.minecraft.block.properties.IProperty;
+import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.BlockStateContainer;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.IStringSerializable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.World;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -18,30 +25,44 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
-public class BufferBlock extends BaseEntityBlock {
-    public static final EnumProperty<ContainedResource> CONTAINED_RESOURCE = EnumProperty.create(
+public class BufferBlock extends Block implements ITileEntityProvider {
+    public static final PropertyEnum<ContainedResource> CONTAINED_RESOURCE = EnumProperty.create(
             "resource",
             ContainedResource.class
     );
 
     public final BufferBlockTier tier;
 
-    public BufferBlock(Properties pProperties, BufferBlockTier tier) {
-        super(pProperties);
+    public BufferBlock(BufferBlockTier tier) {
+        super();
         registerDefaultState(getStateDefinition().any().setValue(CONTAINED_RESOURCE, ContainedResource.Item));
         this.tier = tier;
     }
 
+    @NotNull
     @Override
-    public @Nullable BlockEntity newBlockEntity(
+    protected BlockStateContainer createBlockState() {
+        return new BlockStateContainer(this, CONTAINED_RESOURCE);
+    }
+
+
+    @Nullable
+    @Override
+    public TileEntity createNewTileEntity(World worldIn, int meta) {
+        return  new BufferBlockEntity();
+    }
+
+    @Override
+    public @Nullable BlockEntity create(
             BlockPos pPos,
             BlockState pState
     ) {
-        return SFMBlockEntities.BUFFER_BLOCK_ENTITY.get().create(pPos, pState);
+
     }
 
     @SuppressWarnings("deprecation")
@@ -74,7 +95,7 @@ public class BufferBlock extends BaseEntityBlock {
         pBuilder.add(CONTAINED_RESOURCE);
     }
 
-    public enum ContainedResource implements StringRepresentable {
+    public enum ContainedResource implements IStringSerializable {
         Item,
         Fluid,
         Energy,
@@ -82,17 +103,7 @@ public class BufferBlock extends BaseEntityBlock {
         Redstone,
         Unknown;
 
-        @Override
-        public String getSerializedName() {
-            return switch (this) {
-                case Item -> "item";
-                case Fluid -> "fluid";
-                case Energy -> "energy";
-                case Chemical -> "chemical";
-                case Redstone -> "redstone";
-                case Unknown -> "unknown";
-            };
-        }
+
 
         public static ContainedResource from(ResourceType<?, ?, ?> resourceType) {
             String name = Objects.requireNonNull(SFMResourceTypes.registry().getId(resourceType)).getPath();
@@ -112,6 +123,18 @@ public class BufferBlock extends BaseEntityBlock {
                 }
             }
             return Unknown;
+        }
+
+        @Override
+        public String getName() {
+            return switch (this) {
+                case Item -> "item";
+                case Fluid -> "fluid";
+                case Energy -> "energy";
+                case Chemical -> "chemical";
+                case Redstone -> "redstone";
+                case Unknown -> "unknown";
+            };
         }
     }
 }

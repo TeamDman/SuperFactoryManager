@@ -8,6 +8,8 @@
 
 package ca.teamdman.sfm.common.registry.internal;
 
+import ca.teamdman.sfm.common.registry.RegistryBlocks;
+import ca.teamdman.sfm.common.registry.RegistryItems;
 import hellfirepvp.modularmachinery.common.crafting.ComponentType;
 import hellfirepvp.modularmachinery.common.crafting.adapter.RecipeAdapter;
 import hellfirepvp.modularmachinery.common.crafting.requirement.type.RequirementType;
@@ -43,15 +45,11 @@ public class PrimerEventHandler {
         this.registry = registry;
     }
 
-    @SubscribeEvent
-    public void registerRegistries(RegistryEvent.NewRegistry event) {
-        RegistryRegistries.buildRegistries();
-    }
 
     @SubscribeEvent
     public void registerItems(RegistryEvent.Register<Item> event) {
         registry.wipe(event.getGenericType());
-        SFMBlocks.initialize();
+        RegistryItems.initialize();
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
     }
 
@@ -62,38 +60,38 @@ public class PrimerEventHandler {
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
     }
 
-    @SubscribeEvent
-    public void registerAdapters(RegistryEvent.Register<RecipeAdapter> event) {
-        registry.wipe(event.getGenericType());
-        RegistryRecipeAdapters.initialize();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+//    @SubscribeEvent
+//    public void registerAdapters(RegistryEvent.Register<RecipeAdapter> event) {
+//        registry.wipe(event.getGenericType());
+//        RegistryRecipeAdapters.initialize();
+//        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+//    }
 
-    @SubscribeEvent
-    public void registerComponentTypes(RegistryEvent.Register<ComponentType> event) {
-        registry.wipe(event.getGenericType());
-        RegistryComponentTypes.initialize();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+//    @SubscribeEvent
+//    public void registerComponentTypes(RegistryEvent.Register<ComponentType> event) {
+//        registry.wipe(event.getGenericType());
+//        RegistryComponentTypes.initialize();
+//        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+//    }
 
-    @SubscribeEvent
-    public void registerRequirementTips(RegistryEvent.Register<RequirementTip> event) {
-        registry.wipe(event.getGenericType());
-        RegistryRequirementTips.initialize();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+//    @SubscribeEvent
+//    public void registerRequirementTips(RegistryEvent.Register<RequirementTip> event) {
+//        registry.wipe(event.getGenericType());
+//        RegistryRequirementTips.initialize();
+//        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+//    }
 
-    @SubscribeEvent
-    public void registerComponentRequirementTypes(RegistryEvent.Register event) {
-        //Class filter in ASMEventHandler can't cope with wildcard typed registries
-        //So we wildcard allow every registry event to pass into here and check ourselves instead.
-        if (RequirementType.class != event.getGenericType()) {
-            return;
-        }
-        registry.wipe(event.getGenericType());
-        RegistryRequirementTypes.initialize();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+//    @SubscribeEvent
+//    public void registerComponentRequirementTypes(RegistryEvent.Register event) {
+//        //Class filter in ASMEventHandler can't cope with wildcard typed registries
+//        //So we wildcard allow every registry event to pass into here and check ourselves instead.
+//        if (RequirementType.class != event.getGenericType()) {
+//            return;
+//        }
+//        registry.wipe(event.getGenericType());
+//        RegistryRequirementTypes.initialize();
+//        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+//    }
 
     private <T extends IForgeRegistryEntry<T>> void fillRegistry(Class<T> registrySuperType, IForgeRegistry<T> forgeRegistry) {
         List<?> entries = registry.getEntries(registrySuperType);

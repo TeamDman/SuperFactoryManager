@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.capability;
 
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,7 +23,7 @@ public class BlockEntityCapabilityProvider implements SFMBlockCapabilityProvider
             BlockPos pos,
             BlockState state,
             @Nullable BlockEntity blockEntity,
-            @Nullable Direction direction
+            @Nullable EnumFacing direction
     ) {
         if (blockEntity != null) {;
             var result = blockEntity.getCapability(capabilityKind.capabilityKind(), direction);

@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.common.util;
 
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
@@ -9,19 +9,19 @@ import java.util.function.BiConsumer;
 
 public class SFMDirections {
     /// Optimization to avoid creating a new array every time
-    public static final Direction[] DIRECTIONS_WITHOUT_NULL = Direction.values();
+    public static final EnumFacing[] DIRECTIONS_WITHOUT_NULL = EnumFacing.values();
     /// Optimization to avoid creating a new array every time. Null is position 0
-    public static final Direction[] DIRECTIONS_WITH_NULL = new Direction[]{
+    public static final EnumFacing[] DIRECTIONS_WITH_NULL = new EnumFacing[]{
             null,
-            Direction.NORTH,
-            Direction.SOUTH,
-            Direction.EAST,
-            Direction.WEST,
-            Direction.UP,
-            Direction.DOWN
+            EnumFacing.NORTH,
+            EnumFacing.SOUTH,
+            EnumFacing.EAST,
+            EnumFacing.WEST,
+            EnumFacing.UP,
+            EnumFacing.DOWN
     };
 
-    public static class NullableDirectionIterator implements Iterator<Direction> {
+    public static class NullableDirectionIterator implements Iterator<EnumFacing> {
         private int index = 0;
 
         @Override
@@ -30,7 +30,7 @@ public class SFMDirections {
         }
 
         @Override
-        public @Nullable Direction next() {
+        public @Nullable EnumFacing next() {
             if (hasNext()) {
                 return DIRECTIONS_WITH_NULL[index++];
             }
@@ -38,7 +38,7 @@ public class SFMDirections {
         }
     }
 
-    public static class SingleNullDirectionIterator implements Iterator<Direction> {
+    public static class SingleNullDirectionIterator implements Iterator<EnumFacing> {
         private boolean hasNext = true;
 
         @Override
@@ -47,7 +47,7 @@ public class SFMDirections {
         }
 
         @Override
-        public @Nullable Direction next() {
+        public @Nullable EnumFacing next() {
             if (hasNext) {
                 hasNext = false;
                 return null;
@@ -63,12 +63,12 @@ public class SFMDirections {
         }
 
         @SuppressWarnings("unused")
-        public boolean containsKey(@Nullable Direction direction) {
+        public boolean containsKey(@Nullable EnumFacing direction) {
             return buckets[keyFor(direction)] != null;
         }
 
-        public void forEach(BiConsumer<Direction, T> callback) {
-            for (Direction direction : DIRECTIONS_WITH_NULL) {
+        public void forEach(BiConsumer<EnumFacing, T> callback) {
+            for (EnumFacing direction : DIRECTIONS_WITH_NULL) {
                 T value = buckets[keyFor(direction)];
                 if (value != null) {
                     callback.accept(direction, value);
@@ -76,7 +76,7 @@ public class SFMDirections {
             }
         }
 
-        public void remove(@Nullable Direction direction) {
+        public void remove(@Nullable EnumFacing direction) {
             buckets[keyFor(direction)] = null;
         }
 
@@ -90,13 +90,13 @@ public class SFMDirections {
         }
 
         public void put(
-                @Nullable Direction direction,
+                @Nullable EnumFacing direction,
                 T value
         ) {
             buckets[keyFor(direction)] = value;
         }
 
-        public @Nullable T get(@Nullable Direction direction) {
+        public @Nullable T get(@Nullable EnumFacing direction) {
             return buckets[keyFor(direction)];
         }
 
@@ -110,7 +110,7 @@ public class SFMDirections {
             return count;
         }
 
-        private int keyFor(@Nullable Direction direction) {
+        private int keyFor(@Nullable EnumFacing direction) {
             return direction == null ? 0 : direction.ordinal() + 1;
         }
     }

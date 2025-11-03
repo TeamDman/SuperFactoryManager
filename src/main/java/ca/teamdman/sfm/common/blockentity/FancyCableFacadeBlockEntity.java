@@ -2,13 +2,13 @@ package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.model.data.ModelData;
 import net.minecraftforge.client.model.data.ModelProperty;
 
 public class FancyCableFacadeBlockEntity extends CommonFacadeBlockEntity {
-    public static final ModelProperty<Direction> FACADE_DIRECTION = new ModelProperty<>();
+    public static final ModelProperty<EnumFacing> FACADE_DIRECTION = new ModelProperty<>();
 
     public FancyCableFacadeBlockEntity(
             BlockPos pos,
