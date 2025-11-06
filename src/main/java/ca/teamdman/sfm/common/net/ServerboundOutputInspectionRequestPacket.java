@@ -247,7 +247,7 @@ public class ServerboundOutputInspectionRequestPacket extends SFMPacket<Serverbo
     ) {
         ResourceType<STACK, ITEM, CAP> resourceType = limitedInputSlot.type;
         //noinspection OptionalGetWithoutIsPresent
-        net.minecraft.util.ResourceKey<ResourceType<STACK, ITEM, CAP>> resourceTypeResourceKey = SFMResourceTypes
+        ResourceLocation resourceTypeResourceKey = SFMResourceTypes
                 .registry()
                 .getKey(limitedInputSlot.type)
                 .map(x -> {

@@ -1,71 +1,58 @@
 package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.compat.SFMModCompat;
+import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.resourcetype.*;
-import ca.teamdman.sfm.common.util.SFMResourceLocation;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.eventbus.api.IEventBus;
-import org.jetbrains.annotations.Nullable;
+import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.IForgeRegistryEntry;
+
+import javax.annotation.Nullable;
 
 public class SFMResourceTypes {
-    public static final ResourceKey<Registry<ResourceType<?, ?, ?>>> REGISTRY_ID
-            = SFMResourceLocation.createSFMRegistryKey("resource_type");
 
-    private static final SFMDeferredRegister<ResourceType<?, ?, ?>> REGISTERER =
-            new SFMDeferredRegisterBuilder<ResourceType<?, ?, ?>>()
-                    .namespace(SFM.MOD_ID)
-                    .registry(REGISTRY_ID)
-                    .createNewRegistry()
-                    .build();
+    public static ItemResourceType ITEM;
+    public static FluidResourceType FLUID;
+    public static ForgeEnergyResourceType FORGE_ENERGY;
+    public static RedstoneResourceType REDSTONE;
 
-    public static final SFMRegistryObject<ResourceType<?, ?, ?>, ItemResourceType> ITEM
-            = REGISTERER.register("item", ItemResourceType::new);
+    public static void initialize() {
+        ITEM = prepareRegister(new ItemResourceType(), "item");
+        FLUID = prepareRegister(new FluidResourceType(), "fluid");
+        FORGE_ENERGY = prepareRegister(new ForgeEnergyResourceType(), "forge_energy");
+        REDSTONE = prepareRegister(new RedstoneResourceType(), "redstone");
 
-    public static final SFMRegistryObject<ResourceType<?, ?, ?>, FluidResourceType> FLUID
-            = REGISTERER.register("fluid", FluidResourceType::new);
+        // if (SFMModCompat.isMekanismLoaded()) {
+        //     SFMMekanismCompat.registerResourceTypes();
+        // }
+    }
 
-    public static final SFMRegistryObject<ResourceType<?, ?, ?>, ForgeEnergyResourceType> FORGE_ENERGY
-            = REGISTERER.register("forge_energy", ForgeEnergyResourceType::new);
+    private static <T extends ResourceType<?, ?, ?>> T prepareRegister(T resourceType, String name) {
+        resourceType.setRegistryName(new ResourceLocation(SFM.MOD_ID, name));
+        return register(resourceType);
+    }
 
-    public static final SFMRegistryObject<ResourceType<?, ?, ?>, RedstoneResourceType> REDSTONE
-            = REGISTERER.register("redstone", RedstoneResourceType::new);
-
-    private static final Object2ObjectOpenHashMap<ResourceLocation, ResourceType<?, ?, ?>> DEFERRED_TYPES_BY_ID
-            = new Object2ObjectOpenHashMap<>();
-
-    static {
-        if (SFMModCompat.isMekanismLoaded()) {
-//            SFMMekanismCompat.registerResourceTypes(REGISTERER);
-        }
+    private static <T extends ResourceType<?, ?, ?>> T register(T resourceType) {
+        CommonProxy.registryPrimer.register(resourceType);
+        return resourceType;
     }
 
     public static int getResourceTypeCount() {
-
-        return REGISTERER.size();
+        return registry().getValues().size();
     }
 
     public static @Nullable ResourceType<?, ?, ?> fastLookup(
             ResourceLocation resourceTypeId
     ) {
-
-        return DEFERRED_TYPES_BY_ID.computeIfAbsent(
-                resourceTypeId,
-                i -> registry().get(resourceTypeId)
-        );
+        return registry().getValue(resourceTypeId);
     }
 
-    public static void register(IEventBus bus) {
-
-        REGISTERER.register(bus);
+    public static IForgeRegistry<ResourceType<?,?,?>> registry() {
+        return SFMRegistries.RESOURCE_TYPE_REGISTRY;
     }
 
-    public static SFMRegistryWrapper<ResourceType<?, ?, ?>> registry() {
+    public static IForgeRegistry<What> what() {
 
-        return REGISTERER.registry();
     }
 
     /* TODO: add support for new resource types
@@ -79,3 +66,9 @@ public class SFMResourceTypes {
      * - create rotation
      */
 }
+
+
+class What<T> extends IForgeRegistryEntry.Impl<What<T>> {
+
+}
+

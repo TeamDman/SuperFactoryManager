@@ -8,10 +8,11 @@ import ca.teamdman.sfm.common.program.linting.ResourcesProgramLinter;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.eventbus.api.IEventBus;
 
 public class SFMProgramLinters {
-    public static final ResourceKey<Registry<IProgramLinter>> REGISTRY_ID
+    public static final ResourceLocation REGISTRY_ID
             = SFMResourceLocation.createSFMRegistryKey("program_linters");
 
     private static final SFMDeferredRegister<IProgramLinter> REGISTERER =

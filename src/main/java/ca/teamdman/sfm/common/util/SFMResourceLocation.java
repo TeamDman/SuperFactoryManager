@@ -27,7 +27,7 @@ public class SFMResourceLocation {
             return null;
         }
     }
-    public static <T> ResourceKey<Registry<T>> createSFMRegistryKey(String path) {
-        return ResourceKey.createRegistryKey(SFMResourceLocation.fromSFMPath(path));
+    public static ResourceLocation createSFMRegistryKey(String path) {
+        return SFMResourceLocation.fromSFMPath(path);
     }
 }

@@ -4,6 +4,8 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.lib.BlocksSFM;
+import ca.teamdman.sfm.common.registry.SFMBlockEntities;
+import ca.teamdman.sfm.common.registry.SFMCapabilities;
 import ca.teamdman.sfm.common.registry.internal.InternalRegistryPrimer;
 import ca.teamdman.sfm.common.registry.internal.PrimerEventHandler;
 import net.minecraft.block.Block;
@@ -45,7 +47,8 @@ public class CommonProxy implements IGuiHandler {
 
         NetworkRegistry.INSTANCE.registerGuiHandler(SFM.MOD_ID, this);
 
-
+        SFMCapabilities.register();
+        SFMBlockEntities.initialize();
     }
 
     public void init() {

@@ -1,7 +1,10 @@
 package ca.teamdman.sfm.common.capability;
 
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.world.World;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,15 +22,15 @@ public class BlockEntityCapabilityProvider implements SFMBlockCapabilityProvider
     @Override
     public SFMBlockCapabilityResult<Object> getCapability(
             SFMBlockCapabilityKind<Object> capabilityKind,
-            LevelAccessor level,
+            World level,
             BlockPos pos,
-            BlockState state,
-            @Nullable BlockEntity blockEntity,
+            IBlockState state,
+            @Nullable TileEntity blockEntity,
             @Nullable EnumFacing direction
     ) {
         if (blockEntity != null) {;
             var result = blockEntity.getCapability(capabilityKind.capabilityKind(), direction);
-            if (result.isPresent()) {
+            if (result!=null) {
                 return SFMBlockCapabilityResult.of(result);
             }
         }

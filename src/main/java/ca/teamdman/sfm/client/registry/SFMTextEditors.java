@@ -6,7 +6,6 @@ import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenV1Registration;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenV2Registration;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
-import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;

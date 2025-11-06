@@ -6,11 +6,11 @@ import ca.teamdman.sfm.common.cablenetwork.SFMBlockCapabilityCacheForLevel;
 import ca.teamdman.sfm.common.registry.SFMGlobalBlockCapabilityProviders;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -25,10 +25,10 @@ public class SFMBlockCapabilityProviderDiscovery {
     @MCVersionDependentBehaviour
     public static <CAP> SFMBlockCapabilityResult<CAP> getCapabilityFromLevel(
             SFMBlockCapabilityKind<CAP> capKind,
-            LevelAccessor level,
+            World level,
             BlockPos pos,
-            BlockState blockState,
-            BlockEntity blockEntity,
+            IBlockState blockState,
+            TileEntity blockEntity,
             @Nullable EnumFacing direction
     ) {
         for (var capabilityProviderMapper : getCapabilityProvidersForKindFast(capKind)) {

@@ -20,7 +20,7 @@ public class FormItem extends Item {
     }
 
     public static ItemStack createFormFromReference(ItemStack stack) {
-        var formStack = new ItemStack(SFMItems.FORM_ITEM.get());
+        var formStack = new ItemStack(SFMItems.FORM_ITEM);
         formStack.getOrCreateTag().put("reference", stack.serializeNBT());
         return formStack;
     }

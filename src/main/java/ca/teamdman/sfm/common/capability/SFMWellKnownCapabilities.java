@@ -4,12 +4,15 @@ import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraftforge.common.capabilities.CapabilityToken;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
+import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.stream.Stream;
+
 
 import static net.minecraftforge.common.capabilities.CapabilityManager.get;
 
@@ -19,11 +22,11 @@ import static net.minecraftforge.common.capabilities.CapabilityManager.get;
 @MCVersionDependentBehaviour
 public class SFMWellKnownCapabilities {
     public static final SFMBlockCapabilityKind<IEnergyStorage> ENERGY
-            = new SFMBlockCapabilityKind<>(ForgeCapabilities.ENERGY);
+            = new SFMBlockCapabilityKind<>(CapabilityEnergy.ENERGY);
     public static final SFMBlockCapabilityKind<IFluidHandler> FLUID_HANDLER
-            = new SFMBlockCapabilityKind<>(ForgeCapabilities.FLUID_HANDLER);
+            = new SFMBlockCapabilityKind<>(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY);
     public static final SFMBlockCapabilityKind<IItemHandler> ITEM_HANDLER
-            = new SFMBlockCapabilityKind<>(ForgeCapabilities.ITEM_HANDLER);
+            = new SFMBlockCapabilityKind<>(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY);
     public static final SFMBlockCapabilityKind<IRedstoneSignalStorage> REDSTONE_HANDLER
             = new SFMBlockCapabilityKind<>(get(new CapabilityToken<>() {
     }));

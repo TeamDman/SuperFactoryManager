@@ -18,4 +18,6 @@ public interface IRedstoneSignalStorage {
 
     /// @return If false, extract will always return 0.
     boolean canReceive();
+
+    void setStoredAmount(int amount);
 }

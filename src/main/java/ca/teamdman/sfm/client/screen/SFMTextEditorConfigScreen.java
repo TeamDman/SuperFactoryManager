@@ -225,8 +225,8 @@ public class SFMTextEditorConfigScreen extends Screen {
 
         String currentEditor = config.preferredEditor.get();
         //noinspection OptionalGetWithoutIsPresent
-        preferredEditorV1Button.active = !currentEditor.equals(SFMTextEditors.V1.getId().get().location().toString());
+        preferredEditorV1Button.active = !currentEditor.equals(SFMTextEditors.V1.getId().get().toString());
         //noinspection OptionalGetWithoutIsPresent
-        preferredEditorV2Button.active = !currentEditor.equals(SFMTextEditors.V2.getId().get().location().toString());
+        preferredEditorV2Button.active = !currentEditor.equals(SFMTextEditors.V2.getId().get().toString());
     }
 }

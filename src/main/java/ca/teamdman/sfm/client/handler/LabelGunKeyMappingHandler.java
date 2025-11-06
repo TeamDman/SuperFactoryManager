@@ -44,7 +44,7 @@ public class LabelGunKeyMappingHandler {
         boolean justPressed = !labelSwitchKeyDown && (nextLabelKeyDown || prevLabelKeyDown);
         labelSwitchKeyDown = nextLabelKeyDown || prevLabelKeyDown;
         if (justPressed) {
-            var labelGun = SFMHandUtils.getItemAndHand(player, SFMItems.LABEL_GUN_ITEM.get());
+            var labelGun = SFMHandUtils.getItemAndHand(player, SFMItems.LABEL_GUN_ITEM);
             if (labelGun == null) return;
             var nextLabel = LabelGunItem.getNextLabel(labelGun.stack(), prevLabelKeyDown ? -1 : 1);
             SFMPackets.sendToServer(new ServerboundLabelGunSetActiveLabelPacket(nextLabel, labelGun.hand()));
@@ -71,7 +71,7 @@ public class LabelGunKeyMappingHandler {
                     assert minecraft.player != null;
                     EnumHand hand = SFMHandUtils.getHandHoldingItem(
                             minecraft.player,
-                            SFMItems.LABEL_GUN_ITEM.get()
+                            SFMItems.LABEL_GUN_ITEM
                     );
                     if (hand == null) return;
                     // send packet to server to toggle mode

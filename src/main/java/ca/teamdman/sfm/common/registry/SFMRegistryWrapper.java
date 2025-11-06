@@ -2,10 +2,12 @@ package ca.teamdman.sfm.common.registry;
 
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.google.common.reflect.TypeToken;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryManager;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,21 +17,22 @@ import java.util.stream.StreamSupport;
 
 /// Helps reduce {@link MCVersionDependentBehaviour}
 @MCVersionDependentBehaviour
-public final class SFMRegistryWrapper<T> implements Iterable<T> {
+public final class SFMRegistryWrapper<T extends IForgeRegistryEntry<T>> implements Iterable<T> {
     private @Nullable IForgeRegistry<T> maybeInner;
-    private final ResourceKey<? extends Registry<T>> registryKey;
+    private TypeToken<T> token = new TypeToken<T>(getClass()){};
+    private final Class<T> registryKey;
 
     public SFMRegistryWrapper(
             @MCVersionDependentBehaviour
             IForgeRegistry<T> inner
     ) {
         this.maybeInner = inner;
-        this.registryKey = inner.getRegistryKey();
+        this.registryKey = (Class<T>)token.getRawType();
     }
 
-    public SFMRegistryWrapper(ResourceKey<? extends Registry<T>> registryKey) {
-        this.maybeInner = null;
+    public SFMRegistryWrapper(Class<T> registryKey) {
         this.registryKey = registryKey;
+        this.maybeInner = null;
     }
 
     @MCVersionDependentBehaviour
@@ -54,12 +57,12 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
         return getInnerRegistry().getKey(value);
     }
 
-    public Optional<ResourceKey<T>> getKey(T value) {
-        return getInnerRegistry().getResourceKey(value);
+    public Optional<ResourceLocation> getKey(T value) {
+        return getInnerRegistry().getKey(value);
     }
 
     @MCVersionDependentBehaviour
-    public Set<Map.Entry<ResourceKey<T>, T>> entries() {
+    public Set<Map.Entry<ResourceLocation, T>> entries() {
         return getInnerRegistry().getEntries();
     }
 
@@ -68,8 +71,8 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
         return getInnerRegistry().iterator();
     }
 
-    public ResourceKey<Registry<T>> registryKey() {
-        return getInnerRegistry().getRegistryKey();
+    public ResourceLocation registryKey() {
+        return getInnerRegistry().get();
     }
 
     public boolean contains(ResourceLocation location) {

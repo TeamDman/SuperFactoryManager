@@ -26,8 +26,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
 public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
-    public CableBlock(Material properties) {
-        super(properties);
+    public CableBlock() {
+        super(Material.PISTON);
     }
 
     @Override

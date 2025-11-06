@@ -1,11 +1,11 @@
 package ca.teamdman.sfm.common.capability;
 
-import net.minecraft.nbt.IntTag;
-import net.minecraft.util.Mth;
+import ca.teamdman.sfm.common.util.Mth;
+import net.minecraft.nbt.NBTTagInt;
 import net.minecraftforge.common.util.INBTSerializable;
 
 /// A container for storing "redstone units", which CAN exceed 15.
-public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerializable<IntTag> {
+public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerializable<NBTTagInt> {
     public int value = 0;
     private final int maxValue;
 
@@ -65,12 +65,17 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
     }
 
     @Override
-    public void deserializeNBT(IntTag nbt) {
-        this.value = nbt.getAsInt();
+    public void setStoredAmount(int amount) {
+        this.value = Mth.clamp(amount, 0, this.maxValue);
     }
 
     @Override
-    public IntTag serializeNBT() {
-        return IntTag.valueOf(this.value);
+    public void deserializeNBT(NBTTagInt nbt) {
+        this.value = nbt.getInt();
+    }
+
+    @Override
+    public NBTTagInt serializeNBT() {
+        return new NBTTagInt(this.value);
     }
 }

@@ -9,6 +9,7 @@ import ca.teamdman.sfml.ast.ResourceQuantity;
 import ca.teamdman.sfml.ast.RoundRobin;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -17,7 +18,7 @@ import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
 import static ca.teamdman.sfml.ast.RoundRobin.Behaviour.BY_BLOCK;
 import static ca.teamdman.sfml.ast.RoundRobin.Behaviour.BY_LABEL;
 
-public class FlowProgramLinter implements IProgramLinter {
+public class FlowProgramLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implements IProgramLinter {
 
     @Override
     public ArrayList<TextComponentTranslation> gatherWarnings(

@@ -9,20 +9,22 @@ import ca.teamdman.sfm.common.util.Mth;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.templates.FluidHandlerItemStack;
+import net.minecraftforge.registries.IForgeRegistry;
 
 import java.util.stream.Stream;
 
-public class FluidResourceType extends RegistryBackedResourceType<FluidStack, net.minecraftforge.fluids.Fluid, IFluidHandler> {
+public class FluidResourceType extends RegistryBackedResourceType<FluidStack, Fluid, IFluidHandler> {
     public FluidResourceType() {
         super(SFMWellKnownCapabilities.FLUID_HANDLER);
     }
 
     @Override
-    public SFMRegistryWrapper<Fluid> getRegistry() {
-        return SFMWellKnownRegistries.FLUIDS;
+    public IForgeRegistry<Fluid> getRegistry() {
+        return FluidRegistry.FluidDelegate;
     }
 
     @Override
@@ -50,7 +52,7 @@ public class FluidResourceType extends RegistryBackedResourceType<FluidStack, ne
 
     @Override
     public IFluidHandler createHandlerForBufferBlock(BufferBlockEntityContents contents) {
-        return new FluidHandlerFluidMap(contents.tier.getIntMaxStackSize()) {
+        return new FluidHandler(contents.tier.getIntMaxStackSize()) {
             @Override
             public boolean isFluidValid(FluidStack stack) {
                 boolean isValid = this.getFluidAmount() > 0 || contents.isEmpty();

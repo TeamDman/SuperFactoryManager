@@ -75,7 +75,7 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMPacke
     }
 
     public static <STACK, ITEM, CAP> String buildInspectionResults(
-            ResourceKey<ResourceType<STACK, ITEM, CAP>> resourceTypeResourceKey,
+            ResourceLocation resourceTypeResourceKey,
             ResourceType<STACK, ITEM, CAP> resourceType,
             World world,
             BlockPos pos,

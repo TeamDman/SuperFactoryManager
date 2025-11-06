@@ -27,7 +27,6 @@ public class SFMPackets {
         registerPacket(ClientboundManagerLogLevelUpdatedPacket.class, Side.CLIENT);
         registerPacket(ClientboundManagerLogsPacket.class, Side.CLIENT);
         registerPacket(ClientboundOutputInspectionResultsPacket.class, Side.CLIENT);
-        registerPacket(ClientboundServerConfigCommandPacket.class, Side.CLIENT);
         registerPacket(ClientboundShowChangelogPacket.class, Side.CLIENT);
         registerPacket(ServerboundBoolExprStatementInspectionRequestPacket.class, Side.SERVER);
         registerPacket(ServerboundContainerExportsInspectionRequestPacket.class, Side.SERVER);
@@ -51,7 +50,6 @@ public class SFMPackets {
         registerPacket(ServerboundNetworkToolToggleOverlayPacket.class, Side.SERVER);
         registerPacket(ServerboundNetworkToolUsePacket.class, Side.SERVER);
         registerPacket(ServerboundOutputInspectionRequestPacket.class, Side.SERVER);
-        registerPacket(ServerboundServerConfigRequestPacket.class, Side.SERVER);
         registerPacket(ServerboundServerConfigUpdatePacket.class, Side.SERVER);
     }
 }

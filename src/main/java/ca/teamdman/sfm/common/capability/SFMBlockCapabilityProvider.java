@@ -1,8 +1,11 @@
 package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.common.registry.SFMGlobalBlockCapabilityProviders;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.world.World;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.CauldronBlock;
@@ -31,11 +34,11 @@ public interface SFMBlockCapabilityProvider<CAP> {
     ///  Returns a capability for the given block at the given position in the given level if it has one.
     SFMBlockCapabilityResult<CAP> getCapability(
             SFMBlockCapabilityKind<CAP> capabilityKind,
-            LevelAccessor level,
+            World level,
             BlockPos pos,
-            BlockState state,
+            IBlockState state,
             @Nullable
-            BlockEntity blockEntity,
+            TileEntity blockEntity,
             @Nullable EnumFacing direction
     );
 

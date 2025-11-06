@@ -8,8 +8,9 @@
 
 package ca.teamdman.sfm.common.registry.internal;
 
-import ca.teamdman.sfm.common.registry.RegistryBlocks;
-import ca.teamdman.sfm.common.registry.RegistryItems;
+import ca.teamdman.sfm.common.program.linting.IProgramLinter;
+import ca.teamdman.sfm.common.registry.*;
+import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import hellfirepvp.modularmachinery.common.crafting.ComponentType;
 import hellfirepvp.modularmachinery.common.crafting.adapter.RecipeAdapter;
 import hellfirepvp.modularmachinery.common.crafting.requirement.type.RequirementType;
@@ -23,6 +24,7 @@ import hellfirepvp.modularmachinery.common.registry.RegistryRequirementTips;
 import hellfirepvp.modularmachinery.common.registry.RegistryRequirementTypes;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
+import net.minecraft.item.crafting.IRecipe;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.registries.IForgeRegistry;
@@ -49,15 +51,35 @@ public class PrimerEventHandler {
     @SubscribeEvent
     public void registerItems(RegistryEvent.Register<Item> event) {
         registry.wipe(event.getGenericType());
-        RegistryItems.initialize();
+        SFMItems.initialize();
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
     }
 
     @SubscribeEvent
     public void registerBlocks(RegistryEvent.Register<Block> event) {
         registry.wipe(event.getGenericType());
-        RegistryBlocks.initialize();
+        SFMBlocks.initialize();
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+    }
+
+    @SubscribeEvent
+    public void registerResourceTypes(RegistryEvent.Register<ResourceType> event) {
+        registry.wipe(event.getGenericType());
+        SFMResourceTypes.initialize();
+        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+    }
+
+    @SubscribeEvent
+    public void registerRecipes(RegistryEvent.Register<IRecipe> event) {
+        registry.wipe(event.getGenericType());
+        SFMRecipes.initialize();
+        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+    }
+
+    @SubscribeEvent
+    public void registerLinters(RegistryEvent.Register<IProgramLinter> event) {
+        registry.wipe(event.getGenericType());
+        RegistryLinters.initialize();
     }
 
 //    @SubscribeEvent

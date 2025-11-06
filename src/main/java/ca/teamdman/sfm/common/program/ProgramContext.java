@@ -7,6 +7,7 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfml.ast.InputStatement;
 import ca.teamdman.sfml.ast.Program;
+import net.minecraft.world.World;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ public class ProgramContext {
     private final ManagerBlockEntity MANAGER;
     private final CableNetwork NETWORK;
     private final List<InputStatement> INPUTS = new ArrayList<>();
-    private final Level LEVEL;
+    private final World LEVEL;
     private final ProgramBehaviour BEHAVIOUR;
     private final int REDSTONE_PULSES;
     private final LabelPositionHolder LABEL_POSITIONS;
@@ -37,7 +38,7 @@ public class ProgramContext {
             Program program,
             ManagerBlockEntity manager,
             CableNetwork network,
-            Level level,
+            World level,
             int redstonePulses,
             ProgramBehaviour executionBehaviour,
             LabelPositionHolder labelPositions,
@@ -78,8 +79,7 @@ public class ProgramContext {
         NETWORK = CableNetworkManager
                 .getOrRegisterNetworkFromManagerPosition(MANAGER)
                 .get();
-        assert MANAGER.getLevel() != null;
-        LEVEL = MANAGER.getLevel();
+        LEVEL = MANAGER.getWorld();
         REDSTONE_PULSES = MANAGER.getUnprocessedRedstonePulseCount();
         BEHAVIOUR = executionBehaviour;
         LABEL_POSITIONS = LabelPositionHolder.from(Objects.requireNonNull(manager.getDisk()));

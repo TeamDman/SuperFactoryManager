@@ -7,11 +7,11 @@ import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.capability.energystorage.EnergyAcceptorEnergyStorageWrapper;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import net.minecraftforge.energy.IEnergyStorage;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,10 +25,10 @@ public class EnergyAcceptorBlockCapabilityProvider implements SFMBlockCapability
     @Override
     public SFMBlockCapabilityResult<IEnergyStorage> getCapability(
             SFMBlockCapabilityKind<IEnergyStorage> capabilityKind,
-            LevelAccessor level,
+            World level,
             BlockPos pos,
-            BlockState state,
-            @Nullable BlockEntity blockEntity,
+            IBlockState state,
+            @Nullable TileEntity blockEntity,
             @Nullable EnumFacing direction
     ) {
         if (blockEntity instanceof EnergyAcceptorBlockEntity energyAcceptor) {

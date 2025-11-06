@@ -1,102 +1,47 @@
 package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.block.*;
 import net.minecraft.block.Block;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.material.Material;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraft.item.ItemBlock;
 
+import java.util.function.Function;
 
 public class SFMBlocks {
-    public static final SFMDeferredRegister<Block> REGISTERER =
-            new SFMDeferredRegisterBuilder<Block>()
-                    .namespace(SFM.MOD_ID)
-                    .registry(SFMWellKnownRegistries.BLOCKS.registryKey())
-                    .build();
 
-    public static final SFMRegistryObject<Block, ManagerBlock> MANAGER_BLOCK
-            =
-            REGISTERER.register("manager", ManagerBlock::new);
+    public static ManagerBlock MANAGER_BLOCK;
+    public static BufferBlock BUFFER_BLOCK;
+    public static TunnelledManagerBlock TUNNELLED_MANAGER_BLOCK;
+    public static TestBarrelBlock TEST_BARREL_BLOCK;
+    public static TestBarrelTankBlock TEST_BARREL_TANK_BLOCK;
+    public static CableBlock CABLE_BLOCK;
+    public static CableFacadeBlock CABLE_FACADE_BLOCK;
+    public static FancyCableBlock FANCY_CABLE_BLOCK;
+    public static FancyCableFacadeBlock FANCY_CABLE_FACADE_BLOCK;
 
-    public static final SFMRegistryObject<Block, BufferBlock> BUFFER_BLOCK =
-            REGISTERER.register(
-                    "buffer", () -> new BufferBlock(
-                            BlockBehaviour.Properties
-                                    .of(Material.PISTON)
-                                    .destroyTime(1.5f)
-                                    .sound(SoundType.METAL),
-                            BufferBlockTier.MaxUnit
-                    )
-            );
-
-    public static final SFMRegistryObject<Block, TunnelledManagerBlock> TUNNELLED_MANAGER_BLOCK
-            =
-            REGISTERER.register("tunnelled_manager", TunnelledManagerBlock::new);
-
-    public static final SFMRegistryObject<Block, PrintingPressBlock> PRINTING_PRESS_BLOCK
-            =
-            REGISTERER.register("printing_press", PrintingPressBlock::new);
-
-
-    public static final SFMRegistryObject<Block, TestBarrelBlock> TEST_BARREL_BLOCK
-            =
-            REGISTERER.register("test_barrel", TestBarrelBlock::new);
-
-    public static final SFMRegistryObject<Block, TestBarrelTankBlock> TEST_BARREL_TANK_BLOCK // TODO: remove this one
-            =
-            REGISTERER.register("test_barrel_tank", TestBarrelTankBlock::new);
-
-    // TODO: pull out properties from other block constructors to enable mutating in inheriting class constructors
-
-    public static final SFMRegistryObject<Block, CableBlock> CABLE_BLOCK =
-            REGISTERER.register(
-                    "cable",
-                    () -> new CableBlock(
-                            BlockBehaviour.Properties
-                                    .of(Material.METAL)
-                                    .destroyTime(1f)
-                                    .sound(SoundType.METAL)
-                    )
-            );
-
-    public static final SFMRegistryObject<Block, CableFacadeBlock> CABLE_FACADE_BLOCK =
-            REGISTERER.register(
-                    "cable_facade",
-                    () -> new CableFacadeBlock(
-                            BlockBehaviour.Properties
-                                    .of(Material.METAL)
-                                    .destroyTime(1f)
-                                    .sound(SoundType.METAL)
-                    )
-            );
-
-    public static final SFMRegistryObject<Block, FancyCableBlock> FANCY_CABLE_BLOCK =
-            REGISTERER.register(
-                    "fancy_cable",
-                    () -> new FancyCableBlock(
-                            BlockBehaviour.Properties
-                                    .of(Material.METAL)
-                                    .destroyTime(1f)
-                                    .sound(SoundType.METAL)
-                    )
-            );
-
-    public static final SFMRegistryObject<Block, FancyCableFacadeBlock> FANCY_CABLE_FACADE_BLOCK =
-            REGISTERER.register(
-                    "fancy_cable_facade",
-                    () -> new FancyCableFacadeBlock(
-                            BlockBehaviour.Properties
-                                    .of(Material.METAL)
-                                    .destroyTime(1f)
-                                    .sound(SoundType.METAL)
-                    )
-            );
-
-    public static void register(IEventBus bus) {
-
-        REGISTERER.register(bus);
+    public static void initialize() {
+        MANAGER_BLOCK = prepareRegister(new ManagerBlock(), "manager", ItemBlock::new);
+        BUFFER_BLOCK = prepareRegister(new BufferBlock(), "buffer", ItemBlock::new);
+        TUNNELLED_MANAGER_BLOCK = prepareRegister(new TunnelledManagerBlock(), "tunnelled_manager", ItemBlock::new);
+        TEST_BARREL_BLOCK = prepareRegister(new TestBarrelBlock(), "test_barrel", ItemBlock::new);
+        TEST_BARREL_TANK_BLOCK = prepareRegister(new TestBarrelTankBlock(), "test_barrel_tank", ItemBlock::new);
+        CABLE_BLOCK = prepareRegister(new CableBlock(), "cable", ItemBlock::new);
+        CABLE_FACADE_BLOCK = prepareRegister(new CableFacadeBlock(), "cable_facade", ItemBlock::new);
+        FANCY_CABLE_BLOCK = prepareRegister(new FancyCableBlock(), "fancy_cable", ItemBlock::new);
+        FANCY_CABLE_FACADE_BLOCK = prepareRegister(new FancyCableFacadeBlock(), "fancy_cable_facade", ItemBlock::new);
     }
 
+    private static <T extends Block> T prepareRegister(T block, String name, Function<Block, ItemBlock> itemBlockFactory) {
+        block.setRegistryName(SFM.MOD_ID, name).setTranslationKey(SFM.MOD_ID + "." + name);
+        ItemBlock itemBlock = itemBlockFactory.apply(block);
+        itemBlock.setRegistryName(block.getRegistryName());
+        SFMItems.ITEM_BLOCKS.add(itemBlock);
+        return register(block);
+    }
+
+    private static <T extends Block> T register(T block) {
+        CommonProxy.registryPrimer.register(block);
+        return block;
+    }
 }

@@ -75,8 +75,8 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
             ResourceLocation resourceKey
     ) {
         this(
-                resourceTypeKey.location().getNamespace(),
-                resourceTypeKey.location().getPath(),
+                resourceTypeKey.getNamespace(),
+                resourceTypeKey.getPath(),
                 resourceKey.getNamespace(),
                 resourceKey.getPath()
         );

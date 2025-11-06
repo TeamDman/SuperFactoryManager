@@ -62,7 +62,7 @@ public class NetworkToolReminderOverlay implements IGuiOverlay {
         LocalPlayer player = minecraft.player;
         if (player == null) return false;
         if (!SFMConfig.client.showNetworkToolReminderOverlay) return false;
-        ItemStack networkTool = SFMHandUtils.getItemInEitherHand(player, SFMItems.NETWORK_TOOL_ITEM.get());
+        ItemStack networkTool = SFMHandUtils.getItemInEitherHand(player, SFMItems.NETWORK_TOOL_ITEM);
 //        return !networkTool.isEmpty() && NetworkToolItem.getOverlayEnabled(networkTool);
         return !networkTool.isEmpty();
     }

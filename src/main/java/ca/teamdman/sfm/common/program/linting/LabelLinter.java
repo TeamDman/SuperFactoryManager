@@ -8,14 +8,14 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.item.ItemStack;
-import net.minecraft.world.level.Level;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
 
-public class LabelLinter implements IProgramLinter {
+public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implements IProgramLinter {
 
     @Override
     public ArrayList<TextComponentTranslation> gatherWarnings(

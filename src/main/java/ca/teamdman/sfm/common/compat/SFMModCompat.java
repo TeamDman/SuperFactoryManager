@@ -22,13 +22,4 @@ public class SFMModCompat {
         return ModList.get().getModContainerById(modid).isPresent();
     }
 
-    public static boolean isMekanismBlock(
-            World level,
-            @NotStored BlockPos pos
-    ) {
-        Block block = level.getBlockState(pos).getBlock();
-        ResourceLocation blockId = SFMWellKnownRegistries.BLOCKS.getId(block);
-        assert blockId != null;
-        return blockId.getNamespace().equals("mekanism");
-    }
 }

@@ -54,7 +54,7 @@ public class SFMASTUtils {
     }
 
     public static <STACK, ITEM, CAP> InputStatement getInputStatementForStack(
-            ResourceKey<ResourceType<STACK, ITEM, CAP>> resourceTypeResourceKey,
+            ResourceLocation resourceTypeResourceKey,
             ResourceType<STACK, ITEM, CAP> resourceType,
             STACK stack,
             String label,

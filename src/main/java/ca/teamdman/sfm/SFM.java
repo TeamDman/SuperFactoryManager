@@ -1,9 +1,6 @@
 package ca.teamdman.sfm;
 
 import ca.teamdman.sfm.common.CommonProxy;
-import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.registry.RegistryBlocks;
-import ca.teamdman.sfm.common.registry.RegistryItems;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;

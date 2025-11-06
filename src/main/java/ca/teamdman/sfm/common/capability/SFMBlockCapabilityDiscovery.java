@@ -15,6 +15,7 @@ import ca.teamdman.sfml.ast.OutputStatement;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.World;
 import net.minecraft.world.level.LevelAccessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -91,7 +92,7 @@ public class SFMBlockCapabilityDiscovery {
     }
 
     public static boolean hasAnyCapabilityAnyDirection(
-            LevelAccessor level,
+            World level,
             BlockPos pos
     ) {
         return SFMWellKnownCapabilities.streamCapabilities().anyMatch(cap -> {
@@ -106,7 +107,7 @@ public class SFMBlockCapabilityDiscovery {
 
     @MCVersionDependentBehaviour
     public static <CAP> @NotNull SFMBlockCapabilityResult<CAP> discoverCapabilityFromLevel(
-            LevelAccessor level,
+            World level,
             SFMBlockCapabilityKind<CAP> capKind,
             @NotStored BlockPos pos,
             @Nullable EnumFacing direction
@@ -116,7 +117,7 @@ public class SFMBlockCapabilityDiscovery {
                 level,
                 pos,
                 level.getBlockState(pos),
-                level.getBlockEntity(pos),
+                level.getTileEntity(pos),
                 direction
         );
     }

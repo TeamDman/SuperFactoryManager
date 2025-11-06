@@ -1,7 +1,10 @@
 package ca.teamdman.sfm.common.capability;
 
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.world.World;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,10 +22,10 @@ public class RedstoneSignalCapabilityProvider implements SFMBlockCapabilityProvi
     @Override
     public SFMBlockCapabilityResult<RedstoneSignalStorage> getCapability(
             SFMBlockCapabilityKind<RedstoneSignalStorage> capabilityKind,
-            LevelAccessor levelAccessor,
+            World levelAccessor,
             BlockPos pos,
-            BlockState state,
-            @Nullable BlockEntity blockEntity,
+            IBlockState state,
+            @Nullable TileEntity blockEntity,
             @Nullable EnumFacing direction
     ) {
         try {

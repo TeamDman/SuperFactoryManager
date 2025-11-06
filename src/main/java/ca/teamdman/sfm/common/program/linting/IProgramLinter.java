@@ -10,15 +10,15 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 
-public interface IProgramLinter extends IForgeRegistryEntry {
-    ArrayList<TextComponentTranslation> gatherWarnings(
+public interface IProgramLinter extends IForgeRegistryEntry<IProgramLinter> {
+    abstract ArrayList<TextComponentTranslation> gatherWarnings(
             Program program,
             LabelPositionHolder labelPositionHolder,
             @Nullable
             ManagerBlockEntity managerBlockEntity
     );
 
-    void fixWarnings(
+    abstract void fixWarnings(
             ManagerBlockEntity managerBlockEntity,
             ItemStack diskStack,
             Program program

@@ -14,6 +14,7 @@ import ca.teamdman.sfm.common.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -22,7 +23,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-public abstract class ResourceType<STACK, ITEM, CAP> {
+public abstract class ResourceType<STACK, ITEM, CAP> extends IForgeRegistryEntry.Impl<ResourceType<STACK,ITEM,CAP>> {
     public final SFMBlockCapabilityKind<CAP> CAPABILITY_KIND;
 
     public ResourceType(SFMBlockCapabilityKind<CAP> CAPABILITY_KIND) {
@@ -230,7 +231,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
     }
 
     public String displayAsCode() {
-        ResourceLocation thisKey = SFMResourceTypes.registry().getId(this);
+        ResourceLocation thisKey = SFMResourceTypes.registry().getKey(this);
         return thisKey != null ? thisKey.toString() : "null";
     }
 

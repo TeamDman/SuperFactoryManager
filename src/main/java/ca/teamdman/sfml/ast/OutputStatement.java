@@ -9,9 +9,12 @@ import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.Stored;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -554,7 +557,7 @@ public class OutputStatement implements IOStatement {
     private static <STACK, ITEM, CAP> void addSlotDetailsToReport(
             StringBuilder report,
             LimitedSlot<STACK, ITEM, CAP> slot,
-            Level level
+            World level
     ) {
         report.append("Slot: ").append(slot.getSlot()).append("\n");
         report.append("Position: ").append(slot.getPos()).append("\n");
@@ -565,9 +568,9 @@ public class OutputStatement implements IOStatement {
                 .append(" (")
                 .append(slot.getHandler().getClass().getName())
                 .append(")\n");
-        BlockEntity inputBlockEntity = level.getBlockEntity(slot.getPos());
+        TileEntity inputBlockEntity = level.getTileEntity(slot.getPos());
         if (inputBlockEntity != null) {
-            ResourceLocation inputBlockEntityType = SFMWellKnownRegistries.BLOCK_ENTITY_TYPES.getId(inputBlockEntity.getType());
+            ResourceLocation inputBlockEntityType = SFMWellKnownRegistries.BLOCKS.getId(inputBlockEntity.getBlockType());
             report
                     .append("Block Entity: ")
                     .append(inputBlockEntity.getClass().getName())
@@ -577,7 +580,7 @@ public class OutputStatement implements IOStatement {
         } else {
             report.append("Block Entity: null\n");
         }
-        BlockState blockState = level.getBlockState(slot.getPos());
+        IBlockState blockState = level.getBlockState(slot.getPos());
         ResourceLocation blockType = SFMWellKnownRegistries.BLOCKS.getId(blockState.getBlock());
         report
                 .append("Block: ")

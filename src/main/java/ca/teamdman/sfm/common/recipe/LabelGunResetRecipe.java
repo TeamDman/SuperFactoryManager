@@ -2,35 +2,19 @@ package ca.teamdman.sfm.common.recipe;
 
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.registry.SFMItems;
-import ca.teamdman.sfm.common.registry.SFMRecipeSerializers;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
-import net.minecraft.world.item.crafting.CustomRecipe;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.level.Level;
+import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.util.NonNullList;
+import net.minecraft.world.World;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 
-/**
- * Printing press copies a form using ink and paper.
- */
-public class LabelGunResetRecipe extends CustomRecipe {
-    public LabelGunResetRecipe(
-            ResourceLocation pId,
-            CraftingBookCategory pCategory
-    ) {
-        super(pId, pCategory);
-    }
-
+public class LabelGunResetRecipe extends IForgeRegistryEntry.Impl<IRecipe> implements IRecipe {
     @Override
-    public boolean matches(
-            CraftingContainer pContainer,
-            Level pLevel
-    ) {
+    public boolean matches(InventoryCrafting inv, World worldIn) {
         int foundLabelGuns = 0;
-        for (int i = 0; i < pContainer.getContainerSize(); i++) {
-            ItemStack stack = pContainer.getItem(i);
+        for (int i = 0; i < inv.getSizeInventory(); i++) {
+            ItemStack stack = inv.getStackInSlot(i);
             if (stack.getItem() instanceof LabelGunItem) {
                 foundLabelGuns++;
             } else if (!stack.isEmpty()) {
@@ -41,32 +25,31 @@ public class LabelGunResetRecipe extends CustomRecipe {
     }
 
     @Override
-    public ItemStack assemble(
-            CraftingContainer craftingContainer,
-            RegistryAccess registryAccess
-    ) {
+    public ItemStack getCraftingResult(InventoryCrafting inv) {
         int foundLabelGuns = 0;
-        for (int i = 0; i < craftingContainer.getContainerSize(); i++) {
-            ItemStack stack = craftingContainer.getItem(i);
+        for (int i = 0; i < inv.getSizeInventory(); i++) {
+            ItemStack stack = inv.getStackInSlot(i);
             if (stack.getItem() instanceof LabelGunItem) {
                 foundLabelGuns++;
             } else if (!stack.isEmpty()) {
                 return ItemStack.EMPTY;
             }
         }
-        return foundLabelGuns > 0 ? new ItemStack(SFMItems.LABEL_GUN_ITEM.get(), foundLabelGuns) : ItemStack.EMPTY;
+        return foundLabelGuns > 0 ? new ItemStack(SFMItems.LABEL_GUN_ITEM, foundLabelGuns) : ItemStack.EMPTY;
     }
 
     @Override
-    public boolean canCraftInDimensions(
-            int pWidth,
-            int pHeight
-    ) {
-        return true;
+    public boolean canFit(int width, int height) {
+        return width * height > 0;
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
-        return SFMRecipeSerializers.LABEL_GUN_RESET.get();
+    public ItemStack getRecipeOutput() {
+        return new ItemStack(SFMItems.LABEL_GUN_ITEM);
+    }
+
+    @Override
+    public NonNullList<ItemStack> getRemainingItems(InventoryCrafting inv) {
+        return NonNullList.withSize(inv.getSizeInventory(), ItemStack.EMPTY);
     }
 }
