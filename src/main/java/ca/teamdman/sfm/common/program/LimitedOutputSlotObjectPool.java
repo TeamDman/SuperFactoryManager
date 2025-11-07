@@ -7,7 +7,7 @@ import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.Label;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
-import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -19,7 +19,7 @@ import java.util.IdentityHashMap;
  * A pool of {@link LimitedOutputSlot} objects to avoid the garbage collector
  */
 @SuppressWarnings("DuplicatedCode")
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE, modid = SFM.MOD_ID)
+@Mod.EventBusSubscriber(modid = SFM.MOD_ID)
 public class LimitedOutputSlotObjectPool {
     public static final IdentityHashMap<LimitedOutputSlot<?, ?, ?>, Boolean> LEASED = new IdentityHashMap<>();
     @SuppressWarnings("rawtypes")
@@ -120,7 +120,7 @@ public class LimitedOutputSlotObjectPool {
     }
 
     @SubscribeEvent
-    public static void onServerStopped(ServerStoppedEvent event) {
+    public static void onServerStopped(FMLServerStoppedEvent event) {
         pool = new LimitedOutputSlot[27];
         index = -1;
     }

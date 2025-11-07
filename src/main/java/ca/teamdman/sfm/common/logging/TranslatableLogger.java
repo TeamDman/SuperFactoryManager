@@ -2,11 +2,8 @@ package ca.teamdman.sfm.common.logging;
 
 import ca.teamdman.sfm.SFM;
 import io.netty.buffer.Unpooled;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.MenuProvider;
-import net.minecraftforge.network.NetworkHooks;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -58,7 +55,7 @@ public class TranslatableLogger {
 
     public void info(TextComponentTranslation contents) {
         if (this.logLevel.isLessSpecificThan(Level.INFO)) {
-            logger.info(contents.getKey(), contents.getArgs());
+            logger.info(contents.getKey(), contents.getFormatArgs());
         }
     }
 
@@ -71,7 +68,7 @@ public class TranslatableLogger {
 
     public void warn(TextComponentTranslation contents) {
         if (this.logLevel.isLessSpecificThan(Level.WARN)) {
-            logger.warn(contents.getKey(), contents.getArgs());
+            logger.warn(contents.getKey(), contents.getFormatArgs());
         }
     }
 
@@ -84,7 +81,7 @@ public class TranslatableLogger {
 
     public void error(TextComponentTranslation contents) {
         if (this.logLevel.isLessSpecificThan(Level.ERROR)) {
-            logger.error(contents.getKey(), contents.getArgs());
+            logger.error(contents.getKey(), contents.getFormatArgs());
         }
     }
 
@@ -97,7 +94,7 @@ public class TranslatableLogger {
 
     public void debug(TextComponentTranslation contents) {
         if (this.logLevel.isLessSpecificThan(Level.DEBUG)) {
-            logger.debug(contents.getKey(), contents.getArgs());
+            logger.debug(contents.getKey(), contents.getFormatArgs());
         }
     }
 
@@ -110,7 +107,7 @@ public class TranslatableLogger {
 
     public void trace(TextComponentTranslation contents) {
         if (this.logLevel.isLessSpecificThan(Level.TRACE)) {
-            logger.trace(contents.getKey(), contents.getArgs());
+            logger.trace(contents.getKey(), contents.getFormatArgs());
         }
     }
 
@@ -140,7 +137,7 @@ public class TranslatableLogger {
                );
     }
 
-    public static ArrayDeque<TranslatableLogEvent> decode(FriendlyByteBuf buf) {
+    public static ArrayDeque<TranslatableLogEvent> decode(PacketBuffer buf) {
         int size = buf.readVarInt();
         ArrayDeque<TranslatableLogEvent> contents = new ArrayDeque<>(size);
         for (int i = 0; i < size; i++) {
@@ -154,18 +151,20 @@ public class TranslatableLogger {
      * Will safely stop writing once the buffer is full.
      * Will remove from the list the logs that were written.
      *
-     * @see NetworkHooks#openScreen(ServerPlayer, MenuProvider, Consumer) the byte limit
+     * The byte limit came from pre-backport, I don't know if it needs to change
+     *
+     * (NetworkHooks#openScreen(ServerPlayer, MenuProvider, Consumer) in later versions)
      */
     public static void encodeAndDrain(
             Collection<TranslatableLogEvent> logs,
-            FriendlyByteBuf buf
+            PacketBuffer buf
     ) {
         int maxReadableBytes = 32600;
-        FriendlyByteBuf chunk = new FriendlyByteBuf(Unpooled.buffer());
+        PacketBuffer chunk = new PacketBuffer(Unpooled.buffer());
         int count = 0;
         for (Iterator<TranslatableLogEvent> iterator = logs.iterator(); iterator.hasNext(); ) {
             TranslatableLogEvent entry = iterator.next();
-            FriendlyByteBuf check = new FriendlyByteBuf(Unpooled.buffer());
+            PacketBuffer check = new PacketBuffer(Unpooled.buffer());
             entry.encode(check);
             if (check.readableBytes() + chunk.readableBytes() + buf.readableBytes() >= maxReadableBytes) {
                 break;

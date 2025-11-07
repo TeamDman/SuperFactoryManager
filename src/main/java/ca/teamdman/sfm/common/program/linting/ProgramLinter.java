@@ -14,7 +14,7 @@ import ca.teamdman.sfml.ast.RoundRobin;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.item.ItemStack;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,7 +33,7 @@ public class ProgramLinter {
             @Nullable ManagerBlockEntity manager
     ) {
         var warnings = new ArrayList<TextComponentTranslation>();
-        var level = manager != null ? manager.getLevel() : null;
+        var level = manager != null ? manager.getWorld() : null;
 
         // label smells
         int before = warnings.size();
@@ -78,7 +78,7 @@ public class ProgramLinter {
     ) {
         fixWarningsByRemovingBadLabelsFromDisk(manager, disk, program);
         LabelPositionHolder labelPositionHolder = LabelPositionHolder.from(disk);
-        Level level = manager.getLevel();
+        World level = manager.getWorld();
         if (level != null) {
             program
                     .getDescendantStatements()
@@ -104,7 +104,7 @@ public class ProgramLinter {
                 .ifPresent(network -> labels.removeIf((label, pos) -> !network.isAdjacentToCable(pos)));
 
         // remove labels with no viable capability provider
-        var level = manager.getLevel();
+        var level = manager.getWorld();
         assert level != null;
         labels.removeIf((label, pos) -> !SFMBlockCapabilityDiscovery.hasAnyCapabilityAnyDirection(level, pos));
 
@@ -118,7 +118,7 @@ public class ProgramLinter {
     private static void fixWarningsByModifyingMekanismAccess(
             IOStatement statement,
             LabelPositionHolder labelPositionHolder,
-            Level level
+            World level
     ) {
 //        if (!SFMModCompat.isMekanismLoaded()) return;
 //        DirectionQualifier directions = statement.labelAccess().directions();
@@ -187,7 +187,7 @@ public class ProgramLinter {
             IOStatement ioStatement,
             LabelPositionHolder labelPositionHolder,
             IOStatement statement,
-            Level level,
+            World level,
             ArrayList<TextComponentTranslation> warnings
     ) {
 //        if (!SFMModCompat.isMekanismLoaded()) return;
@@ -325,7 +325,7 @@ public class ProgramLinter {
             @NotNull ManagerBlockEntity manager,
             LabelPositionHolder labels,
             ArrayList<TextComponentTranslation> warnings,
-            Level level
+            World level
     ) {
         CableNetworkManager
                 .getOrRegisterNetworkFromManagerPosition(manager)

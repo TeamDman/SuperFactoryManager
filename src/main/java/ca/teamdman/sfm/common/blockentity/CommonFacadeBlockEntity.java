@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.common.facade.FacadeData;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.protocol.Packet;
@@ -13,16 +14,17 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.model.data.ModelData;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFacadeBlockEntity {
+public abstract class CommonFacadeBlockEntity extends TileEntity implements IFacadeBlockEntity {
     protected @Nullable FacadeData facadeData = null;
 
     public CommonFacadeBlockEntity(
-            BlockEntityType<?> pType,
             BlockPos pPos,
             BlockState pBlockState
     ) {
-        super(pType, pPos, pBlockState);
+        super(pPos, pBlockState);
     }
+
+
 
     @Override
     public @Nullable FacadeData getFacadeData() {

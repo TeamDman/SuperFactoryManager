@@ -1,37 +1,36 @@
 package ca.teamdman.sfm.common.facade;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.core.HolderGetter;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.world.level.Level;
-import net.minecraft.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.nbt.NBTUtil;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.world.World;
+import net.minecraftforge.common.util.Constants;
 import org.jetbrains.annotations.Nullable;
 
 public record FacadeData(
-        BlockState facadeBlockState,
+        IBlockState facadeBlockState,
         EnumFacing facadeDirection,
         FacadeTextureMode facadeTextureMode
 ) {
     public void save(NBTTagCompound tag) {
         NBTTagCompound facadeTag = new NBTTagCompound();
-        facadeTag.put("block_state", NbtUtils.writeBlockState(this.facadeBlockState()));
-        facadeTag.putString("direction", this.facadeDirection().getSerializedName());
-        facadeTag.putString("texture_mode", this.facadeTextureMode().getSerializedName());
-        tag.put("sfm:facade", facadeTag);
+        NBTTagCompound blockStateTag = new NBTTagCompound();
+        NBTUtil.writeBlockState(blockStateTag, this.facadeBlockState());
+        facadeTag.setTag("block_state", blockStateTag);
+        facadeTag.setString("direction", this.facadeDirection().getName2());
+        facadeTag.setString("texture_mode", this.facadeTextureMode().getSerializedName());
+        tag.setTag("sfm:facade", facadeTag);
     }
 
     public static @Nullable FacadeData load(
-            @Nullable Level level,
+            @Nullable World level,
             NBTTagCompound tag
     ) {
-        if (tag.contains("sfm:facade", NBTTagCompound.TAG_COMPOUND)) {
-            NBTTagCompound facadeTag = tag.getCompound("sfm:facade");
-            BlockState facadeState = readBlockState(facadeTag.getCompound("block_state"), level);
+        if (tag.hasKey("sfm:facade", Constants.NBT.TAG_COMPOUND)) {
+            NBTTagCompound facadeTag = tag.getCompoundTag("sfm:facade");
+            IBlockState facadeState = readBlockState(facadeTag.getCompoundTag("block_state"));
             EnumFacing facadeDirection = EnumFacing.byName(facadeTag.getString("direction"));
             FacadeTextureMode facadeTextureMode = FacadeTextureMode.byName(facadeTag.getString("texture_mode"));
             if (facadeTextureMode != null && facadeDirection != null) {
@@ -45,16 +44,10 @@ public record FacadeData(
      * See {@link net.minecraft.world.level.block.piston.MovingPistonBlock::load}
      */
     @MCVersionDependentBehaviour
-    private static BlockState readBlockState(
-            NBTTagCompound tag,
-            @Nullable Level level
+    private static IBlockState readBlockState(
+            NBTTagCompound tag
     ) {
-        @SuppressWarnings("deprecation")
-        HolderGetter<Block> holderGetter = level != null
-                                           ? level.holderLookup(Registries.BLOCK)
-                                           : BuiltInRegistries.BLOCK.asLookup();
-        return NbtUtils.readBlockState(
-                holderGetter,
+        return NBTUtil.readBlockState(
                 tag
         );
     }

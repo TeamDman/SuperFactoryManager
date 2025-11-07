@@ -15,8 +15,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.ChunkAccess;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -71,7 +69,7 @@ public class CableNetwork {
                     results.accept(current);
                     BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
                     for (EnumFacing d : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
-                        target.set(current).move(d);
+                        target.setPos(current).move(d);
                         if (other.containsCablePosition(target)) {
                             next.accept(target.toImmutable());
                         }
@@ -129,7 +127,7 @@ public class CableNetwork {
     @Override
     public String toString() {
         return "CableNetwork{level="
-               + getLevel().dimension().location()
+               + getLevel().provider.getDimension()
                + ", #cables="
                + getCableCount()
                + ", #cache="
@@ -193,7 +191,7 @@ public class CableNetwork {
     }
 
     public Stream<BlockPos> getCablePositions() {
-        return cablePositions.longStream().mapToObj(BlockPos::of);
+        return cablePositions.stream().map(BlockPos::fromLong);
     }
 
     public LongSet getCablePositionsRaw() {
@@ -219,7 +217,7 @@ public class CableNetwork {
         List<CableNetwork> branches = new ArrayList<>();
         BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
         for (EnumFacing direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
-            target.set(cablePos).move(direction);
+            target.setPos(cablePos).move(direction);
             if (!containsCablePosition(target)) continue;
             // make sure that a branch network doesn't already contain this cable
             if (branches.stream().anyMatch(n -> n.containsCablePosition(target))) continue;

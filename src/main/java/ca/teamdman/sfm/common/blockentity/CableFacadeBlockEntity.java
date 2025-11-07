@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.model.data.ModelData;
@@ -8,7 +9,7 @@ import net.minecraftforge.client.model.data.ModelData;
 public class CableFacadeBlockEntity extends CommonFacadeBlockEntity {
     public CableFacadeBlockEntity(
             BlockPos pos,
-            BlockState state
+            IBlockState state
     ) {
         super(SFMBlockEntities.CABLE_FACADE_BLOCK_ENTITY.get(), pos, state);
     }

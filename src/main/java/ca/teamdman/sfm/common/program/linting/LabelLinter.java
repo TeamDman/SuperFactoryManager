@@ -8,6 +8,7 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,12 +29,12 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
         addWarningsForLabelsInProgramButNotInHolder(program, labelPositionHolder, warnings);
         addWarningsForLabelsInHolderButNotInProgram(program, labelPositionHolder, warnings);
 
-        if (managerBlockEntity != null && managerBlockEntity.getLevel() != null) {
+        if (managerBlockEntity != null && managerBlockEntity.getWorld() != null) {
             addWarningsForLabelsUsedInWorldButNotConnectedByCables(
                     managerBlockEntity,
                     labelPositionHolder,
                     warnings,
-                    managerBlockEntity.getLevel()
+                    managerBlockEntity.getWorld()
             );
         }
 
@@ -52,7 +53,7 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
             ItemStack diskStack,
             Program program
     ) {
-        if (managerBlockEntity == null || managerBlockEntity.getLevel() == null) {
+        if (managerBlockEntity == null || managerBlockEntity.getWorld() == null) {
             return;
         }
         fixWarningsByRemovingBadLabelsFromDisk(managerBlockEntity, diskStack, program);
@@ -91,7 +92,7 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
             ManagerBlockEntity manager,
             LabelPositionHolder labels,
             ArrayList<TextComponentTranslation> warnings,
-            Level level
+            World level
     ) {
         CableNetworkManager
                 .getOrRegisterNetworkFromManagerPosition(manager)
@@ -128,7 +129,7 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
                 .ifPresent(network -> labels.removeIf((label, pos) -> !network.isAdjacentToCable(pos)));
 
         // remove labels with no viable capability provider
-        var level = manager.getLevel();
+        var level = manager.getWorld();
         labels.removeIf((label, pos) -> !SFMBlockCapabilityDiscovery.hasAnyCapabilityAnyDirection(level, pos));
 
         // save new labels
