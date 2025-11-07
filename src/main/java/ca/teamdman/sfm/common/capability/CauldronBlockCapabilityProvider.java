@@ -1,23 +1,20 @@
 package ca.teamdman.sfm.common.capability;
 
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.LayeredCauldronBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.FluidTankProperties;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 
 public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvider<IFluidHandler> {
     @Override
@@ -25,7 +22,6 @@ public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvid
         return SFMWellKnownCapabilities.FLUID_HANDLER.equals(capabilityKind);
     }
 
-    @MCVersionDependentBehaviour
     @Override
     public SFMBlockCapabilityResult<IFluidHandler> getCapability(
             SFMBlockCapabilityKind<IFluidHandler> capabilityKind,
@@ -35,174 +31,115 @@ public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvid
             @Nullable TileEntity blockEntity,
             @Nullable EnumFacing direction
     ) {
-        if (state.getBlock() == Blocks.CAULDRON
-            || state.getBlock() == Blocks.WATER_CAULDRON
-            || state.getBlock() == Blocks.LAVA_CAULDRON) {
+        if (state.getBlock() == Blocks.CAULDRON) {
             return SFMBlockCapabilityResult.of(new CauldronFluidHandler(level, pos));
         } else {
             return SFMBlockCapabilityResult.empty();
         }
     }
 
-    private record CauldronFluidHandler(
-            LevelAccessor level,
-            BlockPos pos
-    ) implements IFluidHandler {
+    private static class CauldronFluidHandler implements IFluidHandler {
+        private final World world;
+        private final BlockPos pos;
 
-        @Override
-        public int getTanks() {
-            return 1;
+        public CauldronFluidHandler(World world, BlockPos pos) {
+            this.world = world;
+            this.pos = pos;
         }
 
-        @Override
-        public @NotNull FluidStack getFluidInTank(int tank) {
-            var state = level.getBlockState(pos);
-            if (state.getBlock() == Blocks.WATER_CAULDRON) {
-                int level = state.getValue(LayeredCauldronBlock.LEVEL);
-                if (level == 0) {
-                    return FluidStack.EMPTY;
+
+        public @NotNull FluidStack getFluidInTank() {
+            IBlockState state = world.getBlockState(pos);
+            if (state.getBlock() == Blocks.CAULDRON) {
+                int level = state.getValue(BlockCauldron.LEVEL);
+                if (level > 0) {
+                    return new FluidStack(FluidRegistry.WATER, level * (Fluid.BUCKET_VOLUME / 3));
                 }
-                return new FluidStack(Fluids.WATER, level * 250);
-            } else if (state.getBlock() == Blocks.LAVA_CAULDRON) {
-                return new FluidStack(Fluids.LAVA, 1000);
             }
-            return FluidStack.EMPTY;
+            return null;
         }
 
         @Override
         public int getTankCapacity(int tank) {
-            return 1000;
+            return Fluid.BUCKET_VOLUME;
         }
 
         @Override
-        public boolean isFluidValid(
-                int tank,
-                @NotNull FluidStack stack
-        ) {
-            return stack.getFluid() == Fluids.WATER || stack.getFluid() == Fluids.LAVA;
+        public boolean isFluidValid(int tank, @NotNull FluidStack stack) {
+            return stack.getFluid() == FluidRegistry.WATER;
         }
 
         @Override
-        public int fill(
-                FluidStack resource,
-                FluidAction action
-        ) {
-            var state = level.getBlockState(pos);
-            if (state.getBlock() == Blocks.CAULDRON) { // if empty
-                if (resource.getFluid() == Fluids.WATER) {
-                    int layers = Math.min(3, resource.getAmount() / 250);
-                    if (action.execute()) {
-                        level.setBlock(
-                                pos,
-                                Blocks.WATER_CAULDRON.defaultBlockState().setValue(
-                                        LayeredCauldronBlock.LEVEL,
-                                        layers
-                                ),
-                                Block.UPDATE_ALL
-                        );
-                    }
-                    return layers * 250;
-                } else if (resource.getFluid() == Fluids.LAVA && resource.getAmount() >= 1000) {
-                    if (action.execute()) {
-                        level.setBlock(
-                                pos,
-                                Blocks.LAVA_CAULDRON.defaultBlockState(),
-                                Block.UPDATE_ALL
-                        );
-                    }
-                    return 1000;
-                }
-            } else if (state.getBlock() instanceof LayeredCauldronBlock) {
-                int waterLevel = state.getValue(LayeredCauldronBlock.LEVEL);
-                if (waterLevel >= 3) {
-                    return 0;
-                }
-                int waterLevelIncrease = Math.min(3 - waterLevel, Math.min(3, resource.getAmount() / 250));
-                if (action.execute()) {
-                    level.setBlock(
-                            pos,
-                            state.setValue(LayeredCauldronBlock.LEVEL, waterLevel + waterLevelIncrease),
-                            Block.UPDATE_ALL
-                    );
-                }
-                return waterLevelIncrease * 250;
+        public IFluidTankProperties[] getTankProperties() {
+            return new IFluidTankProperties[] {
+                    new FluidTankProperties(getFluidInTank(), Fluid.BUCKET_VOLUME)
+            };
+        }
+
+        @Override
+        public int fill(FluidStack resource, boolean doFill) {
+            if (resource == null || resource.getFluid() != FluidRegistry.WATER) {
+                return 0;
             }
-            return 0;
+
+            IBlockState state = world.getBlockState(pos);
+            if (state.getBlock() != Blocks.CAULDRON) {
+                return 0;
+            }
+
+            int level = state.getValue(BlockCauldron.LEVEL);
+            if (level >= 3) {
+                return 0;
+            }
+
+            int amountToFill = resource.amount;
+            int levelsToFill = amountToFill / (Fluid.BUCKET_VOLUME / 4);
+            int filledAmount = 0;
+
+            if (levelsToFill > 0) {
+                int newLevel = Math.min(3, level + levelsToFill);
+                filledAmount = (newLevel - level) * (Fluid.BUCKET_VOLUME / 4);
+                if (doFill) {
+                    world.setBlockState(pos, state.withProperty(BlockCauldron.LEVEL, newLevel), 3);
+                }
+            }
+
+            return filledAmount;
         }
 
         @Override
-        public @NotNull FluidStack drain(
-                FluidStack resource,
-                FluidAction action
-        ) {
-            var state = level.getBlockState(pos);
-            if (state.getBlock() instanceof LayeredCauldronBlock) {
-                int waterLevel = state.getValue(LayeredCauldronBlock.LEVEL);
-                if (waterLevel == 0) {
-                    return FluidStack.EMPTY;
-                }
-                int waterLevelDrain = Math.min(waterLevel, resource.getAmount() / 250);
-                if (action.execute()) {
-                    int resultLevel = waterLevel - waterLevelDrain;
-                    if (resultLevel == 0) {
-                        level.setBlock(
-                                pos,
-                                Blocks.CAULDRON.defaultBlockState(),
-                                Block.UPDATE_ALL
-                        );
-                    } else {
-                        level.setBlock(
-                                pos,
-                                state.setValue(LayeredCauldronBlock.LEVEL, resultLevel),
-                                Block.UPDATE_ALL
-                        );
-                    }
-                }
-                return new FluidStack(Fluids.WATER, waterLevelDrain * 250);
-            } else if (state.getBlock() == Blocks.LAVA_CAULDRON && resource.getAmount() >= 1000) {
-                if (action.execute()) {
-                    level.setBlock(
-                            pos,
-                            Blocks.CAULDRON.defaultBlockState(),
-                            Block.UPDATE_ALL
-                    );
-                }
-                return new FluidStack(Fluids.LAVA, 1000);
+        @Nullable
+        public FluidStack drain(FluidStack resource, boolean doDrain) {
+            if (resource == null || resource.getFluid() != FluidRegistry.WATER) {
+                return null;
             }
-            return FluidStack.EMPTY;
+            return drain(resource.amount, doDrain);
         }
 
         @Override
-        public @NotNull FluidStack drain(
-                int maxDrain,
-                FluidAction action
-        ) {
-            var state = level.getBlockState(pos);
-            if (state.getBlock() instanceof LayeredCauldronBlock) {
-                int waterLevel = state.getValue(LayeredCauldronBlock.LEVEL);
-                if (waterLevel == 0) {
-                    return FluidStack.EMPTY;
-                }
-                int waterLevelDrain = Math.min(waterLevel, maxDrain / 250);
-                if (action.execute()) {
-                    level.setBlock(
-                            pos,
-                            state.setValue(LayeredCauldronBlock.LEVEL, waterLevel - waterLevelDrain),
-                            Block.UPDATE_ALL
-                    );
-                }
-                return new FluidStack(Fluids.WATER, waterLevelDrain * 250);
-            } else if (state.getBlock() == Blocks.LAVA_CAULDRON && maxDrain >= 1000) {
-                if (action.execute()) {
-                    level.setBlock(
-                            pos,
-                            Blocks.CAULDRON.defaultBlockState(),
-                            Block.UPDATE_ALL
-                    );
-                }
-                return new FluidStack(Fluids.LAVA, 1000);
+        public FluidStack drain(int maxDrain, boolean doDrain) {
+            IBlockState state = world.getBlockState(pos);
+            if (state.getBlock() != Blocks.CAULDRON) {
+                return null;
             }
-            return FluidStack.EMPTY;
+
+            int level = state.getValue(BlockCauldron.LEVEL);
+            if (level <= 0) {
+                return null;
+            }
+
+            int amountPerLevel = Fluid.BUCKET_VOLUME / 4;
+            int availableAmount = level * amountPerLevel;
+            int amountToDrain = Math.min(maxDrain, availableAmount);
+
+            int levelsToDrain = (int)Math.floor((double)amountToDrain / amountPerLevel);
+            int drainedAmount = levelsToDrain * amountPerLevel;
+
+            if (doDrain && levelsToDrain > 0) {
+                world.setBlockState(pos, state.withProperty(BlockCauldron.LEVEL, level - levelsToDrain), 3);
+            }
+
+            return new FluidStack(FluidRegistry.WATER, drainedAmount);
         }
     }
 }

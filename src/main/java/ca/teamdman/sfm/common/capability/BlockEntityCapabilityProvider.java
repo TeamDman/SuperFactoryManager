@@ -5,9 +5,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 /// In NeoForge for Minecraft 1.20.3, the way capabilities are discovered changed.
@@ -28,9 +25,9 @@ public class BlockEntityCapabilityProvider implements SFMBlockCapabilityProvider
             @Nullable TileEntity blockEntity,
             @Nullable EnumFacing direction
     ) {
-        if (blockEntity != null) {;
-            var result = blockEntity.getCapability(capabilityKind.capabilityKind(), direction);
-            if (result!=null) {
+        if (blockEntity != null) {
+            Object result = blockEntity.getCapability(capabilityKind.capabilityKind(), direction);
+            if (result != null) {
                 return SFMBlockCapabilityResult.of(result);
             }
         }

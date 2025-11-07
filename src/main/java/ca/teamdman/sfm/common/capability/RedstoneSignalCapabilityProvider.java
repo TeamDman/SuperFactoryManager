@@ -2,12 +2,9 @@ package ca.teamdman.sfm.common.capability;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 /// In NeoForge for Minecraft 1.20.3, the way capabilities are discovered changed.
@@ -31,7 +28,7 @@ public class RedstoneSignalCapabilityProvider implements SFMBlockCapabilityProvi
         try {
             // Wrap in try-catch since getSignal doesn't explicitly allow the null direction
             @SuppressWarnings("DataFlowIssue")
-            int signal = state.getSignal(levelAccessor, pos, direction);
+            int signal = state.getWeakPower(levelAccessor, pos, direction);
             return SFMBlockCapabilityResult.of(new RedstoneSignalStorage(signal, 15));
         } catch (Throwable t) {
             return SFMBlockCapabilityResult.empty();
