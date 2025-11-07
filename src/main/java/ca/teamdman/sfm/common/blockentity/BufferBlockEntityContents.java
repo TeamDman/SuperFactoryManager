@@ -3,7 +3,7 @@ package ca.teamdman.sfm.common.blockentity;
 import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.block.BufferBlockTier;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;

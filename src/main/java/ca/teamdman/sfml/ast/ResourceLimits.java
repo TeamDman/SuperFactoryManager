@@ -3,7 +3,7 @@ package ca.teamdman.sfml.ast;
 import ca.teamdman.sfm.common.program.IInputResourceTracker;
 import ca.teamdman.sfm.common.program.IOutputResourceTracker;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

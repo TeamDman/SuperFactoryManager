@@ -1,17 +1,17 @@
 package ca.teamdman.sfml.intellisense;
 
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
 import ca.teamdman.sfml.manipulation.ManipulationResult;
-import net.minecraft.network.chat.Component;
+import net.minecraft.util.text.TextComponentString;
 
 import java.util.Objects;
 
 public record SuggestedResourceIntellisenseAction<STACK, ITEM, CAP>(
         ResourceType<STACK, ITEM, CAP> resourceType,
         ITEM item,
-        Component display
+        TextComponentString display
 ) implements IntellisenseAction {
     public SuggestedResourceIntellisenseAction(
             ResourceType<STACK, ITEM, CAP> resourceType,
@@ -20,7 +20,7 @@ public record SuggestedResourceIntellisenseAction<STACK, ITEM, CAP>(
         this(
                 resourceType,
                 item,
-                Component.literal(
+                new TextComponentString(
                         new ResourceIdentifier<>(
                                 Objects.requireNonNull(SFMResourceTypes.registry().getId(resourceType)),
                                 resourceType.getRegistryKeyForItem(item)
@@ -30,7 +30,7 @@ public record SuggestedResourceIntellisenseAction<STACK, ITEM, CAP>(
     }
 
     @Override
-    public Component getComponent() {
+    public TextComponentString getComponent() {
         return display();
     }
 
@@ -38,7 +38,7 @@ public record SuggestedResourceIntellisenseAction<STACK, ITEM, CAP>(
     public ManipulationResult perform(IntellisenseContext context) {
         return context
                 .createMutableProgramString()
-                .replaceWordAndMoveCursorsToEnd("%s ".formatted(display().getString()))
+                .replaceWordAndMoveCursorsToEnd("%s ".formatted(display().getText()))
                 .intoResult();
     }
 }

@@ -2,7 +2,7 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.program.ProgramContext;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.Pair;
 import net.minecraft.util.math.BlockPos;
 

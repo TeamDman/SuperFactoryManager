@@ -7,7 +7,7 @@ import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.SFMASTUtils;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfml.ast.*;
@@ -50,8 +50,8 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMPacke
             int len = sb.length();
             //noinspection unchecked,rawtypes
             SFMResourceTypes.registry().getEntries().stream().map(entry -> buildInspectionResults(
-                            (ResourceKey) entry.getKey(),
-                            entry.getValue(),
+                            (ResourceLocation) entry.getKey(),
+                            entry.getValue().get(),
                             world,
                             pos,
                             direction
@@ -146,19 +146,6 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMPacke
 
         }
         String result = sb.toString();
-        if (!result.isBlank()) {
-            TileEntity be = world.getTileEntity(pos);
-            //noinspection DataFlowIssue
-            if (be != null && direction == null && SFMWellKnownRegistries.BLOCK_ENTITY_TYPES
-                    .getKey(be.getClass())
-                    .getResourceDomain()
-                    .equals("mekanism")) {
-                return "-- "
-                        + LocalizationKeys.CONTAINER_INSPECTOR_MEKANISM_NULL_DIRECTION_WARNING.getStub()
-                        + "\n"
-                        + result;
-            }
-        }
         return result;
     }
 

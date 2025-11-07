@@ -3,7 +3,7 @@ package ca.teamdman.sfml.ast;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.program.RegexCache;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.ResourceLocationException;
@@ -67,30 +67,6 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
                 resourceTypeKey.getPath(),
                 resourceKey.getNamespace(),
                 resourceKey.getPath()
-        );
-    }
-
-    public ResourceIdentifier(
-            ResourceKey<ResourceType<STACK,ITEM,CAP>> resourceTypeKey,
-            ResourceLocation resourceKey
-    ) {
-        this(
-                resourceTypeKey.getNamespace(),
-                resourceTypeKey.getPath(),
-                resourceKey.getNamespace(),
-                resourceKey.getPath()
-        );
-    }
-
-    public ResourceIdentifier(
-            ResourceKey<ResourceType<STACK,ITEM,CAP>> resourceTypeKey,
-            ResourceKey<?> resourceKey
-    ) {
-        this(
-                resourceTypeKey.location().getNamespace(),
-                resourceTypeKey.location().getPath(),
-                resourceKey.location().getNamespace(),
-                resourceKey.location().getPath()
         );
     }
 

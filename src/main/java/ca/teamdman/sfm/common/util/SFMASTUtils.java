@@ -2,11 +2,10 @@ package ca.teamdman.sfm.common.util;
 
 import ca.teamdman.sfm.common.program.LimitedInputSlot;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfml.ast.Number;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,28 +28,30 @@ public class SFMASTUtils {
         potential = resourceType.withCount(potential, toMove);
         STACK stack = potential;
 
-        return SFMResourceTypes.registry().getKey(resourceType)
-                .map(x -> {
-                    //noinspection unchecked,rawtypes
-                    return (ResourceKey<ResourceType<STACK, ITEM, CAP>>) (ResourceKey) x;
-                })
-                .map((ResourceKey<ResourceType<STACK, ITEM, CAP>> resourceTypeResourceKey) -> getInputStatementForStack(
-                        resourceTypeResourceKey,
-                        resourceType,
-                        stack,
-                        "temp",
-                        slot.slot,
-                        false,
-                        null
-                ))
-                // update the labels
-                .map(inputStatement -> new InputStatement(new LabelAccess(
-                        labelAccess.labels(),
-                        labelAccess.directions(),
-                        inputStatement.labelAccess()
-                                .slots(),
-                        RoundRobin.disabled()
-                ), inputStatement.resourceLimits(), inputStatement.each()));
+        ResourceLocation resourceTypeResourceKey = SFMResourceTypes.registry().getKey(resourceType.container);
+
+        if (resourceTypeResourceKey == null) {
+            return Optional.empty();
+        }
+
+        var inputStatement = getInputStatementForStack(
+                resourceTypeResourceKey,
+                resourceType,
+                stack,
+                "temp",
+                slot.slot,
+                false,
+                null
+        );
+
+        return Optional.of(new InputStatement(new LabelAccess(
+                labelAccess.labels(),
+                labelAccess.directions(),
+                inputStatement.labelAccess()
+                        .slots(),
+                RoundRobin.disabled()
+        ), inputStatement.resourceLimits(), inputStatement.each()));
+
     }
 
     public static <STACK, ITEM, CAP> InputStatement getInputStatementForStack(
@@ -66,8 +67,8 @@ public class SFMASTUtils {
                 List.of(new Label(label)),
                 new DirectionQualifier(
                         direction == null
-                        ? EnumSet.noneOf(EnumFacing.class)
-                        : EnumSet.of(direction)),
+                                ? EnumSet.noneOf(EnumFacing.class)
+                                : EnumSet.of(direction)),
                 new NumberRangeSet(
                         new NumberRange[]{new NumberRange(slot, slot)}
                 ),

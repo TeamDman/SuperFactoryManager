@@ -6,7 +6,7 @@ import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.*;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.Stored;
 import net.minecraft.block.state.IBlockState;
@@ -15,9 +15,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayDeque;
 import java.util.List;
@@ -222,9 +219,9 @@ public class OutputStatement implements IOStatement {
         // THIS SHOULD NEVER HAPPEN
         // will void items if it does
         if (!resourceType.isEmpty(extractedRemainder)) {
-            ResourceLocation resourceTypeName = SFMResourceTypes.registry().getId(resourceType);
+            ResourceLocation resourceTypeName = SFMResourceTypes.registry().getKey(resourceType);
             String stackName = resourceType.getItem(extractPotential).toString();
-            Level level = context.getManager().getLevel();
+            World level = context.getManager().getWorld();
             assert level != null;
             StringBuilder report = new StringBuilder();
             report.append("!!!RESOURCE LOSS HAS OCCURRED!!!");

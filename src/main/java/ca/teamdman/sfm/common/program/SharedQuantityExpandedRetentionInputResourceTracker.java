@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.common.program;
 
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimit;
@@ -10,6 +10,8 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.ResourceLocation;
+
+import java.util.Arrays;
 
 @SuppressWarnings("DuplicatedCode")
 public class SharedQuantityExpandedRetentionInputResourceTracker implements IInputResourceTracker {
@@ -136,7 +138,7 @@ public class SharedQuantityExpandedRetentionInputResourceTracker implements IInp
                + retention_obligations_by_item
                        .values()
                        .stream()
-                       .flatMapToLong(x -> x.values().longStream())
+                       .flatMapToLong(x -> Arrays.stream(x.values().toLongArray()))
                        .sum()
                +
                ", RESOURCE_LIMIT="

@@ -1,6 +1,6 @@
 package ca.teamdman.sfml.ast;
 
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 
 public record WithConjunction(WithClause left, WithClause right) implements ASTNode, WithClause, ToStringPretty {
     @Override

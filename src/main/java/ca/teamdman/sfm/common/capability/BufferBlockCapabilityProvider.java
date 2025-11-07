@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntity;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;

@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.common.program;
 
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimit;
@@ -43,7 +43,7 @@ public class SharedQuantitySharedRetentionInputResourceTracker implements IInput
         if (posEntry == null) {
             return 0;
         }
-        return posEntry.getOrDefault(slot, 0);
+        return posEntry.getOrDefault(slot, 0L);
     }
 
     @Override

@@ -3,7 +3,8 @@ package ca.teamdman.sfml.intellisense;
 import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.langs.SFMLParser;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfml.ext_antlr4c3.CodeCompletionCore;
 import org.antlr.v4.runtime.Token;
@@ -58,8 +59,8 @@ public class SFMLIntellisense {
                     if (SFMEnvironmentUtils.isGameLoaded() && context
                             .intellisenseLevel()
                             .isResourceIntellisenseEnabled()) {
-                        for (ResourceType<?, ?, ?> resourceType : SFMResourceTypes.registry()) {
-                            gatherIntellisenseActions(context, resourceType, rtn::add);
+                        for (ResourceTypeContainer resourceType : SFMResourceTypes.registry()) {
+                            gatherIntellisenseActions(context, resourceType.get(), rtn::add);
                         }
                     }
                 }

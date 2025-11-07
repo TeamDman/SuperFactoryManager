@@ -10,18 +10,7 @@ package ca.teamdman.sfm.common.registry.internal;
 
 import ca.teamdman.sfm.common.program.linting.IProgramLinter;
 import ca.teamdman.sfm.common.registry.*;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
-import hellfirepvp.modularmachinery.common.crafting.ComponentType;
-import hellfirepvp.modularmachinery.common.crafting.adapter.RecipeAdapter;
-import hellfirepvp.modularmachinery.common.crafting.requirement.type.RequirementType;
-import hellfirepvp.modularmachinery.common.crafting.tooltip.RequirementTip;
-import hellfirepvp.modularmachinery.common.registry.RegistryBlocks;
-import hellfirepvp.modularmachinery.common.registry.RegistryComponentTypes;
-import hellfirepvp.modularmachinery.common.registry.RegistryItems;
-import hellfirepvp.modularmachinery.common.registry.RegistryRecipeAdapters;
-import hellfirepvp.modularmachinery.common.registry.RegistryRegistries;
-import hellfirepvp.modularmachinery.common.registry.RegistryRequirementTips;
-import hellfirepvp.modularmachinery.common.registry.RegistryRequirementTypes;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.crafting.IRecipe;
@@ -33,7 +22,7 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
 import java.util.List;
 
 /**
- * This class was copied from the Modular Machinery Mod
+ * This class was originally copied from the Modular Machinery Mod
  * The complete source code for this mod can be found on github.
  * Class: PrimerEventHandler
  * Created by HellFirePvP
@@ -63,7 +52,7 @@ public class PrimerEventHandler {
     }
 
     @SubscribeEvent
-    public void registerResourceTypes(RegistryEvent.Register<ResourceType> event) {
+    public void registerResourceTypes(RegistryEvent.Register<ResourceTypeContainer> event) {
         registry.wipe(event.getGenericType());
         SFMResourceTypes.initialize();
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
@@ -81,39 +70,6 @@ public class PrimerEventHandler {
         registry.wipe(event.getGenericType());
         RegistryLinters.initialize();
     }
-
-//    @SubscribeEvent
-//    public void registerAdapters(RegistryEvent.Register<RecipeAdapter> event) {
-//        registry.wipe(event.getGenericType());
-//        RegistryRecipeAdapters.initialize();
-//        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-//    }
-
-//    @SubscribeEvent
-//    public void registerComponentTypes(RegistryEvent.Register<ComponentType> event) {
-//        registry.wipe(event.getGenericType());
-//        RegistryComponentTypes.initialize();
-//        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-//    }
-
-//    @SubscribeEvent
-//    public void registerRequirementTips(RegistryEvent.Register<RequirementTip> event) {
-//        registry.wipe(event.getGenericType());
-//        RegistryRequirementTips.initialize();
-//        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-//    }
-
-//    @SubscribeEvent
-//    public void registerComponentRequirementTypes(RegistryEvent.Register event) {
-//        //Class filter in ASMEventHandler can't cope with wildcard typed registries
-//        //So we wildcard allow every registry event to pass into here and check ourselves instead.
-//        if (RequirementType.class != event.getGenericType()) {
-//            return;
-//        }
-//        registry.wipe(event.getGenericType());
-//        RegistryRequirementTypes.initialize();
-//        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-//    }
 
     private <T extends IForgeRegistryEntry<T>> void fillRegistry(Class<T> registrySuperType, IForgeRegistry<T> forgeRegistry) {
         List<?> entries = registry.getEntries(registrySuperType);

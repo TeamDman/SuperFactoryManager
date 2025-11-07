@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.resourcetype;
 
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 

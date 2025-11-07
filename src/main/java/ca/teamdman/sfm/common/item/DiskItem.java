@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class DiskItem extends Item {
     public DiskItem() {
@@ -118,9 +119,9 @@ public class DiskItem extends Item {
 
     public static List<TextComponentTranslation> getErrors(ItemStack stack) {
         return stack.getTagCompound() != null
-                ? Stream.of(stack
+                ? StreamSupport.stream(stack
                         .getTagCompound()
-                        .getTagList("sfm:errors", Constants.NBT.TAG_COMPOUND))
+                        .getTagList("sfm:errors", Constants.NBT.TAG_COMPOUND).spliterator(), false)
                 .map(NBTTagCompound.class::cast)
                 .map(SFMTranslationUtils::deserializeTranslation)
                 .toList()
@@ -153,10 +154,9 @@ public class DiskItem extends Item {
             stack.setTagCompound(new NBTTagCompound());
         }
         assert stack.getTagCompound() != null;
-        return Stream.of(
-                        stack
-                                .getTagCompound()
-                                .getTagList("sfm:warnings", Constants.NBT.TAG_COMPOUND)
+        return StreamSupport.stream(stack
+                        .getTagCompound()
+                        .getTagList("sfm:warnings", Constants.NBT.TAG_COMPOUND).spliterator(), false
                 )
                 .map(NBTTagCompound.class::cast)
                 .map(SFMTranslationUtils::deserializeTranslation)

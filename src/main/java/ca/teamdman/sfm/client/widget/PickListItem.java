@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.widget;
 
-import net.minecraft.network.chat.Component;
+import net.minecraft.util.text.ITextComponent;
 
 public interface PickListItem {
-    Component getComponent();
+    ITextComponent getComponent();
 }

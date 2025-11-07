@@ -1,7 +1,8 @@
 package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraftforge.common.capabilities.CapabilityToken;
 import net.minecraftforge.energy.CapabilityEnergy;
@@ -32,6 +33,6 @@ public class SFMWellKnownCapabilities {
     }));
 
     public static Stream<SFMBlockCapabilityKind<?>> streamCapabilities() {
-        return SFMResourceTypes.registry().stream().map(ResourceType::capabilityKind);
+        return SFMResourceTypes.registry().getValuesCollection().stream().map(ResourceTypeContainer::get).map(ResourceType::capabilityKind);
     }
 }

@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.registry;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.resourcetype.*;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
@@ -27,12 +28,12 @@ public class SFMResourceTypes {
         // }
     }
 
-    private static <T extends ResourceType<?, ?, ?>> T prepareRegister(T resourceType, String name) {
+    private static <T extends ResourceTypeContainer> T prepareRegister(T resourceType, String name) {
         resourceType.setRegistryName(new ResourceLocation(SFM.MOD_ID, name));
         return register(resourceType);
     }
 
-    private static <T extends ResourceType<?, ?, ?>> T register(T resourceType) {
+    private static <T extends ResourceTypeContainer> T register(T resourceType) {
         CommonProxy.registryPrimer.register(resourceType);
         return resourceType;
     }
@@ -44,16 +45,14 @@ public class SFMResourceTypes {
     public static @Nullable ResourceType<?, ?, ?> fastLookup(
             ResourceLocation resourceTypeId
     ) {
-        return registry().getValue(resourceTypeId);
+        ResourceTypeContainer container = registry().getValue(resourceTypeId);
+        return container != null ? container.get() : null;
     }
 
-    public static IForgeRegistry<ResourceType<?,?,?>> registry() {
+    public static IForgeRegistry<ResourceTypeContainer> registry() {
         return SFMRegistries.RESOURCE_TYPE_REGISTRY;
     }
 
-    public static IForgeRegistry<What> what() {
-
-    }
 
     /* TODO: add support for new resource types
      * - mekanism heat
@@ -66,9 +65,3 @@ public class SFMResourceTypes {
      * - create rotation
      */
 }
-
-
-class What<T> extends IForgeRegistryEntry.Impl<What<T>> {
-
-}
-
