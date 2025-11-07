@@ -65,13 +65,7 @@ public class SFMResourceTypes {
 
 
     /* TODO: add support for new resource types
-     * - mekanism heat
      * - botania mana
-     * - ars nouveau source
      * - flux plugs
-     * - PNC pressure
-     * - PNC heat
-     * - nature's aura aura
-     * - create rotation
      */
 }

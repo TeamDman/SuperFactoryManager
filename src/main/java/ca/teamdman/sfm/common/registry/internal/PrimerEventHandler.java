@@ -8,6 +8,7 @@
 
 package ca.teamdman.sfm.common.registry.internal;
 
+import ca.teamdman.sfm.common.capability.SFMBlockCapabilityProviderContainer;
 import ca.teamdman.sfm.common.program.linting.IProgramLinter;
 import ca.teamdman.sfm.common.registry.*;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
@@ -68,7 +69,15 @@ public class PrimerEventHandler {
     @SubscribeEvent
     public void registerLinters(RegistryEvent.Register<IProgramLinter> event) {
         registry.wipe(event.getGenericType());
-        RegistryLinters.initialize();
+        SFMLinters.initialize();
+        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
+    }
+
+    @SubscribeEvent
+    public void registerCapabilityProviders(RegistryEvent.Register<SFMBlockCapabilityProviderContainer> event) {
+        registry.wipe(event.getGenericType());
+        SFMGlobalBlockCapabilityProviders.initialize();
+        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
     }
 
     private <T extends IForgeRegistryEntry<T>> void fillRegistry(Class<T> registrySuperType, IForgeRegistry<T> forgeRegistry) {

@@ -2,21 +2,18 @@ package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.CommonProxy;
-import ca.teamdman.sfm.common.item.*;
+import ca.teamdman.sfm.common.program.linting.FlowProgramLinter;
 import ca.teamdman.sfm.common.program.linting.IProgramLinter;
 import ca.teamdman.sfm.common.program.linting.LabelLinter;
-import net.minecraft.item.Item;
+import ca.teamdman.sfm.common.program.linting.ResourcesProgramLinter;
 import net.minecraft.util.ResourceLocation;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public class RegistryLinters {
+public class SFMLinters {
 
     public static void initialize() {
-       prepareRegister(new LabelLinter(), "labelgun");
-
-        registerItemBlocks();
+       prepareRegister(new LabelLinter(), "labelgun_linter");
+       prepareRegister(new FlowProgramLinter(), "flow_linter");
+       prepareRegister(new ResourcesProgramLinter(), "resources_linter");
     }
 
     private static <T extends IProgramLinter> T prepareRegister(T linter, String name) {

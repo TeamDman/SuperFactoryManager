@@ -6,6 +6,7 @@ import ca.teamdman.sfml.ast.Program;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -13,7 +14,7 @@ import java.util.Optional;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_UNKNOWN_RESOURCE_ID;
 
-public class ResourcesProgramLinter implements IProgramLinter {
+public class ResourcesProgramLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implements IProgramLinter {
 
     @Override
     public ArrayList<TextComponentTranslation> gatherWarnings(

@@ -1,14 +1,9 @@
 package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.capability.BlockEntityCapabilityProvider;
-import ca.teamdman.sfm.common.capability.CauldronBlockCapabilityProvider;
-import ca.teamdman.sfm.common.capability.RedstoneSignalCapabilityProvider;
-import ca.teamdman.sfm.common.capability.SFMBlockCapabilityProvider;
-import ca.teamdman.sfm.common.util.SFMResourceLocation;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
-import net.minecraftforge.eventbus.api.IEventBus;
+import ca.teamdman.sfm.common.CommonProxy;
+import ca.teamdman.sfm.common.capability.*;
+import net.minecraft.util.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -18,28 +13,16 @@ import java.util.stream.Collectors;
 /// Check out {@link SFMBlockCapabilityProvider} for more information about what a Block Capability Provider is.
 @SuppressWarnings({"unused"})
 public class SFMGlobalBlockCapabilityProviders {
-    public static final ResourceKey<Registry<SFMBlockCapabilityProvider<?>>> REGISTRY_ID =
-            SFMResourceLocation.createSFMRegistryKey("capability_provider_mappers");
+    public static final CauldronBlockCapabilityProvider CAULDRON_MAPPER = new CauldronBlockCapabilityProvider();
+    public static final BlockEntityCapabilityProvider BLOCK_ENTITY = new BlockEntityCapabilityProvider();
+    public static final RedstoneSignalCapabilityProvider REDSTONE = new RedstoneSignalCapabilityProvider();
 
-//    /// Conditionally present
-//    public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, EnergyAcceptorBlockCapabilityProvider>
-//            AE2_ENERGY_ACCEPTOR_CAPABILITY_PROVIDER_MAPPER;
 
-    private static final SFMDeferredRegister<SFMBlockCapabilityProvider<?>> REGISTERER =
-            new SFMDeferredRegisterBuilder<SFMBlockCapabilityProvider<?>>()
-                    .namespace(SFM.MOD_ID)
-                    .registry(REGISTRY_ID)
-                    .createNewRegistry()
-                    .build();
-
-    public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>
-            CAULDRON_MAPPER = REGISTERER.register("cauldron", CauldronBlockCapabilityProvider::new);
-
-    public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>
-            BLOCK_ENTITY = REGISTERER.register("block_entity", BlockEntityCapabilityProvider::new);
-
-    public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, RedstoneSignalCapabilityProvider>
-            REDSTONE = REGISTERER.register("redstone", RedstoneSignalCapabilityProvider::new);
+    public static void initialize() {
+       prepareRegister("cauldron", CAULDRON_MAPPER);
+       prepareRegister("block_entity", CAULDRON_MAPPER);
+       prepareRegister("redstone", CAULDRON_MAPPER);
+    }
 
 //    static {
 //        if (SFMModCompat.isAE2Loaded()) {
@@ -49,7 +32,7 @@ public class SFMGlobalBlockCapabilityProviders {
 //                    EnergyAcceptorBlockCapabilityProvider::new
 //            );
 //
-////            MAPPERS.register("ae2/interface", InterfaceCapabilityProvider::new);
+    ////            MAPPERS.register("ae2/interface", InterfaceCapabilityProvider::new);
 //
 //        } else {
 //
@@ -60,26 +43,33 @@ public class SFMGlobalBlockCapabilityProviders {
 //        }
 //    }
 
+
     /// Gets all registered Block Capability Providers, sorted by priority (the highest priority first).
     public static ArrayList<SFMBlockCapabilityProvider<?>> getAllProviders() {
 
-        return REGISTERER
-                .registry()
+        return SFMRegistries.GLOBAL_BLOCK_CAPABILITY_PROVIDER_REGISTRY.getValuesCollection()
                 .stream()
+                .map(SFMBlockCapabilityProviderContainer::get)
                 .sorted(Comparator
                                 .comparingInt((SFMBlockCapabilityProvider<?> provider) -> provider.priority())
                                 .reversed())
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public static SFMRegistryWrapper<SFMBlockCapabilityProvider<?>> registry() {
-
-        return REGISTERER.registry();
+    private static <T extends SFMBlockCapabilityProvider<?>> T prepareRegister(String name,  T provider) {
+        SFMBlockCapabilityProviderContainer container = new SFMBlockCapabilityProviderContainer() {
+            @Override
+            public SFMBlockCapabilityProvider<?> get() {
+                return provider;
+            }
+        };
+        container.setRegistryName(new ResourceLocation(SFM.MOD_ID, name));//.setTranslationKey(SFM.MOD_ID + "." + name);
+        register(container);
+        return provider;
     }
 
-    public static void register(IEventBus bus) {
-
-        REGISTERER.register(bus);
+    private static <T extends SFMBlockCapabilityProviderContainer> T register(T item) {
+        CommonProxy.registryPrimer.register(item);
+        return item;
     }
-
 }
