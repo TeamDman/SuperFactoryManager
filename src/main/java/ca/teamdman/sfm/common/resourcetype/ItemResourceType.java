@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.resourcetype;
 
 import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
+import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
@@ -20,8 +21,10 @@ import org.jetbrains.annotations.NotNull;
 import java.util.stream.Stream;
 
 public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item, IItemHandler> {
-    public ItemResourceType() {
-        super(SFMWellKnownCapabilities.ITEM_HANDLER);
+
+
+    public ItemResourceType(ResourceTypeContainer container, SFMBlockCapabilityKind<IItemHandler> CAPABILITY_KIND) {
+        super(container, CAPABILITY_KIND);
     }
 
     @Override

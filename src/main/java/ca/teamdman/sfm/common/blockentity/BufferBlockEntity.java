@@ -5,71 +5,64 @@ import ca.teamdman.sfm.common.block.BufferBlockTier;
 import ca.teamdman.sfm.common.capability.BufferBlockCapabilityProvider;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
-import ca.teamdman.sfm.common.registry.SFMBlockEntities;
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.world.level.Level;
-import net.minecraft.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.util.ITickable;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 
-public class BufferBlockEntity extends TileEntity {
+public class BufferBlockEntity extends TileEntity implements ITickable {
     private final BufferBlockEntityContents contents;
-    private final ArrayList<LazyOptional<?>> toInvalidate = new ArrayList<>();
 
-    public BufferBlockEntity(
-            BlockPos pPos,
-            BlockState pBlockState
-    ) {
-        super(SFMBlockEntities.BUFFER_BLOCK_ENTITY.get(), pPos, pBlockState);
-        BufferBlockTier tier = pBlockState.getBlock() instanceof BufferBlock bufferBlock
-                               ? bufferBlock.tier
-                               : BufferBlockTier.Unit;
+    public BufferBlockEntity(BufferBlockTier tier) {
         this.contents = new BufferBlockEntityContents(tier);
     }
 
+    public BufferBlockEntity() {
+        this(BufferBlockTier.Unit);
+    }
+
     @Override
-    public void invalidateCaps() {
-        for (LazyOptional<?> cap : toInvalidate) {
-            cap.invalidate();
+    public boolean hasCapability(@NotNull Capability<?> cap, @Nullable EnumFacing side) {
+        SFMBlockCapabilityKind<?> capKind = new SFMBlockCapabilityKind<>(cap);
+        BufferBlockCapabilityProvider bufferBlockCapabilityProvider = new BufferBlockCapabilityProvider();
+        SFMBlockCapabilityResult<?> found = bufferBlockCapabilityProvider.getCapability(
+                (SFMBlockCapabilityKind<Object>) capKind,
+                world,
+                getPos(),
+                world.getBlockState(getPos()),
+                this,
+                side
+        );
+        if (found.isPresent()) {
+            return true;
         }
-        toInvalidate.clear();
-        super.invalidateCaps();
+        return super.hasCapability(cap, side);
     }
 
     @SuppressWarnings("unchecked")
-    @MCVersionDependentBehaviour
     @Override
-    public @NotNull <T> LazyOptional<T> getCapability(
+    public <T> T getCapability(
             @NotNull Capability<T> cap,
             @Nullable EnumFacing side
     ) {
         SFMBlockCapabilityKind<T> capKind = new SFMBlockCapabilityKind<>(cap);
         BufferBlockCapabilityProvider bufferBlockCapabilityProvider = new BufferBlockCapabilityProvider();
-        assert level != null;
         SFMBlockCapabilityResult<T> found = (SFMBlockCapabilityResult<T>) bufferBlockCapabilityProvider.getCapability(
                 (SFMBlockCapabilityKind<Object>) capKind,
-                level,
-                getBlockPos(),
-                getBlockState(),
+                world,
+                getPos(),
+                world.getBlockState(getPos()),
                 this,
                 side
         );
         if (found.isPresent()) {
-            // create a copy so that we can invalidate it without affecting the original
-            LazyOptional<T> rtn = found.capability().lazyMap(x->x);
-            toInvalidate.add(rtn);
-            return rtn;
+            return (T) found.capability();
         } else {
-            return LazyOptional.empty();
+            return super.getCapability(cap, side);
         }
     }
 
@@ -77,20 +70,19 @@ public class BufferBlockEntity extends TileEntity {
         return contents;
     }
 
-
-    public static void serverTick(
-            @SuppressWarnings("unused") Level level,
-            @SuppressWarnings("unused") BlockPos pos,
-            @SuppressWarnings("unused") BlockState state,
-            BufferBlockEntity bufferBlockEntity
-    ) {
-        if (bufferBlockEntity.getContents().lastUsedResource != state.getValue(BufferBlock.CONTAINED_RESOURCE)) {
-            level.setBlock(pos,
-                           state.setValue(
-                                   BufferBlock.CONTAINED_RESOURCE,
-                                   bufferBlockEntity.getContents().lastUsedResource
-                           ),
-                           Block.UPDATE_CLIENTS
+    @Override
+    public void update() {
+        if (world.isRemote) {
+            return;
+        }
+        if (getContents().lastUsedResource != world.getBlockState(getPos()).getValue(BufferBlock.CONTAINED_RESOURCE)) {
+            world.setBlockState(
+                    getPos(),
+                    world.getBlockState(getPos()).withProperty(
+                            BufferBlock.CONTAINED_RESOURCE,
+                            getContents().lastUsedResource
+                    ),
+                    3
             );
         }
     }

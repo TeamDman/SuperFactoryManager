@@ -2,6 +2,8 @@ package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.net.*;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.relauncher.Side;
@@ -51,5 +53,9 @@ public class SFMPackets {
         registerPacket(ServerboundNetworkToolUsePacket.class, Side.SERVER);
         registerPacket(ServerboundOutputInspectionRequestPacket.class, Side.SERVER);
         registerPacket(ServerboundServerConfigUpdatePacket.class, Side.SERVER);
+    }
+
+    public static void sendToPlayer(EntityPlayerMP player, ClientboundShowChangelogPacket clientboundShowChangelogPacket) {
+        SFM_CHANNEL.sendTo(clientboundShowChangelogPacket, player);
     }
 }

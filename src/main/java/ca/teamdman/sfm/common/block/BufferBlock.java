@@ -5,32 +5,21 @@ import ca.teamdman.sfm.common.compat.SFMModCompat;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.properties.PropertyEnum;
 import net.minecraft.block.state.BlockStateContainer;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IStringSerializable;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.World;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BaseEntityBlock;
-import net.minecraft.block.Block;
-import net.minecraft.world.level.block.RenderShape;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityTicker;
-import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
 public class BufferBlock extends Block implements ITileEntityProvider {
-    public static final PropertyEnum<ContainedResource> CONTAINED_RESOURCE = EnumProperty.create(
+    public static final PropertyEnum<ContainedResource> CONTAINED_RESOURCE = PropertyEnum.create(
             "resource",
             ContainedResource.class
     );
@@ -38,9 +27,19 @@ public class BufferBlock extends Block implements ITileEntityProvider {
     public final BufferBlockTier tier;
 
     public BufferBlock(BufferBlockTier tier) {
-        super();
-        registerDefaultState(getStateDefinition().any().setValue(CONTAINED_RESOURCE, ContainedResource.Item));
+        super(net.minecraft.block.material.Material.IRON);
         this.tier = tier;
+        setDefaultState(this.blockState.getBaseState().withProperty(CONTAINED_RESOURCE, ContainedResource.Item));
+    }
+
+    @Override
+    public IBlockState getStateFromMeta(int meta) {
+        return getDefaultState().withProperty(CONTAINED_RESOURCE, ContainedResource.values()[meta]);
+    }
+
+    @Override
+    public int getMetaFromState(IBlockState state) {
+        return state.getValue(CONTAINED_RESOURCE).ordinal();
     }
 
     @NotNull
@@ -49,50 +48,28 @@ public class BufferBlock extends Block implements ITileEntityProvider {
         return new BlockStateContainer(this, CONTAINED_RESOURCE);
     }
 
-
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(World worldIn, int meta) {
-        return  new BufferBlockEntity();
-    }
-
-    @Override
-    public @Nullable BlockEntity create(
-            BlockPos pPos,
-            BlockState pState
-    ) {
-
+    public TileEntity createNewTileEntity(@NotNull World worldIn, int meta) {
+        return new BufferBlockEntity(tier);
     }
 
     @SuppressWarnings("deprecation")
     @Override
-    public RenderShape getRenderShape(BlockState pState) {
-        return RenderShape.MODEL;
+    public boolean isOpaqueCube(IBlockState state) {
+        return false;
     }
 
     @Override
-    public @Nullable BlockState getStateForPlacement(BlockPlaceContext pContext) {
-        return defaultBlockState().setValue(CONTAINED_RESOURCE, ContainedResource.Unknown);
+    public boolean isFullCube(IBlockState state) {
+        return false;
     }
 
     @Override
-    public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-            Level pLevel,
-            BlockState pState,
-            BlockEntityType<T> pBlockEntityType
-    ) {
-        if (pLevel.isClientSide()) return null;
-        return createTickerHelper(
-                pBlockEntityType,
-                SFMBlockEntities.BUFFER_BLOCK_ENTITY.get(),
-                BufferBlockEntity::serverTick
-        );
+    public net.minecraft.util.EnumBlockRenderType getRenderType(IBlockState state) {
+        return net.minecraft.util.EnumBlockRenderType.MODEL;
     }
 
-    @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> pBuilder) {
-        pBuilder.add(CONTAINED_RESOURCE);
-    }
 
     public enum ContainedResource implements IStringSerializable {
         Item,

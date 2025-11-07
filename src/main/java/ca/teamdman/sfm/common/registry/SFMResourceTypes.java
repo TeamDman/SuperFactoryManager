@@ -11,10 +11,13 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
 import javax.annotation.Nullable;
 
 public class SFMResourceTypes {
-
+    @SuppressWarnings("NotNullFieldNotInitialized") // set in initialize()
     public static ItemResourceType ITEM;
+    @SuppressWarnings("NotNullFieldNotInitialized") // set in initialize()
     public static FluidResourceType FLUID;
+    @SuppressWarnings("NotNullFieldNotInitialized") // set in initialize()
     public static ForgeEnergyResourceType FORGE_ENERGY;
+    @SuppressWarnings("NotNullFieldNotInitialized") // set in initialize()
     public static RedstoneResourceType REDSTONE;
 
     public static void initialize() {
@@ -28,9 +31,16 @@ public class SFMResourceTypes {
         // }
     }
 
-    private static <T extends ResourceTypeContainer> T prepareRegister(T resourceType, String name) {
-        resourceType.setRegistryName(new ResourceLocation(SFM.MOD_ID, name));
-        return register(resourceType);
+    private static <T extends ResourceType<?, ?, ?>> T prepareRegister(T resourceType, String name) {
+        var container = new ResourceTypeContainer() {
+            @Override
+            public ResourceType<?, ?, ?> get() {
+                return resourceType;
+            }
+        };
+        container.setRegistryName(new ResourceLocation(SFM.MOD_ID, name));
+        register(container);
+        return resourceType;
     }
 
     private static <T extends ResourceTypeContainer> T register(T resourceType) {

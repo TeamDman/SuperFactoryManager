@@ -2,11 +2,13 @@ package ca.teamdman.sfm.common.label;
 
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
-import net.minecraft.ChatFormatting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.*;
-import net.minecraft.network.chat.Component;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextFormatting;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -38,7 +40,7 @@ public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
     public static LabelPositionHolder from(ItemStack stack) {
         // TODO: make this return an immutable copy instead of mutably borrowing the cache entry
         return CACHE.computeIfAbsent(stack, s -> {
-            var tag = stack.getTagCompound().getCompoundTag("sfm:labels");
+            var tag = stack.getTagCompound() != null ? stack.getTagCompound().getCompoundTag("sfm:labels") : new NBTTagCompound();
             return deserialize(tag);
         });
     }
@@ -116,17 +118,17 @@ public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
         return this;
     }
 
-    public List<Component> asHoverText() {
-        var rtn = new ArrayList<Component>();
+    public List<ITextComponent> asHoverText() {
+        var rtn = new ArrayList<ITextComponent>();
         if (labels().isEmpty()) return rtn;
         rtn.add(LocalizationKeys.DISK_ITEM_TOOLTIP_LABEL_HEADER
                 .getComponent()
-                .withStyle(ChatFormatting.UNDERLINE));
+                .setStyle(new Style().setUnderlined(true)));
         for (var entry : labels().entrySet()) {
             rtn.add(LocalizationKeys.DISK_ITEM_TOOLTIP_LABEL.getComponent(
                     entry.getKey(),
                     entry.getValue().size()
-            ).withStyle(ChatFormatting.GRAY));
+            ).setStyle(new Style().setColor(TextFormatting.GRAY)));
         }
         return rtn;
     }
@@ -188,6 +190,7 @@ public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
         return this;
     }
 
+    @NotNull
     @Override
     public String toString() {
         return "LabelPositionHolder{size=" + labels().values().stream().mapToInt(Set::size).sum() + "; " +

@@ -11,9 +11,11 @@ import ca.teamdman.sfm.common.util.SFMItemUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
+import net.minecraft.client.settings.GameSettings;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
@@ -149,14 +151,14 @@ public class LabelGunItem extends Item {
     public void appendHoverText(
             ItemStack stack,
             @Nullable Level level,
-            List<Component> lines,
+            List<ITextComponent> lines,
             TooltipFlag detail
     ) {
         if (SFMItemUtils.isClientAndMoreInfoKeyPressed()) {
-            Options options = Minecraft.getInstance().options;
+            GameSettings options = Minecraft.getMinecraft().gameSettings;
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(options.keyUse)
+                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(

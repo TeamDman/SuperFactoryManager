@@ -1,0 +1,28 @@
+name "Filtering"
+
+-- basic filtering with limits
+EVERY 20 TICKS DO
+    INPUT
+        5 stone,
+        3 iron_ingot,
+        cobblestone, -- trailing comma is fine
+    FROM a
+    OUTPUT TO b
+END
+
+-- use an asterisk to fuzzy match
+every 20 ticks do
+    -- quoted patterns use full regex
+    OUTPUT ".*ingot.*" to b
+
+    -- without quotes, "*" gets converted to ".*"
+    -- this is shorter, I prefer it
+    INPUT *ingot* from a
+end
+
+-- you can exclude items too
+EVERY 20 TICKS DO
+    INPUT *ingot* EXCEPT iron_ingot, gold_ingot FROM a
+    INPUT EXCEPT cobblestone FROM z
+    OUTPUT 5 EXCEPT copper_ingot TO b
+END

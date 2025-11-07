@@ -8,7 +8,6 @@ import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfml.ast.InputStatement;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.world.World;
-import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
 import java.util.List;

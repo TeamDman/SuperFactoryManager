@@ -2,9 +2,10 @@ package ca.teamdman.sfm.common;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.command.SFMCommand;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import ca.teamdman.sfm.common.lib.BlocksSFM;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.common.registry.SFMCapabilities;
 import ca.teamdman.sfm.common.registry.internal.InternalRegistryPrimer;
 import ca.teamdman.sfm.common.registry.internal.PrimerEventHandler;
@@ -41,7 +42,7 @@ public class CommonProxy implements IGuiHandler {
         creativeTabsSFM = new CreativeTabs(SFM.MOD_ID) {
             @Override
             public ItemStack createIcon() {
-                return new ItemStack(BlocksSFM.MANAGER_BLOCK);
+                return new ItemStack(SFMBlocks.MANAGER_BLOCK);
             }
         };
 
@@ -64,6 +65,7 @@ public class CommonProxy implements IGuiHandler {
     }
 
     public void loadComplete() {
+
 //        CompletableFuture.runAsync(() -> BlockArrayCache.buildCache(MachineRegistry.getLoadedMachines()));
     }
 

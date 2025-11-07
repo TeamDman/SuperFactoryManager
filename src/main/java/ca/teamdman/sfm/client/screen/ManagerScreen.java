@@ -4,7 +4,6 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
-import ca.teamdman.sfm.common.command.ConfigCommandBehaviourInput;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.diagnostics.SFMDiagnostics;
 import ca.teamdman.sfm.common.item.DiskItem;
@@ -244,17 +243,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                         .setOnPress(button -> this.onRebuildButtonClicked())
                         .build()
         );
-        serverConfigButton = this.addRenderableWidget(
-                new SFMButtonBuilder()
-                        .setPosition(
-                                (this.width - this.imageWidth) / 2 - buttonWidth,
-                                (this.height - this.imageHeight) / 2 + 16 * 11
-                        )
-                        .setSize(buttonWidth, buttonHeight)
-                        .setText(MANAGER_GUI_SERVER_CONFIG_BUTTON)
-                        .setOnPress(button -> this.onServerConfigButtonClicked())
-                        .build()
-        );
         resetButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
@@ -351,9 +339,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         statusCountdown = STATUS_DURATION;
     }
 
-    private void onServerConfigButtonClicked() {
-        SFMPackets.sendToServer(new ServerboundServerConfigRequestPacket(ConfigCommandBehaviourInput.SHOW));
-    }
 
     private void sendAttemptFix() {
         SFMPackets.sendToServer(new ServerboundManagerFixPacket(

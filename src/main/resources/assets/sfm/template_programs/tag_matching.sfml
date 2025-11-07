@@ -1,0 +1,39 @@
+NAME "Tag Matching"
+
+EVERY 20 TICKS DO
+    -- these are equivalent
+    INPUT WITH #forge:gems FROM chest
+    INPUT WITH TAG forge:gems FROM chest
+    INPUT WITH TAG #forge:gems FROM chest
+
+    -- you can omit the namespace to match all namespaces
+    -- these are equivalent
+    INPUT WITH #ingots FROM chest
+    INPUT WITH TAG *:ingots FROM chest
+
+    -- some tags have multiple path elements
+    INPUT WITH TAG refinedstorage:disks/items/* FROM chest
+    INPUT WITH #tools/*/*_matter FROM chest
+
+    -- block tags work for items too
+    INPUT *a* WITH TAG minecraft:mineable/shovel FROM chest
+
+    -- matching all remaining segments is possible
+    INPUT WITH #the_bumblezone:essence/** FROM chest
+    -- should match:
+    -- #the_bumblezone:essence/life/grow_plants
+    -- #the_bumblezone:essence/calming_arena/drowned_bonus_held_item"
+    -- #the_bumblezone:essence/knowing/block_entity_forced_highlighting"
+
+    -- combine with other stuff too
+    INPUT
+        3 RETAIN 5 WITH TAG #forge:ingots,
+        4 dirt,
+        WITH #mineable/axe,
+        minecraft: WITH #ingots,
+        stone,
+    EXCEPT sand, gold_ingot
+    FROM chest
+
+    OUTPUT TO other_chest
+END

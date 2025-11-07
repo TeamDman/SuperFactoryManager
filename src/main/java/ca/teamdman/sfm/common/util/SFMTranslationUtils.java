@@ -69,7 +69,7 @@ public class SFMTranslationUtils {
             String key,
             Object... args
     ) {
-        return new TextComponentTranslation(key, null, args);
+        return new TextComponentTranslation(key, args);
     }
 
     /**

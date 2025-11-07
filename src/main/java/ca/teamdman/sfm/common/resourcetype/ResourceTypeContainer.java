@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 
 public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<ResourceTypeContainer> {
 
-    public abstract <STACK,ITEM,CAP>ResourceType<STACK,ITEM,CAP> get();
+    public abstract ResourceType<?,?,?> get();
 
     public abstract static class ResourceType<STACK, ITEM, CAP> {
         public final ResourceTypeContainer container;

@@ -6,8 +6,6 @@ import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.ResourceLocationException;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.ResourceLocation;
 import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.Nullable;
@@ -118,18 +116,14 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
             }
         } catch (PatternSyntaxException e) {
             throw new IllegalArgumentException("Invalid resource identifier pattern \""
-                                               + this
-                                               + "\" - "
-                                               + e.getMessage());
+                    + this
+                    + "\" - "
+                    + e.getMessage());
         }
     }
 
     public Optional<ResourceLocation> getLocation() {
-        try {
-            return Optional.of(SFMResourceLocation.fromNamespaceAndPath(resourceNamespace, resourceName));
-        } catch (ResourceLocationException e) {
-            return Optional.empty();
-        }
+        return Optional.of(SFMResourceLocation.fromNamespaceAndPath(resourceNamespace, resourceName));
     }
 
     public boolean matchesStack(Object other) {
@@ -139,7 +133,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
 
     public List<ResourceIdentifier<STACK, ITEM, CAP>> expand() {
         try {
-            if (this.getResourceType() == SFMResourceTypes.FORGE_ENERGY.get())
+            if (this.getResourceType() == SFMResourceTypes.FORGE_ENERGY)
                 return List.of(new ResourceIdentifier<>(
                         this.resourceTypeNamespace,
                         this.resourceTypeName,
@@ -172,11 +166,6 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
             // the check we do above for forge_energy doesn't easily work for mekanism energy because
             // the mekanism resource types aren't stored in deferred register fields
             // for now, lets just not crash the game at least
-            return List.of(this);
-        } catch (ResourceLocationException e) {
-            // user may have ctrl+space inspection on an invalid resource identifier
-            // item*::stone
-            // the script should give a compile error but that doesn't prevent the inspection, so we catch here
             return List.of(this);
         }
     }
@@ -253,9 +242,9 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         if (o == null || getClass() != o.getClass()) return false;
         ResourceIdentifier<?, ?, ?> that = (ResourceIdentifier<?, ?, ?>) o;
         return Objects.equals(resourceTypeNamespace, that.resourceTypeNamespace)
-               && Objects.equals(resourceTypeName, that.resourceTypeName)
-               && Objects.equals(resourceNamespace, that.resourceNamespace)
-               && Objects.equals(resourceName, that.resourceName);
+                && Objects.equals(resourceTypeName, that.resourceTypeName)
+                && Objects.equals(resourceNamespace, that.resourceNamespace)
+                && Objects.equals(resourceName, that.resourceName);
     }
 
     @Override

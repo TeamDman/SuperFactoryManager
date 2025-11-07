@@ -6,10 +6,7 @@ import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.*;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.level.Level;
-import net.minecraftforge.network.NetworkHooks;
+import net.minecraft.world.World;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
@@ -201,9 +198,9 @@ public record Program(
         return trace -> {
             trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_HEADER_1.get());
             trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_HEADER_2.get());
-            Level level = context
+            World level = context
                     .getManager()
-                    .getLevel();
+                    .getWorld();
             //noinspection DataFlowIssue
             context
                     .getNetwork()

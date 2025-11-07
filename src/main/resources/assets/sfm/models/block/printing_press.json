@@ -1,0 +1,39 @@
+{
+    "format_version": "1.21.6",
+    "credit": "Made with Blockbench",
+    "parent": "minecraft:block/cube_bottom_top",
+    "texture_size": [32, 32],
+    "textures": {
+        "0": "sfm:block/printing_press_base",
+        "1": "sfm:block/printing_press_top",
+        "particle": "sfm:block/printing_press_base"
+    },
+    "elements": [
+        {
+            "name": "base",
+            "from": [0, 0, 0],
+            "to": [16, 15, 16],
+            "faces": {
+                "north": {"uv": [0, 0, 16, 16], "texture": "#0"},
+                "east": {"uv": [0, 0, 16, 16], "texture": "#0"},
+                "south": {"uv": [0, 0, 16, 16], "texture": "#0"},
+                "west": {"uv": [0, 0, 16, 16], "texture": "#0"},
+                "up": {"uv": [0, 0, 16, 16], "texture": "#0"},
+                "down": {"uv": [0, 0, 16, 16], "texture": "#0"}
+            }
+        },
+        {
+            "name": "plate",
+            "from": [1, 15, 1],
+            "to": [15, 16, 15],
+            "faces": {
+                "north": {"uv": [3, 1.5, 13, 2], "texture": "#1"},
+                "east": {"uv": [3, 1.5, 13, 2], "texture": "#1"},
+                "south": {"uv": [3, 1.5, 13, 2], "texture": "#1"},
+                "west": {"uv": [3, 1.5, 13, 2], "texture": "#1"},
+                "up": {"uv": [16, 16, 0, 0], "texture": "#1"},
+                "down": {"uv": [7, 7, 0, 14], "texture": "#1"}
+            }
+        }
+    ]
+}

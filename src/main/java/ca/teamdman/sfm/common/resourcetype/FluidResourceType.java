@@ -23,7 +23,7 @@ public class FluidResourceType extends RegistryBackedResourceType<FluidStack, Fl
     }
 
     @Override
-    public IForgeRegistry<Fluid> getRegistry() {
+    public SFMRegistryWrapper<Fluid> getRegistry() {
         return FluidRegistry.FluidDelegate;
     }
 

@@ -68,7 +68,8 @@ public class SFMBlockCapabilityDiscovery {
             return SFMBlockCapabilityResult.empty();
         }
 
-        if (!(cableNetwork.getLevel() instanceof ServerLevel serverLevel)) {
+        var serverLevel = cableNetwork.getLevel();
+        if (!cableNetwork.getLevel().isRemote) {
             return SFMBlockCapabilityResult.empty();
         }
         SFMBlockCapabilityResult<CAP> cap = discoverCapabilityFromLevel(
