@@ -9,12 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SFMItems {
-    public static Item MANAGER_ITEM;
-    public static Item TUNNELLED_MANAGER_ITEM;
-    public static Item CABLE_ITEM;
-    public static Item FANCY_CABLE_ITEM;
 
-    public static Item WATER_TANK_ITEM;
     public static DiskItem DISK_ITEM;
     public static LabelGunItem LABEL_GUN_ITEM;
     public static NetworkToolItem NETWORK_TOOL_ITEM;

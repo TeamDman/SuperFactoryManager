@@ -33,7 +33,6 @@ public class SFMPackets {
         registerPacket(ServerboundBoolExprStatementInspectionRequestPacket.class, Side.SERVER);
         registerPacket(ServerboundContainerExportsInspectionRequestPacket.class, Side.SERVER);
         registerPacket(ServerboundDiskItemSetProgramPacket.class, Side.SERVER);
-        registerPacket(ServerboundFacadePacket.class, Side.SERVER);
         registerPacket(ServerboundIfStatementInspectionRequestPacket.class, Side.SERVER);
         registerPacket(ServerboundInputInspectionRequestPacket.class, Side.SERVER);
         registerPacket(ServerboundLabelGunClearPacket.class, Side.SERVER);

@@ -16,20 +16,14 @@ public class SFMBlocks {
     public static TestBarrelBlock TEST_BARREL_BLOCK;
     public static TestBarrelTankBlock TEST_BARREL_TANK_BLOCK;
     public static CableBlock CABLE_BLOCK;
-    public static CableFacadeBlock CABLE_FACADE_BLOCK;
-    public static FancyCableBlock FANCY_CABLE_BLOCK;
-    public static FancyCableFacadeBlock FANCY_CABLE_FACADE_BLOCK;
 
     public static void initialize() {
         MANAGER_BLOCK = prepareRegister(new ManagerBlock(), "manager", ItemBlock::new);
-        BUFFER_BLOCK = prepareRegister(new BufferBlock(), "buffer", ItemBlock::new);
+        BUFFER_BLOCK = prepareRegister(new BufferBlock(BufferBlockTier.Basic), "buffer", ItemBlock::new);
         TUNNELLED_MANAGER_BLOCK = prepareRegister(new TunnelledManagerBlock(), "tunnelled_manager", ItemBlock::new);
         TEST_BARREL_BLOCK = prepareRegister(new TestBarrelBlock(), "test_barrel", ItemBlock::new);
         TEST_BARREL_TANK_BLOCK = prepareRegister(new TestBarrelTankBlock(), "test_barrel_tank", ItemBlock::new);
         CABLE_BLOCK = prepareRegister(new CableBlock(), "cable", ItemBlock::new);
-        CABLE_FACADE_BLOCK = prepareRegister(new CableFacadeBlock(), "cable_facade", ItemBlock::new);
-        FANCY_CABLE_BLOCK = prepareRegister(new FancyCableBlock(), "fancy_cable", ItemBlock::new);
-        FANCY_CABLE_FACADE_BLOCK = prepareRegister(new FancyCableFacadeBlock(), "fancy_cable_facade", ItemBlock::new);
     }
 
     private static <T extends Block> T prepareRegister(T block, String name, Function<Block, ItemBlock> itemBlockFactory) {
