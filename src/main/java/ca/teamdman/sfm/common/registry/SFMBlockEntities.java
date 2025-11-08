@@ -12,8 +12,6 @@ public final class SFMBlockEntities {
         register("manager", ManagerBlockEntity.class);
         register("buffer", BufferBlockEntity.class);
         register("tunnelled_manager", TunnelledManagerBlockEntity.class);
-        register("test_barrel", TestBarrelBlockEntity.class);
-        register("test_barrel_tank", TestBarrelTankBlockEntity.class);
     }
 
     private static void register(String name, Class<? extends TileEntity> clazz) {

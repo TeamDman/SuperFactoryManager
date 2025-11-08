@@ -13,16 +13,12 @@ public class SFMBlocks {
     public static ManagerBlock MANAGER_BLOCK;
     public static BufferBlock BUFFER_BLOCK;
     public static TunnelledManagerBlock TUNNELLED_MANAGER_BLOCK;
-    public static TestBarrelBlock TEST_BARREL_BLOCK;
-    public static TestBarrelTankBlock TEST_BARREL_TANK_BLOCK;
     public static CableBlock CABLE_BLOCK;
 
     public static void initialize() {
         MANAGER_BLOCK = prepareRegister(new ManagerBlock(), "manager", ItemBlock::new);
         BUFFER_BLOCK = prepareRegister(new BufferBlock(BufferBlockTier.Basic), "buffer", ItemBlock::new);
         TUNNELLED_MANAGER_BLOCK = prepareRegister(new TunnelledManagerBlock(), "tunnelled_manager", ItemBlock::new);
-        TEST_BARREL_BLOCK = prepareRegister(new TestBarrelBlock(), "test_barrel", ItemBlock::new);
-        TEST_BARREL_TANK_BLOCK = prepareRegister(new TestBarrelTankBlock(), "test_barrel_tank", ItemBlock::new);
         CABLE_BLOCK = prepareRegister(new CableBlock(), "cable", ItemBlock::new);
     }
 

@@ -948,11 +948,6 @@ public final class LocalizationKeys {
             () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM),
             () -> "Network Tool"
     );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry TEST_BARREL_BLOCK = new LocalizationEntry(
-            () -> SFMBlocks.TEST_BARREL_BLOCK.get().getDescriptionId(),
-            () -> "Test Barrel"
-    );
 
     //    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
 //    public static final LocalizationEntry BATTERY_BLOCK = new LocalizationEntry(

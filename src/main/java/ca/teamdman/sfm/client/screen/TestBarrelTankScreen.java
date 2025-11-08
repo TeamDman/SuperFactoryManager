@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.client.screen;
 
-import ca.teamdman.sfm.common.containermenu.TestBarrelTankContainerMenu;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import com.mojang.blaze3d.systems.RenderSystem;
