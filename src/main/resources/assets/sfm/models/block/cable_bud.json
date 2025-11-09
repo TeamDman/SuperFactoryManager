@@ -1,0 +1,6 @@
+{
+    "parent": "block/cube_all",
+    "textures": {
+        "all": "sfm:blocks/cable_bud"
+    }
+}

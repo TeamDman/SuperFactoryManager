@@ -14,6 +14,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SFMDisplayUtils {
     public static String getCursorPositionDisplay(
@@ -46,7 +47,7 @@ public class SFMDisplayUtils {
         var displayTokens = tokens
                 .stream()
                 .filter(token -> token.getStartIndex() - 10 <= cursorPos && token.getStopIndex() + 10 >= cursorPos)
-                .toList();
+                .collect(Collectors.toList());
         var activeToken = buildResult.getTokenAtCursorPosition(cursorPos);
         if (activeToken == null) {
             return "[ COULDN'T FIND CURSOR TOKEN ]";

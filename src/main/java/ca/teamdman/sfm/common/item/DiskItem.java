@@ -60,7 +60,7 @@ public class DiskItem extends Item {
     }
 
     public static void pruneIfDefault(ItemStack stack) {
-        if (getProgram(stack).isBlank() && LabelPositionHolder.from(stack).isEmpty()) {
+        if (getProgram(stack).trim().isEmpty() && LabelPositionHolder.from(stack).isEmpty()) {
             stack.setTagCompound(new NBTTagCompound());
         }
     }
@@ -124,7 +124,7 @@ public class DiskItem extends Item {
                         .getTagList("sfm:errors", Constants.NBT.TAG_COMPOUND).spliterator(), false)
                 .map(NBTTagCompound.class::cast)
                 .map(SFMTranslationUtils::deserializeTranslation)
-                .toList()
+                .collect(Collectors.toList())
                 : Collections.emptyList();
     }
 

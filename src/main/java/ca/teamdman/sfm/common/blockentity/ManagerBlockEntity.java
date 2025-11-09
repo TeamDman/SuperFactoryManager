@@ -124,7 +124,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                 }
             }
         } catch (Exception t) {
-            String configPath = "config/superfactorymanager.cfg";
+            String configPath = "config/sfm.cfg";
             String configValuePath = "server.disableProgramExecution";
             SFM.LOGGER.fatal(
                     "SFM detected a problem while ticking a manager. You can set `{} = true` in {} to help recover your world.",

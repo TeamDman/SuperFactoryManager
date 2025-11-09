@@ -11,6 +11,7 @@ import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.SFMASTUtils;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
+import ca.teamdman.sfm.common.util.StringUtil;
 import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfml.ast.Number;
 import io.netty.buffer.ByteBuf;
@@ -23,10 +24,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import org.antlr.v4.runtime.misc.Pair;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -79,7 +77,7 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                 } else if (behaviour
                         .getCurrentPath()
                         .streamBranches()
-                        .allMatch(Predicate.not(Branch::wasTrue))) {
+                        .allMatch(((Predicate<Branch>) Branch::wasTrue).negate())) {
                     payload.append(" all false\n");
                 } else {
                     payload.append('\n');
@@ -140,23 +138,26 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                         List<ResourceLimit> condensedResourceLimitList = new ArrayList<>();
                         for (ResourceLimit resourceLimit : resourceLimits.resourceLimitList()) {
                             // check if an existing resource limit has the same resource identifier
-                            condensedResourceLimitList
+                            var limit = condensedResourceLimitList
                                     .stream()
                                     .filter(x -> x
                                             .resourceIds()
                                             .equals(resourceLimit.resourceIds()))
-                                    .findFirst()
-                                    .ifPresentOrElse(found -> {
-                                        int i = condensedResourceLimitList.indexOf(found);
-                                        ResourceLimit newLimit = found.withLimit(new Limit(
-                                                found
-                                                        .limit()
-                                                        .quantity()
-                                                        .add(resourceLimit.limit().quantity()),
-                                                ResourceQuantity.MAX_QUANTITY
-                                        ));
-                                        condensedResourceLimitList.set(i, newLimit);
-                                    }, () -> condensedResourceLimitList.add(resourceLimit));
+                                    .findFirst();
+                            if (limit.isPresent()) {
+                                var found = limit.get();
+                                int i = condensedResourceLimitList.indexOf(found);
+                                ResourceLimit newLimit = found.withLimit(new Limit(
+                                        found
+                                                .limit()
+                                                .quantity()
+                                                .add(resourceLimit.limit().quantity()),
+                                        ResourceQuantity.MAX_QUANTITY
+                                ));
+                                condensedResourceLimitList.set(i, newLimit);
+                            } else {
+                                condensedResourceLimitList.add(resourceLimit);
+                            }
                         }
                         {
                             // prune items not covered by the output resource limits
@@ -234,7 +235,7 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
 
                 }
                 branchPayload.append("\n");
-                payload.append(branchPayload.toString().indent(4));
+                payload.append(StringUtil.indentPonyfill(branchPayload.toString(), 4));
             }
         });
 
@@ -244,7 +245,7 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                 new SimulateExploreAllPathsProgramBehaviour()
         ));
 
-        return payload.toString().strip();
+        return payload.toString().trim();
     }
 
     private static <STACK, ITEM, CAP> ResourceLimit getSlotResource(

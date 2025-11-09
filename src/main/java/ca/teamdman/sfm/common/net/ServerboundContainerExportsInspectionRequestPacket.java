@@ -25,6 +25,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -56,7 +57,7 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMAdvan
                             pos,
                             direction
                     ))
-                    .filter(s -> !s.isBlank())
+                    .filter(s -> !s.trim().isEmpty())
                     .forEach(results -> sb.append(results).append("\n"));
             if (sb.length() == len) {
                 sb.append("No exports found");

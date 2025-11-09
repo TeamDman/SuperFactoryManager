@@ -2,6 +2,7 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import ca.teamdman.sfm.common.util.StringUtil;
 import com.github.bsideup.jabel.Desugar;
 
 @Desugar public record RedstoneTrigger(
@@ -30,7 +31,7 @@ import com.github.bsideup.jabel.Desugar;
 
     @Override
     public String toString() {
-        return "EVERY REDSTONE PULSE DO\n" + block.toString().indent(1).stripTrailing() + "\nEND";
+        return "EVERY REDSTONE PULSE DO\n" + StringUtil.indentPonyfill(block.toString(), 1) + "END";
     }
 
     @Override

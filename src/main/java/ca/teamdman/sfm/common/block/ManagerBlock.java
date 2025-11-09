@@ -41,6 +41,17 @@ public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEn
         return new BlockStateContainer(this, TRIGGERED);
     }
 
+    @Override
+    public int getMetaFromState(IBlockState state) {
+        return state.getValue(TRIGGERED) ? 1 : 0;
+    }
+
+    @Override
+    public IBlockState getStateFromMeta(int meta) {
+        if (meta == 1) return getDefaultState().withProperty(TRIGGERED, true);
+        return getDefaultState();
+    }
+
     @Nullable
     @Override
     public TileEntity createNewTileEntity(World worldIn, int meta) {

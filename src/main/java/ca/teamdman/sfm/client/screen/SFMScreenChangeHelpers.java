@@ -11,6 +11,7 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.util.CollectionUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.resources.IResource;
@@ -24,9 +25,13 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.AbstractMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SFMScreenChangeHelpers {
     public static void setOrPushScreen(GuiScreen screen) {
@@ -162,7 +167,7 @@ public class SFMScreenChangeHelpers {
         SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
                 changelog,
                 changelog,
-                Map.of("changelog.sfml", changelog),
+                CollectionUtils.mapOf("changelog.sfml", changelog),
                 LabelPositionHolder.empty(),
                 newContent -> {
                 }

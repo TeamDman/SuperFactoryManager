@@ -13,6 +13,7 @@ import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -60,7 +61,7 @@ public class FluidResourceType extends ResourceType<FluidStack, Fluid, IFluidHan
 
     @Override
     public Set<ResourceLocation> getRegistryKeys() {
-        return Set.of();
+        return Collections.emptySet();
     }
 
     @Override

@@ -1,8 +1,0 @@
-{
-    "parent": "block/cube_bottom_top",
-    "textures": {
-        "top": "superfactorymanager:blocks/manager_top",
-        "bottom": "superfactorymanager:blocks/manager_bot",
-        "side": "superfactorymanager:blocks/manager_side"
-    }
-}

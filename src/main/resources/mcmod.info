@@ -1,10 +1,10 @@
 [
 {
-  "modid": "superfactorymanager",
+  "modid": "sfm",
   "name": "Super Factory Manager",
   "description": "Super Factory Manager is a mod which allows you to set up systems that moves and manages items between inventories and machines",
   "version": "${version}",
-  "mcversion": "1.12.2",
+  "mcversion": "${mcversion}",
   "url": "",
   "updateUrl": "",
   "authorList": ["Vswe", "TeamDman", "StoneMason"],

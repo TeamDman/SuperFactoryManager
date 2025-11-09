@@ -40,7 +40,7 @@ public record SuggestedResourceIntellisenseAction<STACK, ITEM, CAP>(
     public ManipulationResult perform(IntellisenseContext context) {
         return context
                 .createMutableProgramString()
-                .replaceWordAndMoveCursorsToEnd("%s ".formatted(display().getText()))
+                .replaceWordAndMoveCursorsToEnd(String.format("%s ", display().getText()))
                 .intoResult();
     }
 }

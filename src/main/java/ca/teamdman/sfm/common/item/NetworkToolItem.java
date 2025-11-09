@@ -25,6 +25,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -119,7 +120,7 @@ public class NetworkToolItem extends Item {
                 && stack.getTagCompound().getTag("sfm:cable_positions") instanceof NBTTagByteArray byteArrayTag) {
             return CompressedBlockPosSet.from(byteArrayTag).into();
         }
-        return Set.of();
+        return Collections.emptySet();
     }
 
     public static void setCapabilityProviderPositions(
@@ -137,6 +138,6 @@ public class NetworkToolItem extends Item {
                 && stack.getTagCompound().getTag("sfm:capability_provider_positions") instanceof NBTTagByteArray byteArrayTag) {
             return CompressedBlockPosSet.from(byteArrayTag).into();
         }
-        return Set.of();
+        return Collections.emptySet();
     }
 }

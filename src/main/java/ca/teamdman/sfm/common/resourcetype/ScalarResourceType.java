@@ -5,8 +5,7 @@ import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK, Class<STACK>, CAP> {
     public final ResourceLocation registryKey;
@@ -43,7 +42,7 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
 
     @Override
     public Set<ResourceLocation> getRegistryKeys() {
-        return Set.of(registryKey);
+        return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(registryKey)));
     }
 
     @Override

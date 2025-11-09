@@ -98,7 +98,7 @@
 //                String finalProgram = programString;
 //                ProgramBuilder.build(programString)
 //                        .caseSuccess((program, metadata) -> templatePrograms.put(
-//                                program.name().isBlank() ? entry.getKey().toString() : program.name(),
+//                                program.name().trim().isEmpty ? entry.getKey().toString() : program.name(),
 //                                finalProgram
 //                        ))
 //                        .caseFailure(result -> templatePrograms.put(
@@ -108,7 +108,7 @@
 //                Program.compile(
 //                        programString,
 //                        successProgram -> templatePrograms.put(
-//                                successProgram.name().isBlank() ? entry.getKey().toString() : successProgram.name(),
+//                                successProgram.name().trim().isEmpty ? entry.getKey().toString() : successProgram.name(),
 //                                finalProgram
 //                        ),
 //                        failure -> templatePrograms.put(

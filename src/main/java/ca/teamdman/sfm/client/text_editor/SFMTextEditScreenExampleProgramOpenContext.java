@@ -62,7 +62,7 @@ public record SFMTextEditScreenExampleProgramOpenContext(
      * @return true if it is safe to overwrite the disk, false otherwise
      */
     public boolean isSafeToOverwriteDisk() {
-        if (initialDiskContent().isBlank()) return true;
+        if (initialDiskContent().trim().isEmpty()) return true;
         return equalsAnyTemplate(initialDiskContent());
     }
 }

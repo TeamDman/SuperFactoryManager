@@ -153,7 +153,7 @@
 //                .simplify(Simplifiers.toLowerCase())
 //                .build();
 //        String queryString = query.getString();
-//        if (queryString.isBlank()) {
+//        if (queryString.trim().isEmpty) {
 //            var preferredOrder = new String[]{
 //                    "TICKS",
 //                    "INPUT",

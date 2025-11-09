@@ -1,0 +1,7 @@
+{
+    "variants": {
+        "camo_type=cable_camouflage": { "model": "sfm:builtin/cable_camouflage" },
+        "camo_type=cable_camouflage_inside": { "model": "sfm:builtin/cable_camouflage" },
+        "camo_type=cable_camouflage_shape": { "model": "sfm:builtin/cable_camouflage" }
+    }
+}

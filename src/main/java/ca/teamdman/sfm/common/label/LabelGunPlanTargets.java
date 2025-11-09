@@ -9,9 +9,7 @@ import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -31,7 +29,7 @@ public record LabelGunPlanTargets(
         Block targetBlock = level.getBlockState(msg.getPos()).getBlock();
 
         if (!msg.isContiguousModifierActive()) {
-            return new LabelGunPlanTargets(Set.of(msg.getPos()), Set.of());
+            return new LabelGunPlanTargets(new HashSet<>(Arrays.asList(msg.getPos())), Collections.emptySet());
         }
         Set<BlockPos> targets;
 

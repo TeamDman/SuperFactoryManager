@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 public class ClientRayCastHelpers {
     public static @Nullable TileEntity getLookBlockEntity() {
         if (!SFMEnvironmentUtils.isClient()) {
-            throw new IllegalCallerException("getLookBlockEntity must be called on client");
+            throw new RuntimeException("getLookBlockEntity must be called on client");
         }
         net.minecraft.client.Minecraft mc = Minecraft.getMinecraft();
         RayTraceResult result = mc.objectMouseOver;

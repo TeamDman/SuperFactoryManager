@@ -1,0 +1,23 @@
+{
+  "result": {
+    "item": "sfm:cable_camouflage",
+    "data": 1
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:iron_bars"
+    },
+    {
+      "item": "minecraft:iron_bars"
+    },
+    {
+      "item": "sfm:cable_camouflage",
+      "data": 0
+    },
+    {
+      "item": "sfm:cable_camouflage",
+      "data": 0
+    }
+  ]
+}

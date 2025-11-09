@@ -2,6 +2,7 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import ca.teamdman.sfm.common.util.StringUtil;
 import com.github.bsideup.jabel.Desugar;
 
 import java.util.Arrays;
@@ -46,7 +47,7 @@ import java.util.List;
 
     @Override
     public String toString() {
-        return "EVERY " + interval + " DO\n" + block.toString().indent(1).stripTrailing() + "\nEND";
+        return "EVERY " + interval + " DO\n" + StringUtil.indentPonyfill(block.toString(), 1).trim() + "\nEND";
     }
 
     @Override

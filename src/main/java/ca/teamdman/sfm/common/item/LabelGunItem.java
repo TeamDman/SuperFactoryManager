@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class LabelGunItem extends Item {
     public LabelGunItem() {
@@ -70,7 +71,7 @@ public class LabelGunItem extends Item {
                 .keySet()
                 .stream()
                 .sorted(Comparator.naturalOrder())
-                .toList();
+                .collect(Collectors.toList());
         if (labels.isEmpty()) return "";
         var currentLabel = getActiveLabel(gun);
 

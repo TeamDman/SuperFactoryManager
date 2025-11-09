@@ -1,0 +1,10 @@
+{
+    "variants": {
+        "limitless=false": {
+            "model": "sfm:manager"
+        },
+        "limitless=true": {
+            "model": "sfm:manager"
+        }
+    }
+}

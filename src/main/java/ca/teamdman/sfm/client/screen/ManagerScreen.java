@@ -42,7 +42,9 @@ import org.lwjgl.opengl.GL11;
 import java.awt.*;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
 
@@ -353,7 +355,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
     }
 
     private void onResetButtonClicked() {
-        if (getProgram().isBlank() && LabelPositionHolder.from(menu.getDisk()).isEmpty()) {
+        if (getProgram().trim().isEmpty() && LabelPositionHolder.from(menu.getDisk()).isEmpty()) {
             performReset();
             return;
         }
@@ -455,7 +457,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
             return;
         }
         String existingProgram = getProgram();
-        boolean shouldConfirm = !existingProgram.isBlank() && !existingProgram.equals(clipboardContents);
+        boolean shouldConfirm = !existingProgram.trim().isEmpty() && !existingProgram.equals(clipboardContents);
         if (!shouldConfirm) {
             sendProgram(clipboardContents);
             return;
@@ -709,7 +711,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
         return getButtonsForJEIExclusionZones()
                 .stream()
                 .map(button -> new Rectangle(button.x, button.y, button.width, button.height))
-                .toList();
+                .collect(Collectors.toList());
     }
 
 }

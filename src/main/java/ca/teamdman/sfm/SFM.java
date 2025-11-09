@@ -2,13 +2,12 @@ package ca.teamdman.sfm;
 
 import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.command.SFMCommand;
+import ca.teamdman.sfm.common.program.LimitedInputSlotObjectPool;
+import ca.teamdman.sfm.common.program.LimitedOutputSlotObjectPool;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.event.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,7 +15,7 @@ import org.apache.logging.log4j.Logger;
         modid = SFM.MOD_ID,
         name = SFM.MOD_NAME,
         version = SFM.VERSION,
-        dependencies = "required-after:forge@[14.23.5.2860,);"
+        dependencies = "required-after:forge@[14.23.5.2847,);"
 )
 public class SFM {
     public static final String MOD_ID = "sfm";
@@ -64,5 +63,11 @@ public class SFM {
     public void onServerStartup(FMLServerStartingEvent event) {
         proxy.loadComplete();
         event.registerServerCommand(new SFMCommand());
+    }
+
+    @Mod.EventHandler
+    public void onServerStopped(FMLServerStoppedEvent event) {
+        LimitedInputSlotObjectPool.onServerStopped(event);
+        LimitedOutputSlotObjectPool.onServerStopped(event);
     }
 }

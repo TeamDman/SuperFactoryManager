@@ -19,7 +19,6 @@ import java.util.IdentityHashMap;
  * A pool of {@link LimitedOutputSlot} objects to avoid the garbage collector
  */
 @SuppressWarnings("DuplicatedCode")
-@Mod.EventBusSubscriber(modid = SFM.MOD_ID)
 public class LimitedOutputSlotObjectPool {
     public static final IdentityHashMap<LimitedOutputSlot<?, ?, ?>, Boolean> LEASED = new IdentityHashMap<>();
     @SuppressWarnings("rawtypes")
@@ -119,7 +118,6 @@ public class LimitedOutputSlotObjectPool {
         }
     }
 
-    @SubscribeEvent
     public static void onServerStopped(FMLServerStoppedEvent event) {
         pool = new LimitedOutputSlot[27];
         index = -1;

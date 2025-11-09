@@ -1,0 +1,7 @@
+{
+    "parent": "sfm:block/orientable_front",
+    "textures": {
+        "front": "sfm:blocks/cable_intake_out",
+        "side": "sfm:blocks/cable_intake"
+    }
+}

@@ -1,0 +1,8 @@
+{
+    "parent": "block/cube_bottom_top",
+    "textures": {
+        "top": "sfm:blocks/manager_top",
+        "bottom": "sfm:blocks/manager_bot",
+        "side": "sfm:blocks/manager_side"
+    }
+}

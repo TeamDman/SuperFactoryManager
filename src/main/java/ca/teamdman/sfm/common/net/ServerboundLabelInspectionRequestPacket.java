@@ -5,6 +5,7 @@ import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.util.StringUtil;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.DecoderException;
@@ -110,9 +111,9 @@ public class ServerboundLabelInspectionRequestPacket extends SFMPacket<Serverbou
                             .append(" -- ")
                             .append(world.getBlockState(pos).getBlock().getLocalizedName());
 
-                    payload.append("\n").append(ServerboundContainerExportsInspectionRequestPacket
-                            .buildInspectionResults(world, pos)
-                            .indent(1));
+                    payload.append("\n").append(StringUtil.indentPonyfill(ServerboundContainerExportsInspectionRequestPacket
+                                    .buildInspectionResults(world, pos)
+                            , 1));
                 } else {
                     payload
                             .append(" -- chunk not loaded");

@@ -48,7 +48,7 @@ public record SuggestedTokensIntellisenseAction(
                         programStringMut.insertTextWithoutMovingCursors("\n");
                         programStringMut.offsetCursors(1);
                     }
-                } else if (word.isBlank()) {
+                } else if (word.trim().isEmpty()) {
                     // insert double quote pair
                     programStringMut.replaceWordAndMoveCursorsToEnd("\"\"");
                     programStringMut.offsetCursors(-1);

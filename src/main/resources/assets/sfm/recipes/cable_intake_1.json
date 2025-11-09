@@ -1,0 +1,17 @@
+{
+  "result": {
+    "item": "sfm:cable_intake",
+    "data": 8
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "sfm:cable_intake",
+      "data": 0
+    },
+    {
+        "type": "forge:ore_dict",
+        "ore": "ingotGold"
+    }
+  ]
+}

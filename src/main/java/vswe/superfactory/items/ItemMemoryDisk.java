@@ -68,7 +68,7 @@ public class ItemMemoryDisk extends Item {
 	}
 
 	public static boolean validateNBT(ItemStack stack) {
-		return stack.hasTagCompound() && (stack.getTagCompound().getString("id").equals("superfactorymanager:manager") || stack.getTagCompound().getString("id").equals("rfmanager"));
+		return stack.hasTagCompound() && (stack.getTagCompound().getString("id").equals("sfm:manager") || stack.getTagCompound().getString("id").equals("rfmanager"));
 		//        stack.setTagCompound(null);
 	}
 
