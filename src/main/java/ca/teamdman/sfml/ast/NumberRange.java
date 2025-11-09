@@ -1,6 +1,8 @@
 package ca.teamdman.sfml.ast;
 
-public record NumberRange(
+import com.github.bsideup.jabel.Desugar;
+
+@Desugar public record NumberRange(
         long start,
         long end
 ) implements ASTNode {

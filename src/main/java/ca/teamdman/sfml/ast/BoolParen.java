@@ -1,8 +1,11 @@
 package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
+import com.github.bsideup.jabel.Desugar;
 
-public record BoolParen(BoolExpr inner) implements BoolExpr {
+@Desugar public record BoolParen(
+        BoolExpr inner
+) implements BoolExpr {
     @Override
     public boolean test(ProgramContext programContext) {
         return inner.test(programContext);

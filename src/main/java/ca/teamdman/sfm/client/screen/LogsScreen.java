@@ -13,20 +13,17 @@ import ca.teamdman.sfm.common.net.ServerboundManagerClearLogsPacket;
 import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
 import ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.time.MutableInstant;
-import org.lwjgl.input.Mouse;
 
 import java.util.*;
 
@@ -35,7 +32,8 @@ import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_EDIT_
 // todo: checkbox for auto-scrolling
 public class LogsScreen extends GuiScreen {
     private final ManagerContainerMenu MENU;
-    private MyMultiLineEditBox textarea;
+    @SuppressWarnings("NotNullFieldNotInitialized")
+//    private MyMultiLineEditBox textarea;
     private List<ITextComponent> content = Collections.emptyList();
     private int lastSize = 0;
     private Map<Level, GuiButton> levelButtons = new HashMap<>();
@@ -44,6 +42,7 @@ public class LogsScreen extends GuiScreen {
 
     public LogsScreen(ManagerContainerMenu menu) {
         super();
+        // title LocalizationKeys.LOGS_SCREEN_TITLE.getComponent()
         this.MENU = menu;
         this.lastKnownLogLevel = MENU.logLevel;
     }
@@ -63,18 +62,18 @@ public class LogsScreen extends GuiScreen {
         var toProcess = MENU.logs;
         if (toProcess.isEmpty() && MENU.logLevel.equals(Level.OFF.name())) {
             MutableInstant instant = new MutableInstant();
-            instant.initFromEpochMilli(System.currentTimeMillis());
+            instant.initFromEpochMilli(System.currentTimeMillis(), 0);
             toProcess.add(new TranslatableLogEvent(
                     Level.INFO,
                     instant,
-                    new TextComponentString(LocalizationKeys.LOGS_GUI_NO_CONTENT.get())
+                    LocalizationKeys.LOGS_GUI_NO_CONTENT.get()
             ));
         }
         for (TranslatableLogEvent log : toProcess) {
             int seconds = (int) (System.currentTimeMillis() - log.instant().getEpochMillisecond()) / 1000;
             int minutes = seconds / 60;
             seconds = seconds % 60;
-            var ago = new TextComponentString(minutes + "m" + seconds + "s ago").setStyle(new net.minecraft.util.text.Style().setColor(TextFormatting.GRAY));
+            var ago = new TextComponentString(minutes + "m" + seconds + "s ago").setStyle(new Style().setColor(TextFormatting.GRAY));
 
             var level = new TextComponentString(" [" + log.level() + "] ");
             if (log.level() == Level.ERROR) {
@@ -114,7 +113,7 @@ public class LogsScreen extends GuiScreen {
                 } else if (insideCodeBlock) {
                     codeBlock.append(line).append("\n");
                 } else {
-                    lineComponent = new TextComponentString(line).setStyle(new net.minecraft.util.text.Style().setColor(TextFormatting.WHITE));
+                    lineComponent = new TextComponentString(line).setStyle(new Style().setColor(TextFormatting.WHITE));
                     if (i == 0) {
                         lineComponent = ago
                                 .appendSibling(level)
@@ -132,12 +131,13 @@ public class LogsScreen extends GuiScreen {
         for (var line : this.content) {
             sb.append(line.getUnformattedText()).append("\n");
         }
-        textarea.setText(sb.toString());
+//        textarea.setValue(sb.toString());
         lastSize = MENU.logs.size();
     }
 
     public boolean isReadOnly() {
-        return mc.player == null || mc.player.isSpectator();
+        EntityPlayerSP player = Minecraft.getMinecraft().player;
+        return player == null || player.isSpectator();
     }
 
     public void onLogLevelChange() {
@@ -150,192 +150,300 @@ public class LogsScreen extends GuiScreen {
         lastKnownLogLevel = MENU.logLevel;
     }
 
-    @Override
-    public void initGui() {
-        super.initGui();
-        assert this.mc != null;
-        this.textarea = new MyMultiLineEditBox();
-
-        rebuildText();
-
-
-        var buttons = isReadOnly() ? new Level[]{} : new Level[]{
-                Level.OFF,
-                Level.TRACE,
-                Level.DEBUG,
-                Level.INFO,
-                Level.WARN,
-                Level.ERROR
-        };
-        int buttonWidth = 60;
-        int buttonHeight = 20;
-        int spacing = 5;
-        int startX = (this.width - (buttonWidth * buttons.length + spacing * 4)) / 2;
-        int startY = this.height / 2 - 115;
-        int buttonIndex = 0;
-
-        this.levelButtons = new HashMap<>();
-        for (var level : buttons) {
-            GuiButton levelButton = new SFMButtonBuilder()
-                    .setSize(buttonWidth, buttonHeight)
-                    .setPosition(
-                            startX + (buttonWidth + spacing) * buttonIndex,
-                            startY
-                    )
-                    .setText(level.name())
-                    .setOnPress(button -> {
-                        String logLevel = level.name();
-                        SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundManagerSetLogLevelPacket(
-                                MENU.windowId,
-                                MENU.MANAGER_POSITION,
-                                logLevel
-                        ));
-                        MENU.logLevel = logLevel;
-                        onLogLevelChange();
-                    })
-                    .build(this.buttonList.size());
-            levelButtons.put(level, levelButton);
-            this.buttonList.add(levelButton);
-            buttonIndex++;
-        }
-        onLogLevelChange();
-
-
-        this.buttonList.add(
-                new SFMButtonBuilder()
-                        .setPosition(this.width / 2 - 200, this.height / 2 - 100 + 195)
-                        .setSize(80, 20)
-                        .setText(LocalizationKeys.LOGS_GUI_COPY_LOGS_BUTTON.get())
-                        .setOnPress(this::onCopyLogsClicked)
-                        .build(this.buttonList.size())
-        );
-        this.buttonList.add(
-                new SFMButtonBuilder()
-                        .setPosition(this.width / 2 - 100, this.height / 2 - 100 + 195)
-                        .setSize(200, 20)
-                        .setText("Done")
-                        .setOnPress((p_97691_) -> this.onClose())
-                        .build(this.buttonList.size())
-        );
-        if (!isReadOnly()) {
-            this.buttonList.add(
-                    new SFMButtonBuilder()
-                            .setPosition(this.width / 2 + 115, this.height / 2 - 100 + 195)
-                            .setSize(80, 20)
-                            .setText(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON.get())
-                            .setOnPress((button) -> {
-                                SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundManagerClearLogsPacket(
-                                        MENU.windowId,
-                                        MENU.MANAGER_POSITION
-                                ));
-                                MENU.logs.clear();
-                            })
-                            .build(this.buttonList.size())
-            );
-        }
-    }
-
-    private void onCopyLogsClicked(GuiButton button) {
-        StringBuilder clip = new StringBuilder();
-        clip.append(SFMDiagnostics.getDiagnosticsSummary(
-                MENU.getDisk()
-        ));
-        clip.append("\n-- LOGS --\n");
-        if (isShiftKeyDown()) {
-            for (TranslatableLogEvent log : MENU.logs) {
-                clip.append(log.level().name()).append(" ");
-                clip.append(log.instant().toString()).append(" ");
-                clip.append(log.contents().getUnformattedText());
-                clip.append("\n");
-            }
-        } else {
-            for (ITextComponent line : content) {
-                clip.append(line.getUnformattedText()).append("\n");
-            }
-        }
-        setClipboardString(clip.toString());
-    }
-
-    @Override
-    public void onGuiClosed() {
-        SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundManagerLogDesireUpdatePacket(
-                MENU.windowId,
-                MENU.MANAGER_POSITION,
-                false
-        ));
-        super.onGuiClosed();
-    }
-
+//    @Override
+//    public void initGui() {
+//        super.initGui();
+//        assert this.mc != null;
+//        this.textarea = this.addRenderableWidget(new MyMultiLineEditBox());
+//
+//        rebuildText();
+//
+//        this.setInitialFocus(textarea);
+//
+//
+//        var buttons = isReadOnly() ? new Level[]{} : new Level[]{
+//                Level.OFF,
+//                Level.TRACE,
+//                Level.DEBUG,
+//                Level.INFO,
+//                Level.WARN,
+//                Level.ERROR
+//        };
+//        int buttonWidth = 60;
+//        int buttonHeight = 20;
+//        int spacing = 5;
+//        int startX = (this.width - (buttonWidth * buttons.length + spacing * 4)) / 2;
+//        int startY = this.height / 2 - 115;
+//        int buttonIndex = 0;
+//
+//        this.levelButtons = new HashMap<>();
+//        for (var level : buttons) {
+//            Button levelButton = new SFMButtonBuilder()
+//                    .setSize(buttonWidth, buttonHeight)
+//                    .setPosition(
+//                            startX + (buttonWidth + spacing) * buttonIndex,
+//                            startY
+//                    )
+//                    .setText(Component.literal(level.name()))
+//                    .setOnPress(button -> {
+//                        String logLevel = level.name();
+//                        SFMPackets.sendToServer(new ServerboundManagerSetLogLevelPacket(
+//                                MENU.containerId,
+//                                MENU.MANAGER_POSITION,
+//                                logLevel
+//                        ));
+//                        MENU.logLevel = logLevel;
+//                        onLogLevelChange();
+//                    })
+//                    .build();
+//            levelButtons.put(level, levelButton);
+//            this.addRenderableWidget(levelButton);
+//            buttonIndex++;
+//        }
+//        onLogLevelChange();
+//
+//
+//        this.addRenderableWidget(
+//                new SFMButtonBuilder()
+//                        .setPosition(this.width / 2 - 200, this.height / 2 - 100 + 195)
+//                        .setSize(80, 20)
+//                        .setText(LocalizationKeys.LOGS_GUI_COPY_LOGS_BUTTON)
+//                        .setOnPress(this::onCopyLogsClicked)
+//                        .setTooltip(this, font, LocalizationKeys.LOGS_GUI_COPY_LOGS_BUTTON_TOOLTIP)
+//                        .build()
+//        );
+//        this.addRenderableWidget(
+//                new SFMButtonBuilder()
+//                        .setPosition(this.width / 2 - 2 - 100, this.height / 2 - 100 + 195)
+//                        .setSize(200, 20)
+//                        .setText(CommonComponents.GUI_DONE)
+//                        .setOnPress((p_97691_) -> this.onClose())
+//                        .setTooltip(this, font, PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP)
+//                        .build()
+//        );
+//        if (!isReadOnly()) {
+//            this.addRenderableWidget(
+//                    new SFMButtonBuilder()
+//                            .setPosition(this.width / 2 - 2 + 115, this.height / 2 - 100 + 195)
+//                            .setSize(80, 20)
+//                            .setText(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON)
+//                            .setOnPress((button) -> {
+//                                SFMPackets.sendToServer(new ServerboundManagerClearLogsPacket(
+//                                        MENU.containerId,
+//                                        MENU.MANAGER_POSITION
+//                                ));
+//                                MENU.logs.clear();
+//                            })
+//                            .build()
+//            );
+//        }
+//    }
+//
+//    private void onCopyLogsClicked(Button button) {
+//        StringBuilder clip = new StringBuilder();
+//        clip.append(SFMDiagnostics.getDiagnosticsSummary(
+//                MENU.getDisk()
+//        ));
+//        clip.append("\n-- LOGS --\n");
+//        if (hasShiftDown()) {
+//            for (TranslatableLogEvent log : MENU.logs) {
+//                clip.append(log.level().name()).append(" ");
+//                clip.append(log.instant().toString()).append(" ");
+//                clip.append(log.contents().getKey());
+//                for (Object arg : log.contents().getArgs()) {
+//                    clip.append(" ").append(arg);
+//                }
+//                clip.append("\n");
+//            }
+//        } else {
+//            for (MutableComponent line : content) {
+//                clip.append(line.getString()).append("\n");
+//            }
+//        }
+//        Minecraft.getInstance().keyboardHandler.setClipboard(clip.toString());
+//    }
+//
+//    @Override
+//    public void onClose() {
+//        SFMPackets.sendToServer(new ServerboundManagerLogDesireUpdatePacket(
+//                MENU.containerId,
+//                MENU.MANAGER_POSITION,
+//                false
+//        ));
+//        super.onClose();
+//    }
+//
     public void scrollToBottom() {
-        textarea.scrollToBottom();
+//        textarea.scrollToBottom();
     }
-
-    @Override
-    public void drawScreen(int mx, int my, float partialTicks) {
-        this.drawDefaultBackground();
-        textarea.drawTextBox();
-        super.drawScreen(mx, my, partialTicks);
-        if (!MENU.logLevel.equals(lastKnownLogLevel)) {
-            onLogLevelChange();
-        }
-    }
-
-    // TODO: enable scrolling without focus
-    private class MyMultiLineEditBox {
-        private int scrollAmount;
-        private String text;
-
-        public MyMultiLineEditBox() {
-        }
-
-        public void scrollToBottom() {
-            setScrollAmount(Integer.MAX_VALUE);
-        }
-
-        public void setText(String text) {
-            this.text = text;
-        }
-
-        public void drawTextBox() {
-            if (shouldRebuildText()) {
-                rebuildText();
-            }
-
-            int x = LogsScreen.this.width / 2 - 200;
-            int y = LogsScreen.this.height / 2 - 90;
-            int width = 400;
-            int height = 180;
-
-            drawRect(x, y, x + width, y + height, 0xFF000000);
-
-            int scrollY = this.scrollAmount;
-            int lineY = y + 5 - scrollY;
-
-            for (int i = 0; i < content.size(); i++) {
-                if (lineY > y && lineY < y + height) {
-                    LogsScreen.this.fontRenderer.drawString(content.get(i).getFormattedText(), x + 5, lineY, 0xFFFFFF);
-                }
-                lineY += LogsScreen.this.fontRenderer.FONT_HEIGHT;
-            }
-        }
-
-        public void handleMouseInput() {
-            int i = Mouse.getEventDWheel();
-            if (i != 0) {
-                if (i > 0) {
-                    i = -1;
-                } else {
-                    i = 1;
-                }
-                this.scrollAmount += i * LogsScreen.this.fontRenderer.FONT_HEIGHT;
-                if (this.scrollAmount < 0) {
-                    this.scrollAmount = 0;
-                }
-            }
-        }
-
-        public void setScrollAmount(int scrollAmount) {
-            this.scrollAmount = scrollAmount;
-        }
-    }
+//
+//    @Override
+//    public void resize(Minecraft mc, int x, int y) {
+//        var prev = this.textarea.getValue();
+//        init(mc, x, y);
+//        super.resize(mc, x, y);
+//        this.textarea.setValue(prev);
+//    }
+//
+//    @Override
+//    public void render(PoseStack poseStack, int mx, int my, float partialTicks) {
+//        this.renderBackground(poseStack);
+//        super.render(poseStack, mx, my, partialTicks);
+//        if (!MENU.logLevel.equals(lastKnownLogLevel)) {
+//            onLogLevelChange();
+//        }
+//    }
+//
+//    // TODO: enable scrolling without focus
+//    private class MyMultiLineEditBox extends MultiLineEditBox {
+//        public MyMultiLineEditBox() {
+//            super(
+//                    LogsScreen.this.font,
+//                    LogsScreen.this.width / 2 - 200,
+//                    LogsScreen.this.height / 2 - 90,
+//                    400,
+//                    180,
+//                    Component.literal(""),
+//                    Component.literal("")
+//            );
+//        }
+//
+//        public void scrollToBottom() {
+//            setScrollAmount(Double.MAX_VALUE);
+//        }
+//
+//        @Override
+//        public void setValue(String p_240160_) {
+////            var cursorListener = textField::scro
+//            this.textField.setValue(p_240160_);
+////            setCursorPosition(cursor);
+//        }
+//
+//        @Override
+//        public boolean mouseClicked(double p_239101_, double p_239102_, int p_239103_) {
+//            try {
+//                return super.mouseClicked(p_239101_, p_239102_, p_239103_);
+//            } catch (Exception e) {
+//                SFM.LOGGER.error("Error in LogsScreen.MyMultiLineEditBox.mouseClicked", e);
+//                return false;
+//            }
+//        }
+//
+//        @Override
+//        public int getInnerHeight() {
+//            // parent method uses this.textField.getLineCount() which is split for text wrapping
+//            // we don't use the wrapped text, so we need to calculate the height ourselves to avoid overshooting
+//            return this.font.lineHeight * (content.size() + 2);
+//        }
+//
+//        @Override
+//        protected void renderContents(PoseStack poseStack, int mx, int my, float partialTicks) {
+//            Matrix4f matrix4f = poseStack.last().pose();
+//            if (shouldRebuildText()) {
+//                rebuildText();
+//            }
+//            boolean isCursorVisible = this.isFocused() && this.frame / 6 % 2 == 0;
+//            boolean isCursorAtEndOfLine = false;
+//            int cursorIndex = textField.cursor();
+//            int lineX = SFMScreenRenderUtils.getX(this) + this.innerPadding();
+//            int lineY = SFMScreenRenderUtils.getY(this) + this.innerPadding();
+//            int charCount = 0;
+//            int cursorX = 0;
+//            int cursorY = 0;
+//            MultilineTextField.StringView selectedRange = this.textField.getSelected();
+//            int selectionStart = selectedRange.beginIndex();
+//            int selectionEnd = selectedRange.endIndex();
+//
+////            for (int line = 0; line < content.size(); ++line) {
+//            // draw the last 500 lines
+//            for (int line = Math.max(0, content.size() - 500); line < content.size(); ++line) {
+//                var componentColoured = content.get(line);
+//                int lineLength = componentColoured.getString().length();
+//                int lineHeight = this.font.lineHeight + (line == 0 ? 2 : 0);
+//                boolean cursorOnThisLine = isCursorVisible
+//                        && cursorIndex >= charCount
+//                        && cursorIndex <= charCount + lineLength;
+//                var buffer = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+//
+//                if (cursorOnThisLine) {
+//                    isCursorAtEndOfLine = cursorIndex == charCount + lineLength;
+//                    cursorY = lineY;
+//                    // we draw the raw before coloured in case of token recognition errors
+//                    // draw before cursor
+//                    cursorX = SFMFontUtils.drawInBatch(
+//                            SFMTextEditScreenV1.substring(componentColoured, 0, cursorIndex - charCount),
+//                            font,
+//                            lineX,
+//                            lineY,
+//                            true,
+//                            false,
+//                            matrix4f,
+//                            buffer) - 1;
+//                    SFMFontUtils.drawInBatch(
+//                            SFMTextEditScreenV1.substring(componentColoured, cursorIndex - charCount, lineLength),
+//                            font,
+//                            cursorX,
+//                            lineY,
+//                            true,
+//                            false,
+//                            matrix4f,
+//                            buffer);
+//                } else {
+//                    SFMFontUtils.drawInBatch(
+//                            componentColoured,
+//                            font,
+//                            lineX,
+//                            lineY,
+//                            true,
+//                            false,
+//                            matrix4f,
+//                            buffer);
+//                }
+//                buffer.endBatch();
+//
+//                // Check if the selection is within the current line
+//                if (selectionStart <= charCount + lineLength && selectionEnd > charCount) {
+//                    int lineSelectionStart = Math.max(selectionStart - charCount, 0);
+//                    int lineSelectionEnd = Math.min(selectionEnd - charCount, lineLength);
+//
+//                    int highlightStartX = this.font.width(SFMTextEditScreenV1.substring(
+//                            componentColoured,
+//                            0,
+//                            lineSelectionStart
+//                    ));
+//                    int highlightEndX = this.font.width(SFMTextEditScreenV1.substring(
+//                            componentColoured,
+//                            0,
+//                            lineSelectionEnd
+//                    ));
+//
+//                    SFMScreenRenderUtils.renderHighlight(
+//                            poseStack,
+//                            lineX + highlightStartX,
+//                            lineY,
+//                            lineX + highlightEndX,
+//                            lineY + lineHeight
+//                    );
+//                }
+//
+//                lineY += lineHeight;
+//                charCount += lineLength + 1;
+//            }
+//
+//            if (isCursorAtEndOfLine) {
+//                SFMFontUtils.draw(
+//                        poseStack,
+//                        this.font,
+//                        "_",
+//                        cursorX,
+//                        cursorY,
+//                        -1,
+//                        true
+//                );
+//            } else {
+//                GuiComponent.fill(poseStack, cursorX, cursorY - 1, cursorX + 1, cursorY + 1 + 9, -1);
+//            }
+//        }
+//    }
 }
+

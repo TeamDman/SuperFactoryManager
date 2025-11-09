@@ -13,11 +13,12 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
     public final Class<STACK> item;
 
     public ScalarResourceType(
+            ResourceTypeContainer container,
             SFMBlockCapabilityKind<CAP> capability,
             ResourceLocation registryKey,
             Class<STACK> item
     ) {
-        super(capability);
+        super(container, capability);
         this.registryKey = registryKey;
         this.item = item;
     }
@@ -47,7 +48,7 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
 
     @Override
     public Iterable<Class<STACK>> getItems() {
-        return List.of(item);
+        return Arrays.asList(item);
     }
 
     @Override

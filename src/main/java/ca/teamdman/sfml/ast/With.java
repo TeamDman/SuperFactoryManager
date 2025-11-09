@@ -1,8 +1,10 @@
 package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import com.github.bsideup.jabel.Desugar;
 
-public record With(
+
+@Desugar public record With(
         WithClause condition,
         WithMode mode
 ) implements WithClause, ToStringPretty {

@@ -6,7 +6,6 @@ import ca.teamdman.sfm.common.resourcetype.*;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import javax.annotation.Nullable;
 
@@ -21,26 +20,36 @@ public class SFMResourceTypes {
     public static RedstoneResourceType REDSTONE;
 
     public static void initialize() {
-        ITEM = prepareRegister(new ItemResourceType(), "item");
-        FLUID = prepareRegister(new FluidResourceType(), "fluid");
-        FORGE_ENERGY = prepareRegister(new ForgeEnergyResourceType(), "forge_energy");
-        REDSTONE = prepareRegister(new RedstoneResourceType(), "redstone");
+        ITEM = prepareRegister(ItemResourceType::new, "item");
+        FLUID = prepareRegister(FluidResourceType::new, "fluid");
+        FORGE_ENERGY = prepareRegister(ForgeEnergyResourceType::new, "forge_energy");
+        REDSTONE = prepareRegister(RedstoneResourceType::new, "redstone");
 
         // if (SFMModCompat.isMekanismLoaded()) {
         //     SFMMekanismCompat.registerResourceTypes();
         // }
     }
 
-    private static <T extends ResourceType<?, ?, ?>> T prepareRegister(T resourceType, String name) {
+    public interface ResourceTypeGenerator<T extends ResourceType<?, ?, ?>> {
+        T generate(ResourceTypeContainer container);
+    }
+
+    private static <T extends ResourceType<?, ?, ?>> T prepareRegister(ResourceTypeGenerator<T> resourceType, String name) {
         var container = new ResourceTypeContainer() {
+            @Nullable
+            T resource;
+
             @Override
-            public ResourceType<?, ?, ?> get() {
-                return resourceType;
+            public T get() {
+                if (resource == null) {
+                    resource = resourceType.generate(this);
+                }
+                return resource;
             }
         };
         container.setRegistryName(new ResourceLocation(SFM.MOD_ID, name));
         register(container);
-        return resourceType;
+        return container.get();
     }
 
     private static <T extends ResourceTypeContainer> T register(T resourceType) {
@@ -49,7 +58,7 @@ public class SFMResourceTypes {
     }
 
     public static int getResourceTypeCount() {
-        return registry().getValues().size();
+        return registry().getValuesCollection().size();
     }
 
     public static @Nullable ResourceType<?, ?, ?> fastLookup(

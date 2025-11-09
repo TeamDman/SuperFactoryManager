@@ -2,10 +2,11 @@ package ca.teamdman.sfm.common.label;
 
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.*;
+import net.minecraft.nbt.NBTTagByteArray;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +18,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("UnusedReturnValue")
-public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
+@Desugar
+public record LabelPositionHolder(
+        Map<String, HashSet<BlockPos>> labels
+) {
     private final static WeakHashMap<ItemStack, LabelPositionHolder> CACHE = new WeakHashMap<>();
 
     private LabelPositionHolder() {
@@ -79,7 +83,7 @@ public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
         for (var entry : labels().entrySet()) {
             String label = entry.getKey();
             NBTTagByteArray positionsTag = CompressedBlockPosSet.from(entry.getValue()).asTag();
-            tag.put(label, positionsTag);
+            tag.setTag(label, positionsTag);
         }
         return tag;
     }
@@ -108,7 +112,7 @@ public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
             String label,
             Collection<BlockPos> positions
     ) {
-        if (label.isBlank()) return this;
+        if (label.trim().isEmpty()) return this;
         getPositionsMut(label).addAll(positions);
         return this;
     }
@@ -118,17 +122,19 @@ public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
         return this;
     }
 
-    public List<ITextComponent> asHoverText() {
-        var rtn = new ArrayList<ITextComponent>();
+    public List<String> asHoverText() {
+        var rtn = new ArrayList<String>();
         if (labels().isEmpty()) return rtn;
         rtn.add(LocalizationKeys.DISK_ITEM_TOOLTIP_LABEL_HEADER
                 .getComponent()
-                .setStyle(new Style().setUnderlined(true)));
+                .setStyle(new Style().setUnderlined(true))
+                .getFormattedText());
         for (var entry : labels().entrySet()) {
             rtn.add(LocalizationKeys.DISK_ITEM_TOOLTIP_LABEL.getComponent(
-                    entry.getKey(),
-                    entry.getValue().size()
-            ).setStyle(new Style().setColor(TextFormatting.GRAY)));
+                            entry.getKey(),
+                            entry.getValue().size()
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY))
+                    .getFormattedText());
         }
         return rtn;
     }
@@ -162,7 +168,7 @@ public record LabelPositionHolder(Map<String, HashSet<BlockPos>> labels) {
             String label,
             BlockPos position
     ) {
-        if (label.isBlank()) return this;
+        if (label.trim().isEmpty()) return this;
         getPositionsMut(label).add(position);
         return this;
     }

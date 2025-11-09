@@ -4,9 +4,10 @@ import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.level.Level;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.block.Block;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -17,33 +18,34 @@ import java.util.stream.Collectors;
 import static ca.teamdman.sfm.common.util.SFMStreamUtils.get3DNeighbours;
 import static ca.teamdman.sfm.common.util.SFMStreamUtils.get3DNeighboursIncludingKittyCorner;
 
+@Desugar
 public record LabelGunPlanTargets(
         Set<BlockPos> positions,
         Set<BlockPos> warnBecauseNoCableNeighbour
 ) {
     public static LabelGunPlanTargets getTargets(
-            Level level,
+            World level,
             ServerboundLabelGunUsePacket msg
     ) {
         // get the block type of the target position
-        Block targetBlock = level.getBlockState(msg.pos()).getBlock();
+        Block targetBlock = level.getBlockState(msg.getPos()).getBlock();
 
         if (!msg.isContiguousModifierActive()) {
-            return new LabelGunPlanTargets(Set.of(msg.pos()), Set.of());
+            return new LabelGunPlanTargets(Set.of(msg.getPos()), Set.of());
         }
         Set<BlockPos> targets;
 
         // find all cable positions so that we only include blocks adjacent to a cable
         Set<BlockPos> cablePositions;
-        if (level.isClientSide()) {
+        if (level.isRemote) {
             // There are no cable networks on the client, so we need to discover the cable positions
             // We need to know this to determine how large the change is and if we need to ask the client for confirmation
-            cablePositions = get3DNeighbours(msg.pos())
+            cablePositions = get3DNeighbours(msg.getPos())
                     .filter(pos -> CableNetwork.isCable(level, pos))
                     .flatMap(cablePos -> CableNetwork.discoverCables(level, cablePos))
                     .collect(Collectors.toSet());
         } else {
-            cablePositions = get3DNeighbours(msg.pos())
+            cablePositions = get3DNeighbours(msg.getPos())
                     .map(suspected_cable_pos -> CableNetworkManager.getOrRegisterNetworkFromCablePosition(
                             level,
                             suspected_cable_pos
@@ -69,7 +71,7 @@ public record LabelGunPlanTargets(
                                     .filter(p -> level.getBlockState(p).getBlock() == targetBlock)
                                     .filter(isAdjacentToCable)
                                     .forEach(nextQueue);
-                        }, msg.pos()
+                        }, msg.getPos()
                 )
                 .collect(Collectors.toSet());
         return new LabelGunPlanTargets(targets, warnBecauseNoCableNeighbour);

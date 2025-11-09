@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.program.linting.ProgramLinter;
+import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -10,8 +11,9 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import org.jetbrains.annotations.Nullable;
 
-public class ServerboundManagerFixPacket extends SFMPacket<ServerboundManagerFixPacket> {
+public class ServerboundManagerFixPacket extends SFMAdvancedPacket<ServerboundManagerFixPacket> {
     private int windowId;
     private BlockPos pos;
 
@@ -37,26 +39,30 @@ public class ServerboundManagerFixPacket extends SFMPacket<ServerboundManagerFix
         buf.writeInt(pos.getZ());
     }
 
+
     @Override
-    public IMessage onMessage(ServerboundManagerFixPacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            if (player.openContainer instanceof ManagerContainerMenu && player.openContainer.windowId == message.windowId) {
-                TileEntity te = player.world.getTileEntity(message.pos);
-                if (te instanceof ManagerBlockEntity manager) {
-                    ItemStack disk = manager.getDisk();
-                    if (!disk.isEmpty()) {
-                        manager.getProgram().ifPresent(program -> {
+    public void handle(
+            ServerboundManagerFixPacket msg,
+            SFMPacketHandlingContext context
+    ) {
+        context.handleServerboundContainerPacket(
+                ManagerContainerMenu.class,
+                ManagerBlockEntity.class,
+                msg.pos,
+                msg.windowId,
+                (menu, manager) -> {
+                    var disk = manager.getDisk();
+                    if (disk != null) {
+                        var program = manager.getProgram();
+                        if (program != null) {
                             ProgramLinter.fixWarnings(
                                     manager,
                                     disk,
                                     program
                             );
-                        });
+                        }
                     }
                 }
-            }
-        });
-        return null;
+        );
     }
 }

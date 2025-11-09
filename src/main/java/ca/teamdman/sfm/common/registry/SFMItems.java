@@ -10,12 +10,10 @@ import java.util.List;
 
 public class SFMItems {
 
+
     public static DiskItem DISK_ITEM;
     public static LabelGunItem LABEL_GUN_ITEM;
     public static NetworkToolItem NETWORK_TOOL_ITEM;
-    public static FormItem FORM_ITEM;
-    public static ExperienceShardItem EXPERIENCE_SHARD_ITEM;
-    public static ExperienceGoopItem EXPERIENCE_GOOP_ITEM;
     public static Item BUFFER_ITEM;
 
     public static final List<Item> ITEM_BLOCKS = new ArrayList<>();
@@ -25,9 +23,6 @@ public class SFMItems {
         SFMItems.LABEL_GUN_ITEM = prepareRegister(new LabelGunItem(), "labelgun");
         SFMItems.DISK_ITEM = prepareRegister(new DiskItem(), "disk");
         SFMItems.NETWORK_TOOL_ITEM = prepareRegister(new NetworkToolItem(), "network_tool");
-        SFMItems.FORM_ITEM = prepareRegister(new FormItem(), "form");
-        SFMItems.EXPERIENCE_SHARD_ITEM = prepareRegister(new ExperienceShardItem(), "xp_shard");
-        SFMItems.EXPERIENCE_GOOP_ITEM = prepareRegister(new ExperienceGoopItem(), "xp_goop");
 
         registerItemBlocks();
     }

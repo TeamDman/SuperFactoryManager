@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-public class ServerboundContainerExportsInspectionRequestPacket extends SFMPacket<ServerboundContainerExportsInspectionRequestPacket> {
+public class ServerboundContainerExportsInspectionRequestPacket extends SFMAdvancedPacket<ServerboundContainerExportsInspectionRequestPacket> {
     private int windowId;
     private BlockPos pos;
 
@@ -121,14 +121,14 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMPacke
                             stackId
                     );
                     ResourceLimit resourceLimit = new ResourceLimit(
-                            new ResourceIdSet(List.of(resourceIdentifier)),
+                            new ResourceIdSet(Arrays.asList(resourceIdentifier)),
                             Limit.MAX_QUANTITY_NO_RETENTION, With.ALWAYS_TRUE
                     );
                     resourceLimitList.add(resourceLimit);
                 });
                 InputStatement inputStatement = new InputStatement(
                         new LabelAccess(
-                                List.of(new Label("target")),
+                                Arrays.asList(new Label("target")),
                                 new DirectionQualifier(direction == null
                                         ? EnumSet.noneOf(EnumFacing.class)
                                         : EnumSet.of(direction)),
@@ -164,20 +164,30 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMPacke
     }
 
     @Override
-    public IMessage onMessage(ServerboundContainerExportsInspectionRequestPacket message, MessageContext ctx) {
-        ctx.getServerHandler().player.getServerWorld().addScheduledTask(() -> {
-            Container container = ctx.getServerHandler().player.openContainer;
-            if (container.windowId == message.windowId) {
-                TileEntity be = ctx.getServerHandler().player.world.getTileEntity(message.pos);
-                if (be != null) {
-                    String payload = buildInspectionResults(be.getWorld(), be.getPos());
-                    SFMPackets.SFM_CHANNEL.sendTo(new ClientboundContainerExportsInspectionResultsPacket(
-                            message.windowId,
-                            payload
-                    ), ctx.getServerHandler().player);
+    public void handle(
+            ServerboundContainerExportsInspectionRequestPacket msg,
+            SFMPacketHandlingContext context
+    ) {
+        context.handleServerboundContainerPacket(
+                Container.class,
+                TileEntity.class,
+                msg.pos,
+                msg.windowId,
+                (menu, blockEntity) -> {
+                    assert blockEntity.getWorld() != null;
+                    String payload = buildInspectionResults(blockEntity.getWorld(), blockEntity.getPos());
+                    var player = context.serverPlayer();
+
+                    SFMPackets.sendToPlayer(
+                            player, new ClientboundContainerExportsInspectionResultsPacket(
+                                    msg.windowId,
+                                    SFMAdvancedPacket.truncate(
+                                            payload,
+                                            ClientboundContainerExportsInspectionResultsPacket.MAX_RESULTS_LENGTH
+                                    )
+                            )
+                    );
                 }
-            }
-        });
-        return null;
+        );
     }
 }

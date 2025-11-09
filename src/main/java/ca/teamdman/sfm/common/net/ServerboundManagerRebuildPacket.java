@@ -12,7 +12,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class ServerboundManagerRebuildPacket extends SFMPacket<ServerboundManagerRebuildPacket> {
+public class ServerboundManagerRebuildPacket extends SFMAdvancedPacket<ServerboundManagerRebuildPacket> {
     private int windowId;
     private BlockPos pos;
 
@@ -39,25 +39,30 @@ public class ServerboundManagerRebuildPacket extends SFMPacket<ServerboundManage
     }
 
     @Override
-    public IMessage onMessage(ServerboundManagerRebuildPacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            if (player.openContainer instanceof ManagerContainerMenu && player.openContainer.windowId == message.windowId) {
-                TileEntity te = player.world.getTileEntity(message.pos);
-                if (te instanceof ManagerBlockEntity) {
-                    ManagerBlockEntity manager = (ManagerBlockEntity) te;
+    public void handle(
+            ServerboundManagerRebuildPacket msg,
+            SFMPacketHandlingContext context
+    ) {
+        context.handleServerboundContainerPacket(
+                ManagerContainerMenu.class,
+                ManagerBlockEntity.class,
+                msg.pos,
+                msg.windowId,
+                (menu, manager) -> {
+                    EntityPlayerMP player = context.serverPlayer();
+                    // perform rebuild by unregistering the cable network
                     CableNetworkManager.purgeCableNetworkForManager(manager);
                     manager.logger.warn(x -> x.accept(LocalizationKeys.LOG_MANAGER_CABLE_NETWORK_REBUILD.get()));
 
+                    // log it
                     SFM.LOGGER.debug(
                             "{} performed rebuild for manager {} {}",
                             player.getName(),
-                            message.pos,
+                            msg.pos,
                             manager.getWorld()
                     );
                 }
-            }
-        });
-        return null;
+        );
     }
+
 }

@@ -2,13 +2,16 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class ClientboundIfStatementInspectionResultsPacket extends SFMPacket<ClientboundIfStatementInspectionResultsPacket> {
+    public static final int MAX_RESULTS_LENGTH = 2048;
     private String results;
 
     public ClientboundIfStatementInspectionResultsPacket(String results) {
@@ -22,7 +25,7 @@ public class ClientboundIfStatementInspectionResultsPacket extends SFMPacket<Cli
     public void fromBytes(ByteBuf buf) {
         try {
             results = new PacketBuffer(buf).readString(2048);
-        } catch (IOException e) {
+        } catch (DecoderException e) {
             throw new RuntimeException(e);
         }
     }
@@ -33,6 +36,7 @@ public class ClientboundIfStatementInspectionResultsPacket extends SFMPacket<Cli
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ClientboundIfStatementInspectionResultsPacket message, MessageContext ctx) {
         SFMScreenChangeHelpers.showProgramEditScreen(message.results);
         return null;

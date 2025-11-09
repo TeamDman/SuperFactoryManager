@@ -7,6 +7,7 @@ import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
@@ -17,6 +18,8 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import java.io.IOException;
 
 public class ServerboundLabelInspectionRequestPacket extends SFMPacket<ServerboundLabelInspectionRequestPacket> {
+    private static final int MAX_RESULTS_LENGTH = 20480;
+
     private String label;
 
     public ServerboundLabelInspectionRequestPacket(String label) {
@@ -31,7 +34,7 @@ public class ServerboundLabelInspectionRequestPacket extends SFMPacket<Serverbou
         PacketBuffer packetBuffer = new PacketBuffer(buf);
         try {
             label = packetBuffer.readString(Program.MAX_LABEL_LENGTH);
-        } catch (IOException e) {
+        } catch (DecoderException e) {
             throw new RuntimeException(e);
         }
     }
@@ -122,9 +125,12 @@ public class ServerboundLabelInspectionRequestPacket extends SFMPacket<Serverbou
                     payload.length(),
                     player.getUniqueID()
             );
-            SFMPackets.SFM_CHANNEL.sendTo(new ClientboundLabelInspectionResultsPacket(
-                    payload.toString()
-            ), player);
+            SFMPackets.sendToPlayer(player, new ClientboundLabelInspectionResultsPacket(
+                    SFMAdvancedPacket.truncate(
+                            payload.toString(),
+                            ServerboundLabelInspectionRequestPacket.MAX_RESULTS_LENGTH
+                    )
+            ));
         });
         return null;
     }

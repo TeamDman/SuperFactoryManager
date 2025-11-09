@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.localization;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.common.registry.SFMItems;
+import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 
 import java.util.ArrayList;
@@ -12,6 +13,10 @@ public final class LocalizationKeys {
 
     public static String itemDescriptionId(Item item) {
         return "item." + item.getRegistryName();
+    }
+
+    public static String blockDescriptionId(Block block) {
+        return "block." + block.getRegistryName();
     }
 
     public static final LocalizationEntry TEXT_EDIT_SCREEN_TITLE = new LocalizationEntry(
@@ -173,34 +178,13 @@ public final class LocalizationKeys {
     );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry CABLE_BLOCK = new LocalizationEntry(
-            () -> SFMBlocks.CABLE_BLOCK.get().getDescriptionId(),
+            () -> blockDescriptionId(SFMBlocks.CABLE_BLOCK),
             () -> "Inventory Cable"
     );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry MANAGER_BLOCK = new LocalizationEntry(
-            () -> SFMBlocks.MANAGER_BLOCK.get().getDescriptionId(),
+            () -> blockDescriptionId(SFMBlocks.MANAGER_BLOCK),
             () -> "Factory Manager"
-    );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry PRINTING_PRESS_BLOCK = new LocalizationEntry(
-            () -> SFMBlocks.PRINTING_PRESS_BLOCK.get().getDescriptionId(),
-            () -> "Printing Press"
-    );
-    public static final LocalizationEntry PRINTING_PRESS_JEI_CATEGORY_TITLE = new LocalizationEntry(
-            "gui.jei.category.sfm.printing_press",
-            "Printing Press"
-    );
-    public static final LocalizationEntry FALLING_ANVIL_JEI_CATEGORY_TITLE = new LocalizationEntry(
-            "gui.jei.category.sfm.falling_anvil",
-            "Falling Anvil"
-    );
-    public static final LocalizationEntry FALLING_ANVIL_JEI_CONSUMED = new LocalizationEntry(
-            "gui.jei.category.sfm.falling_anvil.consumed",
-            "Gets consumed"
-    );
-    public static final LocalizationEntry FALLING_ANVIL_JEI_NOT_CONSUMED = new LocalizationEntry(
-            "gui.jei.category.sfm.falling_anvil.not_consumed",
-            "Not consumed"
     );
     public static final LocalizationEntry DISK_ITEM_TOOLTIP_LABEL_HEADER = new LocalizationEntry(
             () -> itemDescriptionId(SFMItems.DISK_ITEM) + ".tooltip.label_section.header",
@@ -298,14 +282,7 @@ public final class LocalizationKeys {
             () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".with_label",
             () -> "Label Gun: \"%s\""
     );
-    public static final LocalizationEntry WATER_TANK_ITEM_TOOLTIP_1 = new LocalizationEntry(
-            () -> SFMBlocks.WATER_TANK_BLOCK.getDescriptionId() + ".tooltip.1",
-            () -> "Requires two adjacent water sources."
-    );
-    public static final LocalizationEntry WATER_TANK_ITEM_TOOLTIP_2 = new LocalizationEntry(
-            () -> SFMBlocks.WATER_TANK_BLOCK.getDescriptionId() + ".tooltip.2",
-            () -> "More effective when also adjacent to other active water tanks."
-    );
+
     public static final LocalizationEntry LABEL_GUN_GUI_TITLE = new LocalizationEntry(
             "gui.sfm.title.labelgun",
             "Label Gun"
@@ -900,43 +877,18 @@ public final class LocalizationKeys {
     );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry TUNNELLED_MANAGER_BLOCK = new LocalizationEntry(
-            () -> SFMBlocks.TUNNELLED_MANAGER_BLOCK.get().getDescriptionId(),
+            () -> blockDescriptionId(SFMBlocks.TUNNELLED_MANAGER_BLOCK),
             () -> "Tunnelled Factory Manager"
     );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry BUFFER_BLOCK = new LocalizationEntry(
-            () -> SFMBlocks.BUFFER_BLOCK.getDescriptionId(),
+            () -> blockDescriptionId(SFMBlocks.BUFFER_BLOCK),
             () -> "Resource Buffer"
-    );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry TEST_BARREL_TANK_BLOCK = new LocalizationEntry(
-            () -> SFMBlocks.TEST_BARREL_TANK_BLOCK.getDescriptionId(),
-            () -> "Test Barrel Tank"
-    );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry WATER_TANK_BLOCK = new LocalizationEntry(
-            () -> SFMBlocks.WATER_TANK_BLOCK.getDescriptionId(),
-            () -> "Water Tank"
     );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry DISK_ITEM = new LocalizationEntry(
             () -> itemDescriptionId(SFMItems.DISK_ITEM),
             () -> "Factory Manager Program Disk"
-    );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry EXPERIENCE_GOOP_ITEM = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.EXPERIENCE_GOOP_ITEM),
-            () -> "Experience Goop"
-    );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry EXPERIENCE_SHARD_ITEM = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.EXPERIENCE_SHARD_ITEM),
-            () -> "Experience Shard"
-    );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry FORM_ITEM = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.FORM_ITEM),
-            () -> "Printing Form"
     );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry LABEL_GUN_ITEM = new LocalizationEntry(
@@ -951,7 +903,7 @@ public final class LocalizationKeys {
 
     //    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
 //    public static final LocalizationEntry BATTERY_BLOCK = new LocalizationEntry(
-//            () -> SFMBlocks.BATTERY_BLOCK.get().getDescriptionId(),
+//            () -> blockDescriptionId(SFMBlocks.BATTERY_BLOCK),
 //            () -> "Battery (WIP)"
 //    );
     public static final LocalizationEntry CONFIG_UPDATE_AND_SYNC_RESULT_SUCCESS = new LocalizationEntry(

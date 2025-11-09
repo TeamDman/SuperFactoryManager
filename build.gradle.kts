@@ -206,6 +206,7 @@ dependencies {
     }
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib:2.2.0")
     compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    compileOnly("com.github.bsideup.jabel:jabel-javac-plugin:0.4.2")
 
     antlr("org.antlr:antlr4:4.9.1")
 
@@ -227,7 +228,7 @@ dependencies {
 //    implementation(rfg.deobf("curse.maven:thermal-expansion-69163:2926431"))
     // AE2 Compat
     // implementation(rfg.deobf("curse.maven:applied-energistics-2-223794:2747063"))
-    implementation(rfg.deobf("curse.maven:thermal-expansion-69163:2926431"))
+//    implementation(rfg.deobf("curse.maven:thermal-expansion-69163:2926431"))
     implementation(rfg.deobf("curse.maven:ae2-extended-life-570458:6302098"))
     implementation(rfg.deobf("curse.maven:ae2-fluid-crafting-rework-623955:5504001"))
     implementation(rfg.deobf("curse.maven:nae2-884359:5380800"))

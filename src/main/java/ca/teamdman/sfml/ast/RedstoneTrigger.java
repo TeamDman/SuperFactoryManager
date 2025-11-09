@@ -2,8 +2,9 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import com.github.bsideup.jabel.Desugar;
 
-public record RedstoneTrigger(
+@Desugar public record RedstoneTrigger(
         Block block
 ) implements Trigger, ToStringCondensed {
     @Override

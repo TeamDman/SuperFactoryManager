@@ -1,13 +1,6 @@
 package ca.teamdman.sfm.common.compat;
 
-import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
-import ca.teamdman.sfm.common.util.NotStored;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
-import net.minecraft.world.level.Level;
-import net.minecraft.block.Block;
-import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.common.Loader;
 
 public class SFMModCompat {
     public static boolean isMekanismLoaded() {
@@ -19,7 +12,7 @@ public class SFMModCompat {
     }
 
     public static boolean isModLoaded(String modid) {
-        return ModList.get().getModContainerById(modid).isPresent();
+        return Loader.instance().getIndexedModList().containsKey(modid);
     }
 
 }

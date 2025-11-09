@@ -7,39 +7,34 @@ import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.util.FastColor;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.client.gui.overlay.ForgeGui;
-import net.minecraftforge.client.gui.overlay.IGuiOverlay;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
 import org.jetbrains.annotations.Nullable;
 
-public class LabelGunReminderOverlay implements IGuiOverlay {
+public class LabelGunReminderOverlay {
 
 
     @SuppressWarnings("DuplicatedCode")
-    @Override
     public void render(
-            ForgeGui gui,
-            PoseStack poseStack,
             float partialTick,
             int screenWidth,
             int screenHeight
     ) {
-        Minecraft minecraft = gui.getMinecraft();
-        if (minecraft.options.hideGui) {
+         Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft.gameSettings.hideGUI) {
             return;
         }
-        LocalPlayer player = minecraft.player;
+        EntityPlayerSP player = minecraft.player;
         if (player == null) {
             return;
         }
 
-        LabelGunItem.LabelGunViewMode viewMode = getViewMode(minecraft);
+        LabelGunItem.LabelGunViewMode viewMode = getViewMode(player);
         if (viewMode == null) return;
         var msg = switch(viewMode) {
             case SHOW_ALL -> null;
@@ -47,30 +42,27 @@ public class LabelGunReminderOverlay implements IGuiOverlay {
             case SHOW_ONLY_TARGETED_BLOCK -> LocalizationKeys.LABEL_GUN_VIEW_MODE_SHOW_ONLY_TARGETED;
         };
         if (msg == null) return;
-        Font font = minecraft.font;
+        FontRenderer font = minecraft.fontRenderer;
         var reminder = msg.getComponent(
-                SFMKeyMappings.CYCLE_LABEL_VIEW_KEY
-                        .get()
-                        .getTranslatedKeyMessage().plainCopy().withStyle(ChatFormatting.YELLOW)
+                new TextComponentString(SFMKeyMappings.CYCLE_LABEL_VIEW_KEY
+                        .getDisplayName()).setStyle(new Style().setColor(TextFormatting.YELLOW))
         );
-        int reminderWidth = font.width(reminder);
+        int reminderWidth = font.getStringWidth(reminder.getUnformattedText());
         int x = screenWidth / 2 - reminderWidth / 2;
         int y = 20;
         SFMFontUtils.draw(
-                poseStack,
                 font,
                 reminder,
                 x,
                 y,
-                FastColor.ARGB32.color(255, 172, 208, 255),
+                0xFFACD0FF,
                 true
         );
     }
 
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private static @Nullable LabelGunItem.LabelGunViewMode getViewMode(Minecraft minecraft) {
-        LocalPlayer player = minecraft.player;
+    private static @Nullable LabelGunItem.LabelGunViewMode getViewMode(EntityPlayerSP player) {
         if (player == null) return null;
         if (!SFMConfig.client.showLabelGunReminderOverlay) return null;
         ItemStack labelGun = SFMHandUtils.getItemInEitherHand(player, SFMItems.LABEL_GUN_ITEM);

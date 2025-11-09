@@ -37,9 +37,14 @@ public class RegexCache {
                    : possiblePattern::equalsIgnoreCase;
         } else {
             return isRegexPattern(possiblePattern)
-                   ? Pattern.compile(possiblePattern).asMatchPredicate()
+                   ? regexToPredicate(possiblePattern)
                    : possiblePattern::equalsIgnoreCase;
         }
+    }
+
+    protected static Predicate<String> regexToPredicate(String regex) {
+        var pattern = Pattern.compile(regex);
+        return (s) -> pattern.matcher(s).matches();
     }
 
     /// Optimized version of Pattern.compile(x).asMatchPredicate()
@@ -47,7 +52,7 @@ public class RegexCache {
     /// Special cases for common patterns
     private static Predicate<String> getPredicateFromRegex(String x) {
         if (!SFMPerformanceTweaks.REGEX_PREDICATE_OPTIMIZATION) {
-            return Pattern.compile(x).asMatchPredicate();
+            return regexToPredicate(x);
         }
         if (x.startsWith(".*") && x.endsWith(".*")) {
             String substring = x.substring(2, x.length() - 2);
@@ -76,7 +81,7 @@ public class RegexCache {
             }
         }
         // Default case for other regex patterns
-        return Pattern.compile(x).asMatchPredicate();
+        return regexToPredicate(x);
     }
 
 

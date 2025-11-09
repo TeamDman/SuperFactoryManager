@@ -1,5 +1,6 @@
 package vswe.superfactory.proxy;
 
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.block.model.ModelBakery;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -13,7 +14,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.blocks.client.ModelLoader;
-import vswe.superfactory.registry.ModBlocks;
 import vswe.superfactory.registry.ModItems;
 import vswe.superfactory.settings.Settings;
 
@@ -55,28 +55,28 @@ public class ClientProxy extends CommonProxy {
 	@SubscribeEvent
 	public static void registerRenderers(ModelRegistryEvent event) {
 
-		addVariantNames(ModBlocks.CABLE_RELAY, "cable_relay", "cable_relay_advanced");
-		addVariantNames(ModBlocks.CABLE_INTAKE, "cable_valve", "cable_valve_instant");
-		addVariantNames(ModBlocks.CABLE_CLUSTER, "cable_cluster", "cable_cluster_advanced");
-		addVariantNames(ModBlocks.CABLE_CAMOUFLAGE, "cable_camouflage", "cable_camouflage_inside", "cable_camouflage_shape");
+		addVariantNames(SFMBlocks.CABLE_RELAY, "cable_relay", "cable_relay_advanced");
+		addVariantNames(SFMBlocks.CABLE_INTAKE, "cable_valve", "cable_valve_instant");
+		addVariantNames(SFMBlocks.CABLE_CLUSTER, "cable_cluster", "cable_cluster_advanced");
+		addVariantNames(SFMBlocks.CABLE_CAMOUFLAGE, "cable_camouflage", "cable_camouflage_inside", "cable_camouflage_shape");
 
-		registerBlockModel(ModBlocks.MANAGER);
-		registerBlockModel(ModBlocks.CABLE);
-		registerBlockModel(ModBlocks.CABLE_OUTPUT);
-		registerBlockModel(ModBlocks.CABLE_INPUT);
+		registerBlockModel(SFMBlocks.MANAGER);
+		registerBlockModel(SFMBlocks.CABLE);
+		registerBlockModel(SFMBlocks.CABLE_OUTPUT);
+		registerBlockModel(SFMBlocks.CABLE_INPUT);
 		//		        registerBlockModel(ModBlocks.CABLE_CREATIVE);
-		registerBlockModel(ModBlocks.CABLE_BUD);
-		registerBlockModel(ModBlocks.CABLE_BREAKER);
-		registerBlockModel(ModBlocks.CABLE_SIGN);
-		registerBlockModelForVariant(ModBlocks.CABLE_RELAY, 0, "cable_relay");
-		registerBlockModelForVariant(ModBlocks.CABLE_RELAY, 8, "cable_relay_advanced");
-		registerBlockModelForVariant(ModBlocks.CABLE_INTAKE, 0, "cable_valve");
-		registerBlockModelForVariant(ModBlocks.CABLE_INTAKE, 8, "cable_valve_instant");
-		registerBlockModelForVariant(ModBlocks.CABLE_CLUSTER, 0, "cable_cluster");
-		registerBlockModelForVariant(ModBlocks.CABLE_CLUSTER, 8, "cable_cluster_advanced");
-		registerBlockModelForVariant(ModBlocks.CABLE_CAMOUFLAGE, 0, "cable_camouflage");
-		registerBlockModelForVariant(ModBlocks.CABLE_CAMOUFLAGE, 1, "cable_camouflage_inside");
-		registerBlockModelForVariant(ModBlocks.CABLE_CAMOUFLAGE, 2, "cable_camouflage_shape");
+		registerBlockModel(SFMBlocks.CABLE_BUD);
+		registerBlockModel(SFMBlocks.CABLE_BREAKER);
+		registerBlockModel(SFMBlocks.CABLE_SIGN);
+		registerBlockModelForVariant(SFMBlocks.CABLE_RELAY, 0, "cable_relay");
+		registerBlockModelForVariant(SFMBlocks.CABLE_RELAY, 8, "cable_relay_advanced");
+		registerBlockModelForVariant(SFMBlocks.CABLE_INTAKE, 0, "cable_valve");
+		registerBlockModelForVariant(SFMBlocks.CABLE_INTAKE, 8, "cable_valve_instant");
+		registerBlockModelForVariant(SFMBlocks.CABLE_CLUSTER, 0, "cable_cluster");
+		registerBlockModelForVariant(SFMBlocks.CABLE_CLUSTER, 8, "cable_cluster_advanced");
+		registerBlockModelForVariant(SFMBlocks.CABLE_CAMOUFLAGE, 0, "cable_camouflage");
+		registerBlockModelForVariant(SFMBlocks.CABLE_CAMOUFLAGE, 1, "cable_camouflage_inside");
+		registerBlockModelForVariant(SFMBlocks.CABLE_CAMOUFLAGE, 2, "cable_camouflage_shape");
 
 		registerItemModel(ModItems.DISK, 0, ModItems.DISK.getRegistryName().toString());
 	}

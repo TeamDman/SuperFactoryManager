@@ -3,11 +3,13 @@ package ca.teamdman.sfm.client.text_editor;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import net.minecraft.client.gui.screens.ConfirmScreen;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.client.gui.GuiYesNo;
 
 import java.util.Map;
 import java.util.function.Consumer;
 
+@Desugar
 public record SFMTextEditScreenExampleProgramOpenContext(
         String initialExampleContent,
         String initialDiskContent,
@@ -21,20 +23,21 @@ public record SFMTextEditScreenExampleProgramOpenContext(
             ISFMTextEditScreenOpenContext.super.onSaveAndClose(latestContent);
         } else {
             // The disk contains non-template code, ask before overwriting
-            ConfirmScreen saveConfirmScreen = new ConfirmScreen(
-                    saidYes -> {
+            GuiYesNo saveConfirmScreen = new GuiYesNo(
+                    (saidYes, buttonId) -> {
                         SFMScreenChangeHelpers.popScreen(); // Close confirm screen
                         if (saidYes) {
                             ISFMTextEditScreenOpenContext.super.onSaveAndClose(latestContent);
                         }
                     },
-                    LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_TITLE.getComponent(),
-                    LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_MESSAGE.getComponent(),
-                    LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
-                    LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_NO_BUTTON.getComponent()
+                    LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_TITLE.getComponent().getFormattedText(),
+                    LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_MESSAGE.getComponent().getFormattedText(),
+                    LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_YES_BUTTON.getComponent().getFormattedText(),
+                    LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_NO_BUTTON.getComponent().getFormattedText(),
+                    0
             );
             SFMScreenChangeHelpers.setOrPushScreen(saveConfirmScreen);
-            saveConfirmScreen.setDelay(20);
+            saveConfirmScreen.setButtonDelay(20);
         }
     }
 

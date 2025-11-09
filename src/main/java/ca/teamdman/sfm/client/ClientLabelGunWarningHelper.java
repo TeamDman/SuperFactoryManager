@@ -9,6 +9,7 @@ import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.ConfirmationParams;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.World;
 
 public class ClientLabelGunWarningHelper {
     public static void sendLabelGunUsePacketFromClientWithConfirmationIfNecessary(

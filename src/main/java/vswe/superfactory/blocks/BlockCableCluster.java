@@ -1,5 +1,6 @@
 package vswe.superfactory.blocks;
 
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
@@ -28,7 +29,6 @@ import net.minecraftforge.common.property.IUnlistedProperty;
 import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.api.ICable;
 import vswe.superfactory.interfaces.IItemBlockProvider;
-import vswe.superfactory.registry.ModBlocks;
 import vswe.superfactory.tiles.TileEntityCluster;
 
 import java.util.ArrayList;
@@ -187,7 +187,7 @@ public class BlockCableCluster extends BlockCamouflageBase implements ICable, II
 
 		if (te instanceof TileEntityCluster) {
 			TileEntityCluster cluster   = (TileEntityCluster) te;
-			ItemStack         itemStack = new ItemStack(ModBlocks.CABLE_CLUSTER, 1, damageDropped(state));
+			ItemStack         itemStack = new ItemStack(SFMBlocks.CABLE_CLUSTER, 1, damageDropped(state));
 			NBTTagCompound    compound  = new NBTTagCompound();
 			itemStack.setTagCompound(compound);
 			NBTTagCompound cable = new NBTTagCompound();

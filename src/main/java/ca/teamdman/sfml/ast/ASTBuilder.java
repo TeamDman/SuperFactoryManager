@@ -343,14 +343,14 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
             nestedStatement = new IfStatement(
                     conditions.removeLast(),
                     blocks.removeLast(),
-                    new Block(List.of())
+                    new Block(Collections.emptyList())
             );
         }
         while (!blocks.isEmpty()) {
             nestedStatement = new IfStatement(
                     conditions.removeLast(),
                     blocks.removeLast(),
-                    new Block(List.of(nestedStatement))
+                    new Block(Arrays.asList(nestedStatement))
             );
         }
         if (!conditions.isEmpty()) {
@@ -503,7 +503,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     @Override
     public ResourceLimits visitInputResourceLimits(@Nullable SFMLParser.InputResourceLimitsContext ctx) {
         if (ctx == null) {
-            return new ResourceLimits(List.of(ResourceLimit.TAKE_ALL_LEAVE_NONE), ResourceIdSet.EMPTY);
+            return new ResourceLimits(Arrays.asList(ResourceLimit.TAKE_ALL_LEAVE_NONE), ResourceIdSet.EMPTY);
         }
         ResourceLimits resourceLimits = visitResourceLimitList(ctx.resourceLimitList()).withDefaultLimit(Limit.MAX_QUANTITY_NO_RETENTION);
         AST_NODE_CONTEXTS.add(new Pair<>(resourceLimits, ctx));
@@ -513,7 +513,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     @Override
     public ResourceLimits visitOutputResourceLimits(@Nullable SFMLParser.OutputResourceLimitsContext ctx) {
         if (ctx == null) {
-            return new ResourceLimits(List.of(ResourceLimit.ACCEPT_ALL_WITHOUT_RESTRAINT), ResourceIdSet.EMPTY);
+            return new ResourceLimits(Arrays.asList(ResourceLimit.ACCEPT_ALL_WITHOUT_RESTRAINT), ResourceIdSet.EMPTY);
         }
         ResourceLimits resourceLimits = visitResourceLimitList(ctx.resourceLimitList()).withDefaultLimit(Limit.MAX_QUANTITY_MAX_RETENTION);
         AST_NODE_CONTEXTS.add(new Pair<>(resourceLimits, ctx));
@@ -741,7 +741,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                         ctx.side().stream()
                                 .map(this::visitSide)
                                 .map(DirectionQualifier::lookup)
-                                .toList()
+                                .collect(Collectors.toList())
                 )
         );
         AST_NODE_CONTEXTS.add(new Pair<>(directionQualifier, ctx));

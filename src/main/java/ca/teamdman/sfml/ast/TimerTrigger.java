@@ -2,10 +2,13 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import com.github.bsideup.jabel.Desugar;
 
+import java.util.Arrays;
 import java.util.List;
 
-public record TimerTrigger(
+
+@Desugar public record TimerTrigger(
         Interval interval,
         Block block
 ) implements Trigger, ToStringCondensed {
@@ -30,7 +33,7 @@ public record TimerTrigger(
 
     @Override
     public List<Statement> getStatements() {
-        return List.of(block);
+        return Arrays.asList(block);
     }
 
     public boolean usesOnlyForgeEnergyResourceIO() {

@@ -7,6 +7,8 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import javax.annotation.Nullable;
+
 public class ClientboundLabelGunUseResponsePacket extends SFMPacket<ClientboundLabelGunUseResponsePacket> {
     private Behaviour behaviour;
 
@@ -37,6 +39,7 @@ public class ClientboundLabelGunUseResponsePacket extends SFMPacket<ClientboundL
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ClientboundLabelGunUseResponsePacket message, MessageContext ctx) {
         ClientLabelGunResponseChatHelper.handle(message, ctx);
         return null;

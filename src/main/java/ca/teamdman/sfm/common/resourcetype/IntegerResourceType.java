@@ -7,10 +7,11 @@ import java.util.stream.Stream;
 
 public abstract class IntegerResourceType<CAP> extends ScalarResourceType<Integer, CAP> {
     public IntegerResourceType(
+            ResourceTypeContainer container,
             SFMBlockCapabilityKind<CAP> capability,
             ResourceLocation registryKey
     ) {
-        super(capability, registryKey, Integer.class);
+        super(container, capability, registryKey, Integer.class);
     }
 
     @Override

@@ -32,6 +32,8 @@ public class SFM {
 
     @SidedProxy(clientSide = "ca.teamdman.sfm.client.ClientProxy", serverSide = "ca.teamdman.sfm.common.CommonProxy")
     public static CommonProxy proxy;
+    @SidedProxy(clientSide = "vswe.superfactory.proxy.ClientProxy", serverSide = "vswe.superfactory.proxy.CommonProxy")
+    public static vswe.superfactory.proxy.CommonProxy oldProxy;
     private static boolean devEnvCache = false;
 
     public static boolean isRunningInDevEnvironment() {
@@ -40,6 +42,9 @@ public class SFM {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+
+        LOGGER.error("SUPER FACTORY MANAGER LOG");
+
         proxy.preInit();
 
         devEnvCache = (Boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");

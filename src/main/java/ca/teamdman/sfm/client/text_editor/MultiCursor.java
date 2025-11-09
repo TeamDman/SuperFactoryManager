@@ -1,8 +1,13 @@
 package ca.teamdman.sfm.client.text_editor;
 
+import com.github.bsideup.jabel.Desugar;
+
 import java.util.ArrayDeque;
 
-public record MultiCursor(ArrayDeque<Cursor> cursors) {
+@Desugar
+public record MultiCursor(
+        ArrayDeque<Cursor> cursors
+) {
     public MultiCursor() {
         this(new ArrayDeque<>());
         cursors().add(new Cursor(0));

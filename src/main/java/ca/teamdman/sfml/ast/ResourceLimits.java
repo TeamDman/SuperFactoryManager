@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public final class ResourceLimits implements ASTNode, ToStringPretty {
     private final List<ResourceLimit> resourceLimitList;
     private final ResourceIdSet exclusions;
-    private @NotNull ResourceType<?, ?, ?> @Nullable [] referencedResourceTypes = null;
+    private @Nullable ResourceType<?, ?, ?> [] referencedResourceTypes = null;
 
     /**
      *

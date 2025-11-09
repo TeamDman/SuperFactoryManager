@@ -9,7 +9,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class ServerboundManagerLogDesireUpdatePacket extends SFMPacket<ServerboundManagerLogDesireUpdatePacket> {
+public class ServerboundManagerLogDesireUpdatePacket extends SFMAdvancedPacket<ServerboundManagerLogDesireUpdatePacket> {
     private int windowId;
     private BlockPos pos;
     private boolean isLogScreenOpen;
@@ -39,19 +39,21 @@ public class ServerboundManagerLogDesireUpdatePacket extends SFMPacket<Serverbou
         buf.writeBoolean(isLogScreenOpen);
     }
 
+
     @Override
-    public IMessage onMessage(ServerboundManagerLogDesireUpdatePacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            if (player.openContainer instanceof ManagerContainerMenu && player.openContainer.windowId == message.windowId) {
-                ManagerContainerMenu menu = (ManagerContainerMenu) player.openContainer;
-                menu.isLogScreenOpen = message.isLogScreenOpen;
-                TileEntity te = player.world.getTileEntity(message.pos);
-                if (te instanceof ManagerBlockEntity) {
-                    ((ManagerBlockEntity) te).sendUpdatePacket();
+    public void handle(
+            ServerboundManagerLogDesireUpdatePacket msg,
+            SFMPacketHandlingContext context
+    ) {
+        context.handleServerboundContainerPacket(
+                ManagerContainerMenu.class,
+                ManagerBlockEntity.class,
+                msg.pos,
+                msg.windowId,
+                (menu, manager) -> {
+                    menu.isLogScreenOpen = msg.isLogScreenOpen;
+                    manager.sendUpdatePacket();
                 }
-            }
-        });
-        return null;
+        );
     }
 }

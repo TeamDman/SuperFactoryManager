@@ -5,6 +5,7 @@ import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.*;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -22,6 +23,7 @@ import java.util.function.Consumer;
 import static ca.teamdman.sfm.common.blockentity.ManagerBlockEntity.TICK_TIME_HISTORY_SIZE;
 import static ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH;
 
+@Desugar
 public record Program(
         ASTBuilder astBuilder,
         String name,

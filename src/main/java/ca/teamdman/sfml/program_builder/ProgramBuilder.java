@@ -12,7 +12,6 @@ import ca.teamdman.sfm.common.util.SFMTranslationUtils;
 import ca.teamdman.sfml.ast.ASTBuilder;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
-import net.minecraft.ResourceLocationException;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.ResourceLocation;
 import org.antlr.v4.runtime.CharStreams;
@@ -56,7 +55,7 @@ public class ProgramBuilder {
                 program = builder.visitProgram(context);
                 // Make sure all referenced resources are valid during compilation instead of waiting for the program to tick
                 checkResourceTypes(program, errors);
-            } catch (ResourceLocationException | IllegalArgumentException | AssertionError e) {
+            } catch (IllegalArgumentException | AssertionError e) {
                 errors.add(LocalizationKeys.PROGRAM_ERROR_LITERAL.get(e.getMessage()));
             } catch (Throwable t) {
                 errors.add(LocalizationKeys.PROGRAM_ERROR_COMPILE_FAILED.get());
@@ -115,13 +114,13 @@ public class ProgramBuilder {
                 } else {
                     ResourceLocation resourceTypeId = Objects.requireNonNull(SFMResourceTypes
                                                                                      .registry()
-                                                                                     .getId(resourceType));
+                                                                                     .getKey(resourceType.container));
                     if (disallowedResourceTypes.contains(resourceTypeId.toString())) {
                         errors.add(LocalizationKeys.PROGRAM_ERROR_DISALLOWED_RESOURCE_TYPE.get(
                                 referencedResource));
                     }
                 }
-            } catch (ResourceLocationException e) {
+            } catch (Exception e) {
                 errors.add(LocalizationKeys.PROGRAM_ERROR_MALFORMED_RESOURCE_TYPE.get(
                         referencedResource));
             }

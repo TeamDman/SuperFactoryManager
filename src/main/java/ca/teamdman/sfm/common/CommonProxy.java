@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.command.SFMCommand;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
@@ -122,7 +123,7 @@ public class CommonProxy implements IGuiHandler {
 
         switch (type) {
             case MANAGER -> {
-                return new GuiManager((TileEntityManager) present, player.inventory);
+                return new ManagerScreen(new ManagerContainerMenu(ID, player.inventory, (ManagerBlockEntity) present));
             }
         }
 

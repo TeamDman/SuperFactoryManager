@@ -4,10 +4,13 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import com.github.bsideup.jabel.Desugar;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
+@Desugar
 public record IfStatement(
         BoolExpr condition,
         Block trueBlock,
@@ -40,17 +43,17 @@ public record IfStatement(
 
     @Override
     public String toString() {
-        var rtn = "IF " + condition + " THEN\n" + trueBlock.toString().strip().indent(1).stripTrailing();
+        var rtn = "IF " + condition + " THEN\n" + trueBlock.toString().trim();
         if (!falseBlock.getStatements().isEmpty()) {
-            rtn += "\nELSE\n" + falseBlock.toString().strip().indent(1);
+            rtn += "\nELSE\n" + falseBlock.toString().trim();
         }
         rtn += "\nEND";
-        return rtn.strip();
+        return rtn.trim();
     }
 
     @Override
     public List<Statement> getStatements() {
-        return List.of(trueBlock, falseBlock);
+        return Arrays.asList(trueBlock, falseBlock);
     }
 
     @Override

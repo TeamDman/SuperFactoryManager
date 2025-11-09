@@ -4,13 +4,14 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.Pair;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-public record BoolHas(
+@Desugar public record BoolHas(
         SetOperator setOperator,
         LabelAccess labelAccess,
         ComparisonOperator comparisonOperator,

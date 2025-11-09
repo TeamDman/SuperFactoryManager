@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.text_editor;
 
+import com.github.bsideup.jabel.Desugar;
 import it.unimi.dsi.fastutil.ints.*;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.IntervalSet;
@@ -8,6 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 
+@Desugar
 public record TextEditContext(
         MultiCursor multiCursor,
         LinkedList<StringBuilder> lines
@@ -29,14 +31,6 @@ public record TextEditContext(
         }
     }
 
-    public Int2IntFunction lineLengths() {
-        return Int2IntFunctions.primitive(x -> {
-            if (x < 0 || x >= lines.size()) {
-                return -1;
-            }
-            return lines.get(x).length();
-        });
-    }
 
     public TextEditContext copy() {
         return new TextEditContext(
@@ -50,10 +44,10 @@ public record TextEditContext(
     @Override
     public String toString() {
         return "TextEditContext{" +
-               "multiCursor=" + multiCursor +
-               ", lines=" + lines.size() +
-               ", length=" + getCharacterCount() +
-               '}';
+                "multiCursor=" + multiCursor +
+                ", lines=" + lines.size() +
+                ", length=" + getCharacterCount() +
+                '}';
     }
 
     public int getCharacterCount() {

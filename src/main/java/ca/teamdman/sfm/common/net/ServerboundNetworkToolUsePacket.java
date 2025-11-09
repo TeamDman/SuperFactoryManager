@@ -21,6 +21,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -52,6 +53,7 @@ public class ServerboundNetworkToolUsePacket extends SFMPacket<ServerboundNetwor
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ServerboundNetworkToolUsePacket message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().player;
         player.getServerWorld().addScheduledTask(() -> {
@@ -126,13 +128,13 @@ public class ServerboundNetworkToolUsePacket extends SFMPacket<ServerboundNetwor
                 SFMResourceTypes.registry().getEntries()
                         .stream()
                         .map(entry -> ServerboundContainerExportsInspectionRequestPacket.buildInspectionResults(
-                                (net.minecraft.util.ResourceKey) entry.getKey(),
-                                entry.getValue(),
+                                entry.getKey(),
+                                entry.getValue().get(),
                                 world,
                                 pos,
                                 directions[index]
                         ))
-                        .filter(s -> !s.isBlank())
+                        .filter(s -> !s.trim().isEmpty())
                         .forEach(results -> {
                             foundExports.setTrue();
                             payload.append(results).append("\n");

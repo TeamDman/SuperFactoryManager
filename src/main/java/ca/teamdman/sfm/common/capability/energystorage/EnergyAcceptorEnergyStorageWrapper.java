@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.common.capability.energystorage;
 
+import com.github.bsideup.jabel.Desugar;
 import net.minecraftforge.energy.IEnergyStorage;
 
+@Desugar
 public record EnergyAcceptorEnergyStorageWrapper(
         IEnergyStorage inner
 ) implements IEnergyStorage {

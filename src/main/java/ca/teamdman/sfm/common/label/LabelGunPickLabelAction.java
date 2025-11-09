@@ -2,18 +2,20 @@ package ca.teamdman.sfm.common.label;
 
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
-import net.minecraft.world.entity.player.Player;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.World;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 
+@Desugar
 public record LabelGunPickLabelAction(
-        Player player,
-        Level level,
+        EntityPlayer player,
+        World level,
         ServerboundLabelGunUsePacket msg,
         ItemStack gunStack,
         LabelPositionHolder gunLabels,

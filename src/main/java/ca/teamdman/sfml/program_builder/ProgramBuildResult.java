@@ -1,6 +1,7 @@
 package ca.teamdman.sfml.program_builder;
 
 import ca.teamdman.sfml.ast.Program;
+import com.github.bsideup.jabel.Desugar;
 import org.antlr.v4.runtime.Token;
 import org.jetbrains.annotations.Nullable;
 
@@ -8,6 +9,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @SuppressWarnings("UnusedReturnValue")
+@Desugar
 public record ProgramBuildResult(
         @Nullable Program program,
         ProgramMetadata metadata

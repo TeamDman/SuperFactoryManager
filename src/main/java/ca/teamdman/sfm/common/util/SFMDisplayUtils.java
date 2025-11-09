@@ -98,7 +98,7 @@ public class SFMDisplayUtils {
         ));
         rtn.append('[');
         for (int i = 0; i < suggestions.size(); i++) {
-            rtn.append(suggestions.get(i).getComponent().getString().replaceAll("\n", "\\\\n"));
+            rtn.append(suggestions.get(i).getComponent().getUnformattedText().replaceAll("\n", "\\\\n"));
             if (i != suggestions.size() - 1) {
                 rtn.append(", ");
             }

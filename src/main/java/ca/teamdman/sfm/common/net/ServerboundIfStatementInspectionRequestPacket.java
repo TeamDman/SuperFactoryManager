@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfml.ast.IfStatement;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
@@ -13,7 +14,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.io.IOException;
 
-public class ServerboundIfStatementInspectionRequestPacket extends SFMPacket<ServerboundIfStatementInspectionRequestPacket> {
+public class ServerboundIfStatementInspectionRequestPacket extends SFMAdvancedPacket<ServerboundIfStatementInspectionRequestPacket> {
     private String programString;
     private int inputNodeIndex;
 
@@ -30,7 +31,7 @@ public class ServerboundIfStatementInspectionRequestPacket extends SFMPacket<Ser
         PacketBuffer packetBuffer = new PacketBuffer(buf);
         try {
             programString = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
-        } catch (IOException e) {
+        } catch (DecoderException e) {
             throw new RuntimeException(e);
         }
         inputNodeIndex = packetBuffer.readInt();
@@ -44,12 +45,14 @@ public class ServerboundIfStatementInspectionRequestPacket extends SFMPacket<Ser
     }
 
     @Override
-    public IMessage onMessage(ServerboundIfStatementInspectionRequestPacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            Program.compile(message.programString).ifPresent(program -> {
-                program.astBuilder()
-                        .getNodeAtIndex(message.inputNodeIndex)
+    public void handle(
+            ServerboundIfStatementInspectionRequestPacket msg,
+            SFMPacketHandlingContext context
+    ) {
+        context.compileAndThen(
+                msg.programString,
+                (program, player, managerBlockEntity) -> program.astBuilder()
+                        .getNodeAtIndex(msg.inputNodeIndex)
                         .filter(IfStatement.class::isInstance)
                         .map(IfStatement.class::cast)
                         .ifPresent(ifStatement -> {
@@ -59,18 +62,18 @@ public class ServerboundIfStatementInspectionRequestPacket extends SFMPacket<Ser
                                     .append("\n-- peek results --\n");
                             ProgramContext programContext = new ProgramContext(
                                     program,
-                                    null, // managerBlockEntity is not available on the client
+                                    managerBlockEntity,
                                     new SimulateExploreAllPathsProgramBehaviour()
                             );
                             boolean result = ifStatement.condition().test(programContext);
                             payload.append(result ? "TRUE" : "FALSE");
 
-                            SFMPackets.SFM_CHANNEL.sendTo(new ClientboundIfStatementInspectionResultsPacket(
-                                    payload.toString()
-                            ), player);
-                        });
-            });
-        });
-        return null;
+                            SFMPackets.sendToPlayer(player, new ClientboundIfStatementInspectionResultsPacket(
+                                    SFMAdvancedPacket.truncate(
+                                            payload.toString(),
+                                            ClientboundIfStatementInspectionResultsPacket.MAX_RESULTS_LENGTH
+                                    )));
+                        })
+        );
     }
 }

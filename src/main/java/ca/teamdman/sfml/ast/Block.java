@@ -2,9 +2,11 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.ProgramContext;
+import com.github.bsideup.jabel.Desugar;
 
 import java.util.List;
 
+@Desugar
 public record Block(List<Statement> statements) implements Statement {
     @Override
     public void tick(ProgramContext context) {
@@ -31,15 +33,15 @@ public record Block(List<Statement> statements) implements Statement {
         var rtn = new StringBuilder();
         for (Statement statement : statements) {
             if (statement instanceof InputStatement ins) {
-                rtn.append(ins.toStringPretty().strip());
+                rtn.append(ins.toStringPretty().trim());
             } else if (statement instanceof OutputStatement outs) {
-                rtn.append(outs.toStringPretty().strip());
+                rtn.append(outs.toStringPretty().trim());
             } else {
-                rtn.append(statement.toString().strip());
+                rtn.append(statement.toString().trim());
             }
             rtn.append("\n");
         }
-        return rtn.toString().strip();
+        return rtn.toString().trim();
     }
 
     @Override

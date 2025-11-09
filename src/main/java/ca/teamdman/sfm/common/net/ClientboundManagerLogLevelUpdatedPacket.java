@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.inventory.Container;
@@ -10,6 +11,7 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class ClientboundManagerLogLevelUpdatedPacket extends SFMPacket<ClientboundManagerLogLevelUpdatedPacket> {
@@ -30,7 +32,7 @@ public class ClientboundManagerLogLevelUpdatedPacket extends SFMPacket<Clientbou
         windowId = packetBuffer.readVarInt();
         try {
             logLevel = packetBuffer.readString(ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH);
-        } catch (IOException e) {
+        } catch (DecoderException e) {
             throw new RuntimeException(e);
         }
     }
@@ -43,6 +45,7 @@ public class ClientboundManagerLogLevelUpdatedPacket extends SFMPacket<Clientbou
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ClientboundManagerLogLevelUpdatedPacket message, MessageContext ctx) {
         EntityPlayerSP player = Minecraft.getMinecraft().player;
         if (player == null) return null;

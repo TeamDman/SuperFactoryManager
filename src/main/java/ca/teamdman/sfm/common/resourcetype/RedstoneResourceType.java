@@ -8,8 +8,9 @@ import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 
 public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalStorage> {
-    public RedstoneResourceType() {
+    public RedstoneResourceType(ResourceTypeContainer container) {
         super(
+                container,
                 SFMWellKnownCapabilities.REDSTONE_HANDLER,
                 SFMResourceLocation.fromNamespaceAndPath("minecraft", "redstone")
         );

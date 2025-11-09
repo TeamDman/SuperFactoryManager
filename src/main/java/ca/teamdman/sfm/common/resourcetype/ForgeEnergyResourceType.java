@@ -8,8 +8,9 @@ import net.minecraftforge.energy.EnergyStorage;
 import net.minecraftforge.energy.IEnergyStorage;
 
 public class ForgeEnergyResourceType extends IntegerResourceType<IEnergyStorage> {
-    public ForgeEnergyResourceType() {
+    public ForgeEnergyResourceType(ResourceTypeContainer container) {
         super(
+                container,
                 SFMWellKnownCapabilities.ENERGY,
                 SFMResourceLocation.fromNamespaceAndPath("forge", "energy")
         );

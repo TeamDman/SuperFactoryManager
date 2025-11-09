@@ -60,16 +60,6 @@ public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvid
         }
 
         @Override
-        public int getTankCapacity(int tank) {
-            return Fluid.BUCKET_VOLUME;
-        }
-
-        @Override
-        public boolean isFluidValid(int tank, @NotNull FluidStack stack) {
-            return stack.getFluid() == FluidRegistry.WATER;
-        }
-
-        @Override
         public IFluidTankProperties[] getTankProperties() {
             return new IFluidTankProperties[] {
                     new FluidTankProperties(getFluidInTank(), Fluid.BUCKET_VOLUME)

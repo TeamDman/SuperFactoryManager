@@ -1,6 +1,6 @@
 package vswe.superfactory.blocks;
 
-import net.minecraft.block.Block;
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -9,7 +9,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import vswe.superfactory.registry.ClusterRegistry;
-import vswe.superfactory.registry.ModBlocks;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -29,7 +28,7 @@ public class ClusterRecipe implements IRecipe {
 		for (int i = 0; i < inventorycrafting.getSizeInventory(); i++) {
 			ItemStack item = inventorycrafting.getStackInSlot(i);
 
-			if (!item.isEmpty() && item.getItem().equals(Item.getItemFromBlock(ModBlocks.CABLE_CLUSTER))) {
+			if (!item.isEmpty() && item.getItem().equals(Item.getItemFromBlock(SFMBlocks.CABLE_CLUSTER))) {
 				if (!cluster.isEmpty()) {
 					return false; //multiple clusters
 				} else {
@@ -52,7 +51,7 @@ public class ClusterRecipe implements IRecipe {
 			for (int i = 0; i < inventorycrafting.getSizeInventory(); i++) {
 				ItemStack item = inventorycrafting.getStackInSlot(i);
 
-				if (!item.isEmpty() && !item.getItem().equals(Item.getItemFromBlock(ModBlocks.CABLE_CLUSTER))) {
+				if (!item.isEmpty() && !item.getItem().equals(Item.getItemFromBlock(SFMBlocks.CABLE_CLUSTER))) {
 					boolean validItem = false;
 					for (int j = 0; j < ClusterRegistry.getRegistryList().size(); j++) {
 						if (item.isItemEqual(ClusterRegistry.getRegistryList().get(j).getItemStack())) {
@@ -80,7 +79,7 @@ public class ClusterRecipe implements IRecipe {
 				return false;
 			}
 
-			output = new ItemStack(ModBlocks.CABLE_CLUSTER, 1, cluster.getItemDamage());
+			output = new ItemStack(SFMBlocks.CABLE_CLUSTER, 1, cluster.getItemDamage());
 			NBTTagCompound newCompound = new NBTTagCompound();
 			output.setTagCompound(newCompound);
 			NBTTagCompound subCompound = new NBTTagCompound();

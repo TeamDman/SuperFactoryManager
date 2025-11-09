@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.screen.text_editor;
 
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.GuiScreen;
 
 public interface ISFMTextEditScreen {
     ISFMTextEditScreenOpenContext openContext();
@@ -9,8 +9,8 @@ public interface ISFMTextEditScreen {
     default OpenBehaviour openBehaviour() {
         return OpenBehaviour.Push;
     }
-    default Screen asScreen() {
-        return (Screen) this;
+    default GuiScreen asScreen() {
+        return (GuiScreen) this;
     }
 
     enum OpenBehaviour {

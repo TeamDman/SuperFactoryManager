@@ -55,7 +55,7 @@ public class RoundRobin implements ASTNode {
                 Set<BlockPos> labelPositions = labelPositionHolder.getPositions(label.name());
                 positions.ensureCapacity(labelPositions.size());
                 for (BlockPos pos : labelPositions) {
-                    positions.add(Pair.of(label, pos));
+                    positions.add(new Pair<>(label, pos));
                 }
             }
             case BY_BLOCK -> {
@@ -69,7 +69,7 @@ public class RoundRobin implements ASTNode {
                 for (Label label : labels) {
                     for (BlockPos pos : labelPositionHolder.getPositions(label.name())) {
                         if (!seen.add(pos.toLong())) continue;
-                        candidates.add(Pair.of(label, pos));
+                        candidates.add(new Pair<>(label, pos));
                     }
                 }
                 if (!candidates.isEmpty()) {
@@ -81,7 +81,7 @@ public class RoundRobin implements ASTNode {
                     var labelPositions = labelPositionHolder.getPositions(label.name());
                     positions.ensureCapacity(labelPositions.size());
                     for (BlockPos pos : labelPositions) {
-                        positions.add(Pair.of(label, pos));
+                        positions.add(new Pair<>(label, pos));
                     }
                 }
             }

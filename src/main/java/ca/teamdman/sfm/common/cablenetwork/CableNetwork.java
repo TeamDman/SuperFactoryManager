@@ -20,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /// When a {@link ManagerBlockEntity} is ticking many times in a row, there is worldly context that changes infrequently.
@@ -75,7 +76,7 @@ public class CableNetwork {
                         }
                     }
                 }, start
-        ).toList();
+        ).collect(Collectors.toList());
 
         // restore cable positions
         for (BlockPos cablePos : cables) {

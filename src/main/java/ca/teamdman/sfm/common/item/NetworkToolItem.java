@@ -7,20 +7,22 @@ import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundNetworkToolUsePacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
-import net.minecraft.ChatFormatting;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.nbt.NBTTagByteArray;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.Level;
+import net.minecraft.nbt.NBTTagByte;
+import net.minecraft.nbt.NBTTagByteArray;
+import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -29,76 +31,66 @@ import java.util.stream.Collectors;
 
 public class NetworkToolItem extends Item {
     public NetworkToolItem() {
-        super(new Item.Properties().stacksTo(1));
+        super();
+        setMaxStackSize(1);
     }
 
     @Override
-    public InteractionResult onItemUseFirst(
-            ItemStack stack,
-            UseOnContext pContext
-    ) {
-        if (!pContext.getLevel().isClientSide) return InteractionResult.SUCCESS;
+    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, EnumHand hand) {
+        if (!world.isRemote) return EnumActionResult.SUCCESS;
         SFMPackets.sendToServer(new ServerboundNetworkToolUsePacket(
-                pContext.getClickedPos(),
-                pContext.getClickedFace()
+                pos,
+                side
         ));
-        return InteractionResult.CONSUME;
+        return EnumActionResult.SUCCESS;
     }
 
-    @Override
-    public void appendHoverText(
+        @Override
+    @SideOnly(Side.CLIENT)
+    public void addInformation(
             ItemStack stack,
-            @Nullable Level level,
-            List<Component> lines,
-            TooltipFlag detail
+            @Nullable World level,
+            List<String> lines,
+            ITooltipFlag detail
     ) {
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_1.getComponent().withStyle(ChatFormatting.GRAY));
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_2.getComponent().withStyle(ChatFormatting.GRAY));
+        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_1.getComponent().setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_2.getComponent().setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
         lines.add(
                 LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_3
-                        .getComponent(SFMKeyMappings.CONTAINER_INSPECTOR_KEY.get().getTranslatedKeyMessage())
-                        .withStyle(ChatFormatting.AQUA)
+                        .getComponent(SFMKeyMappings.CONTAINER_INSPECTOR_KEY.getDisplayName())
+                        .setStyle(new Style().setColor(TextFormatting.AQUA)).getFormattedText()
         );
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_4.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_5.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_6.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_7.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
     }
 
+
     @Override
-    public void inventoryTick(
-            ItemStack pStack,
-            Level pLevel,
-            Entity pEntity,
-            int pSlotId,
-            boolean pIsSelected
-    ) {
-        if (pLevel.isClientSide) return;
-        if (!(pEntity instanceof Player pPlayer)) return;
-        boolean isInHand = pStack == pPlayer.getMainHandItem() || pStack == pPlayer.getOffhandItem();
+    public void onUpdate(ItemStack pStack, World pLevel, Entity pEntity, int pSlotId, boolean pIsSelected) {
+        if (pLevel.isRemote) return;
+        if (!(pEntity instanceof EntityPlayer pPlayer)) return;
+        boolean isInHand = pStack == pPlayer.getHeldItemMainhand() || pStack == pPlayer.getHeldItemOffhand();
         if (!isInHand) return;
-        boolean shouldRefresh = pEntity.tickCount % 20 == 0;
+        boolean shouldRefresh = pEntity.ticksExisted % 20 == 0;
         if (!shouldRefresh) return;
         final long maxDistance = 128;
         Set<BlockPos> cablePositions = CableNetworkManager
-                .getNetworksInRange(pLevel, pEntity.blockPosition(), maxDistance)
+                .getNetworksInRange(pLevel, pEntity.getPosition(), maxDistance)
                 .flatMap(CableNetwork::getCablePositions)
                 .collect(Collectors.toSet());
         setCablePositions(pStack, cablePositions);
 
         Set<BlockPos> capabilityProviderPositions = CableNetworkManager
-                .getNetworksInRange(pLevel, pEntity.blockPosition(), maxDistance)
+                .getNetworksInRange(pLevel, pEntity.getPosition(), maxDistance)
                 .flatMap(CableNetwork::getCapabilityProviderPositions)
                 .collect(Collectors.toSet());
         setCapabilityProviderPositions(pStack, capabilityProviderPositions);
-
-        // remove the data stored by older versions of the mod
-        pStack.getOrCreateTag().remove("networks");
     }
 
 
     public static boolean getOverlayEnabled(ItemStack stack) {
-        return !stack.getOrCreateTag().getBoolean("sfm:network_tool_overlay_disabled");
+        if (stack.getTagCompound() == null) {
+            return true;
+        }
+        return !stack.getTagCompound().getBoolean("sfm:network_tool_overlay_disabled");
     }
 
     public static void setOverlayEnabled(
@@ -106,9 +98,9 @@ public class NetworkToolItem extends Item {
             boolean value
     ) {
         if (value) {
-            stack.getOrCreateTag().remove("sfm:network_tool_overlay_disabled");
+            stack.removeSubCompound("sfm:network_tool_overlay_disabled");
         } else {
-            stack.getOrCreateTag().putBoolean("sfm:network_tool_overlay_disabled", true);
+            stack.setTagInfo("sfm:network_tool_overlay_disabled", new NBTTagByte((byte)1));
         }
     }
 
@@ -116,43 +108,35 @@ public class NetworkToolItem extends Item {
             ItemStack stack,
             Set<BlockPos> positions
     ) {
-        stack.getOrCreateTag().put(
+        stack.setTagInfo(
                 "sfm:cable_positions",
                 CompressedBlockPosSet.from(positions).asTag()
         );
     }
 
     public static Set<BlockPos> getCablePositions(ItemStack stack) {
-        if (stack.getOrCreateTag().get("sfm:cable_positions") instanceof NBTTagByteArray byteArrayTag) {
-            // new format
+        if (stack.getTagCompound() != null
+                && stack.getTagCompound().getTag("sfm:cable_positions") instanceof NBTTagByteArray byteArrayTag) {
             return CompressedBlockPosSet.from(byteArrayTag).into();
         }
-        // fallback to old format
-        return stack.getOrCreateTag().getList("sfm:cable_positions", 10).stream()
-                .map(NBTTagCompound.class::cast)
-                .map(NbtUtils::readBlockPos)
-                .collect(Collectors.toSet());
+        return Set.of();
     }
 
     public static void setCapabilityProviderPositions(
             ItemStack stack,
             Set<BlockPos> positions
     ) {
-        stack.getOrCreateTag().put(
+        stack.setTagInfo(
                 "sfm:capability_provider_positions",
                 CompressedBlockPosSet.from(positions).asTag()
         );
     }
 
     public static Set<BlockPos> getCapabilityProviderPositions(ItemStack stack) {
-        if (stack.getOrCreateTag().get("sfm:capability_provider_positions") instanceof NBTTagByteArray byteArrayTag) {
-            // new format
+        if (stack.getTagCompound() != null
+                && stack.getTagCompound().getTag("sfm:capability_provider_positions") instanceof NBTTagByteArray byteArrayTag) {
             return CompressedBlockPosSet.from(byteArrayTag).into();
         }
-        // fallback to old format
-        return stack.getOrCreateTag().getList("sfm:capability_provider_positions", 10).stream()
-                .map(NBTTagCompound.class::cast)
-                .map(NbtUtils::readBlockPos)
-                .collect(Collectors.toSet());
+        return Set.of();
     }
 }

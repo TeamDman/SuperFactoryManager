@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.common.util;
 
+import com.github.bsideup.jabel.Desugar;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -98,11 +99,11 @@ public class CompressedBlockPosSet {
         return CompressedBlockPosSet.read(buf);
     }
 
-    private record Volume(
-            BlockPos start,
+    @Desugar private record Volume(
+        BlockPos start,
             EnumFacing direction,
             int extension
-    ) {
+) {
         public void write(PacketBuffer buf) {
             buf.writeBlockPos(start);
             buf.writeInt(direction.ordinal());

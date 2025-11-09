@@ -4,7 +4,8 @@
 @FieldsAreNonnullByDefault
 package ca.teamdman.sfm.common.command;
 
-import net.minecraft.FieldsAreNonnullByDefault;
-import net.minecraft.MethodsReturnNonnullByDefault;
+
+import ca.teamdman.sfm.common.util.FieldsAreNonnullByDefault;
+import mcp.MethodsReturnNonnullByDefault;
 
 import javax.annotation.ParametersAreNonnullByDefault;

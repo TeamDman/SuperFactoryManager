@@ -4,10 +4,12 @@ import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
 import ca.teamdman.sfml.manipulation.ManipulationResult;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.text.TextComponentString;
 
 import java.util.Objects;
 
+@Desugar
 public record SuggestedResourceIntellisenseAction<STACK, ITEM, CAP>(
         ResourceType<STACK, ITEM, CAP> resourceType,
         ITEM item,
@@ -22,7 +24,7 @@ public record SuggestedResourceIntellisenseAction<STACK, ITEM, CAP>(
                 item,
                 new TextComponentString(
                         new ResourceIdentifier<>(
-                                Objects.requireNonNull(SFMResourceTypes.registry().getId(resourceType)),
+                                Objects.requireNonNull(SFMResourceTypes.registry().getKey(resourceType.container)),
                                 resourceType.getRegistryKeyForItem(item)
                         ).toStringCondensed()
                 )

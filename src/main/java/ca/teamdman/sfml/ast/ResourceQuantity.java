@@ -1,5 +1,8 @@
 package ca.teamdman.sfml.ast;
 
+import com.github.bsideup.jabel.Desugar;
+
+@Desugar
 public record ResourceQuantity(
         Number number,
         IdExpansionBehaviour idExpansionBehaviour

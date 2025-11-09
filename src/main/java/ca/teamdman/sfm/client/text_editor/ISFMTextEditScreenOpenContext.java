@@ -35,7 +35,7 @@ public interface ISFMTextEditScreenOpenContext {
                     0
             );
             SFMScreenChangeHelpers.setOrPushScreen(exitWithoutSavingConfirmScreen);
-            exitWithoutSavingConfirmScreen.setDelay(20);
+            exitWithoutSavingConfirmScreen.setButtonDelay(20);
         }
     }
 

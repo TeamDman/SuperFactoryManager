@@ -2,6 +2,7 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import com.github.bsideup.jabel.Desugar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.stream.Collectors;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.LOG_PROGRAM_TICK_FORGET_STATEMENT;
 
+@Desugar
 public record ForgetStatement(
         Set<Label> labelToForget
 ) implements Statement {
@@ -20,7 +22,7 @@ public record ForgetStatement(
         for (InputStatement oldInputStatement : context.getInputs()) {
             var newLabels = oldInputStatement.labelAccess().labels().stream()
                     .filter(label -> !this.labelToForget.contains(label))
-                    .toList();
+                    .collect(Collectors.toList());
 
             // always fire event from old to new, even if new has no labels
             InputStatement newInputStatement = new InputStatement(

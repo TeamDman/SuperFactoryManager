@@ -2,10 +2,12 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class ClientboundOutputInspectionResultsPacket extends SFMPacket<ClientboundOutputInspectionResultsPacket> {
@@ -22,7 +24,7 @@ public class ClientboundOutputInspectionResultsPacket extends SFMPacket<Clientbo
     public void fromBytes(ByteBuf buf) {
         try {
             results = new PacketBuffer(buf).readString(10240);
-        } catch (IOException e) {
+        } catch (DecoderException e) {
             throw new RuntimeException(e);
         }
     }
@@ -33,6 +35,7 @@ public class ClientboundOutputInspectionResultsPacket extends SFMPacket<Clientbo
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ClientboundOutputInspectionResultsPacket message, MessageContext ctx) {
         SFMScreenChangeHelpers.showProgramEditScreen(message.results);
         return null;

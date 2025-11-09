@@ -1,11 +1,12 @@
 package ca.teamdman.sfml.ast;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
 public interface ASTNode {
     default List<Statement> getStatements() {
-        return List.of();
+        return Collections.emptyList();
     }
 
     default Stream<Statement> getDescendantStatements() {

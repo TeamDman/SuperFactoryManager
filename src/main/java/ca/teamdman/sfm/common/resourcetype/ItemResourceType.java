@@ -6,25 +6,26 @@ import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.block.Block;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
+import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
 
 public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item, IItemHandler> {
 
 
-    public ItemResourceType(ResourceTypeContainer container, SFMBlockCapabilityKind<IItemHandler> CAPABILITY_KIND) {
-        super(container, CAPABILITY_KIND);
+    public ItemResourceType(ResourceTypeContainer container) {
+        super(container, SFMWellKnownCapabilities.ITEM_HANDLER);
     }
 
     @Override
@@ -46,6 +47,8 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
     @Override
     public IItemHandler createHandlerForBufferBlock(BufferBlockEntityContents contents) {
         return new ItemStackHandler(contents.tier.numSlots) {
+
+
             @Override
             public boolean isItemValid(
                     int slot,
@@ -105,26 +108,27 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
     @SuppressWarnings("JavadocReference")
     @Override
     public Stream<ResourceLocation> getTagsForStack(ItemStack itemStack) {
+        return Stream.empty();
         // Get block tags
-        Stream<TagKey<Block>> blockTagKeys;
-        if (!itemStack.isEmpty()) {
-            Block block = Block.byItem(itemStack.getItem());
-            if (block != Blocks.AIR) {
-                //noinspection deprecation
-                blockTagKeys = block.builtInRegistryHolder().getTagKeys();
-            } else {
-                blockTagKeys = Stream.empty();
-            }
-        } else {
-            blockTagKeys = Stream.empty();
-        }
-
-        // Get item tags
-        //noinspection deprecation
-        Stream<TagKey<Item>> itemTagKeys = itemStack.getItem().builtInRegistryHolder().tags();
-
-        // Return union
-        return Stream.concat(itemTagKeys, blockTagKeys).map(TagKey::location);
+//        Stream<TagKey<Block>> blockTagKeys;
+//        if (!itemStack.isEmpty()) {
+//            Block block = Block.byItem(itemStack.getItem());
+//            if (block != Blocks.AIR) {
+//                //noinspection deprecation
+//                blockTagKeys = block.builtInRegistryHolder().getTagKeys();
+//            } else {
+//                blockTagKeys = Stream.empty();
+//            }
+//        } else {
+//            blockTagKeys = Stream.empty();
+//        }
+//
+//        // Get item tags
+//        //noinspection deprecation
+//        Stream<TagKey<Item>> itemTagKeys = itemStack.getItem().builtInRegistryHolder().tags();
+//
+//        // Return union
+//        return Stream.concat(itemTagKeys, blockTagKeys).map(TagKey::location);
     }
 
     @Override
@@ -244,6 +248,38 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
     ) {
         stack.setCount((int) Math.min(amount, Integer.MAX_VALUE));
         return stack;
+    }
+
+    protected static class UnsavedFluidStackHandler implements IFluidHandler {
+
+        protected FluidStack fluidStack;
+        protected int capacity;
+
+        public UnsavedFluidStackHandler(int capacity) {
+            this.capacity = capacity;
+        }
+
+        @Override
+        public IFluidTankProperties[] getTankProperties() {
+            return new IFluidTankProperties[0];
+        }
+
+        @Override
+        public int fill(FluidStack resource, boolean doFill) {
+            return 0;
+        }
+
+        @Nullable
+        @Override
+        public FluidStack drain(FluidStack resource, boolean doDrain) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public FluidStack drain(int maxDrain, boolean doDrain) {
+            return null;
+        }
     }
 
 }

@@ -56,7 +56,7 @@ public class SFMStreamUtils {
             for (int y = -1; y <= 1; y++) {
                 for (int z = -1; z <= 1; z++) {
                     if (x == 0 && y == 0 && z == 0) continue;
-                    builder.accept(pos.offset(x, y, z).toImmutable());
+                    builder.accept(pos.add(x, y, z).toImmutable());
                 }
             }
         }
@@ -64,7 +64,7 @@ public class SFMStreamUtils {
     }
 
     public static Stream<BlockPos> get3DNeighbours(@Stored BlockPos pos) {
-        return Arrays.stream(SFMDirections.DIRECTIONS_WITHOUT_NULL).map(d -> pos.offset(d.getNormal()));
+        return Arrays.stream(SFMDirections.DIRECTIONS_WITHOUT_NULL).map(pos::offset);
     }
 
     public interface RecursiveBuilder<T, R> {

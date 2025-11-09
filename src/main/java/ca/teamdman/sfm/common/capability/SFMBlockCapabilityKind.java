@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraftforge.common.capabilities.Capability;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 /// This wrapper minimizes entropy in the codebase by isolating the differences in the capability kind.
 ///
 /// This class helps keep {@link MCVersionDependentBehaviour} out of other classes.
+@Desugar
 @MCVersionDependentBehaviour
 public record SFMBlockCapabilityKind<CAP>(
         Capability<CAP> capabilityKind
@@ -30,7 +33,8 @@ public record SFMBlockCapabilityKind<CAP>(
     public <STACK, ITEM> @Nullable ResourceType<STACK, ITEM, CAP> getResourceType() {
         return (ResourceType<STACK, ITEM, CAP>) SFMResourceTypes
                 .registry()
-                .stream()
+                .getValuesCollection().stream()
+                .map(ResourceTypeContainer::get)
                 .filter(resourceType -> resourceType.CAPABILITY_KIND.equals(this))
                 .findFirst()
                 .orElse(null);

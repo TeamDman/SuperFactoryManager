@@ -9,6 +9,8 @@ import net.minecraft.util.EnumHand;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import javax.annotation.Nullable;
+
 public class ServerboundNetworkToolToggleOverlayPacket extends SFMPacket<ServerboundNetworkToolToggleOverlayPacket> {
     private EnumHand hand;
 
@@ -30,6 +32,7 @@ public class ServerboundNetworkToolToggleOverlayPacket extends SFMPacket<Serverb
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ServerboundNetworkToolToggleOverlayPacket message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().player;
         player.getServerWorld().addScheduledTask(() -> {

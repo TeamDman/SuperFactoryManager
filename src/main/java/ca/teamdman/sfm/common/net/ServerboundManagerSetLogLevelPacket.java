@@ -5,6 +5,7 @@ import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
@@ -15,7 +16,7 @@ import org.apache.logging.log4j.Level;
 
 import java.io.IOException;
 
-public class ServerboundManagerSetLogLevelPacket extends SFMPacket<ServerboundManagerSetLogLevelPacket> {
+public class ServerboundManagerSetLogLevelPacket extends SFMAdvancedPacket<ServerboundManagerSetLogLevelPacket> {
     public static final int MAX_LOG_LEVEL_NAME_LENGTH = 64;
 
     private int windowId;
@@ -38,7 +39,7 @@ public class ServerboundManagerSetLogLevelPacket extends SFMPacket<ServerboundMa
         pos = packetBuffer.readBlockPos();
         try {
             logLevel = packetBuffer.readString(MAX_LOG_LEVEL_NAME_LENGTH);
-        } catch (IOException e) {
+        } catch (DecoderException e) {
             throw new RuntimeException(e);
         }
     }
@@ -51,29 +52,36 @@ public class ServerboundManagerSetLogLevelPacket extends SFMPacket<ServerboundMa
         packetBuffer.writeString(logLevel);
     }
 
-    @Override
-    public IMessage onMessage(ServerboundManagerSetLogLevelPacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            if (player.openContainer instanceof ManagerContainerMenu && player.openContainer.windowId == message.windowId) {
-                TileEntity te = player.world.getTileEntity(message.pos);
-                if (te instanceof ManagerBlockEntity) {
-                    ManagerBlockEntity manager = (ManagerBlockEntity) te;
-                    Level logLevelObj = Level.getLevel(message.logLevel);
-                    manager.setLogLevel(logLevelObj);
-                    manager.logger.info(x -> x.accept(LocalizationKeys.LOG_LEVEL_UPDATED.get(
-                            message.logLevel)));
+        @Override
+        public void handle(
+                ServerboundManagerSetLogLevelPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            context.handleServerboundContainerPacket(
+                    ManagerContainerMenu.class,
+                    ManagerBlockEntity.class,
+                    msg.pos,
+                    msg.windowId,
+                    (menu, manager) -> {
+                        // get the level
+                        Level logLevelObj = Level.getLevel(msg.logLevel);
 
-                    SFM.LOGGER.debug(
-                            "{} updated manager {} {} log level to {}",
-                            player.getName(),
-                            message.pos,
-                            manager.getWorld(),
-                            message.logLevel
-                    );
-                }
-            }
-        });
-        return null;
-    }
+                        // set the level
+                        manager.setLogLevel(logLevelObj);
+
+                        // log in manager
+                        manager.logger.info(x -> x.accept(LocalizationKeys.LOG_LEVEL_UPDATED.get(
+                                msg.logLevel)));
+
+                        // log in server console
+                        SFM.LOGGER.debug(
+                                "{} updated manager {} {} log level to {}",
+                                context.serverPlayer().getName(),
+                                msg.pos,
+                                manager.getWorld(),
+                                msg.logLevel
+                        );
+                    }
+            );
+        }
 }

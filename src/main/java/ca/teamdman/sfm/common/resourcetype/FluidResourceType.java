@@ -3,28 +3,22 @@ package ca.teamdman.sfm.common.resourcetype;
 import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
-import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
-import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.Mth;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fluids.capability.templates.FluidHandlerItemStack;
-import net.minecraftforge.registries.IForgeRegistry;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Set;
 import java.util.stream.Stream;
 
-public class FluidResourceType extends RegistryBackedResourceType<FluidStack, Fluid, IFluidHandler> {
-    public FluidResourceType() {
-        super(SFMWellKnownCapabilities.FLUID_HANDLER);
-    }
-
-    @Override
-    public SFMRegistryWrapper<Fluid> getRegistry() {
-        return FluidRegistry.FluidDelegate;
+public class FluidResourceType extends ResourceType<FluidStack, Fluid, IFluidHandler> {
+    public FluidResourceType(ResourceTypeContainer container) {
+        super(container, SFMWellKnownCapabilities.FLUID_HANDLER);
     }
 
     @Override
@@ -38,9 +32,40 @@ public class FluidResourceType extends RegistryBackedResourceType<FluidStack, Fl
     }
 
     @Override
-    public Stream<net.minecraft.util.ResourceLocation> getTagsForStack(FluidStack fluidStack) {
+    public Stream<ResourceLocation> getTagsForStack(FluidStack fluidStack) {
+        return Stream.empty();
         //noinspection deprecation
-        return fluidStack.getFluid().builtInRegistryHolder().tags().map(TagKey::location);
+    }
+
+    @Override
+    public boolean registryKeyExists(ResourceLocation location) {
+        return FluidRegistry.isFluidRegistered(location.toString());
+    }
+
+    @Override
+    public ResourceLocation getRegistryKeyForStack(FluidStack fluidStack) {
+        return getRegistryKeyForItem(getItem(fluidStack));
+    }
+
+    @Override
+    public ResourceLocation getRegistryKeyForItem(Fluid fluid) {
+        return new ResourceLocation(FluidRegistry.getDefaultFluidName(fluid));
+    }
+
+    @Nullable
+    @Override
+    public Fluid getItemFromRegistryKey(ResourceLocation location) {
+        return FluidRegistry.getFluid(location.getPath());
+    }
+
+    @Override
+    public Set<ResourceLocation> getRegistryKeys() {
+        return Set.of();
+    }
+
+    @Override
+    public Iterable<Fluid> getItems() {
+        return FluidRegistry.getRegisteredFluids().values();
     }
 
     @Override
@@ -52,14 +77,14 @@ public class FluidResourceType extends RegistryBackedResourceType<FluidStack, Fl
 
     @Override
     public IFluidHandler createHandlerForBufferBlock(BufferBlockEntityContents contents) {
-        return new FluidHandler(contents.tier.getIntMaxStackSize()) {
+        return new FluidTank(contents.tier.getIntMaxStackSize()) {
             @Override
-            public boolean isFluidValid(FluidStack stack) {
-                boolean isValid = this.getFluidAmount() > 0 || contents.isEmpty();
-                if (isValid) {
+            public int fillInternal(FluidStack resource, boolean doFill) {
+                int ret = super.fillInternal(resource, doFill);
+                if (ret > 0) {
                     contents.lastUsedResource = BufferBlock.ContainedResource.Fluid;
                 }
-                return isValid;
+                return ret;
             }
         };
     }

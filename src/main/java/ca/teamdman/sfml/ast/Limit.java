@@ -1,8 +1,10 @@
 package ca.teamdman.sfml.ast;
 
+import com.github.bsideup.jabel.Desugar;
 import static ca.teamdman.sfml.ast.ResourceQuantity.IdExpansionBehaviour.NO_EXPAND;
 
-public record Limit(
+
+@Desugar public record Limit(
         ResourceQuantity quantity,
         ResourceQuantity retention
 ) implements ASTNode {
@@ -48,7 +50,7 @@ public record Limit(
             sb.append(quantity);
         }
         if (!retention.number().equals(defaults.retention().number())) {
-            if (!sb.isEmpty()) sb.append(" ");
+            if (sb.length() != 0) sb.append(" ");
             sb.append("RETAIN ").append(retention);
         }
         return sb.toString();

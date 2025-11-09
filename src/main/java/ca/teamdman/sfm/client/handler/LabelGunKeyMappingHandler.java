@@ -9,15 +9,16 @@ import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumHand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent;
+import net.minecraftforge.fml.relauncher.Side;
 
-@Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
-
+@Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.CLIENT)
 public class LabelGunKeyMappingHandler {
     private static AltState altState = AltState.Idle;
     private static boolean labelSwitchKeyDown = false;
@@ -28,17 +29,17 @@ public class LabelGunKeyMappingHandler {
 
     @SuppressWarnings("DuplicatedCode")
     @SubscribeEvent
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
+    public static void onClientTick(ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null) return;
-        Player player = minecraft.player;
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft.world == null) return;
+        EntityPlayerSP player = minecraft.player;
         if (player == null) return;
         handleAltKeyLogic();
         handleLabelSwitchKeyLogic(player);
     }
 
-    private static void handleLabelSwitchKeyLogic(Player player) {
+    private static void handleLabelSwitchKeyLogic(EntityPlayer player) {
         boolean nextLabelKeyDown = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_NEXT_LABEL_KEY);
         boolean prevLabelKeyDown = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_PREVIOUS_LABEL_KEY);
         boolean justPressed = !labelSwitchKeyDown && (nextLabelKeyDown || prevLabelKeyDown);
@@ -52,10 +53,10 @@ public class LabelGunKeyMappingHandler {
     }
 
     private static void handleAltKeyLogic() {
-        Minecraft minecraft = Minecraft.getInstance();
+        Minecraft minecraft = Minecraft.getMinecraft();
 
         // don't do anything if a screen is open
-        if (minecraft.screen != null) return;
+        if (minecraft.currentScreen != null) return;
 
         // only do something if the key was pressed
         boolean alt_down = SFMKeyMappings.isKeyDown(SFMKeyMappings.CYCLE_LABEL_VIEW_KEY);

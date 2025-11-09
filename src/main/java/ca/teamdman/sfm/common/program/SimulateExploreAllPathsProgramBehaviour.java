@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.program;
 
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfml.ast.*;
+import com.github.bsideup.jabel.Desugar;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigInteger;
@@ -138,6 +139,7 @@ public class SimulateExploreAllPathsProgramBehaviour implements ProgramBehaviour
     public interface ExecutionPathElement {
     }
 
+    @Desugar
     public record ExecutionPath(
             List<ExecutionPathElement> history
     ) {
@@ -158,12 +160,14 @@ public class SimulateExploreAllPathsProgramBehaviour implements ProgramBehaviour
         }
     }
 
+    @Desugar
     public record Branch(
             IfStatement ifStatement,
             boolean wasTrue
     ) implements ExecutionPathElement {
     }
 
+    @Desugar
     public record IO(
             IOStatement statement,
             IOKind kind,

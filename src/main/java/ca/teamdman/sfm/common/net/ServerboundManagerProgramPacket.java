@@ -4,6 +4,7 @@ import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
@@ -13,7 +14,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 import java.io.IOException;
 
-public class ServerboundManagerProgramPacket extends SFMPacket<ServerboundManagerProgramPacket> {
+public class ServerboundManagerProgramPacket extends SFMAdvancedPacket<ServerboundManagerProgramPacket> {
     private int windowId;
     private BlockPos pos;
     private String program;
@@ -34,7 +35,7 @@ public class ServerboundManagerProgramPacket extends SFMPacket<ServerboundManage
         pos = packetBuffer.readBlockPos();
         try {
             program = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
-        } catch (IOException e) {
+        } catch (DecoderException e) {
             throw new RuntimeException(e);
         }
     }
@@ -48,16 +49,17 @@ public class ServerboundManagerProgramPacket extends SFMPacket<ServerboundManage
     }
 
     @Override
-    public IMessage onMessage(ServerboundManagerProgramPacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            if (player.openContainer instanceof ManagerContainerMenu && player.openContainer.windowId == message.windowId) {
-                TileEntity te = player.world.getTileEntity(message.pos);
-                if (te instanceof ManagerBlockEntity) {
-                    ((ManagerBlockEntity) te).setProgram(message.program);
-                }
-            }
-        });
-        return null;
+    public void handle(
+            ServerboundManagerProgramPacket msg,
+            SFMPacketHandlingContext context
+    ) {
+        context.handleServerboundContainerPacket(
+                ManagerContainerMenu.class,
+                ManagerBlockEntity.class,
+                msg.pos,
+                msg.windowId,
+                (menu, manager) -> manager.setProgram(msg.program)
+        );
     }
+
 }

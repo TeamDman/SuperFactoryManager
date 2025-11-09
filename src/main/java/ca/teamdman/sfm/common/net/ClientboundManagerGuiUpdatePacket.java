@@ -4,6 +4,7 @@ import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.inventory.Container;
@@ -11,6 +12,7 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class ClientboundManagerGuiUpdatePacket extends SFMPacket<ClientboundManagerGuiUpdatePacket> {
@@ -39,11 +41,11 @@ public class ClientboundManagerGuiUpdatePacket extends SFMPacket<ClientboundMana
         windowId = packetBuffer.readVarInt();
         try {
             program = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
-        } catch (IOException e) {
+        } catch (DecoderException e) {
             throw new RuntimeException(e);
         }
         state = packetBuffer.readEnumValue(ManagerBlockEntity.State.class);
-        tickTimes = packetBuffer.readLongArray();
+        tickTimes = packetBuffer.readLongArray(this.tickTimes, ManagerBlockEntity.TICK_TIME_HISTORY_SIZE * 2);
     }
 
     @Override
@@ -56,6 +58,7 @@ public class ClientboundManagerGuiUpdatePacket extends SFMPacket<ClientboundMana
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ClientboundManagerGuiUpdatePacket message, MessageContext ctx) {
         EntityPlayerSP player = Minecraft.getMinecraft().player;
         if (player == null) return null;

@@ -2,12 +2,8 @@ package ca.teamdman.sfm.client;
 
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
+import net.minecraft.util.math.RayTraceResult;
 import org.jetbrains.annotations.Nullable;
 
 public class ClientRayCastHelpers {
@@ -15,12 +11,11 @@ public class ClientRayCastHelpers {
         if (!SFMEnvironmentUtils.isClient()) {
             throw new IllegalCallerException("getLookBlockEntity must be called on client");
         }
-        World level = Minecraft.getMinecraft().world;
-        if (level == null) return null;
-        HitResult hr = level.rayTraceBlocks();
-        if (hr == null) return null;
-        if (hr.getType() != HitResult.Type.BLOCK) return null;
-        var pos = ((BlockHitResult) hr).getBlockPos();
-        return level.getBlockEntity(pos);
+        net.minecraft.client.Minecraft mc = Minecraft.getMinecraft();
+        RayTraceResult result = mc.objectMouseOver;
+        if (result == null) return null;
+        if (result.typeOfHit != RayTraceResult.Type.BLOCK) return null;
+        var pos = result.getBlockPos();
+        return mc.world.getTileEntity(pos);
     }
 }

@@ -2,21 +2,27 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.program.*;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import com.github.bsideup.jabel.Desugar;
 
-public record ResourceLimit(
+import static ca.teamdman.sfml.ast.Limit.MAX_QUANTITY_MAX_RETENTION;
+import static ca.teamdman.sfml.ast.Limit.MAX_QUANTITY_NO_RETENTION;
+import static ca.teamdman.sfml.ast.ResourceIdSet.MATCH_ALL;
+import static ca.teamdman.sfml.ast.With.ALWAYS_TRUE;
+
+@Desugar public record ResourceLimit(
         ResourceIdSet resourceIds,
         Limit limit,
         With with
 ) implements ASTNode {
     public static final ResourceLimit TAKE_ALL_LEAVE_NONE = new ResourceLimit(
-            ResourceIdSet.MATCH_ALL,
-            Limit.MAX_QUANTITY_NO_RETENTION,
-            With.ALWAYS_TRUE
+            MATCH_ALL,
+            MAX_QUANTITY_NO_RETENTION,
+            ALWAYS_TRUE
     );
     public static final ResourceLimit ACCEPT_ALL_WITHOUT_RESTRAINT = new ResourceLimit(
-            ResourceIdSet.MATCH_ALL,
-            Limit.MAX_QUANTITY_MAX_RETENTION,
-            With.ALWAYS_TRUE
+            MATCH_ALL,
+            MAX_QUANTITY_MAX_RETENTION,
+            ALWAYS_TRUE
     );
 
     public ResourceLimit withDefaultLimit(Limit defaults) {
@@ -72,13 +78,13 @@ public record ResourceLimit(
 
     @Override
     public String toString() {
-        return limit + " " + resourceIds + (with == With.ALWAYS_TRUE ? "" : " WITH " + with);
+        return limit + " " + resourceIds + (with == ALWAYS_TRUE ? "" : " WITH " + with);
     }
 
     public String toStringCondensed(Limit defaults) {
         return (
                 limit.toStringCondensed(defaults) + " " + resourceIds.toStringCondensed() + (
-                        with == With.ALWAYS_TRUE
+                        with == ALWAYS_TRUE
                         ? ""
                         : " WITH " + with
                 )

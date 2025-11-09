@@ -6,61 +6,54 @@ import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.util.FastColor;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.client.gui.overlay.ForgeGui;
-import net.minecraftforge.client.gui.overlay.IGuiOverlay;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
 
-public class NetworkToolReminderOverlay implements IGuiOverlay {
+public class NetworkToolReminderOverlay {
     @SuppressWarnings("DuplicatedCode")
-    @Override
     public void render(
-            ForgeGui gui,
-            PoseStack poseStack,
             float partialTick,
             int screenWidth,
             int screenHeight
     ) {
-        Minecraft minecraft = gui.getMinecraft();
-        if (minecraft.options.hideGui) {
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft.gameSettings.hideGUI) {
             return;
         }
-        LocalPlayer player = minecraft.player;
+        EntityPlayerSP player = minecraft.player;
         if (player == null) {
             return;
         }
-        if (!shouldRender(minecraft)) {
-            return;
-        }
-        Font font = minecraft.font;
+
+        if (!shouldRender(player)) return;
+
+
+        FontRenderer font = minecraft.fontRenderer;
         var reminder = LocalizationKeys.NETWORK_TOOL_REMINDER_OVERLAY.getComponent(
-                SFMKeyMappings.TOGGLE_NETWORK_TOOL_OVERLAY_KEY
-                        .get()
-                        .getTranslatedKeyMessage().plainCopy().withStyle(ChatFormatting.YELLOW)
+                new TextComponentString(SFMKeyMappings.TOGGLE_NETWORK_TOOL_OVERLAY_KEY.getDisplayName())
+                        .setStyle(new Style().setColor(TextFormatting.YELLOW))
         );
-        int reminderWidth = font.width(reminder);
+
+        int reminderWidth = font.getStringWidth(reminder.getUnformattedText());
         int x = screenWidth / 2 - reminderWidth / 2;
-        int y = 30;
+        int y = 20;
         SFMFontUtils.draw(
-                poseStack,
                 font,
                 reminder,
                 x,
                 y,
-                FastColor.ARGB32.color(255, 172, 208, 255),
+                0xFFACD0FF,
                 true
         );
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private static boolean shouldRender(Minecraft minecraft) {
-        LocalPlayer player = minecraft.player;
-        if (player == null) return false;
+    private static boolean shouldRender(EntityPlayerSP player) {
         if (!SFMConfig.client.showNetworkToolReminderOverlay) return false;
         ItemStack networkTool = SFMHandUtils.getItemInEitherHand(player, SFMItems.NETWORK_TOOL_ITEM);
 //        return !networkTool.isEmpty() && NetworkToolItem.getOverlayEnabled(networkTool);

@@ -179,7 +179,7 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
                                     pos,
                                     dir
                             )));
-                    CAP cap = maybeCap.unwrap();
+                    CAP cap = maybeCap.capability();
                     consumer.accept(dir, cap);
                 } else {
                     // Log error
@@ -237,7 +237,7 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
         }
 
         public String displayAsCode() {
-            ResourceLocation thisKey = SFMResourceTypes.registry().getKey(this);
+            ResourceLocation thisKey = SFMResourceTypes.registry().getKey(this.container);
             return thisKey != null ? thisKey.toString() : "null";
         }
 

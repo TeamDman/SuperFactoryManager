@@ -9,64 +9,87 @@ import ca.teamdman.sfm.common.diagnostics.SFMDiagnostics;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.net.*;
+import ca.teamdman.sfm.common.net.ServerboundManagerFixPacket;
+import ca.teamdman.sfm.common.net.ServerboundManagerProgramPacket;
+import ca.teamdman.sfm.common.net.ServerboundManagerRebuildPacket;
+import ca.teamdman.sfm.common.net.ServerboundManagerResetPacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
+import ca.teamdman.sfm.common.util.TextFormattingColors;
 import ca.teamdman.sfml.ast.Program;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
-import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
+import mezz.jei.api.gui.IAdvancedGuiHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.ConfirmLinkScreen;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiConfirmOpenLink;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
 import org.apache.logging.log4j.Level;
-import org.joml.Matrix4f;
-import org.lwjgl.glfw.GLFW;
+import org.jetbrains.annotations.Nullable;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
+import java.awt.*;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.List;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
 
+
 @SuppressWarnings({"FieldCanBeLocal", "unused", "NotNullFieldNotInitialized"})
-public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu> {
+public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<ManagerScreen> {
     private static final ResourceLocation BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
             "textures/gui/container/manager.png"
     );
     private final float STATUS_DURATION = 40;
-    private Component status = Component.empty();
+    private ITextComponent status = new TextComponentString("");
     private float statusCountdown = 0;
-    private Button diagButton;
-    private Button clipboardPasteButton;
-    private Button clipboardCopyButton;
-    private Button discordButton;
-    private Button resetButton;
-    private Button editButton;
-    private Button examplesButton;
-    private Button logsButton;
-    private Button rebuildButton;
-    private Button serverConfigButton;
+    private GuiButton diagButton;
+    private GuiButton clipboardPasteButton;
+    private GuiButton clipboardCopyButton;
+    private GuiButton discordButton;
+    private GuiButton resetButton;
+    private GuiButton editButton;
+    private GuiButton examplesButton;
+    private GuiButton logsButton;
+    private GuiButton rebuildButton;
+    private GuiButton serverConfigButton;
+
+    private final SFMButtonBuilder buttonBuilder = new SFMButtonBuilder();
+
+
+    protected int titleLabelX;
+    protected int titleLabelY;
+    protected int inventoryLabelX;
+    protected int inventoryLabelY;
+
+    protected ManagerContainerMenu menu;
 
     public ManagerScreen(
-            ManagerContainerMenu menu,
-            Inventory inv,
-            Component title
+            ManagerContainerMenu menu
     ) {
-        super(menu, inv, title);
+        super(menu);
+        this.menu = menu;
+        this.titleLabelX = 8;
+        this.titleLabelY = 6;
+
+        this.inventoryLabelX = 8;
+        this.inventoryLabelY = this.ySize - 96 + 2;
     }
 
-    public List<Button> getButtonsForJEIExclusionZones() {
-        return List.of(
+    public List<GuiButton> getButtonsForJEIExclusionZones() {
+        return Arrays.asList(
                 clipboardPasteButton,
                 editButton,
                 examplesButton,
@@ -78,12 +101,12 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     public boolean isReadOnly() {
-        LocalPlayer player = Minecraft.getInstance().player;
+        EntityPlayer player = Minecraft.getMinecraft().player;
         return player == null || player.isSpectator();
     }
 
     public void updateVisibilities() {
-        boolean diskPresent = menu.getSlot(0).hasItem();
+        boolean diskPresent = inventorySlots.getSlot(0).getHasStack();
         diagButton.visible = shouldShowDiagButton();
         clipboardCopyButton.visible = diskPresent;
         logsButton.visible = diskPresent;
@@ -93,181 +116,195 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         editButton.visible = diskPresent && !isReadOnly();
     }
 
-    @Override
-    public boolean keyPressed(
-            int pKeyCode,
-            int pScanCode,
-            int pModifiers
-    ) {
-        if (Screen.isPaste(pKeyCode) && clipboardPasteButton.visible) {
+
+    protected void keyTyped(char typedChar, int pKeyCode) throws IOException {
+        if (GuiScreen.isKeyComboCtrlV(pKeyCode) && clipboardPasteButton.visible) {
             onClipboardPasteButtonClicked();
-            return true;
-        } else if (Screen.isCopy(pKeyCode) && clipboardCopyButton.visible) {
+            return;
+        } else if (GuiScreen.isKeyComboCtrlC(pKeyCode) && clipboardCopyButton.visible) {
             onClipboardCopyButtonClicked();
-            return true;
-        } else if (pKeyCode == GLFW.GLFW_KEY_E
-                   && Screen.hasControlDown()
-                   && Screen.hasShiftDown()
-                   && examplesButton.visible) {
+            return;
+        } else if (pKeyCode == Keyboard.KEY_E
+                && GuiScreen.isCtrlKeyDown()
+                && GuiScreen.isShiftKeyDown()
+                && examplesButton.visible) {
             onExamplesButtonClicked();
-            return true;
-        } else if (SFMKeyMappings.isKeyDown(SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY)
-                   && editButton.visible) {
+            return;
+        } else if (pKeyCode == SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.getKeyCode()
+                && editButton.visible) {
             onEditButtonClicked();
-            return true;
+            return;
         }
-        return super.keyPressed(pKeyCode, pScanCode, pModifiers);
+        super.keyTyped(typedChar, pKeyCode);
     }
 
-    public ChatFormatting getMillisecondColour(float ms) {
+    public TextFormatting getMillisecondColour(float ms) {
         if (ms <= 5) {
-            return ChatFormatting.GREEN;
+            return TextFormatting.GREEN;
         } else if (ms <= 15) {
-            return ChatFormatting.YELLOW;
+            return TextFormatting.YELLOW;
         } else {
-            return ChatFormatting.RED;
+            return TextFormatting.RED;
         }
     }
 
-    @Override
-    public void render(
-            PoseStack poseStack,
-            int mx,
-            int my,
-            float partialTicks
-    ) {
-        this.renderBackground(poseStack);
-        super.render(poseStack, mx, my, partialTicks);
-        this.renderTooltip(poseStack, mx, my);
 
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        this.drawDefaultBackground();
+        super.drawScreen(mouseX, mouseY, partialTicks);
+        this.renderHoveredToolTip(mouseX, mouseY);
         updateVisibilities();
-
-        // update status countdown
         statusCountdown -= partialTicks;
     }
 
     @Override
-    protected void init() {
-        super.init();
+    protected void drawGuiContainerForegroundLayer(int mx, int my) {
+        super.drawGuiContainerForegroundLayer(mx, my);
+        drawLabels(mx, my);
+    }
+
+    /**
+     * Draws the background layer of this container (behind the items).
+     */
+    protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
+        if (!menu.logLevel.equals(Level.OFF.name())) {
+            GlStateManager.color(0.2F, 0.8F, 1.0F, 1.0F);
+        } else {
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        }
+
+        this.mc.getTextureManager().bindTexture(BACKGROUND_TEXTURE_LOCATION);
+
+        // Top-left corner of the GUI
+        int i = (this.width - this.xSize) / 2;
+        int j = (this.height - this.ySize) / 2;
+
+        this.drawTexturedModalRect(i, j, 0, 0, this.xSize, this.ySize);
+    }
+
+
+    @Override
+    public void initGui() {
+        super.initGui();
         int buttonWidth = 120;
         int buttonHeight = 16;
-        clipboardPasteButton = this.addRenderableWidget(
+        clipboardPasteButton = this.addButton(
                 new SFMButtonBuilder()
                         .setPosition(
-                                (this.width - this.imageWidth) / 2 - buttonWidth,
-                                (this.height - this.imageHeight) / 2 + 16
+                                (this.width - this.xSize) / 2 - buttonWidth,
+                                (this.height - this.ySize) / 2 + 16
                         )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_PASTE_FROM_CLIPBOARD_BUTTON)
                         .setOnPress(button -> this.onClipboardPasteButtonClicked())
                         .setTooltip(
                                 this,
-                                font,
+                                this.fontRenderer,
                                 MANAGER_GUI_PASTE_FROM_CLIPBOARD_BUTTON_TOOLTIP
                         )
                         .build()
         );
-        editButton = this.addRenderableWidget(
+        editButton = this.addButton(
                 new SFMButtonBuilder()
                         .setPosition(
-                                (this.width - this.imageWidth) / 2 - buttonWidth,
-                                (this.height - this.imageHeight) / 2 + 16 + 50
+                                (this.width - this.xSize) / 2 - buttonWidth,
+                                (this.height - this.ySize) / 2 + 16 + 50
                         )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_EDIT_BUTTON)
                         .setOnPress(button -> onEditButtonClicked())
                         .setTooltip(
                                 this,
-                                font,
+                                this.fontRenderer,
                                 MANAGER_GUI_EDIT_BUTTON_TOOLTIP.getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY))
                         )
                         .build()
         );
-        examplesButton = this.addRenderableWidget(
+        examplesButton = this.addButton(
                 new SFMButtonBuilder()
                         .setPosition(
-                                (this.width - this.imageWidth) / 2 - buttonWidth,
-                                (this.height - this.imageHeight) / 2 + 16 * 2 + 50
+                                (this.width - this.xSize) / 2 - buttonWidth,
+                                (this.height - this.ySize) / 2 + 16 * 2 + 50
                         )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_VIEW_EXAMPLES_BUTTON)
                         .setOnPress(button -> onExamplesButtonClicked())
                         .setTooltip(
                                 this,
-                                font,
+                                this.fontRenderer,
                                 MANAGER_GUI_VIEW_EXAMPLES_BUTTON_TOOLTIP
                         )
                         .build()
         );
-        discordButton = this.addRenderableWidget(
+        discordButton = this.addButton(
                 new SFMButtonBuilder()
                         .setPosition(
-                                (this.width - this.imageWidth) / 2 - buttonWidth,
-                                (this.height - this.imageHeight) / 2 + 112
+                                (this.width - this.xSize) / 2 - buttonWidth,
+                                (this.height - this.ySize) / 2 + 112
                         )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_DISCORD_BUTTON)
                         .setOnPress(button -> this.onDiscordButtonClicked())
                         .build()
         );
-        clipboardCopyButton = this.addRenderableWidget(
+        clipboardCopyButton = this.addButton(
                 new SFMButtonBuilder()
                         .setPosition(
-                                (this.width - this.imageWidth) / 2 - buttonWidth,
-                                (this.height - this.imageHeight) / 2 + 128
+                                (this.width - this.xSize) / 2 - buttonWidth,
+                                (this.height - this.ySize) / 2 + 128
                         )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_COPY_TO_CLIPBOARD_BUTTON)
                         .setOnPress(button -> this.onClipboardCopyButtonClicked())
                         .build()
         );
-        logsButton = this.addRenderableWidget(
+        logsButton = this.addButton(
                 new SFMButtonBuilder()
                         .setPosition(
-                                (this.width - this.imageWidth) / 2 - buttonWidth,
-                                (this.height - this.imageHeight) / 2 + 16 * 9
+                                (this.width - this.xSize) / 2 - buttonWidth,
+                                (this.height - this.ySize) / 2 + 16 * 9
                         )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_VIEW_LOGS_BUTTON)
                         .setOnPress(button -> onLogsButtonClicked())
                         .build()
         );
-        rebuildButton = this.addRenderableWidget(
+        rebuildButton = this.addButton(
                 new SFMButtonBuilder()
                         .setPosition(
-                                (this.width - this.imageWidth) / 2 - buttonWidth,
-                                (this.height - this.imageHeight) / 2 + 16 * 10
+                                (this.width - this.xSize) / 2 - buttonWidth,
+                                (this.height - this.ySize) / 2 + 16 * 10
                         )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_REBUILD_BUTTON)
                         .setOnPress(button -> this.onRebuildButtonClicked())
                         .build()
         );
-        resetButton = this.addRenderableWidget(
+        resetButton = this.addButton(
                 new SFMButtonBuilder()
                         .setPosition(
-                                (this.width - this.imageWidth) / 2 + 120,
-                                (this.height - this.imageHeight) / 2 + 10
+                                (this.width - this.xSize) / 2 + 120,
+                                (this.height - this.ySize) / 2 + 10
                         )
                         .setSize(50, 12)
                         .setText(MANAGER_GUI_RESET_BUTTON)
                         .setOnPress(button -> onResetButtonClicked())
-                        .setTooltip(this, font, MANAGER_GUI_RESET_BUTTON_TOOLTIP)
+                        .setTooltip(this, this.fontRenderer, MANAGER_GUI_RESET_BUTTON_TOOLTIP)
                         .build()
         );
-        diagButton = this.addRenderableWidget(
+        diagButton = this.addButton(
                 new SFMButtonBuilder()
                         .setPosition(
-                                (this.width - this.imageWidth) / 2 + 35,
-                                (this.height - this.imageHeight) / 2 + 48
+                                (this.width - this.xSize) / 2 + 35,
+                                (this.height - this.ySize) / 2 + 48
                         )
                         .setSize(12, 14)
-                        .setText(Component.literal("!"))
+                        .setText(new TextComponentString("!"))
                         .setOnPress(button -> onDiagButtonClicked())
                         .setTooltip(
-                                this, font, isReadOnly()
-                                            ? MANAGER_GUI_WARNING_BUTTON_TOOLTIP_READ_ONLY
-                                            : MANAGER_GUI_WARNING_BUTTON_TOOLTIP
+                                this, this.fontRenderer, isReadOnly()
+                                        ? MANAGER_GUI_WARNING_BUTTON_TOOLTIP_READ_ONLY
+                                        : MANAGER_GUI_WARNING_BUTTON_TOOLTIP
                         )
                         .build()
         );
@@ -275,7 +312,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onDiagButtonClicked() {
-        if (Screen.hasShiftDown() && !isReadOnly()) {
+        if (GuiScreen.isShiftKeyDown() && !isReadOnly()) {
             sendAttemptFix();
         } else {
             this.onSaveDiagnosticsToClipboard();
@@ -308,7 +345,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     private void performReset() {
         SFMPackets.sendToServer(new ServerboundManagerResetPacket(
-                menu.containerId,
+                menu.windowId,
                 menu.MANAGER_POSITION
         ));
         status = MANAGER_GUI_STATUS_RESET.getComponent();
@@ -332,7 +369,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     private void onRebuildButtonClicked() {
         SFMPackets.sendToServer(new ServerboundManagerRebuildPacket(
-                menu.containerId,
+                menu.windowId,
                 menu.MANAGER_POSITION
         ));
         status = MANAGER_GUI_STATUS_REBUILD.getComponent();
@@ -342,7 +379,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     private void sendAttemptFix() {
         SFMPackets.sendToServer(new ServerboundManagerFixPacket(
-                menu.containerId,
+                menu.windowId,
                 menu.MANAGER_POSITION
         ));
         status = MANAGER_GUI_STATUS_FIX.getComponent();
@@ -350,9 +387,9 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void sendProgram(String program) {
-        program = SFMPacketDaddy.truncate(program, Program.MAX_PROGRAM_LENGTH);
+        program = program.length() > Program.MAX_PROGRAM_LENGTH ? program.substring(0, Program.MAX_PROGRAM_LENGTH) : program;
         SFMPackets.sendToServer(new ServerboundManagerProgramPacket(
-                menu.containerId,
+                menu.windowId,
                 menu.MANAGER_POSITION,
                 program
         ));
@@ -364,14 +401,15 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     private void onDiscordButtonClicked() {
         String discordUrl = "https://discord.gg/xjXYj9MmS4";
         SFMScreenChangeHelpers.setOrPushScreen(
-                new ConfirmLinkScreen(
-                        proceed -> {
+                new GuiConfirmOpenLink(
+                        (proceed, buttonId) -> {
                             if (proceed) {
-                                Util.getPlatform().openUri(discordUrl);
+//                                Util.getPlatform().openUri(discordUrl);
                             }
                             SFMScreenChangeHelpers.popScreen();
                         },
                         discordUrl,
+                        0,
                         false
                 )
         );
@@ -379,7 +417,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     private void onClipboardCopyButtonClicked() {
         try {
-            Minecraft.getInstance().keyboardHandler.setClipboard(menu.program);
+            GuiScreen.setClipboardString(menu.program);
             status = MANAGER_GUI_STATUS_SAVED_CLIPBOARD.getComponent();
             statusCountdown = STATUS_DURATION;
         } catch (Throwable t) {
@@ -397,10 +435,10 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     private void onSaveDiagnosticsToClipboard() {
         try {
-            var disk = menu.CONTAINER.getItem(0);
+            var disk = menu.CONTAINER.getStackInSlot(0);
             if (!(disk.getItem() instanceof DiskItem)) return;
             String diagnosticInfo = SFMDiagnostics.getDiagnosticsSummary(disk);
-            Minecraft.getInstance().keyboardHandler.setClipboard(diagnosticInfo);
+            GuiScreen.setClipboardString(diagnosticInfo);
             status = MANAGER_GUI_STATUS_SAVED_CLIPBOARD.getComponent();
             statusCountdown = STATUS_DURATION;
         } catch (Throwable t) {
@@ -411,7 +449,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     private void onClipboardPasteButtonClicked() {
         String clipboardContents;
         try {
-            clipboardContents = Minecraft.getInstance().keyboardHandler.getClipboard();
+            clipboardContents = GuiScreen.getClipboardString();
         } catch (Throwable t) {
             SFM.LOGGER.error("failed loading clipboard", t);
             return;
@@ -434,24 +472,22 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     @MCVersionDependentBehaviour
     private void disableTexture() {
-//        RenderSystem.disableTexture(); // 1.19.2
+        GlStateManager.disableTexture2D();
     }
 
-    @Override
-    protected void renderLabels(
-            PoseStack poseStack,
+    protected void drawLabels(
             int mx,
             int my
     ) {
-        // draw title
-        super.renderLabels(poseStack, mx, my);
+        this.fontRenderer.drawString(menu.CONTAINER.getDisplayName().getUnformattedText(), this.titleLabelX, this.titleLabelY, 4210752);
+        this.fontRenderer.drawString(menu.PLAYER_INVENTORY.getDisplayName().getUnformattedText(), this.titleLabelX, this.titleLabelY, 4210752);
+
 
         // draw state string
         var state = menu.state;
         SFMFontUtils.draw(
-                poseStack,
-                this.font,
-                MANAGER_GUI_STATE.getComponent(state.LOC.getComponent().withStyle(state.COLOR)),
+                this.fontRenderer,
+                MANAGER_GUI_STATE.getComponent(state.LOC.getComponent().setStyle(new Style().setColor(state.COLOR))),
                 titleLabelX,
                 20,
                 0,
@@ -460,32 +496,30 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
         // draw log level
         if (!menu.logLevel.equals(Level.OFF.name())) {
-            poseStack.pushPose();
-            poseStack.translate(
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(
                     titleLabelX,
-                    font.lineHeight * 1.5,
+                    this.fontRenderer.FONT_HEIGHT * 1.5,
                     0f
             );
-            poseStack.scale(0.5f, 0.5f, 1f);
+            GlStateManager.scale(0.5f, 0.5f, 1f);
             SFMFontUtils.draw(
-                    poseStack,
-                    this.font,
-                    Component.literal(menu.logLevel),
+                    this.fontRenderer,
+                    menu.logLevel,
                     0,
                     0,
                     0,
                     false
             );
-            poseStack.popPose();
+            GlStateManager.popMatrix();
         }
 
         // draw status string
         if (statusCountdown > 0) {
             SFMFontUtils.draw(
-                    poseStack,
-                    this.font,
+                    this.fontRenderer,
                     status,
-                    inventoryLabelX + font.width(playerInventoryTitle.getString()) + 5,
+                    inventoryLabelX + fontRenderer.getStringWidth(menu.PLAYER_INVENTORY.getDisplayName().getUnformattedText()) + 5,
                     inventoryLabelY,
                     0,
                     false
@@ -509,26 +543,32 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
         // Set up rendering
         disableTexture();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        Tesselator tesselator = Tesselator.getInstance();
-        Matrix4f pose = poseStack.last().pose();
-        BufferBuilder bufferbuilder;
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(
+                GlStateManager.SourceFactor.SRC_ALPHA,
+                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+                GlStateManager.SourceFactor.ONE,
+                GlStateManager.DestFactor.ZERO
+        );
+
+        Tessellator tesselator = Tessellator.getInstance();
+        BufferBuilder buffer;
 
         // Draw the plot background
-        bufferbuilder = tesselator.getBuilder();
-        bufferbuilder.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-        bufferbuilder.vertex(pose, plotX, plotY, 0).color(0, 0, 0, 0.5f).endVertex();
-        bufferbuilder.vertex(pose, plotX + plotWidth, plotY, 0).color(0, 0, 0, 0.5f).endVertex();
-        bufferbuilder.vertex(pose, plotX + plotWidth, plotY + plotHeight, 0).color(0, 0, 0, 0.5f).endVertex();
-        bufferbuilder.vertex(pose, plotX, plotY + plotHeight, 0).color(0, 0, 0, 0.5f).endVertex();
-        bufferbuilder.vertex(pose, plotX, plotY, 0).color(0, 0, 0, 0.5f).endVertex();
-        tesselator.end();
+        buffer = tesselator.getBuffer();
+        buffer.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
+
+        buffer.pos(plotX, plotY, 0).color(0, 0, 0, 128).endVertex();
+        buffer.pos(plotX + plotWidth, plotY, 0).color(0, 0, 0, 128).endVertex();
+        buffer.pos(plotX + plotWidth, plotY + plotHeight, 0).color(0, 0, 0, 128).endVertex();
+        buffer.pos(plotX, plotY + plotHeight, 0).color(0, 0, 0, 128).endVertex();
+        buffer.pos(plotX, plotY, 0).color(0, 0, 0, 128).endVertex();
+
+        tesselator.draw();
 
         // Draw lines for each data point
-        bufferbuilder = tesselator.getBuilder();
-        bufferbuilder.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        buffer = tesselator.getBuffer();
+        buffer.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
         int mouseTickTimeIndex = -1;
         for (int i = 0; i < menu.tickTimeNanos.length; i++) {
             long y = menu.tickTimeNanos[i];
@@ -538,26 +578,25 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             int plotPosX = plotX + spaceBetweenPoints * i;
 
             // Color the lines based on their tick times (green to red)
-            var c = getMillisecondColour(y / 1_000_000f);
+            var c = TextFormattingColors.getColorCode(getMillisecondColour(y / 1_000_000f));
             //noinspection DataFlowIssue
-            float red = ((c.getColor() >> 16) & 0xFF) / 255f;
-            float green = ((c.getColor() >> 8) & 0xFF) / 255f;
-            float blue = (c.getColor() & 0xFF) / 255f;
+            float red = ((c >> 16) & 0xFF) / 255f;
+            float green = ((c >> 8) & 0xFF) / 255f;
+            float blue = (c & 0xFF) / 255f;
 
-            bufferbuilder
-                    .vertex(pose, (float) plotPosX, (float) plotPosY, getBlitOffsetGood())
-                    .color(red, green, blue, 1f)
+            buffer.pos(plotPosX, plotPosY, getBlitOffsetGood())
+                    .color(red, green, blue, 1.0F)
                     .endVertex();
 
             // Check if the mouse is hovering over this line
-            if (mx - leftPos >= plotPosX - spaceBetweenPoints / 2
-                && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
-                && my - topPos >= plotY - 2
-                && my - topPos <= plotY + plotHeight + 2) {
+            if (mx - guiLeft >= plotPosX - spaceBetweenPoints / 2
+                    && mx - guiLeft <= plotPosX + spaceBetweenPoints / 2
+                    && my - guiTop >= plotY - 2
+                    && my - guiTop <= plotY + plotHeight + 2) {
                 mouseTickTimeIndex = i;
             }
         }
-        tesselator.end();
+        tesselator.draw();
 
         // Draw the tick time text
         var format = new DecimalFormat("0.000");
@@ -567,61 +606,57 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                 long hoveredTickTimeNanoseconds = menu.tickTimeNanos[mouseTickTimeIndex];
                 var hoveredTickTimeMilliseconds = hoveredTickTimeNanoseconds / 1_000_000f;
                 String formattedMillis = format.format(hoveredTickTimeMilliseconds);
-                ChatFormatting lagColor = getMillisecondColour(hoveredTickTimeMilliseconds);
-                Component milliseconds = Component.literal(formattedMillis).withStyle(lagColor);
+                TextFormatting lagColor = getMillisecondColour(hoveredTickTimeMilliseconds);
+                ITextComponent milliseconds = new TextComponentString(formattedMillis).setStyle(new Style().setColor(lagColor));
                 SFMFontUtils.draw(
-                        poseStack,
-                        this.font,
+                        this.fontRenderer,
                         MANAGER_GUI_HOVERED_TICK_TIME_MS.getComponent(milliseconds),
                         titleLabelX,
-                        20 + font.lineHeight,
+                        20 + fontRenderer.FONT_HEIGHT,
                         0,
                         false
                 );
             }
 
             // draw a vertical line
-            RenderSystem.setShader(GameRenderer::getPositionColorShader);
-            tesselator = Tesselator.getInstance();
-            bufferbuilder = tesselator.getBuilder();
-            bufferbuilder.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-            pose = poseStack.last().pose();
+            buffer = tesselator.getBuffer();
+            buffer.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
 
             int x = plotX + spaceBetweenPoints * mouseTickTimeIndex;
-            bufferbuilder
-                    .vertex(pose, (float) x, (float) plotY, getBlitOffsetGood())
+            buffer
+                    .pos(x, plotY, getBlitOffsetGood())
                     .color(1f, 1f, 1f, 1f)
                     .endVertex();
-            bufferbuilder
-                    .vertex(pose, (float) x, (float) plotY + plotHeight, getBlitOffsetGood())
+            buffer
+                    .pos(x, plotY + plotHeight, getBlitOffsetGood())
                     .color(1f, 1f, 1f, 1f)
                     .endVertex();
-            tesselator.end();
+            tesselator.draw();
         } else {
             // Draw the tick time text for peak value
             var peakTickTimeMilliseconds = peakTickTimeNanoseconds / 1_000_000f;
             String formattedMillis = format.format(peakTickTimeMilliseconds);
-            ChatFormatting lagColor = getMillisecondColour(peakTickTimeMilliseconds);
-            Component milliseconds = Component.literal(formattedMillis).withStyle(lagColor);
+            TextFormatting lagColor = getMillisecondColour(peakTickTimeMilliseconds);
+            ITextComponent milliseconds = new TextComponentString(formattedMillis).setStyle(new Style().setColor(lagColor));
+
             SFMFontUtils.draw(
-                    poseStack,
-                    this.font,
+                    this.fontRenderer,
                     MANAGER_GUI_PEAK_TICK_TIME_MS.getComponent(milliseconds),
                     titleLabelX,
-                    20 + font.lineHeight,
+                    20 + fontRenderer.FONT_HEIGHT,
                     0,
                     false
             );
         }
 
         // Restore stuff
-        RenderSystem.disableBlend();
+        GlStateManager.disableBlend();
         enableTexture();
     }
 
     @MCVersionDependentBehaviour
-    private void enableTexture(){
-//        RenderSystem.enableTexture(); // 1.19.2
+    private void enableTexture() {
+        GlStateManager.enableTexture2D();
     }
 
     @MCVersionDependentBehaviour
@@ -630,57 +665,51 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     @Override
-    protected void renderTooltip(
-            PoseStack pose,
+    protected void renderHoveredToolTip(
             int mx,
             int my
     ) {
-        if (Minecraft.getInstance().screen != this) {
+        if (Minecraft.getMinecraft().currentScreen != this) {
             // this should fix the annoying Ctrl+E popup when editing
-            this.renderables
-                    .stream()
-                    .filter(AbstractWidget.class::isInstance)
-                    .map(AbstractWidget.class::cast)
-                    .forEach(w -> w.setFocused(false));
-            return;
+//            this.renderables
+//                    .stream()
+//                    .filter(AbstractWidget.class::isInstance)
+//                    .map(AbstractWidget.class::cast)
+//                    .forEach(w -> w.setFocused(false));
+//            return;
         }
-        drawChildTooltips(pose, mx, my);
+        drawChildTooltips(mx, my);
         // render hovered item
-        super.renderTooltip(pose, mx, my);
+        super.renderHoveredToolTip(mx, my);
     }
 
     @SuppressWarnings("unused")
     @MCVersionDependentBehaviour
     private void drawChildTooltips(
-            PoseStack pose,
             int mx,
             int my
     ) {
         // 1.19.2: manually render button tooltips
-//        this.renderables
+//        this.buttonList
 //                .stream()
 //                .filter(SFMExtendedButtonWithTooltip.class::isInstance)
 //                .map(SFMExtendedButtonWithTooltip.class::cast)
-//                .forEach(x -> x.renderToolTip(pose, mx, my));
+//                .forEach(x -> x.renderToolTip(mx, my));
     }
 
+
     @Override
-    protected void renderBg(
-            PoseStack matrixStack,
-            float partialTicks,
-            int mx,
-            int my
-    ) {
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        if (!menu.logLevel.equals(Level.OFF.name())) {
-            RenderSystem.setShaderColor(0.2f, 0.8f, 1f, 1f);
-        } else {
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        }
-        RenderSystem.setShaderTexture(0, BACKGROUND_TEXTURE_LOCATION);
-        int i = (this.width - this.imageWidth) / 2;
-        int j = (this.height - this.imageHeight) / 2;
-        //noinspection SuspiciousNameCombination
-        blit(matrixStack, i, j, 0, 0, this.imageWidth, this.imageHeight);
+    public Class<ManagerScreen> getGuiContainerClass() {
+        return ManagerScreen.class;
     }
+
+    @Nullable
+    @Override
+    public List<Rectangle> getGuiExtraAreas(ManagerScreen guiContainer) {
+        return getButtonsForJEIExclusionZones()
+                .stream()
+                .map(button -> new Rectangle(button.x, button.y, button.width, button.height))
+                .toList();
+    }
+
 }

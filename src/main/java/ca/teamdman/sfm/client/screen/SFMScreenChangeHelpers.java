@@ -4,10 +4,8 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditScreenV1;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
-import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenExampleProgramOpenContext;
-import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
@@ -58,8 +56,7 @@ public class SFMScreenChangeHelpers {
             ISFMTextEditScreenOpenContext openContext
     ) {
 
-        ISFMTextEditorRegistration textEditorRegistration = SFMClientTextEditorConfig.getPreferredTextEditor();
-        return textEditorRegistration.createScreen(openContext);
+        return new SFMTextEditScreenV1(openContext);
     }
 
     public static void showProgramEditScreen(
@@ -100,17 +97,17 @@ public class SFMScreenChangeHelpers {
             LabelPositionHolder labelPositionHolder,
             Consumer<String> saveCallback
     ) {
-        setOrPushScreen(new ExamplesScreen((chosenExample, templates) -> {
-            SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
-                    chosenExample,
-                    diskProgramString,
-                    templates,
-                    labelPositionHolder,
-                    saveCallback
-            ));
-            setOrPushScreen(screen);
-            screen.scrollToTop();
-        }));
+//        setOrPushScreen(new ExamplesScreen((chosenExample, templates) -> {
+//            SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
+//                    chosenExample,
+//                    diskProgramString,
+//                    templates,
+//                    labelPositionHolder,
+//                    saveCallback
+//            ));
+//            setOrPushScreen(screen);
+//            screen.scrollToTop();
+//        }));
     }
 
     public static void showLogsScreen(ManagerContainerMenu menu) {

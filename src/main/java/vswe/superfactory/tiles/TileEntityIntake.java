@@ -1,5 +1,6 @@
 package vswe.superfactory.tiles;
 
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
@@ -13,7 +14,6 @@ import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import vswe.superfactory.blocks.BlockCableIntake;
 import vswe.superfactory.blocks.ClusterMethodRegistration;
-import vswe.superfactory.registry.ModBlocks;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -187,7 +187,7 @@ public class TileEntityIntake extends TileEntityClusterElement implements IInven
 
 	@Override
 	public String getName() {
-		return ModBlocks.CABLE_INTAKE.getLocalizedName();
+		return SFMBlocks.CABLE_INTAKE.getLocalizedName();
 	}
 
 	@Override
@@ -197,7 +197,7 @@ public class TileEntityIntake extends TileEntityClusterElement implements IInven
 
 	@Override
 	public ITextComponent getDisplayName() {
-		return new TextComponentString(ModBlocks.CABLE_INTAKE.getLocalizedName());
+		return new TextComponentString(SFMBlocks.CABLE_INTAKE.getLocalizedName());
 	}
 
 	@Override

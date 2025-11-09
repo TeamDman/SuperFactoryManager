@@ -1,9 +1,6 @@
 package ca.teamdman.sfm.common.util;
 
 import ca.teamdman.sfm.SFM;
-import net.minecraft.ResourceLocationException;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 

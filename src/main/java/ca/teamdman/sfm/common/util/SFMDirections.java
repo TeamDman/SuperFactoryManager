@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.common.util;
 
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.EnumFacing;
 import org.jetbrains.annotations.Nullable;
 
@@ -7,18 +8,20 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.BiConsumer;
 
+import static net.minecraft.util.EnumFacing.*;
+
 public class SFMDirections {
     /// Optimization to avoid creating a new array every time
-    public static final EnumFacing[] DIRECTIONS_WITHOUT_NULL = EnumFacing.values();
+    public static final EnumFacing[] DIRECTIONS_WITHOUT_NULL = values();
     /// Optimization to avoid creating a new array every time. Null is position 0
     public static final EnumFacing[] DIRECTIONS_WITH_NULL = new EnumFacing[]{
             null,
-            EnumFacing.NORTH,
-            EnumFacing.SOUTH,
-            EnumFacing.EAST,
-            EnumFacing.WEST,
-            EnumFacing.UP,
-            EnumFacing.DOWN
+            NORTH,
+            SOUTH,
+            EAST,
+            WEST,
+            UP,
+            DOWN
     };
 
     public static class NullableDirectionIterator implements Iterator<EnumFacing> {
@@ -56,7 +59,9 @@ public class SFMDirections {
         }
     }
 
-    public record NullableDirectionEnumMap<T>(T[] buckets) {
+    @Desugar public record NullableDirectionEnumMap<T>(
+        T[] buckets
+) {
         public NullableDirectionEnumMap() {
             //noinspection unchecked
             this((T[]) new Object[DIRECTIONS_WITH_NULL.length]);

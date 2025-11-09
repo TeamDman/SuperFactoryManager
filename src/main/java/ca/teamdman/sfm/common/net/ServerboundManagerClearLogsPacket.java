@@ -10,7 +10,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class ServerboundManagerClearLogsPacket extends SFMPacket<ServerboundManagerClearLogsPacket> {
+public class ServerboundManagerClearLogsPacket extends SFMAdvancedPacket<ServerboundManagerClearLogsPacket> {
     private int windowId;
     private BlockPos pos;
 
@@ -37,18 +37,19 @@ public class ServerboundManagerClearLogsPacket extends SFMPacket<ServerboundMana
     }
 
     @Override
-    public IMessage onMessage(ServerboundManagerClearLogsPacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            if (player.openContainer instanceof ManagerContainerMenu && player.openContainer.windowId == message.windowId) {
-                TileEntity te = player.world.getTileEntity(message.pos);
-                if (te instanceof ManagerBlockEntity) {
-                    ManagerBlockEntity manager = (ManagerBlockEntity) te;
+    public void handle(
+            ServerboundManagerClearLogsPacket msg,
+            SFMPacketHandlingContext context
+    ) {
+        context.handleServerboundContainerPacket(
+                ManagerContainerMenu.class,
+                ManagerBlockEntity.class,
+                msg.pos,
+                msg.windowId,
+                (menu, manager) -> {
                     manager.logger.clear();
                     manager.logger.info(x -> x.accept(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON_PACKET_RECEIVED.get()));
                 }
-            }
-        });
-        return null;
+        );
     }
 }

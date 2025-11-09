@@ -1,7 +1,9 @@
 package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import com.github.bsideup.jabel.Desugar;
 
+@Desugar
 public record WithConjunction(WithClause left, WithClause right) implements ASTNode, WithClause, ToStringPretty {
     @Override
     public <STACK> boolean matchesStack(

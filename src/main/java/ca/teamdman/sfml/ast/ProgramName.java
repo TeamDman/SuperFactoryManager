@@ -1,4 +1,7 @@
 package ca.teamdman.sfml.ast;
 
-public record ProgramName(StringHolder value) implements ASTNode {
-}
+import com.github.bsideup.jabel.Desugar;
+
+@Desugar public record ProgramName(
+        StringHolder value
+) implements ASTNode {}

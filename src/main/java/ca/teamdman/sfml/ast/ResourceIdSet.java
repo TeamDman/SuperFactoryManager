@@ -15,10 +15,10 @@ import java.util.stream.Stream;
  * Do NOT modify this after creation since the {@link this#referencedResourceTypes} will become inaccurate.
  */
 public final class ResourceIdSet implements ASTNode {
-    public static final ResourceIdSet EMPTY = new ResourceIdSet(List.of());
-    public static final ResourceIdSet MATCH_ALL = new ResourceIdSet(List.of(ResourceIdentifier.MATCH_ALL));
+    public static final ResourceIdSet EMPTY = new ResourceIdSet(Collections.emptyList());
+    public static final ResourceIdSet MATCH_ALL = new ResourceIdSet(Arrays.asList(ResourceIdentifier.MATCH_ALL));
     private final ResourceIdentifier<?, ?, ?>[] resourceIds;
-    private @NotNull ResourceType<?,?,?> @Nullable [] referencedResourceTypes = null;
+    private @Nullable ResourceType<?,?,?>  [] referencedResourceTypes = null;
 
     public ResourceIdSet(ResourceIdentifier<?, ?, ?>[] resourceIds) {
         this.resourceIds = resourceIds;

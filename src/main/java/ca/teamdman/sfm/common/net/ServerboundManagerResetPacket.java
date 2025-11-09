@@ -9,7 +9,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class ServerboundManagerResetPacket extends SFMPacket<ServerboundManagerResetPacket> {
+public class ServerboundManagerResetPacket extends SFMAdvancedPacket<ServerboundManagerResetPacket> {
     private int windowId;
     private BlockPos pos;
 
@@ -36,16 +36,17 @@ public class ServerboundManagerResetPacket extends SFMPacket<ServerboundManagerR
     }
 
     @Override
-    public IMessage onMessage(ServerboundManagerResetPacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            if (player.openContainer instanceof ManagerContainerMenu && player.openContainer.windowId == message.windowId) {
-                TileEntity te = player.world.getTileEntity(message.pos);
-                if (te instanceof ManagerBlockEntity) {
-                    ((ManagerBlockEntity) te).reset();
-                }
-            }
-        });
-        return null;
+    public void handle(
+            ServerboundManagerResetPacket msg,
+            SFMPacketHandlingContext context
+    ) {
+        context.handleServerboundContainerPacket(
+                ManagerContainerMenu.class,
+                ManagerBlockEntity.class,
+                msg.pos,
+                msg.windowId,
+                (menu, manager) -> manager.reset()
+        );
     }
+
 }

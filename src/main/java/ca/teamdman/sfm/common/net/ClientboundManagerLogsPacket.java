@@ -12,6 +12,7 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 
 public class ClientboundManagerLogsPacket extends SFMPacket<ClientboundManagerLogsPacket> {
@@ -53,6 +54,7 @@ public class ClientboundManagerLogsPacket extends SFMPacket<ClientboundManagerLo
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ClientboundManagerLogsPacket message, MessageContext ctx) {
         EntityPlayerSP player = Minecraft.getMinecraft().player;
         if (player == null) return null;

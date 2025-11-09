@@ -2,15 +2,17 @@ package ca.teamdman.sfml.intellisense;
 
 import ca.teamdman.sfml.ast.Label;
 import ca.teamdman.sfml.manipulation.ManipulationResult;
-import net.minecraft.network.chat.Component;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
 
-public record SuggestedLabelIntellisenseAction(
+@Desugar public record SuggestedLabelIntellisenseAction(
         String label,
         int numBlocks
 ) implements IntellisenseAction {
     @Override
-    public Component getComponent() {
-        return Component.literal("%s (%d)".formatted(label, numBlocks));
+    public ITextComponent getComponent() {
+        return new TextComponentString("%s (%d)".formatted(label, numBlocks));
     }
 
     @Override

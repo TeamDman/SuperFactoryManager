@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
 
@@ -219,7 +220,7 @@ public class OutputStatement implements IOStatement {
         // THIS SHOULD NEVER HAPPEN
         // will void items if it does
         if (!resourceType.isEmpty(extractedRemainder)) {
-            ResourceLocation resourceTypeName = SFMResourceTypes.registry().getKey(resourceType);
+            ResourceLocation resourceTypeName = SFMResourceTypes.registry().getKey(resourceType.container);
             String stackName = resourceType.getItem(extractPotential).toString();
             World level = context.getManager().getWorld();
             assert level != null;
@@ -265,11 +266,11 @@ public class OutputStatement implements IOStatement {
             report.append("=== Manager ===\n");
             report
                     .append("Level: ")
-                    .append(level.dimensionTypeId().location())
+                    .append(level.provider.getDimension())
                     .append(" (")
                     .append(level)
                     .append(")\n");
-            report.append("Position: ").append(context.getManager().getBlockPos()).append("\n");
+            report.append("Position: ").append(context.getManager().getPos()).append("\n");
 
             report.append("=== Input Slot ===\n");
             addSlotDetailsToReport(report, source, level);
@@ -533,9 +534,9 @@ public class OutputStatement implements IOStatement {
         StringBuilder sb = new StringBuilder();
         sb.append("OUTPUT");
         String rls = resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_MAX_RETENTION);
-        if (rls.lines().count() > 1) {
+        if (rls.split("\\r?\\n|\\r", -1).length > 1) {
             sb.append("\n");
-            sb.append(rls.lines().map(s -> "  " + s).collect(Collectors.joining("\n")));
+            sb.append(Stream.of(rls.split("\\r?\\n|\\r", -1)).map(s -> "  " + s).collect(Collectors.joining("\n")));
             sb.append("\n");
         } else if (!rls.isEmpty()) {
             sb.append(" ");

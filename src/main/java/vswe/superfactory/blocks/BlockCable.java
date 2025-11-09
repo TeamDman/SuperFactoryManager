@@ -1,5 +1,6 @@
 package vswe.superfactory.blocks;
 
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
@@ -10,7 +11,6 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.api.ICable;
-import vswe.superfactory.registry.ModBlocks;
 import vswe.superfactory.tiles.TileEntityManager;
 import vswe.superfactory.util.WorldCoordinate;
 
@@ -69,7 +69,7 @@ public class BlockCable extends Block implements ICable {
 								visited.add(target);
 								IBlockState block = world.getBlockState(new BlockPos(x, y, z));
 								int         meta  = block.getBlock().getMetaFromState(block);
-								if (block.getBlock() == ModBlocks.MANAGER) {
+								if (block.getBlock() == SFMBlocks.MANAGER) {
 									TileEntity tileEntity = world.getTileEntity(new BlockPos(target.getX(), target.getY(), target.getZ()));
 									if (tileEntity instanceof TileEntityManager) {
 										((TileEntityManager) tileEntity).updateInventories();

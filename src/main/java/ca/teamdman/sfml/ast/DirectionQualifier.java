@@ -1,6 +1,7 @@
 package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.util.SFMDirections;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.EnumFacing;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,19 +11,23 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-public record DirectionQualifier(EnumSet<EnumFacing> directions) implements ASTNode, Iterable<EnumFacing> {
+import static net.minecraft.util.EnumFacing.*;
+
+@Desugar public record DirectionQualifier(
+        EnumSet<EnumFacing> directions
+) implements ASTNode, Iterable<EnumFacing> {
 
     public static final DirectionQualifier NULL_DIRECTION = new DirectionQualifier(EnumSet.noneOf(EnumFacing.class));
     public static final DirectionQualifier EVERY_DIRECTION = new DirectionQualifier(EnumSet.allOf(EnumFacing.class));
 
     public static EnumFacing lookup(Side side) {
         return switch (side) {
-            case TOP -> EnumFacing.UP;
-            case BOTTOM -> EnumFacing.DOWN;
-            case NORTH -> EnumFacing.NORTH;
-            case SOUTH -> EnumFacing.SOUTH;
-            case EAST -> EnumFacing.EAST;
-            case WEST -> EnumFacing.WEST;
+            case TOP -> UP;
+            case BOTTOM -> DOWN;
+            case NORTH -> NORTH;
+            case SOUTH -> SOUTH;
+            case EAST -> EAST;
+            case WEST -> WEST;
         };
     }
 

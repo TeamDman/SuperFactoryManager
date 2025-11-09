@@ -64,7 +64,7 @@ public class SFMASTUtils {
             @Nullable EnumFacing direction
     ) {
         LabelAccess labelAccess = new LabelAccess(
-                List.of(new Label(label)),
+                Arrays.asList(new Label(label)),
                 new DirectionQualifier(
                         direction == null
                                 ? EnumSet.noneOf(EnumFacing.class)
@@ -90,12 +90,12 @@ public class SFMASTUtils {
                 stackId
         );
         ResourceLimit resourceLimit = new ResourceLimit(
-                new ResourceIdSet(List.of(resourceIdentifier)),
+                new ResourceIdSet(Arrays.asList(resourceIdentifier)),
                 limit,
                 With.ALWAYS_TRUE
         );
         ResourceLimits resourceLimits = new ResourceLimits(
-                List.of(resourceLimit),
+                Arrays.asList(resourceLimit),
                 ResourceIdSet.EMPTY
         );
 

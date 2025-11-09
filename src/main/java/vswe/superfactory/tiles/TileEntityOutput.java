@@ -1,5 +1,6 @@
 package vswe.superfactory.tiles;
 
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
@@ -15,7 +16,6 @@ import vswe.superfactory.components.ComponentMenuPulse;
 import vswe.superfactory.components.ComponentMenuRedstoneOutput;
 import vswe.superfactory.components.ComponentMenuRedstoneSidesEmitter;
 import vswe.superfactory.network.packets.*;
-import vswe.superfactory.registry.ModBlocks;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -186,7 +186,7 @@ public class TileEntityOutput extends TileEntityClusterElement implements IPacke
 				world.notifyNeighborsOfStateChange(pos.offset(enumfacing), world.getBlockState(pos).getBlock(), false);
 			}
 
-			world.notifyBlockUpdate(pos, ModBlocks.CABLE_OUTPUT.getDefaultState(), ModBlocks.CABLE_OUTPUT.getDefaultState(), 3);
+			world.notifyBlockUpdate(pos, SFMBlocks.CABLE_OUTPUT.getDefaultState(), SFMBlocks.CABLE_OUTPUT.getDefaultState(), 3);
 
 			if (spread) {
 				notifyUpdate(pos.add(-1, 0, 0), false);

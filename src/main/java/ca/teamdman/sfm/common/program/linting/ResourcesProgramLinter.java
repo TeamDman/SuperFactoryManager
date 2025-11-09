@@ -27,7 +27,7 @@ public class ResourcesProgramLinter extends IForgeRegistryEntry.Impl<IProgramLin
         // Check all referenced resources to see if they exist
         for (var resource : program.referencedResources()) {
             Optional<?> loc = resource.getLocation();
-            if (loc.isEmpty()) {
+            if (!loc.isPresent()) {
                 // It's a pattern-based resource or something not requiring a registry check
                 continue;
             }

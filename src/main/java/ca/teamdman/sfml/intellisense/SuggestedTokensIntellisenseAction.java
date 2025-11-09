@@ -2,19 +2,22 @@ package ca.teamdman.sfml.intellisense;
 
 import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.sfml.manipulation.ManipulationResult;
-import net.minecraft.network.chat.Component;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
 import org.antlr.v4.runtime.Vocabulary;
 
 import java.util.List;
 
+@Desugar
 public record SuggestedTokensIntellisenseAction(
         Integer nextTokenType,
         List<Integer> followingTokenTypes,
         Vocabulary vocabulary
 ) implements IntellisenseAction {
     @Override
-    public Component getComponent() {
-        return Component.literal(getDisplay());
+    public ITextComponent getComponent() {
+        return new TextComponentString(getDisplay());
     }
 
     // If previous line ends with THEN or DO, let x be that lines indent. Suggest x + 4 spaces

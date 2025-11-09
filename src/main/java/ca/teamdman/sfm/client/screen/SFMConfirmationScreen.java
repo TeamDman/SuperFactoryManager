@@ -1,33 +1,32 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.common.util.ConfirmationParams;
-import net.minecraft.client.gui.screens.ConfirmScreen;
-import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.client.gui.GuiYesNo;
+import net.minecraft.util.text.ITextComponent;
 
 /// Automatically pops the screen after a choice is made
 /// Only runs the callback if the user confirms
-public class SFMConfirmationScreen extends ConfirmScreen {
+public class SFMConfirmationScreen extends GuiYesNo {
     public SFMConfirmationScreen(
             Runnable callback,
-            MutableComponent confirmTitle,
-            MutableComponent confirmMessage,
-            MutableComponent confirmYes,
-            MutableComponent confirmNo,
+            ITextComponent confirmTitle,
+            ITextComponent confirmMessage,
+            ITextComponent confirmYes,
+            ITextComponent confirmNo,
             int delay
     ) {
         super(
-                confirmedYes -> {
+                (confirmedYes, parentButton) -> {
                     SFMScreenChangeHelpers.popScreen(); // Close confirm screen
                     if (confirmedYes) {
                         callback.run();
                     }
                 },
-                confirmTitle,
-                confirmMessage,
-                confirmYes,
-                confirmNo
+                confirmTitle.getFormattedText(),
+                confirmMessage.getFormattedText(),
+                0
         );
-        setDelay(delay);
+        setButtonDelay(delay);
     }
 
     public SFMConfirmationScreen(

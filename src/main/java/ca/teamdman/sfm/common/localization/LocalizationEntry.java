@@ -1,13 +1,16 @@
 package ca.teamdman.sfm.common.localization;
 
 import ca.teamdman.sfm.common.util.SFMTranslationUtils;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 
 import java.util.function.Supplier;
 
-public record LocalizationEntry(
+import static ca.teamdman.sfm.common.util.SFMTranslationUtils.getTextComponentTranslation;
+
+@Desugar public record LocalizationEntry(
         Supplier<String> key,
         Supplier<String> value
 ) {
@@ -19,11 +22,11 @@ public record LocalizationEntry(
     }
 
     public TextComponentTranslation get(Object... args) {
-        return SFMTranslationUtils.getTextComponentTranslation(key.get(), args);
+        return getTextComponentTranslation(key.get(), args);
     }
 
     public TextComponentTranslation get() {
-        return SFMTranslationUtils.getTextComponentTranslation(key.get());
+        return getTextComponentTranslation(key.get());
     }
 
     public String getString() {
@@ -46,10 +49,10 @@ public record LocalizationEntry(
     }
 
     public ITextComponent getComponent() {
-        return SFMTranslationUtils.getTextComponentTranslation(key.get());
+        return getTextComponentTranslation(key.get());
     }
 
     public ITextComponent getComponent(Object... args) {
-        return SFMTranslationUtils.getTextComponentTranslation(key.get(), args);
+        return getTextComponentTranslation(key.get(), args);
     }
 }

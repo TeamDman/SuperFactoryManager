@@ -2,28 +2,41 @@ package ca.teamdman.sfm.client.widget;
 
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.util.text.ITextComponent;
 import org.jetbrains.annotations.Nullable;
 
 public class SFMButtonBuilder {
-    private @Nullable Component text = null;
+    private int nextButtonId = 0;
+
+    private @Nullable ITextComponent text = null;
     private int x = 0;
     private int y = 0;
     private int width = 150;
     private int height = 20;
-    private @Nullable GuiButton.OnPress onPress = null;
-    private @MCVersionDependentBehaviour @Nullable Tooltip tooltip = null;
+    private @Nullable SFMExtendedButton.OnPress onPress = null;
+    private @MCVersionDependentBehaviour
+    @Nullable ITextComponent tooltip = null;
+
+
+
+    public void clearBuilder() {
+        x = 0;
+        y = 0;
+        width = 150;
+        height = 20;
+        text = null;
+        onPress = null;
+        tooltip = null;
+    }
 
     public SFMButtonBuilder setText(LocalizationEntry text) {
         return setText(text.getComponent());
     }
 
-    public SFMButtonBuilder setText(Component text) {
+    public SFMButtonBuilder setText(ITextComponent text) {
         this.text = text;
         return this;
     }
@@ -46,14 +59,14 @@ public class SFMButtonBuilder {
         return this;
     }
 
-    public SFMButtonBuilder setOnPress(Button.OnPress onPress) {
+    public SFMButtonBuilder setOnPress(SFMExtendedButton.OnPress onPress) {
         this.onPress = onPress;
         return this;
     }
 
     public SFMButtonBuilder setTooltip(
-            Screen screen,
-            Font font,
+            GuiScreen screen,
+            FontRenderer font,
             LocalizationEntry tooltip
     ) {
         return this.setTooltip(screen, font, tooltip.getComponent());
@@ -62,23 +75,25 @@ public class SFMButtonBuilder {
     @MCVersionDependentBehaviour
     @SuppressWarnings("unused")
     public SFMButtonBuilder setTooltip(
-            Screen screen,
-            Font font,
-            Component tooltip
+            GuiScreen screen,
+            FontRenderer font,
+            ITextComponent tooltip
     ) {
-        this.tooltip = Tooltip.create(tooltip);
+        this.tooltip = tooltip;
         return this;
     }
 
-    public Button build() {
+    public SFMExtendedButton build() {
         if (text == null) {
             throw new IllegalArgumentException("Text must be set");
         }
         if (onPress == null) {
             throw new IllegalArgumentException("OnPress must be set");
         }
+        SFMExtendedButton button;
         if (tooltip != null) {
-            return new SFMExtendedButtonWithTooltip(
+            button = new SFMExtendedButtonWithTooltip(
+                    nextButtonId++,
                     x,
                     y,
                     width,
@@ -88,7 +103,8 @@ public class SFMButtonBuilder {
                     tooltip
             );
         } else {
-            return new SFMExtendedButton(
+            button = new SFMExtendedButton(
+                    nextButtonId++,
                     x,
                     y,
                     width,
@@ -97,5 +113,10 @@ public class SFMButtonBuilder {
                     onPress
             );
         }
+
+        this.clearBuilder();
+
+        return button;
     }
+
 }

@@ -11,6 +11,8 @@ import net.minecraftforge.common.capabilities.CapabilityManager;
 
 public class SFMCapabilities {
 
+
+
     public static void register() {
          CapabilityManager.INSTANCE.register(IRedstoneSignalStorage.class, new Capability.IStorage<>() {
              @Override

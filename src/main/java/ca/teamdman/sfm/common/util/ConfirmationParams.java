@@ -1,37 +1,39 @@
 package ca.teamdman.sfm.common.util;
 
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import net.minecraft.network.chat.MutableComponent;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.text.ITextComponent;
 
 import java.util.Random;
 
-public record ConfirmationParams(
-        MutableComponent confirmTitle,
-        MutableComponent confirmMessage,
-        MutableComponent confirmYes,
-        MutableComponent confirmNo
+import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
+
+@Desugar public record ConfirmationParams(
+        ITextComponent confirmTitle,
+        ITextComponent confirmMessage,
+        ITextComponent confirmYes,
+        ITextComponent confirmNo
 ) {
     private static final LocalizationEntry[] CONFIRM_YES_VARIANTS = new LocalizationEntry[]{
-            LocalizationKeys.CONFIRM_FUNNY_YES_1,
-            LocalizationKeys.CONFIRM_FUNNY_YES_2,
-            LocalizationKeys.CONFIRM_FUNNY_YES_3,
-            LocalizationKeys.CONFIRM_FUNNY_YES_4,
-            LocalizationKeys.CONFIRM_FUNNY_YES_5,
-            LocalizationKeys.CONFIRM_FUNNY_YES_6,
+            CONFIRM_FUNNY_YES_1,
+            CONFIRM_FUNNY_YES_2,
+            CONFIRM_FUNNY_YES_3,
+            CONFIRM_FUNNY_YES_4,
+            CONFIRM_FUNNY_YES_5,
+            CONFIRM_FUNNY_YES_6,
             };
     private static final LocalizationEntry[] CONFIRM_NO_VARIANTS = new LocalizationEntry[]{
-            LocalizationKeys.CONFIRM_FUNNY_NO_1,
-            LocalizationKeys.CONFIRM_FUNNY_NO_2,
-            LocalizationKeys.CONFIRM_FUNNY_NO_3,
-            LocalizationKeys.CONFIRM_FUNNY_NO_4,
-            LocalizationKeys.CONFIRM_FUNNY_NO_5,
-            LocalizationKeys.CONFIRM_FUNNY_NO_6,
+            CONFIRM_FUNNY_NO_1,
+            CONFIRM_FUNNY_NO_2,
+            CONFIRM_FUNNY_NO_3,
+            CONFIRM_FUNNY_NO_4,
+            CONFIRM_FUNNY_NO_5,
+            CONFIRM_FUNNY_NO_6,
             };
 
     public static ConfirmationParams of(
-            MutableComponent confirmTitle,
-            MutableComponent confirmMessage
+            ITextComponent confirmTitle,
+            ITextComponent confirmMessage
     ) {
         Random random = new Random();
         var confirmYes = CONFIRM_YES_VARIANTS[random.nextInt(CONFIRM_YES_VARIANTS.length)].getComponent();

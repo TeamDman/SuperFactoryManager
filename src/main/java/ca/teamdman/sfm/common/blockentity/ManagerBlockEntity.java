@@ -151,7 +151,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     public void setProgram(String program) {
         var disk = getDisk();
         if (disk != null) {
-            DiskItem.setProgram(disk, program.stripTrailing().stripIndent());
+            DiskItem.setProgram(disk, program.replaceAll("\\s+$", ""));
             rebuildProgramAndUpdateDisk();
             markDirty();
         }
@@ -183,7 +183,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         }
 
         var program = DiskItem.getProgram(disk);
-        return program.isBlank() ? null : program;
+        return program.trim().isEmpty() ? null : program;
     }
 
     public String getProgramStringOrEmptyIfNull() {
@@ -266,7 +266,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
 
     @Override
     public boolean isUsableByPlayer(EntityPlayer player) {
-        return true;
+        return SFMContainerUtil.stillValid(this, player);
     }
 
     @Override
@@ -447,6 +447,24 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         ) {
             COLOR = color;
             LOC = loc;
+        }
+    }
+
+    @Override
+    public void addInfoToCrashReport(CrashReportCategory pReportCategory) {
+
+        super.addInfoToCrashReport(pReportCategory);
+        {
+            String configPath;
+                configPath = "sfm-server.toml";
+
+            pReportCategory.addDetail("SFM Reminder", () -> "You can set `server.disableProgramExecution = true` in " + configPath + " to help recover your world.");
+        }
+        {
+            ItemStack disk = getDisk();
+            if (disk != null && !disk.isEmpty()) {
+                pReportCategory.addDetail("SFM Details", () -> SFMDiagnostics.getDiagnosticsSummary(disk));
+            }
         }
     }
 

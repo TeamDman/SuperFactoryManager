@@ -1,15 +1,16 @@
 package ca.teamdman.sfm.common.label;
 
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
-import net.minecraft.world.entity.player.Player;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.World;
 
 import java.util.HashSet;
 
-public record LabelGunToggleLabelAction(
-        Player player,
-        Level level,
+@Desugar public record LabelGunToggleLabelAction(
+        EntityPlayer player,
+        World level,
         ServerboundLabelGunUsePacket msg,
         ItemStack gunStack,
         LabelPositionHolder gunLabels,

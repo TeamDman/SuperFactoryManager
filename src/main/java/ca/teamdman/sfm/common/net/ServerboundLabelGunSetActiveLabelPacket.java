@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
@@ -9,9 +10,11 @@ import net.minecraft.util.EnumHand;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import java.io.IOException;
+import javax.annotation.Nullable;
 
 public class ServerboundLabelGunSetActiveLabelPacket extends SFMPacket<ServerboundLabelGunSetActiveLabelPacket> {
+    public static final int MAX_LABEL_LENGTH = 256;
+
     private String label;
     private EnumHand hand;
 
@@ -27,21 +30,22 @@ public class ServerboundLabelGunSetActiveLabelPacket extends SFMPacket<Serverbou
     public void fromBytes(ByteBuf buf) {
         PacketBuffer packetBuffer = new PacketBuffer(buf);
         try {
-            label = packetBuffer.readString(256);
-        } catch (IOException e) {
+            label = packetBuffer.readString(MAX_LABEL_LENGTH);
+        } catch (DecoderException e) {
             throw new RuntimeException(e);
         }
-        hand = EnumHand.values()[packetBuffer.readInt()];
+        hand = packetBuffer.readEnumValue(EnumHand.class);
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
         PacketBuffer packetBuffer = new PacketBuffer(buf);
-        packetBuffer.writeString(label);
-        packetBuffer.writeInt(hand.ordinal());
+        packetBuffer.writeString(label.length() > MAX_LABEL_LENGTH ? label.substring(0, MAX_LABEL_LENGTH) : label);
+        packetBuffer.writeEnumValue(hand);
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ServerboundLabelGunSetActiveLabelPacket message, MessageContext ctx) {
         EntityPlayerMP player = ctx.getServerHandler().player;
         player.getServerWorld().addScheduledTask(() -> {

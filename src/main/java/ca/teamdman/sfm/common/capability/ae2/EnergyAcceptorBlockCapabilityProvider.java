@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.common.capability.ae2;
 
-import appeng.blockentity.networking.EnergyAcceptorBlockEntity;
+import appeng.tile.networking.TileEnergyAcceptor;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityProvider;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
@@ -31,10 +31,10 @@ public class EnergyAcceptorBlockCapabilityProvider implements SFMBlockCapability
             @Nullable TileEntity blockEntity,
             @Nullable EnumFacing direction
     ) {
-        if (blockEntity instanceof EnergyAcceptorBlockEntity energyAcceptor) {
+        if (blockEntity instanceof TileEnergyAcceptor energyAcceptor) {
+            var capability = energyAcceptor.getCapability(SFMWellKnownCapabilities.ENERGY.capabilityKind(), null);
             return SFMBlockCapabilityResult.of(
-                    energyAcceptor.getCapability(SFMWellKnownCapabilities.ENERGY.capabilityKind())
-                            .lazyMap(EnergyAcceptorEnergyStorageWrapper::new)
+                    capability != null ? new EnergyAcceptorEnergyStorageWrapper(capability) : null
 
             );
         } else {

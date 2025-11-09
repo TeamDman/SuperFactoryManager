@@ -51,10 +51,13 @@ public class SFMPackets {
         registerPacket(ServerboundNetworkToolToggleOverlayPacket.class, Side.SERVER);
         registerPacket(ServerboundNetworkToolUsePacket.class, Side.SERVER);
         registerPacket(ServerboundOutputInspectionRequestPacket.class, Side.SERVER);
-        registerPacket(ServerboundServerConfigUpdatePacket.class, Side.SERVER);
     }
 
-    public static void sendToPlayer(EntityPlayerMP player, ClientboundShowChangelogPacket clientboundShowChangelogPacket) {
-        SFM_CHANNEL.sendTo(clientboundShowChangelogPacket, player);
+    public static void sendToPlayer(EntityPlayerMP player, SFMPacket<?> packet) {
+        SFM_CHANNEL.sendTo(packet, player);
+    }
+
+    public static void sendToServer(SFMPacket<?> packet) {
+        SFM_CHANNEL.sendToServer(packet);
     }
 }

@@ -47,6 +47,9 @@ public class SFMConfig {
         @Comment("Controls the level of intellisense in the text editor")
         public SFMTextEditorIntellisenseLevel intellisenseLevel = SFMTextEditorIntellisenseLevel.ADVANCED;
 
+        @Name("preferredEditor")
+        public String preferredEditor = "sfm:v2";
+
         @Name("showLabelGunReminderOverlay")
         @Comment("Show the label gun reminder overlay")
         public boolean showLabelGunReminderOverlay = true;
@@ -54,6 +57,7 @@ public class SFMConfig {
         @Name("showNetworkToolReminderOverlay")
         public boolean showNetworkToolReminderOverlay = true;
     }
+
 
     public static class Server {
         @Name("disableProgramExecution")

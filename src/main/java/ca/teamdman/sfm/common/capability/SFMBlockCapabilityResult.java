@@ -22,6 +22,13 @@ public class SFMBlockCapabilityResult<CAP> {
         return capability;
     }
 
+    public CAP unwrap() {
+        if (capability == null) {
+            throw new IllegalStateException();
+        }
+        return capability;
+    }
+
     public boolean isPresent() {
         return capability != null;
     }

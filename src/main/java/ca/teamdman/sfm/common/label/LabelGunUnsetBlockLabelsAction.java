@@ -3,15 +3,17 @@ package ca.teamdman.sfm.common.label;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.util.ConfirmationParams;
-import net.minecraft.world.entity.player.Player;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.World;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jetbrains.annotations.Nullable;
 
+@Desugar
 public record LabelGunUnsetBlockLabelsAction(
-        Player player,
-        Level level,
+        EntityPlayer player,
+        World level,
         ServerboundLabelGunUsePacket msg,
         ItemStack gunStack,
         LabelPositionHolder gunLabels,

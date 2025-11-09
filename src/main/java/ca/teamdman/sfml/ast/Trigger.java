@@ -3,6 +3,7 @@ package ca.teamdman.sfml.ast;
 import ca.teamdman.sfm.common.program.ProgramContext;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 
@@ -13,7 +14,7 @@ public interface Trigger extends Statement {
 
     @Override
     default List<Statement> getStatements() {
-        return List.of(getBlock());
+        return Arrays.asList(getBlock());
     }
 
     default int getConditionIndex(IfStatement statement) {

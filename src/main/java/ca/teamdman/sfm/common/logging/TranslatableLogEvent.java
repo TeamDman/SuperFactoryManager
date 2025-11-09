@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.logging;
 
 import ca.teamdman.sfm.common.util.SFMTranslationUtils;
+import com.github.bsideup.jabel.Desugar;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
@@ -8,7 +9,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.time.Instant;
 import org.apache.logging.log4j.core.time.MutableInstant;
 
-public record TranslatableLogEvent(
+@Desugar public record TranslatableLogEvent(
         Level level,
         Instant instant,
         TextComponentTranslation contents

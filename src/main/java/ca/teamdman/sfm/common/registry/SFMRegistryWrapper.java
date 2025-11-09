@@ -3,8 +3,6 @@ package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.google.common.reflect.TypeToken;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
@@ -58,7 +56,7 @@ public final class SFMRegistryWrapper<T extends IForgeRegistryEntry<T>> implemen
     }
 
     public Optional<ResourceLocation> getKey(T value) {
-        return getInnerRegistry().getKey(value);
+        return Optional.ofNullable(getInnerRegistry().getKey(value));
     }
 
     @MCVersionDependentBehaviour
@@ -71,15 +69,11 @@ public final class SFMRegistryWrapper<T extends IForgeRegistryEntry<T>> implemen
         return getInnerRegistry().iterator();
     }
 
-    public ResourceLocation registryKey() {
-        return getInnerRegistry().get();
-    }
-
     public boolean contains(ResourceLocation location) {
         return getInnerRegistry().containsKey(location);
     }
 
-    /// If this is for a registry not enabled during creation via {@link SFMDeferredRegisterBuilder}
+    /// If this is for a registry not enabled during creation
     /// then this method will probably throw.
     public @MCVersionDependentBehaviour IForgeRegistry<T> getInnerRegistry() {
         if (maybeInner == null) {

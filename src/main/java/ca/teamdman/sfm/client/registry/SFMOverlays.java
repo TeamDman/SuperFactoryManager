@@ -3,29 +3,22 @@ package ca.teamdman.sfm.client.registry;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.overlay.LabelGunReminderOverlay;
 import ca.teamdman.sfm.client.overlay.NetworkToolReminderOverlay;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
-import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
-import net.minecraftforge.common.util.Lazy;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.Side;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD, modid = SFM.MOD_ID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.CLIENT)
 public class SFMOverlays {
-    public static final Lazy<LabelGunReminderOverlay> LABEL_GUN_REMINDER_OVERLAY = Lazy.of(LabelGunReminderOverlay::new);
-    public static final Lazy<NetworkToolReminderOverlay> NETWORK_TOOL_REMINDER_OVERLAY = Lazy.of(NetworkToolReminderOverlay::new);
+    public static final LabelGunReminderOverlay LABEL_GUN_REMINDER_OVERLAY = new LabelGunReminderOverlay();
+    public static final NetworkToolReminderOverlay NETWORK_TOOL_REMINDER_OVERLAY = new NetworkToolReminderOverlay();
 
     @SubscribeEvent
-    public static void onRegisterOverlays(RegisterGuiOverlaysEvent event) {
-        event.registerAbove(
-                VanillaGuiOverlay.HOTBAR.id(),
-                "label_gun_reminder",
-                LABEL_GUN_REMINDER_OVERLAY.get()
-        );
-        event.registerAbove(
-                VanillaGuiOverlay.HOTBAR.id(),
-                "network_tool_reminder",
-                NETWORK_TOOL_REMINDER_OVERLAY.get()
-        );
+    public static void onRegisterOverlays(RenderGameOverlayEvent.Post event) {
+        if (event.getType() == RenderGameOverlayEvent.ElementType.HOTBAR) {
+            LABEL_GUN_REMINDER_OVERLAY.render(event.getPartialTicks(), event.getResolution().getScaledWidth(), event.getResolution().getScaledHeight());
+            NETWORK_TOOL_REMINDER_OVERLAY.render(event.getPartialTicks(), event.getResolution().getScaledWidth(), event.getResolution().getScaledHeight());
+        }
+
     }
 }

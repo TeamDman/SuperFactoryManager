@@ -1,10 +1,12 @@
 package ca.teamdman.sfm.client.text_editor;
 
+import com.github.bsideup.jabel.Desugar;
 import it.unimi.dsi.fastutil.ints.Int2IntFunction;
 
 /**
  * Represents a cursor in a text editor, with optional selection.
  */
+@Desugar
 public record Cursor(
         Caret tail,
         Caret head

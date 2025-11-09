@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class TagMatcher implements Predicate<Object>, ASTNode {
     public final String namespacePattern;
@@ -24,9 +25,9 @@ public class TagMatcher implements Predicate<Object>, ASTNode {
             Collection<String> pathElementPatterns
     ) {
         this.namespacePattern = namespacePattern;
-        this.pathElementPatterns = List.copyOf(pathElementPatterns);
+        this.pathElementPatterns = new ArrayList<>(pathElementPatterns);
         this.namespacePredicate = RegexCache.buildPredicate(namespacePattern);
-        this.pathElementPredicates = this.pathElementPatterns.stream().map(RegexCache::buildPredicate).toList();
+        this.pathElementPredicates = this.pathElementPatterns.stream().map(RegexCache::buildPredicate).collect(Collectors.toList());
     }
 
     public static TagMatcher fromNamespaceAndPath(String namespace, Collection<String> path) {

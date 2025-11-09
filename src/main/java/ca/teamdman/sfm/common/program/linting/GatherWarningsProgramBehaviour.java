@@ -93,7 +93,7 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
         for (ResourceType resourceType : seekingResourceTypes) {
             if (!resourceTypesInputted.containsKey(resourceType)) {
                 // if the resource type was never inputted, warn
-                warnings.add(Pair.of(
+                warnings.add(new Pair<>(
                         getLatestPathElement(),
                         PROGRAM_WARNING_OUTPUT_RESOURCE_TYPE_NOT_FOUND_IN_INPUTS.get(
                                 outputStatement,
@@ -142,7 +142,7 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
     @Override
     public void terminatePathAndBeginAnew() {
         // save the path and its warnings
-        sharedMultiverseWarningsByPath.add(Pair.of(currentPath, new ArrayList<>(warnings)));
+        sharedMultiverseWarningsByPath.add(new Pair<>(currentPath, new ArrayList<>(warnings)));
 
         // default path push and clear
         super.terminatePathAndBeginAnew();
@@ -238,7 +238,7 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
                     if (offendingNode == null) {
                         SFM.LOGGER.warn("Failed to find node for element during warning generation: {}", old);
                     }
-                    warnings.add(Pair.of(
+                    warnings.add(new Pair<>(
                             offendingNode,
                             PROGRAM_WARNING_UNUSED_INPUT_LABEL.get(
                                     old,

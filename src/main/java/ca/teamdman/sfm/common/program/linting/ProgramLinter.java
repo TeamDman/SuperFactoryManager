@@ -302,7 +302,7 @@ public class ProgramLinter {
         for (var resource : program.referencedResources()) {
             // skip regex resources
             Optional<ResourceLocation> loc = resource.getLocation();
-            if (loc.isEmpty()) continue;
+            if (!loc.isPresent()) continue;
 
             // make sure resource type is registered
             var type = resource.getResourceType();

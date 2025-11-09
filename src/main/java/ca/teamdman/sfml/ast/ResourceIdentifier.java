@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 
 // resourceTypeName resourceNamespace, resourceTypeName name, resource resourceNamespace, resource name
 // sfm:item:minecraft:stone
@@ -44,7 +45,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         resourceTypeNamespace = resourceTypeNamespace.toLowerCase(Locale.ROOT);
         resourceTypeName = resourceTypeName.toLowerCase(Locale.ROOT);
 
-        var check = List.of("fe", "rf", "energy", "power");
+        var check = Arrays.asList("fe", "rf", "energy", "power");
         if (resourceTypeNamespace.equals("sfm") && check.contains(resourceTypeName)) {
             resourceTypeName = "forge_energy";
         }
@@ -134,7 +135,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
     public List<ResourceIdentifier<STACK, ITEM, CAP>> expand() {
         try {
             if (this.getResourceType() == SFMResourceTypes.FORGE_ENERGY)
-                return List.of(new ResourceIdentifier<>(
+                return Arrays.asList(new ResourceIdentifier<>(
                         this.resourceTypeNamespace,
                         this.resourceTypeName,
                         "forge",
@@ -147,7 +148,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
             ResourceType<STACK, ITEM, CAP> resourceType = getResourceType();
             if (resourceType == null) {
                 // user may be using inspection on a resource type that doesn't exist
-                return List.of(this);
+                return Arrays.asList(this);
             }
             List<ResourceIdentifier<STACK, ITEM, CAP>> rtn = resourceType.getRegistryKeys()
                     .stream()
@@ -157,7 +158,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
                             resourceTypeName,
                             e.getNamespace(),
                             e.getPath()
-                    )).toList();
+                    )).collect(Collectors.toList());
             //noinspection unchecked,rawtypes
             expansionCache.put(this, (List) rtn);
             return rtn;
@@ -166,7 +167,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
             // the check we do above for forge_energy doesn't easily work for mekanism energy because
             // the mekanism resource types aren't stored in deferred register fields
             // for now, lets just not crash the game at least
-            return List.of(this);
+            return Arrays.asList(this);
         }
     }
 

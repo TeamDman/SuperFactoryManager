@@ -1,17 +1,20 @@
 package ca.teamdman.sfm.common.util;
 
-import cpw.mods.modlauncher.Launcher;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
 
 public class SFMEnvironmentUtils {
+
     public static boolean isGameLoaded() {
-        return Launcher.INSTANCE != null;
+        return true;
     }
+
     public static boolean isInIDE() {
-        return !FMLEnvironment.production;
+        return (boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");
     }
+
     public static boolean isClient() {
-        return FMLEnvironment.dist == Dist.CLIENT;
+        return FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT;
     }
 }

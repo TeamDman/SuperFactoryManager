@@ -5,6 +5,8 @@ import io.netty.buffer.ByteBuf;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import javax.annotation.Nullable;
+
 public class ClientboundShowChangelogPacket extends SFMPacket<ClientboundShowChangelogPacket> {
 
     public ClientboundShowChangelogPacket() {
@@ -19,6 +21,7 @@ public class ClientboundShowChangelogPacket extends SFMPacket<ClientboundShowCha
     }
 
     @Override
+    @Nullable
     public IMessage onMessage(ClientboundShowChangelogPacket message, MessageContext ctx) {
         SFMScreenChangeHelpers.showChangelog();
         return null;

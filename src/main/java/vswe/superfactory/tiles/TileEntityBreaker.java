@@ -1,5 +1,6 @@
 package vswe.superfactory.tiles;
 
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -29,7 +30,6 @@ import net.minecraftforge.items.wrapper.InvWrapper;
 import vswe.superfactory.blocks.BlockCableBreaker;
 import vswe.superfactory.blocks.ClusterMethodRegistration;
 import vswe.superfactory.network.packets.*;
-import vswe.superfactory.registry.ModBlocks;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -351,7 +351,7 @@ public class TileEntityBreaker extends TileEntityClusterElement implements IInve
 
 	@Override
 	public String getName() {
-		return ModBlocks.CABLE_BREAKER.getLocalizedName();
+		return SFMBlocks.CABLE_BREAKER.getLocalizedName();
 	}
 
 	@Override
@@ -445,7 +445,7 @@ public class TileEntityBreaker extends TileEntityClusterElement implements IInve
 
 	@Override
 	public ITextComponent getDisplayName() {
-		return new TextComponentString(ModBlocks.CABLE_BREAKER.getLocalizedName());
+		return new TextComponentString(SFMBlocks.CABLE_BREAKER.getLocalizedName());
 	}
 
 	@Override

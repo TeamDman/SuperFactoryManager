@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
 
@@ -146,9 +147,9 @@ public final class InputStatement implements IOStatement {
         StringBuilder sb = new StringBuilder();
         sb.append("INPUT");
         String rls = resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_NO_RETENTION);
-        if (rls.lines().count() > 1) {
+        if (rls.split("\\r?\\n|\\r", -1).length > 1) {
             sb.append("\n");
-            sb.append(rls.lines().map(s -> "  " + s).collect(Collectors.joining("\n")));
+            sb.append(Stream.of(rls.split("\\r?\\n|\\r", -1)).map(s -> "  " + s).collect(Collectors.joining("\n")));
             sb.append("\n");
         } else if (!rls.isEmpty()) {
             sb.append(" ");
