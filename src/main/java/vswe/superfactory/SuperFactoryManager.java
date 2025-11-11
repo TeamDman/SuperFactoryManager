@@ -31,11 +31,9 @@ public class SuperFactoryManager {
 			return new ItemStack(MANAGER);
 		}
 	};
-	@Mod.Instance(MODID)
 	public static       SuperFactoryManager instance;
 	public static       FMLEventChannel     packetHandler;
 
-    @Mod.EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		packetHandler = NetworkRegistry.INSTANCE.newEventDrivenChannel(CHANNEL);
 
@@ -51,12 +49,10 @@ public class SuperFactoryManager {
 		FMLInterModComms.sendMessage("Waila", "register", "Provider.callbackRegister");
 	}
 
-	@Mod.EventHandler
 	public void init(FMLInitializationEvent event) {
 		ModBlocks.addRecipes();
 	}
 
-	@Mod.EventHandler
 	public void postInit(FMLPostInitializationEvent event) {
 		ModItemHelper.init();
 	}
