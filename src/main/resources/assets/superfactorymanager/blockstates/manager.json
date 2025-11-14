@@ -1,0 +1,10 @@
+{
+    "variants": {
+        "limitless=false": {
+            "model": "superfactorymanager:manager"
+        },
+        "limitless=true": {
+            "model": "superfactorymanager:manager"
+        }
+    }
+}

@@ -1,0 +1,17 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_intake",
+    "data": 8
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "superfactorymanager:cable_intake",
+      "data": 0
+    },
+    {
+        "type": "forge:ore_dict",
+        "ore": "ingotGold"
+    }
+  ]
+}

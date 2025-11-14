@@ -1,0 +1,41 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable"
+  },
+  "pattern": [
+    "GPG",
+    "IRI",
+    "GPG"
+  ],
+  "type": "forge:ore_shaped",
+  "key": {
+    "R": {
+      "type": "forge:ore_dict",
+      "ore": "dustRedstone"
+    },
+    "G": [
+      {
+        "type": "forge:ore_dict",
+        "ore": "blockGlass"
+      },
+      {
+        "type": "forge:ore_dict",
+        "ore": "glass"
+      },
+      {
+        "type": "forge:ore_dict",
+        "ore": "blockGlassColorless"
+      },
+      {
+        "item": "minecraft:glass"
+      }
+    ],
+    "I": {
+      "type": "forge:ore_dict",
+      "ore": "ingotIron"
+    },
+    "P": {
+      "item": "minecraft:light_weighted_pressure_plate"
+    }
+  }
+}

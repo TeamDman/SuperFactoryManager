@@ -14,9 +14,9 @@ import java.util.Collection;
 
 public class EmitterBlockModel implements IModel {
 	public static final ResourceLocation EMITTER_MODEL = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_emitter");
-	public static final ResourceLocation IDLE   = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_idle");
-	public static final ResourceLocation STRONG = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_output_strong");
-	public static final ResourceLocation WEAK   = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_output_weak");
+	public static final ResourceLocation IDLE   = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_idle");
+	public static final ResourceLocation STRONG = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_output_strong");
+	public static final ResourceLocation WEAK   = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_output_weak");
 	public EmitterBlockModel(IResourceManager resourceManager) {
 	}
 

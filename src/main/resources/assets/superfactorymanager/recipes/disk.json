@@ -1,0 +1,20 @@
+{
+  "result": {
+    "item": "superfactorymanager:disk"
+  },
+  "pattern": [
+    " x ",
+    "xyx",
+    " x "
+  ],
+  "type": "forge:ore_shaped",
+  "key": {
+    "x": {
+      "type": "forge:ore_dict",
+      "ore": "ingotIron"
+    },
+    "y": {
+      "item": "superfactorymanager:cable"
+    }
+  }
+}

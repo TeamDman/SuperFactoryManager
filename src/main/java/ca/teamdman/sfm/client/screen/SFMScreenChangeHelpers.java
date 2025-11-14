@@ -25,21 +25,23 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.AbstractMap;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SFMScreenChangeHelpers {
+
+    private static Deque<GuiScreen> screenStack = new ArrayDeque<>();
+
     public static void setOrPushScreen(GuiScreen screen) {
-        if (Minecraft.getMinecraft().currentScreen == null) {
+        var current = Minecraft.getMinecraft().currentScreen;
+        if (current == null) {
             Minecraft
                     .getMinecraft()
                     .displayGuiScreen(screen);
         } else {
+            screenStack.add(current);
             Minecraft
                     .getMinecraft()
                     .displayGuiScreen(screen);

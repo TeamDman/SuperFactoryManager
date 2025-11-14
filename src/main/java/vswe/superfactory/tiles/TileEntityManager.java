@@ -315,14 +315,14 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 	}
 
 	@Override
-	public Container getContainer(TileEntity te, InventoryPlayer inv) {
-		return new ContainerManager((TileEntityManager) te, inv);
+	public Container getContainer(int id, InventoryPlayer inv) {
+		return new ContainerManager(this, inv);
 	}
 
 	@SideOnly(Side.CLIENT)
 	@Override
-	public GuiScreen getGui(TileEntity te, InventoryPlayer inv) {
-		return new GuiManager((TileEntityManager) te, inv);
+	public GuiScreen getGui(int id, InventoryPlayer inv) {
+		return new GuiManager(this, inv);
 	}
 
 	@Override

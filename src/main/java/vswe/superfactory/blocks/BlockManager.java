@@ -1,5 +1,7 @@
 package vswe.superfactory.blocks;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.CommonProxy;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.SoundType;
@@ -59,7 +61,7 @@ public class BlockManager extends BlockContainer {
 	@Override
 	public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
 		if (!world.isRemote) {
-			player.openGui(SuperFactoryManager.instance, 0, world, pos.getX(), pos.getY(), pos.getZ());
+			player.openGui(SFM.instance, CommonProxy.GuiType.PROVIDER.ordinal(), world, pos.getX(), pos.getY(), pos.getZ());
 		}
 		return true;
 	}

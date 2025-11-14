@@ -1,7 +1,0 @@
-{
-    "parent": "sfm:block/orientable_front",
-    "textures": {
-        "front": "sfm:blocks/cable_cluster_front",
-        "side": "sfm:blocks/cable_cluster"
-    }
-}

@@ -17,7 +17,6 @@ import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.blocks.client.ModelLoader;
 import vswe.superfactory.settings.Settings;
 
-@Mod.EventBusSubscriber(modid = SuperFactoryManager.MODID, value = Side.CLIENT)
 public class ClientProxy extends CommonProxy {
 	private static void addVariantNames(Block block, String... names) {
 		ResourceLocation[] locations = new ResourceLocation[names.length];
@@ -51,35 +50,7 @@ public class ClientProxy extends CommonProxy {
 		return (SuperFactoryManager.MODID.toLowerCase() + ":") + resource;
 	}
 
-	@SideOnly(Side.CLIENT)
-	@SubscribeEvent
-	public static void registerRenderers(ModelRegistryEvent event) {
 
-		addVariantNames(SFMBlocks.CABLE_RELAY, "cable_relay", "cable_relay_advanced");
-		addVariantNames(SFMBlocks.CABLE_INTAKE, "cable_valve", "cable_valve_instant");
-		addVariantNames(SFMBlocks.CABLE_CLUSTER, "cable_cluster", "cable_cluster_advanced");
-		addVariantNames(SFMBlocks.CABLE_CAMOUFLAGE, "cable_camouflage", "cable_camouflage_inside", "cable_camouflage_shape");
-
-		registerBlockModel(SFMBlocks.MANAGER);
-		registerBlockModel(SFMBlocks.CABLE);
-		registerBlockModel(SFMBlocks.CABLE_OUTPUT);
-		registerBlockModel(SFMBlocks.CABLE_INPUT);
-		//		        registerBlockModel(ModBlocks.CABLE_CREATIVE);
-		registerBlockModel(SFMBlocks.CABLE_BUD);
-		registerBlockModel(SFMBlocks.CABLE_BREAKER);
-		registerBlockModel(SFMBlocks.CABLE_SIGN);
-		registerBlockModelForVariant(SFMBlocks.CABLE_RELAY, 0, "cable_relay");
-		registerBlockModelForVariant(SFMBlocks.CABLE_RELAY, 8, "cable_relay_advanced");
-		registerBlockModelForVariant(SFMBlocks.CABLE_INTAKE, 0, "cable_valve");
-		registerBlockModelForVariant(SFMBlocks.CABLE_INTAKE, 8, "cable_valve_instant");
-		registerBlockModelForVariant(SFMBlocks.CABLE_CLUSTER, 0, "cable_cluster");
-		registerBlockModelForVariant(SFMBlocks.CABLE_CLUSTER, 8, "cable_cluster_advanced");
-		registerBlockModelForVariant(SFMBlocks.CABLE_CAMOUFLAGE, 0, "cable_camouflage");
-		registerBlockModelForVariant(SFMBlocks.CABLE_CAMOUFLAGE, 1, "cable_camouflage_inside");
-		registerBlockModelForVariant(SFMBlocks.CABLE_CAMOUFLAGE, 2, "cable_camouflage_shape");
-
-		registerItemModel(SFMItems.DISK_ITEM, 0, SFMItems.DISK_ITEM.getRegistryName().toString());
-	}
 
 	@Override
 	public void preInit() {

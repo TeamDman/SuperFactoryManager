@@ -28,6 +28,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
+import org.jetbrains.annotations.NotNull;
 import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.blocks.BlockCableRelay;
 import vswe.superfactory.blocks.ClusterMethodRegistration;
@@ -719,15 +720,17 @@ public class TileEntityRelay extends TileEntityClusterElement implements IInvent
 		return EnumSet.of(ClusterMethodRegistration.ON_BLOCK_PLACED_BY, ClusterMethodRegistration.ON_BLOCK_ACTIVATED);
 	}
 
-	@Override
-	public Container getContainer(TileEntity te, InventoryPlayer inv) {
-		return new ContainerRelay((TileEntityRelay) te, inv);
+	@NotNull
+    @Override
+	public Container getContainer(int id, InventoryPlayer inv) {
+		return new ContainerRelay(this, inv);
 	}
 
-	@SideOnly(Side.CLIENT)
+	@NotNull
+    @SideOnly(Side.CLIENT)
 	@Override
-	public GuiScreen getGui(TileEntity te, InventoryPlayer inv) {
-		return new GuiRelay((TileEntityRelay) te, inv);
+	public GuiScreen getGui(int id, InventoryPlayer inv) {
+		return new GuiRelay(this, inv);
 	}
 
 	@Override

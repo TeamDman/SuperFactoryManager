@@ -1,0 +1,31 @@
+{
+  "result": {
+    "item": "superfactorymanager:manager"
+  },
+  "pattern": [
+    "III",
+    "IRI",
+    "SPS"
+  ],
+  "type": "forge:ore_shaped",
+  "key": {
+    "R": {
+      "type": "forge:ore_dict",
+      "ore": "blockRedstone"
+    },
+    "P": [{
+      "type": "forge:ore_dict",
+      "ore": "craftingPiston"
+    },{
+      "item": "minecraft:piston"
+    }],
+    "I": {
+      "type": "forge:ore_dict",
+      "ore": "ingotIron"
+    },
+    "S": {
+      "type": "forge:ore_dict",
+      "ore": "stone"
+    }
+  }
+}

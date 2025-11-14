@@ -1,0 +1,11 @@
+{
+  "result": {
+    "item": "superfactorymanager:disk"
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "superfactorymanager:disk"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 package vswe.superfactory.blocks;
 
+import ca.teamdman.sfm.common.registry.IGuiProvider;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -10,11 +11,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import vswe.superfactory.network.packets.DataReader;
 import vswe.superfactory.network.packets.DataWriter;
 
-public interface ITileEntityInterface {
-	Container getContainer(TileEntity te, InventoryPlayer inv);
+public interface ITileEntityInterface extends IGuiProvider {
 
-	@SideOnly(Side.CLIENT)
-	GuiScreen getGui(TileEntity te, InventoryPlayer inv);
 
 	void readAllData(DataReader dr, EntityPlayer player);
 

@@ -1,0 +1,24 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_relay",
+    "data": 8
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    [{
+      "item": "minecraft:dye",
+      "data": 4
+    },{
+        "type": "forge:ore_dict",
+        "ore": "dyeBlue"
+    },
+    {
+        "type": "forge:ore_dict",
+        "ore": "gemLapis"
+    }],
+    {
+      "item": "superfactorymanager:cable_relay",
+      "data": 0
+    }
+  ]
+}

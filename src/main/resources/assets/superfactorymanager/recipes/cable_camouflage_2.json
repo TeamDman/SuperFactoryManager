@@ -1,0 +1,16 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_camouflage",
+    "data": 2
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:sticky_piston"
+    },
+    {
+      "item": "superfactorymanager:cable_camouflage",
+      "data": 1
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+    "variants": {
+        "advanced=false,facing=north": { "model": "superfactorymanager:cable_relay"},
+        "advanced=false,facing=down": { "model": "superfactorymanager:cable_relay", "x": 90 },
+        "advanced=false,facing=up": { "model": "superfactorymanager:cable_relay", "x": 270  },
+        "advanced=false,facing=east": { "model": "superfactorymanager:cable_relay", "y": 90 },
+        "advanced=false,facing=south": { "model": "superfactorymanager:cable_relay", "y": 180 },
+        "advanced=false,facing=west": { "model": "superfactorymanager:cable_relay",  "y": 270 },
+        "advanced=true,facing=north": { "model": "superfactorymanager:cable_relay_advanced" },
+        "advanced=true,facing=down": { "model": "superfactorymanager:cable_relay_advanced", "x": 90 },
+        "advanced=true,facing=up": { "model": "superfactorymanager:cable_relay_advanced", "x": 270 },
+        "advanced=true,facing=east": { "model": "superfactorymanager:cable_relay_advanced", "y": 90 },
+        "advanced=true,facing=south": { "model": "superfactorymanager:cable_relay_advanced", "y": 180 },
+        "advanced=true,facing=west": { "model": "superfactorymanager:cable_relay_advanced", "y": 270 }
+    }
+}

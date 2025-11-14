@@ -1,0 +1,23 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_output"
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "type": "forge:ore_dict",
+      "ore": "dustRedstone"
+    },
+    {
+      "type": "forge:ore_dict",
+      "ore": "dustRedstone"
+    },
+    {
+      "type": "forge:ore_dict",
+      "ore": "dustRedstone"
+    },
+    {
+      "item": "superfactorymanager:cable"
+    }
+  ]
+}

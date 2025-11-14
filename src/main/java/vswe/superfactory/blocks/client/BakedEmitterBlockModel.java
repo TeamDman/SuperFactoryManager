@@ -42,9 +42,9 @@ public class BakedEmitterBlockModel implements IBakedModel {
 		Vector3f v2 = new Vector3f(16, 16, 16);
 
 		for (EnumFacing facing : EnumFacing.values()) {
-			strongQuads[facing.getIndex()] = faceBakery.makeBakedQuad(v1, v2, new BlockPartFace(facing, -1, SuperFactoryManager.MODID+":blocks/cable_output_strong", bfUV), strongSprite, facing, ModelRotation.X0_Y0, null, false, true);
-			weakQuads[facing.getIndex()] = faceBakery.makeBakedQuad(v1, v2, new BlockPartFace(facing, -1, SuperFactoryManager.MODID+":blocks/cable_weak_strong", bfUV), weakSprite, facing, ModelRotation.X0_Y0, null, false, true);
-			idleQuads[facing.getIndex()] = faceBakery.makeBakedQuad(v1, v2, new BlockPartFace(facing, -1, SuperFactoryManager.MODID+":blocks/cable_idle", bfUV), idleSprite, facing, ModelRotation.X0_Y0, null, false, true);
+			strongQuads[facing.getIndex()] = faceBakery.makeBakedQuad(v1, v2, new BlockPartFace(facing, -1, SuperFactoryManager.MODID+":block/cable_output_strong", bfUV), strongSprite, facing, ModelRotation.X0_Y0, null, false, true);
+			weakQuads[facing.getIndex()] = faceBakery.makeBakedQuad(v1, v2, new BlockPartFace(facing, -1, SuperFactoryManager.MODID+":block/cable_weak_strong", bfUV), weakSprite, facing, ModelRotation.X0_Y0, null, false, true);
+			idleQuads[facing.getIndex()] = faceBakery.makeBakedQuad(v1, v2, new BlockPartFace(facing, -1, SuperFactoryManager.MODID+":block/cable_idle", bfUV), idleSprite, facing, ModelRotation.X0_Y0, null, false, true);
 		}
 	}
 

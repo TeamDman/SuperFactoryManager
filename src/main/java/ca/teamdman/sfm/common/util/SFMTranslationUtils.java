@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.common.util;
 
+import com.bbscn.Tools;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.NBTTagString;
@@ -69,7 +70,27 @@ public class SFMTranslationUtils {
             String key,
             Object... args
     ) {
-        return new TextComponentTranslation(key, args);
+        Object[] newArgs = new Object[args.length];
+        for (int i = 0; i < args.length; i++) {
+            Object arg = args[i];
+            if (arg instanceof Number || arg instanceof Boolean || arg instanceof String) {
+                newArgs[i] = arg;
+            } else if (arg == null) {
+                newArgs[i] = "null";
+            } else {
+//                SFM.LOGGER.warn(
+//                        "Invalid argument type for translation argument {} key '{}': {}",
+//                        i,
+//                        key,
+//                        arg.getClass().getName(),
+//                        new IllegalArgumentException()
+//                );
+                newArgs[i] = arg.toString();
+            }
+        }
+        TextComponentTranslation iTextComponents = new TextComponentTranslation(key, newArgs);
+        Tools.defaultize(iTextComponents);
+        return iTextComponents;
     }
 
     /**

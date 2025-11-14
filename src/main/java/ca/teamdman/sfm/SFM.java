@@ -1,5 +1,6 @@
 package ca.teamdman.sfm;
 
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.command.SFMCommand;
 import ca.teamdman.sfm.common.program.LimitedInputSlotObjectPool;
@@ -10,6 +11,7 @@ import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import vswe.superfactory.SuperFactoryManager;
 
 @Mod(
         modid = SFM.MOD_ID,
@@ -18,7 +20,7 @@ import org.apache.logging.log4j.Logger;
         dependencies = "required-after:forge@[14.23.5.2847,);"
 )
 public class SFM {
-    public static final String MOD_ID = "sfm";
+    public static final String MOD_ID = "superfactorymanager";
     public static final String MOD_NAME = "Super Factory Manager";
     public static final String VERSION = "@VERSION@";
 
@@ -28,7 +30,10 @@ public class SFM {
     @Mod.Instance(SFM.MOD_ID)
     public static SFM instance;
 
+    public final SuperFactoryManager oldMod = new SuperFactoryManager();
 
+
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @SidedProxy(clientSide = "ca.teamdman.sfm.client.ClientProxy", serverSide = "ca.teamdman.sfm.common.CommonProxy")
     public static CommonProxy proxy;
     private static boolean devEnvCache = false;
@@ -40,21 +45,24 @@ public class SFM {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
 
-        LOGGER.error("SUPER FACTORY MANAGER LOG");
-
         proxy.preInit();
-
         devEnvCache = (Boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");
+
+        SFMKeyMappings.register();
+
+        oldMod.preInit(event);
     }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         proxy.init();
+        oldMod.init(event);
     }
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         proxy.postInit();
+        oldMod.postInit(event);
     }
 
     @Mod.EventHandler

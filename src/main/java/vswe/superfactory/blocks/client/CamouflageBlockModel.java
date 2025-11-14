@@ -13,16 +13,16 @@ import vswe.superfactory.SuperFactoryManager;
 import java.util.Collection;
 
 public class CamouflageBlockModel implements IModel {
-	public static final ResourceLocation CL_ADV_FRONT = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_cluster_adv_front");
-	public static final ResourceLocation CL_ADV_SIDE  = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_cluster_adv");
-	public static final ResourceLocation CL_FRONT     = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_cluster_front");
-	public static final ResourceLocation CL_SIDE      = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_cluster_front");
-	public static final ResourceLocation INSIDE    = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_camo_inside");
+	public static final ResourceLocation CL_ADV_FRONT = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_cluster_adv_front");
+	public static final ResourceLocation CL_ADV_SIDE  = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_cluster_adv");
+	public static final ResourceLocation CL_FRONT     = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_cluster_front");
+	public static final ResourceLocation CL_SIDE      = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_cluster_front");
+	public static final ResourceLocation INSIDE    = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_camo_inside");
 	public static final ResourceLocation MODEL             = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_camouflage");
 	public static final ResourceLocation MODEL_CLUSTER     = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_cluster");
 	public static final ResourceLocation MODEL_CLUSTER_ADV = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_cluster_advanced");
-	public static final ResourceLocation NORMAL    = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_camo");
-	public static final ResourceLocation TRANSFORM = new ResourceLocation(SuperFactoryManager.MODID+":blocks/cable_camo_shape");
+	public static final ResourceLocation NORMAL    = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_camo");
+	public static final ResourceLocation TRANSFORM = new ResourceLocation(SuperFactoryManager.MODID+":block/cable_camo_shape");
 	private boolean isCamouflage;
 
 	public CamouflageBlockModel(IResourceManager resourceManager, boolean isCamouflage) {

@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.common.config.SFMConfig;
 
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
@@ -14,12 +15,14 @@ import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfm.common.net.ClientboundManagerGuiUpdatePacket;
 import ca.teamdman.sfm.common.net.ClientboundManagerLogLevelUpdatedPacket;
 import ca.teamdman.sfm.common.net.ClientboundManagerLogsPacket;
+import ca.teamdman.sfm.common.registry.IGuiProvider;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMContainerUtil;
 import ca.teamdman.sfml.ast.Program;
 import com.google.common.base.Joiner;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -43,7 +46,7 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Set;
 
-public class ManagerBlockEntity extends TileEntity implements IInventory, ITickable {
+public class ManagerBlockEntity extends TileEntity implements IInventory, ITickable, IGuiProvider {
     public static final int TICK_TIME_HISTORY_SIZE = 20;
     public final TranslatableLogger logger;
     private final NonNullList<ItemStack> ITEMS = NonNullList.withSize(1, ItemStack.EMPTY);
@@ -69,6 +72,16 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         return "ManagerBlockEntity{" +
                 "hasDisk=" + (getDisk() != null) +
                 '}';
+    }
+
+    @Override
+    public ManagerScreen getGui(int id, InventoryPlayer inv) {
+        return new ManagerScreen(this.getContainer(id, inv));
+    }
+
+    @Override
+    public ManagerContainerMenu getContainer(int id, InventoryPlayer inv) {
+        return new ManagerContainerMenu(id, inv, this);
     }
 
     /**
@@ -124,7 +137,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                 }
             }
         } catch (Exception t) {
-            String configPath = "config/sfm.cfg";
+            String configPath = "config/superfactorymanager.cfg";
             String configValuePath = "server.disableProgramExecution";
             SFM.LOGGER.fatal(
                     "SFM detected a problem while ticking a manager. You can set `{} = true` in {} to help recover your world.",

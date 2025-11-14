@@ -20,6 +20,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
@@ -44,6 +45,11 @@ public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEn
     @Override
     public int getMetaFromState(IBlockState state) {
         return state.getValue(TRIGGERED) ? 1 : 0;
+    }
+
+    @Override
+    public EnumBlockRenderType getRenderType(IBlockState state) {
+        return EnumBlockRenderType.MODEL;
     }
 
     @Override
@@ -91,7 +97,7 @@ public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEn
                         );
                     }
                 }
-                player.openGui(SFM.instance, CommonProxy.GuiType.MANAGER.ordinal(), world, pos.getX(), pos.getY(), pos.getZ());
+                player.openGui(SFM.instance, CommonProxy.GuiType.PROVIDER.ordinal(), world, pos.getX(), pos.getY(), pos.getZ());
             }
         }
         return true;

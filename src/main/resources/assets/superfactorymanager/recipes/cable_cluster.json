@@ -1,0 +1,24 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_cluster",
+    "data": 0
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "type": "forge:ore_dict",
+      "ore": "enderpearl"
+    },
+    {
+      "type": "forge:ore_dict",
+      "ore": "enderpearl"
+    },
+    {
+      "type": "forge:ore_dict",
+      "ore": "enderpearl"
+    },
+    {
+      "item": "superfactorymanager:cable"
+    }
+  ]
+}

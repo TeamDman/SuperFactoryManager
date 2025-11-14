@@ -1,0 +1,6 @@
+{
+    "parent": "block/cube_all",
+    "textures": {
+        "all": "superfactorymanager:block/cable_input"
+    }
+}

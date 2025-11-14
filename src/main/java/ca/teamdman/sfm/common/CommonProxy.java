@@ -3,16 +3,10 @@ package ca.teamdman.sfm.common;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.command.SFMCommand;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import ca.teamdman.sfm.common.net.SFMPacket;
-import ca.teamdman.sfm.common.registry.SFMBlockEntities;
-import ca.teamdman.sfm.common.registry.SFMBlocks;
-import ca.teamdman.sfm.common.registry.SFMCapabilities;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.*;
 import ca.teamdman.sfm.common.registry.internal.InternalRegistryPrimer;
 import ca.teamdman.sfm.common.registry.internal.PrimerEventHandler;
-import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -24,10 +18,10 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
+import vswe.superfactory.tiles.TileEntityManager;
 
 
 import javax.annotation.Nullable;
-import java.util.concurrent.CompletableFuture;
 
 public class CommonProxy implements IGuiHandler {
 
@@ -61,6 +55,7 @@ public class CommonProxy implements IGuiHandler {
 //        IntegrationTypeHelper.filterModIdRequirementTypes();
 
 
+
     }
 
     public void postInit() {
@@ -72,8 +67,6 @@ public class CommonProxy implements IGuiHandler {
 //        CompletableFuture.runAsync(() -> BlockArrayCache.buildCache(MachineRegistry.getLoadedMachines()));
     }
 
-    public void registerBlockModel(Block block) {
-    }
 
     public void registerItemModel(Item item) {
     }
@@ -85,7 +78,7 @@ public class CommonProxy implements IGuiHandler {
     @Override
     public Object getServerGuiElement(int ID, EntityPlayer player, World world, int x, int y, int z) {
         GuiType type = GuiType.values()[MathHelper.clamp(ID, 0, GuiType.values().length - 1)];
-        Class<? extends TileEntity> required = type.requiredTileEntity;
+        Class<?> required = type.requiredTileEntity;
         TileEntity present = null;
         if (required != null) {
             TileEntity te = world.getTileEntity(new BlockPos(x, y, z));
@@ -97,8 +90,8 @@ public class CommonProxy implements IGuiHandler {
         }
 
         switch (type) {
-            case MANAGER -> {
-                return new ManagerContainerMenu(ID, player.inventory, (ManagerBlockEntity) present);
+            case PROVIDER -> {
+                return ((IGuiProvider) present).getContainer(ID, player.inventory);
             }
         }
 
@@ -112,7 +105,7 @@ public class CommonProxy implements IGuiHandler {
             return getServerGuiElement(ID, player, world, x, y, z);
         }
         GuiType type = GuiType.values()[MathHelper.clamp(ID, 0, GuiType.values().length - 1)];
-        Class<? extends TileEntity> required = type.requiredTileEntity;
+        Class<?> required = type.requiredTileEntity;
         TileEntity present = null;
         if (required != null) {
             TileEntity te = world.getTileEntity(new BlockPos(x, y, z));
@@ -124,8 +117,8 @@ public class CommonProxy implements IGuiHandler {
         }
 
         switch (type) {
-            case MANAGER -> {
-                return new ManagerScreen(new ManagerContainerMenu(ID, player.inventory, (ManagerBlockEntity) present));
+            case PROVIDER -> {
+                return ((IGuiProvider) present).getGui(ID, player.inventory);
             }
         }
 
@@ -133,14 +126,14 @@ public class CommonProxy implements IGuiHandler {
     }
 
     public enum GuiType {
-
-        MANAGER(ManagerBlockEntity.class),
-
+        PROVIDER(IGuiProvider.class),
+//        MANAGER(ManagerBlockEntity.class),
+//        OLD_MANAGER(TileEntityManager.class)
         ;
 
-        public final Class<? extends TileEntity> requiredTileEntity;
+        public final @Nullable Class<?> requiredTileEntity;
 
-        GuiType(@Nullable Class<? extends TileEntity> requiredTileEntity) {
+        GuiType(@Nullable Class<?> requiredTileEntity) {
             this.requiredTileEntity = requiredTileEntity;
         }
     }

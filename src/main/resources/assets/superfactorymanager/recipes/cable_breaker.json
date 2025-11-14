@@ -1,0 +1,17 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_breaker"
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item":"minecraft:iron_pickaxe"
+    },
+    {
+      "item":"minecraft:dispenser"
+    },
+    {
+      "item": "superfactorymanager:cable"
+    }
+  ]
+}

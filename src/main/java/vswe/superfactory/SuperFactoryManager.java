@@ -20,10 +20,10 @@ import static ca.teamdman.sfm.common.registry.SFMBlocks.MANAGER;
 
 public class SuperFactoryManager {
 	public static final String              CHANNEL                      = "factorymanager";
-	public static final String              MODID                        = "sfm";
+	public static final String              MODID                        = "superfactorymanager";
 	public static final byte                NBT_CURRENT_PROTOCOL_VERSION = 14;
 	public static final String              NBT_PROTOCOL_VERSION         = "ProtocolVersion";
-	public static final String              RESOURCE_LOCATION            = "sfm";
+	public static final String              RESOURCE_LOCATION            = "superfactorymanager";
 	public static final String              UNLOCALIZED_START            = "sfm.";
 	public static final CreativeTabs        creativeTab                  = new CreativeTabs("sfm") {
 		@Override
@@ -44,7 +44,6 @@ public class SuperFactoryManager {
 		packetHandler.register(new PacketEventHandler());
 
 		MessageHandler.init();
-		NetworkRegistry.INSTANCE.registerGuiHandler(this, new GuiHandler());
 
 		FMLInterModComms.sendMessage("Waila", "register", "Provider.callbackRegister");
 	}

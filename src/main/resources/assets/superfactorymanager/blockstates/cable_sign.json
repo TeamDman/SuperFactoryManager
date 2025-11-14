@@ -1,0 +1,10 @@
+{
+    "variants": {
+        "facing=north": { "model": "superfactorymanager:cable_sign"},
+        "facing=down": { "model": "superfactorymanager:cable_sign", "x": 90 },
+        "facing=up": { "model": "superfactorymanager:cable_sign", "x": 270  },
+        "facing=east": { "model": "superfactorymanager:cable_sign", "y": 90 },
+        "facing=south": { "model": "superfactorymanager:cable_sign", "y": 180 },
+        "facing=west": { "model": "superfactorymanager:cable_sign",  "y": 270 }
+    }
+}

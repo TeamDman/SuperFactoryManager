@@ -1,8 +1,0 @@
-{
-  "parent": "sfm:block/orientable_front_op",
-  "textures": {
-    "front": "sfm:blocks/cable_breaker_front",
-    "opposite": "sfm:blocks/cable_breaker_direction",
-    "side": "sfm:blocks/cable_idle"
-  }
-}

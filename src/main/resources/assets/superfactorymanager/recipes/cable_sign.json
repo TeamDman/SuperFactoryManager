@@ -1,0 +1,24 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_sign"
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:feather"
+    },
+    [
+      {
+        "item": "minecraft:dye",
+        "data": 32767
+      },
+      {
+        "type": "forge:ore_dict",
+        "ore": "dye"
+      }
+    ],
+    {
+      "item": "superfactorymanager:cable"
+    }
+  ]
+}

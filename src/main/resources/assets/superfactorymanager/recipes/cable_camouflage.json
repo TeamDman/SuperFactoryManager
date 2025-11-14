@@ -1,0 +1,24 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_camouflage",
+    "data": 0
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:wool",
+      "data": 32767
+    },
+    {
+      "item": "minecraft:wool",
+      "data": 32767
+    },
+    {
+      "item": "minecraft:wool",
+      "data": 32767
+    },
+    {
+      "item": "superfactorymanager:cable"
+    }
+  ]
+}

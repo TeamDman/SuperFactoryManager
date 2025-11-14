@@ -1,0 +1,15 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_relay",
+    "data": 0
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:hopper"
+    },
+    {
+      "item": "superfactorymanager:cable"
+    }
+  ]
+}

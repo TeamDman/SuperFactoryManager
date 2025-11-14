@@ -416,7 +416,7 @@ public class TileEntityCamouflage extends TileEntityClusterElement implements IP
 		}
 
 		public String getIcon() {
-			return SuperFactoryManager.MODID+":blocks/" + icon;
+			return SuperFactoryManager.MODID+":block/" + icon;
 		}
 
 		public boolean useDoubleRendering() {

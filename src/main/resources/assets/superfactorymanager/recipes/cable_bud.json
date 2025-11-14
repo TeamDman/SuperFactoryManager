@@ -1,0 +1,23 @@
+{
+  "result": {
+    "item": "superfactorymanager:cable_bud"
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "type": "forge:ore_dict",
+      "ore": "gemQuartz"
+    },
+    {
+      "type": "forge:ore_dict",
+      "ore": "gemQuartz"
+    },
+    {
+      "type": "forge:ore_dict",
+      "ore": "gemQuartz"
+    },
+    {
+      "item": "superfactorymanager:cable"
+    }
+  ]
+}
