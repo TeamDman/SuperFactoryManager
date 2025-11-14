@@ -31,8 +31,6 @@ public class SFM {
 
     @SidedProxy(clientSide = "ca.teamdman.sfm.client.ClientProxy", serverSide = "ca.teamdman.sfm.common.CommonProxy")
     public static CommonProxy proxy;
-    @SidedProxy(clientSide = "vswe.superfactory.proxy.ClientProxy", serverSide = "vswe.superfactory.proxy.CommonProxy")
-    public static vswe.superfactory.proxy.CommonProxy oldProxy;
     private static boolean devEnvCache = false;
 
     public static boolean isRunningInDevEnvironment() {

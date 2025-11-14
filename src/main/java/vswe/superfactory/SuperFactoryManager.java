@@ -39,7 +39,7 @@ public class SuperFactoryManager {
 
 		FileHelper.setConfigDir(event.getModConfigurationDirectory());
 
-		SFM.oldProxy.preInit();
+//		SFM.oldProxy.preInit();
 
 		packetHandler.register(new PacketEventHandler());
 

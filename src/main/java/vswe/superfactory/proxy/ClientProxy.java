@@ -1,6 +1,7 @@
 package vswe.superfactory.proxy;
 
 import ca.teamdman.sfm.common.registry.SFMBlocks;
+import ca.teamdman.sfm.common.registry.SFMItems;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.block.model.ModelBakery;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -14,7 +15,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.blocks.client.ModelLoader;
-import vswe.superfactory.registry.ModItems;
 import vswe.superfactory.settings.Settings;
 
 @Mod.EventBusSubscriber(modid = SuperFactoryManager.MODID, value = Side.CLIENT)
@@ -78,7 +78,7 @@ public class ClientProxy extends CommonProxy {
 		registerBlockModelForVariant(SFMBlocks.CABLE_CAMOUFLAGE, 1, "cable_camouflage_inside");
 		registerBlockModelForVariant(SFMBlocks.CABLE_CAMOUFLAGE, 2, "cable_camouflage_shape");
 
-		registerItemModel(ModItems.DISK, 0, ModItems.DISK.getRegistryName().toString());
+		registerItemModel(SFMItems.DISK_ITEM, 0, SFMItems.DISK_ITEM.getRegistryName().toString());
 	}
 
 	@Override

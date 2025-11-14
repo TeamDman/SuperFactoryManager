@@ -15,7 +15,7 @@ import vswe.superfactory.SuperFactoryManager;
 @Mod.EventBusSubscriber
 public class MessageHandler {
 
-	public static final SimpleNetworkWrapper INSTANCE = new SimpleNetworkWrapper(SuperFactoryManager.MODID);
+	public static final SimpleNetworkWrapper INSTANCE = new SimpleNetworkWrapper(SuperFactoryManager.MODID + ".visual");
 
 	public static void init() {
 		INSTANCE.registerMessage(MessageIndexItems.class, MessageIndexItems.class, 6, Side.CLIENT);

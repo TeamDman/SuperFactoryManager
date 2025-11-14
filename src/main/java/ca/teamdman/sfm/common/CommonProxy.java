@@ -24,8 +24,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
-import vswe.superfactory.interfaces.GuiManager;
-import vswe.superfactory.tiles.TileEntityManager;
+
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
