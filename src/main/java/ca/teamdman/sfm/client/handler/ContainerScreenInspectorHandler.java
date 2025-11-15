@@ -184,7 +184,6 @@ public class ContainerScreenInspectorHandler {
         if (!(eventKey == 0 && typedChar >= ' ' || Keyboard.getEventKeyState())) {
             return;
         }
-//        int i = Keyboard.getEventKey() == 0 ? Keyboard.getEventCharacter() + 256 : Keyboard.getEventKey();
 
         // Handle Ctrl+I hotkey to toggle overlay
         var toggleKeyPressed = SFMKeyMappings.CONTAINER_INSPECTOR_KEY.isActiveAndMatches(eventKey);
