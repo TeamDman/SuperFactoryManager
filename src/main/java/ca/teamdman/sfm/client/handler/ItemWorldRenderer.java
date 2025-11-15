@@ -329,7 +329,7 @@ public class ItemWorldRenderer {
     @HelpsWithMinecraftVersionIndependence
     private static void writeVertex(
             BufferBuilder builder,
-            Matrix4f matrix4f,
+            BlockPos pos,
             float x,
             float y,
             float z,
@@ -338,8 +338,8 @@ public class ItemWorldRenderer {
             int b,
             int a
     ) {
-        Vector4f vec = org.lwjgl.util.vector.Matrix4f.transform(matrix4f, new Vector4f(x, y, z, 1.0F), null);
-        builder.pos(vec.getX(), vec.getY(), vec.getZ()).color(r, g, b, a).endVertex();
+//        Vector4f vec = org.lwjgl.util.vector.Matrix4f.transform(matrix4f, new Vector4f(x, y, z, 1.0F), null);
+        builder.pos(pos.getX(), pos.getY(), pos.getZ()).color(r, g, b, a).endVertex();
 //        for (int e = 0; e < builder.getVertexFormat().getElementCount(); e++) {
 //            switch (builder.getVertexFormat().getElement(e).getUsage()) {
 //                case POSITION:
@@ -357,7 +357,7 @@ public class ItemWorldRenderer {
 
     private static void writeFaceVertices(
             BufferBuilder builder,
-            Matrix4f matrix4f,
+            BlockPos matrix4f,
             EnumFacing direction,
             int r,
             int g,
@@ -482,10 +482,10 @@ public class ItemWorldRenderer {
 
             // Push vertices
             for (BlockPos blockPos : positions) {
-                Matrix4f matrix4f = new Matrix4f(new float[]{blockPos.getX(), blockPos.getY(), blockPos.getZ(), 1});
+
                 for (EnumFacing face : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
                     if (!positions.contains(blockPos.offset(face))) {
-                        writeFaceVertices(bufferBuilder, matrix4f, face, r, g, b, a);
+                        writeFaceVertices(bufferBuilder, blockPos, face, r, g, b, a);
                     }
                 }
             }
