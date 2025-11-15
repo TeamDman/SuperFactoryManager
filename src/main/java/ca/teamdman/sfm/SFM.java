@@ -24,6 +24,9 @@ public class SFM {
     public static final String MOD_NAME = "Super Factory Manager";
     public static final String VERSION = "@VERSION@";
 
+    public static final String LOCALIZATION_KEY = "sfm";
+
+
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
     public static final String ISSUE_TRACKER_URL = "https://github.com/TeamDman/SuperFactoryManager/issues";
 

@@ -12,11 +12,11 @@ import java.util.List;
 public final class LocalizationKeys {
 
     public static String itemDescriptionId(Item item) {
-        return "item." + item.getRegistryName();
+        return item.getTranslationKey();
     }
 
     public static String blockDescriptionId(Block block) {
-        return "block." + block.getRegistryName();
+        return block.getTranslationKey();
     }
 
     public static final LocalizationEntry TEXT_EDIT_SCREEN_TITLE = new LocalizationEntry(

@@ -1,6 +1,6 @@
 {
   "variants": {
-    "triggered=false": { "model": "sfm:manager_advanced" },
-    "triggered=true":  { "model": "sfm:manager_advanced" }
+    "triggered=false": { "model": "superfactorymanager:manager_advanced" },
+    "triggered=true":  { "model": "superfactorymanager:manager_advanced" }
   }
 }

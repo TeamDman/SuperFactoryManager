@@ -28,7 +28,7 @@ public class SFMItems {
     }
 
     private static <T extends Item> T prepareRegister(T item, String name) {
-        item.setRegistryName(SFM.MOD_ID, name).setTranslationKey(SFM.MOD_ID + "." + name);
+        item.setRegistryName(SFM.MOD_ID, name).setTranslationKey(SFM.LOCALIZATION_KEY + "." + name);
         CREATIVE_TAB_ITEMS.add(item);
         return register(item);
     }

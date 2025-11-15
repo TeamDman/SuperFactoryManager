@@ -60,7 +60,7 @@ public class SFMBlocks {
     }
 
     private static <T extends Block> T prepareRegister(T block, String name, Function<Block, ItemBlock> itemBlockFactory) {
-        block.setRegistryName(SFM.MOD_ID, name).setTranslationKey(SFM.MOD_ID + "." + name);
+        block.setRegistryName(SFM.MOD_ID, name).setTranslationKey(SFM.LOCALIZATION_KEY + "." + name);
         ItemBlock itemBlock = itemBlockFactory.apply(block);
         itemBlock.setRegistryName(block.getRegistryName());
         SFMItems.ITEM_BLOCKS.add(itemBlock);

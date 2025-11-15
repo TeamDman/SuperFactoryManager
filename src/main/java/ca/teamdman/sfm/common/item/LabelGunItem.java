@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.item;
 
 import ca.teamdman.sfm.client.ClientLabelGunWarningHelper;
+import ca.teamdman.sfm.client.ClientTranslationHelpers;
 import ca.teamdman.sfm.client.handler.LabelGunKeyMappingHandler;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
@@ -9,6 +10,7 @@ import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.util.SFMItemUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
@@ -20,6 +22,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -28,6 +31,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -163,10 +167,11 @@ public class LabelGunItem extends Item {
             List<String> lines,
             ITooltipFlag detail
     ) {
+        ArrayList<ITextComponent> textComponentStrings = new ArrayList<>();
         if (SFMItemUtils.isClientAndMoreInfoKeyPressed()) {
             GameSettings options = Minecraft.getMinecraft().gameSettings;
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER.getComponent(
+                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER.get(
                             SFMKeyMappings.getKeyDisplay(options.keyBindUseItem)
                     ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
             );

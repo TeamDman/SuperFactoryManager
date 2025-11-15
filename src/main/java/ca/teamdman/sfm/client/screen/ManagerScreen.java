@@ -83,11 +83,6 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
     ) {
         super(menu);
         this.menu = menu;
-        this.titleLabelX = 8;
-        this.titleLabelY = 6;
-
-        this.inventoryLabelX = 8;
-        this.inventoryLabelY = this.ySize - 96 + 2;
     }
 
     public List<GuiButton> getButtonsForJEIExclusionZones() {
