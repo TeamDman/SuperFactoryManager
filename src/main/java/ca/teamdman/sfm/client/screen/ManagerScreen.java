@@ -18,6 +18,8 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import ca.teamdman.sfm.common.util.TextFormattingColors;
 import ca.teamdman.sfml.ast.Program;
+import com.bbscn.Button;
+import com.bbscn.Renderable;
 import mezz.jei.api.gui.IAdvancedGuiHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
@@ -50,23 +52,23 @@ import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
 
 
 @SuppressWarnings({"FieldCanBeLocal", "unused", "NotNullFieldNotInitialized"})
-public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<ManagerScreen> {
+public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHandler<ManagerScreen> {
     private static final ResourceLocation BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
             "textures/gui/container/manager.png"
     );
     private final float STATUS_DURATION = 40;
     private ITextComponent status = new TextComponentString("");
     private float statusCountdown = 0;
-    private GuiButton diagButton;
-    private GuiButton clipboardPasteButton;
-    private GuiButton clipboardCopyButton;
-    private GuiButton discordButton;
-    private GuiButton resetButton;
-    private GuiButton editButton;
-    private GuiButton examplesButton;
-    private GuiButton logsButton;
-    private GuiButton rebuildButton;
-    private GuiButton serverConfigButton;
+    private Button diagButton;
+    private Button clipboardPasteButton;
+    private Button clipboardCopyButton;
+    private Button discordButton;
+    private Button resetButton;
+    private Button editButton;
+    private Button examplesButton;
+    private Button logsButton;
+    private Button rebuildButton;
+    private Button serverConfigButton;
 
     private final SFMButtonBuilder buttonBuilder = new SFMButtonBuilder();
 
@@ -83,9 +85,14 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
     ) {
         super(menu);
         this.menu = menu;
+
+        titleLabelX = 8;
+        titleLabelY = 6;
+        inventoryLabelX = 8;
+        inventoryLabelY = ySize - 96;
     }
 
-    public List<GuiButton> getButtonsForJEIExclusionZones() {
+    public List<Button> getButtonsForJEIExclusionZones() {
         return Arrays.asList(
                 clipboardPasteButton,
                 editButton,
@@ -113,26 +120,30 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
         editButton.visible = diskPresent && !isReadOnly();
     }
 
-
-    protected void keyTyped(char typedChar, int pKeyCode) throws IOException {
+    public boolean keyPressed(
+            int pKeyCode,
+            int pScanCode,
+            int pModifiers
+    ) {
         if (GuiScreen.isKeyComboCtrlV(pKeyCode) && clipboardPasteButton.visible) {
             onClipboardPasteButtonClicked();
-            return;
+            return true;
         } else if (GuiScreen.isKeyComboCtrlC(pKeyCode) && clipboardCopyButton.visible) {
             onClipboardCopyButtonClicked();
-            return;
+            return true;
         } else if (pKeyCode == Keyboard.KEY_E
                 && GuiScreen.isCtrlKeyDown()
                 && GuiScreen.isShiftKeyDown()
                 && examplesButton.visible) {
             onExamplesButtonClicked();
-            return;
-        } else if (pKeyCode == SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.getKeyCode()
+            return true;
+        } else if (SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.isActiveAndMatches(pKeyCode)
                 && editButton.visible) {
             onEditButtonClicked();
-            return;
+            return true;
         }
-        super.keyTyped(typedChar, pKeyCode);
+
+        return super.keyPressed(pKeyCode, pScanCode, pModifiers);
     }
 
     public TextFormatting getMillisecondColour(float ms) {
@@ -149,6 +160,11 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        for (Renderable renderable : this.renderables) {
+            renderable.render(mouseX, mouseY, partialTicks);
+        }
+
         this.renderHoveredToolTip(mouseX, mouseY);
         updateVisibilities();
         statusCountdown -= partialTicks;
@@ -185,7 +201,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
         super.initGui();
         int buttonWidth = 120;
         int buttonHeight = 16;
-        clipboardPasteButton = this.addButton(
+        clipboardPasteButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
@@ -201,7 +217,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                         )
                         .build()
         );
-        editButton = this.addButton(
+        editButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
@@ -217,7 +233,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                         )
                         .build()
         );
-        examplesButton = this.addButton(
+        examplesButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
@@ -233,7 +249,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                         )
                         .build()
         );
-        discordButton = this.addButton(
+        discordButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
@@ -244,7 +260,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                         .setOnPress(button -> this.onDiscordButtonClicked())
                         .build()
         );
-        clipboardCopyButton = this.addButton(
+        clipboardCopyButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
@@ -255,7 +271,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                         .setOnPress(button -> this.onClipboardCopyButtonClicked())
                         .build()
         );
-        logsButton = this.addButton(
+        logsButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
@@ -266,7 +282,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                         .setOnPress(button -> onLogsButtonClicked())
                         .build()
         );
-        rebuildButton = this.addButton(
+        rebuildButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
@@ -277,7 +293,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                         .setOnPress(button -> this.onRebuildButtonClicked())
                         .build()
         );
-        resetButton = this.addButton(
+        resetButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 + 120,
@@ -289,7 +305,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                         .setTooltip(this, this.fontRenderer, MANAGER_GUI_RESET_BUTTON_TOOLTIP)
                         .build()
         );
-        diagButton = this.addButton(
+        diagButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 + 35,
@@ -476,8 +492,8 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
             int mx,
             int my
     ) {
-        this.fontRenderer.drawString(menu.CONTAINER.getDisplayName().getUnformattedText(), this.titleLabelX, this.titleLabelY, 4210752);
-        this.fontRenderer.drawString(menu.PLAYER_INVENTORY.getDisplayName().getUnformattedText(), this.titleLabelX, this.titleLabelY, 4210752);
+        this.fontRenderer.drawString(menu.CONTAINER.getDisplayName().getFormattedText(), this.titleLabelX, this.titleLabelY, 4210752);
+        this.fontRenderer.drawString(menu.PLAYER_INVENTORY.getDisplayName().getUnformattedText(), this.inventoryLabelX, this.inventoryLabelY, 4210752);
 
 
         // draw state string
@@ -505,7 +521,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                     menu.logLevel,
                     0,
                     0,
-                    0,
+                    0xFFFFFF,
                     false
             );
             GlStateManager.popMatrix();
@@ -541,26 +557,27 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
         // Set up rendering
         disableTexture();
         GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(
-                GlStateManager.SourceFactor.SRC_ALPHA,
-                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
-                GlStateManager.SourceFactor.ONE,
-                GlStateManager.DestFactor.ZERO
-        );
+        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+
+//        GlStateManager.tryBlendFuncSeparate(
+//                GlStateManager.SourceFactor.SRC_ALPHA,
+//                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+//                GlStateManager.SourceFactor.ONE,
+//                GlStateManager.DestFactor.ZERO
+//        );
 
         Tessellator tesselator = Tessellator.getInstance();
         BufferBuilder buffer;
 
         // Draw the plot background
         buffer = tesselator.getBuffer();
+
         buffer.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
-
-        buffer.pos(plotX, plotY, 0).color(0, 0, 0, 128).endVertex();
-        buffer.pos(plotX + plotWidth, plotY, 0).color(0, 0, 0, 128).endVertex();
-        buffer.pos(plotX + plotWidth, plotY + plotHeight, 0).color(0, 0, 0, 128).endVertex();
-        buffer.pos(plotX, plotY + plotHeight, 0).color(0, 0, 0, 128).endVertex();
-        buffer.pos(plotX, plotY, 0).color(0, 0, 0, 128).endVertex();
-
+        buffer.pos(plotX, plotY, 0).color(0, 0, 0, 0.5f).endVertex();
+        buffer.pos(plotX + plotWidth, plotY, 0).color(0, 0, 0, 0.5f).endVertex();
+        buffer.pos(plotX + plotWidth, plotY + plotHeight, 0).color(0, 0, 0, 0.5f).endVertex();
+        buffer.pos(plotX, plotY + plotHeight, 0).color(0, 0, 0, 0.5f).endVertex();
+        buffer.pos(plotX, plotY, 0).color(0, 0, 0, 0.5f).endVertex();
         tesselator.draw();
 
         // Draw lines for each data point
@@ -605,17 +622,23 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
                 String formattedMillis = format.format(hoveredTickTimeMilliseconds);
                 TextFormatting lagColor = getMillisecondColour(hoveredTickTimeMilliseconds);
                 ITextComponent milliseconds = new TextComponentString(formattedMillis).setStyle(new Style().setColor(lagColor));
+
+                enableTexture();
+                GlStateManager.enableBlend();
+                GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
+                        GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
                 SFMFontUtils.draw(
                         this.fontRenderer,
-                        MANAGER_GUI_HOVERED_TICK_TIME_MS.getComponent(milliseconds),
+                        MANAGER_GUI_HOVERED_TICK_TIME_MS.getComponent(milliseconds).getFormattedText(),
                         titleLabelX,
                         20 + fontRenderer.FONT_HEIGHT,
-                        0,
+                        0xFFFFFF, //  TextFormattingColors.getColorCode(lagColor),
                         false
                 );
             }
 
             // draw a vertical line
+            disableTexture();
             buffer = tesselator.getBuffer();
             buffer.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
 
@@ -635,6 +658,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
             String formattedMillis = format.format(peakTickTimeMilliseconds);
             TextFormatting lagColor = getMillisecondColour(peakTickTimeMilliseconds);
             ITextComponent milliseconds = new TextComponentString(formattedMillis).setStyle(new Style().setColor(lagColor));
+            enableTexture();
 
             SFMFontUtils.draw(
                     this.fontRenderer,
@@ -705,7 +729,7 @@ public class ManagerScreen extends GuiContainer implements IAdvancedGuiHandler<M
     public List<Rectangle> getGuiExtraAreas(ManagerScreen guiContainer) {
         return getButtonsForJEIExclusionZones()
                 .stream()
-                .map(button -> new Rectangle(button.x, button.y, button.width, button.height))
+                .map(button -> new Rectangle(button.getX(), button.getY(), button.getWidth(), button.getHeight()))
                 .collect(Collectors.toList());
     }
 

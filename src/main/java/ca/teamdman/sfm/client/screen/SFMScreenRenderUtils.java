@@ -1,18 +1,17 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.bbscn.AbstractWidget;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 
 public class SFMScreenRenderUtils {
-//    @MCVersionDependentBehaviour
-//    public static int getX(AbstractWidget widget) {
-//        return widget.getX();
-//    }
-//    @MCVersionDependentBehaviour
-//    public static int getY(AbstractWidget widget) {
-//        return widget.getY();
-//    }
+    public static int getX(AbstractWidget widget) {
+        return widget.getX();
+    }
+    public static int getY(AbstractWidget widget) {
+        return widget.getY();
+    }
 
 
     @MCVersionDependentBehaviour

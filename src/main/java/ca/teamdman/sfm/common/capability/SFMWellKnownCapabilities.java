@@ -37,6 +37,10 @@ public class SFMWellKnownCapabilities {
             = new SFMBlockCapabilityKind<>(BASE_REDSTONE_HANDLER);
 
     public static Stream<SFMBlockCapabilityKind<?>> streamCapabilities() {
+        var values = SFMResourceTypes.registry().getValuesCollection();
+        var two = SFMResourceTypes.registry().getValuesCollection().stream().map(ResourceTypeContainer::get).map(ResourceType::capabilityKind);
+        var three = SFMResourceTypes.registry().getValuesCollection().stream().map(ResourceTypeContainer::get).map(ResourceType::capabilityKind).collect(Collectors.toList());
+
         return SFMResourceTypes.registry().getValuesCollection().stream().map(ResourceTypeContainer::get).map(ResourceType::capabilityKind);
     }
 

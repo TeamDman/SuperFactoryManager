@@ -1,13 +1,12 @@
 package ca.teamdman.sfm.client.widget;
 
+import com.bbscn.Button;
+import com.bbscn.ExtendedButton;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.util.text.ITextComponent;
 
-public class SFMExtendedButton extends GuiButton {
-    protected OnPress handler;
-
+public class SFMExtendedButton extends ExtendedButton {
     public SFMExtendedButton(
-            int buttonId,
             int xPos,
             int yPos,
             int width,
@@ -15,23 +14,7 @@ public class SFMExtendedButton extends GuiButton {
             ITextComponent displayString,
             OnPress handler
     ) {
-        super(buttonId, xPos, yPos, width, height, displayString.getFormattedText());
-        this.handler = handler;
+        super(xPos, yPos, width, height, displayString, handler);
     }
 
-    public OnPress getHandler() {
-        return handler;
-    }
-
-    public void onClick(int mx, int my) {
-        handler.press(this);
-    }
-
-    public boolean clicked(int mx, int my) {
-        return true;
-    }
-
-    public interface OnPress {
-        public void press(GuiButton button);
-    }
 }

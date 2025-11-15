@@ -7,6 +7,7 @@ import net.minecraft.util.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /// This class is used in doc comments because it's a plural lol.
@@ -20,8 +21,8 @@ public class SFMGlobalBlockCapabilityProviders {
 
     public static void initialize() {
        prepareRegister("cauldron", CAULDRON_MAPPER);
-       prepareRegister("block_entity", CAULDRON_MAPPER);
-       prepareRegister("redstone", CAULDRON_MAPPER);
+       prepareRegister("block_entity", BLOCK_ENTITY);
+       prepareRegister("redstone", REDSTONE);
     }
 
 //    static {
@@ -45,7 +46,7 @@ public class SFMGlobalBlockCapabilityProviders {
 
 
     /// Gets all registered Block Capability Providers, sorted by priority (the highest priority first).
-    public static ArrayList<SFMBlockCapabilityProvider<?>> getAllProviders() {
+    public static List<SFMBlockCapabilityProvider<?>> getAllProviders() {
 
         return SFMRegistries.GLOBAL_BLOCK_CAPABILITY_PROVIDER_REGISTRY.getValuesCollection()
                 .stream()
@@ -53,7 +54,7 @@ public class SFMGlobalBlockCapabilityProviders {
                 .sorted(Comparator
                                 .comparingInt((SFMBlockCapabilityProvider<?> provider) -> provider.priority())
                                 .reversed())
-                .collect(Collectors.toCollection(ArrayList::new));
+                .collect(Collectors.toList());
     }
 
     private static <T extends SFMBlockCapabilityProvider<?>> T prepareRegister(String name,  T provider) {

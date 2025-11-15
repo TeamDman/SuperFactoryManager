@@ -416,10 +416,10 @@ tile.sfm.fancy_cable_facade.name=Fancy Inventory Cable Facade
 tile.sfm.manager_advanced.name=Scripted Factory Manager
 tile.sfm.printing_press.name=Printing Press
 tile.sfm.printing_press.tooltip=Place with an air gap below a downward facing piston. Extend the piston to use.
-tile.sfm.test_barrel=Test Barrel
-tile.sfm.test_barrel_tank=Test Barrel Tank
-tile.sfm.tunnelled_manager=Tunnelled Factory Manager
-tile.sfm.water_tank=Water Tank
+tile.sfm.test_barrel.name=Test Barrel
+tile.sfm.test_barrel_tank.name=Test Barrel Tank
+tile.sfm.tunnelled_manager.name=Tunnelled Factory Manager
+tile.sfm.water_tank.name=Water Tank
 tile.sfm.water_tank.tooltip.1=Requires two adjacent water sources.
 tile.sfm.water_tank.tooltip.2=More effective when also adjacent to other active water tanks.
 chat.sfm.config_update_and_sync_result.failed_to_find=Failed to find the SFM config toml.
@@ -445,8 +445,8 @@ gui.sfm.confirm.funny.yes.3=Yup, go ahead.
 gui.sfm.confirm.funny.yes.4=Go for it.
 gui.sfm.confirm.funny.yes.5=lol do it
 gui.sfm.confirm.funny.yes.6=Apply the change.
-gui.sfm.container_inspector.container_slot_count=Container Slots=d
-gui.sfm.container_inspector.inventory_slot_count=Inventory Slots=d
+gui.sfm.container_inspector.container_slot_count=Container Slots: %d
+gui.sfm.container_inspector.inventory_slot_count=Inventory Slots: %d
 gui.sfm.container_inspector.mekanism_machine_inputs=The following are based on the MACHINE'S input config
 gui.sfm.container_inspector.mekanism_machine_outputs=The following are based on the MACHINE'S output config
 gui.sfm.container_inspector.mekanism_null_direction_warning=MEKANISM BLOCKS ARE READ-ONLY FROM THE NULL DIRECTION!!!!!!
@@ -475,7 +475,7 @@ gui.sfm.logs.button.clear_logs=Clear logs
 gui.sfm.logs.button.clear_logs.packet_received=Cleared logs
 gui.sfm.logs.button.copy_logs=Copy logs
 gui.sfm.logs.button.copy_logs.tooltip=Shift-click for raw
-gui.sfm.logs.empty_capability=Received an empty capability result for %s %s direction=%s
+gui.sfm.logs.empty_capability=Received an empty capability result for %s %s direction: %s
 gui.sfm.logs.missing_adjacent_cable=No adjacent cable found for %s
 gui.sfm.logs.no_content=Ahoy, world!\nChange the log level using the buttons at the top of this screen.\nLoud log levels will be reset after a single program execution.\nLogging can make statements take longer to execute.\nThe scrolling  wacky, I'm working on it.\nOnly a few hundred lines are drawn to reduce lag.\nUse the copy button to view in a better editor for now lol.",
 gui.sfm.logs.title=Logs
@@ -492,17 +492,17 @@ gui.sfm.manager.button.warning.tooltip=Click to copy code with warnings and erro
 gui.sfm.manager.button.warning.tooltip.read_only=Click to copy code with warnings and errors.
 gui.sfm.manager.edit_button=Edit
 gui.sfm.manager.edit_button.tooltip=Press %s to edit.
-gui.sfm.manager.hovered_tick_time=Hovered tick time=s ms
+gui.sfm.manager.hovered_tick_time=Hovered tick time=%s ms
 gui.sfm.manager.paste_confirm_screen.message=Are you sure you want to overwrite this disk?
 gui.sfm.manager.paste_confirm_screen.no_button=Never mind, make no changes
 gui.sfm.manager.paste_confirm_screen.title=Paste from clipboard?
 gui.sfm.manager.paste_confirm_screen.yes_button=Paste clipboard
-gui.sfm.manager.peak_tick_time=Peak tick time=s ms
+gui.sfm.manager.peak_tick_time=Peak tick time=%s ms
 gui.sfm.manager.reset_confirm_screen.message=Are you sure you want to reset this disk?
 gui.sfm.manager.reset_confirm_screen.no_button=Never mind, make no changes
 gui.sfm.manager.reset_confirm_screen.title=Reset disk?
 gui.sfm.manager.reset_confirm_screen.yes_button=Wipe program and labels
-gui.sfm.manager.state=State=s
+gui.sfm.manager.state=State=%s
 gui.sfm.manager.state.invalid_program=invalid program
 gui.sfm.manager.state.no_disk=missing disk
 gui.sfm.manager.state.no_program=no program
@@ -526,7 +526,7 @@ gui.sfm.program_editor_config.title=Program Editor Config
 gui.sfm.program_template_picker.warning1=Hitting \"Done\" will on the next screen will overwrite your existing program!
 gui.sfm.program_template_picker.warning2=Hit <esc> to cancel instead.
 gui.sfm.remove_active_label_confirm.message=Are you sure you want to remove the label \"%s\" from %d blocks?
-gui.sfm.remove_active_label_confirm.title=Remove label=s
+gui.sfm.remove_active_label_confirm.title=Remove label: %s
 gui.sfm.remove_all_labels_confirm.message=Are you sure you want to remove %d labels from %d blocks?
 gui.sfm.remove_all_labels_confirm.title=Remove ALL labels
 gui.sfm.save_changes_confirm.message=Do you want to save before exiting?
@@ -540,7 +540,7 @@ gui.sfm.title.intellisense_pick_list=Intellisense Pick List
 gui.sfm.title.labelgun=Label Gun
 gui.sfm.title.program_template_picker=Program Template Picker
 item.sfm.disk.name=Factory Manager Program Disk
-item.sfm.disk.tooltip.label_section.entry= - %s=d blocks
+item.sfm.disk.tooltip.label_section.entry= - %s: %d blocks
 item.sfm.disk.tooltip.label_section.header=Labels
 item.sfm.form.name=Printing Form
 item.sfm.labelgun.name=Label Gun
@@ -559,7 +559,7 @@ item.sfm.labelgun.tooltip.push_reminder=%s a Factory Manager to push labels to i
 item.sfm.labelgun.tooltip.scroll_reminder=%s + mouse wheel to select next/previous label.
 item.sfm.labelgun.tooltip.target_manager_reminder=%s + %s to label a Factory Manager itself.
 item.sfm.labelgun.tooltip.toggle_label_reminder=%s a block to toggle the active label on it.
-item.sfm.labelgun.name.with_label=Label Gun="%s\"
+item.sfm.labelgun.with_label=Label Gun: %s
 item.sfm.network_tool.name=Network Tool
 item.sfm.network_tool.tooltip.1=Shows cables through walls when held.
 item.sfm.network_tool.tooltip.2=Right click a block face to view diagnostic info.
@@ -592,9 +592,9 @@ log.sfm.cable_network.footer==============================
 log.sfm.cable_network.header.1======== Cable network =======
 log.sfm.cable_network.header.2=Cable position
 log.sfm.cable_network.header.3=Capability position
-log.sfm.capability_cache.hit=Capability cache HIT for %s %s direction=%s
-log.sfm.capability_cache.hit_invalid=Capability cache HIT but NOT PRESENT for %s %s direction=%s
-log.sfm.capability_cache.miss=Capability cache MISS for %s %s direction=%s
+log.sfm.capability_cache.hit=Capability cache HIT for %s %s direction: %s
+log.sfm.capability_cache.hit_invalid=Capability cache HIT but NOT PRESENT for %s %s direction: %s
+log.sfm.capability_cache.miss=Capability cache MISS for %s %s direction: %s
 log.sfm.label_position_holder.body=%s
 log.sfm.label_position_holder.footer==============================
 log.sfm.label_position_holder.header==== Label position holder ===
@@ -605,11 +605,11 @@ log.sfm.program.tick=PROGRAM TICK BEGIN
 log.sfm.program.tick.redstone_count=Program ticking with %d unprocessed redstone pulses.
 log.sfm.program.voided_resources=%s
 log.sfm.resource_type.get_capabilities.begin=Gathering capabilities of type %s (%s) against labels %s
-log.sfm.resource_type.get_capabilities.not_present=Capability %s %s direction=%s not present
-log.sfm.resource_type.get_capabilities.present=Capability %s %s direction=%s present
+log.sfm.resource_type.get_capabilities.not_present=Capability %s %s direction: %s not present
+log.sfm.resource_type.get_capabilities.present=Capability %s %s direction: %s present
 log.sfm.statement.tick.forget=FORGET %s
-log.sfm.statement.tick.if.false=FALSE=s
-log.sfm.statement.tick.if.true=TRUE=s
+log.sfm.statement.tick.if.false=FALSE: %s
+log.sfm.statement.tick.if.true=TRUE: %s
 log.sfm.statement.tick.input=%s
 log.sfm.statement.tick.io.gather_slots=Gathering slots for IO statement \n```\n%s\n```\n
 log.sfm.statement.tick.io.gather_slots.cache_hit=Cache hit - this statement has already gathered slots
@@ -618,12 +618,12 @@ log.sfm.statement.tick.io.gather_slots.created=Slot %d - tracking - %s - %s
 log.sfm.statement.tick.io.gather_slots.each=EACH keyword used - trackers will be unique to each block
 log.sfm.statement.tick.io.gather_slots.not_each=EACH keyword not used - trackers will be shared between blocks
 log.sfm.statement.tick.io.gather_slots.not_in_range=Slot %d - not in range
-log.sfm.statement.tick.io.gather_slots.range=Gathering slots in range set=s
-log.sfm.statement.tick.io.gather_slots.resource_types=Gathering for=s (%s)
+log.sfm.statement.tick.io.gather_slots.range=Gathering slots in range set: %s
+log.sfm.statement.tick.io.gather_slots.resource_types=Gathering for: %s (%s)
 log.sfm.statement.tick.io.gather_slots.should_not_create=Slot %d - skipping - %s
 log.sfm.statement.tick.io.move_to.begin=Begin moving %s into %s
 log.sfm.statement.tick.io.move_to.destination_tracker_reject=Destination tracker rejected the transfer, skipping
-log.sfm.statement.tick.io.move_to.end=Moved %d %s - source=%s, dest=%s
+log.sfm.statement.tick.io.move_to.end=Moved %d %s - source=%s, dest: %%s
 log.sfm.statement.tick.io.move_to.extracted=Extracted %d from slot %d
 log.sfm.statement.tick.io.move_to.retention_obligation=Promised to leave %d in the source slot, still obligated to leave %d
 log.sfm.statement.tick.io.move_to.retention_obligation_no_move=Nothing to move after retention obligations, marking source slot done and skipping
@@ -644,7 +644,7 @@ program.sfm.error.compile_failed_with_errors=Failed to compile with %d errors.
 program.sfm.error.compile_success_with_warnings=Successfully compiled \"%s\" with %d warnings.
 program.sfm.error.disallowed_resource_type=Program references a disallowed resource type \"%s\"
 program.sfm.error.literal=%s
-program.sfm.error.malformed_resource_type=Program has a malformed resource type \"%s\".\nReminder=esource types must be literals, not wildcards.
+program.sfm.error.malformed_resource_type=Program has a malformed resource type \"%s\".\nReminder: resource types must be literals, not wildcards.
 program.sfm.error.unknown_resource_type=Program references an unknown resource type \"%s\"
 program.sfm.reminders.push_labels=Did you remember to push your labels using the label gun?
 program.sfm.tick.time=Program tick took %.2f ms

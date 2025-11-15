@@ -2,10 +2,14 @@ package ca.teamdman.sfm;
 
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.CommonProxy;
+import ca.teamdman.sfm.common.capability.IRedstoneSignalStorage;
+import ca.teamdman.sfm.common.capability.RedstoneSignalStorage;
 import ca.teamdman.sfm.common.command.SFMCommand;
 import ca.teamdman.sfm.common.program.LimitedInputSlotObjectPool;
 import ca.teamdman.sfm.common.program.LimitedOutputSlotObjectPool;
 import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.*;

@@ -2,35 +2,21 @@ package ca.teamdman.sfm.client.widget;
 
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.bbscn.Button;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
 import org.jetbrains.annotations.Nullable;
 
 public class SFMButtonBuilder {
-    private int nextButtonId = 0;
-
     private @Nullable ITextComponent text = null;
     private int x = 0;
     private int y = 0;
     private int width = 150;
     private int height = 20;
-    private @Nullable SFMExtendedButton.OnPress onPress = null;
-    private @MCVersionDependentBehaviour
-    @Nullable ITextComponent tooltip = null;
+    private @Nullable Button.OnPress onPress = null;
 
-
-
-    public void clearBuilder() {
-        x = 0;
-        y = 0;
-        width = 150;
-        height = 20;
-        text = null;
-        onPress = null;
-        tooltip = null;
-    }
+    private Tooltip tooltip;
 
     public SFMButtonBuilder setText(LocalizationEntry text) {
         return setText(text.getComponent());
@@ -59,9 +45,31 @@ public class SFMButtonBuilder {
         return this;
     }
 
-    public SFMButtonBuilder setOnPress(SFMExtendedButton.OnPress onPress) {
+    public SFMButtonBuilder setOnPress(Button.OnPress onPress) {
         this.onPress = onPress;
         return this;
+    }
+
+
+
+
+    public Button build() {
+        if (text == null) {
+            throw new IllegalArgumentException("Text must be set");
+        }
+        if (onPress == null) {
+            throw new IllegalArgumentException("OnPress must be set");
+        } else {
+            return new SFMExtendedButtonWithTooltip(
+                    x,
+                    y,
+                    width,
+                    height,
+                    text,
+                    onPress,
+                    tooltip
+            );
+        }
     }
 
     public SFMButtonBuilder setTooltip(
@@ -79,44 +87,8 @@ public class SFMButtonBuilder {
             FontRenderer font,
             ITextComponent tooltip
     ) {
-        this.tooltip = tooltip;
+
+        this.tooltip = Tooltip.create(tooltip);
         return this;
     }
-
-    public SFMExtendedButton build() {
-        if (text == null) {
-            throw new IllegalArgumentException("Text must be set");
-        }
-        if (onPress == null) {
-            throw new IllegalArgumentException("OnPress must be set");
-        }
-        SFMExtendedButton button;
-        if (tooltip != null) {
-            button = new SFMExtendedButtonWithTooltip(
-                    nextButtonId++,
-                    x,
-                    y,
-                    width,
-                    height,
-                    text,
-                    onPress,
-                    tooltip
-            );
-        } else {
-            button = new SFMExtendedButton(
-                    nextButtonId++,
-                    x,
-                    y,
-                    width,
-                    height,
-                    text,
-                    onPress
-            );
-        }
-
-        this.clearBuilder();
-
-        return button;
-    }
-
 }

@@ -24,6 +24,7 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -156,7 +157,7 @@ public class LabelGunItem extends Item {
             }
             return EnumActionResult.SUCCESS;
         }
-        return EnumActionResult.PASS;
+        return EnumActionResult.SUCCESS;
     }
 
     @Override
@@ -256,7 +257,7 @@ public class LabelGunItem extends Item {
          var name = getActiveLabel(stack);
         if (name.isEmpty()) return super.getItemStackDisplayName(stack);
         return LocalizationKeys.LABEL_GUN_ITEM_NAME_WITH_LABEL
-                .getComponent(name)
+                .getComponent(new TextComponentString(name).setStyle(new Style().setBold(true)))
                 .setStyle(new Style().setColor(TextFormatting.AQUA)).getFormattedText();
     }
 

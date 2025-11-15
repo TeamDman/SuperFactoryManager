@@ -32,8 +32,6 @@ import java.util.stream.Stream;
 
 public class SFMScreenChangeHelpers {
 
-    private static Deque<GuiScreen> screenStack = new ArrayDeque<>();
-
     public static void setOrPushScreen(GuiScreen screen) {
         var current = Minecraft.getMinecraft().currentScreen;
         if (current == null) {
@@ -41,7 +39,9 @@ public class SFMScreenChangeHelpers {
                     .getMinecraft()
                     .displayGuiScreen(screen);
         } else {
-            screenStack.add(current);
+            if (screen instanceof IStackableScreen stackableScreen) {
+                stackableScreen.setParent(current);
+            }
             Minecraft
                     .getMinecraft()
                     .displayGuiScreen(screen);
@@ -49,6 +49,15 @@ public class SFMScreenChangeHelpers {
     }
 
     public static void popScreen() {
+        Minecraft mc = Minecraft.getMinecraft();
+        GuiScreen currentScreen = mc.currentScreen;
+        if (currentScreen instanceof IStackableScreen) {
+            IStackableScreen stackableScreen = (IStackableScreen) currentScreen;
+            if (stackableScreen.getParent() != null) {
+                Minecraft.getMinecraft().displayGuiScreen(stackableScreen.getParent());
+                return;
+            }
+        }
         Minecraft.getMinecraft().displayGuiScreen(null);
     }
 

@@ -6,6 +6,8 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraftforge.client.settings.KeyConflictContext;
+import net.minecraftforge.client.settings.KeyModifier;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import org.lwjgl.input.Keyboard;
 
@@ -13,7 +15,7 @@ public class SFMKeyMappings {
     public static final KeyBinding MORE_INFO_TOOLTIP_KEY = new KeyBinding(LocalizationKeys.MORE_HOVER_INFO_KEY.key().get(), Keyboard.KEY_LSHIFT, LocalizationKeys.SFM_KEY_CATEGORY.key().get());
     public static final KeyBinding CYCLE_LABEL_VIEW_KEY = new KeyBinding(LocalizationKeys.CYCLE_LABEL_VIEW_KEY.key().get(), Keyboard.KEY_LMENU, LocalizationKeys.SFM_KEY_CATEGORY.key().get());
     public static final KeyBinding TOGGLE_NETWORK_TOOL_OVERLAY_KEY = new KeyBinding(LocalizationKeys.TOGGLE_NETWORK_TOOL_OVERLAY.key().get(), Keyboard.KEY_LMENU, LocalizationKeys.SFM_KEY_CATEGORY.key().get());
-    public static final KeyBinding CONTAINER_INSPECTOR_KEY = new KeyBinding(LocalizationKeys.CONTAINER_INSPECTOR_TOGGLE_KEY.key().get(), Keyboard.KEY_I, LocalizationKeys.SFM_KEY_CATEGORY.key().get());
+    public static final KeyBinding CONTAINER_INSPECTOR_KEY = new KeyBinding(LocalizationKeys.CONTAINER_INSPECTOR_TOGGLE_KEY.key().get(), KeyConflictContext.GUI, KeyModifier.CONTROL, Keyboard.KEY_I, LocalizationKeys.SFM_KEY_CATEGORY.key().get());
     public static final KeyBinding ITEM_INSPECTOR_KEY = new KeyBinding(LocalizationKeys.ITEM_INSPECTOR_TOGGLE_KEY.key().get(), Keyboard.KEY_NONE, LocalizationKeys.SFM_KEY_CATEGORY.key().get());
     public static final KeyBinding LABEL_GUN_PICK_BLOCK_MODIFIER_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_PICK_BLOCK_MODIFIER_KEY.key().get(), Keyboard.KEY_LMENU, LocalizationKeys.SFM_KEY_CATEGORY.key().get());
     public static final KeyBinding LABEL_GUN_CONTIGUOUS_MODIFIER_KEY = new KeyBinding(LocalizationKeys.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY.key().get(), Keyboard.KEY_LCONTROL, LocalizationKeys.SFM_KEY_CATEGORY.key().get());

@@ -10,11 +10,13 @@ import ca.teamdman.sfm.client.widget.SFMExtendedButton;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundContainerExportsInspectionRequestPacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
+import com.bbscn.Button;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
@@ -35,7 +37,7 @@ import org.lwjgl.input.Mouse;
 public class ContainerScreenInspectorHandler {
     private static boolean visible = false;
     private static @Nullable GuiContainer lastScreen = null;
-    private static final SFMExtendedButton exportInspectorButton = new SFMButtonBuilder()
+    private static final Button exportInspectorButton = new SFMButtonBuilder()
             .setSize(100, 20)
             .setPosition(5, 50)
             .setText(LocalizationKeys.CONTAINER_INSPECTOR_SHOW_EXPORTS_BUTTON)
@@ -53,7 +55,9 @@ public class ContainerScreenInspectorHandler {
     @SubscribeEvent
     public static void onMouseClick(GuiScreenEvent.MouseInputEvent.Pre event) {
         boolean shouldCapture = Minecraft.getMinecraft().currentScreen instanceof GuiContainer;
-        if (shouldCapture && visible) {
+        final int eventButton = Mouse.getEventButton();
+
+        if (eventButton > -1 && Mouse.getEventButtonState() && shouldCapture && visible) {
             int mouseX = Mouse.getEventX();
             int mouseY = Mouse.getEventY();
 
@@ -67,8 +71,8 @@ public class ContainerScreenInspectorHandler {
 
 
             if (exportInspectorButton.clicked(scaledMouseX, scaledMouseY)) {
-                exportInspectorButton.playPressSound(Minecraft.getMinecraft().getSoundHandler());
-                exportInspectorButton.onClick(scaledMouseX, scaledMouseY);
+                exportInspectorButton.playDownSound(Minecraft.getMinecraft());
+                exportInspectorButton.onClick(scaledMouseX, scaledMouseY, 0);
                 event.setCanceled(true);
             }
         }
@@ -85,10 +89,10 @@ public class ContainerScreenInspectorHandler {
             int inventorySlotCount = 0;
 
             GlStateManager.pushMatrix();
-            GlStateManager.translate(0,0,350); // render text over the items but under the tooltips
+            GlStateManager.translate(0, 0, 350); // render text over the items but under the tooltips
 
             // draw the button
-            exportInspectorButton.drawButton(Minecraft.getMinecraft(), event.getMouseX(), event.getMouseY(), event.getRenderPartialTicks());
+            exportInspectorButton.render(event.getMouseX(), event.getMouseY(), event.getRenderPartialTicks());
 
 
             // draw index on each slot
@@ -96,12 +100,12 @@ public class ContainerScreenInspectorHandler {
             for (var slot : menu.inventorySlots) {
                 TextFormatting colour;
                 // TODO: can we reference-compare this to the capabilities to find out if this matches any of the inventories exposed for automation?
-                if (slot.inventory instanceof IInventory) {
+                if (slot.inventory instanceof InventoryPlayer) {
                     //noinspection DataFlowIssue
                     colour = TextFormatting.YELLOW;
                     inventorySlotCount++;
                 } else {
-                    colour = TextFormatting.BLACK;
+                    colour = TextFormatting.BLUE;
                     containerSlotCount++;
                 }
                 SFMFontUtils.draw(
@@ -131,9 +135,9 @@ public class ContainerScreenInspectorHandler {
             }
             {
                 var notice = LocalizationKeys.CONTAINER_INSPECTOR_NOTICE_2.getComponent(
-                       new TextComponentString( SFMKeyMappings.CONTAINER_INSPECTOR_KEY
+                        new TextComponentString(SFMKeyMappings.CONTAINER_INSPECTOR_KEY
                                 .getDisplayName()
-                       )
+                        )
                                 .setStyle(new Style().setColor(TextFormatting.AQUA))
                 ).setStyle(new Style().setColor(TextFormatting.GOLD));
                 int offset = font.getStringWidth(notice.getUnformattedText()) / 2;
@@ -173,12 +177,17 @@ public class ContainerScreenInspectorHandler {
     }
 
     @SubscribeEvent
-    public static void onKeyDown(GuiScreenEvent.KeyboardInputEvent.Pre event) {
-        int i = Keyboard.getEventKey() == 0 ? Keyboard.getEventCharacter() + 256 : Keyboard.getEventKey();
+    public static void onKeyDown(GuiScreenEvent.KeyboardInputEvent.Post event) {
+        char typedChar = Keyboard.getEventCharacter();
+        int eventKey = Keyboard.getEventKey();
+
+        if (!(eventKey == 0 && typedChar >= ' ' || Keyboard.getEventKeyState())) {
+            return;
+        }
+//        int i = Keyboard.getEventKey() == 0 ? Keyboard.getEventCharacter() + 256 : Keyboard.getEventKey();
 
         // Handle Ctrl+I hotkey to toggle overlay
-        var toggleKey = SFMKeyMappings.CONTAINER_INSPECTOR_KEY;
-        var toggleKeyPressed = toggleKey.isActiveAndMatches(i);
+        var toggleKeyPressed = SFMKeyMappings.CONTAINER_INSPECTOR_KEY.isActiveAndMatches(eventKey);
         if (toggleKeyPressed) {
             visible = !visible;
             event.setCanceled(true);
@@ -186,8 +195,7 @@ public class ContainerScreenInspectorHandler {
         }
 
         // Handle ~ hotkey to inspect hovered item
-        var activateKey = SFMKeyMappings.ITEM_INSPECTOR_KEY;
-        var activateKeyPressed = activateKey.isActiveAndMatches(i);
+        var activateKeyPressed = SFMKeyMappings.ITEM_INSPECTOR_KEY.isActiveAndMatches(eventKey);
         if (activateKeyPressed) {
             // This doesn't work when activated hovering a JEI item.
             if (event.getGui() instanceof GuiContainer gui) {
