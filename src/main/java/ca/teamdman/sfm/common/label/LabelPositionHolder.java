@@ -49,6 +49,11 @@ public record LabelPositionHolder(
         });
     }
 
+    public static LabelPositionHolder fromNBT(NBTTagCompound stack) {
+        var tag = stack.getCompoundTag("sfm:labels");
+        return deserialize(tag);
+    }
+
     public static LabelPositionHolder empty() {
         return new LabelPositionHolder();
     }
@@ -70,6 +75,11 @@ public record LabelPositionHolder(
     public LabelPositionHolder save(ItemStack stack) {
         stack.setTagInfo("sfm:labels", serialize());
         CACHE.put(stack, new LabelPositionHolder(this));
+        return this;
+    }
+
+    public LabelPositionHolder save(NBTTagCompound nbt) {
+        nbt.setTag("sfm:labels", serialize());
         return this;
     }
 

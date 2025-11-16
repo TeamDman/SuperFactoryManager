@@ -8,6 +8,7 @@ import ca.teamdman.sfm.common.command.SFMCommand;
 import ca.teamdman.sfm.common.program.LimitedInputSlotObjectPool;
 import ca.teamdman.sfm.common.program.LimitedOutputSlotObjectPool;
 import net.minecraft.launchwrapper.Launch;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fml.common.Mod;
@@ -16,6 +17,8 @@ import net.minecraftforge.fml.common.event.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import vswe.superfactory.SuperFactoryManager;
+import vswe.superfactory.components.internal.ModItemHelper;
+import vswe.superfactory.registry.ModBlocks;
 
 @Mod(
         modid = SFM.MOD_ID,
@@ -51,8 +54,9 @@ public class SFM {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-
         proxy.preInit();
+
+
         devEnvCache = (Boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");
 
         SFMKeyMappings.register();
@@ -63,13 +67,14 @@ public class SFM {
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         proxy.init();
-        oldMod.init(event);
+        ModBlocks.addRecipes();
     }
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         proxy.postInit();
-        oldMod.postInit(event);
+        		ModItemHelper.init();
+
     }
 
     @Mod.EventHandler

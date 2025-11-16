@@ -1,9 +1,11 @@
 package vswe.superfactory.components;
 
 import com.google.common.collect.ImmutableList;
+import net.minecraft.block.BlockPane;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
@@ -14,6 +16,7 @@ import vswe.superfactory.components.internal.*;
 import vswe.superfactory.tiles.TileEntityManager;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CommandExecutor {
 	public static final int                         MAX_FLUID_TRANSFER = 10000000;
@@ -52,6 +55,7 @@ public class CommandExecutor {
 
 		List<SlotInventoryHolder> ret         = new ArrayList<>();
 		List<ConnectionBlock>     inventories = manager.getConnectedInventories();
+        Map<BlockPos,ConnectionBlock> inventoriesMap = manager.getConnectedInventoriesMap();
 		Variable[]                variables   = manager.getVariables();
 		for (int variableIndex = 0; variableIndex < variables.length; variableIndex++) {
 			Variable variable = variables[variableIndex];
@@ -69,10 +73,29 @@ public class CommandExecutor {
 			}
 		}
 
+        var labels = manager.getLabels().labels().entrySet().stream()
+                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .map(Map.Entry::getValue)
+                .collect(Collectors.toList());
+
 		for (int i = 0; i < menuContainer.getSelectedInventories().size(); i++) {
-			int selected = menuContainer.getSelectedInventories().get(i) - VariableColor.values().length;
+			int baseIndex = menuContainer.getSelectedInventories().get(i);
+            int selected = baseIndex - VariableColor.values().length;
 
 			addContainer(inventories, ret, selected, menuContainer, type, EnumSet.allOf(ConnectionBlockType.class));
+
+
+            if (baseIndex < 0 && labels.size() >= (-baseIndex) ) {
+                Set<BlockPos> positions = labels.get(Math.abs(baseIndex) - 1);
+                for (BlockPos pos : positions) {
+                    ConnectionBlock connection;
+                    if ((connection = inventoriesMap.getOrDefault(pos, null)) != null) {
+                        if (connection.isOfType(type) && !connection.getTileEntity().isInvalid() && !containsTe(ret, connection.getTileEntity())) {
+                            ret.add(new SlotInventoryHolder(baseIndex, connection.getTileEntity(), menuContainer.getOption()));
+                        }
+                    }
+                }
+            }
 		}
 
 		if (ret.isEmpty()) {

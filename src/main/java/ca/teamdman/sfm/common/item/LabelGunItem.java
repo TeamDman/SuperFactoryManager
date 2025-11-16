@@ -18,6 +18,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagInt;
 import net.minecraft.nbt.NBTTagString;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -161,6 +162,20 @@ public class LabelGunItem extends Item {
     }
 
     @Override
+    public ActionResult<ItemStack> onItemRightClick(
+            World world,
+            EntityPlayer player,
+            EnumHand hand
+    ) {
+        ItemStack stack = player.getHeldItem(hand);
+
+        if (world.isRemote) {
+            SFMScreenChangeHelpers.showLabelGunScreen(stack, hand);
+        }
+        return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
+    }
+
+    @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(
             ItemStack stack,
@@ -254,7 +269,7 @@ public class LabelGunItem extends Item {
 
     @Override
     public String getItemStackDisplayName(ItemStack stack) {
-         var name = getActiveLabel(stack);
+        var name = getActiveLabel(stack);
         if (name.isEmpty()) return super.getItemStackDisplayName(stack);
         return LocalizationKeys.LABEL_GUN_ITEM_NAME_WITH_LABEL
                 .getComponent(new TextComponentString(name).setStyle(new Style().setBold(true)))

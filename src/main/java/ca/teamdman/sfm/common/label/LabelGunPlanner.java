@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+import vswe.superfactory.tiles.TileEntityManager;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.LABEL_GUN_CHAT_SKIPPED_BLOCKS;
 
@@ -25,9 +26,24 @@ public class LabelGunPlanner {
 
         if (
                 !msg.isTargetManagerModifierActive()
-                && world.getTileEntity(msg.getPos()) instanceof ManagerBlockEntity manager
+                        && world.getTileEntity(msg.getPos()) instanceof ManagerBlockEntity manager
         ) {
             return new LabelGunManagerPushOrPullAction(
+                    player,
+                    world,
+                    msg,
+                    gunStack,
+                    gunLabels,
+                    manager
+            );
+        }
+
+
+        if (
+                !msg.isTargetManagerModifierActive()
+                        && world.getTileEntity(msg.getPos()) instanceof TileEntityManager manager
+        ) {
+            return new LabelGunOldManagerPushOrPullAction(
                     player,
                     world,
                     msg,

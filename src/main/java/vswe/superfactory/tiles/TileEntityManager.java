@@ -1,5 +1,7 @@
 package vswe.superfactory.tiles;
 
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfml.ast.Label;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -64,6 +66,9 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 	private boolean usingUnlimitedInventories;
 	private             Variable[]          variables;
 	private             List<FlowComponent> zLevelRenderingList;
+    private  Map<BlockPos, ConnectionBlock> inventoriesByBlockPos = new HashMap<>();
+
+    private LabelPositionHolder labels = LabelPositionHolder.empty();
 
 	public TileEntityManager() {
 		items = new ArrayList<FlowComponent>();
@@ -224,6 +229,9 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 	public List<ConnectionBlock> getConnectedInventories() {
 		return inventories;
 	}
+	public Map<BlockPos,ConnectionBlock> getConnectedInventoriesMap() {
+		return inventoriesByBlockPos;
+	}
 
 	public Connection getCurrentlyConnecting() {
 		return currentlyConnecting;
@@ -327,6 +335,7 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 
 	@Override
 	public void readAllData(DataReader dr, EntityPlayer player) {
+        labels = LabelPositionHolder.deserialize(dr.readNBT());
 		updateInventories();
 		int flowControlCount = dr.readComponentId();
 		getFlowItems().clear();
@@ -366,6 +375,7 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 
 		List<WorldCoordinate> visited = new ArrayList<WorldCoordinate>();
 		inventories.clear();
+        inventoriesByBlockPos.clear();
 		Queue<WorldCoordinate> queue = new PriorityQueue<WorldCoordinate>();
 		WorldCoordinate        start = new WorldCoordinate(getPos().getX(), getPos().getY(), getPos().getZ(), 0);
 		queue.add(start);
@@ -480,6 +490,7 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 				usingUnlimitedInventories = true;
 			}
 			inventories.add(connection);
+            inventoriesByBlockPos.put(new BlockPos(target.getX(), target.getY(), target.getZ()), connection);
 			if (connection.getTileEntity() instanceof ISystemListener) {
 				((ISystemListener) connection.getTileEntity()).added(this);
 			}
@@ -510,6 +521,9 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 
 		for (int i = 0; i < oldSelection.size(); i++) {
 			int selection = oldSelection.get(i);
+            if (selection < 0) {
+                newSelection.add(selection);
+            }
 			if (hasVariables && selection >= 0 && selection < 16) {
 				newSelection.add(selection);
 			} else {
@@ -653,6 +667,8 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 
 	@Override
 	public void writeAllData(DataWriter dw) {
+        dw.writeNBT(this.labels.serialize());
+
 		dw.writeComponentId(this, getFlowItems().size());
 		for (FlowComponent flowComponent : getFlowItems()) {
 			PacketHandler.writeAllComponentData(dw, flowComponent);
@@ -739,6 +755,8 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 			inventoryPositionsTag.appendTag(NBTUtil.createPosTag(pos));
 		}
 		nbtTagCompound.setTag(NBT_INVENTORY_POSITIONS, inventoryPositionsTag);
+
+        if (labels != null) labels.save(nbtTagCompound);
 	}
 
 	public void readContentFromNBT(NBTTagCompound nbtTagCompound, boolean pickup) {
@@ -789,10 +807,25 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 				BlockPos pos = NBTUtil.getPosFromTag(inventoryPositionsTag.getCompoundTagAt(i));
 				initialInventoryPositions.add(pos);
 			}
-		}
-	}
 
-	public abstract class Button {
+        }
+        if (version >= 15) {
+            labels = LabelPositionHolder.fromNBT(nbtTagCompound);
+        } else {
+            labels = LabelPositionHolder.empty();
+        }
+    }
+
+    public LabelPositionHolder getLabels() {
+        return labels;
+    }
+
+    public void setLabels(LabelPositionHolder gunLabels) {
+        this.labels = gunLabels;
+        this.markDirty();
+    }
+
+    public abstract class Button {
 		private Localization mouseOver;
 		private int          x;
 		private int          y;

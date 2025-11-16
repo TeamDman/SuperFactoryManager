@@ -170,6 +170,12 @@ public class DataWriter {
 	}
 
 	public void writeInventoryId(TileEntityManager manager, int id) {
+        if (id < 0) {
+            writeBoolean(true);
+            writeData(-id, DataBitHelper.MENU_INVENTORY_SELECTION.getBitCount());
+            return;
+        }
+        writeBoolean(false);
 		if (!invWritten) {
 			manager.updateFirst();
 			if (Settings.isLimitless(manager) && manager.getConnectedInventories().size() > TileEntityManager.MAX_CONNECTED_INVENTORIES) {

@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "sfm:item/labelgun"
+    "layer0": "superfactorymanager:item/labelgun"
   }
 }

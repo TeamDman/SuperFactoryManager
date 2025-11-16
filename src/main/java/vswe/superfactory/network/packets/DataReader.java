@@ -117,7 +117,10 @@ public class DataReader {
 	}
 
 	public int readInventoryId() {
-		if (!invRead) {
+        if (readBoolean()) {
+            return -readData(DataBitHelper.MENU_INVENTORY_SELECTION.getBitCount());
+        }
+        if (!invRead) {
 			if (readBoolean()) {
 				invBits = readData(DataBitHelper.BIT_COUNT);
 			} else {

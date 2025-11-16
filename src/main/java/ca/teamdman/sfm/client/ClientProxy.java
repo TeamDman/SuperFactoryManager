@@ -51,6 +51,8 @@ public class ClientProxy extends CommonProxy {
         registerBlockModelForVariant(SFMBlocks.CABLE_CAMOUFLAGE, 2, "cable_camouflage_shape");
 
         registerItemModel(SFMItems.DISK_ITEM, 0, SFMItems.DISK_ITEM.getRegistryName().toString());
+        registerItemModel(SFMItems.LABEL_GUN_ITEM, 0, SFMItems.LABEL_GUN_ITEM.getRegistryName().toString());
+        registerItemModel(SFMItems.NETWORK_TOOL_ITEM, 0, SFMItems.NETWORK_TOOL_ITEM.getRegistryName().toString());
     }
 
     private static void addVariantNames(Block block, String... names) {

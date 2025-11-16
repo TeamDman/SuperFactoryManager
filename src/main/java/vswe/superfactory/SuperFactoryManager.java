@@ -21,7 +21,7 @@ import static ca.teamdman.sfm.common.registry.SFMBlocks.MANAGER;
 public class SuperFactoryManager {
 	public static final String              CHANNEL                      = "factorymanager";
 	public static final String              MODID                        = "superfactorymanager";
-	public static final byte                NBT_CURRENT_PROTOCOL_VERSION = 14;
+	public static final byte                NBT_CURRENT_PROTOCOL_VERSION = 15;
 	public static final String              NBT_PROTOCOL_VERSION         = "ProtocolVersion";
 	public static final String              RESOURCE_LOCATION            = "superfactorymanager";
 	public static final String              UNLOCALIZED_START            = "sfm.";
@@ -48,13 +48,6 @@ public class SuperFactoryManager {
 		FMLInterModComms.sendMessage("Waila", "register", "Provider.callbackRegister");
 	}
 
-	public void init(FMLInitializationEvent event) {
-		ModBlocks.addRecipes();
-	}
-
-	public void postInit(FMLPostInitializationEvent event) {
-		ModItemHelper.init();
-	}
 
 
 }

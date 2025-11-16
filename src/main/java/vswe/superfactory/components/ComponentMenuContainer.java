@@ -25,10 +25,8 @@ import vswe.superfactory.network.packets.DataWriter;
 import vswe.superfactory.network.packets.PacketHandler;
 import vswe.superfactory.tiles.TileEntityManager;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public abstract class ComponentMenuContainer extends ComponentMenu {
 
@@ -69,6 +67,7 @@ public abstract class ComponentMenuContainer extends ComponentMenu {
 	private              boolean                               clientUpdate; //ugly quick way to fix client/server issue
 	private              Page                                  currentPage;
 	private              List<Variable>                        filterVariables;
+	private              List<LabelSelection>                  filterLabels;
 	private              List<IContainerSelection>             inventories;
 	private              ConnectionBlockType                   validType;
 
@@ -78,6 +77,7 @@ public abstract class ComponentMenuContainer extends ComponentMenu {
 
 		selectedInventories = new ArrayList<Integer>();
 		filterVariables = new ArrayList<Variable>();
+        filterLabels = new ArrayList<>();
 		radioButtonsMulti = new RadioButtonList() {
 			@Override
 			public void updateSelectedOption(int selectedOption) {
@@ -102,7 +102,7 @@ public abstract class ComponentMenuContainer extends ComponentMenu {
 			@Override
 			protected List<IContainerSelection> getSearchResults(String search, boolean all) {
 				if (search.equals("") || !clientUpdate || cachedInterface == null) {
-					return new ArrayList<IContainerSelection>();
+					return new ArrayList<>();
 				}
 
 				if (inventories == null) {
@@ -110,8 +110,12 @@ public abstract class ComponentMenuContainer extends ComponentMenu {
 				}
 
 				if (search.equals(".var")) {
-					return new ArrayList<IContainerSelection>(filterVariables);
+					return new ArrayList<>(filterVariables);
 				}
+
+                if (search.equals(".label")) {
+                    return new ArrayList<>(filterLabels);
+                }
 
 
 				boolean noFilter = search.equals(".nofilter");
@@ -411,6 +415,16 @@ public abstract class ComponentMenuContainer extends ComponentMenu {
 				}
 			}
 		});
+        buttons.add(new Button(Localization.SELECT_VARIABLE_SHORT, Page.MAIN, Localization.SELECT_VARIABLE_LONG, false, 111, 42) {
+			@Override
+			void onClick() {
+				if (scrollController.getText().equals(".label")) {
+					scrollController.setTextAndCursor(".all");
+				} else {
+					scrollController.setTextAndCursor(".label");
+				}
+			}
+		});
 
 		currentPage = Page.MAIN;
 	}
@@ -469,6 +483,7 @@ public abstract class ComponentMenuContainer extends ComponentMenu {
 		List<ConnectionBlock>        tempInventories = manager.getConnectedInventories();
 		List<IContainerSelection>    ret             = new ArrayList<IContainerSelection>();
 		filterVariables.clear();
+        filterLabels.clear();
 
 		for (int i = 0; i < manager.getVariables().length; i++) {
 			Variable variable = manager.getVariables()[i];
@@ -477,6 +492,16 @@ public abstract class ComponentMenuContainer extends ComponentMenu {
 				filterVariables.add(variable);
 			}
 		}
+
+        int i = 1;
+        for (String labelName : manager.getLabels().labels().keySet().stream()
+                .sorted(Comparator.naturalOrder())
+                .collect(Collectors.toList())) {
+            LabelSelection label = new LabelSelection(-i, labelName);
+            ret.add(label);
+            filterLabels.add(label);
+            i++;
+        }
 
 		for (ConnectionBlock tempInventory : tempInventories) {
 			if (tempInventory.isOfAnyType(validTypes)) {
