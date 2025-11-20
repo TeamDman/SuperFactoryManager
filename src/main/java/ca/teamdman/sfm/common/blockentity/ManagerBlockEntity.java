@@ -94,8 +94,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     }
 
 
-    @Override
-    public void update() {
+    public void serverTick() {
         var level = this.getWorld();
         var manager = this;
         try {
@@ -264,6 +263,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
 
     @Override
     public void setInventorySlotContents(int index, ItemStack stack) {
+        if (index < 0 || index >= ITEMS.size()) return;
         ITEMS.set(index, stack);
         if (stack.getCount() > getInventoryStackLimit()) {
             stack.setCount(getInventoryStackLimit());
@@ -341,6 +341,11 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         }
     }
 
+    @Override
+    public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newSate) {
+        return oldState.getBlock() != newSate.getBlock();
+    }
+
     public long[] getTickTimeNanos() {
         // tickTimeNanos is used as a cyclical buffer, transform it to have the first index be the most recent tick
         long[] result = new long[tickTimeNanos.length];
@@ -407,22 +412,22 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     }
 
     @Override
+    public void update() {
+        if (world.isRemote) return;
+        serverTick();
+    }
+
+
+    @Override
     public ITextComponent getDisplayName() {
         return LocalizationKeys.MANAGER_CONTAINER.getComponent();
     }
 
-    public Container createMenu(
-            int windowId,
-            InventoryPlayer inv
-    ) {
-        return new ManagerContainerMenu(windowId, inv, this);
-    }
-
-    @Nullable
-    @Override
-    public SPacketUpdateTileEntity getUpdatePacket() {
-        return new SPacketUpdateTileEntity(this.pos, 3, this.getUpdateTag());
-    }
+//    @Nullable
+//    @Override
+//    public SPacketUpdateTileEntity getUpdatePacket() {
+//        return new SPacketUpdateTileEntity(this.pos, 3, this.getUpdateTag());
+//    }
 
     @Override
     public NBTTagCompound getUpdateTag() {
