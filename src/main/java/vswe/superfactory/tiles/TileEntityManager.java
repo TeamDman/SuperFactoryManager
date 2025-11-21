@@ -1,5 +1,6 @@
 package vswe.superfactory.tiles;
 
+import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfml.ast.Label;
 import net.minecraft.client.gui.GuiScreen;
@@ -406,7 +407,7 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 								}
 
 								BlockPos pos = new BlockPos(target.getX(), target.getY(), target.getZ());
-								if ((Settings.isLimitless(this) || element.getDepth() < MAX_CABLE_LENGTH) && BlockCable.isCable(world.getBlockState(pos).getBlock(), world.getBlockState(pos).getBlock().getMetaFromState(world.getBlockState(pos)))) {
+								if ((Settings.isLimitless(this) || element.getDepth() < MAX_CABLE_LENGTH) && CableNetwork.isCable(world, pos)) {
 									queue.add(target);
 								}
 							}

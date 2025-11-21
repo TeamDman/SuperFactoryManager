@@ -9,6 +9,7 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
+import ca.teamdman.sfml.ast.Block;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.util.math.BlockPos;
@@ -17,6 +18,8 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import vswe.superfactory.blocks.BlockManager;
+import vswe.superfactory.tiles.TileEntityManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +32,7 @@ public class CableNetwork {
     protected final World level;
     protected final LongSet cablePositions = new LongOpenHashSet();
     protected final SFMBlockCapabilityCacheForLevel levelCapabilityCache = new SFMBlockCapabilityCacheForLevel();
+    protected final LongSet visualManagerPositions = new LongOpenHashSet();
 
     public CableNetwork(World level) {
         this.level = level;
@@ -51,10 +55,18 @@ public class CableNetwork {
                 .getBlock() instanceof ICableBlock;
     }
 
+    public static boolean isVisualManager(
+            @Nullable World world,
+            @NotStored BlockPos cablePos
+    ) {
+        if (world == null) return false;
+        return world.getBlockState(cablePos).getBlock() instanceof BlockManager;
+    }
+
     public void rebuildNetwork(@NotStored BlockPos start) {
         cablePositions.clear();
         levelCapabilityCache.clear();
-        discoverCables(getLevel(), start).forEach(this::addCable);
+        discoverCables(getLevel(), start).forEach(this::addCableOrVisualManager);
     }
 
     public void rebuildNetworkFromCache(
@@ -63,6 +75,7 @@ public class CableNetwork {
     ) {
         cablePositions.clear();
         levelCapabilityCache.clear();
+        visualManagerPositions.clear();
 
         // discover connected cables
         var cables = SFMStreamUtils.<BlockPos, BlockPos>getRecursiveStream(
@@ -81,6 +94,9 @@ public class CableNetwork {
         // restore cable positions
         for (BlockPos cablePos : cables) {
             cablePositions.add(cablePos.toLong());
+            if (isVisualManager(level, cablePos)) {
+                visualManagerPositions.add(cablePos.toLong());
+            }
         }
 
         // restore capabilities
@@ -121,6 +137,13 @@ public class CableNetwork {
         cablePositions.add(pos.toLong());
     }
 
+    public void addCableOrVisualManager(@NotStored BlockPos pos) {
+        cablePositions.add(pos.toLong());
+        if (isVisualManager(level, pos)) {
+            visualManagerPositions.add(pos.toLong());
+        }
+    }
+
     public World getLevel() {
         return level;
     }
@@ -128,12 +151,12 @@ public class CableNetwork {
     @Override
     public String toString() {
         return "CableNetwork{level="
-               + getLevel().provider.getDimension()
-               + ", #cables="
-               + getCableCount()
-               + ", #cache="
-               + levelCapabilityCache.size()
-               + "}";
+                + getLevel().provider.getDimension()
+                + ", #cables="
+                + getCableCount()
+                + ", #cache="
+                + levelCapabilityCache.size()
+                + "}";
     }
 
     /**
@@ -164,13 +187,13 @@ public class CableNetwork {
             @Nullable EnumFacing direction,
             TranslatableLogger logger
     ) {
-       return SFMBlockCapabilityDiscovery.discoverCapabilityFromNetwork(
-               this,
-               capKind,
-               pos,
-               direction,
-               logger
-       );
+        return SFMBlockCapabilityDiscovery.discoverCapabilityFromNetwork(
+                this,
+                capKind,
+                pos,
+                direction,
+                logger
+        );
     }
 
     public int getCableCount() {
@@ -184,6 +207,7 @@ public class CableNetwork {
      */
     public void mergeNetwork(CableNetwork other) {
         cablePositions.addAll(other.cablePositions);
+        visualManagerPositions.addAll(other.visualManagerPositions);
         levelCapabilityCache.putAll(other.levelCapabilityCache);
     }
 
@@ -197,6 +221,10 @@ public class CableNetwork {
 
     public LongSet getCablePositionsRaw() {
         return cablePositions;
+    }
+
+    public Stream<BlockPos> getVisualManagerPositions() {
+        return visualManagerPositions.stream().map(BlockPos::fromLong);
     }
 
     public Stream<BlockPos> getCapabilityProviderPositions() {
@@ -227,5 +255,21 @@ public class CableNetwork {
             branches.add(branchNetwork);
         }
         return branches;
+    }
+
+    public void updateVisualManagers() {
+        this.updateVisualManagers(null);
+    }
+
+    public void updateVisualManagers(@Nullable BlockPos cablePos) {
+        this.getVisualManagerPositions().forEach((pos) -> {
+            if (!pos.equals(cablePos) && this.level.getTileEntity(pos) instanceof TileEntityManager manager) {
+                manager.updateInventories();
+            }
+        });
+    }
+
+    public void addVisualManager(BlockPos pos) {
+        this.visualManagerPositions.add(pos.toLong());
     }
 }

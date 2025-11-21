@@ -17,6 +17,7 @@ import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.jetbrains.annotations.NotNull;
+import vswe.superfactory.tiles.TileEntityManager;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -96,11 +97,13 @@ public class CableNetworkManager {
 
     public static void onCablePlaced(World level, @NotStored BlockPos pos) {
         if (level.isRemote) return;
-        getOrRegisterNetworkFromCablePosition(level, pos);
+        var networkMaybe = getOrRegisterNetworkFromCablePosition(level, pos);
+        networkMaybe.ifPresent(CableNetwork::updateVisualManagers);
     }
 
     public static void onCableRemoved(World level, @NotStored BlockPos cablePos) {
         getNetworkFromCablePosition(level, cablePos).ifPresent(network -> {
+            network.updateVisualManagers(cablePos);
             // Invalidate the original network
             removeNetwork(network);
             // Only rebuild cache if fairly small network
@@ -127,6 +130,11 @@ public class CableNetworkManager {
      * Networks should only exist on the server side.
      */
     public static Optional<CableNetwork> getOrRegisterNetworkFromCablePosition(World level, @NotStored BlockPos pos) {
+        return getOrRegisterNetworkFromCablePosition(level, pos, false);
+    }
+
+
+    public static Optional<CableNetwork> getOrRegisterNetworkFromCablePosition(World level, @NotStored BlockPos pos, boolean isVisualManager) {
         if (level.isRemote) return Optional.empty();
 
         // discover existing network for this position
@@ -187,6 +195,9 @@ public class CableNetworkManager {
 
         // add the new cable to the result network
         rtn.addCable(pos);
+        if (isVisualManager) {
+            rtn.addVisualManager(pos);
+        }
         networksByPosition.put(pos.toLong(), rtn);
 
         // add any dangling cables to the result network
@@ -230,8 +241,8 @@ public class CableNetworkManager {
     @NotNull
     private static Optional<CableNetwork> getNetworkFromCablePosition(World level, @NotStored BlockPos pos) {
         return Optional.ofNullable(NETWORKS_BY_CABLE_POSITION
-                                           .computeIfAbsent(level, k -> new Long2ObjectOpenHashMap<>())
-                                           .get(pos.toLong()));
+                .computeIfAbsent(level, k -> new Long2ObjectOpenHashMap<>())
+                .get(pos.toLong()));
     }
 
     private static void removeNetwork(CableNetwork network) {
@@ -253,6 +264,7 @@ public class CableNetworkManager {
         Long2ObjectMap<CableNetwork> posMap = NETWORKS_BY_CABLE_POSITION
                 .computeIfAbsent(network.getLevel(), k -> new Long2ObjectOpenHashMap<>());
         network.getCablePositionsRaw().forEach(cablePos -> posMap.put(cablePos, network));
+        network.updateVisualManagers();
         onNetworkLookupChanged();
     }
 

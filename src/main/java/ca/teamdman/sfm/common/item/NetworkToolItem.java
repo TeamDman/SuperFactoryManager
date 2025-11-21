@@ -99,7 +99,9 @@ public class NetworkToolItem extends Item {
             boolean value
     ) {
         if (value) {
-            stack.removeSubCompound("sfm:network_tool_overlay_disabled");
+            if (stack.getTagCompound() != null) {
+                stack.getTagCompound().removeTag("sfm:network_tool_overlay_disabled");
+            }
         } else {
             stack.setTagInfo("sfm:network_tool_overlay_disabled", new NBTTagByte((byte)1));
         }

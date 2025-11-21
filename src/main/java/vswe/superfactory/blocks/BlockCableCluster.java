@@ -1,5 +1,6 @@
 package vswe.superfactory.blocks;
 
+import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
@@ -27,13 +28,12 @@ import net.minecraftforge.common.property.ExtendedBlockState;
 import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
 import vswe.superfactory.SuperFactoryManager;
-import vswe.superfactory.api.ICable;
 import vswe.superfactory.interfaces.IItemBlockProvider;
 import vswe.superfactory.tiles.TileEntityCluster;
 
 import java.util.ArrayList;
 
-public class BlockCableCluster extends BlockCamouflageBase implements ICable, IItemBlockProvider {
+public class BlockCableCluster extends BlockCamouflageBase implements ICableBlock, IItemBlockProvider {
 	public static final IProperty ADVANCED = PropertyBool.create("advanced");
 	public static final IProperty FACING   = PropertyDirection.create("facing");
 	public static final IProperty FRONT = PropertyDirection.create("front");
@@ -64,7 +64,7 @@ public class BlockCableCluster extends BlockCamouflageBase implements ICable, II
 		}
 
 		if (isAdvanced(state.getBlock().getMetaFromState(state))) {
-			BlockCable.updateInventories(world, pos);
+			BlockCable.onNeighborChange(world, pos);
 		}
 		super.neighborChanged(state, world, pos, blockIn, fromPos);
 	}
@@ -80,7 +80,7 @@ public class BlockCableCluster extends BlockCamouflageBase implements ICable, II
 			}
 		}
 		if (isAdvanced(state.getBlock().getMetaFromState(state))) {
-			BlockCable.updateInventories(world, pos);
+			BlockCable.onNeighborChange(world, pos);
 		}
 	}
 
@@ -209,7 +209,7 @@ public class BlockCableCluster extends BlockCamouflageBase implements ICable, II
 		}
 
 		if (isAdvanced(state.getBlock().getMetaFromState(state))) {
-			BlockCable.updateInventories(world, pos);
+			BlockCable.onNeighborChange(world, pos);
 		}
 	}
 
@@ -257,7 +257,7 @@ public class BlockCableCluster extends BlockCamouflageBase implements ICable, II
 	public void breakBlock(World world, BlockPos pos, IBlockState state) {
 		super.breakBlock(world, pos, state);
 		if (isAdvanced(state.getBlock().getMetaFromState(state))) {
-			BlockCable.updateInventories(world, pos);
+			BlockCable.onNeighborChange(world, pos);
 		}
 	}
 
@@ -276,10 +276,6 @@ public class BlockCableCluster extends BlockCamouflageBase implements ICable, II
 		return false;
 	}
 
-	@Override
-	public boolean isCable() {
-		return true;
-	}
 
 	@Override
 	public ItemBlock getItem() {

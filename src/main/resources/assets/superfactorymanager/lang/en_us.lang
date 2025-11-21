@@ -418,7 +418,6 @@ tile.sfm.printing_press.name=Printing Press
 tile.sfm.printing_press.tooltip=Place with an air gap below a downward facing piston. Extend the piston to use.
 tile.sfm.test_barrel.name=Test Barrel
 tile.sfm.test_barrel_tank.name=Test Barrel Tank
-tile.sfm.tunnelled_manager.name=Tunnelled Factory Manager
 tile.sfm.water_tank.name=Water Tank
 tile.sfm.water_tank.tooltip.1=Requires two adjacent water sources.
 tile.sfm.water_tank.tooltip.2=More effective when also adjacent to other active water tanks.

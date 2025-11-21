@@ -5,14 +5,13 @@ import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.block.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.blocks.*;
+import vswe.superfactory.interfaces.IItemBlockProvider;
 import vswe.superfactory.registry.ClusterRegistry;
 import vswe.superfactory.tiles.*;
-
-import java.util.function.Function;
 
 public class SFMBlocks {
 
@@ -28,40 +27,31 @@ public class SFMBlocks {
     public static Block CABLE_SIGN;
     public static Block MANAGER;
     public static ManagerBlock MANAGER_BLOCK;
-    public static BufferBlock BUFFER_BLOCK;
-    public static TunnelledManagerBlock TUNNELLED_MANAGER_BLOCK;
-    public static CableBlock CABLE_BLOCK;
-
-
-
-
-
 
 
     public static void initialize() {
-        MANAGER_BLOCK = prepareRegister(new ManagerBlock(), "manager_advanced", ItemBlock::new);
-        BUFFER_BLOCK = prepareRegister(new BufferBlock(BufferBlockTier.Basic), "buffer", ItemBlock::new);
-        TUNNELLED_MANAGER_BLOCK = prepareRegister(new TunnelledManagerBlock(), "tunnelled_manager", ItemBlock::new);
-        CABLE_BLOCK = prepareRegister(new CableBlock(), "cable_advanced", ItemBlock::new);
+        MANAGER_BLOCK = prepareRegister(new ManagerBlock(), "manager_advanced");
+//        BUFFER_BLOCK = prepareRegister(new BufferBlock(BufferBlockTier.Basic), "buffer", ItemBlock::new);
 
-        MANAGER = prepareRegister(new BlockManager(), "manager", ItemBlock::new);
-        CABLE = prepareRegister(new BlockCable(), "cable", ItemBlock::new);
-        CABLE_RELAY = prepareRegister(new BlockCableRelay(), "cable_relay", ItemBlock::new);
-        CABLE_OUTPUT = prepareRegister(new BlockCableOutput(), "cable_output", ItemBlock::new);
-        CABLE_INPUT = prepareRegister(new BlockCableInput(), "cable_input", ItemBlock::new);
-        CABLE_INTAKE = prepareRegister(new BlockCableIntake(), "cable_intake", ItemBlock::new);
-        CABLE_BUD = prepareRegister(new BlockCableBUD(), "cable_bud", ItemBlock::new);
-        CABLE_BREAKER = prepareRegister(new BlockCableBreaker(), "cable_breaker", ItemBlock::new);
-        CABLE_CLUSTER = prepareRegister(new BlockCableCluster(), "cable_cluster", ItemBlock::new);
-        CABLE_CAMOUFLAGE = prepareRegister(new BlockCableCamouflages(), "cable_camouflage", ItemBlock::new);
-        CABLE_SIGN = prepareRegister(new BlockCableSign(), "cable_sign", ItemBlock::new);
+        MANAGER = prepareRegister(new BlockManager(), "manager");
+        CABLE = prepareRegister(new BlockCable(), "cable");
+        CABLE_RELAY = prepareRegister(new BlockCableRelay(), "cable_relay");
+        CABLE_OUTPUT = prepareRegister(new BlockCableOutput(), "cable_output");
+        CABLE_INPUT = prepareRegister(new BlockCableInput(), "cable_input");
+        CABLE_INTAKE = prepareRegister(new BlockCableIntake(), "cable_intake");
+        CABLE_BUD = prepareRegister(new BlockCableBUD(), "cable_bud");
+        CABLE_BREAKER = prepareRegister(new BlockCableBreaker(), "cable_breaker");
+        CABLE_CLUSTER = prepareRegister(new BlockCableCluster(), "cable_cluster");
+        CABLE_CAMOUFLAGE = prepareRegister(new BlockCableCamouflages(), "cable_camouflage");
+        CABLE_SIGN = prepareRegister(new BlockCableSign(), "cable_sign");
 
         registerClusters();
     }
 
-    private static <T extends Block> T prepareRegister(T block, String name, Function<Block, ItemBlock> itemBlockFactory) {
+    private static <T extends Block> T prepareRegister(T block, String name) {
         block.setRegistryName(SFM.MOD_ID, name).setTranslationKey(SFM.LOCALIZATION_KEY + "." + name);
-        ItemBlock itemBlock = itemBlockFactory.apply(block);
+        block.setCreativeTab(SuperFactoryManager.creativeTab);
+        ItemBlock itemBlock = block instanceof IItemBlockProvider provider ? provider.getItem() : new ItemBlock(block);
         itemBlock.setRegistryName(block.getRegistryName());
         SFMItems.ITEM_BLOCKS.add(itemBlock);
         return register(block);

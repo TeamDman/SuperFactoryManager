@@ -2,6 +2,7 @@ package vswe.superfactory.blocks;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.CommonProxy;
+import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.SoundType;
@@ -24,7 +25,7 @@ import net.minecraft.world.World;
 import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.tiles.TileEntityManager;
 
-public class BlockManager extends BlockContainer {
+public class BlockManager extends BlockContainer implements ICableBlock {
 	public static final IProperty LIMITLESS = PropertyBool.create("limitless");
 
 	public BlockManager() {
@@ -50,6 +51,7 @@ public class BlockManager extends BlockContainer {
 	public void neighborChanged(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos) {
 		super.neighborChanged(state, worldIn, pos, blockIn, fromPos);
 		updateInventories(worldIn, pos);
+
 	}
 
 	@Override

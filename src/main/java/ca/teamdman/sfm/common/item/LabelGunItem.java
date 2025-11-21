@@ -1,16 +1,15 @@
 package ca.teamdman.sfm.common.item;
 
 import ca.teamdman.sfm.client.ClientLabelGunWarningHelper;
-import ca.teamdman.sfm.client.ClientTranslationHelpers;
 import ca.teamdman.sfm.client.handler.LabelGunKeyMappingHandler;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
+import ca.teamdman.sfm.common.block.ManagerBlock;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.util.SFMItemUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
@@ -32,6 +31,7 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import vswe.superfactory.blocks.BlockManager;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -142,6 +142,12 @@ public class LabelGunItem extends Item {
             boolean clear = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_CLEAR_MODIFIER_KEY);
             boolean pull = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY);
             boolean targetManager = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY);
+
+            if (targetManager && !(world.getBlockState(pos).getBlock() instanceof ManagerBlock || world.getBlockState(pos).getBlock() instanceof BlockManager)) {
+                SFMScreenChangeHelpers.showLabelGunScreen(player.getHeldItem(hand), hand);
+                return EnumActionResult.SUCCESS;
+            }
+
             ServerboundLabelGunUsePacket msg = new ServerboundLabelGunUsePacket(
                     hand,
                     pos,

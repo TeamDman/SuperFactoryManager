@@ -176,11 +176,11 @@ public final class LocalizationKeys {
             "item_group.sfm",
             "Super Factory Manager"
     );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry CABLE_BLOCK = new LocalizationEntry(
-            () -> blockDescriptionId(SFMBlocks.CABLE_BLOCK),
-            () -> "Inventory Cable"
-    );
+//    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+//    public static final LocalizationEntry CABLE_BLOCK = new LocalizationEntry(
+//            () -> blockDescriptionId(SFMBlocks.CABLE_BLOCK),
+//            () -> "Inventory Cable"
+//    );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry MANAGER_BLOCK = new LocalizationEntry(
             () -> blockDescriptionId(SFMBlocks.MANAGER_BLOCK),
@@ -875,16 +875,11 @@ public final class LocalizationKeys {
             "program.sfm.warnings.too_many_conditions",
             "Too many conditions for simulation, some linter warnings may be missed."
     );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry TUNNELLED_MANAGER_BLOCK = new LocalizationEntry(
-            () -> blockDescriptionId(SFMBlocks.TUNNELLED_MANAGER_BLOCK),
-            () -> "Tunnelled Factory Manager"
-    );
-    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-    public static final LocalizationEntry BUFFER_BLOCK = new LocalizationEntry(
-            () -> blockDescriptionId(SFMBlocks.BUFFER_BLOCK),
-            () -> "Resource Buffer"
-    );
+//    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+//    public static final LocalizationEntry BUFFER_BLOCK = new LocalizationEntry(
+//            () -> blockDescriptionId(SFMBlocks.BUFFER_BLOCK),
+//            () -> "Resource Buffer"
+//    );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry DISK_ITEM = new LocalizationEntry(
             () -> itemDescriptionId(SFMItems.DISK_ITEM),
@@ -901,11 +896,6 @@ public final class LocalizationKeys {
             () -> "Network Tool"
     );
 
-    //    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
-//    public static final LocalizationEntry BATTERY_BLOCK = new LocalizationEntry(
-//            () -> blockDescriptionId(SFMBlocks.BATTERY_BLOCK),
-//            () -> "Battery (WIP)"
-//    );
     public static final LocalizationEntry CONFIG_UPDATE_AND_SYNC_RESULT_SUCCESS = new LocalizationEntry(
             "chat.sfm.config_update_and_sync_result.success",
             "Successfully updated SFM config."

@@ -36,6 +36,8 @@ public class ClientProxy extends CommonProxy {
         registerBlockModel(SFMBlocks.CABLE);
         registerBlockModel(SFMBlocks.CABLE_OUTPUT);
         registerBlockModel(SFMBlocks.CABLE_INPUT);
+        registerBlockModel(SFMBlocks.MANAGER_BLOCK);
+//        registerBlockModel(SFMBlocks.CABLE_BLOCK);
         //		        registerBlockModel(ModBlocks.CABLE_CREATIVE);
         registerBlockModel(SFMBlocks.CABLE_BUD);
         registerBlockModel(SFMBlocks.CABLE_BREAKER);
