@@ -1,6 +1,7 @@
 package com.bbscn;
 
 public class ScreenRectangle {
+
     private final ScreenPosition position;
     private final int width;
     private final int height;
@@ -21,7 +22,8 @@ public class ScreenRectangle {
         return EMPTY;
     }
 
-    public static ScreenRectangle of(ScreenAxis axis, int pPrimary, int pSecondary, int pPrimaryLength, int pSecondaryLength) {
+    public static ScreenRectangle of(ScreenAxis axis, int pPrimary, int pSecondary, int pPrimaryLength,
+                                     int pSecondaryLength) {
         if (axis == ScreenAxis.HORIZONTAL) {
             return new ScreenRectangle(pPrimary, pSecondary, pPrimaryLength, pSecondaryLength);
         } else {
@@ -78,23 +80,43 @@ public class ScreenRectangle {
         return null;
     }
 
-    public int top() { return this.position.y(); }
-    public int bottom() { return this.position.y() + this.height; }
-    public int left() { return this.position.x(); }
-    public int right() { return this.position.x() + this.width; }
+    public int top() {
+        return this.position.y();
+    }
+
+    public int bottom() {
+        return this.position.y() + this.height;
+    }
+
+    public int left() {
+        return this.position.x();
+    }
+
+    public int right() {
+        return this.position.x() + this.width;
+    }
 
     public boolean containsPoint(int x, int y) {
         return x >= left() && x < right() && y >= top() && y < bottom();
     }
 
     // 额外的 getter 如果需要：
-    public int getWidth() { return width; }
-    public int getHeight() { return height; }
-    public ScreenPosition getPosition() { return position; }
+    public int getWidth() {
+        return width;
+    }
 
+    public int getHeight() {
+        return height;
+    }
+
+    public ScreenPosition getPosition() {
+        return position;
+    }
 
     public enum ScreenAxis {
-        HORIZONTAL, VERTICAL;
+
+        HORIZONTAL,
+        VERTICAL;
 
         public ScreenAxis orthogonal() {
             return this == HORIZONTAL ? VERTICAL : HORIZONTAL;
@@ -110,6 +132,7 @@ public class ScreenRectangle {
     }
 
     public enum ScreenDirection {
+
         LEFT(-1, 0, ScreenAxis.HORIZONTAL),
         RIGHT(1, 0, ScreenAxis.HORIZONTAL),
         UP(0, -1, ScreenAxis.VERTICAL),
@@ -125,9 +148,17 @@ public class ScreenRectangle {
             this.axis = axis;
         }
 
-        public int getStepX() { return stepX; }
-        public int getStepY() { return stepY; }
-        public ScreenAxis getAxis() { return axis; }
+        public int getStepX() {
+            return stepX;
+        }
+
+        public int getStepY() {
+            return stepY;
+        }
+
+        public ScreenAxis getAxis() {
+            return axis;
+        }
 
         public boolean isPositive() {
             return this == RIGHT || this == DOWN;
@@ -135,13 +166,16 @@ public class ScreenRectangle {
 
         public ScreenDirection getNegative() {
             switch (this) {
-                case LEFT: return RIGHT;
-                case RIGHT: return LEFT;
-                case UP: return DOWN;
-                case DOWN: return UP;
+                case LEFT:
+                    return RIGHT;
+                case RIGHT:
+                    return LEFT;
+                case UP:
+                    return DOWN;
+                case DOWN:
+                    return UP;
             }
             return this;
         }
     }
-
 }

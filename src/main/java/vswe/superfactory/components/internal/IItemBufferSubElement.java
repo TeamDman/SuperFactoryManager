@@ -3,13 +3,14 @@ package vswe.superfactory.components.internal;
 import net.minecraft.item.ItemStack;
 
 public interface IItemBufferSubElement {
-	void remove();
 
-	void onUpdate();
+    void remove();
 
-	int getSizeRemaining();
+    void onUpdate();
 
-	void reduceAmount(int amount);
+    int getSizeRemaining();
 
-	ItemStack getItemStack();
+    void reduceAmount(int amount);
+
+    ItemStack getItemStack();
 }

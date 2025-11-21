@@ -1,27 +1,30 @@
 package ca.teamdman.sfm.common.label;
 
-import ca.teamdman.sfm.common.item.LabelGunItem;
-import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
-import com.github.bsideup.jabel.Desugar;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.world.World;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
+
+import com.github.bsideup.jabel.Desugar;
+
+import ca.teamdman.sfm.common.item.LabelGunItem;
+import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+
 @Desugar
 public record LabelGunPickLabelAction(
-        EntityPlayer player,
-        World level,
-        ServerboundLabelGunUsePacket msg,
-        ItemStack gunStack,
-        LabelPositionHolder gunLabels,
-        LabelGunPlanTargets targets,
-        String activeLabel
-) implements LabelGunPlan {
+                                      EntityPlayer player,
+                                      World level,
+                                      ServerboundLabelGunUsePacket msg,
+                                      ItemStack gunStack,
+                                      LabelPositionHolder gunLabels,
+                                      LabelGunPlanTargets targets,
+                                      String activeLabel)
+        implements LabelGunPlan {
+
     @Override
     public void run() {
         // pick the next label in the list to become active

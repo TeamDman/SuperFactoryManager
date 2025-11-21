@@ -18,5 +18,4 @@ import java.lang.annotation.Target;
         ElementType.LOCAL_VARIABLE,
         ElementType.TYPE_USE
 })
-public @interface MCVersionDependentBehaviour {
-}
+public @interface MCVersionDependentBehaviour {}

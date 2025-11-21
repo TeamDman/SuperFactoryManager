@@ -1,18 +1,18 @@
 package ca.teamdman.sfml.ast;
 
-import ca.teamdman.sfm.common.program.ProgramContext;
+import static java.util.Objects.requireNonNull;
+
 import com.github.bsideup.jabel.Desugar;
 
-import java.util.Objects;
-
-import static java.util.Objects.requireNonNull;
+import ca.teamdman.sfm.common.program.ProgramContext;
 
 @Desugar
 public record Interval(
-        int ticks,
-        IntervalAlignment alignment,
-        int offset
-) implements ASTNode {
+                       int ticks,
+                       IntervalAlignment alignment,
+                       int offset)
+        implements ASTNode {
+
     public boolean shouldTick(ProgramContext context) {
         return switch (alignment) {
             case LOCAL -> context.getManager().getTick() % ticks == offset;

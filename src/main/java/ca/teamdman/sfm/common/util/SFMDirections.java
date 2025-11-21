@@ -1,20 +1,23 @@
 package ca.teamdman.sfm.common.util;
 
-import com.github.bsideup.jabel.Desugar;
-import net.minecraft.util.EnumFacing;
-import org.jetbrains.annotations.Nullable;
+import static net.minecraft.util.EnumFacing.*;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.function.BiConsumer;
 
-import static net.minecraft.util.EnumFacing.*;
+import net.minecraft.util.EnumFacing;
+
+import org.jetbrains.annotations.Nullable;
+
+import com.github.bsideup.jabel.Desugar;
 
 public class SFMDirections {
+
     /// Optimization to avoid creating a new array every time
     public static final EnumFacing[] DIRECTIONS_WITHOUT_NULL = values();
     /// Optimization to avoid creating a new array every time. Null is position 0
-    public static final EnumFacing[] DIRECTIONS_WITH_NULL = new EnumFacing[]{
+    public static final EnumFacing[] DIRECTIONS_WITH_NULL = new EnumFacing[] {
             null,
             NORTH,
             SOUTH,
@@ -25,6 +28,7 @@ public class SFMDirections {
     };
 
     public static class NullableDirectionIterator implements Iterator<EnumFacing> {
+
         private int index = 0;
 
         @Override
@@ -42,6 +46,7 @@ public class SFMDirections {
     }
 
     public static class SingleNullDirectionIterator implements Iterator<EnumFacing> {
+
         private boolean hasNext = true;
 
         @Override
@@ -59,11 +64,12 @@ public class SFMDirections {
         }
     }
 
-    @Desugar public record NullableDirectionEnumMap<T>(
-        T[] buckets
-) {
+    @Desugar
+    public record NullableDirectionEnumMap<T> (
+                                               T[] buckets) {
+
         public NullableDirectionEnumMap() {
-            //noinspection unchecked
+            // noinspection unchecked
             this((T[]) new Object[DIRECTIONS_WITH_NULL.length]);
         }
 
@@ -95,9 +101,8 @@ public class SFMDirections {
         }
 
         public void put(
-                @Nullable EnumFacing direction,
-                T value
-        ) {
+                        @Nullable EnumFacing direction,
+                        T value) {
             buckets[keyFor(direction)] = value;
         }
 

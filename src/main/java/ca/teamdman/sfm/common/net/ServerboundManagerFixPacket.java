@@ -1,19 +1,14 @@
 package ca.teamdman.sfm.common.net;
 
+import net.minecraft.util.math.BlockPos;
+
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.program.linting.ProgramLinter;
-import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import org.jetbrains.annotations.Nullable;
 
 public class ServerboundManagerFixPacket extends SFMAdvancedPacket<ServerboundManagerFixPacket> {
+
     private int windowId;
     private BlockPos pos;
 
@@ -22,8 +17,7 @@ public class ServerboundManagerFixPacket extends SFMAdvancedPacket<ServerboundMa
         this.pos = pos;
     }
 
-    public ServerboundManagerFixPacket() {
-    }
+    public ServerboundManagerFixPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {
@@ -39,12 +33,10 @@ public class ServerboundManagerFixPacket extends SFMAdvancedPacket<ServerboundMa
         buf.writeInt(pos.getZ());
     }
 
-
     @Override
     public void handle(
-            ServerboundManagerFixPacket msg,
-            SFMPacketHandlingContext context
-    ) {
+                       ServerboundManagerFixPacket msg,
+                       SFMPacketHandlingContext context) {
         context.handleServerboundContainerPacket(
                 ManagerContainerMenu.class,
                 ManagerBlockEntity.class,
@@ -58,11 +50,9 @@ public class ServerboundManagerFixPacket extends SFMAdvancedPacket<ServerboundMa
                             ProgramLinter.fixWarnings(
                                     manager,
                                     disk,
-                                    program
-                            );
+                                    program);
                         }
                     }
-                }
-        );
+                });
     }
 }

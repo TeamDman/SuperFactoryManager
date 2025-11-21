@@ -1,9 +1,7 @@
 package com.bbscn;
 
-
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-
 
 /**
  * Represents a listener for GUI events.
@@ -12,6 +10,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
  */
 @SideOnly(Side.CLIENT)
 public interface GuiEventListener {
+
     long DOUBLE_CLICK_THRESHOLD_MS = 250L;
 
     /**
@@ -20,12 +19,12 @@ public interface GuiEventListener {
      * @param pMouseX the X coordinate of the mouse.
      * @param pMouseY the Y coordinate of the mouse.
      */
-    default void mouseMoved(int pMouseX, int pMouseY) {
-    }
+    default void mouseMoved(int pMouseX, int pMouseY) {}
 
     /**
      * Called when a mouse button is clicked within the GUI element.
      * <p>
+     * 
      * @return {@code true} if the event is consumed, {@code false} otherwise.
      *
      * @param pMouseX the X coordinate of the mouse.
@@ -39,6 +38,7 @@ public interface GuiEventListener {
     /**
      * Called when a mouse button is released within the GUI element.
      * <p>
+     * 
      * @return {@code true} if the event is consumed, {@code false} otherwise.
      *
      * @param pMouseX the X coordinate of the mouse.
@@ -52,6 +52,7 @@ public interface GuiEventListener {
     /**
      * Called when the mouse is dragged within the GUI element.
      * <p>
+     * 
      * @return {@code true} if the event is consumed, {@code false} otherwise.
      *
      * @param pMouseX the X coordinate of the mouse.
@@ -71,6 +72,7 @@ public interface GuiEventListener {
     /**
      * Called when a keyboard key is pressed within the GUI element.
      * <p>
+     * 
      * @return {@code true} if the event is consumed, {@code false} otherwise.
      *
      * @param pKeyCode   the key code of the pressed key.
@@ -84,6 +86,7 @@ public interface GuiEventListener {
     /**
      * Called when a keyboard key is released within the GUI element.
      * <p>
+     * 
      * @return {@code true} if the event is consumed, {@code false} otherwise.
      *
      * @param pKeyCode   the key code of the released key.
@@ -97,6 +100,7 @@ public interface GuiEventListener {
     /**
      * Called when a character is typed within the GUI element.
      * <p>
+     * 
      * @return {@code true} if the event is consumed, {@code false} otherwise.
      *
      * @param pCodePoint the code point of the typed character.
@@ -106,10 +110,10 @@ public interface GuiEventListener {
         return false;
     }
 
-
     /**
      * Checks if the given mouse coordinates are over the GUI element.
      * <p>
+     * 
      * @return {@code true} if the mouse is over the GUI element, {@code false} otherwise.
      *
      * @param pMouseX the X coordinate of the mouse.
@@ -127,5 +131,4 @@ public interface GuiEventListener {
     void setFocused(boolean pFocused);
 
     boolean isFocused();
-
 }

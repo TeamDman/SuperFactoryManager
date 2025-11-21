@@ -1,7 +1,5 @@
 package ca.teamdman.sfm.common.net;
 
-import ca.teamdman.sfm.common.item.DiskItem;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
@@ -9,7 +7,11 @@ import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import ca.teamdman.sfm.common.item.DiskItem;
+import io.netty.buffer.ByteBuf;
+
 public class ServerboundDiskItemSetProgramPacket extends SFMPacket<ServerboundDiskItemSetProgramPacket> {
+
     private String programString;
     private EnumHand hand;
 
@@ -18,8 +20,7 @@ public class ServerboundDiskItemSetProgramPacket extends SFMPacket<ServerboundDi
         this.hand = hand;
     }
 
-    public ServerboundDiskItemSetProgramPacket() {
-    }
+    public ServerboundDiskItemSetProgramPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {

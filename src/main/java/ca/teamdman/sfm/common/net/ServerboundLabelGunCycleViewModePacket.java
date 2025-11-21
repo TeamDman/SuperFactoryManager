@@ -1,24 +1,25 @@
 package ca.teamdman.sfm.common.net;
 
-import ca.teamdman.sfm.common.item.LabelGunItem;
-import io.netty.buffer.ByteBuf;
+import javax.annotation.Nullable;
+
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import javax.annotation.Nullable;
+import ca.teamdman.sfm.common.item.LabelGunItem;
+import io.netty.buffer.ByteBuf;
 
 public class ServerboundLabelGunCycleViewModePacket extends SFMPacket<ServerboundLabelGunCycleViewModePacket> {
+
     private EnumHand hand;
 
     public ServerboundLabelGunCycleViewModePacket(EnumHand hand) {
         this.hand = hand;
     }
 
-    public ServerboundLabelGunCycleViewModePacket() {
-    }
+    public ServerboundLabelGunCycleViewModePacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {

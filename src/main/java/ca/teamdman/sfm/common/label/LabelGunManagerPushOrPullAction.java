@@ -1,25 +1,29 @@
 package ca.teamdman.sfm.common.label;
 
-import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.net.ClientboundLabelGunUseResponsePacket;
-import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
-import com.github.bsideup.jabel.Desugar;
+import static ca.teamdman.sfm.common.net.ClientboundLabelGunUseResponsePacket.Behaviour.Pulled;
+import static ca.teamdman.sfm.common.net.ClientboundLabelGunUseResponsePacket.Behaviour.Pushed;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
-import static ca.teamdman.sfm.common.net.ClientboundLabelGunUseResponsePacket.Behaviour.Pulled;
-import static ca.teamdman.sfm.common.net.ClientboundLabelGunUseResponsePacket.Behaviour.Pushed;
+import com.github.bsideup.jabel.Desugar;
 
-@Desugar public record LabelGunManagerPushOrPullAction(
-        EntityPlayer player,
-        World level,
-        ServerboundLabelGunUsePacket msg,
-        ItemStack gunStack,
-        LabelPositionHolder gunLabels,
-        ManagerBlockEntity manager
-) implements LabelGunPlan {
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.net.ClientboundLabelGunUseResponsePacket;
+import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+
+@Desugar
+public record LabelGunManagerPushOrPullAction(
+                                              EntityPlayer player,
+                                              World level,
+                                              ServerboundLabelGunUsePacket msg,
+                                              ItemStack gunStack,
+                                              LabelPositionHolder gunLabels,
+                                              ManagerBlockEntity manager)
+        implements LabelGunPlan {
+
     @Override
     public void run() {
         if (player instanceof EntityPlayerMP playerMP) {

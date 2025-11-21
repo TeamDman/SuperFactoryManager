@@ -1,22 +1,12 @@
 package ca.teamdman.sfm.client.handler;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.client.render.HighlightRenderList;
-import ca.teamdman.sfm.common.item.LabelGunItem;
-import ca.teamdman.sfm.common.item.NetworkToolItem;
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.util.HelpsWithMinecraftVersionIndependence;
-import ca.teamdman.sfm.common.util.SFMDirections;
-import com.bbscn.Tools;
-import com.github.bsideup.jabel.Desugar;
-import com.google.common.collect.HashMultimap;
+import java.awt.*;
+import java.util.*;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.*;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.renderer.vertex.VertexBuffer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
@@ -26,56 +16,65 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
-import java.awt.*;
-import java.nio.ByteBuffer;
-import java.util.*;
+import com.bbscn.Tools;
+import com.google.common.collect.HashMultimap;
+
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.render.HighlightRenderList;
+import ca.teamdman.sfm.common.item.LabelGunItem;
+import ca.teamdman.sfm.common.item.NetworkToolItem;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.util.HelpsWithMinecraftVersionIndependence;
 
 @SideOnly(Side.CLIENT)
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.CLIENT)
 /*
  * This class uses code from tasgon's "observable" mod, also using MPLv2
  * https://github.com/tasgon/observable/blob/master/common/src/main/kotlin/observable/client/Overlay.kt
- * https://github.com/tasgon/observable/blob/c3c5a0d0385e0b2c758729bdd935f103122f0f85/common/src/main/kotlin/observable/client/Overlay.kt
+ * https://github.com/tasgon/observable/blob/c3c5a0d0385e0b2c758729bdd935f103122f0f85/common/src/main/kotlin/observable/
+ * client/Overlay.kt
  */
 public class ItemWorldRenderer {
+
     private static final int BUFFER_SIZE = 256;
     @SuppressWarnings("deprecation")
-//    private static final RenderType RENDER_TYPE = RenderType.create(
-//            "sfm_overlay",
-//            DefaultVertexFormat.POSITION_COLOR,
-//            VertexFormat.Mode.QUADS,
-//            BUFFER_SIZE,
-//            false,
-//            false,
-//            RenderType.CompositeState
-//                    .builder()
-//                    .setTextureState(new RenderStateShard.TextureStateShard(TextureAtlas.LOCATION_BLOCKS, false, false))
-//                    .setDepthTestState(new RenderStateShard.DepthTestStateShard("always", 519))
-//                    .setTransparencyState(
-//                            new RenderStateShard.TransparencyStateShard(
-//                                    "src_to_one",
-//                                    () -> {
-//                                        RenderSystem.enableBlend();
-//                                        RenderSystem.blendFunc(
-//                                                GlStateManager.SourceFactor.SRC_ALPHA,
-//                                                GlStateManager.DestFactor.ONE
-//                                        );
-//                                    },
-//                                    () -> {
-//                                        RenderSystem.disableBlend();
-//                                        RenderSystem.defaultBlendFunc();
-//                                    }
-//                            )
-//                    )
-//                    .createCompositeState(true)
-//    );
+    // private static final RenderType RENDER_TYPE = RenderType.create(
+    // "sfm_overlay",
+    // DefaultVertexFormat.POSITION_COLOR,
+    // VertexFormat.Mode.QUADS,
+    // BUFFER_SIZE,
+    // false,
+    // false,
+    // RenderType.CompositeState
+    // .builder()
+    // .setTextureState(new RenderStateShard.TextureStateShard(TextureAtlas.LOCATION_BLOCKS, false, false))
+    // .setDepthTestState(new RenderStateShard.DepthTestStateShard("always", 519))
+    // .setTransparencyState(
+    // new RenderStateShard.TransparencyStateShard(
+    // "src_to_one",
+    // () -> {
+    // RenderSystem.enableBlend();
+    // RenderSystem.blendFunc(
+    // GlStateManager.SourceFactor.SRC_ALPHA,
+    // GlStateManager.DestFactor.ONE
+    // );
+    // },
+    // () -> {
+    // RenderSystem.disableBlend();
+    // RenderSystem.defaultBlendFunc();
+    // }
+    // )
+    // )
+    // .createCompositeState(true)
+    // );
 
-//    private static final int capabilityColor = FastColor.ARGB32.color(100, 100, 0, 255);
-//    private static final int capabilityColorLimitedView = FastColor.ARGB32.color(100, 0, 100, 255);
-//    private static final int cableColor = FastColor.ARGB32.color(100, 100, 255, 0);
+    // private static final int capabilityColor = FastColor.ARGB32.color(100, 100, 0, 255);
+    // private static final int capabilityColorLimitedView = FastColor.ARGB32.color(100, 0, 100, 255);
+    // private static final int cableColor = FastColor.ARGB32.color(100, 100, 255, 0);
     private static final int capabilityColor = Tools.toARGB(100, 100, 0, 255);
     private static final int capabilityColorLimitedView = Tools.toARGB(100, 100, 255, 255);
     private static final int cableColor = Tools.toARGB(100, 100, 255, 0);
@@ -83,11 +82,9 @@ public class ItemWorldRenderer {
 
     @SubscribeEvent
     public static void renderOverlays(RenderWorldLastEvent event) {
-
         Minecraft mc = Minecraft.getMinecraft();
         EntityPlayerSP player = mc.player;
         if (player == null) return;
-
 
         ItemStack held;
         boolean rendered = false;
@@ -107,28 +104,28 @@ public class ItemWorldRenderer {
 
     // Thanks @tigres810
     // https://discord.com/channels/313125603924639766/983834532904042537/1009267533527928864
-//    public static @Nullable BlockPos lookingAt() {
-//        HitResult rt = Minecraft.getInstance().hitResult;
-//        if (rt == null) return null;
-//
-//        double x = (rt.getLocation().x);
-//        double y = (rt.getLocation().y);
-//        double z = (rt.getLocation().z);
-//
-//        LocalPlayer player = Minecraft.getInstance().player;
-//        assert player != null;
-//        Vec3 lookAngle = player.getLookAngle();
-//        double xla = lookAngle.x;
-//        double yla = lookAngle.y;
-//        double zla = lookAngle.z;
-//
-//        if ((x % 1 == 0) && (xla < 0)) x -= 0.01;
-//        if ((y % 1 == 0) && (yla < 0)) y -= 0.01;
-//        if ((z % 1 == 0) && (zla < 0)) z -= 0.01;
-//
-//        // @MCVersionDependentBehaviour, the double constructor doesn't exist in 1.19.4
-//        return new BlockPos((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
-//    }
+    // public static @Nullable BlockPos lookingAt() {
+    // HitResult rt = Minecraft.getInstance().hitResult;
+    // if (rt == null) return null;
+    //
+    // double x = (rt.getLocation().x);
+    // double y = (rt.getLocation().y);
+    // double z = (rt.getLocation().z);
+    //
+    // LocalPlayer player = Minecraft.getInstance().player;
+    // assert player != null;
+    // Vec3 lookAngle = player.getLookAngle();
+    // double xla = lookAngle.x;
+    // double yla = lookAngle.y;
+    // double zla = lookAngle.z;
+    //
+    // if ((x % 1 == 0) && (xla < 0)) x -= 0.01;
+    // if ((y % 1 == 0) && (yla < 0)) y -= 0.01;
+    // if ((z % 1 == 0) && (zla < 0)) z -= 0.01;
+    //
+    // // @MCVersionDependentBehaviour, the double constructor doesn't exist in 1.19.4
+    // return new BlockPos((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
+    // }
 
     private static BlockPos lookingAt() {
         Minecraft mc = Minecraft.getMinecraft();
@@ -139,9 +136,8 @@ public class ItemWorldRenderer {
     }
 
     private static @Nullable ItemStack getHeldItemOfType(
-            EntityPlayerSP player,
-            Class<?> itemClass
-    ) {
+                                                         EntityPlayerSP player,
+                                                         Class<?> itemClass) {
         ItemStack mainHandItem = player.getHeldItemMainhand();
         if (itemClass.isInstance(mainHandItem.getItem())) {
             return mainHandItem;
@@ -156,29 +152,23 @@ public class ItemWorldRenderer {
     }
 
     private static void handleNetworkTool(
-            EntityPlayerSP player,
-            ItemStack networkTool,
-            float partialTicks
-    ) {
+                                          EntityPlayerSP player,
+                                          ItemStack networkTool,
+                                          float partialTicks) {
         if (!NetworkToolItem.getOverlayEnabled(networkTool)) return;
         Set<BlockPos> cablePositions = NetworkToolItem.getCablePositions(networkTool);
         Set<BlockPos> capabilityPositions = NetworkToolItem.getCapabilityProviderPositions(networkTool);
 
-
         drawVbo(VBOKind.NETWORK_TOOL_CABLES, cablePositions, cableColor, player, partialTicks);
         drawVbo(VBOKind.NETWORK_TOOL_CAPABILITIES, capabilityPositions, capabilityColor, player, partialTicks);
-
-
     }
 
-
     private static void drawVbo(
-            VBOKind vboKind,
-            Set<BlockPos> positions,
-            int color,
-            EntityPlayerSP player,
-            float partialTicks
-    ) {
+                                VBOKind vboKind,
+                                Set<BlockPos> positions,
+                                int color,
+                                EntityPlayerSP player,
+                                float partialTicks) {
         var colorRGB = new Color(color, true);
 
         HighlightRenderList list = renderCache.getList(
@@ -188,8 +178,7 @@ public class ItemWorldRenderer {
                 colorRGB.getRed(),
                 colorRGB.getGreen(),
                 colorRGB.getBlue(),
-                colorRGB.getAlpha()
-        );
+                colorRGB.getAlpha());
 
         if (list != null) {
             var renderManager = Minecraft.getMinecraft().getRenderManager();
@@ -197,14 +186,12 @@ public class ItemWorldRenderer {
             GlStateManager.translate(
                     -renderManager.viewerPosX,
                     -renderManager.viewerPosY,
-                    -renderManager.viewerPosZ
-            );
+                    -renderManager.viewerPosZ);
             GlStateManager.disableTexture2D();
             GlStateManager.enableBlend();
             GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GlStateManager.disableCull();
             GlStateManager.disableDepth();
-
 
             list.render();
 
@@ -225,7 +212,7 @@ public class ItemWorldRenderer {
         BlockPos lookingAtPos = lookingAt();
 
         switch (viewMode) {
-            case SHOW_ALL -> //noinspection RedundantLabeledSwitchRuleCodeBlock
+            case SHOW_ALL -> // noinspection RedundantLabeledSwitchRuleCodeBlock
             {
                 // Just add all labels
                 labelPositionHolder.forEach((label, pos) -> labelsByPosition.put(pos, label));
@@ -252,9 +239,9 @@ public class ItemWorldRenderer {
             }
         }
 
-
-        drawVbo(VBOKind.LABEL_GUN_CAPABILITIES, labelsByPosition.keySet(), viewMode != LabelGunItem.LabelGunViewMode.SHOW_ALL ? capabilityColorLimitedView : capabilityColor, player, partialTicks);
-
+        drawVbo(VBOKind.LABEL_GUN_CAPABILITIES, labelsByPosition.keySet(),
+                viewMode != LabelGunItem.LabelGunViewMode.SHOW_ALL ? capabilityColorLimitedView : capabilityColor,
+                player, partialTicks);
 
         GlStateManager.pushMatrix();
         GlStateManager.disableCull();
@@ -266,8 +253,7 @@ public class ItemWorldRenderer {
         GlStateManager.translate(
                 -renderManager.viewerPosX,
                 -renderManager.viewerPosY,
-                -renderManager.viewerPosZ
-        );
+                -renderManager.viewerPosZ);
         for (Map.Entry<BlockPos, Collection<String>> entry : labelsByPosition.asMap().entrySet()) {
             drawLabel(entry.getKey(), entry.getValue(), player);
         }
@@ -278,7 +264,6 @@ public class ItemWorldRenderer {
         GlStateManager.enableTexture2D();
         GlStateManager.popMatrix();
     }
-
 
     private static void drawLabel(BlockPos pos, Collection<String> labels, EntityPlayer player) {
         double x = pos.getX() + 0.5;
@@ -298,52 +283,48 @@ public class ItemWorldRenderer {
         }
     }
 
-
     private enum VBOKind {
         LABEL_GUN_CAPABILITIES,
         NETWORK_TOOL_CAPABILITIES,
         NETWORK_TOOL_CABLES
     }
 
-
     @HelpsWithMinecraftVersionIndependence
     private static void writeVertex(
-            BufferBuilder builder,
-            BlockPos pos,
-            float x,
-            float y,
-            float z,
-            int r,
-            int g,
-            int b,
-            int a
-    ) {
-//        Vector4f vec = org.lwjgl.util.vector.Matrix4f.transform(matrix4f, new Vector4f(x, y, z, 1.0F), null);
+                                    BufferBuilder builder,
+                                    BlockPos pos,
+                                    float x,
+                                    float y,
+                                    float z,
+                                    int r,
+                                    int g,
+                                    int b,
+                                    int a) {
+        // Vector4f vec = org.lwjgl.util.vector.Matrix4f.transform(matrix4f, new Vector4f(x, y, z, 1.0F), null);
         builder.pos(pos.getX(), pos.getY(), pos.getZ()).color(r, g, b, a).endVertex();
-//        for (int e = 0; e < builder.getVertexFormat().getElementCount(); e++) {
-//            switch (builder.getVertexFormat().getElement(e).getUsage()) {
-//                case POSITION:
-//                    builder.put(e, vec.getX(), vec.getY(), vec.getZ(), 1f);
-//                    break;
-//                case COLOR:
-//                    builder.put(e, r, g, b, a);
-//                    break;
-//                default:
-//                    builder.put(e);
-//                    break;
-//            }
-//        }
+        // for (int e = 0; e < builder.getVertexFormat().getElementCount(); e++) {
+        // switch (builder.getVertexFormat().getElement(e).getUsage()) {
+        // case POSITION:
+        // builder.put(e, vec.getX(), vec.getY(), vec.getZ(), 1f);
+        // break;
+        // case COLOR:
+        // builder.put(e, r, g, b, a);
+        // break;
+        // default:
+        // builder.put(e);
+        // break;
+        // }
+        // }
     }
 
     private static void writeFaceVertices(
-            BufferBuilder builder,
-            BlockPos matrix4f,
-            EnumFacing direction,
-            int r,
-            int g,
-            int b,
-            int a
-    ) {
+                                          BufferBuilder builder,
+                                          BlockPos matrix4f,
+                                          EnumFacing direction,
+                                          int r,
+                                          int g,
+                                          int b,
+                                          int a) {
         double scale = 1 - ((double) direction.ordinal() / 25d);
         r = (int) (r * scale);
         g = (int) (g * scale);
@@ -389,8 +370,8 @@ public class ItemWorldRenderer {
         }
     }
 
-
     private static class HighlightRenderListCache {
+
         private final EnumMap<VBOKind, HighlightRenderList> cache = new EnumMap<>(VBOKind.class);
         private int lastCachedTick = -1;
 
@@ -400,18 +381,16 @@ public class ItemWorldRenderer {
                                                      int r,
                                                      int g,
                                                      int b,
-                                                     int a
-        ) {
+                                                     int a) {
             if (positions.isEmpty()) {
                 return null;
             }
-            @Nullable HighlightRenderList entry = cache.get(kind);
+            @Nullable
+            HighlightRenderList entry = cache.get(kind);
 
             boolean shouldRebuild = entry == null;
 
-            if (entry != null
-                    && player.ticksExisted != lastCachedTick
-                    && !entry.positions.equals(positions)) {
+            if (entry != null && player.ticksExisted != lastCachedTick && !entry.positions.equals(positions)) {
                 lastCachedTick = player.ticksExisted;
                 shouldRebuild = true;
             }
@@ -436,6 +415,4 @@ public class ItemWorldRenderer {
             cache.clear();
         }
     }
-
-
 }

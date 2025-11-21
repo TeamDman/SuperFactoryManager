@@ -4,6 +4,7 @@ import java.util.Locale;
 import java.util.function.BiPredicate;
 
 public enum ComparisonOperator implements ASTNode, BiPredicate<Long, Long>, ToStringPretty {
+
     GREATER((a, b) -> a > b),
     LESSER((a, b) -> a < b),
     EQUALS(Long::equals),

@@ -1,23 +1,23 @@
 package ca.teamdman.sfm.common.localization;
 
-import ca.teamdman.sfm.common.util.SFMTranslationUtils;
-import com.github.bsideup.jabel.Desugar;
+import static ca.teamdman.sfm.common.util.SFMTranslationUtils.getTextComponentTranslation;
+
+import java.util.function.Supplier;
+
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentTranslation;
 
-import java.util.function.Supplier;
+import com.github.bsideup.jabel.Desugar;
 
-import static ca.teamdman.sfm.common.util.SFMTranslationUtils.getTextComponentTranslation;
+@Desugar
+public record LocalizationEntry(
+                                Supplier<String> key,
+                                Supplier<String> value) {
 
-@Desugar public record LocalizationEntry(
-        Supplier<String> key,
-        Supplier<String> value
-) {
     public LocalizationEntry(
-            String key,
-            String value
-    ) {
+                             String key,
+                             String value) {
         this(() -> key, () -> value);
     }
 
@@ -42,6 +42,7 @@ import static ca.teamdman.sfm.common.util.SFMTranslationUtils.getTextComponentTr
      * Using this method is a poor substitute for proper localization.
      * <p/>
      * Sometimes that's just how it is.
+     * 
      * @return the default English localization value
      */
     public String getStub() {

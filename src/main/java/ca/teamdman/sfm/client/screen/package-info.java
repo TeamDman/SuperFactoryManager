@@ -3,7 +3,7 @@
 @FieldsAreNonnullByDefault
 package ca.teamdman.sfm.client.screen;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import ca.teamdman.sfm.common.util.FieldsAreNonnullByDefault;
 import mcp.MethodsReturnNonnullByDefault;
-
-import javax.annotation.ParametersAreNonnullByDefault;

@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.common.net;
 
+import net.minecraft.network.PacketBuffer;
+
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import ca.teamdman.sfm.common.registry.SFMPackets;
@@ -7,14 +9,10 @@ import ca.teamdman.sfml.ast.IfStatement;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.DecoderException;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import java.io.IOException;
+public class ServerboundIfStatementInspectionRequestPacket extends
+                                                           SFMAdvancedPacket<ServerboundIfStatementInspectionRequestPacket> {
 
-public class ServerboundIfStatementInspectionRequestPacket extends SFMAdvancedPacket<ServerboundIfStatementInspectionRequestPacket> {
     private String programString;
     private int inputNodeIndex;
 
@@ -23,8 +21,7 @@ public class ServerboundIfStatementInspectionRequestPacket extends SFMAdvancedPa
         this.inputNodeIndex = inputNodeIndex;
     }
 
-    public ServerboundIfStatementInspectionRequestPacket() {
-    }
+    public ServerboundIfStatementInspectionRequestPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {
@@ -46,9 +43,8 @@ public class ServerboundIfStatementInspectionRequestPacket extends SFMAdvancedPa
 
     @Override
     public void handle(
-            ServerboundIfStatementInspectionRequestPacket msg,
-            SFMPacketHandlingContext context
-    ) {
+                       ServerboundIfStatementInspectionRequestPacket msg,
+                       SFMPacketHandlingContext context) {
         context.compileAndThen(
                 msg.programString,
                 (program, player, managerBlockEntity) -> program.astBuilder()
@@ -63,17 +59,14 @@ public class ServerboundIfStatementInspectionRequestPacket extends SFMAdvancedPa
                             ProgramContext programContext = new ProgramContext(
                                     program,
                                     managerBlockEntity,
-                                    new SimulateExploreAllPathsProgramBehaviour()
-                            );
+                                    new SimulateExploreAllPathsProgramBehaviour());
                             boolean result = ifStatement.condition().test(programContext);
                             payload.append(result ? "TRUE" : "FALSE");
 
                             SFMPackets.sendToPlayer(player, new ClientboundIfStatementInspectionResultsPacket(
                                     SFMAdvancedPacket.truncate(
                                             payload.toString(),
-                                            ClientboundIfStatementInspectionResultsPacket.MAX_RESULTS_LENGTH
-                                    )));
-                        })
-        );
+                                            ClientboundIfStatementInspectionResultsPacket.MAX_RESULTS_LENGTH)));
+                        }));
     }
 }

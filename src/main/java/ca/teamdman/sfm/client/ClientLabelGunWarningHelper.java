@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client;
 
+import net.minecraft.entity.player.EntityPlayer;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.SFMConfirmationScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
@@ -8,14 +10,12 @@ import ca.teamdman.sfm.common.label.LabelGunPlanner;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.ConfirmationParams;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.world.World;
 
 public class ClientLabelGunWarningHelper {
+
     public static void sendLabelGunUsePacketFromClientWithConfirmationIfNecessary(
-            ServerboundLabelGunUsePacket msg,
-            EntityPlayer player
-    ) {
+                                                                                  ServerboundLabelGunUsePacket msg,
+                                                                                  EntityPlayer player) {
         LabelGunPlan plan = LabelGunPlanner.getLabelGunPlan(player, msg, false);
         if (plan == null) {
             // No plan available, cannot proceed
@@ -30,8 +30,7 @@ public class ClientLabelGunWarningHelper {
             SFMScreenChangeHelpers.setOrPushScreen(new SFMConfirmationScreen(
                     confirmation,
                     10,
-                    () -> SFMPackets.SFM_CHANNEL.sendToServer(msg)
-            ));
+                    () -> SFMPackets.SFM_CHANNEL.sendToServer(msg)));
         }
     }
 }

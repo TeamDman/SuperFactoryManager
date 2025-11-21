@@ -2,9 +2,11 @@ package ca.teamdman.sfml.ast;
 
 import com.github.bsideup.jabel.Desugar;
 
-@Desugar public record Label(
-        String name
-) implements ASTNode {
+@Desugar
+public record Label(
+                    String name)
+        implements ASTNode {
+
     @Override
     public String toString() {
         return name;

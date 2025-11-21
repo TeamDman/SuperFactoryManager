@@ -1,16 +1,17 @@
 package ca.teamdman.sfm.common.resourcetype;
 
-import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
-import net.minecraft.util.ResourceLocation;
-
 import java.util.stream.Stream;
 
+import net.minecraft.util.ResourceLocation;
+
+import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
+
 public abstract class IntegerResourceType<CAP> extends ScalarResourceType<Integer, CAP> {
+
     public IntegerResourceType(
-            ResourceTypeContainer container,
-            SFMBlockCapabilityKind<CAP> capability,
-            ResourceLocation registryKey
-    ) {
+                               ResourceTypeContainer container,
+                               SFMBlockCapabilityKind<CAP> capability,
+                               ResourceLocation registryKey) {
         super(container, capability, registryKey, Integer.class);
     }
 
@@ -46,17 +47,15 @@ public abstract class IntegerResourceType<CAP> extends ScalarResourceType<Intege
 
     @Override
     protected Integer setCount(
-            Integer stack,
-            long amount
-    ) {
+                               Integer stack,
+                               long amount) {
         return amount > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) amount;
     }
 
     @Override
     public Integer withCount(
-            Integer integer,
-            long count
-    ) {
+                             Integer integer,
+                             long count) {
         return count > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) count;
     }
 }

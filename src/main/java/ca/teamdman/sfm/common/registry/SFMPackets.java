@@ -1,14 +1,15 @@
 package ca.teamdman.sfm.common.registry;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.net.*;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.relauncher.Side;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.net.*;
+
 public class SFMPackets {
+
     public static final SimpleNetworkWrapper SFM_CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel(SFM.MOD_ID);
 
     private static int registrationIndex = 0;

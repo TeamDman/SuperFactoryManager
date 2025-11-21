@@ -1,8 +1,5 @@
 package vswe.superfactory.blocks;
 
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
-import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
@@ -11,8 +8,12 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
+import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
+import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
+import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
 
 public class BlockCable extends Block implements ICableBlock {
+
     public BlockCable() {
         super(Material.IRON);
         setSoundType(SoundType.METAL);
@@ -24,7 +25,6 @@ public class BlockCable extends Block implements ICableBlock {
         super.onBlockAdded(worldIn, pos, state);
         CableNetworkManager.onCablePlaced(worldIn, pos);
     }
-
 
     @Override
     public void onNeighborChange(IBlockAccess world, BlockPos pos, BlockPos neighbor) {
@@ -45,6 +45,4 @@ public class BlockCable extends Block implements ICableBlock {
         super.breakBlock(world, pos, state);
         CableNetworkManager.onCableRemoved(world, pos);
     }
-
-
 }

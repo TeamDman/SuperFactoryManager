@@ -4,8 +4,8 @@ import net.minecraft.block.BlockCauldron;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -13,10 +13,12 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.FluidTankProperties;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvider<IFluidHandler> {
+
     @Override
     public boolean matchesCapabilityKind(SFMBlockCapabilityKind<?> capabilityKind) {
         return SFMWellKnownCapabilities.FLUID_HANDLER.equals(capabilityKind);
@@ -24,13 +26,12 @@ public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvid
 
     @Override
     public SFMBlockCapabilityResult<IFluidHandler> getCapability(
-            SFMBlockCapabilityKind<IFluidHandler> capabilityKind,
-            World level,
-            BlockPos pos,
-            IBlockState state,
-            @Nullable TileEntity blockEntity,
-            @Nullable EnumFacing direction
-    ) {
+                                                                 SFMBlockCapabilityKind<IFluidHandler> capabilityKind,
+                                                                 World level,
+                                                                 BlockPos pos,
+                                                                 IBlockState state,
+                                                                 @Nullable TileEntity blockEntity,
+                                                                 @Nullable EnumFacing direction) {
         if (state.getBlock() == Blocks.CAULDRON) {
             return SFMBlockCapabilityResult.of(new CauldronFluidHandler(level, pos));
         } else {
@@ -39,6 +40,7 @@ public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvid
     }
 
     private static class CauldronFluidHandler implements IFluidHandler {
+
         private final World world;
         private final BlockPos pos;
 
@@ -46,7 +48,6 @@ public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvid
             this.world = world;
             this.pos = pos;
         }
-
 
         public @NotNull FluidStack getFluidInTank() {
             IBlockState state = world.getBlockState(pos);
@@ -122,7 +123,7 @@ public class CauldronBlockCapabilityProvider implements SFMBlockCapabilityProvid
             int availableAmount = level * amountPerLevel;
             int amountToDrain = Math.min(maxDrain, availableAmount);
 
-            int levelsToDrain = (int)Math.floor((double)amountToDrain / amountPerLevel);
+            int levelsToDrain = (int) Math.floor((double) amountToDrain / amountPerLevel);
             int drainedAmount = levelsToDrain * amountPerLevel;
 
             if (doDrain && levelsToDrain > 0) {

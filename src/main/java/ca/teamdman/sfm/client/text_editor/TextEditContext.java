@@ -1,19 +1,20 @@
 package ca.teamdman.sfm.client.text_editor;
 
-import com.github.bsideup.jabel.Desugar;
-import it.unimi.dsi.fastutil.ints.*;
-import org.antlr.v4.runtime.misc.Interval;
-import org.antlr.v4.runtime.misc.IntervalSet;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.antlr.v4.runtime.misc.Interval;
+import org.antlr.v4.runtime.misc.IntervalSet;
+
+import com.github.bsideup.jabel.Desugar;
+
+import it.unimi.dsi.fastutil.ints.*;
 
 @Desugar
 public record TextEditContext(
-        MultiCursor multiCursor,
-        LinkedList<StringBuilder> lines
-) {
+                              MultiCursor multiCursor,
+                              LinkedList<StringBuilder> lines) {
+
     public TextEditContext() {
         this(new MultiCursor(), new LinkedList<>());
         lines.add(new StringBuilder());
@@ -31,14 +32,12 @@ public record TextEditContext(
         }
     }
 
-
     public TextEditContext copy() {
         return new TextEditContext(
                 new MultiCursor(new ArrayDeque<>(multiCursor().cursors())),
                 lines.stream()
                         .map(StringBuilder::new)
-                        .collect(Collectors.toCollection(LinkedList::new))
-        );
+                        .collect(Collectors.toCollection(LinkedList::new)));
     }
 
     @Override
@@ -184,11 +183,10 @@ public record TextEditContext(
             }
         }
         assertInvariants();
-//        return modifiedCursorIndices;
+        // return modifiedCursorIndices;
 
         // TODO: this method probably doesn't correctly reposition all cursors. Add test for this.
     }
-
 
     public void insertTextAtCursors(String text) {
         // TODO: add support for when text contains a newline character.

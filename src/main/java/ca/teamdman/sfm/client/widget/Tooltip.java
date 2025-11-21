@@ -1,17 +1,19 @@
 package ca.teamdman.sfm.client.widget;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
-
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+
 public class Tooltip {
+
     private static final int MAX_WIDTH = 170;
     private final ITextComponent message;
     @Nullable
@@ -49,6 +51,7 @@ public class Tooltip {
 
         return this.cachedTooltip;
     }
+
     public List<String> toStrings() {
         if (this.cachedTooltip == null) {
             this.cachedTooltip = splitTooltip(Minecraft.getMinecraft(), this.message);
@@ -65,7 +68,7 @@ public class Tooltip {
         FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
         String formattedText = text.getFormattedText(); // Converts to legacy formatting codes (§)
         return Arrays.stream(formattedText.split("\\\\n"))
-                .flatMap(s -> Stream.of(fontRenderer.listFormattedStringToWidth(s , maxWidth).toArray(new String[]{})))
+                .flatMap(s -> Stream.of(fontRenderer.listFormattedStringToWidth(s, maxWidth).toArray(new String[] {})))
                 .collect(Collectors.toList());
     }
 }

@@ -1,15 +1,14 @@
 package ca.teamdman.sfm.common.net;
 
+import net.minecraft.util.math.BlockPos;
+
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class ServerboundManagerLogDesireUpdatePacket extends SFMAdvancedPacket<ServerboundManagerLogDesireUpdatePacket> {
+public class ServerboundManagerLogDesireUpdatePacket extends
+                                                     SFMAdvancedPacket<ServerboundManagerLogDesireUpdatePacket> {
+
     private int windowId;
     private BlockPos pos;
     private boolean isLogScreenOpen;
@@ -20,8 +19,7 @@ public class ServerboundManagerLogDesireUpdatePacket extends SFMAdvancedPacket<S
         this.isLogScreenOpen = isLogScreenOpen;
     }
 
-    public ServerboundManagerLogDesireUpdatePacket() {
-    }
+    public ServerboundManagerLogDesireUpdatePacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {
@@ -39,12 +37,10 @@ public class ServerboundManagerLogDesireUpdatePacket extends SFMAdvancedPacket<S
         buf.writeBoolean(isLogScreenOpen);
     }
 
-
     @Override
     public void handle(
-            ServerboundManagerLogDesireUpdatePacket msg,
-            SFMPacketHandlingContext context
-    ) {
+                       ServerboundManagerLogDesireUpdatePacket msg,
+                       SFMPacketHandlingContext context) {
         context.handleServerboundContainerPacket(
                 ManagerContainerMenu.class,
                 ManagerBlockEntity.class,
@@ -53,7 +49,6 @@ public class ServerboundManagerLogDesireUpdatePacket extends SFMAdvancedPacket<S
                 (menu, manager) -> {
                     menu.isLogScreenOpen = msg.isLogScreenOpen;
                     manager.sendUpdatePacket();
-                }
-        );
+                });
     }
 }

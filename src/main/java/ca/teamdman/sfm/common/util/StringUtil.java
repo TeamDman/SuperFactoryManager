@@ -1,11 +1,9 @@
 package ca.teamdman.sfm.common.util;
 
-import java.util.Arrays;
-import java.util.stream.Stream;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class StringUtil {
-
 
     /**
      * Ponyfill for Java 12's String.indent(int n).
@@ -18,9 +16,14 @@ public class StringUtil {
             return s + "\n";
         }
 
-        final String indentString = (n > 0)
-                ? Stream.generate(() -> " ").limit(n).collect(Collectors.joining())
-                : ""; // If outdenting, we don't need a string prefix.
+        final String indentString = (n > 0) ? Stream.generate(() -> " ").limit(n).collect(Collectors.joining()) : ""; // If
+                                                                                                                      // outdenting,
+                                                                                                                      // we
+                                                                                                                      // don't
+                                                                                                                      // need
+                                                                                                                      // a
+                                                                                                                      // string
+                                                                                                                      // prefix.
 
         return Stream.of(lines)
                 .map(line -> {
@@ -34,14 +37,14 @@ public class StringUtil {
                         int spacesToRemove = -n;
                         int actualSpaces = 0;
 
-                        while (actualSpaces < line.length() && actualSpaces < spacesToRemove && line.charAt(actualSpaces) == ' ') {
+                        while (actualSpaces < line.length() && actualSpaces < spacesToRemove &&
+                                line.charAt(actualSpaces) == ' ') {
                             actualSpaces++;
                         }
 
                         return line.substring(actualSpaces);
                     }
                 })
-                .collect(Collectors.joining("\n"))
-                + "\n";
+                .collect(Collectors.joining("\n")) + "\n";
     }
 }

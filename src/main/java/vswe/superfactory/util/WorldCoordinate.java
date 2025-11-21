@@ -3,70 +3,71 @@ package vswe.superfactory.util;
 import net.minecraft.tileentity.TileEntity;
 
 public class WorldCoordinate implements Comparable<WorldCoordinate> {
-	private TileEntity tileEntity;
-	private int x, y, z, depth;
 
-	public WorldCoordinate(int x, int y, int z) {
-		this(x, y, z, 0);
-	}
+    private TileEntity tileEntity;
+    private int x, y, z, depth;
 
-	public WorldCoordinate(int x, int y, int z, int depth) {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		this.depth = depth;
-	}
+    public WorldCoordinate(int x, int y, int z) {
+        this(x, y, z, 0);
+    }
 
-	@Override
-	public int hashCode() {
-		int result = x;
-		result = 31 * result + y;
-		result = 31 * result + z;
-		return result;
-	}
+    public WorldCoordinate(int x, int y, int z, int depth) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.depth = depth;
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o)
-			return true;
-		if (o == null || getClass() != o.getClass())
-			return false;
+    @Override
+    public int hashCode() {
+        int result = x;
+        result = 31 * result + y;
+        result = 31 * result + z;
+        return result;
+    }
 
-		WorldCoordinate that = (WorldCoordinate) o;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
-		if (x != that.x)
-			return false;
-		if (y != that.y)
-			return false;
-		return z == that.z;
-	}
+        WorldCoordinate that = (WorldCoordinate) o;
 
-	public int getX() {
-		return x;
-	}
+        if (x != that.x)
+            return false;
+        if (y != that.y)
+            return false;
+        return z == that.z;
+    }
 
-	public int getY() {
-		return y;
-	}
+    public int getX() {
+        return x;
+    }
 
-	public int getZ() {
-		return z;
-	}
+    public int getY() {
+        return y;
+    }
 
-	public int getDepth() {
-		return depth;
-	}
+    public int getZ() {
+        return z;
+    }
 
-	@Override
-	public int compareTo(WorldCoordinate o) {
-		return ((Integer) depth).compareTo(o.depth);
-	}
+    public int getDepth() {
+        return depth;
+    }
 
-	public TileEntity getTileEntity() {
-		return tileEntity;
-	}
+    @Override
+    public int compareTo(WorldCoordinate o) {
+        return ((Integer) depth).compareTo(o.depth);
+    }
 
-	public void setTileEntity(TileEntity tileEntity) {
-		this.tileEntity = tileEntity;
-	}
+    public TileEntity getTileEntity() {
+        return tileEntity;
+    }
+
+    public void setTileEntity(TileEntity tileEntity) {
+        this.tileEntity = tileEntity;
+    }
 }

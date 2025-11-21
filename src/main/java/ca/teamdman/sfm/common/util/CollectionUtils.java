@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CollectionUtils {
+
     public static <K, V> Map<K, V> mapOf(K key, V value) {
         return Stream.of(new AbstractMap.SimpleImmutableEntry<>(key, value))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

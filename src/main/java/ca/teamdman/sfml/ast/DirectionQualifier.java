@@ -1,21 +1,25 @@
 package ca.teamdman.sfml.ast;
 
-import ca.teamdman.sfm.common.util.SFMDirections;
-import com.github.bsideup.jabel.Desugar;
-import net.minecraft.util.EnumFacing;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import static net.minecraft.util.EnumFacing.*;
 
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static net.minecraft.util.EnumFacing.*;
+import net.minecraft.util.EnumFacing;
 
-@Desugar public record DirectionQualifier(
-        EnumSet<EnumFacing> directions
-) implements ASTNode, Iterable<EnumFacing> {
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.github.bsideup.jabel.Desugar;
+
+import ca.teamdman.sfm.common.util.SFMDirections;
+
+@Desugar
+public record DirectionQualifier(
+                                 EnumSet<EnumFacing> directions)
+        implements ASTNode, Iterable<EnumFacing> {
 
     public static final DirectionQualifier NULL_DIRECTION = new DirectionQualifier(EnumSet.noneOf(EnumFacing.class));
     public static final DirectionQualifier EVERY_DIRECTION = new DirectionQualifier(EnumSet.allOf(EnumFacing.class));
@@ -63,7 +67,6 @@ import static net.minecraft.util.EnumFacing.*;
         return directions.iterator();
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -75,5 +78,4 @@ import static net.minecraft.util.EnumFacing.*;
     public int hashCode() {
         return Objects.hashCode(directions);
     }
-
 }

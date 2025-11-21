@@ -1,35 +1,35 @@
 package ca.teamdman.sfml.ast;
 
-import ca.teamdman.sfm.common.program.IInputResourceTracker;
-import ca.teamdman.sfm.common.program.IOutputResourceTracker;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.jetbrains.annotations.Nullable;
+
+import ca.teamdman.sfm.common.program.IInputResourceTracker;
+import ca.teamdman.sfm.common.program.IOutputResourceTracker;
+import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+
 /**
  * A set of {@link ResourceLimit} objects.
  * Do NOT modify this after creation since the {@link this#referencedResourceTypes} will become inaccurate.
  */
 public final class ResourceLimits implements ASTNode, ToStringPretty {
+
     private final List<ResourceLimit> resourceLimitList;
     private final ResourceIdSet exclusions;
-    private @Nullable ResourceType<?, ?, ?> [] referencedResourceTypes = null;
+    private @Nullable ResourceType<?, ?, ?>[] referencedResourceTypes = null;
 
     /**
      *
      */
     public ResourceLimits(
-            List<ResourceLimit> resourceLimitList,
-            ResourceIdSet exclusions
-    ) {
+                          List<ResourceLimit> resourceLimitList,
+                          ResourceIdSet exclusions) {
         this.resourceLimitList = resourceLimitList;
         this.exclusions = exclusions;
     }
@@ -57,8 +57,7 @@ public final class ResourceLimits implements ASTNode, ToStringPretty {
         }
         return new ResourceLimits(
                 defaulted,
-                exclusions
-        );
+                exclusions);
     }
 
     public ResourceLimits withExclusions(ResourceIdSet exclusions) {
@@ -73,7 +72,7 @@ public final class ResourceLimits implements ASTNode, ToStringPretty {
             var found = new LinkedHashSet<>(SFMResourceTypes.getResourceTypeCount());
             for (ResourceLimit resourceLimit : resourceLimitList) {
                 found.addAll(Arrays.asList(resourceLimit.resourceIds().getReferencedResourceTypes()));
-                //noinspection SuspiciousToArrayCall
+                // noinspection SuspiciousToArrayCall
                 referencedResourceTypes = found.toArray(new ResourceType[0]);
             }
         }
@@ -120,12 +119,11 @@ public final class ResourceLimits implements ASTNode, ToStringPretty {
         if (obj == null || obj.getClass() != this.getClass()) return false;
         var that = (ResourceLimits) obj;
         return Objects.equals(this.resourceLimitList, that.resourceLimitList) &&
-               Objects.equals(this.exclusions, that.exclusions);
+                Objects.equals(this.exclusions, that.exclusions);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(resourceLimitList, exclusions);
     }
-
 }

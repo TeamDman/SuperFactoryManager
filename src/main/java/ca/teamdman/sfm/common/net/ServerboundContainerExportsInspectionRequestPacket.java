@@ -1,12 +1,24 @@
 package ca.teamdman.sfm.common.net;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
+
+import net.minecraft.inventory.Container;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
+
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
 import ca.teamdman.sfm.common.compat.SFMModCompat;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.SFMASTUtils;
 import ca.teamdman.sfm.common.util.SFMDirections;
@@ -14,22 +26,10 @@ import ca.teamdman.sfml.ast.*;
 import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.inventory.Container;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
+public class ServerboundContainerExportsInspectionRequestPacket extends
+                                                                SFMAdvancedPacket<ServerboundContainerExportsInspectionRequestPacket> {
 
-public class ServerboundContainerExportsInspectionRequestPacket extends SFMAdvancedPacket<ServerboundContainerExportsInspectionRequestPacket> {
     private int windowId;
     private BlockPos pos;
 
@@ -38,25 +38,22 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMAdvan
         this.pos = pos;
     }
 
-    public ServerboundContainerExportsInspectionRequestPacket() {
-    }
+    public ServerboundContainerExportsInspectionRequestPacket() {}
 
     public static String buildInspectionResults(
-            World world,
-            BlockPos pos
-    ) {
+                                                World world,
+                                                BlockPos pos) {
         StringBuilder sb = new StringBuilder();
         for (EnumFacing direction : SFMDirections.DIRECTIONS_WITH_NULL) {
             sb.append("-- ").append(direction).append("\n");
             int len = sb.length();
-            //noinspection unchecked,rawtypes
+            // noinspection unchecked,rawtypes
             SFMResourceTypes.registry().getEntries().stream().map(entry -> buildInspectionResults(
-                            (ResourceLocation) entry.getKey(),
-                            entry.getValue().get(),
-                            world,
-                            pos,
-                            direction
-                    ))
+                    (ResourceLocation) entry.getKey(),
+                    entry.getValue().get(),
+                    world,
+                    pos,
+                    direction))
                     .filter(s -> !s.trim().isEmpty())
                     .forEach(results -> sb.append(results).append("\n"));
             if (sb.length() == len) {
@@ -66,29 +63,27 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMAdvan
         }
 
         if (SFMModCompat.isMekanismLoaded()) {
-//            TileEntity be = world.getTileEntity(pos);
-//            if (be != null) {
-//                sb.append(SFMMekanismCompat.gatherInspectionResults(be)).append("\n");
-//            }
+            // TileEntity be = world.getTileEntity(pos);
+            // if (be != null) {
+            // sb.append(SFMMekanismCompat.gatherInspectionResults(be)).append("\n");
+            // }
         }
 
         return sb.toString();
     }
 
     public static <STACK, ITEM, CAP> String buildInspectionResults(
-            ResourceLocation resourceTypeResourceKey,
-            ResourceType<STACK, ITEM, CAP> resourceType,
-            World world,
-            BlockPos pos,
-            @Nullable EnumFacing direction
-    ) {
+                                                                   ResourceLocation resourceTypeResourceKey,
+                                                                   ResourceType<STACK, ITEM, CAP> resourceType,
+                                                                   World world,
+                                                                   BlockPos pos,
+                                                                   @Nullable EnumFacing direction) {
         StringBuilder sb = new StringBuilder();
         SFMBlockCapabilityResult<CAP> capResult = SFMBlockCapabilityDiscovery.discoverCapabilityFromLevel(
                 world,
                 resourceType.CAPABILITY_KIND,
                 pos,
-                direction
-        );
+                direction);
         if (capResult.isPresent()) {
             CAP cap = capResult.unwrap();
             int slots = resourceType.getSlots(cap);
@@ -109,8 +104,7 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMAdvan
                             "target",
                             slot,
                             false,
-                            direction
-                    );
+                            direction);
                     sb.append(inputStatement.toStringPretty()).append("\n");
                 });
 
@@ -119,29 +113,23 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMAdvan
                     ResourceLocation stackId = resourceType.getRegistryKeyForStack(stack);
                     ResourceIdentifier<STACK, ITEM, CAP> resourceIdentifier = new ResourceIdentifier<>(
                             resourceTypeResourceKey,
-                            stackId
-                    );
+                            stackId);
                     ResourceLimit resourceLimit = new ResourceLimit(
                             new ResourceIdSet(Arrays.asList(resourceIdentifier)),
-                            Limit.MAX_QUANTITY_NO_RETENTION, With.ALWAYS_TRUE
-                    );
+                            Limit.MAX_QUANTITY_NO_RETENTION, With.ALWAYS_TRUE);
                     resourceLimitList.add(resourceLimit);
                 });
                 InputStatement inputStatement = new InputStatement(
                         new LabelAccess(
                                 Arrays.asList(new Label("target")),
-                                new DirectionQualifier(direction == null
-                                        ? EnumSet.noneOf(EnumFacing.class)
-                                        : EnumSet.of(direction)),
+                                new DirectionQualifier(
+                                        direction == null ? EnumSet.noneOf(EnumFacing.class) : EnumSet.of(direction)),
                                 NumberRangeSet.MAX_RANGE,
-                                RoundRobin.disabled()
-                        ),
+                                RoundRobin.disabled()),
                         new ResourceLimits(
                                 resourceLimitList.stream().distinct().collect(java.util.stream.Collectors.toList()),
-                                ResourceIdSet.EMPTY
-                        ),
-                        false
-                );
+                                ResourceIdSet.EMPTY),
+                        false);
                 sb.append(inputStatement.toStringPretty());
             }
 
@@ -166,9 +154,8 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMAdvan
 
     @Override
     public void handle(
-            ServerboundContainerExportsInspectionRequestPacket msg,
-            SFMPacketHandlingContext context
-    ) {
+                       ServerboundContainerExportsInspectionRequestPacket msg,
+                       SFMPacketHandlingContext context) {
         context.handleServerboundContainerPacket(
                 Container.class,
                 TileEntity.class,
@@ -184,11 +171,7 @@ public class ServerboundContainerExportsInspectionRequestPacket extends SFMAdvan
                                     msg.windowId,
                                     SFMAdvancedPacket.truncate(
                                             payload,
-                                            ClientboundContainerExportsInspectionResultsPacket.MAX_RESULTS_LENGTH
-                                    )
-                            )
-                    );
-                }
-        );
+                                            ClientboundContainerExportsInspectionResultsPacket.MAX_RESULTS_LENGTH)));
+                });
     }
 }

@@ -1,6 +1,5 @@
 package vswe.superfactory.network.packets;
 
-import io.netty.buffer.ByteBufUtil;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
@@ -12,86 +11,91 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
+import io.netty.buffer.ByteBufUtil;
 import vswe.superfactory.interfaces.ContainerBase;
 
 public class PacketEventHandler {
-	@SideOnly(Side.CLIENT)
-	@SubscribeEvent
-	public void onClientPacket(final FMLNetworkEvent.ClientCustomPacketEvent event) {
-		FMLClientHandler.instance().getClient().addScheduledTask(() -> processClientPacket(event));
-	}
 
-	@SideOnly(Side.CLIENT)
-	private void processClientPacket(FMLNetworkEvent.ClientCustomPacketEvent event) {
-		DataReader   dr     = new DataReader(ByteBufUtil.getBytes(event.getPacket().payload()));//new DataReader(event.getPacket().payload().array().clone());
-		EntityPlayer player = FMLClientHandler.instance().getClient().player;
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    public void onClientPacket(final FMLNetworkEvent.ClientCustomPacketEvent event) {
+        FMLClientHandler.instance().getClient().addScheduledTask(() -> processClientPacket(event));
+    }
 
-		boolean useContainer = dr.readBoolean();
+    @SideOnly(Side.CLIENT)
+    private void processClientPacket(FMLNetworkEvent.ClientCustomPacketEvent event) {
+        DataReader dr = new DataReader(ByteBufUtil.getBytes(event.getPacket().payload()));// new
+                                                                                          // DataReader(event.getPacket().payload().array().clone());
+        EntityPlayer player = FMLClientHandler.instance().getClient().player;
 
-		if (useContainer) {
-			int       containerId = dr.readByte();
-			Container container   = player.openContainer;
+        boolean useContainer = dr.readBoolean();
 
-			if (container != null && container.windowId == containerId && container instanceof ContainerBase) {
-				if (dr.readBoolean()) {
-					((ContainerBase) container).getTileEntity().readUpdatedData(dr, player);
-				} else {
-					((ContainerBase) container).getTileEntity().readAllData(dr, player);
-				}
+        if (useContainer) {
+            int containerId = dr.readByte();
+            Container container = player.openContainer;
 
-			}
-		} else {
-			int x = dr.readData(DataBitHelper.WORLD_COORDINATE);
-			int y = dr.readData(DataBitHelper.WORLD_COORDINATE);
-			int z = dr.readData(DataBitHelper.WORLD_COORDINATE);
+            if (container != null && container.windowId == containerId && container instanceof ContainerBase) {
+                if (dr.readBoolean()) {
+                    ((ContainerBase) container).getTileEntity().readUpdatedData(dr, player);
+                } else {
+                    ((ContainerBase) container).getTileEntity().readAllData(dr, player);
+                }
 
-			TileEntity te = player.world.getTileEntity(new BlockPos(x, y, z));
-			if (te instanceof IPacketBlock) {
-				int id = dr.readData(((IPacketBlock) te).infoBitLength(false));
-				((IPacketBlock) te).readData(dr, player, false, id);
-			}
-		}
+            }
+        } else {
+            int x = dr.readData(DataBitHelper.WORLD_COORDINATE);
+            int y = dr.readData(DataBitHelper.WORLD_COORDINATE);
+            int z = dr.readData(DataBitHelper.WORLD_COORDINATE);
 
-		dr.close();
-	}
+            TileEntity te = player.world.getTileEntity(new BlockPos(x, y, z));
+            if (te instanceof IPacketBlock) {
+                int id = dr.readData(((IPacketBlock) te).infoBitLength(false));
+                ((IPacketBlock) te).readData(dr, player, false, id);
+            }
+        }
 
-	@SubscribeEvent
-	public void onServerPacket(final FMLNetworkEvent.ServerCustomPacketEvent event) {
-		EntityPlayerMP player = ((NetHandlerPlayServer) event.getHandler()).player;
-		player.getServerWorld().addScheduledTask(() -> processServerPacket(event));
-	}
+        dr.close();
+    }
 
-	private void processServerPacket(FMLNetworkEvent.ServerCustomPacketEvent event) {
-		//        if(!event.getPacket().payload().hasArray())
-		//        {
-		//            return;
-		//        }
+    @SubscribeEvent
+    public void onServerPacket(final FMLNetworkEvent.ServerCustomPacketEvent event) {
+        EntityPlayerMP player = ((NetHandlerPlayServer) event.getHandler()).player;
+        player.getServerWorld().addScheduledTask(() -> processServerPacket(event));
+    }
 
-		DataReader   dr     = new DataReader(ByteBufUtil.getBytes(event.getPacket().payload()));//new DataReader(event.getPacket().payload().array().clone());
-		EntityPlayer player = ((NetHandlerPlayServer) event.getHandler()).player;
+    private void processServerPacket(FMLNetworkEvent.ServerCustomPacketEvent event) {
+        // if(!event.getPacket().payload().hasArray())
+        // {
+        // return;
+        // }
 
-		boolean useContainer = dr.readBoolean();
+        DataReader dr = new DataReader(ByteBufUtil.getBytes(event.getPacket().payload()));// new
+                                                                                          // DataReader(event.getPacket().payload().array().clone());
+        EntityPlayer player = ((NetHandlerPlayServer) event.getHandler()).player;
 
-		if (useContainer) {
-			int       containerId = dr.readByte();
-			Container container   = player.openContainer;
+        boolean useContainer = dr.readBoolean();
 
-			if (container != null && container.windowId == containerId && container instanceof ContainerBase) {
-				((ContainerBase) container).getTileEntity().readUpdatedData(dr, player);
-				((TileEntity) ((ContainerBase) container).getTileEntity()).markDirty();
-			}
-		} else {
-			int x = dr.readData(DataBitHelper.WORLD_COORDINATE);
-			int y = dr.readData(DataBitHelper.WORLD_COORDINATE);
-			int z = dr.readData(DataBitHelper.WORLD_COORDINATE);
+        if (useContainer) {
+            int containerId = dr.readByte();
+            Container container = player.openContainer;
 
-			TileEntity te = player.world.getTileEntity(new BlockPos(x, y, z));
-			if (te instanceof IPacketBlock) {
-				int id = dr.readData(((IPacketBlock) te).infoBitLength(true));
-				((IPacketBlock) te).readData(dr, player, true, id);
-			}
-		}
+            if (container != null && container.windowId == containerId && container instanceof ContainerBase) {
+                ((ContainerBase) container).getTileEntity().readUpdatedData(dr, player);
+                ((TileEntity) ((ContainerBase) container).getTileEntity()).markDirty();
+            }
+        } else {
+            int x = dr.readData(DataBitHelper.WORLD_COORDINATE);
+            int y = dr.readData(DataBitHelper.WORLD_COORDINATE);
+            int z = dr.readData(DataBitHelper.WORLD_COORDINATE);
 
-		dr.close();
-	}
+            TileEntity te = player.world.getTileEntity(new BlockPos(x, y, z));
+            if (te instanceof IPacketBlock) {
+                int id = dr.readData(((IPacketBlock) te).infoBitLength(true));
+                ((IPacketBlock) te).readData(dr, player, true, id);
+            }
+        }
+
+        dr.close();
+    }
 }

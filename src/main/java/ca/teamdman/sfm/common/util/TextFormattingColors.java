@@ -1,11 +1,12 @@
 package ca.teamdman.sfm.common.util;
 
-import net.minecraft.util.text.TextFormatting;
-
 import java.util.HashMap;
 import java.util.Map;
 
+import net.minecraft.util.text.TextFormatting;
+
 public class TextFormattingColors {
+
     private static final Map<TextFormatting, Integer> FORMAT_COLOR_MAP = new HashMap<>();
 
     static {

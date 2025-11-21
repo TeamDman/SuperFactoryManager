@@ -1,10 +1,7 @@
 package ca.teamdman.sfm.common.block;
 
-import ca.teamdman.sfm.common.blockentity.BufferBlockEntity;
-import ca.teamdman.sfm.common.compat.SFMModCompat;
-import ca.teamdman.sfm.common.registry.SFMBlockEntities;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import java.util.Objects;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.properties.PropertyEnum;
@@ -13,16 +10,20 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IStringSerializable;
 import net.minecraft.world.World;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
+import ca.teamdman.sfm.common.blockentity.BufferBlockEntity;
+import ca.teamdman.sfm.common.compat.SFMModCompat;
+import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 
 public class BufferBlock extends Block implements ITileEntityProvider {
+
     public static final PropertyEnum<ContainedResource> CONTAINED_RESOURCE = PropertyEnum.create(
             "resource",
-            ContainedResource.class
-    );
+            ContainedResource.class);
 
     public final BufferBlockTier tier;
 
@@ -70,16 +71,14 @@ public class BufferBlock extends Block implements ITileEntityProvider {
         return net.minecraft.util.EnumBlockRenderType.MODEL;
     }
 
-
     public enum ContainedResource implements IStringSerializable {
+
         Item,
         Fluid,
         Energy,
         Chemical,
         Redstone,
         Unknown;
-
-
 
         public static ContainedResource from(ResourceType<?, ?, ?> resourceType) {
             String name = Objects.requireNonNull(SFMResourceTypes.registry().getKey(resourceType.container)).getPath();

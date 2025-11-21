@@ -1,5 +1,14 @@
 package ca.teamdman.sfm.common.net;
 
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.ResourceLocation;
+
+import org.antlr.v4.runtime.misc.Pair;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.program.LimitedInputSlot;
@@ -16,39 +25,27 @@ import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfml.ast.Number;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.DecoderException;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import org.antlr.v4.runtime.misc.Pair;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
+public class ServerboundOutputInspectionRequestPacket extends
+                                                      SFMAdvancedPacket<ServerboundOutputInspectionRequestPacket> {
 
-public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<ServerboundOutputInspectionRequestPacket> {
     @SuppressWarnings("NotNullFieldNotInitialized")
     private String programString;
     private int outputNodeIndex;
 
     private static final int MAX_RESULTS_LENGTH = 20480;
 
-
     public ServerboundOutputInspectionRequestPacket(String programString, int outputNodeIndex) {
         this.programString = programString;
         this.outputNodeIndex = outputNodeIndex;
     }
 
-    public ServerboundOutputInspectionRequestPacket() {
-    }
+    public ServerboundOutputInspectionRequestPacket() {}
 
     public static String getOutputStatementInspectionResultsString(
-            ManagerBlockEntity manager,
-            Program successProgram,
-            OutputStatement outputStatement
-    ) {
+                                                                   ManagerBlockEntity manager,
+                                                                   Program successProgram,
+                                                                   OutputStatement outputStatement) {
         StringBuilder payload = new StringBuilder();
         payload.append(outputStatement.toStringPretty()).append("\n");
         payload.append("-- predictions may differ from actual execution results\n");
@@ -58,14 +55,15 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                 outputStatement.labelAccess(),
                 outputStatement.resourceLimits(),
                 outputStatement.each(),
-                outputStatement.emptySlotsOnly()
-        ) {
+                outputStatement.emptySlotsOnly()) {
+
             @Override
             public void tick(ProgramContext context) {
                 if (!(context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour)) {
                     throw new IllegalStateException("Expected behaviour to be SimulateExploreAllPathsProgramBehaviour");
                 }
-                SimulateExploreAllPathsProgramBehaviour behaviour = (SimulateExploreAllPathsProgramBehaviour) context.getBehaviour();
+                SimulateExploreAllPathsProgramBehaviour behaviour = (SimulateExploreAllPathsProgramBehaviour) context
+                        .getBehaviour();
                 StringBuilder branchPayload = new StringBuilder();
 
                 payload
@@ -78,10 +76,10 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                         .getCurrentPath()
                         .streamBranches()
                         .allMatch(((Predicate<Branch>) Branch::wasTrue).negate())) {
-                    payload.append(" all false\n");
-                } else {
-                    payload.append('\n');
-                }
+                            payload.append(" all false\n");
+                        } else {
+                            payload.append('\n');
+                        }
                 behaviour.getCurrentPath()
                         .streamBranches()
                         .forEach(branch -> {
@@ -98,7 +96,6 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                         });
                 payload.append("\n");
 
-
                 branchPayload.append("-- predicted inputs:\n");
                 List<Pair<LimitedInputSlot<?, ?, ?>, LabelAccess>> inputSlots = new ArrayList<>();
                 context
@@ -107,9 +104,7 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                                 context,
                                 slot -> inputSlots.add(new Pair<>(
                                         slot,
-                                        inputStatement.labelAccess()
-                                ))
-                        ));
+                                        inputStatement.labelAccess()))));
                 List<InputStatement> inputStatements = inputSlots.stream()
                         .map(slot -> SFMASTUtils.getInputStatementForSlot(slot.a, slot.b))
                         .filter(Optional::isPresent)
@@ -133,8 +128,7 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                                         .map(slot -> slot.a)
                                         .map(ServerboundOutputInspectionRequestPacket::getSlotResource)
                                         .collect(java.util.stream.Collectors.toList()),
-                                ResourceIdSet.EMPTY
-                        );
+                                ResourceIdSet.EMPTY);
                         List<ResourceLimit> condensedResourceLimitList = new ArrayList<>();
                         for (ResourceLimit resourceLimit : resourceLimits.resourceLimitList()) {
                             // check if an existing resource limit has the same resource identifier
@@ -152,8 +146,7 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                                                 .limit()
                                                 .quantity()
                                                 .add(resourceLimit.limit().quantity()),
-                                        ResourceQuantity.MAX_QUANTITY
-                                ));
+                                        ResourceQuantity.MAX_QUANTITY));
                                 condensedResourceLimitList.set(i, newLimit);
                             } else {
                                 condensedResourceLimitList.add(resourceLimit);
@@ -178,8 +171,7 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                                 // they should always be valid resource locations (not patterns)
                                 ResourceLocation resourceLimitLocation = SFMResourceLocation.fromNamespaceAndPath(
                                         resourceId.resourceNamespace,
-                                        resourceId.resourceName
-                                );
+                                        resourceId.resourceName);
                                 long accept = outputStatement
                                         .resourceLimits()
                                         .resourceLimitList()
@@ -187,14 +179,14 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                                         .filter(outputResourceLimit -> outputResourceLimit
                                                 .resourceIds()
                                                 .anyMatchResourceLocation(
-                                                        resourceLimitLocation)
-                                                && outputStatement
-                                                .resourceLimits()
-                                                .exclusions()
-                                                .stream()
-                                                .noneMatch(
-                                                        exclusion -> exclusion.matchesResourceLocation(
-                                                                resourceLimitLocation)))
+                                                        resourceLimitLocation) &&
+                                                outputStatement
+                                                        .resourceLimits()
+                                                        .exclusions()
+                                                        .stream()
+                                                        .noneMatch(
+                                                                exclusion -> exclusion.matchesResourceLocation(
+                                                                        resourceLimitLocation)))
                                         .mapToLong(rl -> rl.limit().quantity().number().value())
                                         .max()
                                         .orElse(0);
@@ -208,18 +200,16 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                                                             .limit()
                                                             .quantity()
                                                             .number()
-                                                            .value()
-                                            )), resourceLimit.limit().quantity()
-                                                    .idExpansionBehaviour()),
-                                            ResourceQuantity.MAX_QUANTITY
-                                    )));
+                                                            .value())),
+                                                    resourceLimit.limit().quantity()
+                                                            .idExpansionBehaviour()),
+                                            ResourceQuantity.MAX_QUANTITY)));
                                 }
                             }
                         }
                         condensedResourceLimits = new ResourceLimits(
                                 condensedResourceLimitList,
-                                ResourceIdSet.EMPTY
-                        );
+                                ResourceIdSet.EMPTY);
                     }
                     if (condensedResourceLimits.resourceLimitList().isEmpty()) {
                         branchPayload.append("none\n");
@@ -229,8 +219,7 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                                         outputStatement.labelAccess(),
                                         condensedResourceLimits,
                                         outputStatement.each(),
-                                        outputStatement.emptySlotsOnly()
-                                ).toStringPretty());
+                                        outputStatement.emptySlotsOnly()).toStringPretty());
                     }
 
                 }
@@ -242,17 +231,15 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
         successProgram.tick(new ProgramContext(
                 successProgram,
                 manager,
-                new SimulateExploreAllPathsProgramBehaviour()
-        ));
+                new SimulateExploreAllPathsProgramBehaviour()));
 
         return payload.toString().trim();
     }
 
     private static <STACK, ITEM, CAP> ResourceLimit getSlotResource(
-            LimitedInputSlot<STACK, ITEM, CAP> limitedInputSlot
-    ) {
+                                                                    LimitedInputSlot<STACK, ITEM, CAP> limitedInputSlot) {
         ResourceType<STACK, ITEM, CAP> resourceType = limitedInputSlot.type;
-        //noinspection OptionalGetWithoutIsPresent
+        // noinspection OptionalGetWithoutIsPresent
         ResourceLocation resourceTypeResourceKey = SFMResourceTypes
                 .registry()
                 .getKey(limitedInputSlot.type.container);
@@ -263,18 +250,15 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
         amount -= Long.min(amount, remainingObligation);
         Limit amountLimit = new Limit(
                 new ResourceQuantity(new Number(amount), ResourceQuantity.IdExpansionBehaviour.NO_EXPAND),
-                ResourceQuantity.MAX_QUANTITY
-        );
+                ResourceQuantity.MAX_QUANTITY);
         ResourceLocation stackId = resourceType.getRegistryKeyForStack(stack);
         ResourceIdentifier<STACK, ITEM, CAP> resourceIdentifier = new ResourceIdentifier<>(
                 resourceTypeResourceKey,
-                stackId
-        );
+                stackId);
         return new ResourceLimit(
                 new ResourceIdSet(Arrays.asList(resourceIdentifier)),
                 amountLimit,
-                With.ALWAYS_TRUE
-        );
+                With.ALWAYS_TRUE);
     }
 
     @Override
@@ -307,21 +291,16 @@ public class ServerboundOutputInspectionRequestPacket extends SFMAdvancedPacket<
                             String payload = getOutputStatementInspectionResultsString(
                                     managerBlockEntity,
                                     program,
-                                    outputStatement
-                            );
+                                    outputStatement);
                             payload = SFMAdvancedPacket.truncate(
                                     payload,
-                                    ServerboundOutputInspectionRequestPacket.MAX_RESULTS_LENGTH
-                            );
+                                    ServerboundOutputInspectionRequestPacket.MAX_RESULTS_LENGTH);
                             SFM.LOGGER.debug(
                                     "Sending output inspection results packet with length {}",
-                                    payload.length()
-                            );
+                                    payload.length());
                             SFMPackets.sendToPlayer(
                                     player,
-                                    new ClientboundOutputInspectionResultsPacket(payload)
-                            );
-                        })
-        );
+                                    new ClientboundOutputInspectionResultsPacket(payload));
+                        }));
     }
 }

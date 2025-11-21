@@ -1,7 +1,5 @@
 package ca.teamdman.sfm.common.config;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.client.text_editor.SFMTextEditorIntellisenseLevel;
 import net.minecraftforge.common.config.Config;
 import net.minecraftforge.common.config.Config.Comment;
 import net.minecraftforge.common.config.Config.Name;
@@ -10,6 +8,9 @@ import net.minecraftforge.common.config.Config.RequiresMcRestart;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.text_editor.SFMTextEditorIntellisenseLevel;
 
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID)
 @Config(modid = SFM.MOD_ID, name = "superfactorymanager")
@@ -39,6 +40,7 @@ public class SFMConfig {
     public static final Server server = new Server();
 
     public static class Client {
+
         @Name("showLineNumbers")
         @Comment("Show line numbers in the text editor")
         public boolean showLineNumbers = true;
@@ -58,8 +60,8 @@ public class SFMConfig {
         public boolean showNetworkToolReminderOverlay = true;
     }
 
-
     public static class Server {
+
         @Name("disableProgramExecution")
         @Comment("Prevents factory managers from compiling and running code (for emergencies)")
         public boolean disableProgramExecution = false;
@@ -87,11 +89,11 @@ public class SFMConfig {
 
         @Name("levelsToShards")
         @Comment({
-            "How to convert Enchanted Books to Experience Shards",
-            "JustOne = always produces 1 shard regardless of enchantments",
-            "EachOne = produces 1 shard per enchantment on the book.",
-            "SumLevels = produces a number of shards equal to the sum of the enchantments' levels",
-            "SumLevelsScaledExponentially = produces a number of shards equal to the sum of 2 to the power of each enchantment's level (1 -> 1 shard, 2 -> 4 shards, 3 -> 8 shards, etc)"
+                "How to convert Enchanted Books to Experience Shards",
+                "JustOne = always produces 1 shard regardless of enchantments",
+                "EachOne = produces 1 shard per enchantment on the book.",
+                "SumLevels = produces a number of shards equal to the sum of the enchantments' levels",
+                "SumLevelsScaledExponentially = produces a number of shards equal to the sum of 2 to the power of each enchantment's level (1 -> 1 shard, 2 -> 4 shards, 3 -> 8 shards, etc)"
         })
         public LevelsToShards levelsToShards = LevelsToShards.JustOne;
     }

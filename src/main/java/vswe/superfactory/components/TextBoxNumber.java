@@ -1,84 +1,83 @@
 package vswe.superfactory.components;
 
-
 public class TextBoxNumber {
-	private static final int TEXT_BOX_SIZE_W      = 21;
-	private static final int TEXT_BOX_SIZE_W_WIDE = 33;
-	private int     length;
-	private int     number;
-	private boolean wide;
-	private int     x;
-	private int     y;
 
-	public TextBoxNumber(int x, int y, int length, boolean wide) {
-		this.x = x;
-		this.y = y;
-		number = 0;
-		this.length = length;
-		this.wide = wide;
-	}
+    private static final int TEXT_BOX_SIZE_W = 21;
+    private static final int TEXT_BOX_SIZE_W_WIDE = 33;
+    private int length;
+    private int number;
+    private boolean wide;
+    private int x;
+    private int y;
 
-	public int getLength() {
-		return length;
-	}
+    public TextBoxNumber(int x, int y, int length, boolean wide) {
+        this.x = x;
+        this.y = y;
+        number = 0;
+        this.length = length;
+        this.wide = wide;
+    }
 
-	public int getX() {
-		return x;
-	}
+    public int getLength() {
+        return length;
+    }
 
-	public int getY() {
-		return y;
-	}
+    public int getX() {
+        return x;
+    }
 
-	public int getNumber() {
-		return number;
-	}
+    public int getY() {
+        return y;
+    }
 
-	public void setNumber(int number) {
-		int max = getMaxNumber();
-		if (max != -1 && number > max) {
-			number = max;
-		}
-		int min = getMinNumber();
-		if (number < min) {
-			number = min;
-		}
+    public int getNumber() {
+        return number;
+    }
 
-		this.number = number;
-	}
+    public void setNumber(int number) {
+        int max = getMaxNumber();
+        if (max != -1 && number > max) {
+            number = max;
+        }
+        int min = getMinNumber();
+        if (number < min) {
+            number = min;
+        }
 
-	public int getMaxNumber() {
-		return -1;
-	}
+        this.number = number;
+    }
 
-	public int getMinNumber() {
-		return 0;
-	}
+    public int getMaxNumber() {
+        return -1;
+    }
 
-	public boolean isVisible() {
-		return true;
-	}
+    public int getMinNumber() {
+        return 0;
+    }
 
-	public boolean isWide() {
-		return wide;
-	}
+    public boolean isVisible() {
+        return true;
+    }
 
-	public void onNumberChanged() {
-	}
+    public boolean isWide() {
+        return wide;
+    }
 
-	public int getWidth() {
-		return wide ? TEXT_BOX_SIZE_W_WIDE : TEXT_BOX_SIZE_W;
-	}
+    public void onNumberChanged() {}
 
-	public final boolean allowNegative() {
-		return getMinNumber() < 0;
-	}
+    public int getWidth() {
+        return wide ? TEXT_BOX_SIZE_W_WIDE : TEXT_BOX_SIZE_W;
+    }
 
-	public float getTextSize() {
-		return 1;
-	}
+    public final boolean allowNegative() {
+        return getMinNumber() < 0;
+    }
 
-	public int getTextY() {
-		return 3;
-	}
+    public float getTextSize() {
+        return 1;
+    }
+
+    public int getTextY() {
+        return 3;
+    }
 }

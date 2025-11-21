@@ -1,18 +1,17 @@
 package ca.teamdman.sfm.common.net;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.util.math.BlockPos;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class ServerboundManagerRebuildPacket extends SFMAdvancedPacket<ServerboundManagerRebuildPacket> {
+
     private int windowId;
     private BlockPos pos;
 
@@ -21,8 +20,7 @@ public class ServerboundManagerRebuildPacket extends SFMAdvancedPacket<Serverbou
         this.pos = pos;
     }
 
-    public ServerboundManagerRebuildPacket() {
-    }
+    public ServerboundManagerRebuildPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {
@@ -40,9 +38,8 @@ public class ServerboundManagerRebuildPacket extends SFMAdvancedPacket<Serverbou
 
     @Override
     public void handle(
-            ServerboundManagerRebuildPacket msg,
-            SFMPacketHandlingContext context
-    ) {
+                       ServerboundManagerRebuildPacket msg,
+                       SFMPacketHandlingContext context) {
         context.handleServerboundContainerPacket(
                 ManagerContainerMenu.class,
                 ManagerBlockEntity.class,
@@ -59,10 +56,7 @@ public class ServerboundManagerRebuildPacket extends SFMAdvancedPacket<Serverbou
                             "{} performed rebuild for manager {} {}",
                             player.getName(),
                             msg.pos,
-                            manager.getWorld()
-                    );
-                }
-        );
+                            manager.getWorld());
+                });
     }
-
 }

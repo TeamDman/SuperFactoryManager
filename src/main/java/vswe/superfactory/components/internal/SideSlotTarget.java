@@ -1,27 +1,28 @@
 package vswe.superfactory.components.internal;
 
-import net.minecraft.util.EnumFacing;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.util.EnumFacing;
+
 public class SideSlotTarget {
-	private EnumFacing    side;
-	private List<Integer> slots = new ArrayList<>();
 
-	public SideSlotTarget(EnumFacing side) {
-		this.side = side;
-	}
+    private EnumFacing side;
+    private List<Integer> slots = new ArrayList<>();
 
-	public void addSlot(int slot) {
-		slots.add(slot);
-	}
+    public SideSlotTarget(EnumFacing side) {
+        this.side = side;
+    }
 
-	public EnumFacing getSide() {
-		return side;
-	}
+    public void addSlot(int slot) {
+        slots.add(slot);
+    }
 
-	public List<Integer> getSlots() {
-		return slots;
-	}
+    public EnumFacing getSide() {
+        return side;
+    }
+
+    public List<Integer> getSlots() {
+        return slots;
+    }
 }

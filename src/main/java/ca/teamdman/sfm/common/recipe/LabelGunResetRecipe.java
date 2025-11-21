@@ -1,7 +1,5 @@
 package ca.teamdman.sfm.common.recipe;
 
-import ca.teamdman.sfm.common.item.LabelGunItem;
-import ca.teamdman.sfm.common.registry.SFMItems;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
@@ -9,7 +7,11 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.world.World;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
+import ca.teamdman.sfm.common.item.LabelGunItem;
+import ca.teamdman.sfm.common.registry.SFMItems;
+
 public class LabelGunResetRecipe extends IForgeRegistryEntry.Impl<IRecipe> implements IRecipe {
+
     @Override
     public boolean matches(InventoryCrafting inv, World worldIn) {
         int foundLabelGuns = 0;

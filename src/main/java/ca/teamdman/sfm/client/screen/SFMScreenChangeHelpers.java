@@ -1,5 +1,23 @@
 package ca.teamdman.sfm.client.screen;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.resources.IResource;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
+
+import org.jetbrains.annotations.Nullable;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditScreenV1;
@@ -12,23 +30,6 @@ import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.CollectionUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.resources.IResource;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextFormatting;
-import org.jetbrains.annotations.Nullable;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class SFMScreenChangeHelpers {
 
@@ -62,28 +63,23 @@ public class SFMScreenChangeHelpers {
     }
 
     public static void showLabelGunScreen(
-            ItemStack stack,
-            EnumHand hand
-    ) {
+                                          ItemStack stack,
+                                          EnumHand hand) {
         setOrPushScreen(new LabelGunScreen(stack, hand));
     }
 
     public static ISFMTextEditScreen createProgramEditScreen(
-            ISFMTextEditScreenOpenContext openContext
-    ) {
-
+                                                             ISFMTextEditScreenOpenContext openContext) {
         return new SFMTextEditScreenV1(openContext);
     }
 
     public static void showProgramEditScreen(
-            ISFMTextEditScreenOpenContext context
-    ) {
+                                             ISFMTextEditScreenOpenContext context) {
         showTextEditScreen(createProgramEditScreen(context));
     }
 
     public static void showTextEditScreen(
-            ISFMTextEditScreen screen
-    ) {
+                                          ISFMTextEditScreen screen) {
         switch (screen.openBehaviour()) {
             case Push -> setOrPushScreen((GuiScreen) screen);
             case Replace -> setScreen((GuiScreen) screen);
@@ -91,8 +87,7 @@ public class SFMScreenChangeHelpers {
     }
 
     public static void showTomlEditScreen(
-            TomlEditScreenOpenContext context
-    ) {
+                                          TomlEditScreenOpenContext context) {
         SFMTextEditScreenV1 screen = new TomlEditScreen(context);
         setOrPushScreen(screen);
         screen.scrollToTop();
@@ -102,28 +97,25 @@ public class SFMScreenChangeHelpers {
         ISFMTextEditScreenOpenContext openContext = new SFMTextEditScreenDiskOpenContext(
                 initialContent,
                 LabelPositionHolder.empty(),
-                (x) -> {
-                }
-        );
+                (x) -> {});
         showProgramEditScreen(openContext);
     }
 
     public static void showExampleListScreen(
-            String diskProgramString,
-            LabelPositionHolder labelPositionHolder,
-            Consumer<String> saveCallback
-    ) {
-//        setOrPushScreen(new ExamplesScreen((chosenExample, templates) -> {
-//            SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
-//                    chosenExample,
-//                    diskProgramString,
-//                    templates,
-//                    labelPositionHolder,
-//                    saveCallback
-//            ));
-//            setOrPushScreen(screen);
-//            screen.scrollToTop();
-//        }));
+                                             String diskProgramString,
+                                             LabelPositionHolder labelPositionHolder,
+                                             Consumer<String> saveCallback) {
+        // setOrPushScreen(new ExamplesScreen((chosenExample, templates) -> {
+        // SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
+        // chosenExample,
+        // diskProgramString,
+        // templates,
+        // labelPositionHolder,
+        // saveCallback
+        // ));
+        // setOrPushScreen(screen);
+        // screen.scrollToTop();
+        // }));
     }
 
     public static void showLogsScreen(ManagerContainerMenu menu) {
@@ -133,8 +125,7 @@ public class SFMScreenChangeHelpers {
         SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundManagerLogDesireUpdatePacket(
                 menu.windowId,
                 menu.MANAGER_POSITION,
-                true
-        ));
+                true));
     }
 
     // TODO: copy item id, not just NBT
@@ -149,9 +140,8 @@ public class SFMScreenChangeHelpers {
             assert minecraft.player != null;
             minecraft.player.sendMessage(
                     LocalizationKeys.ITEM_INSPECTOR_COPIED_TO_CLIPBOARD.getComponent(
-                            new TextComponentString(String.valueOf(content.length())).setStyle(new net.minecraft.util.text.Style().setColor(TextFormatting.AQUA))
-                    )
-            );
+                            new TextComponentString(String.valueOf(content.length()))
+                                    .setStyle(new net.minecraft.util.text.Style().setColor(TextFormatting.AQUA))));
         }
     }
 
@@ -180,9 +170,7 @@ public class SFMScreenChangeHelpers {
                 changelog,
                 CollectionUtils.mapOf("changelog.sfml", changelog),
                 LabelPositionHolder.empty(),
-                newContent -> {
-                }
-        ));
+                newContent -> {}));
         setOrPushScreen(screen);
         screen.scrollToTop();
     }

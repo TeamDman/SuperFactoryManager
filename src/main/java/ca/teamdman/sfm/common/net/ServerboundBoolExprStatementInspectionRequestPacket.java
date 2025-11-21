@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.common.net;
 
+import net.minecraft.network.PacketBuffer;
+
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import ca.teamdman.sfm.common.registry.SFMPackets;
@@ -7,14 +9,10 @@ import ca.teamdman.sfml.ast.BoolExpr;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.DecoderException;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import java.io.IOException;
+public class ServerboundBoolExprStatementInspectionRequestPacket extends
+                                                                 SFMAdvancedPacket<ServerboundBoolExprStatementInspectionRequestPacket> {
 
-public class ServerboundBoolExprStatementInspectionRequestPacket extends SFMAdvancedPacket<ServerboundBoolExprStatementInspectionRequestPacket> {
     private String programString;
     private int inputNodeIndex;
 
@@ -23,8 +21,7 @@ public class ServerboundBoolExprStatementInspectionRequestPacket extends SFMAdva
         this.inputNodeIndex = inputNodeIndex;
     }
 
-    public ServerboundBoolExprStatementInspectionRequestPacket() {
-    }
+    public ServerboundBoolExprStatementInspectionRequestPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {
@@ -46,40 +43,32 @@ public class ServerboundBoolExprStatementInspectionRequestPacket extends SFMAdva
 
     @Override
     public void handle(
-            ServerboundBoolExprStatementInspectionRequestPacket msg,
-            SFMPacketHandlingContext context
-    ) {
+                       ServerboundBoolExprStatementInspectionRequestPacket msg,
+                       SFMPacketHandlingContext context) {
         context.compileAndThen(
                 msg.programString,
-                (program, player, managerBlockEntity) ->
-                        program.astBuilder()
-                                .getNodeAtIndex(msg.inputNodeIndex)
-                                .filter(BoolExpr.class::isInstance)
-                                .map(BoolExpr.class::cast)
-                                .ifPresent(expr -> {
-                                    StringBuilder payload = new StringBuilder();
-                                    payload
-                                            .append(expr.toStringPretty())
-                                            .append("\n-- peek results --\n");
-                                    ProgramContext programContext = new ProgramContext(
-                                            program,
-                                            managerBlockEntity,
-                                            new SimulateExploreAllPathsProgramBehaviour()
-                                    );
-                                    boolean result = expr.test(programContext);
-                                    payload.append(result ? "TRUE" : "FALSE");
+                (program, player, managerBlockEntity) -> program.astBuilder()
+                        .getNodeAtIndex(msg.inputNodeIndex)
+                        .filter(BoolExpr.class::isInstance)
+                        .map(BoolExpr.class::cast)
+                        .ifPresent(expr -> {
+                            StringBuilder payload = new StringBuilder();
+                            payload
+                                    .append(expr.toStringPretty())
+                                    .append("\n-- peek results --\n");
+                            ProgramContext programContext = new ProgramContext(
+                                    program,
+                                    managerBlockEntity,
+                                    new SimulateExploreAllPathsProgramBehaviour());
+                            boolean result = expr.test(programContext);
+                            payload.append(result ? "TRUE" : "FALSE");
 
-                                    SFMPackets.sendToPlayer(
-                                            player,
-                                            new ClientboundBoolExprStatementInspectionResultsPacket(
-                                                    SFMAdvancedPacket.truncate(
-                                                            payload.toString(),
-                                                            ClientboundBoolExprStatementInspectionResultsPacket.MAX_RESULTS_LENGTH
-                                                    ))
-                                    );
-                                })
-        );
+                            SFMPackets.sendToPlayer(
+                                    player,
+                                    new ClientboundBoolExprStatementInspectionResultsPacket(
+                                            SFMAdvancedPacket.truncate(
+                                                    payload.toString(),
+                                                    ClientboundBoolExprStatementInspectionResultsPacket.MAX_RESULTS_LENGTH)));
+                        }));
     }
-
-
 }

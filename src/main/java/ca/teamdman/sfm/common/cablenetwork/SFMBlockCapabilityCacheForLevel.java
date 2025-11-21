@@ -1,5 +1,16 @@
 package ca.teamdman.sfm.common.cablenetwork;
 
+import java.util.stream.Stream;
+
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
+
+import org.jetbrains.annotations.Nullable;
+
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
 import ca.teamdman.sfm.common.util.NotStored;
@@ -8,19 +19,11 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArraySet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.stream.Stream;
 
 public class SFMBlockCapabilityCacheForLevel {
 
     private static class CachedCapability {
+
         final IBlockState state;
         final SFMBlockCapabilityResult<?> capabilityResult;
 
@@ -41,7 +44,8 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     public int size() {
-        return CACHE.values().stream().flatMap(x -> x.values().stream()).mapToInt(SFMDirections.NullableDirectionEnumMap::size).sum();
+        return CACHE.values().stream().flatMap(x -> x.values().stream())
+                .mapToInt(SFMDirections.NullableDirectionEnumMap::size).sum();
     }
 
     public void overwriteFromOther(@NotStored BlockPos pos, SFMBlockCapabilityCacheForLevel other) {
@@ -53,11 +57,10 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     public <CAP> @Nullable SFMBlockCapabilityResult<CAP> getCapability(
-            World world,
-            @NotStored BlockPos pos,
-            SFMBlockCapabilityKind<CAP> capKind,
-            @Nullable EnumFacing direction
-    ) {
+                                                                       World world,
+                                                                       @NotStored BlockPos pos,
+                                                                       SFMBlockCapabilityKind<CAP> capKind,
+                                                                       @Nullable EnumFacing direction) {
         var capMap = CACHE.get(pos.toLong());
         if (capMap != null) {
             var dirMap = capMap.get(capKind);
@@ -66,7 +69,7 @@ public class SFMBlockCapabilityCacheForLevel {
                 if (found != null) {
                     IBlockState currentState = world.getBlockState(pos);
                     if (currentState == found.state) {
-                        //noinspection unchecked
+                        // noinspection unchecked
                         return (SFMBlockCapabilityResult<CAP>) found.capabilityResult;
                     } else {
                         // Stale cache, remove it
@@ -78,7 +81,7 @@ public class SFMBlockCapabilityCacheForLevel {
         return null;
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public void putAll(SFMBlockCapabilityCacheForLevel other) {
         // This method is likely not safe with the new caching mechanism, but it's not used in the hot path.
         // For now, we'll leave it as a no-op to avoid issues.
@@ -89,10 +92,9 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     public void remove(
-            @NotStored BlockPos pos,
-            SFMBlockCapabilityKind<?> capKind,
-            @Nullable EnumFacing direction
-    ) {
+                       @NotStored BlockPos pos,
+                       SFMBlockCapabilityKind<?> capKind,
+                       @Nullable EnumFacing direction) {
         var capMap = CACHE.get(pos.toLong());
         if (capMap != null) {
             var dirMap = capMap.get(capKind);
@@ -110,12 +112,11 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     public <CAP> void putCapability(
-            World world,
-            @NotStored BlockPos pos,
-            SFMBlockCapabilityKind<CAP> capKind,
-            @Nullable EnumFacing direction,
-            SFMBlockCapabilityResult<CAP> cap
-    ) {
+                                    World world,
+                                    @NotStored BlockPos pos,
+                                    SFMBlockCapabilityKind<CAP> capKind,
+                                    @Nullable EnumFacing direction,
+                                    SFMBlockCapabilityResult<CAP> cap) {
         IBlockState currentState = world.getBlockState(pos);
         CachedCapability cachedCap = new CachedCapability(currentState, cap);
 

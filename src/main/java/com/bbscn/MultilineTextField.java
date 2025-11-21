@@ -1,20 +1,22 @@
 package com.bbscn;
 
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import org.lwjgl.input.Keyboard;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+import org.lwjgl.input.Keyboard;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
 @SideOnly(Side.CLIENT)
 public class MultilineTextField {
+
     public static final int NO_CHARACTER_LIMIT = Integer.MAX_VALUE;
     private static final int LINE_SEEK_PIXEL_BIAS = 2;
     private final FontRenderer font;
@@ -25,10 +27,8 @@ public class MultilineTextField {
     private boolean selecting;
     private int characterLimit = Integer.MAX_VALUE;
     private final int width;
-    private Consumer<String> valueListener = p_239235_ -> {
-    };
-    private Runnable cursorListener = () -> {
-    };
+    private Consumer<String> valueListener = p_239235_ -> {};
+    private Runnable cursorListener = () -> {};
 
     public MultilineTextField(FontRenderer pFont, int pWidth) {
         this.font = pFont;
@@ -75,7 +75,9 @@ public class MultilineTextField {
         if (!pText.isEmpty() || this.hasSelection()) {
             String s = this.truncateInsertionText(Tools.filterText(pText, true));
             StringView multilinetextfield$stringview = this.getSelected();
-            this.value = new StringBuilder(this.value).replace(multilinetextfield$stringview.beginIndex, multilinetextfield$stringview.endIndex, s).toString();
+            this.value = new StringBuilder(this.value)
+                    .replace(multilinetextfield$stringview.beginIndex, multilinetextfield$stringview.endIndex, s)
+                    .toString();
             this.cursor = multilinetextfield$stringview.beginIndex + s.length();
             this.selectCursor = this.cursor;
             this.onValueChange();
@@ -109,7 +111,8 @@ public class MultilineTextField {
     public int getLineAtCursor() {
         for (int i = 0; i < this.displayLines.size(); i++) {
             StringView multilinetextfield$stringview = this.displayLines.get(i);
-            if (this.cursor >= multilinetextfield$stringview.beginIndex && this.cursor <= multilinetextfield$stringview.endIndex) {
+            if (this.cursor >= multilinetextfield$stringview.beginIndex &&
+                    this.cursor <= multilinetextfield$stringview.endIndex) {
                 return i;
             }
         }
@@ -142,10 +145,12 @@ public class MultilineTextField {
 
     public void seekCursorLine(int pOffset) {
         if (pOffset != 0) {
-            int i = this.font.getStringWidth(this.value.substring(this.getCursorLineView().beginIndex, this.cursor)) + 2;
+            int i = this.font.getStringWidth(this.value.substring(this.getCursorLineView().beginIndex, this.cursor)) +
+                    2;
             StringView multilinetextfield$stringview = this.getCursorLineView(pOffset);
             int j = this.font
-                    .trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex, multilinetextfield$stringview.endIndex), i)
+                    .trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex,
+                            multilinetextfield$stringview.endIndex), i)
                     .length();
             this.seekCursor(Whence.ABSOLUTE, multilinetextfield$stringview.beginIndex + j);
         }
@@ -154,17 +159,22 @@ public class MultilineTextField {
     public void seekCursorToPoint(double pX, double pY) {
         int i = (int) Math.floor(pX);
         int j = (int) Math.floor(pY / 9.0);
-        StringView multilinetextfield$stringview = this.displayLines.get(Tools.clamp(j, 0, this.displayLines.size() - 1));
+        StringView multilinetextfield$stringview = this.displayLines
+                .get(Tools.clamp(j, 0, this.displayLines.size() - 1));
         int k = this.font
-                .trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex, multilinetextfield$stringview.endIndex), i)
+                .trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex,
+                        multilinetextfield$stringview.endIndex), i)
                 .length();
         int hoverCharHalfWidth = 0;
         if (k != 0) {
             hoverCharHalfWidth = this.font.getStringWidth(
-                    this.font.trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex + k - 1, multilinetextfield$stringview.beginIndex + k), 100)) / 2;
+                    this.font.trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex + k - 1,
+                            multilinetextfield$stringview.beginIndex + k), 100)) /
+                    2;
         }
         k = this.font
-                .trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex, multilinetextfield$stringview.endIndex), i + hoverCharHalfWidth)
+                .trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex,
+                        multilinetextfield$stringview.endIndex), i + hoverCharHalfWidth)
                 .length();
         this.seekCursor(Whence.ABSOLUTE, multilinetextfield$stringview.beginIndex + k);
     }
@@ -280,7 +290,8 @@ public class MultilineTextField {
     private StringView getCursorLineView(int pOffset) {
         int i = this.getLineAtCursor();
         if (i < 0) {
-            throw new IllegalStateException("Cursor is not within text (cursor = " + this.cursor + ", length = " + this.value.length() + ")");
+            throw new IllegalStateException(
+                    "Cursor is not within text (cursor = " + this.cursor + ", length = " + this.value.length() + ")");
         } else {
             return this.displayLines.get(Tools.clamp(i + pOffset, 0, this.displayLines.size() - 1));
         }
@@ -355,15 +366,16 @@ public class MultilineTextField {
                 this.displayLines.add(new StringView(startIndex, endIndex));
                 startIndex = endIndex + 1;
             }
-//            this.font.
-//                    .getSplitter()
-//                    .splitLines(
-//                            this.value,
-//                            this.width,
-//                            Style.EMPTY,
-//                            false,
-//                            (p_239846_, p_239847_, p_239848_) -> this.displayLines.add(new MultilineTextField.StringView(p_239847_, p_239848_))
-//                    );
+            // this.font.
+            // .getSplitter()
+            // .splitLines(
+            // this.value,
+            // this.width,
+            // Style.EMPTY,
+            // false,
+            // (p_239846_, p_239847_, p_239848_) -> this.displayLines.add(new MultilineTextField.StringView(p_239847_,
+            // p_239848_))
+            // );
             if (this.value.charAt(this.value.length() - 1) == '\n') {
                 this.displayLines.add(new StringView(this.value.length(), this.value.length()));
             }
@@ -371,7 +383,8 @@ public class MultilineTextField {
     }
 
     private String truncateFullText(String pFullText) {
-        return this.hasCharacterLimit() ? Tools.truncateStringIfNecessary(pFullText, this.characterLimit, false) : pFullText;
+        return this.hasCharacterLimit() ? Tools.truncateStringIfNecessary(pFullText, this.characterLimit, false) :
+                pFullText;
     }
 
     private String truncateInsertionText(String pText) {
@@ -385,6 +398,7 @@ public class MultilineTextField {
 
     @SideOnly(Side.CLIENT)
     public static class StringView {
+
         int beginIndex;
         int endIndex;
         public static StringView EMPTY = new StringView(0, 0);

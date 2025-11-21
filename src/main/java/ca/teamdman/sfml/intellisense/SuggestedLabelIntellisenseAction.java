@@ -1,16 +1,19 @@
 package ca.teamdman.sfml.intellisense;
 
-import ca.teamdman.sfml.ast.Label;
-import ca.teamdman.sfml.manipulation.ManipulationResult;
-import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 
+import com.github.bsideup.jabel.Desugar;
+
+import ca.teamdman.sfml.ast.Label;
+import ca.teamdman.sfml.manipulation.ManipulationResult;
+
 @Desugar
 public record SuggestedLabelIntellisenseAction(
-        String label,
-        int numBlocks
-) implements IntellisenseAction {
+                                               String label,
+                                               int numBlocks)
+        implements IntellisenseAction {
+
     @Override
     public ITextComponent getComponent() {
         return new TextComponentString(String.format("%s (%d)", label, numBlocks));

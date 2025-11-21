@@ -1,9 +1,11 @@
 package ca.teamdman.sfm.common.logging;
 
-import ca.teamdman.sfm.SFM;
-import io.netty.buffer.Unpooled;
+import java.util.*;
+import java.util.function.Consumer;
+
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.text.TextComponentTranslation;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -11,10 +13,11 @@ import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.time.Instant;
 
-import java.util.*;
-import java.util.function.Consumer;
+import ca.teamdman.sfm.SFM;
+import io.netty.buffer.Unpooled;
 
 public class TranslatableLogger {
+
     private static final LoggerContext CONTEXT = new LoggerContext(SFM.MOD_ID);
     private final Logger logger;
     private Level logLevel = Level.OFF;
@@ -61,7 +64,7 @@ public class TranslatableLogger {
 
     public void info(Consumer<Consumer<TextComponentTranslation>> logger) {
         if (this.logLevel.isLessSpecificThan(Level.INFO)) {
-//            logger.accept(contents -> this.logger.info(contents.getKey(), contents.getArgs()));
+            // logger.accept(contents -> this.logger.info(contents.getKey(), contents.getArgs()));
             logger.accept(this::info);
         }
     }
@@ -74,7 +77,7 @@ public class TranslatableLogger {
 
     public void warn(Consumer<Consumer<TextComponentTranslation>> logger) {
         if (this.logLevel.isLessSpecificThan(Level.WARN)) {
-//            logger.accept(contents -> this.logger.warn(contents.getKey(), contents.getArgs()));
+            // logger.accept(contents -> this.logger.warn(contents.getKey(), contents.getArgs()));
             logger.accept(this::warn);
         }
     }
@@ -87,7 +90,7 @@ public class TranslatableLogger {
 
     public void error(Consumer<Consumer<TextComponentTranslation>> logger) {
         if (this.logLevel.isLessSpecificThan(Level.ERROR)) {
-//            logger.accept(contents -> this.logger.error(contents.getKey(), contents.getArgs()));
+            // logger.accept(contents -> this.logger.error(contents.getKey(), contents.getArgs()));
             logger.accept(this::error);
         }
     }
@@ -100,7 +103,7 @@ public class TranslatableLogger {
 
     public void debug(Consumer<Consumer<TextComponentTranslation>> logger) {
         if (this.logLevel.isLessSpecificThan(Level.DEBUG)) {
-//            logger.accept(contents -> this.logger.debug(contents.getKey(), contents.getArgs()));
+            // logger.accept(contents -> this.logger.debug(contents.getKey(), contents.getArgs()));
             logger.accept(this::debug);
         }
     }
@@ -113,7 +116,7 @@ public class TranslatableLogger {
 
     public void trace(Consumer<Consumer<TextComponentTranslation>> logger) {
         if (this.logLevel.isLessSpecificThan(Level.TRACE)) {
-//            logger.accept(contents -> this.logger.trace(contents.getKey(), contents.getArgs()));
+            // logger.accept(contents -> this.logger.trace(contents.getKey(), contents.getArgs()));
             logger.accept(this::trace);
         }
     }
@@ -127,14 +130,10 @@ public class TranslatableLogger {
     }
 
     public static boolean comesAfter(
-            Instant a,
-            Instant b
-    ) {
-        return a.getEpochSecond() > b.getEpochSecond()
-               || (
-                       a.getEpochSecond() == b.getEpochSecond()
-                       && a.getNanoOfSecond() > b.getNanoOfSecond()
-               );
+                                     Instant a,
+                                     Instant b) {
+        return a.getEpochSecond() > b.getEpochSecond() ||
+                (a.getEpochSecond() == b.getEpochSecond() && a.getNanoOfSecond() > b.getNanoOfSecond());
     }
 
     public static ArrayDeque<TranslatableLogEvent> decode(PacketBuffer buf) {
@@ -156,13 +155,12 @@ public class TranslatableLogger {
      * (NetworkHooks#openScreen(ServerPlayer, MenuProvider, Consumer) in later versions)
      */
     public static void encodeAndDrain(
-            Collection<TranslatableLogEvent> logs,
-            PacketBuffer buf
-    ) {
+                                      Collection<TranslatableLogEvent> logs,
+                                      PacketBuffer buf) {
         int maxReadableBytes = 32600;
         PacketBuffer chunk = new PacketBuffer(Unpooled.buffer());
         int count = 0;
-        for (Iterator<TranslatableLogEvent> iterator = logs.iterator(); iterator.hasNext(); ) {
+        for (Iterator<TranslatableLogEvent> iterator = logs.iterator(); iterator.hasNext();) {
             TranslatableLogEvent entry = iterator.next();
             PacketBuffer check = new PacketBuffer(Unpooled.buffer());
             entry.encode(check);
@@ -213,5 +211,4 @@ public class TranslatableLogger {
         }
         return new LinkedList<>();
     }
-
 }

@@ -1,29 +1,30 @@
 package ca.teamdman.sfml.ast;
 
-import ca.teamdman.sfm.common.program.*;
-import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import com.github.bsideup.jabel.Desugar;
-
 import static ca.teamdman.sfml.ast.Limit.MAX_QUANTITY_MAX_RETENTION;
 import static ca.teamdman.sfml.ast.Limit.MAX_QUANTITY_NO_RETENTION;
 import static ca.teamdman.sfml.ast.ResourceIdSet.MATCH_ALL;
 import static ca.teamdman.sfml.ast.With.ALWAYS_TRUE;
 
-@Desugar public record ResourceLimit(
-        ResourceIdSet resourceIds,
-        Limit limit,
-        With with
-) implements ASTNode {
+import com.github.bsideup.jabel.Desugar;
+
+import ca.teamdman.sfm.common.program.*;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+
+@Desugar
+public record ResourceLimit(
+                            ResourceIdSet resourceIds,
+                            Limit limit,
+                            With with)
+        implements ASTNode {
+
     public static final ResourceLimit TAKE_ALL_LEAVE_NONE = new ResourceLimit(
             MATCH_ALL,
             MAX_QUANTITY_NO_RETENTION,
-            ALWAYS_TRUE
-    );
+            ALWAYS_TRUE);
     public static final ResourceLimit ACCEPT_ALL_WITHOUT_RESTRAINT = new ResourceLimit(
             MATCH_ALL,
             MAX_QUANTITY_MAX_RETENTION,
-            ALWAYS_TRUE
-    );
+            ALWAYS_TRUE);
 
     public ResourceLimit withDefaultLimit(Limit defaults) {
         return new ResourceLimit(resourceIds, limit.withDefaults(defaults), with);
@@ -34,32 +35,30 @@ import static ca.teamdman.sfml.ast.With.ALWAYS_TRUE;
     }
 
     public IInputResourceTracker createInputTracker(
-            ResourceIdSet exclusions
-    ) {
+                                                    ResourceIdSet exclusions) {
         return switch (limit.quantity().idExpansionBehaviour()) {
             case EXPAND -> switch (limit.retention().idExpansionBehaviour()) {
-                case EXPAND -> new ExpandedQuantityExpandedRetentionInputResourceTracker(this, exclusions);
-                case NO_EXPAND -> new ExpandedQuantitySharedRetentionInputResourceTracker(this, exclusions);
-            };
+                    case EXPAND -> new ExpandedQuantityExpandedRetentionInputResourceTracker(this, exclusions);
+                    case NO_EXPAND -> new ExpandedQuantitySharedRetentionInputResourceTracker(this, exclusions);
+                };
             case NO_EXPAND -> switch (limit.retention().idExpansionBehaviour()) {
-                case EXPAND -> new SharedQuantityExpandedRetentionInputResourceTracker(this, exclusions);
-                case NO_EXPAND -> new SharedQuantitySharedRetentionInputResourceTracker(this, exclusions);
-            };
+                    case EXPAND -> new SharedQuantityExpandedRetentionInputResourceTracker(this, exclusions);
+                    case NO_EXPAND -> new SharedQuantitySharedRetentionInputResourceTracker(this, exclusions);
+                };
         };
     }
 
     public IOutputResourceTracker createOutputTracker(
-            ResourceIdSet exclusions
-    ) {
+                                                      ResourceIdSet exclusions) {
         return switch (limit.quantity().idExpansionBehaviour()) {
             case EXPAND -> switch (limit.retention().idExpansionBehaviour()) {
-                case EXPAND -> new ExpandedQuantityExpandedRetentionOutputResourceTracker(this, exclusions);
-                case NO_EXPAND -> new ExpandedQuantitySharedRetentionOutputResourceTracker(this, exclusions);
-            };
+                    case EXPAND -> new ExpandedQuantityExpandedRetentionOutputResourceTracker(this, exclusions);
+                    case NO_EXPAND -> new ExpandedQuantitySharedRetentionOutputResourceTracker(this, exclusions);
+                };
             case NO_EXPAND -> switch (limit.retention().idExpansionBehaviour()) {
-                case EXPAND -> new SharedQuantityExpandedRetentionOutputResourceTracker(this, exclusions);
-                case NO_EXPAND -> new SharedQuantitySharedRetentionOutputResourceTracker(this, exclusions);
-            };
+                    case EXPAND -> new SharedQuantityExpandedRetentionOutputResourceTracker(this, exclusions);
+                    case NO_EXPAND -> new SharedQuantitySharedRetentionOutputResourceTracker(this, exclusions);
+                };
         };
     }
 
@@ -82,12 +81,7 @@ import static ca.teamdman.sfml.ast.With.ALWAYS_TRUE;
     }
 
     public String toStringCondensed(Limit defaults) {
-        return (
-                limit.toStringCondensed(defaults) + " " + resourceIds.toStringCondensed() + (
-                        with == ALWAYS_TRUE
-                        ? ""
-                        : " WITH " + with
-                )
-        ).trim();
+        return (limit.toStringCondensed(defaults) + " " + resourceIds.toStringCondensed() +
+                (with == ALWAYS_TRUE ? "" : " WITH " + with)).trim();
     }
 }

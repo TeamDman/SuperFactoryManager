@@ -1,14 +1,15 @@
 package ca.teamdman.sfm.common.command;
 
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
-import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 
+import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
+
 public class ShowBadCableCacheEntriesCommand extends CommandBase {
+
     @Override
     public String getName() {
         return "show_bad_cable_cache_entries";

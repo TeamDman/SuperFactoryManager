@@ -1,13 +1,9 @@
 package ca.teamdman.sfm.common.cablenetwork;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.util.NotStored;
-import ca.teamdman.sfm.common.util.SFMDirections;
-import ca.teamdman.sfm.common.util.SFMStreamUtils;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -16,12 +12,17 @@ import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.jetbrains.annotations.NotNull;
-import vswe.superfactory.tiles.TileEntityManager;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import org.jetbrains.annotations.NotNull;
+
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.util.NotStored;
+import ca.teamdman.sfm.common.util.SFMDirections;
+import ca.teamdman.sfm.common.util.SFMStreamUtils;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
 /**
  * Helper class to memorize the relevant chains of inventory cables.
@@ -43,6 +44,7 @@ import java.util.stream.Stream;
  */
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID)
 public class CableNetworkManager {
+
     private static final Map<World, Long2ObjectMap<CableNetwork>> NETWORKS_BY_CABLE_POSITION = new Object2ObjectOpenHashMap<>();
     private static final Map<World, List<CableNetwork>> NETWORKS_BY_LEVEL = new Object2ObjectOpenHashMap<>();
 
@@ -50,25 +52,25 @@ public class CableNetworkManager {
      * For diagnostics, called when a lookup map has changed
      */
     private static void onNetworkLookupChanged() {
-//        if (!SFMEnvironment.isInIDE()) return;
-//        SFM.LOGGER.info("Network lookup changed");
-//        SFM.LOGGER.info("NETWORKS_BY_LEVEL:");
-//        for (Map.Entry<Level, List<CableNetwork>> entry : NETWORKS_BY_LEVEL.entrySet()) {
-//            Level level = entry.getKey();
-//            List<CableNetwork> networks = entry.getValue();
-//            SFM.LOGGER.debug("Level {} has {} networks", level, networks.size());
-//            StringBuilder builder = new StringBuilder();
-//            for (CableNetwork network : networks) {
-//                builder.append(network.getCableCount()).append(" cables; ");
-//            }
-//            SFM.LOGGER.debug(builder.toString());
-//        }
-//        SFM.LOGGER.info("NETWORKS_BY_CABLE_POSITION:");
-//        for (Map.Entry<Level, Long2ObjectMap<CableNetwork>> entry : NETWORKS_BY_CABLE_POSITION.entrySet()) {
-//            Level level = entry.getKey();
-//            Long2ObjectMap<CableNetwork> networksByCablePosition = entry.getValue();
-//            SFM.LOGGER.debug("Level {} has {} cables", level, networksByCablePosition.size());
-//        }
+        // if (!SFMEnvironment.isInIDE()) return;
+        // SFM.LOGGER.info("Network lookup changed");
+        // SFM.LOGGER.info("NETWORKS_BY_LEVEL:");
+        // for (Map.Entry<Level, List<CableNetwork>> entry : NETWORKS_BY_LEVEL.entrySet()) {
+        // Level level = entry.getKey();
+        // List<CableNetwork> networks = entry.getValue();
+        // SFM.LOGGER.debug("Level {} has {} networks", level, networks.size());
+        // StringBuilder builder = new StringBuilder();
+        // for (CableNetwork network : networks) {
+        // builder.append(network.getCableCount()).append(" cables; ");
+        // }
+        // SFM.LOGGER.debug(builder.toString());
+        // }
+        // SFM.LOGGER.info("NETWORKS_BY_CABLE_POSITION:");
+        // for (Map.Entry<Level, Long2ObjectMap<CableNetwork>> entry : NETWORKS_BY_CABLE_POSITION.entrySet()) {
+        // Level level = entry.getKey();
+        // Long2ObjectMap<CableNetwork> networksByCablePosition = entry.getValue();
+        // SFM.LOGGER.debug("Level {} has {} cables", level, networksByCablePosition.size());
+        // }
     }
 
     public static Optional<CableNetwork> getOrRegisterNetworkFromManagerPosition(ManagerBlockEntity tile) {
@@ -116,11 +118,10 @@ public class CableNetworkManager {
     }
 
     public static void purgeCableNetworkForManager(ManagerBlockEntity manager) {
-        //noinspection DataFlowIssue
+        // noinspection DataFlowIssue
         getNetworkFromCablePosition(
                 manager.getWorld(),
-                manager.getPos()
-        ).ifPresent(CableNetworkManager::removeNetwork);
+                manager.getPos()).ifPresent(CableNetworkManager::removeNetwork);
     }
 
     /**
@@ -133,8 +134,8 @@ public class CableNetworkManager {
         return getOrRegisterNetworkFromCablePosition(level, pos, false);
     }
 
-
-    public static Optional<CableNetwork> getOrRegisterNetworkFromCablePosition(World level, @NotStored BlockPos pos, boolean isVisualManager) {
+    public static Optional<CableNetwork> getOrRegisterNetworkFromCablePosition(World level, @NotStored BlockPos pos,
+                                                                               boolean isVisualManager) {
         if (level.isRemote) return Optional.empty();
 
         // discover existing network for this position
@@ -214,8 +215,7 @@ public class CableNetworkManager {
                     }
                 },
                 visitDebounce,
-                danglingCables
-        ).collect(Collectors.toSet());
+                danglingCables).collect(Collectors.toSet());
         for (BlockPos danglingCable : allDanglingCables) {
             rtn.addCable(danglingCable);
             networksByPosition.put(danglingCable.toLong(), rtn);
@@ -267,7 +267,6 @@ public class CableNetworkManager {
         network.updateVisualManagers();
         onNetworkLookupChanged();
     }
-
 
     @SubscribeEvent
     public static void onChunkUnload(ChunkEvent.Unload event) {

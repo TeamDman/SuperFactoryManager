@@ -1,53 +1,47 @@
 package vswe.superfactory;
 
-import ca.teamdman.sfm.SFM;
+import static ca.teamdman.sfm.common.registry.SFMBlocks.MANAGER;
+
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLInterModComms;
-import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.network.FMLEventChannel;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
-import vswe.superfactory.components.internal.ModItemHelper;
+
 import vswe.superfactory.network.messages.MessageHandler;
 import vswe.superfactory.network.packets.FileHelper;
 import vswe.superfactory.network.packets.PacketEventHandler;
-import vswe.superfactory.registry.ModBlocks;
-
-import static ca.teamdman.sfm.common.registry.SFMBlocks.MANAGER;
 
 public class SuperFactoryManager {
-	public static final String              CHANNEL                      = "factorymanager";
-	public static final String              MODID                        = "superfactorymanager";
-	public static final byte                NBT_CURRENT_PROTOCOL_VERSION = 15;
-	public static final String              NBT_PROTOCOL_VERSION         = "ProtocolVersion";
-	public static final String              RESOURCE_LOCATION            = "superfactorymanager";
-	public static final String              UNLOCALIZED_START            = "sfm.";
-	public static final CreativeTabs        creativeTab                  = new CreativeTabs("sfm") {
-		@Override
-		public ItemStack createIcon() {
-			return new ItemStack(MANAGER);
-		}
-	};
-	public static       SuperFactoryManager instance;
-	public static       FMLEventChannel     packetHandler;
 
-	public void preInit(FMLPreInitializationEvent event) {
-		packetHandler = NetworkRegistry.INSTANCE.newEventDrivenChannel(CHANNEL);
+    public static final String CHANNEL = "factorymanager";
+    public static final String MODID = "superfactorymanager";
+    public static final byte NBT_CURRENT_PROTOCOL_VERSION = 15;
+    public static final String NBT_PROTOCOL_VERSION = "ProtocolVersion";
+    public static final String RESOURCE_LOCATION = "superfactorymanager";
+    public static final String UNLOCALIZED_START = "sfm.";
+    public static final CreativeTabs creativeTab = new CreativeTabs("sfm") {
 
-		FileHelper.setConfigDir(event.getModConfigurationDirectory());
+        @Override
+        public ItemStack createIcon() {
+            return new ItemStack(MANAGER);
+        }
+    };
+    public static SuperFactoryManager instance;
+    public static FMLEventChannel packetHandler;
 
-//		SFM.oldProxy.preInit();
+    public void preInit(FMLPreInitializationEvent event) {
+        packetHandler = NetworkRegistry.INSTANCE.newEventDrivenChannel(CHANNEL);
 
-		packetHandler.register(new PacketEventHandler());
+        FileHelper.setConfigDir(event.getModConfigurationDirectory());
 
-		MessageHandler.init();
+        // SFM.oldProxy.preInit();
 
-		FMLInterModComms.sendMessage("Waila", "register", "Provider.callbackRegister");
-	}
+        packetHandler.register(new PacketEventHandler());
 
+        MessageHandler.init();
 
-
+        FMLInterModComms.sendMessage("Waila", "register", "Provider.callbackRegister");
+    }
 }

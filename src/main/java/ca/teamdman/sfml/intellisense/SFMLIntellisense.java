@@ -1,5 +1,15 @@
 package ca.teamdman.sfml.intellisense;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.Vocabulary;
+import org.jetbrains.annotations.Nullable;
+
 import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.langs.SFMLParser;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
@@ -8,24 +18,15 @@ import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.CollectionUtils;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfml.ext_antlr4c3.CodeCompletionCore;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.Vocabulary;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 
 /**
  * https://neuroning.com/post/implementing-code-completion-for-vscode-with-antlr/
  * https://soft-gems.net/universal-code-completion-using-antlr3/
  */
 public class SFMLIntellisense {
+
     public static List<IntellisenseAction> getSuggestions(
-            IntellisenseContext context
-    ) {
+                                                          IntellisenseContext context) {
         List<IntellisenseAction> rtn = new ArrayList<>();
         // Short circuit if disabled
         if (context.intellisenseLevel().isDisabled()) {
@@ -36,16 +37,15 @@ public class SFMLIntellisense {
         SFMLParser parser = context.programBuildResult().metadata().parser();
         Set<Integer> preferredRules = CollectionUtils.setOf(
                 SFMLParser.RULE_resourceId,
-                SFMLParser.RULE_label
-        );
+                SFMLParser.RULE_label);
         Set<Integer> ignoredTokens = CollectionUtils.setOf(
                 SFMLParser.WS,
-                SFMLParser.EOF
-        );
+                SFMLParser.EOF);
         CodeCompletionCore core = new CodeCompletionCore(parser, preferredRules, ignoredTokens);
 
         // Identify caret position
-        @Nullable Token caretToken = context.programBuildResult().getTokenAtCursorPosition(context.cursorPosition());
+        @Nullable
+        Token caretToken = context.programBuildResult().getTokenAtCursorPosition(context.cursorPosition());
         if (caretToken == null) return new ArrayList<>();
         int caretTokenIndex = caretToken.getTokenIndex();
 
@@ -69,17 +69,12 @@ public class SFMLIntellisense {
                     rtn.add(new SuggestedTokensIntellisenseAction(
                             SFMLLexer.STRING,
                             new ArrayList<>(),
-                            vocabulary
-                    ));
+                            vocabulary));
                     context.labelPositionHolder().labels().forEach(
-                            (key, value) ->
-                                    rtn.add(
-                                            new SuggestedLabelIntellisenseAction(
-                                                    key,
-                                                    value.size()
-                                            )
-                                    )
-                    );
+                            (key, value) -> rtn.add(
+                                    new SuggestedLabelIntellisenseAction(
+                                            key,
+                                            value.size())));
                 }
             }
         });
@@ -89,27 +84,24 @@ public class SFMLIntellisense {
             rtn.add(new SuggestedTokensIntellisenseAction(
                     entry.getKey(),
                     entry.getValue(),
-                    vocabulary
-            ));
+                    vocabulary));
         }
 
         return rtn;
     }
 
     private static <STACK, ITEM, CAP> void gatherIntellisenseActions(
-            IntellisenseContext ignoredContext,
-            ResourceType<STACK, ITEM, CAP> resourceType,
-            Consumer<IntellisenseAction> results
-    ) {
-//        String word = context.createMutableProgramString().getWord();
+                                                                     IntellisenseContext ignoredContext,
+                                                                     ResourceType<STACK, ITEM, CAP> resourceType,
+                                                                     Consumer<IntellisenseAction> results) {
+        // String word = context.createMutableProgramString().getWord();
         for (ITEM item : resourceType.getItems()) {
             var suggestion = new SuggestedResourceIntellisenseAction<>(
                     resourceType,
-                    item
-            );
-//            if (suggestion.getComponent().getString().contains(word)) {
+                    item);
+            // if (suggestion.getComponent().getString().contains(word)) {
             results.accept(suggestion);
-//            }
+            // }
         }
     }
 }

@@ -1,24 +1,26 @@
 package ca.teamdman.sfml.ast;
 
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
-import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import net.minecraft.util.ResourceLocation;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.Nullable;
+
+import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 
 /**
  * A read-only set of {@link ResourceIdentifier} objects.
  * Do NOT modify this after creation since the {@link this#referencedResourceTypes} will become inaccurate.
  */
 public final class ResourceIdSet implements ASTNode {
+
     public static final ResourceIdSet EMPTY = new ResourceIdSet(Collections.emptyList());
     public static final ResourceIdSet MATCH_ALL = new ResourceIdSet(Arrays.asList(ResourceIdentifier.MATCH_ALL));
     private final ResourceIdentifier<?, ?, ?>[] resourceIds;
-    private @Nullable ResourceType<?,?,?>  [] referencedResourceTypes = null;
+    private @Nullable ResourceType<?, ?, ?>[] referencedResourceTypes = null;
 
     public ResourceIdSet(ResourceIdentifier<?, ?, ?>[] resourceIds) {
         this.resourceIds = resourceIds;
@@ -31,13 +33,13 @@ public final class ResourceIdSet implements ASTNode {
     /**
      * See also: {@link ResourceLimits#getReferencedResourceTypes()}
      */
-    public ResourceType<?,?,?>[] getReferencedResourceTypes() {
+    public ResourceType<?, ?, ?>[] getReferencedResourceTypes() {
         if (referencedResourceTypes == null) {
             var found = new LinkedHashSet<>(SFMResourceTypes.getResourceTypeCount());
             for (ResourceIdentifier<?, ?, ?> resourceId : resourceIds) {
                 found.add(resourceId.getResourceType());
             }
-            //noinspection SuspiciousToArrayCall
+            // noinspection SuspiciousToArrayCall
             referencedResourceTypes = found.toArray(new ResourceType[0]);
         }
         return referencedResourceTypes;
@@ -75,15 +77,15 @@ public final class ResourceIdSet implements ASTNode {
     @Override
     public String toString() {
         return "ResourceIdSet{" +
-               this.stream().map(ResourceIdentifier::toString).collect(Collectors.joining(", ")) +
-               '}';
+                this.stream().map(ResourceIdentifier::toString).collect(Collectors.joining(", ")) +
+                '}';
     }
 
     public String toStringCondensed() {
         return this.stream().map(ResourceIdentifier::toStringCondensed).collect(Collectors.joining(" OR "));
     }
 
-    public Stream<ResourceIdentifier<?,?,?>> stream() {
+    public Stream<ResourceIdentifier<?, ?, ?>> stream() {
         return Arrays.stream(resourceIds);
     }
 
@@ -99,5 +101,4 @@ public final class ResourceIdSet implements ASTNode {
     public int hashCode() {
         return Objects.hash((Object[]) resourceIds);
     }
-
 }

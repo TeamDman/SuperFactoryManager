@@ -1,10 +1,9 @@
 package ca.teamdman.sfm.common.net;
 
-import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import ca.teamdman.sfm.common.logging.TranslatableLogEvent;
-import ca.teamdman.sfm.common.logging.TranslatableLogger;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import java.util.Collection;
+
+import javax.annotation.Nullable;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.inventory.Container;
@@ -12,10 +11,14 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
+import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
+import ca.teamdman.sfm.common.logging.TranslatableLogEvent;
+import ca.teamdman.sfm.common.logging.TranslatableLogger;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class ClientboundManagerLogsPacket extends SFMPacket<ClientboundManagerLogsPacket> {
+
     private int windowId;
     private PacketBuffer logsBuf;
 
@@ -24,13 +27,11 @@ public class ClientboundManagerLogsPacket extends SFMPacket<ClientboundManagerLo
         this.logsBuf = logsBuf;
     }
 
-    public ClientboundManagerLogsPacket() {
-    }
+    public ClientboundManagerLogsPacket() {}
 
     public static ClientboundManagerLogsPacket drainToCreate(
-            int windowId,
-            Collection<TranslatableLogEvent> logs
-    ) {
+                                                             int windowId,
+                                                             Collection<TranslatableLogEvent> logs) {
         PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
         TranslatableLogger.encodeAndDrain(logs, buf);
         return new ClientboundManagerLogsPacket(windowId, buf);

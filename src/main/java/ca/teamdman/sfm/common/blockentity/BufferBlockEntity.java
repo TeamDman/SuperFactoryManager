@@ -1,20 +1,21 @@
 package ca.teamdman.sfm.common.blockentity;
 
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ITickable;
+import net.minecraftforge.common.capabilities.Capability;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.block.BufferBlockTier;
 import ca.teamdman.sfm.common.capability.BufferBlockCapabilityProvider;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ITickable;
-import net.minecraftforge.common.capabilities.Capability;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
 
 public class BufferBlockEntity extends TileEntity implements ITickable {
+
     private final BufferBlockEntityContents contents;
 
     public BufferBlockEntity(BufferBlockTier tier) {
@@ -35,8 +36,7 @@ public class BufferBlockEntity extends TileEntity implements ITickable {
                 getPos(),
                 world.getBlockState(getPos()),
                 this,
-                side
-        );
+                side);
         if (found.isPresent()) {
             return true;
         }
@@ -46,9 +46,8 @@ public class BufferBlockEntity extends TileEntity implements ITickable {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getCapability(
-            @NotNull Capability<T> cap,
-            @Nullable EnumFacing side
-    ) {
+                               @NotNull Capability<T> cap,
+                               @Nullable EnumFacing side) {
         SFMBlockCapabilityKind<T> capKind = new SFMBlockCapabilityKind<>(cap);
         BufferBlockCapabilityProvider bufferBlockCapabilityProvider = new BufferBlockCapabilityProvider();
         SFMBlockCapabilityResult<T> found = (SFMBlockCapabilityResult<T>) bufferBlockCapabilityProvider.getCapability(
@@ -57,8 +56,7 @@ public class BufferBlockEntity extends TileEntity implements ITickable {
                 getPos(),
                 world.getBlockState(getPos()),
                 this,
-                side
-        );
+                side);
         if (found.isPresent()) {
             return (T) found.capability();
         } else {
@@ -80,10 +78,8 @@ public class BufferBlockEntity extends TileEntity implements ITickable {
                     getPos(),
                     world.getBlockState(getPos()).withProperty(
                             BufferBlock.CONTAINED_RESOURCE,
-                            getContents().lastUsedResource
-                    ),
-                    3
-            );
+                            getContents().lastUsedResource),
+                    3);
         }
     }
 }

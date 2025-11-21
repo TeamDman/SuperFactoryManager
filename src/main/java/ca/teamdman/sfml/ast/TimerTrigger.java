@@ -1,18 +1,20 @@
 package ca.teamdman.sfml.ast;
 
-import ca.teamdman.sfm.common.program.ProgramContext;
-import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
-import ca.teamdman.sfm.common.util.StringUtil;
-import com.github.bsideup.jabel.Desugar;
-
 import java.util.Arrays;
 import java.util.List;
 
+import com.github.bsideup.jabel.Desugar;
 
-@Desugar public record TimerTrigger(
-        Interval interval,
-        Block block
-) implements Trigger, ToStringCondensed {
+import ca.teamdman.sfm.common.program.ProgramContext;
+import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import ca.teamdman.sfm.common.util.StringUtil;
+
+@Desugar
+public record TimerTrigger(
+                           Interval interval,
+                           Block block)
+        implements Trigger, ToStringCondensed {
+
     @Override
     public Block getBlock() {
         return block;
@@ -38,11 +40,8 @@ import java.util.List;
     }
 
     public boolean usesOnlyForgeEnergyResourceIO() {
-        return getReferencedIOResourceIds().allMatch(id -> id.resourceTypeNamespace.equals("sfm")
-                                                           && (
-                                                                   id.resourceTypeName.equals("forge_energy")
-                                                                   || id.resourceTypeName.equals("mekanism_energy")
-                                                           ));
+        return getReferencedIOResourceIds().allMatch(id -> id.resourceTypeNamespace.equals("sfm") &&
+                (id.resourceTypeName.equals("forge_energy") || id.resourceTypeName.equals("mekanism_energy")));
     }
 
     @Override

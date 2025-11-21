@@ -1,18 +1,20 @@
 package ca.teamdman.sfm.client.widget;
 
+import java.time.Duration;
 
-import com.bbscn.ScreenRectangle;
+import javax.annotation.Nullable;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import javax.annotation.Nullable;
-import java.time.Duration;
+import com.bbscn.ScreenRectangle;
 
 @SideOnly(Side.CLIENT)
 public class WidgetTooltipHolder {
+
     @Nullable
     private Tooltip tooltip;
     private Duration delay = Duration.ZERO;
@@ -36,7 +38,7 @@ public class WidgetTooltipHolder {
         if (this.tooltip == null) {
             this.wasDisplayed = false;
         } else {
-            boolean flag = pHovering || pFocused ;
+            boolean flag = pHovering || pFocused;
             if (flag != this.wasDisplayed) {
                 if (flag) {
                     this.displayStartTime = Minecraft.getSystemTime();
@@ -48,7 +50,8 @@ public class WidgetTooltipHolder {
             if (flag && Minecraft.getSystemTime() - this.displayStartTime > this.delay.toMillis()) {
                 GuiScreen screen = Minecraft.getMinecraft().currentScreen;
                 if (screen != null) {
-                    screen.drawHoveringText(this.tooltip.toStrings(),pScreenRectangle.getPosition().x(),pScreenRectangle.getPosition().y());
+                    screen.drawHoveringText(this.tooltip.toStrings(), pScreenRectangle.getPosition().x(),
+                            pScreenRectangle.getPosition().y());
                 }
             }
         }

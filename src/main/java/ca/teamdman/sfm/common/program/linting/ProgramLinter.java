@@ -1,5 +1,20 @@
 package ca.teamdman.sfm.common.program.linting;
 
+import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
+import static ca.teamdman.sfml.ast.RoundRobin.Behaviour.BY_BLOCK;
+import static ca.teamdman.sfml.ast.RoundRobin.Behaviour.BY_LABEL;
+
+import java.util.ArrayList;
+import java.util.Optional;
+
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
@@ -11,27 +26,14 @@ import ca.teamdman.sfml.ast.IOStatement;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.ast.ResourceQuantity;
 import ca.teamdman.sfml.ast.RoundRobin;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.item.ItemStack;
-import net.minecraft.world.World;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.Optional;
-
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
-import static ca.teamdman.sfml.ast.RoundRobin.Behaviour.BY_BLOCK;
-import static ca.teamdman.sfml.ast.RoundRobin.Behaviour.BY_LABEL;
 
 public class ProgramLinter {
+
     @SuppressWarnings("ConstantValue")
     public static ArrayList<TextComponentTranslation> gatherWarnings(
-            Program program,
-            LabelPositionHolder labelPositionHolder,
-            @Nullable ManagerBlockEntity manager
-    ) {
+                                                                     Program program,
+                                                                     LabelPositionHolder labelPositionHolder,
+                                                                     @Nullable ManagerBlockEntity manager) {
         var warnings = new ArrayList<TextComponentTranslation>();
         var level = manager != null ? manager.getWorld() : null;
 
@@ -72,10 +74,9 @@ public class ProgramLinter {
     }
 
     public static void fixWarnings(
-            ManagerBlockEntity manager,
-            ItemStack disk,
-            Program program
-    ) {
+                                   ManagerBlockEntity manager,
+                                   ItemStack disk,
+                                   Program program) {
         fixWarningsByRemovingBadLabelsFromDisk(manager, disk, program);
         LabelPositionHolder labelPositionHolder = LabelPositionHolder.from(disk);
         World level = manager.getWorld();
@@ -90,10 +91,9 @@ public class ProgramLinter {
     }
 
     private static void fixWarningsByRemovingBadLabelsFromDisk(
-            ManagerBlockEntity manager,
-            ItemStack disk,
-            Program program
-    ) {
+                                                               ManagerBlockEntity manager,
+                                                               ItemStack disk,
+                                                               Program program) {
         var labels = LabelPositionHolder.from(disk);
         // remove labels not defined in code
         labels.removeIf(label -> !program.referencedLabels().contains(label));
@@ -116,189 +116,181 @@ public class ProgramLinter {
     }
 
     private static void fixWarningsByModifyingMekanismAccess(
-            IOStatement statement,
-            LabelPositionHolder labelPositionHolder,
-            World level
-    ) {
-//        if (!SFMModCompat.isMekanismLoaded()) return;
-//        DirectionQualifier directions = statement.labelAccess().directions();
-//        Stream<Pair<Label, BlockPos>> mekanismBlocks = statement
-//                .labelAccess()
-//                .getLabelledPositions(labelPositionHolder)
-//                .stream()
-//                .filter(pair -> level.isLoaded(pair.getSecond()))
-//                .filter(pair -> SFMModCompat.isMekanismBlock(level, pair.getSecond()));
-//
-//        // add warning if interacting with mekanism but the mekanism side config is not ALLOW
-//        EnumSet<TransmissionType> referencedTransmissionTypes = SFMMekanismCompat
-//                .getReferencedTransmissionTypes(statement);
-//        Predicate<DataType> dataTypePredicate;
-//        DataType fixed;
-//        if (statement instanceof InputStatement) {
-//            dataTypePredicate = DataType::canOutput;
-//            fixed = DataType.OUTPUT; // to input from it, it must be set to output
-//        } else if (statement instanceof OutputStatement) {
-//            dataTypePredicate = dataType -> dataType == DataType.INPUT
-//                                            || dataType == DataType.INPUT_OUTPUT
-//                                            || dataType == DataType.INPUT_1
-//                                            || dataType == DataType.INPUT_2;
-//            fixed = DataType.INPUT; // to output from it, it must be set to input
-//        } else {
-//            throw new IllegalStateException("Unexpected value: " + statement);
-//        }
-//        mekanismBlocks.forEach(pair -> {
-//            BlockPos blockPos = pair.getSecond();
-//            if (level.getBlockEntity(blockPos) instanceof ISideConfiguration mekBlockEntity) {
-//                TileComponentConfig mekBlockEntityConfig = mekBlockEntity.getConfig();
-//                for (TransmissionType transmissionType : referencedTransmissionTypes) {
-//                    boolean anySuccess = false;
-//                    ConfigInfo transmissionConfig = mekBlockEntityConfig.getConfig(transmissionType);
-//                    if (transmissionConfig != null) {
-//                        Set<EnumFacing> activeSides = transmissionConfig.getSides(dataTypePredicate);
-//                        for (EnumFacing direction : directions) {
-//                            if (activeSides.contains(direction)) {
-//                                anySuccess = true;
-//                                break;
-//                            }
-//                        }
-//                        if (!anySuccess) {
-//                            // we want to enable the side for the transmission type
-//                            // pick the first direction in the statement
-//                            EnumFacing statementSide = directions.iterator().next();
-//                            if (statementSide != null) {
-//                                RelativeSide relativeSide = RelativeSide.fromDirections(
-//                                        mekBlockEntity.getDirection(),
-//                                        statementSide
-//                                );
-//                                transmissionConfig.setDataType(
-//                                        fixed,
-//                                        relativeSide
-//                                );
-//                                mekBlockEntityConfig.sideChanged(transmissionType, relativeSide);
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        });
+                                                             IOStatement statement,
+                                                             LabelPositionHolder labelPositionHolder,
+                                                             World level) {
+        // if (!SFMModCompat.isMekanismLoaded()) return;
+        // DirectionQualifier directions = statement.labelAccess().directions();
+        // Stream<Pair<Label, BlockPos>> mekanismBlocks = statement
+        // .labelAccess()
+        // .getLabelledPositions(labelPositionHolder)
+        // .stream()
+        // .filter(pair -> level.isLoaded(pair.getSecond()))
+        // .filter(pair -> SFMModCompat.isMekanismBlock(level, pair.getSecond()));
+        //
+        // // add warning if interacting with mekanism but the mekanism side config is not ALLOW
+        // EnumSet<TransmissionType> referencedTransmissionTypes = SFMMekanismCompat
+        // .getReferencedTransmissionTypes(statement);
+        // Predicate<DataType> dataTypePredicate;
+        // DataType fixed;
+        // if (statement instanceof InputStatement) {
+        // dataTypePredicate = DataType::canOutput;
+        // fixed = DataType.OUTPUT; // to input from it, it must be set to output
+        // } else if (statement instanceof OutputStatement) {
+        // dataTypePredicate = dataType -> dataType == DataType.INPUT
+        // || dataType == DataType.INPUT_OUTPUT
+        // || dataType == DataType.INPUT_1
+        // || dataType == DataType.INPUT_2;
+        // fixed = DataType.INPUT; // to output from it, it must be set to input
+        // } else {
+        // throw new IllegalStateException("Unexpected value: " + statement);
+        // }
+        // mekanismBlocks.forEach(pair -> {
+        // BlockPos blockPos = pair.getSecond();
+        // if (level.getBlockEntity(blockPos) instanceof ISideConfiguration mekBlockEntity) {
+        // TileComponentConfig mekBlockEntityConfig = mekBlockEntity.getConfig();
+        // for (TransmissionType transmissionType : referencedTransmissionTypes) {
+        // boolean anySuccess = false;
+        // ConfigInfo transmissionConfig = mekBlockEntityConfig.getConfig(transmissionType);
+        // if (transmissionConfig != null) {
+        // Set<EnumFacing> activeSides = transmissionConfig.getSides(dataTypePredicate);
+        // for (EnumFacing direction : directions) {
+        // if (activeSides.contains(direction)) {
+        // anySuccess = true;
+        // break;
+        // }
+        // }
+        // if (!anySuccess) {
+        // // we want to enable the side for the transmission type
+        // // pick the first direction in the statement
+        // EnumFacing statementSide = directions.iterator().next();
+        // if (statementSide != null) {
+        // RelativeSide relativeSide = RelativeSide.fromDirections(
+        // mekBlockEntity.getDirection(),
+        // statementSide
+        // );
+        // transmissionConfig.setDataType(
+        // fixed,
+        // relativeSide
+        // );
+        // mekBlockEntityConfig.sideChanged(transmissionType, relativeSide);
+        // }
+        // }
+        // }
+        // }
+        // }
+        // });
     }
 
     private static void addWarningsForSmellyMekanismAccess(
-            IOStatement ioStatement,
-            LabelPositionHolder labelPositionHolder,
-            IOStatement statement,
-            World level,
-            ArrayList<TextComponentTranslation> warnings
-    ) {
-//        if (!SFMModCompat.isMekanismLoaded()) return;
-//        DirectionQualifier directions = statement.labelAccess().directions();
-//        Stream<Pair<Label, BlockPos>> mekanismBlocks = statement
-//                .labelAccess()
-//                .getLabelledPositions(labelPositionHolder)
-//                .stream()
-//                .filter(pair -> level.isLoaded(pair.getSecond()))
-//                .filter(pair -> SFMModCompat.isMekanismBlock(level, pair.getSecond()));
-//        if (directions.equals(DirectionQualifier.NULL_DIRECTION)) {
-//            // add warning if interacting with mekanism without specifying a side
-//            // are any of the blocks mekanism?
-//            mekanismBlocks
-//                    .forEach(pair -> warnings.add(PROGRAM_WARNING_MEKANISM_USED_WITHOUT_DIRECTION.get(
-//                            pair.getFirst(),
-//                            statement.toStringPretty()
-//                    )));
-//        } else {
-//            // add warning if interacting with mekanism but the mekanism side config is not ALLOW
-//            EnumSet<TransmissionType> referencedTransmissionTypes = SFMMekanismCompat
-//                    .getReferencedTransmissionTypes(statement);
-//            Predicate<DataType> dataTypePredicate;
-//            if (ioStatement instanceof InputStatement) {
-//                dataTypePredicate = dataType -> dataType.canOutput() || dataType == DataType.EXTRA;
-//            } else if (ioStatement instanceof OutputStatement) {
-//                dataTypePredicate = dataType -> dataType == DataType.INPUT
-//                                                || dataType == DataType.INPUT_OUTPUT
-//                                                || dataType == DataType.INPUT_1
-//                                                || dataType == DataType.INPUT_2
-//                                                || dataType == DataType.EXTRA;
-//            } else {
-//                throw new IllegalStateException("Unexpected value: " + ioStatement);
-//            }
-//            mekanismBlocks.forEach(pair -> {
-//                BlockPos blockPos = pair.getSecond();
-//                if (level.getBlockEntity(blockPos) instanceof ISideConfiguration mekBlockEntity) {
-//                    TileComponentConfig config = mekBlockEntity.getConfig();
-//                    for (TransmissionType transmissionType : referencedTransmissionTypes) {
-//                        boolean anySuccess = false;
-//                        ConfigInfo transmissionConfig = config.getConfig(transmissionType);
-//                        if (transmissionConfig != null) {
-//                            Set<EnumFacing> activeSides = transmissionConfig.getSides(dataTypePredicate);
-//                            for (EnumFacing direction : directions) {
-//                                if (activeSides.contains(direction)) {
-//                                    anySuccess = true;
-//                                    break;
-//                                }
-//                            }
-//                        }
-//                        if (!anySuccess) {
-//                            warnings.add(PROGRAM_WARNING_MEKANISM_BAD_SIDE_CONFIG.get(
-//                                    blockPos,
-//                                    pair.getFirst(),
-//                                    statement.toStringPretty()
-//                            ));
-//                        }
-//                    }
-//                }
-//            });
-//        }
+                                                           IOStatement ioStatement,
+                                                           LabelPositionHolder labelPositionHolder,
+                                                           IOStatement statement,
+                                                           World level,
+                                                           ArrayList<TextComponentTranslation> warnings) {
+        // if (!SFMModCompat.isMekanismLoaded()) return;
+        // DirectionQualifier directions = statement.labelAccess().directions();
+        // Stream<Pair<Label, BlockPos>> mekanismBlocks = statement
+        // .labelAccess()
+        // .getLabelledPositions(labelPositionHolder)
+        // .stream()
+        // .filter(pair -> level.isLoaded(pair.getSecond()))
+        // .filter(pair -> SFMModCompat.isMekanismBlock(level, pair.getSecond()));
+        // if (directions.equals(DirectionQualifier.NULL_DIRECTION)) {
+        // // add warning if interacting with mekanism without specifying a side
+        // // are any of the blocks mekanism?
+        // mekanismBlocks
+        // .forEach(pair -> warnings.add(PROGRAM_WARNING_MEKANISM_USED_WITHOUT_DIRECTION.get(
+        // pair.getFirst(),
+        // statement.toStringPretty()
+        // )));
+        // } else {
+        // // add warning if interacting with mekanism but the mekanism side config is not ALLOW
+        // EnumSet<TransmissionType> referencedTransmissionTypes = SFMMekanismCompat
+        // .getReferencedTransmissionTypes(statement);
+        // Predicate<DataType> dataTypePredicate;
+        // if (ioStatement instanceof InputStatement) {
+        // dataTypePredicate = dataType -> dataType.canOutput() || dataType == DataType.EXTRA;
+        // } else if (ioStatement instanceof OutputStatement) {
+        // dataTypePredicate = dataType -> dataType == DataType.INPUT
+        // || dataType == DataType.INPUT_OUTPUT
+        // || dataType == DataType.INPUT_1
+        // || dataType == DataType.INPUT_2
+        // || dataType == DataType.EXTRA;
+        // } else {
+        // throw new IllegalStateException("Unexpected value: " + ioStatement);
+        // }
+        // mekanismBlocks.forEach(pair -> {
+        // BlockPos blockPos = pair.getSecond();
+        // if (level.getBlockEntity(blockPos) instanceof ISideConfiguration mekBlockEntity) {
+        // TileComponentConfig config = mekBlockEntity.getConfig();
+        // for (TransmissionType transmissionType : referencedTransmissionTypes) {
+        // boolean anySuccess = false;
+        // ConfigInfo transmissionConfig = config.getConfig(transmissionType);
+        // if (transmissionConfig != null) {
+        // Set<EnumFacing> activeSides = transmissionConfig.getSides(dataTypePredicate);
+        // for (EnumFacing direction : directions) {
+        // if (activeSides.contains(direction)) {
+        // anySuccess = true;
+        // break;
+        // }
+        // }
+        // }
+        // if (!anySuccess) {
+        // warnings.add(PROGRAM_WARNING_MEKANISM_BAD_SIDE_CONFIG.get(
+        // blockPos,
+        // pair.getFirst(),
+        // statement.toStringPretty()
+        // ));
+        // }
+        // }
+        // }
+        // });
+        // }
     }
 
     private static void addWarningsForUsingIOWithoutCorrespondingOppositeIO(
-            Program program,
-            LabelPositionHolder labelPositionHolder,
-            ArrayList<TextComponentTranslation> warnings
-    ) {
+                                                                            Program program,
+                                                                            LabelPositionHolder labelPositionHolder,
+                                                                            ArrayList<TextComponentTranslation> warnings) {
         program.tick(ProgramContext.createSimulationContext(
                 program,
                 labelPositionHolder,
                 0,
-                new GatherWarningsProgramBehaviour(warnings::addAll)
-        ));
+                new GatherWarningsProgramBehaviour(warnings::addAll)));
     }
 
-
     private static void addWarningsForUsingEachWithoutAPattern(
-            ArrayList<TextComponentTranslation> warnings,
-            IOStatement statement
-    ) {
+                                                               ArrayList<TextComponentTranslation> warnings,
+                                                               IOStatement statement) {
         boolean smells = statement
                 .resourceLimits()
                 .resourceLimitList()
                 .stream()
-                .anyMatch(rl -> rl.limit().quantity().idExpansionBehaviour()
-                                == ResourceQuantity.IdExpansionBehaviour.EXPAND && !rl
-                        .resourceIds()
-                        .couldMatchMoreThanOne());
+                .anyMatch(rl -> rl.limit().quantity().idExpansionBehaviour() ==
+                        ResourceQuantity.IdExpansionBehaviour.EXPAND &&
+                        !rl
+                                .resourceIds()
+                                .couldMatchMoreThanOne());
         if (smells) {
             warnings.add(PROGRAM_WARNING_RESOURCE_EACH_WITHOUT_PATTERN.get(statement.toStringPretty()));
         }
     }
 
     private static void addWarningsForSmellyRoundRobinUsage(
-            ArrayList<TextComponentTranslation> warnings,
-            IOStatement statement
-    ) {
+                                                            ArrayList<TextComponentTranslation> warnings,
+                                                            IOStatement statement) {
         RoundRobin roundRobin = statement.labelAccess().roundRobin();
         if (roundRobin.getBehaviour() == BY_BLOCK && statement.each()) {
             warnings.add(PROGRAM_WARNING_ROUND_ROBIN_SMELLY_EACH.get(statement.toStringPretty()));
-        } else if (roundRobin.getBehaviour() == BY_LABEL
-                   && statement.labelAccess().labels().size() == 1) {
+        } else if (roundRobin.getBehaviour() == BY_LABEL && statement.labelAccess().labels().size() == 1) {
             warnings.add(PROGRAM_WARNING_ROUND_ROBIN_SMELLY_COUNT.get(statement.toStringPretty()));
         }
     }
 
     private static void addWarningsForResourcesReferencedButNotFoundInRegistry(
-            Program program,
-            ArrayList<TextComponentTranslation> warnings
-    ) {
+                                                                               Program program,
+                                                                               ArrayList<TextComponentTranslation> warnings) {
         for (var resource : program.referencedResources()) {
             // skip regex resources
             Optional<ResourceLocation> loc = resource.getLocation();
@@ -309,8 +301,7 @@ public class ProgramLinter {
             if (type == null) {
                 SFM.LOGGER.error(
                         "Resource type not found for resource: {}, should have been validated at program compile",
-                        resource
-                );
+                        resource);
                 continue;
             }
 
@@ -322,11 +313,10 @@ public class ProgramLinter {
     }
 
     private static void addWarningsForLabelsUsedInWorldButNotConnectedByCables(
-            @NotNull ManagerBlockEntity manager,
-            LabelPositionHolder labels,
-            ArrayList<TextComponentTranslation> warnings,
-            World level
-    ) {
+                                                                               @NotNull ManagerBlockEntity manager,
+                                                                               LabelPositionHolder labels,
+                                                                               ArrayList<TextComponentTranslation> warnings,
+                                                                               World level) {
         CableNetworkManager
                 .getOrRegisterNetworkFromManagerPosition(manager)
                 .ifPresent(network -> labels.forEach((label, pos) -> {
@@ -338,9 +328,7 @@ public class ProgramLinter {
                                         "[%d,%d,%d]",
                                         pos.getX(),
                                         pos.getY(),
-                                        pos.getZ()
-                                )
-                        ));
+                                        pos.getZ())));
                     }
                     var viable = SFMBlockCapabilityDiscovery.hasAnyCapabilityAnyDirection(level, pos);
                     if (!viable && adjacent) {
@@ -350,18 +338,15 @@ public class ProgramLinter {
                                         "[%d,%d,%d]",
                                         pos.getX(),
                                         pos.getY(),
-                                        pos.getZ()
-                                )
-                        ));
+                                        pos.getZ())));
                     }
                 }));
     }
 
     private static void addWarningsForLabelsInHolderButNotInProgram(
-            Program program,
-            LabelPositionHolder labels,
-            ArrayList<TextComponentTranslation> warnings
-    ) {
+                                                                    Program program,
+                                                                    LabelPositionHolder labels,
+                                                                    ArrayList<TextComponentTranslation> warnings) {
         labels.labels()
                 .keySet()
                 .stream()
@@ -370,10 +355,9 @@ public class ProgramLinter {
     }
 
     private static void addWarningsForLabelsInProgramButNotInHolder(
-            Program program,
-            LabelPositionHolder labels,
-            ArrayList<TextComponentTranslation> warnings
-    ) {
+                                                                    Program program,
+                                                                    LabelPositionHolder labels,
+                                                                    ArrayList<TextComponentTranslation> warnings) {
         for (String label : program.referencedLabels()) {
             var isUsed = !labels.getPositions(label).isEmpty();
             if (!isUsed) {

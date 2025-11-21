@@ -1,9 +1,31 @@
 package ca.teamdman.sfm.common.blockentity;
 
+import java.util.Collections;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.crash.CrashReportCategory;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.ItemStackHelper;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ITickable;
+import net.minecraft.util.NonNullList;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
+
+import org.apache.logging.log4j.core.time.MutableInstant;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.common.config.SFMConfig;
-
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.diagnostics.SFMDiagnostics;
 import ca.teamdman.sfm.common.handler.OpenContainerTracker;
@@ -16,37 +38,12 @@ import ca.teamdman.sfm.common.net.ClientboundManagerGuiUpdatePacket;
 import ca.teamdman.sfm.common.net.ClientboundManagerLogLevelUpdatedPacket;
 import ca.teamdman.sfm.common.net.ClientboundManagerLogsPacket;
 import ca.teamdman.sfm.common.registry.IGuiProvider;
-import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMContainerUtil;
 import ca.teamdman.sfml.ast.Program;
-import com.google.common.base.Joiner;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.crash.CrashReportCategory;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.ItemStackHelper;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.play.server.SPacketUpdateTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ITickable;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
-import org.apache.logging.log4j.core.time.MutableInstant;
-
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.Set;
 
 public class ManagerBlockEntity extends TileEntity implements IInventory, ITickable, IGuiProvider {
+
     public static final int TICK_TIME_HISTORY_SIZE = 20;
     public final TranslatableLogger logger;
     private final NonNullList<ItemStack> ITEMS = NonNullList.withSize(1, ItemStack.EMPTY);
@@ -59,11 +56,8 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     private boolean shouldRebuildProgramLock = false;
     private int tickIndex = 0;
 
-    public ManagerBlockEntity(
-    ) {
-        String loggerName = SFM.MOD_ID
-                + ":manager@"
-                + "@" + Integer.toHexString(System.identityHashCode(this));
+    public ManagerBlockEntity() {
+        String loggerName = SFM.MOD_ID + ":manager@" + "@" + Integer.toHexString(System.identityHashCode(this));
         logger = new TranslatableLogger(loggerName);
     }
 
@@ -93,7 +87,6 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         shouldRebuildProgramLock = true;
     }
 
-
     public void serverTick() {
         var level = this.getWorld();
         var manager = this;
@@ -113,14 +106,14 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                     long nanoTimePassed = Long.min(System.nanoTime() - start, Integer.MAX_VALUE);
                     manager.tickTimeNanos[manager.tickIndex] = (int) nanoTimePassed;
                     manager.tickIndex = (manager.tickIndex + 1) % manager.tickTimeNanos.length;
-                    manager.logger.trace(x -> x.accept(LocalizationKeys.PROGRAM_TICK_TIME_MS.get(nanoTimePassed
-                            / 1_000_000f)));
+                    manager.logger.trace(
+                            x -> x.accept(LocalizationKeys.PROGRAM_TICK_TIME_MS.get(nanoTimePassed / 1_000_000f)));
                     manager.sendUpdatePacket();
                     manager.logger.pruneSoWeDontEatAllTheRam();
 
-                    if (manager.logger.getLogLevel() == org.apache.logging.log4j.Level.TRACE
-                            || manager.logger.getLogLevel() == org.apache.logging.log4j.Level.DEBUG
-                            || manager.logger.getLogLevel() == org.apache.logging.log4j.Level.INFO) {
+                    if (manager.logger.getLogLevel() == org.apache.logging.log4j.Level.TRACE ||
+                            manager.logger.getLogLevel() == org.apache.logging.log4j.Level.DEBUG ||
+                            manager.logger.getLogLevel() == org.apache.logging.log4j.Level.INFO) {
                         org.apache.logging.log4j.Level newLevel = org.apache.logging.log4j.Level.OFF;
                         manager.logger.info(x -> x.accept(LocalizationKeys.LOG_LEVEL_UPDATED.get(newLevel)));
                         var oldLevel = manager.logger.getLogLevel();
@@ -130,8 +123,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                                 manager.getPos(),
                                 manager.getWorld(),
                                 newLevel,
-                                oldLevel
-                        );
+                                oldLevel);
                     }
                 }
             }
@@ -141,8 +133,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
             SFM.LOGGER.fatal(
                     "SFM detected a problem while ticking a manager. You can set `{} = true` in {} to help recover your world.",
                     configValuePath,
-                    configPath
-            );
+                    configPath);
             throw t;
         }
     }
@@ -283,12 +274,10 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     }
 
     @Override
-    public void openInventory(EntityPlayer player) {
-    }
+    public void openInventory(EntityPlayer player) {}
 
     @Override
-    public void closeInventory(EntityPlayer player) {
-    }
+    public void closeInventory(EntityPlayer player) {}
 
     @Override
     public boolean isItemValidForSlot(int index, ItemStack stack) {
@@ -301,8 +290,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     }
 
     @Override
-    public void setField(int id, int value) {
-    }
+    public void setField(int id, int value) {}
 
     @Override
     public int getFieldCount() {
@@ -361,8 +349,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                 -1,
                 getProgramStringOrEmptyIfNull(),
                 getState(),
-                getTickTimeNanos()
-        );
+                getTickTimeNanos());
 
         OpenContainerTracker.getOpenManagerMenus(getPos())
                 .forEach(entry -> {
@@ -378,8 +365,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                     if (!menu.logLevel.equals(logger.getLogLevel().name())) {
                         SFMPackets.SFM_CHANNEL.sendTo(new ClientboundManagerLogLevelUpdatedPacket(
                                 menu.windowId,
-                                logger.getLogLevel().name()
-                        ), entry.getKey());
+                                logger.getLogLevel().name()), entry.getKey());
                         menu.logLevel = logger.getLogLevel().name();
                     }
 
@@ -399,8 +385,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                             int remaining = logsToSend.size();
                             SFMPackets.SFM_CHANNEL.sendTo(ClientboundManagerLogsPacket.drainToCreate(
                                     menu.windowId,
-                                    logsToSend
-                            ), entry.getKey());
+                                    logsToSend), entry.getKey());
                             if (logsToSend.size() >= remaining) {
                                 throw new IllegalStateException("Failed to send logs, infinite loop detected");
                             }
@@ -417,17 +402,16 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         serverTick();
     }
 
-
     @Override
     public ITextComponent getDisplayName() {
         return LocalizationKeys.MANAGER_CONTAINER.getComponent();
     }
 
-//    @Nullable
-//    @Override
-//    public SPacketUpdateTileEntity getUpdatePacket() {
-//        return new SPacketUpdateTileEntity(this.pos, 3, this.getUpdateTag());
-//    }
+    // @Nullable
+    // @Override
+    // public SPacketUpdateTileEntity getUpdatePacket() {
+    // return new SPacketUpdateTileEntity(this.pos, 3, this.getUpdateTag());
+    // }
 
     @Override
     public NBTTagCompound getUpdateTag() {
@@ -445,24 +429,24 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     }
 
     public enum State {
+
         NO_PROGRAM(
                 TextFormatting.RED,
-                LocalizationKeys.MANAGER_GUI_STATE_NO_PROGRAM
-        ), NO_DISK(
+                LocalizationKeys.MANAGER_GUI_STATE_NO_PROGRAM),
+        NO_DISK(
                 TextFormatting.RED,
-                LocalizationKeys.MANAGER_GUI_STATE_NO_DISK
-        ), RUNNING(TextFormatting.GREEN, LocalizationKeys.MANAGER_GUI_STATE_RUNNING), INVALID_PROGRAM(
+                LocalizationKeys.MANAGER_GUI_STATE_NO_DISK),
+        RUNNING(TextFormatting.GREEN, LocalizationKeys.MANAGER_GUI_STATE_RUNNING),
+        INVALID_PROGRAM(
                 TextFormatting.DARK_RED,
-                LocalizationKeys.MANAGER_GUI_STATE_INVALID_PROGRAM
-        );
+                LocalizationKeys.MANAGER_GUI_STATE_INVALID_PROGRAM);
 
         public final TextFormatting COLOR;
         public final LocalizationEntry LOC;
 
         State(
-                TextFormatting color,
-                LocalizationEntry loc
-        ) {
+              TextFormatting color,
+              LocalizationEntry loc) {
             COLOR = color;
             LOC = loc;
         }
@@ -470,13 +454,13 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
 
     @Override
     public void addInfoToCrashReport(CrashReportCategory pReportCategory) {
-
         super.addInfoToCrashReport(pReportCategory);
         {
             String configPath;
-                configPath = "sfm-server.toml";
+            configPath = "sfm-server.toml";
 
-            pReportCategory.addDetail("SFM Reminder", () -> "You can set `server.disableProgramExecution = true` in " + configPath + " to help recover your world.");
+            pReportCategory.addDetail("SFM Reminder", () -> "You can set `server.disableProgramExecution = true` in " +
+                    configPath + " to help recover your world.");
         }
         {
             ItemStack disk = getDisk();
@@ -485,5 +469,4 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
             }
         }
     }
-
 }

@@ -1,15 +1,19 @@
 package ca.teamdman.sfm.common.capability;
 
+import net.minecraftforge.common.capabilities.Capability;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.github.bsideup.jabel.Desugar;
+
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import com.github.bsideup.jabel.Desugar;
-import net.minecraftforge.common.capabilities.Capability;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-/// In NeoForge for Minecraft 1.20.3, the {@code Capability<CAP>} type is replaced with {@code BlockCapability<CAP, CONTEXT>}.
+/// In NeoForge for Minecraft 1.20.3, the {@code Capability<CAP>} type is replaced with {@code BlockCapability<CAP,
+/// CONTEXT>}.
 /// We use {@link SFMBlockCapabilityKind} to wrap the capability kind.
 /// We use {@link SFMBlockCapabilityResult} to wrap the results of capability queries.
 /// This wrapper minimizes entropy in the codebase by isolating the differences in the capability kind.
@@ -17,9 +21,9 @@ import org.jetbrains.annotations.Nullable;
 /// This class helps keep {@link MCVersionDependentBehaviour} out of other classes.
 @Desugar
 @MCVersionDependentBehaviour
-public record SFMBlockCapabilityKind<CAP>(
-        Capability<CAP> capabilityKind
-) {
+public record SFMBlockCapabilityKind<CAP> (
+                                           Capability<CAP> capabilityKind) {
+
     public String getName() {
         return capabilityKind.getName();
     }

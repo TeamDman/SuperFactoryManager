@@ -1,6 +1,11 @@
 package ca.teamdman.sfm.common.util;
 
-import ca.teamdman.sfm.client.text_editor.SFMTextEditorIntellisenseLevel;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfml.ast.ASTNode;
@@ -9,18 +14,12 @@ import ca.teamdman.sfml.intellisense.IntellisenseAction;
 import ca.teamdman.sfml.intellisense.IntellisenseContext;
 import ca.teamdman.sfml.intellisense.SFMLIntellisense;
 import ca.teamdman.sfml.program_builder.ProgramBuildResult;
-import ca.teamdman.sfm.common.util.Pair;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class SFMDisplayUtils {
+
     public static String getCursorPositionDisplay(
-            String programString,
-            int cursorPos
-    ) {
+                                                  String programString,
+                                                  int cursorPos) {
         StringBuilder rtn = new StringBuilder();
         rtn.append(" [");
         // print the 10-closest characters before the cursor
@@ -40,9 +39,8 @@ public class SFMDisplayUtils {
     }
 
     public static String getCursorTokenDisplay(
-            ProgramBuildResult buildResult,
-            int cursorPos
-    ) {
+                                               ProgramBuildResult buildResult,
+                                               int cursorPos) {
         var tokens = buildResult.metadata().tokens().getTokens();
         var displayTokens = tokens
                 .stream()
@@ -67,9 +65,8 @@ public class SFMDisplayUtils {
     }
 
     public static String getTokenHierarchyDisplay(
-            Program program,
-            int cursorPos
-    ) {
+                                                  Program program,
+                                                  int cursorPos) {
         StringBuilder rtn = new StringBuilder();
         List<Pair<ASTNode, ParserRuleContext>> nodesUnderCursor = program.astBuilder().getNodesUnderCursor(cursorPos);
 
@@ -86,17 +83,15 @@ public class SFMDisplayUtils {
     }
 
     public static String getSuggestionsDisplay(
-            ProgramBuildResult programBuildResult,
-            int cursorPos
-    ) {
+                                               ProgramBuildResult programBuildResult,
+                                               int cursorPos) {
         StringBuilder rtn = new StringBuilder();
         List<IntellisenseAction> suggestions = SFMLIntellisense.getSuggestions(new IntellisenseContext(
                 programBuildResult,
                 cursorPos,
                 0,
                 LabelPositionHolder.empty(),
-                SFMConfig.client.intellisenseLevel
-        ));
+                SFMConfig.client.intellisenseLevel));
         rtn.append('[');
         for (int i = 0; i < suggestions.size(); i++) {
             rtn.append(suggestions.get(i).getComponent().getUnformattedText().replaceAll("\n", "\\\\n"));

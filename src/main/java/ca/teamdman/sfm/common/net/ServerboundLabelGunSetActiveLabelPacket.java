@@ -1,8 +1,7 @@
 package ca.teamdman.sfm.common.net;
 
-import ca.teamdman.sfm.common.item.LabelGunItem;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import javax.annotation.Nullable;
+
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
@@ -10,9 +9,12 @@ import net.minecraft.util.EnumHand;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import javax.annotation.Nullable;
+import ca.teamdman.sfm.common.item.LabelGunItem;
+import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 
 public class ServerboundLabelGunSetActiveLabelPacket extends SFMPacket<ServerboundLabelGunSetActiveLabelPacket> {
+
     public static final int MAX_LABEL_LENGTH = 256;
 
     private String label;
@@ -23,8 +25,7 @@ public class ServerboundLabelGunSetActiveLabelPacket extends SFMPacket<Serverbou
         this.hand = hand;
     }
 
-    public ServerboundLabelGunSetActiveLabelPacket() {
-    }
+    public ServerboundLabelGunSetActiveLabelPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {

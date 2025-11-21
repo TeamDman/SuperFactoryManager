@@ -1,25 +1,25 @@
 package ca.teamdman.sfm.common.capability.energystorage;
 
-import com.github.bsideup.jabel.Desugar;
 import net.minecraftforge.energy.IEnergyStorage;
+
+import com.github.bsideup.jabel.Desugar;
 
 @Desugar
 public record EnergyAcceptorEnergyStorageWrapper(
-        IEnergyStorage inner
-) implements IEnergyStorage {
+                                                 IEnergyStorage inner)
+        implements IEnergyStorage {
+
     @Override
     public int receiveEnergy(
-            int maxReceive,
-            boolean simulate
-    ) {
+                             int maxReceive,
+                             boolean simulate) {
         return inner.receiveEnergy(maxReceive, simulate);
     }
 
     @Override
     public int extractEnergy(
-            int maxExtract,
-            boolean simulate
-    ) {
+                             int maxExtract,
+                             boolean simulate) {
         return inner.extractEnergy(maxExtract, simulate);
     }
 

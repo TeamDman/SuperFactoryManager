@@ -1,8 +1,11 @@
 package vswe.superfactory.components;
 
+import java.util.List;
+
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
 import vswe.superfactory.interfaces.ContainerManager;
 import vswe.superfactory.interfaces.GuiManager;
 import vswe.superfactory.network.packets.DataReader;
@@ -10,77 +13,72 @@ import vswe.superfactory.network.packets.DataWriter;
 import vswe.superfactory.network.packets.IComponentNetworkReader;
 import vswe.superfactory.network.packets.PacketHandler;
 
-import java.util.List;
-
 public abstract class ComponentMenu implements IComponentNetworkReader {
-	private int           id;
-	private FlowComponent parent;
 
-	public ComponentMenu(FlowComponent parent) {
-		this.parent = parent;
-		id = parent.getMenus().size();
-	}
+    private int id;
+    private FlowComponent parent;
 
-	public abstract String getName();
+    public ComponentMenu(FlowComponent parent) {
+        this.parent = parent;
+        id = parent.getMenus().size();
+    }
 
-	@SideOnly(Side.CLIENT)
-	public abstract void draw(GuiManager gui, int mX, int mY);
+    public abstract String getName();
 
-	@SideOnly(Side.CLIENT)
-	public abstract void drawMouseOver(GuiManager gui, int mX, int mY);
+    @SideOnly(Side.CLIENT)
+    public abstract void draw(GuiManager gui, int mX, int mY);
 
-	public abstract void onClick(int mX, int mY, int button);
+    @SideOnly(Side.CLIENT)
+    public abstract void drawMouseOver(GuiManager gui, int mX, int mY);
 
-	public abstract void onDrag(int mX, int mY, boolean isMenuOpen);
+    public abstract void onClick(int mX, int mY, int button);
 
-	public abstract void onRelease(int mX, int mY, boolean isMenuOpen);
+    public abstract void onDrag(int mX, int mY, boolean isMenuOpen);
 
-	@SideOnly(Side.CLIENT)
-	public boolean onKeyStroke(GuiManager gui, char c, int k) {
-		return false;
-	}
+    public abstract void onRelease(int mX, int mY, boolean isMenuOpen);
 
-	public abstract void writeData(DataWriter dw);
+    @SideOnly(Side.CLIENT)
+    public boolean onKeyStroke(GuiManager gui, char c, int k) {
+        return false;
+    }
 
-	public abstract void readData(DataReader dr);
+    public abstract void writeData(DataWriter dw);
 
-	protected DataWriter getWriterForServerComponentPacket() {
-		return PacketHandler.getWriterForServerComponentPacket(getParent(), this);
-	}
+    public abstract void readData(DataReader dr);
 
-	public FlowComponent getParent() {
-		return parent;
-	}
+    protected DataWriter getWriterForServerComponentPacket() {
+        return PacketHandler.getWriterForServerComponentPacket(getParent(), this);
+    }
 
-	protected DataWriter getWriterForClientComponentPacket(ContainerManager container) {
-		return PacketHandler.getWriterForClientComponentPacket(container, getParent(), this);
-	}
+    public FlowComponent getParent() {
+        return parent;
+    }
 
-	public abstract void copyFrom(ComponentMenu menu);
+    protected DataWriter getWriterForClientComponentPacket(ContainerManager container) {
+        return PacketHandler.getWriterForClientComponentPacket(container, getParent(), this);
+    }
 
-	public abstract void refreshData(ContainerManager container, ComponentMenu newData);
+    public abstract void copyFrom(ComponentMenu menu);
 
-	public int getId() {
-		return id;
-	}
+    public abstract void refreshData(ContainerManager container, ComponentMenu newData);
 
-	public abstract void readFromNBT(NBTTagCompound nbtTagCompound, int version, boolean pickup);
+    public int getId() {
+        return id;
+    }
 
-	public abstract void writeToNBT(NBTTagCompound nbtTagCompound, boolean pickup);
+    public abstract void readFromNBT(NBTTagCompound nbtTagCompound, int version, boolean pickup);
 
-	public void addErrors(List<String> errors) {
-	}
+    public abstract void writeToNBT(NBTTagCompound nbtTagCompound, boolean pickup);
 
-	public boolean isVisible() {
-		return true;
-	}
+    public void addErrors(List<String> errors) {}
 
-	public void update(float partial) {
-	}
+    public boolean isVisible() {
+        return true;
+    }
 
-	public void doScroll(int scroll) {
-	}
+    public void update(float partial) {}
 
-	public void onGuiClosed() {
-	}
+    public void doScroll(int scroll) {}
+
+    public void onGuiClosed() {}
 }

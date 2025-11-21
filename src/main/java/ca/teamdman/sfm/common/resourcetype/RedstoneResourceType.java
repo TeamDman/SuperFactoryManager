@@ -8,17 +8,18 @@ import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 
 public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalStorage> {
+
     public RedstoneResourceType(ResourceTypeContainer container) {
         super(
                 container,
                 SFMWellKnownCapabilities.REDSTONE_HANDLER,
-                SFMResourceLocation.fromNamespaceAndPath("minecraft", "redstone")
-        );
+                SFMResourceLocation.fromNamespaceAndPath("minecraft", "redstone"));
     }
 
     @Override
     public IRedstoneSignalStorage createHandlerForBufferBlock(BufferBlockEntityContents contents) {
         return new RedstoneSignalStorage(0, contents.tier.getIntScalarMaxStackSize()) {
+
             @Override
             public boolean canReceive() {
                 boolean isValid = this.getStoredAmount() > 0 || contents.isEmpty();
@@ -32,19 +33,17 @@ public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalSto
 
     @Override
     public Integer getStackInSlot(
-            IRedstoneSignalStorage redstoneCapability,
-            int slot
-    ) {
+                                  IRedstoneSignalStorage redstoneCapability,
+                                  int slot) {
         return redstoneCapability.getStoredAmount();
     }
 
     @Override
     public Integer extract(
-            IRedstoneSignalStorage redstoneCapability,
-            int slot,
-            long amount,
-            boolean simulate
-    ) {
+                           IRedstoneSignalStorage redstoneCapability,
+                           int slot,
+                           long amount,
+                           boolean simulate) {
         return 0;
     }
 
@@ -55,19 +54,17 @@ public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalSto
 
     @Override
     public long getMaxStackSizeForSlot(
-            IRedstoneSignalStorage redstoneCapability,
-            int slot
-    ) {
+                                       IRedstoneSignalStorage redstoneCapability,
+                                       int slot) {
         return 15;
     }
 
     @Override
     public Integer insert(
-            IRedstoneSignalStorage redstoneCapability,
-            int slot,
-            Integer integer,
-            boolean simulate
-    ) {
+                          IRedstoneSignalStorage redstoneCapability,
+                          int slot,
+                          Integer integer,
+                          boolean simulate) {
         return 0;
     }
 

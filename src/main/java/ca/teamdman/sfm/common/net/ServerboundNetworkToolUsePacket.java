@@ -1,5 +1,22 @@
 package ca.teamdman.sfm.common.net;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+
+import org.apache.commons.lang3.mutable.MutableBoolean;
+
 import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
@@ -11,22 +28,9 @@ import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfml.ast.DirectionQualifier;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import org.apache.commons.lang3.mutable.MutableBoolean;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class ServerboundNetworkToolUsePacket extends SFMPacket<ServerboundNetworkToolUsePacket> {
+
     private BlockPos blockPosition;
     private EnumFacing blockFace;
 
@@ -35,8 +39,7 @@ public class ServerboundNetworkToolUsePacket extends SFMPacket<ServerboundNetwor
         this.blockFace = blockFace;
     }
 
-    public ServerboundNetworkToolUsePacket() {
-    }
+    public ServerboundNetworkToolUsePacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {
@@ -124,7 +127,7 @@ public class ServerboundNetworkToolUsePacket extends SFMPacket<ServerboundNetwor
                 int index = i;
                 payload.append(messages[i]).append("\n");
                 MutableBoolean foundExports = new MutableBoolean(false);
-                //noinspection unchecked,rawtypes
+                // noinspection unchecked,rawtypes
                 SFMResourceTypes.registry().getEntries()
                         .stream()
                         .map(entry -> ServerboundContainerExportsInspectionRequestPacket.buildInspectionResults(
@@ -132,8 +135,7 @@ public class ServerboundNetworkToolUsePacket extends SFMPacket<ServerboundNetwor
                                 entry.getValue().get(),
                                 world,
                                 pos,
-                                directions[index]
-                        ))
+                                directions[index]))
                         .filter(s -> !s.trim().isEmpty())
                         .forEach(results -> {
                             foundExports.setTrue();
@@ -152,10 +154,8 @@ public class ServerboundNetworkToolUsePacket extends SFMPacket<ServerboundNetwor
                 }
             }
 
-
             SFMPackets.SFM_CHANNEL.sendTo(new ClientboundInputInspectionResultsPacket(
-                    payload.toString()
-            ), player);
+                    payload.toString()), player);
         });
         return null;
     }

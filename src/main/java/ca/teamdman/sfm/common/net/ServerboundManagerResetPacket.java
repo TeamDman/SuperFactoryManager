@@ -1,15 +1,13 @@
 package ca.teamdman.sfm.common.net;
 
+import net.minecraft.util.math.BlockPos;
+
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class ServerboundManagerResetPacket extends SFMAdvancedPacket<ServerboundManagerResetPacket> {
+
     private int windowId;
     private BlockPos pos;
 
@@ -18,8 +16,7 @@ public class ServerboundManagerResetPacket extends SFMAdvancedPacket<Serverbound
         this.pos = pos;
     }
 
-    public ServerboundManagerResetPacket() {
-    }
+    public ServerboundManagerResetPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {
@@ -37,16 +34,13 @@ public class ServerboundManagerResetPacket extends SFMAdvancedPacket<Serverbound
 
     @Override
     public void handle(
-            ServerboundManagerResetPacket msg,
-            SFMPacketHandlingContext context
-    ) {
+                       ServerboundManagerResetPacket msg,
+                       SFMPacketHandlingContext context) {
         context.handleServerboundContainerPacket(
                 ManagerContainerMenu.class,
                 ManagerBlockEntity.class,
                 msg.pos,
                 msg.windowId,
-                (menu, manager) -> manager.reset()
-        );
+                (menu, manager) -> manager.reset());
     }
-
 }

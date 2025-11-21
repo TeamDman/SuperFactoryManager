@@ -1,29 +1,30 @@
 package ca.teamdman.sfm.common.program.linting;
 
+import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
+
+import java.util.ArrayList;
+
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+import net.minecraftforge.registries.IForgeRegistryEntry;
+
+import org.jetbrains.annotations.Nullable;
+
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfml.ast.Program;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.item.ItemStack;
-import net.minecraft.world.World;
-import net.minecraftforge.registries.IForgeRegistryEntry;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
 
 public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implements IProgramLinter {
 
     @Override
     public ArrayList<TextComponentTranslation> gatherWarnings(
-            Program program,
-            LabelPositionHolder labelPositionHolder,
-            @Nullable ManagerBlockEntity managerBlockEntity
-    ) {
+                                                              Program program,
+                                                              LabelPositionHolder labelPositionHolder,
+                                                              @Nullable ManagerBlockEntity managerBlockEntity) {
         ArrayList<TextComponentTranslation> warnings = new ArrayList<>();
 
         addWarningsForLabelsInProgramButNotInHolder(program, labelPositionHolder, warnings);
@@ -34,8 +35,7 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
                     managerBlockEntity,
                     labelPositionHolder,
                     warnings,
-                    managerBlockEntity.getWorld()
-            );
+                    managerBlockEntity.getWorld());
         }
 
         // If we added label warnings, add the reminder to push labels
@@ -49,10 +49,9 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
 
     @Override
     public void fixWarnings(
-            ManagerBlockEntity managerBlockEntity,
-            ItemStack diskStack,
-            Program program
-    ) {
+                            ManagerBlockEntity managerBlockEntity,
+                            ItemStack diskStack,
+                            Program program) {
         if (managerBlockEntity == null || managerBlockEntity.getWorld() == null) {
             return;
         }
@@ -64,10 +63,9 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
     // ------------------------------------------
 
     private void addWarningsForLabelsInProgramButNotInHolder(
-            Program program,
-            LabelPositionHolder labels,
-            ArrayList<TextComponentTranslation> warnings
-    ) {
+                                                             Program program,
+                                                             LabelPositionHolder labels,
+                                                             ArrayList<TextComponentTranslation> warnings) {
         for (String label : program.referencedLabels()) {
             var isUsed = !labels.getPositions(label).isEmpty();
             if (!isUsed) {
@@ -77,10 +75,9 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
     }
 
     private void addWarningsForLabelsInHolderButNotInProgram(
-            Program program,
-            LabelPositionHolder labels,
-            ArrayList<TextComponentTranslation> warnings
-    ) {
+                                                             Program program,
+                                                             LabelPositionHolder labels,
+                                                             ArrayList<TextComponentTranslation> warnings) {
         labels.labels()
                 .keySet()
                 .stream()
@@ -89,11 +86,10 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
     }
 
     private void addWarningsForLabelsUsedInWorldButNotConnectedByCables(
-            ManagerBlockEntity manager,
-            LabelPositionHolder labels,
-            ArrayList<TextComponentTranslation> warnings,
-            World level
-    ) {
+                                                                        ManagerBlockEntity manager,
+                                                                        LabelPositionHolder labels,
+                                                                        ArrayList<TextComponentTranslation> warnings,
+                                                                        World level) {
         CableNetworkManager
                 .getOrRegisterNetworkFromManagerPosition(manager)
                 .ifPresent(network -> labels.forEach((label, pos) -> {
@@ -101,24 +97,21 @@ public class LabelLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implem
                     if (!adjacent) {
                         warnings.add(PROGRAM_WARNING_DISCONNECTED_LABEL.get(
                                 label,
-                                String.format("[%d,%d,%d]", pos.getX(), pos.getY(), pos.getZ())
-                        ));
+                                String.format("[%d,%d,%d]", pos.getX(), pos.getY(), pos.getZ())));
                     }
                     var viable = SFMBlockCapabilityDiscovery.hasAnyCapabilityAnyDirection(level, pos);
                     if (!viable && adjacent) {
                         warnings.add(PROGRAM_WARNING_CONNECTED_BUT_NOT_VIABLE_LABEL.get(
                                 label,
-                                String.format("[%d,%d,%d]", pos.getX(), pos.getY(), pos.getZ())
-                        ));
+                                String.format("[%d,%d,%d]", pos.getX(), pos.getY(), pos.getZ())));
                     }
                 }));
     }
 
     private void fixWarningsByRemovingBadLabelsFromDisk(
-            ManagerBlockEntity manager,
-            ItemStack disk,
-            Program program
-    ) {
+                                                        ManagerBlockEntity manager,
+                                                        ItemStack disk,
+                                                        Program program) {
         var labels = LabelPositionHolder.from(disk);
         // remove labels not defined in code
         labels.removeIf(label -> !program.referencedLabels().contains(label));

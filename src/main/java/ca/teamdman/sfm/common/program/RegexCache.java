@@ -1,25 +1,26 @@
 package ca.teamdman.sfm.common.program;
 
-import ca.teamdman.sfm.SFMPerformanceTweaks;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import ca.teamdman.sfm.SFMPerformanceTweaks;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+
 // Having this logic inside ResourceIdentifier.java causes classloading issues lol
 public class RegexCache {
+
     private static final Map<String, Predicate<String>> patternCache = new Object2ObjectOpenHashMap<>();
 
     static {
         // we want to make common match-all patterns fast
         // resource names are lowercase alphanumeric with underscores
-        String[] matchAny = new String[]{
+        String[] matchAny = new String[] {
                 ".",
                 "[a-z0-9/._-]",
-                };
-        String[] suffixes = new String[]{"+", "*"};
+        };
+        String[] suffixes = new String[] { "+", "*" };
         for (String s : matchAny) {
             for (String suffix : suffixes) {
                 patternCache.put(s + suffix, s1 -> true);
@@ -32,13 +33,12 @@ public class RegexCache {
 
     public static Predicate<String> buildPredicate(String possiblePattern) {
         if (SFMPerformanceTweaks.REGEX_CACHE_ENABLED) {
-            return isRegexPattern(possiblePattern)
-                   ? patternCache.computeIfAbsent(possiblePattern, RegexCache::getPredicateFromRegex)
-                   : possiblePattern::equalsIgnoreCase;
+            return isRegexPattern(possiblePattern) ?
+                    patternCache.computeIfAbsent(possiblePattern, RegexCache::getPredicateFromRegex) :
+                    possiblePattern::equalsIgnoreCase;
         } else {
-            return isRegexPattern(possiblePattern)
-                   ? regexToPredicate(possiblePattern)
-                   : possiblePattern::equalsIgnoreCase;
+            return isRegexPattern(possiblePattern) ? regexToPredicate(possiblePattern) :
+                    possiblePattern::equalsIgnoreCase;
         }
     }
 
@@ -83,7 +83,6 @@ public class RegexCache {
         // Default case for other regex patterns
         return regexToPredicate(x);
     }
-
 
     public static boolean isRegexPattern(String pattern) {
         String specialChars = ".?*+^$[](){}|\\";

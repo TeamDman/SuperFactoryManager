@@ -1,24 +1,26 @@
 package ca.teamdman.sfm.common.handler;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import ca.teamdman.sfm.common.util.NotStored;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import static net.minecraftforge.event.entity.player.PlayerContainerEvent.Close;
+import static net.minecraftforge.event.entity.player.PlayerContainerEvent.Open;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.stream.Stream;
 
-import static net.minecraftforge.event.entity.player.PlayerContainerEvent.Close;
-import static net.minecraftforge.event.entity.player.PlayerContainerEvent.Open;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
+import ca.teamdman.sfm.common.util.NotStored;
 
 // TODO: consider replacing with ContainerOpenersCounter, see BarrelBlockEntity
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID)
 public class OpenContainerTracker {
+
     private static final Map<BlockPos, Map<EntityPlayerMP, ManagerContainerMenu>> OPEN_CONTAINERS = new WeakHashMap<>();
 
     public static Stream<Map.Entry<EntityPlayerMP, ManagerContainerMenu>> getOpenManagerMenus(@NotStored BlockPos pos) {
@@ -31,16 +33,16 @@ public class OpenContainerTracker {
 
     @SubscribeEvent
     public static void onOpenContainer(Open event) {
-        if (event.getEntity() instanceof EntityPlayerMP serverPlayer
-            && event.getContainer() instanceof ManagerContainerMenu mcm) {
+        if (event.getEntity() instanceof EntityPlayerMP serverPlayer &&
+                event.getContainer() instanceof ManagerContainerMenu mcm) {
             OPEN_CONTAINERS.computeIfAbsent(mcm.MANAGER_POSITION, k -> new HashMap<>()).put(serverPlayer, mcm);
         }
     }
 
     @SubscribeEvent
     public static void onCloseContainer(Close event) {
-        if (event.getEntity() instanceof EntityPlayerMP serverPlayer
-            && event.getContainer() instanceof ManagerContainerMenu mcm) {
+        if (event.getEntity() instanceof EntityPlayerMP serverPlayer &&
+                event.getContainer() instanceof ManagerContainerMenu mcm) {
             if (OPEN_CONTAINERS.containsKey(mcm.MANAGER_POSITION)) {
                 OPEN_CONTAINERS.get(mcm.MANAGER_POSITION).remove(serverPlayer);
                 if (OPEN_CONTAINERS.get(mcm.MANAGER_POSITION).isEmpty()) {

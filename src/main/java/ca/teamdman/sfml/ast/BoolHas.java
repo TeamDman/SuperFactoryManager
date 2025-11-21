@@ -1,25 +1,28 @@
 package ca.teamdman.sfml.ast;
 
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.program.ProgramContext;
-import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import ca.teamdman.sfm.common.util.Pair;
-import com.github.bsideup.jabel.Desugar;
-import net.minecraft.util.math.BlockPos;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Desugar public record BoolHas(
-        SetOperator setOperator,
-        LabelAccess labelAccess,
-        ComparisonOperator comparisonOperator,
-        long quantity,
-        ResourceIdSet resourceIdSet,
-        With with,
-        ResourceIdSet except
-) implements BoolExpr {
+import net.minecraft.util.math.BlockPos;
+
+import com.github.bsideup.jabel.Desugar;
+
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.program.ProgramContext;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import ca.teamdman.sfm.common.util.Pair;
+
+@Desugar
+public record BoolHas(
+                      SetOperator setOperator,
+                      LabelAccess labelAccess,
+                      ComparisonOperator comparisonOperator,
+                      long quantity,
+                      ResourceIdSet resourceIdSet,
+                      With with,
+                      ResourceIdSet except)
+        implements BoolExpr {
 
     @Override
     public boolean test(ProgramContext programContext) {
@@ -36,8 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
                         pos,
                         overallCount,
                         inThisInv,
-                        resourceType
-                );
+                        resourceType);
             }
             satisfactionResults.add(comparisonOperator.test(inThisInv.get(), quantity));
         }
@@ -48,26 +50,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
     @Override
     public String toString() {
-        return setOperator
-               + " "
-               + labelAccess
-               + " HAS "
-               + comparisonOperator
-               + " "
-               + quantity
-               + " "
-               + resourceIdSet.toStringCondensed()
-               + (with == With.ALWAYS_TRUE ? "" : " " + with.toStringPretty())
-               + (except.isEmpty() ? "" : " EXCEPT " + except.toStringCondensed());
+        return setOperator + " " + labelAccess + " HAS " + comparisonOperator + " " + quantity + " " +
+                resourceIdSet.toStringCondensed() + (with == With.ALWAYS_TRUE ? "" : " " + with.toStringPretty()) +
+                (except.isEmpty() ? "" : " EXCEPT " + except.toStringCondensed());
     }
 
     private <STACK, ITEM, CAP> void accumulate(
-            ProgramContext programContext,
-            BlockPos pos,
-            AtomicLong overallAccumulator,
-            AtomicLong invAccumulator,
-            ResourceType<STACK, ITEM, CAP> resourceType
-    ) {
+                                               ProgramContext programContext,
+                                               BlockPos pos,
+                                               AtomicLong overallAccumulator,
+                                               AtomicLong invAccumulator,
+                                               ResourceType<STACK, ITEM, CAP> resourceType) {
         resourceType.forEachDirectionalCapability(
                 programContext,
                 labelAccess.directions(),
@@ -80,7 +73,6 @@ import java.util.concurrent.atomic.AtomicLong;
                             overallAccumulator.addAndGet(amount);
                         }
                     }
-                })
-        );
+                }));
     }
 }

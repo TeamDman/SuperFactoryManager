@@ -1,10 +1,7 @@
 package ca.teamdman.sfm.common.containermenu;
 
-import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.item.DiskItem;
-import ca.teamdman.sfm.common.logging.TranslatableLogEvent;
-import ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket;
-import ca.teamdman.sfml.ast.Program;
+import java.util.ArrayDeque;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
@@ -14,9 +11,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
 
-import java.util.ArrayDeque;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.item.DiskItem;
+import ca.teamdman.sfm.common.logging.TranslatableLogEvent;
+import ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket;
+import ca.teamdman.sfml.ast.Program;
 
 public class ManagerContainerMenu extends Container {
+
     public final IInventory CONTAINER;
     public final InventoryPlayer PLAYER_INVENTORY;
     public final BlockPos MANAGER_POSITION;
@@ -27,18 +29,16 @@ public class ManagerContainerMenu extends Container {
     public ManagerBlockEntity.State state;
     public long[] tickTimeNanos;
 
-
     public ManagerContainerMenu(
-            int windowId,
-            InventoryPlayer inv,
-            IInventory container,
-            BlockPos blockEntityPos,
-            String program,
-            String logLevel,
-            ManagerBlockEntity.State state,
-            long[] tickTimeNanos,
-            ArrayDeque<TranslatableLogEvent> logs
-    ) {
+                                int windowId,
+                                InventoryPlayer inv,
+                                IInventory container,
+                                BlockPos blockEntityPos,
+                                String program,
+                                String logLevel,
+                                ManagerBlockEntity.State state,
+                                long[] tickTimeNanos,
+                                ArrayDeque<TranslatableLogEvent> logs) {
         this.windowId = windowId;
         assert container.getSizeInventory() == 1;
         this.CONTAINER = container;
@@ -51,6 +51,7 @@ public class ManagerContainerMenu extends Container {
         this.tickTimeNanos = tickTimeNanos;
 
         this.addSlotToContainer(new Slot(container, 0, 15, 47) {
+
             @Override
             public int getSlotStackLimit() {
                 return 1;
@@ -74,10 +75,9 @@ public class ManagerContainerMenu extends Container {
     }
 
     public ManagerContainerMenu(
-            int windowId,
-            InventoryPlayer inventory,
-            PacketBuffer buf
-    ) {
+                                int windowId,
+                                InventoryPlayer inventory,
+                                PacketBuffer buf) {
         this(
                 windowId,
                 inventory,
@@ -87,15 +87,13 @@ public class ManagerContainerMenu extends Container {
                 buf.readString(ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH),
                 buf.readEnumValue(ManagerBlockEntity.State.class),
                 buf.readLongArray(null),
-                new ArrayDeque<>()
-        );
+                new ArrayDeque<>());
     }
 
     public ManagerContainerMenu(
-            int windowId,
-            InventoryPlayer inventory,
-            ManagerBlockEntity manager
-    ) {
+                                int windowId,
+                                InventoryPlayer inventory,
+                                ManagerBlockEntity manager) {
         this(
                 windowId,
                 inventory,
@@ -105,19 +103,16 @@ public class ManagerContainerMenu extends Container {
                 manager.logger.getLogLevel().name(),
                 manager.getState(),
                 manager.getTickTimeNanos(),
-                new ArrayDeque<>()
-        );
+                new ArrayDeque<>());
     }
 
     public static void encode(
-            ManagerBlockEntity manager,
-            PacketBuffer buf
-    ) {
+                              ManagerBlockEntity manager,
+                              PacketBuffer buf) {
         buf.writeBlockPos(manager.getPos());
         buf.writeString(manager.getProgramStringOrEmptyIfNull());
         buf.writeString(
-                manager.logger.getLogLevel().name()
-        );
+                manager.logger.getLogLevel().name());
         buf.writeEnumValue(manager.getState());
         buf.writeLongArray(manager.getTickTimeNanos());
     }
@@ -133,9 +128,8 @@ public class ManagerContainerMenu extends Container {
 
     @Override
     public ItemStack transferStackInSlot(
-            EntityPlayer player,
-            int slotIndex
-    ) {
+                                         EntityPlayer player,
+                                         int slotIndex) {
         var slot = this.inventorySlots.get(slotIndex);
         if (slot == null || !slot.getHasStack()) return ItemStack.EMPTY;
 

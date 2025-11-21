@@ -1,15 +1,15 @@
 package ca.teamdman.sfm.common.registry;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.CommonProxy;
-import ca.teamdman.sfm.common.item.*;
-import net.minecraft.item.Item;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class SFMItems {
+import net.minecraft.item.Item;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.CommonProxy;
+import ca.teamdman.sfm.common.item.*;
+
+public class SFMItems {
 
     public static DiskItem DISK_ITEM;
     public static LabelGunItem LABEL_GUN_ITEM;

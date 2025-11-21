@@ -1,13 +1,16 @@
 package ca.teamdman.sfm.common.program;
 
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+
+import org.jetbrains.annotations.Nullable;
+
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.Label;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.EnumFacing;
-import org.jetbrains.annotations.Nullable;
 
 public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, ITEM, CAP> {
+
     @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
     public ResourceType<STACK, ITEM, CAP> type;
     @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
@@ -25,15 +28,14 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
     private @Nullable STACK stackInSlotCache = null;
 
     public LimitedOutputSlot(
-            Label label,
-            BlockPos pos,
-            EnumFacing direction,
-            int slot,
-            CAP handler,
-            IOutputResourceTracker tracker,
-            STACK stackCache,
-            ResourceType<STACK, ITEM, CAP> type
-    ) {
+                             Label label,
+                             BlockPos pos,
+                             EnumFacing direction,
+                             int slot,
+                             CAP handler,
+                             IOutputResourceTracker tracker,
+                             STACK stackCache,
+                             ResourceType<STACK, ITEM, CAP> type) {
         this.init(handler, label, pos, direction, slot, tracker, stackCache, type);
     }
 
@@ -65,24 +67,22 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
     }
 
     public STACK insert(
-            STACK stack,
-            boolean simulate
-    ) {
+                        STACK stack,
+                        boolean simulate) {
         if (!simulate) stackInSlotCache = null;
         return type.insert(handler, slot, stack, simulate);
     }
 
     @SuppressWarnings("DuplicatedCode")
     public void init(
-            CAP handler,
-            Label label,
-            @Stored BlockPos pos,
-            EnumFacing direction,
-            int slot,
-            IOutputResourceTracker tracker,
-            STACK stackCache,
-            ResourceType<STACK, ITEM, CAP> type
-    ) {
+                     CAP handler,
+                     Label label,
+                     @Stored BlockPos pos,
+                     EnumFacing direction,
+                     int slot,
+                     IOutputResourceTracker tracker,
+                     STACK stackCache,
+                     ResourceType<STACK, ITEM, CAP> type) {
         this.stackInSlotCache = stackCache;
         this.handler = handler;
         this.tracker = tracker;
@@ -96,14 +96,8 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
 
     @Override
     public String toString() {
-        return "LimitedOutputSlot{"
-               + "label=" + label
-               + ", pos=" + pos
-               + ", direction=" + direction
-               + ", slot=" + slot
-               + ", cap=" + type.displayAsCapabilityClass()
-               + ", tracker=" + tracker
-               + '}';
+        return "LimitedOutputSlot{" + "label=" + label + ", pos=" + pos + ", direction=" + direction + ", slot=" +
+                slot + ", cap=" + type.displayAsCapabilityClass() + ", tracker=" + tracker + '}';
     }
 
     @Override

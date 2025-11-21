@@ -1,16 +1,18 @@
 package ca.teamdman.sfm.client;
 
-import ca.teamdman.langs.SFMLLexer;
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
+
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Token;
 
-import java.util.ArrayList;
-import java.util.List;
+import ca.teamdman.langs.SFMLLexer;
 
 public class ProgramSyntaxHighlightingHelper {
 
@@ -18,6 +20,7 @@ public class ProgramSyntaxHighlightingHelper {
         SFMLLexer lexer = new SFMLLexer(CharStreams.fromString(programString));
         lexer.INCLUDE_UNUSED = true;
         CommonTokenStream tokens = new CommonTokenStream(lexer) {
+
             // This is a hack to make hidden tokens show up in the token stream
             @Override
             public List<Token> getHiddenTokensToRight(int tokenIndex, int channel) {
@@ -71,7 +74,7 @@ public class ProgramSyntaxHighlightingHelper {
     }
 
     private static TextFormatting getColour(Token token) {
-        //noinspection EnhancedSwitchMigration
+        // noinspection EnhancedSwitchMigration
         switch (token.getType()) {
             case SFMLLexer.SIDE:
             case SFMLLexer.TOP:

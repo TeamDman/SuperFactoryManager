@@ -3,29 +3,30 @@ package vswe.superfactory.components;
 import vswe.superfactory.Localization;
 
 public class RadioButton {
-	private Localization text;
-	private int          x;
-	private int          y;
 
-	public RadioButton(int x, int y, Localization text) {
-		this.x = x;
-		this.y = y;
-		this.text = text;
-	}
+    private Localization text;
+    private int x;
+    private int y;
 
-	public int getX() {
-		return x;
-	}
+    public RadioButton(int x, int y, Localization text) {
+        this.x = x;
+        this.y = y;
+        this.text = text;
+    }
 
-	public int getY() {
-		return y;
-	}
+    public int getX() {
+        return x;
+    }
 
-	public String getText() {
-		return text.toString();
-	}
+    public int getY() {
+        return y;
+    }
 
-	public boolean isVisible() {
-		return true;
-	}
+    public String getText() {
+        return text.toString();
+    }
+
+    public boolean isVisible() {
+        return true;
+    }
 }

@@ -1,18 +1,21 @@
 package com.bbscn;
 
-import ca.teamdman.sfm.SFM;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
+
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
-public abstract class AbstractScrollWidget extends AbstractWidget{
+import ca.teamdman.sfm.SFM;
+
+public abstract class AbstractScrollWidget extends AbstractWidget {
+
     private static final WidgetSprites BACKGROUND_SPRITES = new WidgetSprites(
-            new ResourceLocation(SFM.MOD_ID,"widget/text_field.png"), new ResourceLocation(SFM.MOD_ID,"widget/text_field_highlighted.png")
-    );
-    private static final ResourceLocation SCROLLER_SPRITE = new ResourceLocation(SFM.MOD_ID,"widget/scroller.png");
+            new ResourceLocation(SFM.MOD_ID, "widget/text_field.png"),
+            new ResourceLocation(SFM.MOD_ID, "widget/text_field_highlighted.png"));
+    private static final ResourceLocation SCROLLER_SPRITE = new ResourceLocation(SFM.MOD_ID, "widget/scroller.png");
     protected double scrollAmount;
     protected boolean scrolling = false;
 
@@ -20,7 +23,7 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
     private static final int INNER_PADDING = 4;
 
     public AbstractScrollWidget(int x, int y, int width, int height, ITextComponent component) {
-        super(x, y, width, height,component);
+        super(x, y, width, height, component);
     }
 
     @Override
@@ -29,11 +32,9 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
             return false;
         } else {
             boolean flag = this.withinContentAreaPoint(pMouseX, pMouseY);
-            boolean flag1 = this.scrollbarVisible()
-                    && pMouseX >= (double)(this.getX() + this.width)
-                    && pMouseX <= (double)(this.getX() + this.width + 8)
-                    && pMouseY >= (double)this.getY()
-                    && pMouseY < (double)(this.getY() + this.height);
+            boolean flag1 = this.scrollbarVisible() && pMouseX >= (double) (this.getX() + this.width) &&
+                    pMouseX <= (double) (this.getX() + this.width + 8) && pMouseY >= (double) this.getY() &&
+                    pMouseY < (double) (this.getY() + this.height);
             if (flag1 && pButton == 0) {
                 this.scrolling = true;
                 return true;
@@ -42,15 +43,16 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
             }
         }
     }
+
     protected boolean withinContentAreaPoint(double pX, double pY) {
-        return pX >= (double)this.getX()
-                && pX < (double)(this.getX() + this.width)
-                && pY >= (double)this.getY()
-                && pY < (double)(this.getY() + this.height);
+        return pX >= (double) this.getX() && pX < (double) (this.getX() + this.width) && pY >= (double) this.getY() &&
+                pY < (double) (this.getY() + this.height);
     }
+
     protected boolean scrollbarVisible() {
         return this.getInnerHeight() > this.getHeight();
     }
+
     protected abstract int getInnerHeight();
 
     @Override
@@ -60,28 +62,34 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
         }
         return super.mouseReleased(pMouseX, pMouseY, pButton);
     }
+
     protected void setScrollAmount(double pScrollAmount) {
-        this.scrollAmount = Tools.clamp(pScrollAmount, 0.0, (double)this.getMaxScrollAmount());
+        this.scrollAmount = Tools.clamp(pScrollAmount, 0.0, (double) this.getMaxScrollAmount());
     }
+
     protected int getMaxScrollAmount() {
         return Math.max(0, this.getContentHeight() - (this.height - 4));
     }
+
     private int getContentHeight() {
         return this.getInnerHeight() + 4;
     }
+
     private int getScrollBarHeight() {
-        return Tools.clamp((int)((float)(this.height * this.height) / (float)this.getContentHeight()), 32, this.height);
+        return Tools.clamp((int) ((float) (this.height * this.height) / (float) this.getContentHeight()), 32,
+                this.height);
     }
+
     @Override
     public boolean mouseDragged(int pMouseX, int pMouseY, int pButton, int pDragX, int pDragY) {
         if (this.visible && this.isFocused() && this.scrolling) {
-            if (pMouseY < (double)this.getY()) {
+            if (pMouseY < (double) this.getY()) {
                 this.setScrollAmount(0.0);
-            } else if (pMouseY > (double)(this.getY() + this.height)) {
-                this.setScrollAmount((double)this.getMaxScrollAmount());
+            } else if (pMouseY > (double) (this.getY() + this.height)) {
+                this.setScrollAmount((double) this.getMaxScrollAmount());
             } else {
                 int i = this.getScrollBarHeight();
-                double d0 = (double)Math.max(1, this.getMaxScrollAmount() / (this.height - i));
+                double d0 = (double) Math.max(1, this.getMaxScrollAmount() / (this.height - i));
                 this.setScrollAmount(this.scrollAmount + pDragY * d0);
             }
             return true;
@@ -99,6 +107,7 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
             return true;
         }
     }
+
     protected abstract double scrollRate();
 
     @Override
@@ -107,7 +116,7 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
         boolean flag1 = pKeyCode == Keyboard.KEY_DOWN; // 使用 Keyboard.KEY_DOWN 替代硬编码的键值
         if (flag || flag1) {
             double d0 = this.scrollAmount;
-            this.setScrollAmount(this.scrollAmount + (double)(flag ? -1 : 1) * this.scrollRate());
+            this.setScrollAmount(this.scrollAmount + (double) (flag ? -1 : 1) * this.scrollRate());
             if (d0 != this.scrollAmount) {
                 return true;
             }
@@ -120,40 +129,42 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
     public void renderWidget(int mouseX, int mouseY, float partialTicks) {
         if (this.visible) {
             this.renderBackground();
-            
+
             // Enable scissor test
             GL11.glEnable(GL11.GL_SCISSOR_TEST);
             ScaledResolution res = new ScaledResolution(Minecraft.getMinecraft());
             float scale = res.getScaleFactor();
             GL11.glScissor(
-                (int) ((this.getX() + 1) * scale),
-                (int) (Minecraft.getMinecraft().displayHeight - (this.getY() + this.height - 1) * scale),
-                (int) ((this.width - 2) * scale),
-                (int) ((this.height - 2) * scale)
-            );
-            
+                    (int) ((this.getX() + 1) * scale),
+                    (int) (Minecraft.getMinecraft().displayHeight - (this.getY() + this.height - 1) * scale),
+                    (int) ((this.width - 2) * scale),
+                    (int) ((this.height - 2) * scale));
+
             // Render contents
             GL11.glPushMatrix();
             GL11.glTranslated(0.0, -this.scrollAmount, 0.0);
             this.renderContents(mouseX, mouseY, partialTicks);
             GL11.glPopMatrix();
-            
+
             // Disable scissor test
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
-            
+
             this.renderDecorations();
         }
     }
+
     private void renderScrollBar() {
         int i = this.getScrollBarHeight();
         int j = this.getX() + this.width;
-        int k = Math.max(this.getY(), (int)this.scrollAmount * (this.height - i) / this.getMaxScrollAmount() + this.getY());
-        
+        int k = Math.max(this.getY(),
+                (int) this.scrollAmount * (this.height - i) / this.getMaxScrollAmount() + this.getY());
+
         GL11.glEnable(GL11.GL_BLEND);
         Minecraft.getMinecraft().getTextureManager().bindTexture(SCROLLER_SPRITE);
         this.drawTexturedModalRect(j, k, 0, 0, 8, i);
         GL11.glDisable(GL11.GL_BLEND);
     }
+
     protected void renderDecorations() {
         if (this.scrollbarVisible()) {
             this.renderScrollBar();
@@ -164,7 +175,7 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
 
     protected void renderBackground() {
         ResourceLocation resourcelocation = BACKGROUND_SPRITES.get(this.isActive(), this.isFocused());
-        Tools.blitSprite(resourcelocation,this.getX(), this.getY(), this.getWidth(), this.getHeight());
+        Tools.blitSprite(resourcelocation, this.getX(), this.getY(), this.getWidth(), this.getHeight());
     }
 
     protected void renderBorder(int x, int y, int width, int height) {
@@ -172,6 +183,7 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
         Minecraft.getMinecraft().getTextureManager().bindTexture(resourcelocation);
         this.drawTexturedModalRect(x, y, 0, 0, width, height);
     }
+
     protected int innerPadding() {
         return 4;
     }

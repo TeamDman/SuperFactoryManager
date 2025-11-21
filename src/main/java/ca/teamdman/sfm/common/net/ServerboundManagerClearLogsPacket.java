@@ -1,16 +1,14 @@
 package ca.teamdman.sfm.common.net;
 
+import net.minecraft.util.math.BlockPos;
+
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class ServerboundManagerClearLogsPacket extends SFMAdvancedPacket<ServerboundManagerClearLogsPacket> {
+
     private int windowId;
     private BlockPos pos;
 
@@ -19,8 +17,7 @@ public class ServerboundManagerClearLogsPacket extends SFMAdvancedPacket<Serverb
         this.pos = pos;
     }
 
-    public ServerboundManagerClearLogsPacket() {
-    }
+    public ServerboundManagerClearLogsPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {
@@ -38,9 +35,8 @@ public class ServerboundManagerClearLogsPacket extends SFMAdvancedPacket<Serverb
 
     @Override
     public void handle(
-            ServerboundManagerClearLogsPacket msg,
-            SFMPacketHandlingContext context
-    ) {
+                       ServerboundManagerClearLogsPacket msg,
+                       SFMPacketHandlingContext context) {
         context.handleServerboundContainerPacket(
                 ManagerContainerMenu.class,
                 ManagerBlockEntity.class,
@@ -48,8 +44,8 @@ public class ServerboundManagerClearLogsPacket extends SFMAdvancedPacket<Serverb
                 msg.windowId,
                 (menu, manager) -> {
                     manager.logger.clear();
-                    manager.logger.info(x -> x.accept(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON_PACKET_RECEIVED.get()));
-                }
-        );
+                    manager.logger
+                            .info(x -> x.accept(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON_PACKET_RECEIVED.get()));
+                });
     }
 }

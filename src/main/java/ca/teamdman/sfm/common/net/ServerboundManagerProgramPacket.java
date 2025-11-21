@@ -1,20 +1,16 @@
 package ca.teamdman.sfm.common.net;
 
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.math.BlockPos;
+
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfml.ast.Program;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.DecoderException;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-
-import java.io.IOException;
 
 public class ServerboundManagerProgramPacket extends SFMAdvancedPacket<ServerboundManagerProgramPacket> {
+
     private int windowId;
     private BlockPos pos;
     private String program;
@@ -25,8 +21,7 @@ public class ServerboundManagerProgramPacket extends SFMAdvancedPacket<Serverbou
         this.program = program;
     }
 
-    public ServerboundManagerProgramPacket() {
-    }
+    public ServerboundManagerProgramPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {
@@ -50,16 +45,13 @@ public class ServerboundManagerProgramPacket extends SFMAdvancedPacket<Serverbou
 
     @Override
     public void handle(
-            ServerboundManagerProgramPacket msg,
-            SFMPacketHandlingContext context
-    ) {
+                       ServerboundManagerProgramPacket msg,
+                       SFMPacketHandlingContext context) {
         context.handleServerboundContainerPacket(
                 ManagerContainerMenu.class,
                 ManagerBlockEntity.class,
                 msg.pos,
                 msg.windowId,
-                (menu, manager) -> manager.setProgram(msg.program)
-        );
+                (menu, manager) -> manager.setProgram(msg.program));
     }
-
 }

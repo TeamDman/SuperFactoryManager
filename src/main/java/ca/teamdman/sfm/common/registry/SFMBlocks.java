@@ -1,12 +1,13 @@
 package ca.teamdman.sfm.common.registry;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.CommonProxy;
-import ca.teamdman.sfm.common.block.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
+
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.CommonProxy;
+import ca.teamdman.sfm.common.block.*;
 import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.blocks.*;
 import vswe.superfactory.interfaces.IItemBlockProvider;
@@ -28,10 +29,9 @@ public class SFMBlocks {
     public static Block MANAGER;
     public static ManagerBlock MANAGER_BLOCK;
 
-
     public static void initialize() {
         MANAGER_BLOCK = prepareRegister(new ManagerBlock(), "manager_advanced");
-//        BUFFER_BLOCK = prepareRegister(new BufferBlock(BufferBlockTier.Basic), "buffer", ItemBlock::new);
+        // BUFFER_BLOCK = prepareRegister(new BufferBlock(BufferBlockTier.Basic), "buffer", ItemBlock::new);
 
         MANAGER = prepareRegister(new BlockManager(), "manager");
         CABLE = prepareRegister(new BlockCable(), "cable");
@@ -65,9 +65,12 @@ public class SFMBlocks {
     public static void registerClusters() {
         ClusterRegistry.register(TileEntityBreaker.class, (BlockContainer) SFMBlocks.CABLE_BREAKER);
         ClusterRegistry.register(TileEntityBUD.class, (BlockContainer) SFMBlocks.CABLE_BUD);
-        ClusterRegistry.register(new ClusterRegistry.ClusterRegistryMetaSensitive(TileEntityCamouflage.class, (BlockContainer) SFMBlocks.CABLE_CAMOUFLAGE, new ItemStack(SFMBlocks.CABLE_CAMOUFLAGE ,1,0)));
-        ClusterRegistry.register(new ClusterRegistry.ClusterRegistryAdvancedSensitive(TileEntityCamouflage.class, (BlockContainer) SFMBlocks.CABLE_CAMOUFLAGE, new ItemStack(SFMBlocks.CABLE_CAMOUFLAGE ,1,1)));
-        ClusterRegistry.register(new ClusterRegistry.ClusterRegistryAdvancedSensitive(TileEntityCamouflage.class, (BlockContainer) SFMBlocks.CABLE_CAMOUFLAGE, new ItemStack(SFMBlocks.CABLE_CAMOUFLAGE ,1,2)));
+        ClusterRegistry.register(new ClusterRegistry.ClusterRegistryMetaSensitive(TileEntityCamouflage.class,
+                (BlockContainer) SFMBlocks.CABLE_CAMOUFLAGE, new ItemStack(SFMBlocks.CABLE_CAMOUFLAGE, 1, 0)));
+        ClusterRegistry.register(new ClusterRegistry.ClusterRegistryAdvancedSensitive(TileEntityCamouflage.class,
+                (BlockContainer) SFMBlocks.CABLE_CAMOUFLAGE, new ItemStack(SFMBlocks.CABLE_CAMOUFLAGE, 1, 1)));
+        ClusterRegistry.register(new ClusterRegistry.ClusterRegistryAdvancedSensitive(TileEntityCamouflage.class,
+                (BlockContainer) SFMBlocks.CABLE_CAMOUFLAGE, new ItemStack(SFMBlocks.CABLE_CAMOUFLAGE, 1, 2)));
         ClusterRegistry.register(TileEntityInput.class, (BlockContainer) SFMBlocks.CABLE_INPUT);
         ClusterRegistry.register(TileEntityIntake.class, (BlockContainer) SFMBlocks.CABLE_INTAKE);
         ClusterRegistry.register(TileEntityOutput.class, (BlockContainer) SFMBlocks.CABLE_OUTPUT);

@@ -1,24 +1,22 @@
 package ca.teamdman.sfm.common.net;
 
-import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import io.netty.buffer.ByteBuf;
+import javax.annotation.Nullable;
+
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import javax.annotation.Nullable;
+import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
+import io.netty.buffer.ByteBuf;
 
 public class ClientboundShowChangelogPacket extends SFMPacket<ClientboundShowChangelogPacket> {
 
-    public ClientboundShowChangelogPacket() {
-    }
+    public ClientboundShowChangelogPacket() {}
 
     @Override
-    public void fromBytes(ByteBuf buf) {
-    }
+    public void fromBytes(ByteBuf buf) {}
 
     @Override
-    public void toBytes(ByteBuf buf) {
-    }
+    public void toBytes(ByteBuf buf) {}
 
     @Override
     @Nullable

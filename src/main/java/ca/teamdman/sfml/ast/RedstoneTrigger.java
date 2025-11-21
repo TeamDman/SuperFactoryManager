@@ -1,13 +1,16 @@
 package ca.teamdman.sfml.ast;
 
+import com.github.bsideup.jabel.Desugar;
+
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import ca.teamdman.sfm.common.util.StringUtil;
-import com.github.bsideup.jabel.Desugar;
 
-@Desugar public record RedstoneTrigger(
-        Block block
-) implements Trigger, ToStringCondensed {
+@Desugar
+public record RedstoneTrigger(
+                              Block block)
+        implements Trigger, ToStringCondensed {
+
     @Override
     public Block getBlock() {
         return block;
@@ -18,7 +21,7 @@ import com.github.bsideup.jabel.Desugar;
         for (int i = 0; i < context.getRedstonePulses(); i++) {
             block.tick(context);
         }
-        if (context.getBehaviour() instanceof  SimulateExploreAllPathsProgramBehaviour simulation) {
+        if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
             simulation.onTriggerDropped(context, this);
         }
     }

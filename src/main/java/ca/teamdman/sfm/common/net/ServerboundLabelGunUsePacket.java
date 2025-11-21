@@ -1,14 +1,16 @@
 package ca.teamdman.sfm.common.net;
 
-import ca.teamdman.sfm.common.label.LabelGunPlanner;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
+import ca.teamdman.sfm.common.label.LabelGunPlanner;
+import io.netty.buffer.ByteBuf;
+
 public class ServerboundLabelGunUsePacket extends SFMPacket<ServerboundLabelGunUsePacket> {
+
     private EnumHand hand;
     private BlockPos pos;
     private boolean isContiguousModifierActive;
@@ -17,7 +19,9 @@ public class ServerboundLabelGunUsePacket extends SFMPacket<ServerboundLabelGunU
     private boolean isPullModifierActive;
     private boolean isTargetManagerModifierActive;
 
-    public ServerboundLabelGunUsePacket(EnumHand hand, BlockPos pos, boolean isContiguousModifierActive, boolean isPickBlockModifierActive, boolean isClearModifierActive, boolean isPullModifierActive, boolean isTargetManagerModifierActive) {
+    public ServerboundLabelGunUsePacket(EnumHand hand, BlockPos pos, boolean isContiguousModifierActive,
+                                        boolean isPickBlockModifierActive, boolean isClearModifierActive,
+                                        boolean isPullModifierActive, boolean isTargetManagerModifierActive) {
         this.hand = hand;
         this.pos = pos;
         this.isContiguousModifierActive = isContiguousModifierActive;
@@ -27,8 +31,7 @@ public class ServerboundLabelGunUsePacket extends SFMPacket<ServerboundLabelGunU
         this.isTargetManagerModifierActive = isTargetManagerModifierActive;
     }
 
-    public ServerboundLabelGunUsePacket() {
-    }
+    public ServerboundLabelGunUsePacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {

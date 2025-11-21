@@ -1,73 +1,75 @@
 package vswe.superfactory.components.internal;
 
+import java.util.List;
+
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
 import vswe.superfactory.network.packets.DataReader;
 import vswe.superfactory.network.packets.DataWriter;
 
-import java.util.List;
-
 public abstract class Setting {
-	private int id;
 
-	private boolean isLimitedByAmount;
+    private int id;
 
-	public Setting(int id) {
-		this.id = id;
-		clear();
-	}
+    private boolean isLimitedByAmount;
 
-	public void clear() {
-		isLimitedByAmount = false;
-	}
+    public Setting(int id) {
+        this.id = id;
+        clear();
+    }
 
-	@SideOnly(Side.CLIENT)
-	public abstract List<String> getMouseOver();
+    public void clear() {
+        isLimitedByAmount = false;
+    }
 
-	public int getId() {
-		return id;
-	}
+    @SideOnly(Side.CLIENT)
+    public abstract List<String> getMouseOver();
 
-	public boolean isLimitedByAmount() {
-		return isLimitedByAmount;
-	}
+    public int getId() {
+        return id;
+    }
 
-	public void setLimitedByAmount(boolean limitedByAmount) {
-		isLimitedByAmount = limitedByAmount;
-	}
+    public boolean isLimitedByAmount() {
+        return isLimitedByAmount;
+    }
 
-	public void setDefaultAmount() {
-		setAmount(getDefaultAmount());
-	}
+    public void setLimitedByAmount(boolean limitedByAmount) {
+        isLimitedByAmount = limitedByAmount;
+    }
 
-	public abstract int getDefaultAmount();
+    public void setDefaultAmount() {
+        setAmount(getDefaultAmount());
+    }
 
-	public abstract int getAmount();
+    public abstract int getDefaultAmount();
 
-	public abstract void setAmount(int val);
+    public abstract int getAmount();
 
-	public abstract boolean isValid();
+    public abstract void setAmount(int val);
 
-	public abstract void writeData(DataWriter dw);
+    public abstract boolean isValid();
 
-	public abstract void readData(DataReader dr);
+    public abstract void writeData(DataWriter dw);
 
-	public abstract void copyFrom(Setting setting);
+    public abstract void readData(DataReader dr);
 
-	public abstract void load(NBTTagCompound settingTag);
+    public abstract void copyFrom(Setting setting);
 
-	public abstract void save(NBTTagCompound settingTag);
+    public abstract void load(NBTTagCompound settingTag);
 
-	public abstract boolean isContentEqual(Setting otherSetting);
+    public abstract void save(NBTTagCompound settingTag);
 
-	public abstract void setContent(Object obj);
+    public abstract boolean isContentEqual(Setting otherSetting);
 
-	public boolean isAmountSpecific() {
-		return true;
-	}
+    public abstract void setContent(Object obj);
 
-	public void delete() {
-		clear();
-	}
+    public boolean isAmountSpecific() {
+        return true;
+    }
+
+    public void delete() {
+        clear();
+    }
 }

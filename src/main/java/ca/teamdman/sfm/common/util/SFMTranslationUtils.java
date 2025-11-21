@@ -1,17 +1,19 @@
 package ca.teamdman.sfm.common.util;
 
-import com.bbscn.Tools;
-import io.netty.buffer.ByteBuf;
+import java.util.stream.StreamSupport;
+
 import net.minecraft.nbt.*;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
+
 import org.jetbrains.annotations.NotNull;
 
-import java.util.stream.StreamSupport;
+import io.netty.buffer.ByteBuf;
 
 public class SFMTranslationUtils {
+
     public static final int MAX_TRANSLATION_ELEMENT_LENGTH = 10240;
 
     public static TextComponentTranslation deserializeTranslation(NBTTagCompound tag) {
@@ -19,8 +21,7 @@ public class SFMTranslationUtils {
         var args = StreamSupport
                 .stream(
                         tag.getTagList("args", Constants.NBT.TAG_STRING).spliterator(),
-                        false
-                )
+                        false)
                 .map(NBTTagString.class::cast)
                 .map(NBTTagString::getString)
                 .toArray();
@@ -40,9 +41,8 @@ public class SFMTranslationUtils {
     }
 
     public static void encodeTranslation(
-            TextComponentTranslation contents,
-            ByteBuf buf
-    ) {
+                                         TextComponentTranslation contents,
+                                         ByteBuf buf) {
         ByteBufUtils.writeUTF8String(buf, contents.getKey());
         ByteBufUtils.writeVarInt(buf, contents.getFormatArgs().length, MAX_TRANSLATION_ELEMENT_LENGTH);
 
@@ -67,37 +67,36 @@ public class SFMTranslationUtils {
      */
     @MCVersionDependentBehaviour
     public static TextComponentTranslation getTextComponentTranslation(
-            String key,
-            Object... args
-    ) {
-            return new TextComponentTranslation(key, args);
-//        Object[] newArgs = new Object[args.length];
-//        for (int i = 0; i < args.length; i++) {
-//            Object arg = args[i];
-//            if (arg instanceof Number || arg instanceof Boolean || arg instanceof String) {
-//                newArgs[i] = arg;
-//            } else if (arg == null) {
-//                newArgs[i] = "null";
-//            } else {
-////                SFM.LOGGER.warn(
-////                        "Invalid argument type for translation argument {} key '{}': {}",
-////                        i,
-////                        key,
-////                        arg.getClass().getName(),
-////                        new IllegalArgumentException()
-////                );
-//                newArgs[i] = arg.toString();
-//            }
-//        }
-//        TextComponentTranslation iTextComponents = new TextComponentTranslation(key, newArgs);
-//        Tools.defaultize(iTextComponents);
-//        return iTextComponents;
+                                                                       String key,
+                                                                       Object... args) {
+        return new TextComponentTranslation(key, args);
+        // Object[] newArgs = new Object[args.length];
+        // for (int i = 0; i < args.length; i++) {
+        // Object arg = args[i];
+        // if (arg instanceof Number || arg instanceof Boolean || arg instanceof String) {
+        // newArgs[i] = arg;
+        // } else if (arg == null) {
+        // newArgs[i] = "null";
+        // } else {
+        //// SFM.LOGGER.warn(
+        //// "Invalid argument type for translation argument {} key '{}': {}",
+        //// i,
+        //// key,
+        //// arg.getClass().getName(),
+        //// new IllegalArgumentException()
+        //// );
+        // newArgs[i] = arg.toString();
+        // }
+        // }
+        // TextComponentTranslation iTextComponents = new TextComponentTranslation(key, newArgs);
+        // Tools.defaultize(iTextComponents);
+        // return iTextComponents;
     }
 
     /**
      * Helper method to avoid noisy git merges between versions
      */
     public static TextComponentTranslation getTextComponentTranslation(String key) {
-        return getTextComponentTranslation(key, new Object[]{});
+        return getTextComponentTranslation(key, new Object[] {});
     }
 }

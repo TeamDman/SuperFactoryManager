@@ -1,105 +1,110 @@
 package vswe.superfactory.components.internal;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
+
 import vswe.superfactory.blocks.IRedstoneNode;
 import vswe.superfactory.blocks.ITriggerNode;
 import vswe.superfactory.tiles.*;
 import vswe.superfactory.util.CapabilityUtils;
 
-import javax.annotation.Nullable;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 public class SlotInventoryHolder {
-	private int                             id;
-	private TileEntity                      inventory;
-	private int                             sharedOption;
-	private Map<EnumFacing, SideSlotTarget> validSlots;
 
-	public SlotInventoryHolder(int id, TileEntity inventory, int sharedOption) {
-		this.id = id;
-		this.inventory = inventory;
-		this.sharedOption = sharedOption;
-	}
+    private int id;
+    private TileEntity inventory;
+    private int sharedOption;
+    private Map<EnumFacing, SideSlotTarget> validSlots;
 
-	public int getId() {
-		return id;
-	}
+    public SlotInventoryHolder(int id, TileEntity inventory, int sharedOption) {
+        this.id = id;
+        this.inventory = inventory;
+        this.sharedOption = sharedOption;
+    }
 
-	@Nullable
-	public IItemHandler getInventory(EnumFacing facing) {
-		return CapabilityUtils.getItemHandler(inventory, facing);
-	}
+    public int getId() {
+        return id;
+    }
 
-	@Nullable
-	public IFluidHandler getTank(EnumFacing facing) {
-		return CapabilityUtils.getFluidHandler(inventory, facing);
-	}
+    @Nullable
+    public IItemHandler getInventory(EnumFacing facing) {
+        return CapabilityUtils.getItemHandler(inventory, facing);
+    }
 
-	public TileEntityOutput getEmitter() {
-		return (TileEntityOutput) inventory;
-	}
+    @Nullable
+    public IFluidHandler getTank(EnumFacing facing) {
+        return CapabilityUtils.getFluidHandler(inventory, facing);
+    }
 
-	public IRedstoneNode getNode() {
-		return (IRedstoneNode) inventory;
-	}
+    public TileEntityOutput getEmitter() {
+        return (TileEntityOutput) inventory;
+    }
 
-	public TileEntityInput getReceiver() {
-		return (TileEntityInput) inventory;
-	}
+    public IRedstoneNode getNode() {
+        return (IRedstoneNode) inventory;
+    }
 
-	public TileEntityBUD getBUD() {
-		return (TileEntityBUD) inventory;
-	}
+    public TileEntityInput getReceiver() {
+        return (TileEntityInput) inventory;
+    }
 
-	public TileEntityCamouflage getCamouflage() {
-		return (TileEntityCamouflage) inventory;
-	}
+    public TileEntityBUD getBUD() {
+        return (TileEntityBUD) inventory;
+    }
 
-	public TileEntitySignUpdater getSign() {
-		return (TileEntitySignUpdater) inventory;
-	}
+    public TileEntityCamouflage getCamouflage() {
+        return (TileEntityCamouflage) inventory;
+    }
 
-	public Map<EnumFacing, SideSlotTarget> getValidSlots() {
-		if (validSlots == null) {
-			validSlots = new LinkedHashMap<>();
-		}
-		return validSlots;
-	}
+    public TileEntitySignUpdater getSign() {
+        return (TileEntitySignUpdater) inventory;
+    }
 
-	public boolean isShared() {
-		return sharedOption == 0;
-	}
+    public Map<EnumFacing, SideSlotTarget> getValidSlots() {
+        if (validSlots == null) {
+            validSlots = new LinkedHashMap<>();
+        }
+        return validSlots;
+    }
 
-	public int getSharedOption() {
-		return sharedOption;
-	}
+    public boolean isShared() {
+        return sharedOption == 0;
+    }
 
-	@Override
-	public int hashCode() {
-		return inventory.hashCode();
-	}
+    public int getSharedOption() {
+        return sharedOption;
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o)
-			return true;
-		if (o == null || getClass() != o.getClass())
-			return false;
+    @Override
+    public int hashCode() {
+        return inventory.hashCode();
+    }
 
-		SlotInventoryHolder that = (SlotInventoryHolder) o;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
-		return inventory.getPos().getX() == that.inventory.getPos().getX() && inventory.getPos().getY() == that.inventory.getPos().getY() && inventory.getPos().getZ() == that.inventory.getPos().getY();
-	}
+        SlotInventoryHolder that = (SlotInventoryHolder) o;
 
-	public TileEntity getTile() {
-		return inventory;
-	}
+        return inventory.getPos().getX() == that.inventory.getPos().getX() &&
+                inventory.getPos().getY() == that.inventory.getPos().getY() &&
+                inventory.getPos().getZ() == that.inventory.getPos().getY();
+    }
 
-	public ITriggerNode getTrigger() {
-		return (ITriggerNode) inventory;
-	}
+    public TileEntity getTile() {
+        return inventory;
+    }
+
+    public ITriggerNode getTrigger() {
+        return (ITriggerNode) inventory;
+    }
 }

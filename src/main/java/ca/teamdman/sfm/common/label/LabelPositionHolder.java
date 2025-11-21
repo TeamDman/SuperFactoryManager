@@ -1,27 +1,30 @@
 package ca.teamdman.sfm.common.label;
 
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
-import com.github.bsideup.jabel.Desugar;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagByteArray;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagByteArray;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextFormatting;
+
+import org.jetbrains.annotations.NotNull;
+
+import com.github.bsideup.jabel.Desugar;
+
+import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
+
 @SuppressWarnings("UnusedReturnValue")
 @Desugar
 public record LabelPositionHolder(
-        Map<String, HashSet<BlockPos>> labels
-) {
+                                  Map<String, HashSet<BlockPos>> labels) {
+
     private final static WeakHashMap<ItemStack, LabelPositionHolder> CACHE = new WeakHashMap<>();
 
     private LabelPositionHolder() {
@@ -33,7 +36,6 @@ public record LabelPositionHolder(
         other.labels().forEach((key, value) -> this.labels().put(key, new HashSet<>(value)));
     }
 
-
     /**
      * Get the label position holder for this disk.
      * <p>
@@ -44,7 +46,8 @@ public record LabelPositionHolder(
     public static LabelPositionHolder from(ItemStack stack) {
         // TODO: make this return an immutable copy instead of mutably borrowing the cache entry
         return CACHE.computeIfAbsent(stack, s -> {
-            var tag = stack.getTagCompound() != null ? stack.getTagCompound().getCompoundTag("sfm:labels") : new NBTTagCompound();
+            var tag = stack.getTagCompound() != null ? stack.getTagCompound().getCompoundTag("sfm:labels") :
+                    new NBTTagCompound();
             return deserialize(tag);
         });
     }
@@ -65,8 +68,7 @@ public record LabelPositionHolder(
             if (positionsTagType == 7) { // byte_array
                 labels.addAll(
                         label,
-                        CompressedBlockPosSet.from(tag.getByteArray(label)).into()
-                );
+                        CompressedBlockPosSet.from(tag.getByteArray(label)).into());
             }
         }
         return labels;
@@ -99,9 +101,8 @@ public record LabelPositionHolder(
     }
 
     public boolean contains(
-            String label,
-            BlockPos pos
-    ) {
+                            String label,
+                            BlockPos pos) {
         HashSet<BlockPos> positionsForLabel = this.labels().get(label);
         if (positionsForLabel == null) {
             return false;
@@ -119,9 +120,8 @@ public record LabelPositionHolder(
     }
 
     public LabelPositionHolder addAll(
-            String label,
-            Collection<BlockPos> positions
-    ) {
+                                      String label,
+                                      Collection<BlockPos> positions) {
         if (label.trim().isEmpty()) return this;
         getPositionsMut(label).addAll(positions);
         return this;
@@ -141,9 +141,8 @@ public record LabelPositionHolder(
                 .getFormattedText());
         for (var entry : labels().entrySet()) {
             rtn.add(LocalizationKeys.DISK_ITEM_TOOLTIP_LABEL.getComponent(
-                            entry.getKey(),
-                            entry.getValue().size()
-                    ).setStyle(new Style().setColor(TextFormatting.GRAY))
+                    entry.getKey(),
+                    entry.getValue().size()).setStyle(new Style().setColor(TextFormatting.GRAY))
                     .getFormattedText());
         }
         return rtn;
@@ -153,7 +152,8 @@ public record LabelPositionHolder(
         int total = 0;
         StringBuilder rtn = new StringBuilder();
         for (var entry : labels().entrySet()) {
-            rtn.append("-- * ").append(entry.getKey()).append(" - ").append(entry.getValue().size()).append(" positions\n");
+            rtn.append("-- * ").append(entry.getKey()).append(" - ").append(entry.getValue().size())
+                    .append(" positions\n");
             total += entry.getValue().size();
         }
         return "-- LabelPositionHolder - " + total + " total labels\n" + rtn;
@@ -175,18 +175,16 @@ public record LabelPositionHolder(
     }
 
     public LabelPositionHolder add(
-            String label,
-            BlockPos position
-    ) {
+                                   String label,
+                                   BlockPos position) {
         if (label.trim().isEmpty()) return this;
         getPositionsMut(label).add(position);
         return this;
     }
 
     public LabelPositionHolder remove(
-            String label,
-            BlockPos pos
-    ) {
+                                      String label,
+                                      BlockPos pos) {
         getPositionsMut(label).remove(pos);
         return this;
     }

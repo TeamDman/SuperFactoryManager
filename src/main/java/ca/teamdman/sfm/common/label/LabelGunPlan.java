@@ -1,9 +1,11 @@
 package ca.teamdman.sfm.common.label;
 
-import ca.teamdman.sfm.common.util.ConfirmationParams;
 import org.jetbrains.annotations.Nullable;
 
+import ca.teamdman.sfm.common.util.ConfirmationParams;
+
 public interface LabelGunPlan {
+
     /// Must only be called on the server side
     void run();
 
@@ -11,5 +13,4 @@ public interface LabelGunPlan {
     default @Nullable ConfirmationParams getConfirmation() {
         return null;
     }
-
 }

@@ -1,9 +1,7 @@
 package ca.teamdman.sfm.common.net;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import javax.annotation.Nullable;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.inventory.Container;
@@ -11,10 +9,13 @@ import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
+import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
 
 public class ClientboundManagerLogLevelUpdatedPacket extends SFMPacket<ClientboundManagerLogLevelUpdatedPacket> {
+
     private int windowId;
     private String logLevel;
 
@@ -23,8 +24,7 @@ public class ClientboundManagerLogLevelUpdatedPacket extends SFMPacket<Clientbou
         this.logLevel = logLevel;
     }
 
-    public ClientboundManagerLogLevelUpdatedPacket() {
-    }
+    public ClientboundManagerLogLevelUpdatedPacket() {}
 
     @Override
     public void fromBytes(ByteBuf buf) {

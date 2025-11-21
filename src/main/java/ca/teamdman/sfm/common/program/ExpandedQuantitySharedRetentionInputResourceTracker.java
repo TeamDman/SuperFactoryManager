@@ -1,5 +1,8 @@
 package ca.teamdman.sfm.common.program;
 
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfml.ast.ResourceIdSet;
@@ -8,31 +11,27 @@ import it.unimi.dsi.fastutil.ints.Int2LongArrayMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.ResourceLocation;
 
 @SuppressWarnings("DuplicatedCode")
 public class ExpandedQuantitySharedRetentionInputResourceTracker implements IInputResourceTracker {
+
     private final ResourceLimit resource_limit;
     private final ResourceIdSet exclusions;
-    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>
-            transferred_by_item = new Object2ObjectOpenHashMap<>();
+    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>> transferred_by_item = new Object2ObjectOpenHashMap<>();
     private final Long2ObjectOpenHashMap<Int2LongArrayMap> retention_obligations_by_pos_by_slot = new Long2ObjectOpenHashMap<>();
     private long retention_obligation_progress = 0;
 
     public ExpandedQuantitySharedRetentionInputResourceTracker(
-            ResourceLimit resourceLimit,
-            ResourceIdSet exclusions
-    ) {
+                                                               ResourceLimit resourceLimit,
+                                                               ResourceIdSet exclusions) {
         this.resource_limit = resourceLimit;
         this.exclusions = exclusions;
     }
 
     @Override
     public <STACK, CAP, ITEM> boolean isDone(
-            ResourceType<STACK, ITEM, CAP> type,
-            STACK stack
-    ) {
+                                             ResourceType<STACK, ITEM, CAP> type,
+                                             STACK stack) {
         long can_transfer = resource_limit.limit().quantity().number().value();
         long transferred_for_item = 0;
         var transferred_for_resource_type = transferred_by_item.get(type);
@@ -55,11 +54,10 @@ public class ExpandedQuantitySharedRetentionInputResourceTracker implements IInp
 
     @Override
     public <STACK, ITEM, CAP> long getRetentionObligationForSlot(
-            ResourceType<STACK, ITEM, CAP> resourceType,
-            STACK key,
-            @NotStored BlockPos pos,
-            int slot
-    ) {
+                                                                 ResourceType<STACK, ITEM, CAP> resourceType,
+                                                                 STACK key,
+                                                                 @NotStored BlockPos pos,
+                                                                 int slot) {
         var posEntry = retention_obligations_by_pos_by_slot.get(pos.toLong());
         if (posEntry == null) {
             return 0;
@@ -69,20 +67,18 @@ public class ExpandedQuantitySharedRetentionInputResourceTracker implements IInp
 
     @Override
     public <STACK, ITEM, CAP> long getRemainingRetentionObligation(
-            ResourceType<STACK, ITEM, CAP> resourceType,
-            STACK key
-    ) {
+                                                                   ResourceType<STACK, ITEM, CAP> resourceType,
+                                                                   STACK key) {
         return resource_limit.limit().retention().number().value() - retention_obligation_progress;
     }
 
     @Override
     public <STACK, ITEM, CAP> void trackRetentionObligation(
-            ResourceType<STACK, ITEM, CAP> resourceType,
-            STACK key,
-            int slot,
-            @NotStored BlockPos pos,
-            long dedicatingToObligation
-    ) {
+                                                            ResourceType<STACK, ITEM, CAP> resourceType,
+                                                            STACK key,
+                                                            int slot,
+                                                            @NotStored BlockPos pos,
+                                                            long dedicatingToObligation) {
         this.retention_obligation_progress += dedicatingToObligation;
         this.retention_obligations_by_pos_by_slot
                 .computeIfAbsent(pos.toLong(), k -> new Int2LongArrayMap())
@@ -91,9 +87,8 @@ public class ExpandedQuantitySharedRetentionInputResourceTracker implements IInp
 
     @Override
     public <STACK, ITEM, CAP> long getMaxTransferable(
-            ResourceType<STACK, ITEM, CAP> resourceType,
-            STACK stack
-    ) {
+                                                      ResourceType<STACK, ITEM, CAP> resourceType,
+                                                      STACK stack) {
         long max_transfer = resource_limit.limit().quantity().number().value();
         long transferred_for_item = 0;
         var transferred_for_resource_type = transferred_by_item.get(resourceType);
@@ -106,13 +101,11 @@ public class ExpandedQuantitySharedRetentionInputResourceTracker implements IInp
 
     @Override
     public <STACK, ITEM, CAP> void trackTransfer(
-            ResourceType<STACK, ITEM, CAP> resourceType,
-            STACK stack,
-            long amount
-    ) {
+                                                 ResourceType<STACK, ITEM, CAP> resourceType,
+                                                 STACK stack,
+                                                 long amount) {
         ResourceLocation item_id = resourceType.getRegistryKeyForStack(stack);
         transferred_by_item.computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())
                 .addTo(item_id, amount);
     }
-
 }

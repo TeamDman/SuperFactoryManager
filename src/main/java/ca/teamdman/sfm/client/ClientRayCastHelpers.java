@@ -1,12 +1,15 @@
 package ca.teamdman.sfm.client;
 
-import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.RayTraceResult;
+
 import org.jetbrains.annotations.Nullable;
 
+import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
+
 public class ClientRayCastHelpers {
+
     public static @Nullable TileEntity getLookBlockEntity() {
         if (!SFMEnvironmentUtils.isClient()) {
             throw new RuntimeException("getLookBlockEntity must be called on client");

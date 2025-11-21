@@ -1,15 +1,16 @@
 package vswe.superfactory.components.internal;
 
 public interface IItemBufferElement {
-	void prepareSubElements();
 
-	IItemBufferSubElement getSubElement();
+    void prepareSubElements();
 
-	void removeSubElement();
+    IItemBufferSubElement getSubElement();
 
-	int retrieveItemCount(int moveCount);
+    void removeSubElement();
 
-	void decreaseStackSize(int moveCount);
+    int retrieveItemCount(int moveCount);
 
-	void releaseSubElements();
+    void decreaseStackSize(int moveCount);
+
+    void releaseSubElements();
 }

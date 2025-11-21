@@ -1,23 +1,24 @@
 package ca.teamdman.sfm.common.net;
 
-import ca.teamdman.sfm.client.ClientLabelGunResponseChatHelper;
-import ca.teamdman.sfm.common.registry.SFMPackets;
-import io.netty.buffer.ByteBuf;
+import javax.annotation.Nullable;
+
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import javax.annotation.Nullable;
+import ca.teamdman.sfm.client.ClientLabelGunResponseChatHelper;
+import ca.teamdman.sfm.common.registry.SFMPackets;
+import io.netty.buffer.ByteBuf;
 
 public class ClientboundLabelGunUseResponsePacket extends SFMPacket<ClientboundLabelGunUseResponsePacket> {
+
     private Behaviour behaviour;
 
     public ClientboundLabelGunUseResponsePacket(Behaviour behaviour) {
         this.behaviour = behaviour;
     }
 
-    public ClientboundLabelGunUseResponsePacket() {
-    }
+    public ClientboundLabelGunUseResponsePacket() {}
 
     public enum Behaviour {
         Pushed,

@@ -1,20 +1,21 @@
 package ca.teamdman.sfm.common.diagnostics;
 
+import java.text.SimpleDateFormat;
+
+import net.minecraft.item.ItemStack;
+import net.minecraftforge.common.ForgeVersion;
+import net.minecraftforge.fml.common.Loader;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.diagnostics.SFMClientDiagnostics;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.common.ForgeVersion;
-import net.minecraftforge.fml.common.Loader;
-
-import java.text.SimpleDateFormat;
 
 public class SFMDiagnostics {
+
     public static String getDiagnosticsSummary(
-            ItemStack diskStack
-    ) {
+                                               ItemStack diskStack) {
         if (SFMEnvironmentUtils.isClient()) {
             return SFMClientDiagnostics.getDiagnosticsSummary(diskStack);
         }
@@ -32,23 +33,22 @@ public class SFMDiagnostics {
                     .append(new SimpleDateFormat("yyyy-MM-dd HH:mm.ss").format(new java.util.Date()))
                     .append('\n');
 
-//            content
-//                    .append("-- Game Version: ")
-//                    .append("Minecraft ")
-//                    .append(MinecraftServer.getServer().getMinecraftVersion())
-//                    .append('\n');
+            // content
+            // .append("-- Game Version: ")
+            // .append("Minecraft ")
+            // .append(MinecraftServer.getServer().getMinecraftVersion())
+            // .append('\n');
 
             content.append("-- Forge Version: ")
                     .append(ForgeVersion.getVersion())
                     .append('\n');
 
             var modContainer = Loader.instance().getIndexedModList().getOrDefault(SFM.MOD_ID, null);
-            //noinspection CodeBlock2Expr
+            // noinspection CodeBlock2Expr
 
             content.append("-- SFM Version: ")
                     .append(modContainer.getVersion())
                     .append('\n');
-
 
             var errors = DiskItem.getErrors(diskStack);
             if (!errors.isEmpty()) {

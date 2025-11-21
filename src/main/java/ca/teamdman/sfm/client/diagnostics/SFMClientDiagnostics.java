@@ -1,20 +1,21 @@
 package ca.teamdman.sfm.client.diagnostics;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.item.DiskItem;
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import java.text.SimpleDateFormat;
+
 import net.minecraft.client.ClientBrandRetriever;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.common.Loader;
 
-import java.text.SimpleDateFormat;
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.item.DiskItem;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
 
 public class SFMClientDiagnostics {
+
     public static String getDiagnosticsSummary(
-            ItemStack diskStack
-    ) {
+                                               ItemStack diskStack) {
         StringBuilder content = new StringBuilder();
         try {
             content
@@ -44,12 +45,11 @@ public class SFMClientDiagnostics {
                     .append('\n');
 
             var modContainer = Loader.instance().getIndexedModList().getOrDefault(SFM.MOD_ID, null);
-            //noinspection CodeBlock2Expr
+            // noinspection CodeBlock2Expr
 
             content.append("-- SFM Version: ")
                     .append(modContainer.getVersion())
                     .append('\n');
-
 
             var errors = DiskItem.getErrors(diskStack);
             if (!errors.isEmpty()) {

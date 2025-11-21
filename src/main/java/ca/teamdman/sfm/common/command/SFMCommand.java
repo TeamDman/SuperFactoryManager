@@ -12,7 +12,6 @@ public class SFMCommand extends CommandTreeBase {
         this.addSubcommand(new ChangelogCommand());
     }
 
-
     @Override
     public String getName() {
         return "sfm";

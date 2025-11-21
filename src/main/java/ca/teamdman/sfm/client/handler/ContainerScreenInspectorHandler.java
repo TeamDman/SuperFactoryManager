@@ -1,16 +1,5 @@
 package ca.teamdman.sfm.client.handler;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.client.ClientRayCastHelpers;
-import ca.teamdman.sfm.client.registry.SFMKeyMappings;
-import ca.teamdman.sfm.client.screen.SFMFontUtils;
-import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
-import ca.teamdman.sfm.client.widget.SFMExtendedButton;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.net.ServerboundContainerExportsInspectionRequestPacket;
-import ca.teamdman.sfm.common.registry.SFMPackets;
-import com.bbscn.Button;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
@@ -18,7 +7,6 @@ import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -29,12 +17,26 @@ import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
+
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
+import com.bbscn.Button;
+
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.ClientRayCastHelpers;
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
+import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.net.ServerboundContainerExportsInspectionRequestPacket;
+import ca.teamdman.sfm.common.registry.SFMPackets;
+
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.CLIENT)
 public class ContainerScreenInspectorHandler {
+
     private static boolean visible = false;
     private static @Nullable GuiContainer lastScreen = null;
     private static final Button exportInspectorButton = new SFMButtonBuilder()
@@ -46,8 +48,7 @@ public class ContainerScreenInspectorHandler {
                 if (lastScreen != null && lookBlockEntity != null) {
                     SFMPackets.sendToServer(new ServerboundContainerExportsInspectionRequestPacket(
                             lastScreen.inventorySlots.windowId,
-                            lookBlockEntity.getPos()
-                    ));
+                            lookBlockEntity.getPos()));
                 }
             })
             .build();
@@ -67,8 +68,8 @@ public class ContainerScreenInspectorHandler {
 
             // 3. Calculate the scaled mouse position used by GUIs
             int scaledMouseX = mouseX * scaledResolution.getScaledWidth() / mc.displayWidth;
-            int scaledMouseY = scaledResolution.getScaledHeight() - mouseY * scaledResolution.getScaledHeight() / mc.displayHeight - 1;
-
+            int scaledMouseY = scaledResolution.getScaledHeight() -
+                    mouseY * scaledResolution.getScaledHeight() / mc.displayHeight - 1;
 
             if (exportInspectorButton.clicked(scaledMouseX, scaledMouseY)) {
                 exportInspectorButton.playDownSound(Minecraft.getMinecraft());
@@ -77,7 +78,6 @@ public class ContainerScreenInspectorHandler {
             }
         }
     }
-
 
     @SubscribeEvent
     public static void onGuiRender(GuiScreenEvent.DrawScreenEvent.Post event) {
@@ -94,14 +94,14 @@ public class ContainerScreenInspectorHandler {
             // draw the button
             exportInspectorButton.render(event.getMouseX(), event.getMouseY(), event.getRenderPartialTicks());
 
-
             // draw index on each slot
             FontRenderer font = Minecraft.getMinecraft().fontRenderer;
             for (var slot : menu.inventorySlots) {
                 TextFormatting colour;
-                // TODO: can we reference-compare this to the capabilities to find out if this matches any of the inventories exposed for automation?
+                // TODO: can we reference-compare this to the capabilities to find out if this matches any of the
+                // inventories exposed for automation?
                 if (slot.inventory instanceof InventoryPlayer) {
-                    //noinspection DataFlowIssue
+                    // noinspection DataFlowIssue
                     colour = TextFormatting.YELLOW;
                     inventorySlotCount++;
                 } else {
@@ -110,12 +110,12 @@ public class ContainerScreenInspectorHandler {
                 }
                 SFMFontUtils.draw(
                         font,
-                        new TextComponentString(Integer.toString(slot.getSlotIndex())).setStyle(new Style().setColor(colour)),
+                        new TextComponentString(Integer.toString(slot.getSlotIndex()))
+                                .setStyle(new Style().setColor(colour)),
                         screen.getGuiLeft() + slot.xPos,
                         screen.getGuiTop() + slot.yPos,
                         -1,
-                        false
-                );
+                        false);
             }
 
             // draw centered notices
@@ -130,16 +130,14 @@ public class ContainerScreenInspectorHandler {
                         screen.width / 2 - offset,
                         5,
                         0xFFFFFF,
-                        true
-                );
+                        true);
             }
             {
                 var notice = LocalizationKeys.CONTAINER_INSPECTOR_NOTICE_2.getComponent(
                         new TextComponentString(SFMKeyMappings.CONTAINER_INSPECTOR_KEY
-                                .getDisplayName()
-                        )
-                                .setStyle(new Style().setColor(TextFormatting.AQUA))
-                ).setStyle(new Style().setColor(TextFormatting.GOLD));
+                                .getDisplayName())
+                                        .setStyle(new Style().setColor(TextFormatting.AQUA)))
+                        .setStyle(new Style().setColor(TextFormatting.GOLD));
                 int offset = font.getStringWidth(notice.getUnformattedText()) / 2;
                 SFMFontUtils.draw(
                         font,
@@ -147,31 +145,28 @@ public class ContainerScreenInspectorHandler {
                         screen.width / 2 - offset,
                         16,
                         0xFFFFFF,
-                        true
-                );
+                        true);
             }
 
             // draw text for slot totals
             SFMFontUtils.draw(
                     font,
                     LocalizationKeys.CONTAINER_INSPECTOR_CONTAINER_SLOT_COUNT.getComponent(
-                            new TextComponentString(String.valueOf(containerSlotCount)).setStyle(new Style().setColor(TextFormatting.BLUE))
-                    ),
+                            new TextComponentString(String.valueOf(containerSlotCount))
+                                    .setStyle(new Style().setColor(TextFormatting.BLUE))),
                     5,
                     25,
                     0xFFFFFF,
-                    true
-            );
+                    true);
             SFMFontUtils.draw(
                     font,
                     LocalizationKeys.CONTAINER_INSPECTOR_INVENTORY_SLOT_COUNT.getComponent(
-                            new TextComponentString(String.valueOf(inventorySlotCount)).setStyle(new Style().setColor(TextFormatting.YELLOW))
-                    ),
+                            new TextComponentString(String.valueOf(inventorySlotCount))
+                                    .setStyle(new Style().setColor(TextFormatting.YELLOW))),
                     5,
                     40,
                     0xFFFFFF,
-                    true
-            );
+                    true);
             GlStateManager.popMatrix();
         }
     }

@@ -1,21 +1,23 @@
 package ca.teamdman.sfm.common.label;
 
+import static ca.teamdman.sfm.common.localization.LocalizationKeys.LABEL_GUN_CHAT_SKIPPED_BLOCKS;
+
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.world.World;
+
+import org.jetbrains.annotations.Nullable;
+
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
 import vswe.superfactory.tiles.TileEntityManager;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.LABEL_GUN_CHAT_SKIPPED_BLOCKS;
-
 public class LabelGunPlanner {
+
     public static @Nullable LabelGunPlan getLabelGunPlan(
-            EntityPlayer player,
-            ServerboundLabelGunUsePacket msg,
-            boolean doWarning
-    ) {
+                                                         EntityPlayer player,
+                                                         ServerboundLabelGunUsePacket msg,
+                                                         boolean doWarning) {
         World world = player.getEntityWorld();
         var gunStack = player.getHeldItem(msg.getHand());
         if (!(gunStack.getItem() instanceof LabelGunItem)) {
@@ -24,33 +26,26 @@ public class LabelGunPlanner {
 
         var gunLabels = LabelPositionHolder.from(gunStack).toOwned();
 
-        if (
-                !msg.isTargetManagerModifierActive()
-                        && world.getTileEntity(msg.getPos()) instanceof ManagerBlockEntity manager
-        ) {
+        if (!msg.isTargetManagerModifierActive() &&
+                world.getTileEntity(msg.getPos()) instanceof ManagerBlockEntity manager) {
             return new LabelGunManagerPushOrPullAction(
                     player,
                     world,
                     msg,
                     gunStack,
                     gunLabels,
-                    manager
-            );
+                    manager);
         }
 
-
-        if (
-                !msg.isTargetManagerModifierActive()
-                        && world.getTileEntity(msg.getPos()) instanceof TileEntityManager manager
-        ) {
+        if (!msg.isTargetManagerModifierActive() &&
+                world.getTileEntity(msg.getPos()) instanceof TileEntityManager manager) {
             return new LabelGunOldManagerPushOrPullAction(
                     player,
                     world,
                     msg,
                     gunStack,
                     gunLabels,
-                    manager
-            );
+                    manager);
         }
 
         var activeLabel = LabelGunItem.getActiveLabel(gunStack);
@@ -60,8 +55,7 @@ public class LabelGunPlanner {
         // TODO: highlight skipped blocks in the world
         if (doWarning && !targets.warnBecauseNoCableNeighbour().isEmpty()) {
             player.sendStatusMessage(LABEL_GUN_CHAT_SKIPPED_BLOCKS.getComponent(
-                    targets.warnBecauseNoCableNeighbour().size()
-            ), false);
+                    targets.warnBecauseNoCableNeighbour().size()), false);
         }
 
         if (msg.isClearModifierActive()) {
@@ -72,8 +66,7 @@ public class LabelGunPlanner {
                     gunStack,
                     gunLabels,
                     targets,
-                    activeLabel
-            );
+                    activeLabel);
         } else {
             if (msg.isPickBlockModifierActive()) {
                 return new LabelGunPickLabelAction(
@@ -83,8 +76,7 @@ public class LabelGunPlanner {
                         gunStack,
                         gunLabels,
                         targets,
-                        activeLabel
-                );
+                        activeLabel);
             } else {
                 return new LabelGunToggleLabelAction(
                         player,
@@ -93,8 +85,7 @@ public class LabelGunPlanner {
                         gunStack,
                         gunLabels,
                         targets,
-                        activeLabel
-                );
+                        activeLabel);
             }
         }
     }

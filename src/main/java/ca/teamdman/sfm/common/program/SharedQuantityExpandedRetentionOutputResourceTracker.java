@@ -1,24 +1,24 @@
 package ca.teamdman.sfm.common.program;
 
+import net.minecraft.util.ResourceLocation;
+
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimit;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.util.ResourceLocation;
 
 @SuppressWarnings("DuplicatedCode")
 public class SharedQuantityExpandedRetentionOutputResourceTracker implements IOutputResourceTracker {
+
     private final ResourceLimit resource_limit;
     private final ResourceIdSet exclusions;
-    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>
-            retention_obligations_by_item = new Object2ObjectOpenHashMap<>();
+    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>> retention_obligations_by_item = new Object2ObjectOpenHashMap<>();
     private long transferred = 0;
 
     public SharedQuantityExpandedRetentionOutputResourceTracker(
-            ResourceLimit resourceLimit,
-            ResourceIdSet exclusions
-    ) {
+                                                                ResourceLimit resourceLimit,
+                                                                ResourceIdSet exclusions) {
         this.resource_limit = resourceLimit;
         this.exclusions = exclusions;
     }
@@ -35,9 +35,8 @@ public class SharedQuantityExpandedRetentionOutputResourceTracker implements IOu
 
     @Override
     public <STACK, CAP, ITEM> boolean isDone(
-            ResourceType<STACK, ITEM, CAP> type,
-            STACK stack
-    ) {
+                                             ResourceType<STACK, ITEM, CAP> type,
+                                             STACK stack) {
         long max_transfer = resource_limit.limit().quantity().number().value();
         if (transferred >= max_transfer) {
             return true;
@@ -55,9 +54,8 @@ public class SharedQuantityExpandedRetentionOutputResourceTracker implements IOu
 
     @Override
     public <STACK, ITEM, CAP> void updateRetentionObservation(
-            ResourceType<STACK, ITEM, CAP> type,
-            STACK observed
-    ) {
+                                                              ResourceType<STACK, ITEM, CAP> type,
+                                                              STACK observed) {
         if (matchesStack(observed)) {
             ResourceLocation item_id = type.getRegistryKeyForStack(observed);
             retention_obligations_by_item.computeIfAbsent(type, k -> new Object2LongOpenHashMap<>())
@@ -67,9 +65,8 @@ public class SharedQuantityExpandedRetentionOutputResourceTracker implements IOu
 
     @Override
     public <STACK, ITEM, CAP> long getMaxTransferable(
-            ResourceType<STACK, ITEM, CAP> resourceType,
-            STACK key
-    ) {
+                                                      ResourceType<STACK, ITEM, CAP> resourceType,
+                                                      STACK key) {
         long max_transfer = resource_limit.limit().quantity().number().value();
         long unusedQuantity = max_transfer - transferred;
 
@@ -87,10 +84,9 @@ public class SharedQuantityExpandedRetentionOutputResourceTracker implements IOu
 
     @Override
     public <STACK, ITEM, CAP> void trackTransfer(
-            ResourceType<STACK, ITEM, CAP> resourceType,
-            STACK key,
-            long amount
-    ) {
+                                                 ResourceType<STACK, ITEM, CAP> resourceType,
+                                                 STACK key,
+                                                 long amount) {
         ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
         transferred += amount;
         retention_obligations_by_item.computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())
@@ -100,10 +96,10 @@ public class SharedQuantityExpandedRetentionOutputResourceTracker implements IOu
     @Override
     public String toString() {
         return "SharedQuantityExpandedRetentionOutputResourceTracker{" +
-               "resource_limit=" + resource_limit +
-               ", exclusions=" + exclusions +
-               ", transferred=" + transferred +
-               ", retention_obligations_by_item=" + retention_obligations_by_item +
-               '}';
+                "resource_limit=" + resource_limit +
+                ", exclusions=" + exclusions +
+                ", transferred=" + transferred +
+                ", retention_obligations_by_item=" + retention_obligations_by_item +
+                '}';
     }
 }
