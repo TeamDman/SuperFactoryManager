@@ -36,6 +36,7 @@ public class LabelGunScrollSwitcher {
         SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundLabelGunSetActiveLabelPacket(
                 next,
                 hand));
+        LabelGunKeyMappingHandler.setExternalDebounce();
 
         event.setCanceled(true);
     }

@@ -44,7 +44,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
     private final ISFMTextEditScreenOpenContext openContext;
     protected MyMultiLineEditBox textarea;
-    protected String lastProgram = "";
+    protected String lastProgram = "different";
     protected List<ITextComponent> lastProgramWithSyntaxHighlighting = new ArrayList<>();
     protected PickList<IntellisenseAction> suggestedActions;
     private boolean scrolledOnFirstInit = false;
@@ -104,6 +104,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
     public void closeWithoutSaving() {
         SFMScreenChangeHelpers.popScreen();
+        SFMScreenChangeHelpers.popScreen();
     }
 
     public void onIntellisensePreferenceChanged() {
@@ -114,18 +115,33 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
      * The user has tried to close the GUI without saving by hitting the Esc key
      */
     @Override
-    public void onGuiClosed() {}
+    public void onGuiClosed() {
+        Keyboard.enableRepeatEvents(false);
+    }
 
-    @Override
+      @Override
     public boolean charTyped(
                              char pCodePoint,
                              int pModifiers) {
-        if (!suggestedActions.isEmpty() && pCodePoint == '\\') {
-            // prevent intellisense-accept hotkey from being typed
-            return true;
-        }
-        return super.charTyped(pCodePoint, pModifiers);
-    }
+          if (!suggestedActions.isEmpty() && pCodePoint == '\\') {
+              IntellisenseAction action = suggestedActions.getSelected();
+              assert action != null;
+              ManipulationResult result = action.perform(
+                      new IntellisenseContext(
+                              ProgramBuilder.build(textarea.getValue()),
+                              textarea.getCursorPosition(),
+                              textarea.getSelectionCursorPosition(),
+                              openContext.labelPositionHolder(),
+                              SFMConfig.client.intellisenseLevel));
+              double scrollAmount = textarea.getScrollAmount();
+              textarea.setValue(result.content());
+              textarea.setSelectionCursorPosition(result.selectionCursorPosition());
+              textarea.setCursorPosition(result.cursorPosition());
+              textarea.setScrollAmount(scrollAmount);
+              return true;
+          }
+          return super.charTyped(pCodePoint, pModifiers);
+      }
 
     @Override
     public boolean keyPressed(
@@ -137,7 +153,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             return true;
         }
 
-        if (pKeyCode == Keyboard.KEY_TAB) {
+       if (pKeyCode == Keyboard.KEY_TAB) {
             String content = textarea.getValue();
             int cursor = textarea.getCursorPosition();
             int selectionCursor = textarea.getSelectionCursorPosition();
@@ -151,24 +167,6 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             textarea.setValue(result.content());
             textarea.setCursorPosition(result.cursorPosition());
             textarea.setSelectionCursorPosition(result.selectionCursorPosition());
-            textarea.setScrollAmount(scrollAmount);
-            return true;
-        }
-
-        if (pKeyCode == Keyboard.KEY_BACKSLASH && !suggestedActions.isEmpty()) {
-            IntellisenseAction action = suggestedActions.getSelected();
-            assert action != null;
-            ManipulationResult result = action.perform(
-                    new IntellisenseContext(
-                            ProgramBuilder.build(textarea.getValue()),
-                            textarea.getCursorPosition(),
-                            textarea.getSelectionCursorPosition(),
-                            openContext.labelPositionHolder(),
-                            SFMConfig.client.intellisenseLevel));
-            double scrollAmount = textarea.getScrollAmount();
-            textarea.setValue(result.content());
-            textarea.setSelectionCursorPosition(result.selectionCursorPosition());
-            textarea.setCursorPosition(result.cursorPosition());
             textarea.setScrollAmount(scrollAmount);
             return true;
         }
@@ -326,6 +324,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
     @Override
     public void initGui() {
         super.initGui();
+        Keyboard.enableRepeatEvents(true);
         SFMScreenRenderUtils.enableKeyRepeating();
 
         this.textarea = this.addRenderableWidget(new MyMultiLineEditBox());
@@ -338,6 +337,9 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                 this.fontRenderer.FONT_HEIGHT * 6,
                 LocalizationKeys.INTELLISENSE_PICK_LIST_GUI_TITLE.getComponent(),
                 new ArrayList<>()));
+
+        this.setFocused(this.textarea);
+        this.textarea.setFocused(true);
 
         // this.addRenderableWidget(
         // new SFMButtonBuilder()
@@ -615,12 +617,11 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
         @Override
         protected void renderContents(int mx, int my, float partialTicks) {
-            SFM.LOGGER.warn("My position", this.getX(), this.getY());
             if (!lastProgram.equals(this.textField.value())) {
                 rebuild(GuiScreen.isCtrlKeyDown());
             }
             List<ITextComponent> lines = lastProgramWithSyntaxHighlighting;
-            boolean isFrameVisible = this.isFocused() && this.frame++ / 60 % 2 == 0;
+            boolean isCursorFrame = this.frame++ / 60 % 2 == 0;
             boolean isCursorAtEndOfLine = false;
             int cursorIndex = textField.cursor();
             int lineX = SFMScreenRenderUtils.getX(this) + this.innerPadding() + getLineNumberWidth();
@@ -634,11 +635,10 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
             for (int line = 0; line < lines.size(); ++line) {
                 var componentColoured = lines.get(line);
-                int lineLength = componentColoured.getUnformattedComponentText().length();
+                int lineLength = componentColoured.getUnformattedText().length();
                 int lineHeight = this.font.FONT_HEIGHT;
                 boolean cursorOnThisLine = cursorIndex >= charCount &&
                         cursorIndex <= charCount + lineLength;
-                boolean isCursorVisible = cursorOnThisLine && isFrameVisible;
 
                 if (shouldShowLineNumbers()) {
                     // Draw line number
@@ -652,7 +652,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                             false);
                 }
 
-                if (isCursorVisible) {
+                if (cursorOnThisLine) {
+                    SFMTextEditScreenV1.this.suggestedActions.active = true;
                     isCursorAtEndOfLine = cursorIndex == charCount + lineLength;
                     cursorY = lineY;
                     // draw text before cursor
@@ -673,6 +674,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                             true,
                             false);
                 } else {
+                    SFMTextEditScreenV1.this.suggestedActions.active = false;
                     SFMFontUtils.drawInBatch(
                             componentColoured,
                             font,
@@ -701,10 +703,12 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                 charCount += lineLength + 1;
             }
 
-            if (isCursorAtEndOfLine) {
-                SFMFontUtils.draw(this.font, "_", cursorX, cursorY, -1, true);
-            } else {
-                Gui.drawRect(cursorX - 1, cursorY - 1, cursorX, cursorY + 1 + 9, -1);
+            if (isCursorFrame) {
+                if (isCursorAtEndOfLine) {
+                    SFMFontUtils.draw(this.font, "_", cursorX, cursorY, -1, true);
+                } else {
+                    Gui.drawRect(cursorX - 1, cursorY - 1, cursorX, cursorY + 1 + 9, -1);
+                }
             }
         }
     }

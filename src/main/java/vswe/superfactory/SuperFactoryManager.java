@@ -9,6 +9,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.network.FMLEventChannel;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
+import ca.teamdman.sfm.Tags;
 import vswe.superfactory.network.messages.MessageHandler;
 import vswe.superfactory.network.packets.FileHelper;
 import vswe.superfactory.network.packets.PacketEventHandler;
@@ -16,7 +17,7 @@ import vswe.superfactory.network.packets.PacketEventHandler;
 public class SuperFactoryManager {
 
     public static final String CHANNEL = "factorymanager";
-    public static final String MODID = "superfactorymanager";
+    public static final String MODID = Tags.MOD_ID;
     public static final byte NBT_CURRENT_PROTOCOL_VERSION = 15;
     public static final String NBT_PROTOCOL_VERSION = "ProtocolVersion";
     public static final String RESOURCE_LOCATION = "superfactorymanager";

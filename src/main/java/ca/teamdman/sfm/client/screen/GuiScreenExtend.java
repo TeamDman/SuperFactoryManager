@@ -48,6 +48,7 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
         }
     }
 
+    @Nullable
     GuiEventListener focused;
     protected final List<GuiEventListener> children = Lists.newArrayList();
     protected final List<Renderable> renderables = new CopyOnWriteArrayList<>();
@@ -178,11 +179,11 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        super.keyTyped(typedChar, keyCode);
-
         // 模拟高版本 keyPressed
         boolean b = this.keyPressed(keyCode, -1, 0);
         if (b) return;
+
+        super.keyTyped(typedChar, keyCode);
 
         // 模拟高版本 charTyped，仅在字符有效时调用
         if (typedChar != 0 && Tools.isAllowedChatCharacter(typedChar)) {

@@ -53,12 +53,12 @@ tasks.shadowJar.configure {
 
 dependencies {
     antlr("org.antlr:antlr4:4.9.1")
-    shadowImplementation("org.antlr:antlr4-runtime:4.9.1")
+    shadowImplementation("org.antlr:antlr4-runtime:4.9.1") { transitive = false }
     shadowImplementation("com.github.mpkorstanje:simmetrics-core:4.1.1")
 
     devOnlyNonPublishable(rfg.deobf("curse.maven:ae2-extended-life-570458:6302098"))
     devOnlyNonPublishable(rfg.deobf("curse.maven:ae2-fluid-crafting-rework-623955:5504001"))
     devOnlyNonPublishable(rfg.deobf("curse.maven:nae2-884359:5380800"))
 
-    compileOnly(rfg.deobf("curse.maven:storage-drawers-223852:5981297"))
+    compileOnly(rfg.deobf("curse.maven:storage-drawers-223852:5981297")) { transitive = false }
 }
