@@ -108,7 +108,8 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
 
     @Override
     public long getMaxStackSize(ItemStack itemStack) {
-        return itemStack.getMaxStackSize();
+        // If the insert target doesn't check item stack sizes, just trust them
+        return Long.MAX_VALUE;
     }
 
     @Override
