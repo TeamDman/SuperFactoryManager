@@ -1,5 +1,7 @@
 package vswe.superfactory.blocks;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
@@ -8,7 +10,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
 
@@ -30,13 +31,22 @@ public class BlockCable extends Block implements ICableBlock {
     public void onNeighborChange(IBlockAccess world, BlockPos pos, BlockPos neighbor) {
         super.onNeighborChange(world, pos, neighbor);
 
-        onNeighborChange(world, pos);
+        bustCaches(world, pos, neighbor);
     }
 
     public static void onNeighborChange(IBlockAccess world, BlockPos pos) {
+        bustCaches(world, pos, null);
+    }
+
+    public static void bustCaches(IBlockAccess world, BlockPos pos, @Nullable BlockPos neighborPos) {
         if (world instanceof World w) {
             var network = CableNetworkManager.getOrRegisterNetworkFromCablePosition(w, pos);
-            network.ifPresent(CableNetwork::updateVisualManagers);
+            network.ifPresent(nw -> {
+                nw.updateVisualManagers();
+                if (neighborPos != null && world.getTileEntity(neighborPos) == null) {
+                    nw.bustCapabilityCacheForBlock(neighborPos);
+                }
+            });
         }
     }
 

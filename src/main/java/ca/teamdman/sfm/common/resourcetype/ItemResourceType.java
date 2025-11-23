@@ -1,16 +1,17 @@
 package ca.teamdman.sfm.common.resourcetype;
 
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
+import net.minecraftforge.oredict.OreDictionary;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -94,38 +95,10 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
         return o instanceof IItemHandler;
     }
 
-    /**
-     * We want to also return block tags here.
-     * <p>
-     * <a href=
-     * "https://github.com/CoFH/CoFHCore/blob/58b83bd0ef1676783323dce54788c3161faab49d/src/main/java/cofh/core/event/CoreClientEvents.java#L127">CoFH
-     * Core adds the "Press Ctrl for Tags" tooltip</a>
-     * See: {@link cofh.core.event.CoreClientEvents#handleItemTooltipEvent(ItemTooltipEvent)}
-     */
-    @SuppressWarnings("JavadocReference")
     @Override
     public Stream<ResourceLocation> getTagsForStack(ItemStack itemStack) {
-        return Stream.empty();
-        // Get block tags
-        // Stream<TagKey<Block>> blockTagKeys;
-        // if (!itemStack.isEmpty()) {
-        // Block block = Block.byItem(itemStack.getItem());
-        // if (block != Blocks.AIR) {
-        // //noinspection deprecation
-        // blockTagKeys = block.builtInRegistryHolder().getTagKeys();
-        // } else {
-        // blockTagKeys = Stream.empty();
-        // }
-        // } else {
-        // blockTagKeys = Stream.empty();
-        // }
-        //
-        // // Get item tags
-        // //noinspection deprecation
-        // Stream<TagKey<Item>> itemTagKeys = itemStack.getItem().builtInRegistryHolder().tags();
-        //
-        // // Return union
-        // return Stream.concat(itemTagKeys, blockTagKeys).map(TagKey::location);
+        return IntStream.of(OreDictionary.getOreIDs(itemStack))
+                .mapToObj(id -> new ResourceLocation("", OreDictionary.getOreName(id)));
     }
 
     @Override

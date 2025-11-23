@@ -75,6 +75,7 @@ public class NetworkToolItem extends Item {
         boolean shouldRefresh = pEntity.ticksExisted % 20 == 0;
         if (!shouldRefresh) return;
         final long maxDistance = 128;
+
         Set<BlockPos> cablePositions = CableNetworkManager
                 .getNetworksInRange(pLevel, pEntity.getPosition(), maxDistance)
                 .flatMap(CableNetwork::getCablePositions)

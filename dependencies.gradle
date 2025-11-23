@@ -56,9 +56,15 @@ dependencies {
     shadowImplementation("org.antlr:antlr4-runtime:4.9.1") { transitive = false }
     shadowImplementation("com.github.mpkorstanje:simmetrics-core:4.1.1")
 
-    devOnlyNonPublishable(rfg.deobf("curse.maven:ae2-extended-life-570458:6302098"))
-    devOnlyNonPublishable(rfg.deobf("curse.maven:ae2-fluid-crafting-rework-623955:5504001"))
-    devOnlyNonPublishable(rfg.deobf("curse.maven:nae2-884359:5380800"))
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:ae2-extended-life-570458:6302098"))
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:ae2-fluid-crafting-rework-623955:5504001"))
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:nae2-884359:5380800"))
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:thermal-expansion-69163:2926431"))
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:thermal-foundation-222880:2926428"))
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:cofh-core-69162:2920433"))
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:codechicken-lib-1-8-242818:2779848"))
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:redstone-flux-270789:2920436"))
+    runtimeOnlyNonPublishable(rfg.deobf("curse.maven:cofh-world-271384:2920434"))
 
     compileOnly(rfg.deobf("curse.maven:storage-drawers-223852:5981297")) { transitive = false }
 }

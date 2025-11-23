@@ -1,0 +1,26 @@
+{
+  "type": "forge:ore_shaped",
+  "result": {
+    "item": "superfactorymanager:network_tool"
+  },
+  "key": {
+    "C": {
+      "item": "minecraft:sign"
+    },
+    "L": {
+      "item": "minecraft:redstone_lamp"
+    },
+    "P": {
+      "item": "minecraft:heavy_weighted_pressure_plate"
+    },
+    "S": {
+      "type": "forge:ore_dict",
+      "ore": "ingotIron"
+    }
+  },
+  "pattern": [
+    " LC",
+    " SP",
+    "S  "
+  ]
+}

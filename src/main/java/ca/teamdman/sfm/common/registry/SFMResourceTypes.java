@@ -24,7 +24,7 @@ public class SFMResourceTypes {
     public static void initialize() {
         ITEM = prepareRegister(ItemResourceType::new, "item");
         FLUID = prepareRegister(FluidResourceType::new, "fluid");
-        FORGE_ENERGY = prepareRegister(ForgeEnergyResourceType::new, "forge_energy");
+        FORGE_ENERGY = prepareRegister(ForgeEnergyResourceType::new, new ResourceLocation("forge", "energy"));
         REDSTONE = prepareRegister(RedstoneResourceType::new, "redstone");
 
         // if (SFMModCompat.isMekanismLoaded()) {
@@ -53,6 +53,26 @@ public class SFMResourceTypes {
             }
         };
         container.setRegistryName(new ResourceLocation(SFM.MOD_ID, name));
+        register(container);
+        return container.get();
+    }
+
+    private static <T extends ResourceType<?, ?, ?>> T prepareRegister(ResourceTypeGenerator<T> resourceType,
+                                                                       ResourceLocation name) {
+        var container = new ResourceTypeContainer() {
+
+            @Nullable
+            T resource;
+
+            @Override
+            public T get() {
+                if (resource == null) {
+                    resource = resourceType.generate(this);
+                }
+                return resource;
+            }
+        };
+        container.setRegistryName(name);
         register(container);
         return container.get();
     }

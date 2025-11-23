@@ -104,7 +104,6 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
     public void closeWithoutSaving() {
         SFMScreenChangeHelpers.popScreen();
-        SFMScreenChangeHelpers.popScreen();
     }
 
     public void onIntellisensePreferenceChanged() {
@@ -119,29 +118,29 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
         Keyboard.enableRepeatEvents(false);
     }
 
-      @Override
+    @Override
     public boolean charTyped(
                              char pCodePoint,
                              int pModifiers) {
-          if (!suggestedActions.isEmpty() && pCodePoint == '\\') {
-              IntellisenseAction action = suggestedActions.getSelected();
-              assert action != null;
-              ManipulationResult result = action.perform(
-                      new IntellisenseContext(
-                              ProgramBuilder.build(textarea.getValue()),
-                              textarea.getCursorPosition(),
-                              textarea.getSelectionCursorPosition(),
-                              openContext.labelPositionHolder(),
-                              SFMConfig.client.intellisenseLevel));
-              double scrollAmount = textarea.getScrollAmount();
-              textarea.setValue(result.content());
-              textarea.setSelectionCursorPosition(result.selectionCursorPosition());
-              textarea.setCursorPosition(result.cursorPosition());
-              textarea.setScrollAmount(scrollAmount);
-              return true;
-          }
-          return super.charTyped(pCodePoint, pModifiers);
-      }
+        if (!suggestedActions.isEmpty() && pCodePoint == '\\') {
+            IntellisenseAction action = suggestedActions.getSelected();
+            assert action != null;
+            ManipulationResult result = action.perform(
+                    new IntellisenseContext(
+                            ProgramBuilder.build(textarea.getValue()),
+                            textarea.getCursorPosition(),
+                            textarea.getSelectionCursorPosition(),
+                            openContext.labelPositionHolder(),
+                            SFMConfig.client.intellisenseLevel));
+            double scrollAmount = textarea.getScrollAmount();
+            textarea.setValue(result.content());
+            textarea.setSelectionCursorPosition(result.selectionCursorPosition());
+            textarea.setCursorPosition(result.cursorPosition());
+            textarea.setScrollAmount(scrollAmount);
+            return true;
+        }
+        return super.charTyped(pCodePoint, pModifiers);
+    }
 
     @Override
     public boolean keyPressed(
@@ -153,7 +152,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             return true;
         }
 
-       if (pKeyCode == Keyboard.KEY_TAB) {
+        if (pKeyCode == Keyboard.KEY_TAB) {
             String content = textarea.getValue();
             int cursor = textarea.getCursorPosition();
             int selectionCursor = textarea.getSelectionCursorPosition();
@@ -405,6 +404,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
     protected @NotNull GuiYesNo getExitWithoutSavingConfirmScreen() {
         return new GuiYesNoExtend(
                 (result, id) -> {
+                    SFMScreenChangeHelpers.popScreen();
                     if (result) {
                         closeWithoutSaving();
                     }
@@ -548,21 +548,29 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             super.setScrollAmount(d);
         }
 
+        protected List<IntellisenseAction> intellisenseCache;
+        protected int lastIntellisenseTick;
+
         private void onValueOrCursorChanged(String programString) {
             int cursorPosition = getCursorPosition();
 
             // Build the program
             ProgramBuildResult buildResult = ProgramBuilder.build(programString);
 
+            if (intellisenseCache == null || Minecraft.getMinecraft().player.ticksExisted != lastIntellisenseTick) {
+
+                IntellisenseContext intellisenseContext = new IntellisenseContext(
+                        buildResult,
+                        cursorPosition,
+                        getSelectionCursorPosition(),
+                        openContext.labelPositionHolder(),
+                        SFMConfig.client.intellisenseLevel);
+                List<IntellisenseAction> suggestions = SFMLIntellisense.getSuggestions(intellisenseContext);
+                SFMTextEditScreenV1.this.suggestedActions.setItems(suggestions);
+                intellisenseCache = suggestions;
+                lastIntellisenseTick = Minecraft.getMinecraft().player.ticksExisted;
+            }
             // Update the intellisense picklist
-            IntellisenseContext intellisenseContext = new IntellisenseContext(
-                    buildResult,
-                    cursorPosition,
-                    getSelectionCursorPosition(),
-                    openContext.labelPositionHolder(),
-                    SFMConfig.client.intellisenseLevel);
-            List<IntellisenseAction> suggestions = SFMLIntellisense.getSuggestions(intellisenseContext);
-            SFMTextEditScreenV1.this.suggestedActions.setItems(suggestions);
 
             // Update the intellisense picklist query used to sort the suggestions
             String cursorWord = buildResult.getWordAtCursorPosition(cursorPosition);

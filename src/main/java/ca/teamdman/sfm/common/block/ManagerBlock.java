@@ -28,15 +28,19 @@ import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.program.linting.ProgramLinter;
+import vswe.superfactory.SuperFactoryManager;
 
 public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEntityProvider {
 
     public static final PropertyBool TRIGGERED = PropertyBool.create("triggered");
 
     public ManagerBlock() {
-        super(Material.PISTON);
-        setHardness(2F);
+        super(Material.IRON);
+
         setSoundType(SoundType.METAL);
+        setCreativeTab(SuperFactoryManager.creativeTab);
+        setHardness(1F);
+        setResistance(2000.0F);
     }
 
     @Override

@@ -60,7 +60,6 @@ public class LabelGunKeyMappingHandler {
         }
     }
 
-
     private static void handleAltKeyLogic(Minecraft minecraft, EntityPlayer player) {
         // only do something if the key was pressed
         boolean keyDown = SFMKeyMappings.isKeyDown(SFMKeyMappings.CYCLE_LABEL_VIEW_KEY);

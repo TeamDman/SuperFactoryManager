@@ -45,6 +45,10 @@ public class CableNetwork {
         return levelCapabilityCache;
     }
 
+    public void bustCapabilityCacheForBlock(BlockPos pos) {
+        levelCapabilityCache.bustCacheForBlock(pos);
+    }
+
     /**
      * Only cable blocks are valid network members
      */

@@ -27,21 +27,15 @@ public class SFMWellKnownCapabilities {
     public static Capability<IRedstoneSignalStorage> BASE_REDSTONE_HANDLER;
 
     public static final SFMBlockCapabilityKind<IEnergyStorage> ENERGY = new SFMBlockCapabilityKind<>(
-            CapabilityEnergy.ENERGY);
+            () -> CapabilityEnergy.ENERGY);
     public static final SFMBlockCapabilityKind<IFluidHandler> FLUID_HANDLER = new SFMBlockCapabilityKind<>(
-            CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY);
+            () -> CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY);
     public static final SFMBlockCapabilityKind<IItemHandler> ITEM_HANDLER = new SFMBlockCapabilityKind<>(
-            CapabilityItemHandler.ITEM_HANDLER_CAPABILITY);
+            () -> CapabilityItemHandler.ITEM_HANDLER_CAPABILITY);
     public static final SFMBlockCapabilityKind<IRedstoneSignalStorage> REDSTONE_HANDLER = new SFMBlockCapabilityKind<>(
-            BASE_REDSTONE_HANDLER);
+            () -> BASE_REDSTONE_HANDLER);
 
     public static Stream<SFMBlockCapabilityKind<?>> streamCapabilities() {
-        var values = SFMResourceTypes.registry().getValuesCollection();
-        var two = SFMResourceTypes.registry().getValuesCollection().stream().map(ResourceTypeContainer::get)
-                .map(ResourceType::capabilityKind);
-        var three = SFMResourceTypes.registry().getValuesCollection().stream().map(ResourceTypeContainer::get)
-                .map(ResourceType::capabilityKind).collect(Collectors.toList());
-
         return SFMResourceTypes.registry().getValuesCollection().stream().map(ResourceTypeContainer::get)
                 .map(ResourceType::capabilityKind);
     }

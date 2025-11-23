@@ -161,11 +161,19 @@ public class MultilineTextField {
         int j = (int) Math.floor(pY / 9.0);
         StringView multilinetextfield$stringview = this.displayLines
                 .get(Tools.clamp(j, 0, this.displayLines.size() - 1));
+        if (multilinetextfield$stringview.endIndex > this.value.length()) {
+            return;
+        }
         int k = this.font
                 .trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex,
                         multilinetextfield$stringview.endIndex), i)
                 .length();
         int hoverCharHalfWidth = 0;
+
+        if (multilinetextfield$stringview.beginIndex + k > this.value.length()) {
+            return;
+        }
+
         if (k != 0) {
             hoverCharHalfWidth = this.font.getStringWidth(
                     this.font.trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex + k - 1,

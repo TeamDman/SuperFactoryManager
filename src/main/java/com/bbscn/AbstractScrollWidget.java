@@ -154,6 +154,9 @@ public abstract class AbstractScrollWidget extends AbstractWidget {
     }
 
     private void renderScrollBar() {
+        if (this.getMaxScrollAmount() + this.getY() == 0) {
+            return;
+        }
         int i = this.getScrollBarHeight();
         int j = this.getX() + this.width;
         int k = Math.max(this.getY(),

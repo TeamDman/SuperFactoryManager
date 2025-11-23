@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -50,6 +51,12 @@ public abstract class GuiContainerExtend extends GuiContainer implements IStacka
     boolean dragging;
     int lastMouseX;
     int lastMouseY;
+
+    @Override
+    public void initGui() {
+        super.initGui();
+        this.renderables.clear();
+    }
 
     protected <T extends GuiEventListener & Renderable> T addRenderableWidget(T pWidget) {
         this.renderables.add(pWidget);
@@ -153,8 +160,8 @@ public abstract class GuiContainerExtend extends GuiContainer implements IStacka
     }
 
     public boolean charTyped(
-                             char pCodePoint,
-                             int pModifiers) {
+            char pCodePoint,
+            int pModifiers) {
         if (GuiScreen.isCtrlKeyDown() && pCodePoint == ' ') {
             return true;
         }

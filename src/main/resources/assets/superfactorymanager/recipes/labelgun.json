@@ -1,0 +1,28 @@
+{
+  "type": "forge:ore_shaped",
+  "result": {
+    "item": "superfactorymanager:labelgun"
+  },
+  "key": {
+    "B": {
+      "type": "forge:ore_dict",
+      "ore": "dyeBlack"
+    },
+    "C": {
+      "item": "minecraft:sign"
+    },
+    "L": {
+      "type": "forge:ore_dict",
+      "ore": "dyeBlue"
+    },
+    "S": {
+      "type": "forge:ore_dict",
+      "ore": "stickWood"
+    }
+  },
+  "pattern": [
+    " LC",
+    " SB",
+    "S  "
+  ]
+}

@@ -107,6 +107,9 @@ public abstract class AbstractWidget extends Gui implements GuiEventListener, Re
 
     public void setFocused(boolean focused) {
         this.focused = focused;
+        if (!focused) {
+            this.isHovered = false;
+        }
     }
 
     public boolean isFocused() {

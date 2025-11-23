@@ -19,8 +19,8 @@ public class HighlightRenderList {
 
     private final int r, g, b, a;
 
-    public HighlightRenderList(HashSet<BlockPos> blockPos, int r, int g, int b, int a) {
-        this.size = 0.9;
+    public HighlightRenderList(HashSet<BlockPos> blockPos, int r, int g, int b, int a, float highlightFraction) {
+        this.size = highlightFraction;
         this.positions = blockPos;
         this.r = r;
         this.g = g;
@@ -41,37 +41,56 @@ public class HighlightRenderList {
 
         for (BlockPos pos : positions) {
             wr.setTranslation(pos.getX() + start, pos.getY() + start, pos.getZ() + start);
-            int alpha = 64;
 
-            wr.pos(0, 0, 0).color(r, g, b, alpha).endVertex();
-            wr.pos(0, size, 0).color(r, g, b, alpha).endVertex();
-            wr.pos(size, size, 0).color(r, g, b, alpha).endVertex();
-            wr.pos(size, 0, 0).color(r, g, b, alpha).endVertex();
+            boolean north = positions.contains(pos.north());
+            boolean south = positions.contains(pos.south());
+            boolean west = positions.contains(pos.west());
+            boolean east = positions.contains(pos.east());
+            boolean up = positions.contains(pos.up());
+            boolean down = positions.contains(pos.down());
 
-            wr.pos(size, 0, size).color(r, g, b, alpha).endVertex();
-            wr.pos(size, size, size).color(r, g, b, alpha).endVertex();
-            wr.pos(0, size, size).color(r, g, b, alpha).endVertex();
-            wr.pos(0, 0, size).color(r, g, b, alpha).endVertex();
+            // NORTH
+            if (!(size == 1 && north)) {
+                wr.pos(0, 0, 0).color(r, g, b, a).endVertex();
+                wr.pos(0, size, 0).color(r, g, b, a).endVertex();
+                wr.pos(size, size, 0).color(r, g, b, a).endVertex();
+                wr.pos(size, 0, 0).color(r, g, b, a).endVertex();
+            }
 
-            wr.pos(0, 0, 0).color(r, g, b, alpha).endVertex();
-            wr.pos(0, 0, size).color(r, g, b, alpha).endVertex();
-            wr.pos(0, size, size).color(r, g, b, alpha).endVertex();
-            wr.pos(0, size, 0).color(r, g, b, alpha).endVertex();
+            if (!(size == 1 && south)) {
+                wr.pos(size, 0, size).color(r, g, b, a).endVertex();
+                wr.pos(size, size, size).color(r, g, b, a).endVertex();
+                wr.pos(0, size, size).color(r, g, b, a).endVertex();
+                wr.pos(0, 0, size).color(r, g, b, a).endVertex();
+            }
 
-            wr.pos(size, size, 0).color(r, g, b, alpha).endVertex();
-            wr.pos(size, size, size).color(r, g, b, alpha).endVertex();
-            wr.pos(size, 0, size).color(r, g, b, alpha).endVertex();
-            wr.pos(size, 0, 0).color(r, g, b, alpha).endVertex();
+            if (!(size == 1 && west)) {
+                wr.pos(0, 0, 0).color(r, g, b, a).endVertex();
+                wr.pos(0, 0, size).color(r, g, b, a).endVertex();
+                wr.pos(0, size, size).color(r, g, b, a).endVertex();
+                wr.pos(0, size, 0).color(r, g, b, a).endVertex();
+            }
 
-            wr.pos(0, 0, 0).color(r, g, b, alpha).endVertex();
-            wr.pos(size, 0, 0).color(r, g, b, alpha).endVertex();
-            wr.pos(size, 0, size).color(r, g, b, alpha).endVertex();
-            wr.pos(0, 0, size).color(r, g, b, alpha).endVertex();
+            if (!(size == 1 && east)) {
+                wr.pos(size, size, 0).color(r, g, b, a).endVertex();
+                wr.pos(size, size, size).color(r, g, b, a).endVertex();
+                wr.pos(size, 0, size).color(r, g, b, a).endVertex();
+                wr.pos(size, 0, 0).color(r, g, b, a).endVertex();
+            }
 
-            wr.pos(0, size, size).color(r, g, b, alpha).endVertex();
-            wr.pos(size, size, size).color(r, g, b, alpha).endVertex();
-            wr.pos(size, size, 0).color(r, g, b, alpha).endVertex();
-            wr.pos(0, size, 0).color(r, g, b, alpha).endVertex();
+            if (!(size == 1 && down)) {
+                wr.pos(0, 0, 0).color(r, g, b, a).endVertex();
+                wr.pos(size, 0, 0).color(r, g, b, a).endVertex();
+                wr.pos(size, 0, size).color(r, g, b, a).endVertex();
+                wr.pos(0, 0, size).color(r, g, b, a).endVertex();
+            }
+
+            if (!(size == 1 && up)) {
+                wr.pos(0, size, size).color(r, g, b, a).endVertex();
+                wr.pos(size, size, size).color(r, g, b, a).endVertex();
+                wr.pos(size, size, 0).color(r, g, b, a).endVertex();
+                wr.pos(0, size, 0).color(r, g, b, a).endVertex();
+            }
         }
 
         Tessellator.getInstance().draw();
@@ -79,43 +98,82 @@ public class HighlightRenderList {
         wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
         var color = new Color(0X404040, false);
         GlStateManager.color(
-                color.getRed(),
-                color.getGreen(),
-                color.getBlue(),
-                color.getAlpha());
+                r,
+                g,
+                b,
+                255);
 
         for (BlockPos pos : positions) {
             wr.setTranslation(pos.getX() + start, pos.getY() + start, pos.getZ() + start);
 
-            wr.pos(0, 0, 0).endVertex();
-            wr.pos(0, size, 0).endVertex();
-            wr.pos(size, size, 0).endVertex();
-            wr.pos(size, 0, 0).endVertex();
+            boolean north = positions.contains(pos.north());
+            boolean south = positions.contains(pos.south());
+            boolean west = positions.contains(pos.west());
+            boolean east = positions.contains(pos.east());
+            boolean up = positions.contains(pos.up());
+            boolean down = positions.contains(pos.down());
 
-            wr.pos(size, 0, size).endVertex();
-            wr.pos(size, size, size).endVertex();
-            wr.pos(0, size, size).endVertex();
-            wr.pos(0, 0, size).endVertex();
+            // NORTH WEST
+            if (!(size == 1 && (north || west))) {
+                wr.pos(0, 0, 0).endVertex();
+                wr.pos(0, size, 0).endVertex();
+            }
+            // NORTH EAST
+            if (!(size == 1 && (north || east))) {
+                wr.pos(size, size, 0).endVertex();
+                wr.pos(size, 0, 0).endVertex();
+            }
+            // SOUTH EAST
+            if (!(size == 1 && (south || east))) {
+                wr.pos(size, 0, size).endVertex();
+                wr.pos(size, size, size).endVertex();
+            }
+            // SOUTH WEST
+            if (!(size == 1 && (south || west))) {
+                wr.pos(0, size, size).endVertex();
+                wr.pos(0, 0, size).endVertex();
+            }
+            // WEST DOWN
+            if (!(size == 1 && (west || down))) {
+                wr.pos(0, 0, 0).endVertex();
+                wr.pos(0, 0, size).endVertex();
+            }
+            // WEST UP
+            if (!(size == 1 && (west || up))) {
+                wr.pos(0, size, size).endVertex();
+                wr.pos(0, size, 0).endVertex();
+            }
+            // EAST UP
+            if (!(size == 1 && (east || up))) {
+                wr.pos(size, size, 0).endVertex();
+                wr.pos(size, size, size).endVertex();
+            }
+            // EAST DOWN
+            if (!(size == 1 && (east || down))) {
+                wr.pos(size, 0, size).endVertex();
+                wr.pos(size, 0, 0).endVertex();
+            }
+            // DOWN NORTH
+            if (!(size == 1 && (down || north))) {
+                wr.pos(0, 0, 0).endVertex();
+                wr.pos(size, 0, 0).endVertex();
+            }
+            // DOWN SOUTH
+            if (!(size == 1 && (down || south))) {
+                wr.pos(size, 0, size).endVertex();
+                wr.pos(0, 0, size).endVertex();
+            }
 
-            wr.pos(0, 0, 0).endVertex();
-            wr.pos(0, 0, size).endVertex();
-            wr.pos(0, size, size).endVertex();
-            wr.pos(0, size, 0).endVertex();
-
-            wr.pos(size, size, 0).endVertex();
-            wr.pos(size, size, size).endVertex();
-            wr.pos(size, 0, size).endVertex();
-            wr.pos(size, 0, 0).endVertex();
-
-            wr.pos(0, 0, 0).endVertex();
-            wr.pos(size, 0, 0).endVertex();
-            wr.pos(size, 0, size).endVertex();
-            wr.pos(0, 0, size).endVertex();
-
-            wr.pos(0, size, size).endVertex();
-            wr.pos(size, size, size).endVertex();
-            wr.pos(size, size, 0).endVertex();
-            wr.pos(0, size, 0).endVertex();
+            // UP SOUTH
+            if (!(size == 1 && (up || south))) {
+                wr.pos(0, size, size).endVertex();
+                wr.pos(size, size, size).endVertex();
+            }
+            // UP NORTH
+            if (!(size == 1 && (up || north))) {
+                wr.pos(size, size, 0).endVertex();
+                wr.pos(0, size, 0).endVertex();
+            }
         }
 
         wr.setTranslation(0, 0, 0);

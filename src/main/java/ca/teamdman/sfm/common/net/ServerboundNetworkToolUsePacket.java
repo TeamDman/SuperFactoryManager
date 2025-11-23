@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.net;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -69,7 +69,7 @@ public class ServerboundNetworkToolUsePacket extends SFMPacket<ServerboundNetwor
                     .append("\n---- block state ----\n");
             payload.append(world.getBlockState(pos)).append("\n");
 
-            List<CableNetwork> foundNetworks = new ArrayList<>();
+            Set<CableNetwork> foundNetworks = new HashSet<>();
             for (EnumFacing direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
                 BlockPos cablePosition = pos.offset(direction);
                 CableNetworkManager

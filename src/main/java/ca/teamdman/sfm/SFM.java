@@ -24,9 +24,9 @@ import vswe.superfactory.registry.ModBlocks;
      dependencies = "required-after:forge@[14.23.5.2847,);")
 public class SFM {
 
-    public static final String MOD_ID = "superfactorymanager";
+    public static final String MOD_ID = Tags.MOD_ID;
     public static final String MOD_NAME = "Super Factory Manager";
-    public static final String VERSION = "@VERSION@";
+    public static final String VERSION = Tags.VERSION;
 
     public static final String LOCALIZATION_KEY = "sfm";
 

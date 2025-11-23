@@ -319,6 +319,8 @@ gui.sfm.CamouflageInfo=Define whether to clear or set the camouflage. If you set
 gui.sfm.NoCamouflageSetting=No camouflage setting selected
 gui.sfm.SelectVariableShort=V
 gui.sfm.SelectVariableLong=Show all variables
+gui.sfm.SelectLabelShort=L
+gui.sfm.SelectLabelLong=Show labels
 gui.sfm.CamouflageOnlyOutside=Only outside
 gui.sfm.CamouflageOnlyInside=Only inside
 gui.sfm.CamouflageOppositeInside=Inverted inside
@@ -409,7 +411,6 @@ item.sfm.memorydisk.name=Memory Disc
 
 # SFM4 Translations
 tile.sfm.buffer.name=Resource Buffer
-tile.sfm.cable_advanced.name=Inventory Cable
 tile.sfm.cable_facade.name=Inventory Cable Facade
 tile.sfm.fancy_cable.name=Fancy Inventory Cable
 tile.sfm.fancy_cable_facade.name=Fancy Inventory Cable Facade

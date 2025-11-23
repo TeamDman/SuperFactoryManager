@@ -138,6 +138,15 @@ public class SFMBlockCapabilityCacheForLevel {
         }
     }
 
+    public void bustCacheForBlock(BlockPos pos) {
+        ChunkPos chunkPos = new ChunkPos(pos);
+        CACHE.remove(pos.toLong());
+        long posLong = ChunkPos.asLong(chunkPos.x, chunkPos.z);
+        if (CHUNK_TO_BLOCK_POSITIONS.containsKey(posLong)) {
+            CHUNK_TO_BLOCK_POSITIONS.get(posLong).remove(pos.toLong());
+        }
+    }
+
     private void addToChunkMap(@NotStored BlockPos pos) {
         long chunkKey = ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4);
         long blockPos = pos.toLong();

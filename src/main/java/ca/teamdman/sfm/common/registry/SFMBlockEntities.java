@@ -12,7 +12,6 @@ public final class SFMBlockEntities {
 
     public static void initialize() {
         register("manager_advanced", ManagerBlockEntity.class);
-        register("buffer", BufferBlockEntity.class);
 
         register("manager", TileEntityManager.class);
         register("cable_relay", TileEntityRelay.class);

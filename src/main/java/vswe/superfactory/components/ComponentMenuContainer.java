@@ -436,7 +436,7 @@ public abstract class ComponentMenuContainer extends ComponentMenu {
                 }
             }
         });
-        buttons.add(new Button(Localization.SELECT_VARIABLE_SHORT, Page.MAIN, Localization.SELECT_VARIABLE_LONG, false,
+        buttons.add(new Button(Localization.SELECT_LABEL_SHORT, Page.MAIN, Localization.SELECT_LABEL_LONG, false,
                 111, 42) {
 
             @Override

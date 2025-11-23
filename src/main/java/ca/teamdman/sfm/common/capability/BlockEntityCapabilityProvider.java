@@ -27,7 +27,7 @@ public class BlockEntityCapabilityProvider implements SFMBlockCapabilityProvider
                                                           @Nullable TileEntity blockEntity,
                                                           @Nullable EnumFacing direction) {
         if (blockEntity != null) {
-            Object result = blockEntity.getCapability(capabilityKind.capabilityKind(), direction);
+            Object result = blockEntity.getCapability(capabilityKind.capabilityKind().get(), direction);
             if (result != null) {
                 return SFMBlockCapabilityResult.of(result);
             }

@@ -1,0 +1,11 @@
+{
+  "result": {
+    "item": "superfactorymanager:manager_advanced"
+  },
+  "type": "forge:ore_shapeless",
+  "ingredients": [
+    {
+      "item": "superfactorymanager:manager"
+    }
+  ]
+}

@@ -40,44 +40,9 @@ import ca.teamdman.sfm.common.util.HelpsWithMinecraftVersionIndependence;
  */
 public class ItemWorldRenderer {
 
-    private static final int BUFFER_SIZE = 256;
-    @SuppressWarnings("deprecation")
-    // private static final RenderType RENDER_TYPE = RenderType.create(
-    // "sfm_overlay",
-    // DefaultVertexFormat.POSITION_COLOR,
-    // VertexFormat.Mode.QUADS,
-    // BUFFER_SIZE,
-    // false,
-    // false,
-    // RenderType.CompositeState
-    // .builder()
-    // .setTextureState(new RenderStateShard.TextureStateShard(TextureAtlas.LOCATION_BLOCKS, false, false))
-    // .setDepthTestState(new RenderStateShard.DepthTestStateShard("always", 519))
-    // .setTransparencyState(
-    // new RenderStateShard.TransparencyStateShard(
-    // "src_to_one",
-    // () -> {
-    // RenderSystem.enableBlend();
-    // RenderSystem.blendFunc(
-    // GlStateManager.SourceFactor.SRC_ALPHA,
-    // GlStateManager.DestFactor.ONE
-    // );
-    // },
-    // () -> {
-    // RenderSystem.disableBlend();
-    // RenderSystem.defaultBlendFunc();
-    // }
-    // )
-    // )
-    // .createCompositeState(true)
-    // );
-
-    // private static final int capabilityColor = FastColor.ARGB32.color(100, 100, 0, 255);
-    // private static final int capabilityColorLimitedView = FastColor.ARGB32.color(100, 0, 100, 255);
-    // private static final int cableColor = FastColor.ARGB32.color(100, 100, 255, 0);
-    private static final int capabilityColor = Tools.toARGB(100, 100, 0, 255);
-    private static final int capabilityColorLimitedView = Tools.toARGB(100, 100, 255, 255);
-    private static final int cableColor = Tools.toARGB(100, 100, 255, 0);
+    private static final int capabilityColor = Tools.toARGB(64, 100, 0, 255);
+    private static final int capabilityColorLimitedView = Tools.toARGB(64, 100, 255, 255);
+    private static final int cableColor = Tools.toARGB(64, 100, 255, 0);
     private static final HighlightRenderListCache renderCache = new HighlightRenderListCache();
 
     @SubscribeEvent
@@ -101,31 +66,6 @@ public class ItemWorldRenderer {
             renderCache.clear();
         }
     }
-
-    // Thanks @tigres810
-    // https://discord.com/channels/313125603924639766/983834532904042537/1009267533527928864
-    // public static @Nullable BlockPos lookingAt() {
-    // HitResult rt = Minecraft.getInstance().hitResult;
-    // if (rt == null) return null;
-    //
-    // double x = (rt.getLocation().x);
-    // double y = (rt.getLocation().y);
-    // double z = (rt.getLocation().z);
-    //
-    // LocalPlayer player = Minecraft.getInstance().player;
-    // assert player != null;
-    // Vec3 lookAngle = player.getLookAngle();
-    // double xla = lookAngle.x;
-    // double yla = lookAngle.y;
-    // double zla = lookAngle.z;
-    //
-    // if ((x % 1 == 0) && (xla < 0)) x -= 0.01;
-    // if ((y % 1 == 0) && (yla < 0)) y -= 0.01;
-    // if ((z % 1 == 0) && (zla < 0)) z -= 0.01;
-    //
-    // // @MCVersionDependentBehaviour, the double constructor doesn't exist in 1.19.4
-    // return new BlockPos((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
-    // }
 
     private static BlockPos lookingAt() {
         Minecraft mc = Minecraft.getMinecraft();
@@ -159,16 +99,16 @@ public class ItemWorldRenderer {
         Set<BlockPos> cablePositions = NetworkToolItem.getCablePositions(networkTool);
         Set<BlockPos> capabilityPositions = NetworkToolItem.getCapabilityProviderPositions(networkTool);
 
-        drawVbo(VBOKind.NETWORK_TOOL_CABLES, cablePositions, cableColor, player, partialTicks);
-        drawVbo(VBOKind.NETWORK_TOOL_CAPABILITIES, capabilityPositions, capabilityColor, player, partialTicks);
+        drawHighlights(VBOKind.NETWORK_TOOL_CABLES, cablePositions, cableColor, player, 1);
+        drawHighlights(VBOKind.NETWORK_TOOL_CAPABILITIES, capabilityPositions, capabilityColor, player, 0.9F);
     }
 
-    private static void drawVbo(
-                                VBOKind vboKind,
-                                Set<BlockPos> positions,
-                                int color,
-                                EntityPlayerSP player,
-                                float partialTicks) {
+    private static void drawHighlights(
+                                       VBOKind vboKind,
+                                       Set<BlockPos> positions,
+                                       int color,
+                                       EntityPlayerSP player,
+                                       float highlightFraction) {
         var colorRGB = new Color(color, true);
 
         HighlightRenderList list = renderCache.getList(
@@ -178,7 +118,8 @@ public class ItemWorldRenderer {
                 colorRGB.getRed(),
                 colorRGB.getGreen(),
                 colorRGB.getBlue(),
-                colorRGB.getAlpha());
+                colorRGB.getAlpha(),
+                highlightFraction);
 
         if (list != null) {
             var renderManager = Minecraft.getMinecraft().getRenderManager();
@@ -239,9 +180,9 @@ public class ItemWorldRenderer {
             }
         }
 
-        drawVbo(VBOKind.LABEL_GUN_CAPABILITIES, labelsByPosition.keySet(),
+        drawHighlights(VBOKind.LABEL_GUN_CAPABILITIES, labelsByPosition.keySet(),
                 viewMode != LabelGunItem.LabelGunViewMode.SHOW_ALL ? capabilityColorLimitedView : capabilityColor,
-                player, partialTicks);
+                player, 0.9F);
 
         GlStateManager.pushMatrix();
         GlStateManager.disableCull();
@@ -375,13 +316,15 @@ public class ItemWorldRenderer {
         private final EnumMap<VBOKind, HighlightRenderList> cache = new EnumMap<>(VBOKind.class);
         private int lastCachedTick = -1;
 
-        public @Nullable HighlightRenderList getList(VBOKind kind,
+        public @Nullable HighlightRenderList getList(
+                                                     VBOKind kind,
                                                      Set<BlockPos> positions,
                                                      EntityPlayerSP player,
                                                      int r,
                                                      int g,
                                                      int b,
-                                                     int a) {
+                                                     int a,
+                                                     float highlightFraction) {
             if (positions.isEmpty()) {
                 return null;
             }
@@ -401,7 +344,7 @@ public class ItemWorldRenderer {
                     entry.destroy();
                 }
 
-                entry = new HighlightRenderList(new HashSet<>(positions), r, g, b, a);
+                entry = new HighlightRenderList(new HashSet<>(positions), r, g, b, a, highlightFraction);
                 cache.put(kind, entry);
             }
             return entry;

@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.common.resourcetype;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import net.minecraft.util.ResourceLocation;
@@ -19,47 +21,48 @@ import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.Mth;
 
-public class FluidResourceType extends ResourceType<FluidStack, Fluid, IFluidHandler> {
+public class FluidResourceType extends ResourceType<Optional<FluidStack>, Optional<Fluid>, IFluidHandler> {
 
     public FluidResourceType(ResourceTypeContainer container) {
         super(container, SFMWellKnownCapabilities.FLUID_HANDLER);
     }
 
     @Override
-    public Fluid getItem(FluidStack fluidStack) {
-        return fluidStack.getFluid();
+    public Optional<Fluid> getItem(Optional<FluidStack> fluidStack) {
+        return fluidStack.map(FluidStack::getFluid);
     }
 
     @Override
-    public FluidStack copy(FluidStack fluidStack) {
-        return fluidStack.copy();
+    public Optional<FluidStack> copy(Optional<FluidStack> fluidStack) {
+        return fluidStack.map(FluidStack::copy);
     }
 
     @Override
-    public Stream<ResourceLocation> getTagsForStack(FluidStack fluidStack) {
+    public Stream<ResourceLocation> getTagsForStack(Optional<FluidStack> fluidStack) {
         return Stream.empty();
         // noinspection deprecation
     }
 
     @Override
     public boolean registryKeyExists(ResourceLocation location) {
-        return FluidRegistry.isFluidRegistered(location.toString());
+        return FluidRegistry.isFluidRegistered(location.getPath());
     }
 
     @Override
-    public ResourceLocation getRegistryKeyForStack(FluidStack fluidStack) {
+    public ResourceLocation getRegistryKeyForStack(Optional<FluidStack> fluidStack) {
         return getRegistryKeyForItem(getItem(fluidStack));
     }
 
     @Override
-    public ResourceLocation getRegistryKeyForItem(Fluid fluid) {
-        return new ResourceLocation(FluidRegistry.getDefaultFluidName(fluid));
+    public ResourceLocation getRegistryKeyForItem(Optional<Fluid> fluid) {
+        return fluid.map((f) -> new ResourceLocation(FluidRegistry.getDefaultFluidName(f)))
+                .orElse(new ResourceLocation("ERROR_FLUID"));
     }
 
     @Nullable
     @Override
-    public Fluid getItemFromRegistryKey(ResourceLocation location) {
-        return FluidRegistry.getFluid(location.getPath());
+    public Optional<Fluid> getItemFromRegistryKey(ResourceLocation location) {
+        return Optional.of(FluidRegistry.getFluid(location.getPath()));
     }
 
     @Override
@@ -68,15 +71,17 @@ public class FluidResourceType extends ResourceType<FluidStack, Fluid, IFluidHan
     }
 
     @Override
-    public Iterable<Fluid> getItems() {
-        return FluidRegistry.getRegisteredFluids().values();
+    public Iterable<Optional<Fluid>> getItems() {
+        return FluidRegistry.getRegisteredFluids().values().stream().map(Optional::of).collect(Collectors.toList());
     }
 
     @Override
-    protected FluidStack setCount(FluidStack fluidStack, long amount) {
+    protected Optional<FluidStack> setCount(Optional<FluidStack> fluidStack, long amount) {
         int finalAmount = amount > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) amount;
-        fluidStack.amount = finalAmount;
-        return fluidStack;
+        return fluidStack.map(stack -> {
+            stack.amount = finalAmount;
+            return stack;
+        });
     }
 
     @Override
@@ -95,32 +100,37 @@ public class FluidResourceType extends ResourceType<FluidStack, Fluid, IFluidHan
     }
 
     @Override
-    public long getAmount(FluidStack stack) {
-        return stack.amount;
+    public long getAmount(Optional<FluidStack> stack) {
+        return stack.map(s -> s.amount).orElse(0);
     }
 
     @Override
-    public FluidStack getStackInSlot(IFluidHandler cap, int slot) {
-        return cap.getTankProperties()[slot].getContents();
+    public Optional<FluidStack> getStackInSlot(IFluidHandler cap, int slot) {
+        var stack = cap.getTankProperties()[slot].getContents();
+        return Optional.ofNullable(stack);
     }
 
     @Override
-    public FluidStack extract(
-                              IFluidHandler handler,
-                              int slot,
-                              long amount_long,
-                              boolean simulate) {
-        var in = getStackInSlot(handler, slot);
+    public Optional<FluidStack> extract(
+                                        IFluidHandler handler,
+                                        int slot,
+                                        long amount_long,
+                                        boolean simulate) {
+        var optional = getStackInSlot(handler, slot);
+        if (!optional.isPresent()) {
+            return optional;
+        }
+        var in = optional.get();
         var toExtract = new FluidStack(
                 in.getFluid(),
                 (int) Mth.clamp(amount_long, Integer.MIN_VALUE, Integer.MAX_VALUE),
                 in.tag);
-        return handler.drain(toExtract, !simulate);
+        return Optional.ofNullable(handler.drain(toExtract, !simulate));
     }
 
     @Override
     public boolean matchesStackType(Object o) {
-        return o instanceof FluidStack;
+        return o instanceof Optional<?>op && (op.isPresent() && (op.get() instanceof FluidStack));
     }
 
     @Override
@@ -134,7 +144,7 @@ public class FluidResourceType extends ResourceType<FluidStack, Fluid, IFluidHan
     }
 
     @Override
-    public long getMaxStackSize(FluidStack fluidStack) {
+    public long getMaxStackSize(Optional<FluidStack> fluidStack) {
         return Integer.MAX_VALUE;
     }
 
@@ -144,20 +154,23 @@ public class FluidResourceType extends ResourceType<FluidStack, Fluid, IFluidHan
     }
 
     @Override
-    public FluidStack insert(IFluidHandler handler, int slot, FluidStack stack, boolean simulate) {
+    public Optional<FluidStack> insert(IFluidHandler handler, int slot, Optional<FluidStack> stack, boolean simulate) {
+        return stack.map(
+                theStack -> {
+                    var inserted = handler.fill(theStack, !simulate);
+                    int remainder = theStack.amount - inserted;
+                    return new FluidStack(theStack.getFluid(), remainder, theStack.tag);
+                });
         // fluid handlers return the amount moved, not the remainder, so we have to convert
-        var inserted = handler.fill(stack, !simulate);
-        int remainder = stack.amount - inserted;
-        return new FluidStack(stack.getFluid(), remainder, stack.tag);
     }
 
     @Override
-    public boolean isEmpty(FluidStack stack) {
-        return stack != null ? stack.amount == 0 : true;
+    public boolean isEmpty(Optional<FluidStack> stack) {
+        return stack.map(s -> s.amount <= 0).orElse(true);
     }
 
     @Override
-    public FluidStack getEmptyStack() {
-        return null;
+    public Optional<FluidStack> getEmptyStack() {
+        return Optional.empty();
     }
 }

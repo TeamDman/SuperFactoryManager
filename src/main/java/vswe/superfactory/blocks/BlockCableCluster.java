@@ -69,7 +69,7 @@ public class BlockCableCluster extends BlockCamouflageBase implements ICableBloc
         }
 
         if (isAdvanced(state.getBlock().getMetaFromState(state))) {
-            BlockCable.onNeighborChange(world, pos);
+            BlockCable.bustCaches(world, pos, fromPos);
         }
         super.neighborChanged(state, world, pos, blockIn, fromPos);
     }

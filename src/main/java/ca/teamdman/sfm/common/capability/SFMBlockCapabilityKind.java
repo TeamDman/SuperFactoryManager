@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.common.capability;
 
+import java.util.function.Supplier;
+
 import net.minecraftforge.common.capabilities.Capability;
 
 import org.jetbrains.annotations.NotNull;
@@ -22,10 +24,10 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 @Desugar
 @MCVersionDependentBehaviour
 public record SFMBlockCapabilityKind<CAP> (
-                                           Capability<CAP> capabilityKind) {
+                                           Supplier<Capability<CAP>> capabilityKind) {
 
     public String getName() {
-        return capabilityKind.getName();
+        return capabilityKind.get().getName();
     }
 
     @Override

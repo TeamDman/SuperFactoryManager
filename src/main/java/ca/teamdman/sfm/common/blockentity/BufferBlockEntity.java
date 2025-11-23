@@ -28,7 +28,7 @@ public class BufferBlockEntity extends TileEntity implements ITickable {
 
     @Override
     public boolean hasCapability(@NotNull Capability<?> cap, @Nullable EnumFacing side) {
-        SFMBlockCapabilityKind<?> capKind = new SFMBlockCapabilityKind<>(cap);
+        SFMBlockCapabilityKind<?> capKind = new SFMBlockCapabilityKind<>(() -> cap);
         BufferBlockCapabilityProvider bufferBlockCapabilityProvider = new BufferBlockCapabilityProvider();
         SFMBlockCapabilityResult<?> found = bufferBlockCapabilityProvider.getCapability(
                 (SFMBlockCapabilityKind<Object>) capKind,
@@ -48,7 +48,7 @@ public class BufferBlockEntity extends TileEntity implements ITickable {
     public <T> T getCapability(
                                @NotNull Capability<T> cap,
                                @Nullable EnumFacing side) {
-        SFMBlockCapabilityKind<T> capKind = new SFMBlockCapabilityKind<>(cap);
+        SFMBlockCapabilityKind<T> capKind = new SFMBlockCapabilityKind<>(() -> cap);
         BufferBlockCapabilityProvider bufferBlockCapabilityProvider = new BufferBlockCapabilityProvider();
         SFMBlockCapabilityResult<T> found = (SFMBlockCapabilityResult<T>) bufferBlockCapabilityProvider.getCapability(
                 (SFMBlockCapabilityKind<Object>) capKind,

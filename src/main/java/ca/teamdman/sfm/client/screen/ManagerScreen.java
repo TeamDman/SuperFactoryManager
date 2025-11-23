@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.bbscn.AbstractWidget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiConfirmOpenLink;
 import net.minecraft.client.gui.GuiScreen;
@@ -50,7 +51,7 @@ import ca.teamdman.sfm.common.util.TextFormattingColors;
 import ca.teamdman.sfml.ast.Program;
 import mezz.jei.api.gui.IAdvancedGuiHandler;
 
-@SuppressWarnings({ "FieldCanBeLocal", "unused", "NotNullFieldNotInitialized" })
+@SuppressWarnings({"FieldCanBeLocal", "unused", "NotNullFieldNotInitialized"})
 public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHandler<ManagerScreen> {
 
     private static final ResourceLocation BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
@@ -79,7 +80,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
     protected ManagerContainerMenu menu;
 
     public ManagerScreen(
-                         ManagerContainerMenu menu) {
+            ManagerContainerMenu menu) {
         super(menu);
         this.menu = menu;
 
@@ -117,9 +118,9 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
     }
 
     public boolean keyPressed(
-                              int pKeyCode,
-                              int pScanCode,
-                              int pModifiers) {
+            int pKeyCode,
+            int pScanCode,
+            int pModifiers) {
         if (GuiScreen.isKeyComboCtrlV(pKeyCode) && clipboardPasteButton.visible) {
             onClipboardPasteButtonClicked();
             return true;
@@ -128,13 +129,12 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
             return true;
         } else if (pKeyCode == Keyboard.KEY_E && GuiScreen.isCtrlKeyDown() && GuiScreen.isShiftKeyDown() &&
                 examplesButton.visible) {
-                    onExamplesButtonClicked();
-                    return true;
-                } else
-            if (SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.isActiveAndMatches(pKeyCode) && editButton.visible) {
-                onEditButtonClicked();
-                return true;
-            }
+            onExamplesButtonClicked();
+            return true;
+        } else if (SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.isActiveAndMatches(pKeyCode) && editButton.visible) {
+            onEditButtonClicked();
+            return true;
+        }
 
         return super.keyPressed(pKeyCode, pScanCode, pModifiers);
     }
@@ -449,8 +449,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
     }
 
     protected void drawLabels(
-                              int mx,
-                              int my) {
+            int mx,
+            int my) {
         this.fontRenderer.drawString(menu.CONTAINER.getDisplayName().getFormattedText(), this.titleLabelX,
                 this.titleLabelY, 4210752);
         this.fontRenderer.drawString(menu.PLAYER_INVENTORY.getDisplayName().getUnformattedText(), this.inventoryLabelX,
@@ -641,36 +641,6 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
         return 0F;
     }
 
-    @Override
-    protected void renderHoveredToolTip(
-                                        int mx,
-                                        int my) {
-        if (Minecraft.getMinecraft().currentScreen != this) {
-            // this should fix the annoying Ctrl+E popup when editing
-            // this.renderables
-            // .stream()
-            // .filter(AbstractWidget.class::isInstance)
-            // .map(AbstractWidget.class::cast)
-            // .forEach(w -> w.setFocused(false));
-            // return;
-        }
-        drawChildTooltips(mx, my);
-        // render hovered item
-        super.renderHoveredToolTip(mx, my);
-    }
-
-    @SuppressWarnings("unused")
-    @MCVersionDependentBehaviour
-    private void drawChildTooltips(
-                                   int mx,
-                                   int my) {
-        // 1.19.2: manually render button tooltips
-        // this.buttonList
-        // .stream()
-        // .filter(SFMExtendedButtonWithTooltip.class::isInstance)
-        // .map(SFMExtendedButtonWithTooltip.class::cast)
-        // .forEach(x -> x.renderToolTip(mx, my));
-    }
 
     @Override
     public Class<ManagerScreen> getGuiContainerClass() {
