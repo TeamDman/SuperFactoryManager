@@ -266,7 +266,9 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
     @Override
     public void drawScreen(int mx, int my, float partialTicks) {
-        this.drawDefaultBackground();
+        if (this.mc != null) {
+            this.drawDefaultBackground();
+        }
 
         // this.renderBackground(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         for (Renderable renderable : this.renderables) {
