@@ -559,7 +559,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             // Build the program
             ProgramBuildResult buildResult = ProgramBuilder.build(programString);
 
-            if (intellisenseCache == null || Minecraft.getMinecraft().player.ticksExisted != lastIntellisenseTick) {
+            if (intellisenseCache == null || Minecraft.getMinecraft().player.ticksExisted - lastIntellisenseTick > 5) {
 
                 IntellisenseContext intellisenseContext = new IntellisenseContext(
                         buildResult,

@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.widget;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
@@ -9,6 +9,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 
 import org.jetbrains.annotations.Nullable;
+import org.simmetrics.ListDistance;
 import org.simmetrics.StringDistance;
 import org.simmetrics.builders.StringDistanceBuilder;
 import org.simmetrics.metrics.StringDistances;
@@ -21,25 +22,29 @@ import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.Mth;
+import ca.teamdman.sfm.common.util.Pair;
+import org.simmetrics.tokenizers.Tokenizers;
 
 public class PickList<T extends PickListItem> extends AbstractScrollWidget {
 
     protected final FontRenderer font;
     protected List<T> items;
+    protected List<T> sortedItems;
     protected int selectionIndex = -1;
     protected ITextComponent query = new TextComponentString("");
 
     public PickList(
-                    FontRenderer font,
-                    int pX,
-                    int pY,
-                    int pWidth,
-                    int pHeight,
-                    ITextComponent title,
-                    List<T> items) {
+            FontRenderer font,
+            int pX,
+            int pY,
+            int pWidth,
+            int pHeight,
+            ITextComponent title,
+            List<T> items) {
         super(pX, pY, pWidth, pHeight, title);
         this.font = font;
         this.items = items;
+        this.sortedItems = Collections.emptyList();
         this.clampOrUnsetSelectionIndex();
     }
 
@@ -60,10 +65,10 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
     }
 
     public @Nullable T getSelected() {
-        if (items.isEmpty()) return null;
+        if (sortedItems.isEmpty()) return null;
         if (selectionIndex < 0) return null;
-        if (selectionIndex >= items.size()) return null;
-        return getItems().get(selectionIndex);
+        if (selectionIndex >= sortedItems.size()) return null;
+        return sortedItems.get(selectionIndex);
     }
 
     public void setQuery(ITextComponent query) {
@@ -76,27 +81,27 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
 
     @MCVersionDependentBehaviour
     public void setXY(
-                      int x,
-                      int y) {
+            int x,
+            int y) {
         this.setX(x);
         this.setY(y);
     }
 
     @Override
     public void renderWidget(
-                             int pMouseX,
-                             int pMouseY,
-                             float pPartialTick) {
-        if (items.isEmpty()) return;
+            int pMouseX,
+            int pMouseY,
+            float pPartialTick) {
+        if (sortedItems.isEmpty()) return;
         super.renderWidget(pMouseX, pMouseY, pPartialTick);
     }
 
     public void selectPreviousWrapping() {
         if (this.selectionIndex == -1) {
-            this.selectionIndex = this.items.size() - 1;
+            this.selectionIndex = this.sortedItems.size() - 1;
             return;
         }
-        this.selectionIndex = (this.selectionIndex - 1 + this.items.size()) % this.items.size();
+        this.selectionIndex = (this.selectionIndex - 1 + this.sortedItems.size()) % this.sortedItems.size();
         scrollSelectedIntoView();
     }
 
@@ -105,24 +110,25 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
             this.selectionIndex = 0;
             return;
         }
-        this.selectionIndex = (this.selectionIndex + 1) % this.items.size();
+        this.selectionIndex = (this.selectionIndex + 1) % this.sortedItems.size();
         scrollSelectedIntoView();
     }
 
     public boolean isEmpty() {
-        return this.items.isEmpty();
+        return this.sortedItems.isEmpty();
     }
 
     public void clear() {
         this.items.clear();
+        this.sortedItems.clear();
         this.selectionIndex = -1;
     }
 
     private void clampOrUnsetSelectionIndex() {
-        if (this.items.isEmpty()) {
+        if (this.sortedItems.isEmpty()) {
             this.selectionIndex = -1;
         } else {
-            this.selectionIndex = Mth.clamp(this.selectionIndex, 0, this.items.size() - 1);
+            this.selectionIndex = Mth.clamp(this.selectionIndex, 0, this.sortedItems.size() - 1);
         }
     }
 
@@ -137,12 +143,48 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
 
     private void sortItems() {
         StringDistance distance = StringDistanceBuilder
-                .with(StringDistances.jaroWinkler())
+                .with(new ListDistance<String>() {
+                    final StringDistance subDistance = StringDistances.jaroWinkler();
+
+                    @Override
+                    public float distance(List<String> a, List<String> b) {
+                        List<String> shorter = a.size() < b.size() ? a : b;
+                        List<String> longer = a.size() < b.size() ? b : a;
+
+                        float[] scores = new float[longer.size()];
+                        Arrays.fill(scores, -1);
+                        for (int i = shorter.size() - 1; i >= 0; i--) {
+                            float closestDistance = 2;
+                            int closestIndex = -1;
+                            for (int j = 0; j < longer.size(); j++) {
+                                var distance = subDistance.distance(shorter.get(i), longer.get(j));
+                                if (closestDistance > distance && scores[j] == -1) {
+                                    closestDistance = distance;
+                                    closestIndex = j;
+                                }
+                            }
+                            scores[closestIndex] = closestDistance;
+                        }
+
+                        float result = 0;
+                        for (float score : scores) {
+                            if (score != -1) {
+                                result += score;
+                            }
+                        }
+
+                        return result / (shorter.size() - 0.2f);
+                    }
+                })
                 .simplify(Simplifiers.toLowerCase())
+                .tokenize(Tokenizers.pattern(":"))
+                .filter(s -> !s.isEmpty())
                 .build();
+
+
         String queryString = query.getUnformattedText();
         if (queryString.trim().isEmpty()) {
-            var preferredOrder = new String[] {
+            var preferredOrder = new String[]{
                     "TICKS",
                     "INPUT",
                     "OUTPUT",
@@ -161,20 +203,33 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
             }));
         } else {
             // SFM.LOGGER.debug("Sorting by distance using query: {}", queryString);
-            items.sort(Comparator.comparing(item -> distance.distance(
-                    item.getComponent().getUnformattedComponentText(),
-                    queryString)));
+            var bestOptionsHeap = new PriorityQueue<>(20, Comparator.comparing(Pair<Float,T>::getFirst).reversed());
+            for (T item : items) {
+                float d = distance.distance(item.getComponent().getUnformattedComponentText(), queryString);
+                if (bestOptionsHeap.size() < 20) {
+                    bestOptionsHeap.offer(new Pair<>(d, item));
+                } else if (d < bestOptionsHeap.peek().getFirst()) {
+                    bestOptionsHeap.poll();
+                    bestOptionsHeap.offer(new Pair<>(d, item));
+                }
+            }
+
+            sortedItems = bestOptionsHeap
+                    .stream()
+                    .sorted(Comparator.comparing(Pair::getFirst))
+                    .map(Pair::getSecond)
+                    .collect(Collectors.toList());
         }
     }
 
     @Override
     protected int getInnerHeight() {
-        return getItemHeight() * items.size();
+        return getItemHeight() * sortedItems.size();
     }
 
     @Override
     protected boolean scrollbarVisible() {
-        return this.items.size() > this.getDisplayableItemCount();
+        return this.sortedItems.size() > this.getDisplayableItemCount();
     }
 
     private double getDisplayableItemCount() {
@@ -188,18 +243,18 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
 
     @Override
     protected void renderContents(
-                                  int mx,
-                                  int my,
-                                  float partialTick) {
+            int mx,
+            int my,
+            float partialTick) {
         var tess = Tessellator.getInstance();
 
-        if (items.isEmpty()) return;
+        if (sortedItems.isEmpty()) return;
 
         // Calculate which items are visible in the current viewport
         int itemHeight = getItemHeight();
         int startIndex = (int) (scrollAmount() / itemHeight);
         int visibleCount = (int) Math.ceil((double) height / itemHeight) + 1;
-        int endIndex = Math.min(items.size(), startIndex + visibleCount);
+        int endIndex = Math.min(sortedItems.size(), startIndex + visibleCount);
 
         var buffer = Tessellator.getInstance().getBuffer();
         int lineX = SFMScreenRenderUtils.getX(this) + this.innerPadding();
@@ -207,7 +262,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
 
         // Render only the visible subset of items
         for (int i = startIndex; i < endIndex; i++) {
-            PickListItem item = items.get(i);
+            PickListItem item = sortedItems.get(i);
             // Calculate the y position based on the item's position in the full list
             int lineY = SFMScreenRenderUtils.getY(this) + this.innerPadding() + (i * itemHeight);
 
