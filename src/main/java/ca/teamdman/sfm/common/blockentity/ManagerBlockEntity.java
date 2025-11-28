@@ -21,6 +21,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.time.MutableInstant;
 
 import ca.teamdman.sfm.SFM;
@@ -111,11 +112,11 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                     manager.sendUpdatePacket();
                     manager.logger.pruneSoWeDontEatAllTheRam();
 
-                    if (manager.logger.getLogLevel() == org.apache.logging.log4j.Level.TRACE ||
-                            manager.logger.getLogLevel() == org.apache.logging.log4j.Level.DEBUG ||
-                            manager.logger.getLogLevel() == org.apache.logging.log4j.Level.INFO) {
-                        org.apache.logging.log4j.Level newLevel = org.apache.logging.log4j.Level.OFF;
-                        manager.logger.info(x -> x.accept(LocalizationKeys.LOG_LEVEL_UPDATED.get(newLevel)));
+                    if (manager.logger.getLogLevel() == Level.TRACE ||
+                            manager.logger.getLogLevel() == Level.DEBUG ||
+                            manager.logger.getLogLevel() == Level.INFO) {
+                        Level newLevel = Level.OFF;
+                        manager.logger.info(x -> x.accept(LocalizationKeys.LOG_LEVEL_UPDATED.get(newLevel.name())));
                         var oldLevel = manager.logger.getLogLevel();
                         manager.setLogLevel(newLevel);
                         SFM.LOGGER.debug(
@@ -138,7 +139,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         }
     }
 
-    public void setLogLevel(org.apache.logging.log4j.Level logLevelObj) {
+    public void setLogLevel(Level logLevelObj) {
         logger.setLogLevel(logLevelObj);
         sendUpdatePacket();
     }

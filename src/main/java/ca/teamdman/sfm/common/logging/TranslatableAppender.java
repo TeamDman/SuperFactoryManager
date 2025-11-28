@@ -49,7 +49,7 @@ public class TranslatableAppender extends AbstractAppender {
         for (int i = 0; i < params.length; i++) {
             stringParams[i] = Objects.toString(params[i]);
         }
-        TextComponentTranslation content = new TextComponentTranslation(message.getFormat(), null, stringParams);
+        TextComponentTranslation content = new TextComponentTranslation(message.getFormat(), (Object[]) stringParams);
 
         contents.add(new TranslatableLogEvent(
                 level,
