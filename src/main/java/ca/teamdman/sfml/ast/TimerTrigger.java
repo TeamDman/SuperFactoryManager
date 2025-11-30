@@ -3,6 +3,7 @@ package ca.teamdman.sfml.ast;
 import java.util.Arrays;
 import java.util.List;
 
+import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import com.github.bsideup.jabel.Desugar;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
@@ -40,8 +41,9 @@ public record TimerTrigger(
     }
 
     public boolean usesOnlyForgeEnergyResourceIO() {
-        return getReferencedIOResourceIds().allMatch(id -> id.resourceTypeNamespace.equals("sfm") &&
-                (id.resourceTypeName.equals("forge_energy") || id.resourceTypeName.equals("mekanism_energy")));
+        return getReferencedIOResourceIds().allMatch(id -> id.getResourceType() == SFMResourceTypes.FORGE_ENERGY);
+        return getReferencedIOResourceIds().allMatch(id -> id.resourceTypeNamespace.equals("forge") &&
+                id.resourceTypeName.equals("energy"));
     }
 
     @Override
