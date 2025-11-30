@@ -12,6 +12,9 @@ import ca.teamdman.sfm.common.util.ConfirmationParams;
 /// Only runs the callback if the user confirms
 public class SFMConfirmationScreen extends GuiYesNo implements IStackableScreen {
 
+    protected int ticksUntilEnable;
+
+
     private GuiScreen prevScreen;
 
     @Nullable
@@ -26,12 +29,12 @@ public class SFMConfirmationScreen extends GuiYesNo implements IStackableScreen 
     }
 
     public SFMConfirmationScreen(
-                                 Runnable callback,
-                                 ITextComponent confirmTitle,
-                                 ITextComponent confirmMessage,
-                                 ITextComponent confirmYes,
-                                 ITextComponent confirmNo,
-                                 int delay) {
+            Runnable callback,
+            ITextComponent confirmTitle,
+            ITextComponent confirmMessage,
+            ITextComponent confirmYes,
+            ITextComponent confirmNo,
+            int delay) {
         super(
                 (confirmedYes, parentButton) -> {
                     SFMScreenChangeHelpers.popScreen(); // Close confirm screen
@@ -39,16 +42,18 @@ public class SFMConfirmationScreen extends GuiYesNo implements IStackableScreen 
                         callback.run();
                     }
                 },
-                confirmTitle.getFormattedText(),
-                confirmMessage.getFormattedText(),
+                confirmTitle.getUnformattedComponentText(),
+                confirmMessage.getUnformattedComponentText(),
+                confirmYes.getUnformattedComponentText(),
+                confirmNo.getUnformattedComponentText(),
                 0);
         setButtonDelay(delay);
     }
 
     public SFMConfirmationScreen(
-                                 ConfirmationParams confirmationParams,
-                                 int delay,
-                                 Runnable callback) {
+            ConfirmationParams confirmationParams,
+            int delay,
+            Runnable callback) {
         this(
                 callback,
                 confirmationParams.confirmTitle(),
@@ -56,5 +61,26 @@ public class SFMConfirmationScreen extends GuiYesNo implements IStackableScreen 
                 confirmationParams.confirmYes(),
                 confirmationParams.confirmNo(),
                 delay);
+    }
+
+    @Override
+    public boolean doesGuiPauseGame() {
+        return false;
+    }
+
+    @Override
+    public void setButtonDelay(int ticksUntilEnableIn) {
+        this.ticksUntilEnable = ticksUntilEnableIn;
+    }
+
+    @Override
+    public void updateScreen() {
+        if (ticksUntilEnable > 0) {
+            ticksUntilEnable--;
+            this.buttonList.get(0).enabled = false;
+
+        } else {
+            this.buttonList.get(0).enabled = true;
+        }
     }
 }

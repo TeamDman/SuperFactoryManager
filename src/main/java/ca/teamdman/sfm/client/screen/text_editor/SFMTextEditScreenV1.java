@@ -50,16 +50,16 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
     private boolean scrolledOnFirstInit = false;
 
     public SFMTextEditScreenV1(
-                               ISFMTextEditScreenOpenContext openContext) {
+            ISFMTextEditScreenOpenContext openContext) {
         super();
         // LocalizationKeys.TEXT_EDIT_SCREEN_TITLE.getComponent()
         this.openContext = openContext;
     }
 
     public static String substring(
-                                   ITextComponent component,
-                                   int start,
-                                   int end) {
+            ITextComponent component,
+            int start,
+            int end) {
         ITextComponent rtn = new TextComponentString("");
         AtomicInteger seen = new AtomicInteger(0);
         for (ITextComponent sibling : component.getSiblings()) {
@@ -120,8 +120,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
     @Override
     public boolean charTyped(
-                             char pCodePoint,
-                             int pModifiers) {
+            char pCodePoint,
+            int pModifiers) {
         if (!suggestedActions.isEmpty() && pCodePoint == '\\') {
             IntellisenseAction action = suggestedActions.getSelected();
             assert action != null;
@@ -144,9 +144,9 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
     @Override
     public boolean keyPressed(
-                              int pKeyCode,
-                              int pScanCode,
-                              int pModifiers) {
+            int pKeyCode,
+            int pScanCode,
+            int pModifiers) {
         if ((pKeyCode == Keyboard.KEY_RETURN || pKeyCode == Keyboard.KEY_NUMPADENTER) && GuiScreen.isShiftKeyDown()) {
             saveAndClose();
             return true;
@@ -188,8 +188,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
         if (pKeyCode == Keyboard.KEY_SPACE && GuiScreen.isCtrlKeyDown()) {
             ProgramTokenContextActions.getContextAction(
-                    textarea.getValue(),
-                    textarea.getCursorPosition())
+                            textarea.getValue(),
+                            textarea.getCursorPosition())
                     .ifPresent(Runnable::run);
 
             textarea.rebuild(false);
@@ -247,7 +247,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
         if (!openContext.initialValue().equals(textarea.getValue())) {
             GuiYesNo exitWithoutSavingConfirmScreen = getExitWithoutSavingConfirmScreen();
             SFMScreenChangeHelpers.setOrPushScreen(exitWithoutSavingConfirmScreen);
-            exitWithoutSavingConfirmScreen.setButtonDelay(20);
+
         } else {
             super.onClose();
         }
@@ -255,9 +255,9 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
     @Override
     public void onResize(
-                         Minecraft mc,
-                         int x,
-                         int y) {
+            Minecraft mc,
+            int x,
+            int y) {
         String prev = this.textarea.getValue();
         this.setWorldAndResolution(mc, width, height);
         super.onResize(mc, x, y);
@@ -324,101 +324,77 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
     @Override
     public void initGui() {
-        super.initGui();
+//        super.initGui();
         Keyboard.enableRepeatEvents(true);
         SFMScreenRenderUtils.enableKeyRepeating();
 
-        this.textarea = this.addRenderableWidget(new MyMultiLineEditBox());
+        if (this.textarea == null) {
+            this.textarea = this.addRenderableWidget(new MyMultiLineEditBox());
 
-        this.suggestedActions = this.addRenderableWidget(new PickList<>(
-                this.fontRenderer,
-                0,
-                0,
-                180,
-                this.fontRenderer.FONT_HEIGHT * 6,
-                LocalizationKeys.INTELLISENSE_PICK_LIST_GUI_TITLE.getComponent(),
-                new ArrayList<>()));
+            this.suggestedActions = this.addRenderableWidget(new PickList<>(
+                    this.fontRenderer,
+                    0,
+                    0,
+                    180,
+                    this.fontRenderer.FONT_HEIGHT * 6,
+                    LocalizationKeys.INTELLISENSE_PICK_LIST_GUI_TITLE.getComponent(),
+                    new ArrayList<>()));
 
+            // this.addRenderableWidget(
+            // new SFMButtonBuilder()
+            // .setPosition(this.width / 2 - 200, this.height / 2 - 100 + 195)
+            // .setSize(16, 20)
+            // .setText(new TextComponentString("#"))
+            // .setOnPress((button) -> {
+            // int cursorPos = textarea.getCursorPosition();
+            // int selectionCursorPos = textarea.getSelectionCursorPosition();
+            // SFMScreenChangeHelpers.setOrPushScreen(
+            // new ProgramEditorConfigScreen(
+            // this,
+            // SFMConfig.CLIENT_PROGRAM_EDITOR,
+            // () -> {
+            //// this.setInitialFocus(textarea);
+            // textarea.setCursorPosition(cursorPos);
+            // textarea.setSelectionCursorPosition(selectionCursorPos);
+            // }
+            // )
+            // );
+            // })
+            //// .setTooltip(this, font, PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP)
+            // .build()
+            // );
+            this.addRenderableWidget(
+                    new SFMButtonBuilder()
+                            .setPosition(this.width / 2 - 2 - 150, this.height / 2 - 100 + 195)
+                            .setSize(200, 20)
+                            .setText(CommonComponents.GUI_DONE)
+                            .setOnPress((button) -> this.saveAndClose())
+                            // .setTooltip(this, font, PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP)
+                            .build());
+            this.addRenderableWidget(
+                    new SFMButtonBuilder()
+                            .setPosition(this.width / 2 - 2 + 100, this.height / 2 - 100 + 195)
+                            .setSize(100, 20)
+                            .setText(CommonComponents.GUI_CANCEL)
+                            .setOnPress((button) -> this.onClose())
+                            .build());
+
+            textarea.setValue(openContext.initialValue());
+            // this.setInitialFocus(textarea);
+        }
         this.setFocused(this.textarea);
         this.textarea.setFocused(true);
-
-        // this.addRenderableWidget(
-        // new SFMButtonBuilder()
-        // .setPosition(this.width / 2 - 200, this.height / 2 - 100 + 195)
-        // .setSize(16, 20)
-        // .setText(new TextComponentString("#"))
-        // .setOnPress((button) -> {
-        // int cursorPos = textarea.getCursorPosition();
-        // int selectionCursorPos = textarea.getSelectionCursorPosition();
-        // SFMScreenChangeHelpers.setOrPushScreen(
-        // new ProgramEditorConfigScreen(
-        // this,
-        // SFMConfig.CLIENT_PROGRAM_EDITOR,
-        // () -> {
-        //// this.setInitialFocus(textarea);
-        // textarea.setCursorPosition(cursorPos);
-        // textarea.setSelectionCursorPosition(selectionCursorPos);
-        // }
-        // )
-        // );
-        // })
-        //// .setTooltip(this, font, PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP)
-        // .build()
-        // );
-        this.addRenderableWidget(
-                new SFMButtonBuilder()
-                        .setPosition(this.width / 2 - 2 - 150, this.height / 2 - 100 + 195)
-                        .setSize(200, 20)
-                        .setText(CommonComponents.GUI_DONE)
-                        .setOnPress((button) -> this.saveAndClose())
-                        // .setTooltip(this, font, PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP)
-                        .build());
-        this.addRenderableWidget(
-                new SFMButtonBuilder()
-                        .setPosition(this.width / 2 - 2 + 100, this.height / 2 - 100 + 195)
-                        .setSize(100, 20)
-                        .setText(CommonComponents.GUI_CANCEL)
-                        .setOnPress((button) -> this.onClose())
-                        .build());
-
-        textarea.setValue(openContext.initialValue());
-        // this.setInitialFocus(textarea);
-    }
-
-    protected @NotNull GuiYesNo getSaveConfirmScreen(Runnable onConfirm) {
-        return new GuiYesNoExtend(
-                (result, id) -> {
-                    SFMScreenChangeHelpers.popScreen(); // Close confirm screen
-
-                    if (result) {
-                        onConfirm.run();
-                    } else {
-                        // do nothing, continue editing
-                    }
-                },
-                LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_TITLE.getComponent().getUnformattedComponentText(),
-                LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_MESSAGE.getComponent().getUnformattedComponentText(),
-                LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_YES_BUTTON.getComponent().getUnformattedComponentText(),
-                LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_NO_BUTTON.getComponent().getUnformattedComponentText(),
-                0);
     }
 
     protected @NotNull GuiYesNo getExitWithoutSavingConfirmScreen() {
-        return new GuiYesNoExtend(
-                (result, id) -> {
-                    SFMScreenChangeHelpers.popScreen();
-                    if (result) {
-                        closeWithoutSaving();
-                    }
-                },
-                LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_TITLE.getComponent().getUnformattedComponentText(),
-                LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_MESSAGE.getComponent()
-                        .getUnformattedComponentText(),
-                LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_YES_BUTTON.getComponent()
-                        .getUnformattedComponentText(),
-                LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_NO_BUTTON.getComponent()
-                        .getUnformattedComponentText(),
-                0);
+        var screen = new SFMConfirmationScreen(
+                this::closeWithoutSaving,
+                LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_TITLE.getComponent(),
+                LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_MESSAGE.getComponent(),
+                LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
+                LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_NO_BUTTON.getComponent(),
+                20);
+        return screen;
     }
 
     protected class MyMultiLineEditBox extends MultiLineEditBox {
@@ -462,9 +438,9 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
         @MCVersionDependentBehaviour
         @Override
         public boolean mouseClicked(
-                                    int pMouseX,
-                                    int pMouseY,
-                                    int pButton) {
+                int pMouseX,
+                int pMouseY,
+                int pButton) {
             try {
 
                 // Accommodate line numbers
@@ -520,11 +496,11 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
 
         @Override
         public boolean mouseDragged(
-                                    int mx,
-                                    int my,
-                                    int button,
-                                    int dx,
-                                    int dy) {
+                int mx,
+                int my,
+                int button,
+                int dx,
+                int dy) {
             // if mouse in bounds, translate to accommodate line numbers
             int thisX = SFMScreenRenderUtils.getX(this);
             if (mx >= thisX + 1 && mx <= thisX + this.width - 1) {
