@@ -35,10 +35,10 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
     private @Nullable ResourceType<STACK, ITEM, CAP> resourceTypeCache = null;
 
     public ResourceIdentifier(
-                              String resourceTypeNamespace,
-                              String resourceTypeName,
-                              String resourceNamespace,
-                              String resourceName) {
+            String resourceTypeNamespace,
+            String resourceTypeName,
+            String resourceNamespace,
+            String resourceName) {
         // prevent crash on ctrl+space on "Gas::" (capital)
         // we could throw an exception and let it get bubbled to the user
         // but why bother when we know lowercasing it fixes it
@@ -46,8 +46,8 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         resourceTypeName = resourceTypeName.toLowerCase(Locale.ROOT);
 
         var check = Arrays.asList("fe", "rf", "energy", "power");
-        if (resourceTypeNamespace.equals("sfm") && check.contains(resourceTypeName)) {
-            resourceTypeName = "forge_energy";
+        if (resourceTypeNamespace.equals("forge") && check.contains(resourceTypeName)) {
+            resourceTypeName = "energy";
         }
         this.resourceTypeNamespace = resourceTypeNamespace;
         this.resourceTypeName = resourceTypeName;
@@ -58,8 +58,8 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
     }
 
     public ResourceIdentifier(
-                              ResourceLocation resourceTypeKey,
-                              ResourceLocation resourceKey) {
+            ResourceLocation resourceTypeKey,
+            ResourceLocation resourceKey) {
         this(
                 resourceTypeKey.getNamespace(),
                 resourceTypeKey.getPath(),
@@ -72,15 +72,15 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
     }
 
     public ResourceIdentifier(
-                              String namespace,
-                              String value) {
+            String namespace,
+            String value) {
         this(SFM.MOD_ID, "item", namespace, value);
     }
 
     public ResourceIdentifier(
-                              String typeName,
-                              String resourceNamespace,
-                              String resourceName) {
+            String typeName,
+            String resourceNamespace,
+            String resourceName) {
         this(SFM.MOD_ID, typeName, resourceNamespace, resourceName);
     }
 
@@ -118,6 +118,9 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
     }
 
     public Optional<ResourceLocation> getLocation() {
+        if (RegexCache.isRegexPattern(this.resourceNamespace) || RegexCache.isRegexPattern(this.resourceName)) {
+            return Optional.empty();
+        }
         return Optional.of(SFMResourceLocation.fromNamespaceAndPath(resourceNamespace, resourceName));
     }
 

@@ -40,7 +40,6 @@ public class FluidResourceType extends ResourceType<Optional<FluidStack>, Option
     @Override
     public Stream<ResourceLocation> getTagsForStack(Optional<FluidStack> fluidStack) {
         return Stream.empty();
-        // noinspection deprecation
     }
 
     @Override
