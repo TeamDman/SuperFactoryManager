@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen.text_editor;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -535,7 +536,10 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             // Build the program
             ProgramBuildResult buildResult = ProgramBuilder.build(programString);
 
-            if (intellisenseCache == null || Minecraft.getMinecraft().player.ticksExisted - lastIntellisenseTick > 5) {
+            if (this.textField.hasSelection()) {
+                SFMTextEditScreenV1.this.suggestedActions.setItems(Collections.emptyList());
+            }
+            else if (intellisenseCache == null || Minecraft.getMinecraft().player.ticksExisted - lastIntellisenseTick > 5) {
 
                 IntellisenseContext intellisenseContext = new IntellisenseContext(
                         buildResult,

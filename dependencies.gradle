@@ -47,6 +47,9 @@ tasks.generateGrammarSource.configure {
 tasks.compileJava.configure {
     dependsOn(tasks.generateGrammarSource)
 }
+tasks.sourcesJar.configure {
+    dependsOn(tasks.generateGrammarSource)
+}
 
 dependencies {
     antlr("org.antlr:antlr4:4.9.1")
