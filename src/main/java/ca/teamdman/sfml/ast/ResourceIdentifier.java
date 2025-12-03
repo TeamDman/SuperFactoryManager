@@ -68,20 +68,20 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
     }
 
     public ResourceIdentifier(String value) {
-        this(SFM.MOD_ID, "item", ".*", value);
+        this(SFM.RESOURCE_SHORT_ID, "item", ".*", value);
     }
 
     public ResourceIdentifier(
             String namespace,
             String value) {
-        this(SFM.MOD_ID, "item", namespace, value);
+        this(SFM.RESOURCE_SHORT_ID, "item", namespace, value);
     }
 
     public ResourceIdentifier(
             String typeName,
             String resourceNamespace,
             String resourceName) {
-        this(SFM.MOD_ID, typeName, resourceNamespace, resourceName);
+        this(SFM.RESOURCE_SHORT_ID, typeName, resourceNamespace, resourceName);
     }
 
     public boolean matchesResourceLocation(ResourceLocation stackId) {

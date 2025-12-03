@@ -52,7 +52,7 @@ public class SFMResourceTypes {
                 return resource;
             }
         };
-        container.setRegistryName(new ResourceLocation(SFM.MOD_ID, name));
+        container.setRegistryName(new ResourceLocation(SFM.RESOURCE_SHORT_ID, name));
         register(container);
         return container.get();
     }

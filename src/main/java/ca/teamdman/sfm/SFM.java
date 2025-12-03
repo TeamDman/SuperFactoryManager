@@ -32,6 +32,7 @@ public class SFM {
 
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
     public static final String ISSUE_TRACKER_URL = "https://github.com/TeamDman/SuperFactoryManager/issues";
+    public static final String RESOURCE_SHORT_ID = "sfm";
 
     @Mod.Instance(SFM.MOD_ID)
     public static SFM instance;

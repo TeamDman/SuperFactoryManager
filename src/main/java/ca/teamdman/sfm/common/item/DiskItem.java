@@ -7,6 +7,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import ca.teamdman.sfm.client.ProgramSyntaxHighlightingHelper;
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
+import ca.teamdman.sfm.common.util.SFMItemUtils;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -18,7 +23,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.*;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 
@@ -214,48 +219,41 @@ public class DiskItem extends Item {
         }
         return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
     }
+    @Override
+    public String getItemStackDisplayName(ItemStack stack) {
+        if (SFMEnvironmentUtils.isClient()) {
+            if (SFMKeyMappings.isKeyDown(SFMKeyMappings.MORE_INFO_TOOLTIP_KEY))
+                return super.getItemStackDisplayName(stack);
+        }
+        var name = getProgramName(stack);
+        if (name.isEmpty()) return super.getItemStackDisplayName(stack);
+        return new TextComponentString(name).setStyle(new Style().setColor(TextFormatting.AQUA)).getFormattedText();// Component.literal(name).withStyle(ChatFormatting.AQUA);
+    }
 
-    //
-    // @Override
-    // public ITextComponent getName(ItemStack stack) {
-    // if (SFMEnvironmentUtils.isClient()) {
-    // if (SFMKeyMappings.isKeyDown(SFMKeyMappings.MORE_INFO_TOOLTIP_KEY))
-    // return super.getName(stack);
-    // }
-    // var name = getProgramName(stack);
-    // if (name.isEmpty()) return super.getName(stack);
-    // return Component.literal(name).withStyle(ChatFormatting.AQUA);
-    // }
-    //
-    // @Override
-    // public void appendHoverText(
-    // ItemStack stack,
-    // @Nullable Level level,
-    // List<Component> lines,
-    // TooltipFlag detail
-    // ) {
-    // var program = getProgram(stack);
-    // if (SFMItemUtils.isClientAndMoreInfoKeyPressed() && !program.isEmpty()) {
-    // lines.add(SFMItemUtils.getRainbow(getName(stack).getString().length()));
-    // lines.addAll(ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false));
-    // } else {
-    // lines.addAll(LabelPositionHolder.from(stack).asHoverText());
-    // getErrors(stack)
-    // .stream()
-    // .map(MutableComponent::create)
-    // .map(line -> line.withStyle(ChatFormatting.RED))
-    // .forEach(lines::add);
-    // getWarnings(stack)
-    // .stream()
-    // .map(MutableComponent::create)
-    // .map(line -> line.withStyle(ChatFormatting.YELLOW))
-    // .forEach(lines::add);
-    // if (!program.isEmpty()) {
-    // SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(lines);
-    // }
-    // }
-    // if (program.isEmpty()) {
-    // lines.add(LocalizationKeys.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
-    // }
-    // }
+    @Override
+    public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> lines, ITooltipFlag flagIn) {
+        super.addInformation(stack, worldIn, lines, flagIn);
+
+        var program = getProgram(stack);
+        if (SFMItemUtils.isClientAndMoreInfoKeyPressed() && !program.isEmpty()) {
+            lines.add(SFMItemUtils.getRainbow(super.getItemStackDisplayName(stack).length()).getFormattedText());
+            lines.addAll(ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false).stream().map(ITextComponent::getFormattedText).collect(Collectors.toList()));
+        } else {
+            lines.addAll(LabelPositionHolder.from(stack).asHoverText());
+            getErrors(stack)
+                    .stream()
+                    .map(line -> line.setStyle(line.getStyle().setColor(TextFormatting.RED)).getFormattedText())
+                    .forEach(lines::add);
+            getWarnings(stack)
+                    .stream()
+                    .map(line -> line.setStyle(line.getStyle().setColor(TextFormatting.YELLOW)).getFormattedText())
+                    .forEach(lines::add);
+            if (!program.isEmpty()) {
+                SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(lines);
+            }
+        }
+        if (program.isEmpty()) {
+            lines.add(LocalizationKeys.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+        }
+    }
 }
