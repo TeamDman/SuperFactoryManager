@@ -5,6 +5,7 @@ import net.minecraftforge.common.config.Config.Comment;
 import net.minecraftforge.common.config.Config.Name;
 import net.minecraftforge.common.config.Config.RangeInt;
 import net.minecraftforge.common.config.Config.RequiresMcRestart;
+import net.minecraftforge.common.config.ConfigManager;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -27,7 +28,10 @@ public class SFMConfig {
     public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
         if (event.getModID().equals(SFM.MOD_ID)) {
             configRevision++;
+
+            ConfigManager.sync(SFM.MOD_ID, Config.Type.INSTANCE);
         }
+
     }
 
     @Name("client")
@@ -87,21 +91,6 @@ public class SFMConfig {
         @Comment("What resource types should SFM not be allowed to move")
         public String[] disallowedResourceTypesForTransfer = new String[0];
 
-        @Name("levelsToShards")
-        @Comment({
-                "How to convert Enchanted Books to Experience Shards",
-                "JustOne = always produces 1 shard regardless of enchantments",
-                "EachOne = produces 1 shard per enchantment on the book.",
-                "SumLevels = produces a number of shards equal to the sum of the enchantments' levels",
-                "SumLevelsScaledExponentially = produces a number of shards equal to the sum of 2 to the power of each enchantment's level (1 -> 1 shard, 2 -> 4 shards, 3 -> 8 shards, etc)"
-        })
-        public LevelsToShards levelsToShards = LevelsToShards.JustOne;
     }
 
-    public enum LevelsToShards {
-        JustOne,
-        EachOne,
-        SumLevels,
-        SumLevelsScaledExponentially,
-    }
 }
