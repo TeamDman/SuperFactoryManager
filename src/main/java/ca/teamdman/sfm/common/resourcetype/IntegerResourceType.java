@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.common.resourcetype;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import net.minecraft.util.ResourceLocation;
@@ -57,5 +58,10 @@ public abstract class IntegerResourceType<CAP> extends ScalarResourceType<Intege
                              Integer integer,
                              long count) {
         return count > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) count;
+    }
+
+    @Override
+    public Optional<Long> getMetaForStack(Integer integer) {
+        return Optional.empty();
     }
 }

@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.resourcetype;
 
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
@@ -240,5 +241,7 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
         protected abstract STACK setCount(
                                           STACK stack,
                                           long amount);
+
+        public abstract Optional<Long> getMetaForStack(STACK stack);
     }
 }

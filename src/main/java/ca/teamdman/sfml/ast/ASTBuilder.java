@@ -572,6 +572,13 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     }
 
     @Override
+    public ASTNode visitWithMeta(SFMLParser.WithMetaContext ctx) {
+        WithMeta rtn = new WithMeta((Number) visit(ctx.number()));
+        AST_NODE_CONTEXTS.add(new Pair<>(rtn, ctx));
+        return rtn;
+    }
+
+    @Override
     public WithConjunction visitWithConjunction(SFMLParser.WithConjunctionContext ctx) {
         var left = (WithClause) visit(ctx.withClause(0));
         var right = (WithClause) visit(ctx.withClause(1));

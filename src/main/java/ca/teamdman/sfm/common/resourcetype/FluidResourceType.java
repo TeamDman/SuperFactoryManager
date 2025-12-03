@@ -84,6 +84,11 @@ public class FluidResourceType extends ResourceType<Optional<FluidStack>, Option
     }
 
     @Override
+    public Optional<Long> getMetaForStack(Optional<FluidStack> fluidStack) {
+        return Optional.empty();
+    }
+
+    @Override
     public IFluidHandler createHandlerForBufferBlock(BufferBlockEntityContents contents) {
         return new FluidTank(contents.tier.getIntMaxStackSize()) {
 

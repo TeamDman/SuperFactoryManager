@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.common.resourcetype;
 
+import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -215,10 +216,15 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
 
     @Override
     protected ItemStack setCount(
-                                 ItemStack stack,
-                                 long amount) {
+            ItemStack stack,
+            long amount) {
         stack.setCount((int) Math.min(amount, Integer.MAX_VALUE));
         return stack;
+    }
+
+    @Override
+    public Optional<Long> getMetaForStack(ItemStack stack) {
+        return Optional.of((long) stack.getMetadata());
     }
 
     protected static class UnsavedFluidStackHandler implements IFluidHandler {

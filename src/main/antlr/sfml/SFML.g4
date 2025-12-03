@@ -75,6 +75,7 @@ withClause  : LPAREN withClause RPAREN           # WithParen
             | withClause AND withClause          # WithConjunction
             | withClause OR withClause           # WithDisjunction
             | (TAG HASHTAG?|HASHTAG) tagMatcher  # WithTag
+            | META number                        # WithMeta
             ;
 
 tagMatcher  : identifier COLON identifier (SLASH identifier)*
@@ -206,6 +207,7 @@ WITHOUT : W I T H O U T;
 WITH    : W I T H ;
 TAG     : T A G ;
 HASHTAG : '#' ;
+META    : M E T A;
 
 // ROUND ROBIN
 ROUND : R O U N D ;
