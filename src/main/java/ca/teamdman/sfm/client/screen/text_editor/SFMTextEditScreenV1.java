@@ -42,7 +42,6 @@ import ca.teamdman.sfml.program_builder.ProgramBuilder;
 
 @SuppressWarnings("NotNullFieldNotInitialized")
 public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEditScreen {
-
     private final ISFMTextEditScreenOpenContext openContext;
     protected MyMultiLineEditBox textarea;
     protected String lastProgram = "different";
@@ -51,16 +50,19 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
     private boolean scrolledOnFirstInit = false;
 
     public SFMTextEditScreenV1(
-            ISFMTextEditScreenOpenContext openContext) {
+            ISFMTextEditScreenOpenContext openContext
+    ) {
         super();
         // LocalizationKeys.TEXT_EDIT_SCREEN_TITLE.getComponent()
         this.openContext = openContext;
     }
 
+
     public static String substring(
             ITextComponent component,
             int start,
-            int end) {
+            int end
+    ) {
         ITextComponent rtn = new TextComponentString("");
         AtomicInteger seen = new AtomicInteger(0);
         for (ITextComponent sibling : component.getSiblings()) {
@@ -69,8 +71,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             int contentEnd = Math.min(end - seen.get(), content.length());
 
             if (contentStart < contentEnd) {
-                rtn.appendSibling(new TextComponentString(content.substring(contentStart, contentEnd))
-                        .setStyle(sibling.getStyle()));
+                rtn.appendSibling(new TextComponentString(content.substring(contentStart, contentEnd)).setStyle(sibling.getStyle()));
             }
             seen.addAndGet(content.length());
         }
@@ -89,6 +90,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
     public void onPreferenceChanged() {
         textarea.rebuildIntellisense();
     }
+
 
     @Override
     public boolean doesGuiPauseGame() {
@@ -122,7 +124,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
     @Override
     public boolean charTyped(
             char pCodePoint,
-            int pModifiers) {
+            int pModifiers
+    ) {
         if (!suggestedActions.isEmpty() && pCodePoint == '\\') {
             IntellisenseAction action = suggestedActions.getSelected();
             assert action != null;
@@ -147,7 +150,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
     public boolean keyPressed(
             int pKeyCode,
             int pScanCode,
-            int pModifiers) {
+            int pModifiers
+    ) {
         if ((pKeyCode == Keyboard.KEY_RETURN || pKeyCode == Keyboard.KEY_NUMPADENTER) && GuiScreen.isShiftKeyDown()) {
             saveAndClose();
             return true;
@@ -190,7 +194,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
         if (pKeyCode == Keyboard.KEY_SPACE && GuiScreen.isCtrlKeyDown()) {
             ProgramTokenContextActions.getContextAction(
                             textarea.getValue(),
-                            textarea.getCursorPosition())
+                            textarea.getCursorPosition()
+                    )
                     .ifPresent(Runnable::run);
 
             textarea.rebuild(false);
@@ -217,28 +222,28 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
         } else if (this.getFocused() != null && this.getFocused().keyPressed(pKeyCode, pScanCode, pModifiers)) {
             return true;
         }
-        // else {
-        // FocusNavigationEvent focusnavigationevent = (FocusNavigationEvent)(switch (pKeyCode) {
-        // case Keyboard.KEY_TAB -> this.createTabEvent();
-        // default -> null;
-        // case Keyboard.KEY_RIGHT -> this.createArrowEvent(ScreenDirection.RIGHT);
-        // case Keyboard.KEY_LEFT -> this.createArrowEvent(ScreenDirection.LEFT);
-        // case Keyboard.KEY_DOWN -> this.createArrowEvent(ScreenDirection.DOWN);
-        // case Keyboard.KEY_UP -> this.createArrowEvent(ScreenDirection.UP);
-        // });
-        // if (focusnavigationevent != null) {
-        // ComponentPath componentpath = super.nextFocusPath(focusnavigationevent);
-        // if (componentpath == null && focusnavigationevent instanceof FocusNavigationEvent.TabNavigation) {
-        // this.clearFocus();
-        // componentpath = super.nextFocusPath(focusnavigationevent);
-        // }
-        //
-        // if (componentpath != null) {
-        // this.changeFocus(componentpath);
-        // }
-        // }
-        // return false;
-        // }
+//        else {
+//            FocusNavigationEvent focusnavigationevent = (FocusNavigationEvent)(switch (pKeyCode) {
+//                case Keyboard.KEY_TAB -> this.createTabEvent();
+//                default -> null;
+//                case Keyboard.KEY_RIGHT -> this.createArrowEvent(ScreenDirection.RIGHT);
+//                case Keyboard.KEY_LEFT -> this.createArrowEvent(ScreenDirection.LEFT);
+//                case Keyboard.KEY_DOWN -> this.createArrowEvent(ScreenDirection.DOWN);
+//                case Keyboard.KEY_UP -> this.createArrowEvent(ScreenDirection.UP);
+//            });
+//            if (focusnavigationevent != null) {
+//                ComponentPath componentpath = super.nextFocusPath(focusnavigationevent);
+//                if (componentpath == null && focusnavigationevent instanceof FocusNavigationEvent.TabNavigation) {
+//                    this.clearFocus();
+//                    componentpath = super.nextFocusPath(focusnavigationevent);
+//                }
+//
+//                if (componentpath != null) {
+//                    this.changeFocus(componentpath);
+//                }
+//            }
+//            return false;
+//        }
         return false;
     }
 
@@ -254,11 +259,13 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
         }
     }
 
+
     @Override
     public void onResize(
             Minecraft mc,
             int x,
-            int y) {
+            int y
+    ) {
         String prev = this.textarea.getValue();
         this.setWorldAndResolution(mc, width, height);
         super.onResize(mc, x, y);
@@ -271,7 +278,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             this.drawDefaultBackground();
         }
 
-        // this.renderBackground(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+//        this.renderBackground(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         for (Renderable renderable : this.renderables) {
             renderable.render(mx, my, partialTicks);
         }
@@ -283,36 +290,36 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
         return SFMConfig.client.showLineNumbers;
     }
 
-    // protected void renderTooltip(
-    // PoseStack pose,
-    // int mx,
-    // int my
-    // ) {
-    // if (Minecraft.getInstance().screen != this) {
-    // // this should fix the annoying Ctrl+E popup when editing
-    // this.renderables
-    // .stream()
-    // .filter(AbstractWidget.class::isInstance)
-    // .map(AbstractWidget.class::cast)
-    // .forEach(w -> w.setFocused(false));
-    // return;
-    // }
-    // drawChildTooltips(pose, mx, my);
-    // }
+//    protected void renderTooltip(
+//            PoseStack pose,
+//            int mx,
+//            int my
+//    ) {
+//        if (Minecraft.getInstance().screen != this) {
+//            // this should fix the annoying Ctrl+E popup when editing
+//            this.renderables
+//                    .stream()
+//                    .filter(AbstractWidget.class::isInstance)
+//                    .map(AbstractWidget.class::cast)
+//                    .forEach(w -> w.setFocused(false));
+//            return;
+//        }
+//        drawChildTooltips(pose, mx, my);
+//    }
 
-    // private void drawChildTooltips(
-    // PoseStack pose,
-    // int mx,
-    // int my
-    // ) {
+//    private void drawChildTooltips(
+//            PoseStack pose,
+//            int mx,
+//            int my
+//    ) {
 
     /// / 1.19.2: manually render button tooltips
-    // this.renderables
-    // .stream()
-    // .filter(SFMExtendedButtonWithTooltip.class::isInstance)
-    // .map(SFMExtendedButtonWithTooltip.class::cast)
-    // .forEach(x -> x.renderToolTip(pose, mx, my));
-    // }
+//        this.renderables
+//                .stream()
+//                .filter(SFMExtendedButtonWithTooltip.class::isInstance)
+//                .map(SFMExtendedButtonWithTooltip.class::cast)
+//                .forEach(x -> x.renderToolTip(pose, mx, my));
+//    }
     protected <T extends GuiEventListener & Renderable> T addRenderableWidget(T pWidget) {
         this.renderables.add(pWidget);
         return this.addWidget(pWidget);
@@ -339,7 +346,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                     180,
                     this.fontRenderer.FONT_HEIGHT * 6,
                     LocalizationKeys.INTELLISENSE_PICK_LIST_GUI_TITLE.getComponent(),
-                    new ArrayList<>()));
+                    new ArrayList<>()
+        ));
 
             // this.addRenderableWidget(
             // new SFMButtonBuilder()
@@ -371,8 +379,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                             .setText(CommonComponents.GUI_DONE)
                             .setOnPress((button) -> this.saveAndClose())
                             // .setTooltip(this, font, PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP)
-                            .build());
-            this.addRenderableWidget(
+                            .build()
+            );this.addRenderableWidget(
                     new SFMButtonBuilder()
                             .setPosition(this.width / 2 - 2 + 100, this.height / 2 - 100 + 195)
                             .setSize(100, 20)
@@ -384,7 +392,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             // this.setInitialFocus(textarea);
         }
         this.setFocused(this.textarea);
-        this.textarea.setFocused(true);
+        this.textarea.setFocused(true
+        );
     }
 
     protected @NotNull GuiYesNo getExitWithoutSavingConfirmScreen() {
@@ -399,7 +408,6 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
     }
 
     protected class MyMultiLineEditBox extends MultiLineEditBox {
-
         private int frame = 0;
 
         public MyMultiLineEditBox() {
@@ -410,7 +418,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                     400,
                     200,
                     "",
-                    "");
+                    ""
+            );
             this.textField.setValueListener(this::onValueOrCursorChanged);
             this.textField.setCursorListener(() -> this.onValueOrCursorChanged(this.textField.value()));
             this.setFocused(true);
@@ -441,7 +450,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
         public boolean mouseClicked(
                 int pMouseX,
                 int pMouseY,
-                int pButton) {
+                int pButton
+        ) {
             try {
 
                 // Accommodate line numbers
@@ -455,17 +465,19 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                 if (!this.visible) {
                     rtn = false;
                 } else {
-                    // noinspection unused
+                    //noinspection unused
                     boolean flag = this.withinContentAreaPoint(pMouseX, pMouseY);
-                    boolean flag1 = this.scrollbarVisible() && pMouseX >= (double) (this.getX() + this.width) &&
-                            pMouseX <= (double) (this.getX() + this.width + 8) && pMouseY >= (double) this.getY() &&
-                            pMouseY < (double) (this.getY() + this.height);
+                    boolean flag1 = this.scrollbarVisible()
+                            && pMouseX >= (double) (this.getX() + this.width)
+                            && pMouseX <= (double) (this.getX() + this.width + 8)
+                            && pMouseY >= (double) this.getY()
+                            && pMouseY < (double) (this.getY() + this.height);
                     if (flag1 && pButton == 0) {
                         this.scrolling = true;
                         rtn = true;
                     } else {
-                        // 1.19.4 behaviour:
-                        // rtn=flag || flag1;
+                        //1.19.4 behaviour:
+                        //rtn=flag || flag1;
                         // instead, we want to return false if we're not scrolling
                         // (like how it was in 1.19.2)
                         // https://bugs.mojang.com/browse/MC-262754
@@ -501,7 +513,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                 int my,
                 int button,
                 int dx,
-                int dy) {
+                int dy
+        ) {
             // if mouse in bounds, translate to accommodate line numbers
             int thisX = SFMScreenRenderUtils.getX(this);
             if (mx >= thisX + 1 && mx <= thisX + this.width - 1) {
@@ -509,6 +522,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             }
             return super.mouseDragged(mx, my, button, dx, dy);
         }
+
 
         public int getSelectionCursorPosition() {
             return this.textField.selectCursor;
@@ -546,26 +560,26 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                         cursorPosition,
                         getSelectionCursorPosition(),
                         openContext.labelPositionHolder(),
-                        SFMConfig.client.intellisenseLevel);
-                List<IntellisenseAction> suggestions = SFMLIntellisense.getSuggestions(intellisenseContext);
+                        SFMConfig.client.intellisenseLevel
+                );List<IntellisenseAction> suggestions = SFMLIntellisense.getSuggestions(intellisenseContext);
                 SFMTextEditScreenV1.this.suggestedActions.setItems(suggestions);
                 intellisenseCache = suggestions;
                 lastIntellisenseTick = Minecraft.getMinecraft().player.ticksExisted;
             }
             // Update the intellisense picklist
 
+
             // Update the intellisense picklist query used to sort the suggestions
             String cursorWord = buildResult.getWordAtCursorPosition(cursorPosition);
             SFMTextEditScreenV1.this.suggestedActions.setQuery(new TextComponentString(cursorWord));
 
             boolean shouldPrint = false;
-            // noinspection ConstantValue
+            //noinspection ConstantValue
             if (shouldPrint) {
                 String cursorPositionDisplay = SFMDisplayUtils.getCursorPositionDisplay(programString, cursorPosition);
                 String cursorTokenDisplay = SFMDisplayUtils.getCursorTokenDisplay(buildResult, cursorPosition);
                 String tokenHierarchyDisplay;
-                @Nullable
-                Program program = buildResult.program();
+                @Nullable Program program = buildResult.program();
                 if (program == null) {
                     tokenHierarchyDisplay = "<INVALID PROGRAM>";
                 } else {
@@ -584,7 +598,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                         cursorTokenDisplay,
                         tokenHierarchyDisplay,
                         cursorWord,
-                        suggestionsDisplay);
+                        suggestionsDisplay
+                );
             }
         }
 
@@ -602,7 +617,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             lastProgram = this.textField.value();
             lastProgramWithSyntaxHighlighting = ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(
                     lastProgram,
-                    showContextActionHints);
+                    showContextActionHints
+            );
         }
 
         @Override
@@ -627,8 +643,9 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                 var componentColoured = lines.get(line);
                 int lineLength = componentColoured.getUnformattedText().length();
                 int lineHeight = this.font.FONT_HEIGHT;
-                boolean cursorOnThisLine = cursorIndex >= charCount &&
-                        cursorIndex <= charCount + lineLength;
+                boolean cursorOnThisLine =
+                        cursorIndex >= charCount &&
+                                cursorIndex <= charCount + lineLength;
 
                 if (shouldShowLineNumbers()) {
                     // Draw line number
@@ -639,7 +656,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                             lineX - 2 - this.font.getStringWidth(lineNumber),
                             lineY,
                             true,
-                            false);
+                            false
+                    );
                 }
 
                 if (cursorOnThisLine) {
@@ -653,7 +671,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                             lineX,
                             lineY,
                             true,
-                            false) - 1;
+                            false
+                    ) - 1;
                     SFMTextEditScreenV1.this.suggestedActions.setXY(cursorX + 10, cursorY);
                     // draw text after cursor
                     SFMFontUtils.drawInBatch(
@@ -662,7 +681,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                             cursorX,
                             lineY,
                             true,
-                            false);
+                            false
+                    );
                 } else {
                     SFMTextEditScreenV1.this.suggestedActions.active = false;
                     SFMFontUtils.drawInBatch(
@@ -671,7 +691,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                             lineX,
                             lineY,
                             true,
-                            false);
+                            false
+                    );
                 }
 
                 // Check if the selection is within the current line
@@ -686,7 +707,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                             lineX + highlightStartX,
                             lineY,
                             lineX + highlightEndX,
-                            lineY + lineHeight);
+                            lineY + lineHeight
+                    );
                 }
 
                 lineY += lineHeight;
@@ -701,5 +723,6 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                 }
             }
         }
+
     }
 }

@@ -5,7 +5,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public interface Renderable {
-
     /**
      * Renders the graphical user interface (GUI) element.
      *

@@ -1,16 +1,15 @@
 package ca.teamdman.sfm.client.screen;
 
-import javax.annotation.Nullable;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 
-public interface IStackableScreen {
+import javax.annotation.Nullable;
 
+public interface IStackableScreen {
     void setParent(GuiScreen parent);
 
-    @Nullable
-    GuiScreen getParent();
+   @Nullable
+   GuiScreen getParent();
 
     default void onClose() {
         if (this.getParent() != null) {

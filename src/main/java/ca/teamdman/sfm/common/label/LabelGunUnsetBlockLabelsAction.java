@@ -1,29 +1,25 @@
 package ca.teamdman.sfm.common.label;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.world.World;
-
-import org.apache.commons.lang3.mutable.MutableInt;
-import org.jetbrains.annotations.Nullable;
-
-import com.github.bsideup.jabel.Desugar;
-
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.util.ConfirmationParams;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.jetbrains.annotations.Nullable;
 
 @Desugar
 public record LabelGunUnsetBlockLabelsAction(
-                                             EntityPlayer player,
-                                             World level,
-                                             ServerboundLabelGunUsePacket msg,
-                                             ItemStack gunStack,
-                                             LabelPositionHolder gunLabels,
-                                             LabelGunPlanTargets targets,
-                                             String activeLabel)
-        implements LabelGunPlan {
-
+        EntityPlayer player,
+        World level,
+        ServerboundLabelGunUsePacket msg,
+        ItemStack gunStack,
+        LabelPositionHolder gunLabels,
+        LabelGunPlanTargets targets,
+        String activeLabel
+) implements LabelGunPlan {
     @Override
     public void run() {
         // we are removing labels
@@ -45,7 +41,9 @@ public record LabelGunUnsetBlockLabelsAction(
                     LocalizationKeys.REMOVE_ACTIVE_LABEL_CONFIRM_SCREEN_TITLE.getComponent(activeLabel),
                     LocalizationKeys.REMOVE_ACTIVE_LABEL_CONFIRM_SCREEN_MESSAGE.getComponent(
                             activeLabel,
-                            targets.positions().size()));
+                            targets.positions().size()
+                    )
+            );
         } else {
             MutableInt totalLabels = new MutableInt(0);
             gunLabels.forEach((label, pos) -> {
@@ -57,7 +55,9 @@ public record LabelGunUnsetBlockLabelsAction(
                     LocalizationKeys.REMOVE_ALL_LABELS_CONFIRM_SCREEN_TITLE.getComponent(),
                     LocalizationKeys.REMOVE_ALL_LABELS_CONFIRM_SCREEN_MESSAGE.getComponent(
                             totalLabels,
-                            targets.positions().size()));
+                            targets.positions().size()
+                    )
+            );
         }
     }
 }

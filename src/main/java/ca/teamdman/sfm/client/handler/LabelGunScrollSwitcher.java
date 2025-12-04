@@ -8,15 +8,8 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.client.registry.SFMKeyMappings;
-import ca.teamdman.sfm.common.item.LabelGunItem;
-import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
-import ca.teamdman.sfm.common.registry.SFMPackets;
-
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.CLIENT)
 public class LabelGunScrollSwitcher {
-
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public static void onScroll(MouseEvent event) {
@@ -35,7 +28,8 @@ public class LabelGunScrollSwitcher {
         var next = LabelGunItem.getNextLabel(gun, event.getDwheel() < 0 ? -1 : 1);
         SFMPackets.sendToServer(new ServerboundLabelGunSetActiveLabelPacket(
                 next,
-                hand));
+                hand
+        ));
         LabelGunKeyMappingHandler.setExternalDebounce();
 
         event.setCanceled(true);

@@ -5,15 +5,16 @@
  * The source code is available on github: https://github.com/HellFirePvP/ModularMachinery
  * For further details, see the License file there.
  ******************************************************************************/
+
 package ca.teamdman.sfm.common.registry.internal;
+
+import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import net.minecraftforge.registries.IForgeRegistryEntry;
 
 /**
  * This class was copied from the Modular Machinery Mod
@@ -40,4 +41,5 @@ public class InternalRegistryPrimer {
     void wipe(Type type) {
         primed.remove(type);
     }
+
 }

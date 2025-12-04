@@ -1,18 +1,19 @@
 package ca.teamdman.sfm.common.capability;
 
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.cablenetwork.SFMBlockCapabilityCacheForLevel;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
+import ca.teamdman.sfm.common.program.LimitedInputSlot;
+import ca.teamdman.sfm.common.program.LimitedOutputSlot;
+import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.SFMDirections;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.world.World;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /// When SFM is moving items
 ///
@@ -21,25 +22,22 @@ import ca.teamdman.sfm.common.util.SFMDirections;
 /// OUTPUT item::, fluid:: TO b
 /// ```
 ///
-/// the {@link ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType} being moved are each tied to a
-/// {@link SFMBlockCapabilityKind}.
-/// See {@link ca.teamdman.sfml.ast.OutputStatement#moveTo(ProgramContext, LimitedInputSlot, LimitedOutputSlot)} for
-/// details.
+/// the {@link ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType} being moved are each tied to a {@link SFMBlockCapabilityKind}.
+/// See {@link ca.teamdman.sfml.ast.OutputStatement#moveTo(ProgramContext, LimitedInputSlot, LimitedOutputSlot)} for details.
 ///
 /// This class helps keep related capability discovery logic in one place and out of the {@link CableNetwork}.
 ///
-/// The discovery results from {@link CableNetwork#getCapability(SFMBlockCapabilityKind, BlockPos, EnumFacing,
-/// TranslatableLogger)}
+/// The discovery results from {@link CableNetwork#getCapability(SFMBlockCapabilityKind, BlockPos, EnumFacing, TranslatableLogger)}
 /// will be cached in the {@link CableNetwork#getLevelCapabilityCache()}
 /// so the {@link SFMBlockCapabilityProviderDiscovery} can focus on its job.
 public class SFMBlockCapabilityDiscovery {
-
     public static <CAP> @NotNull SFMBlockCapabilityResult<CAP> discoverCapabilityFromNetwork(
-                                                                                             CableNetwork cableNetwork,
-                                                                                             SFMBlockCapabilityKind<CAP> capKind,
-                                                                                             @NotStored BlockPos pos,
-                                                                                             @Nullable EnumFacing direction,
-                                                                                             TranslatableLogger logger) {
+            CableNetwork cableNetwork,
+            SFMBlockCapabilityKind<CAP> capKind,
+            @NotStored BlockPos pos,
+            @Nullable EnumFacing direction,
+            TranslatableLogger logger
+    ) {
         SFMBlockCapabilityCacheForLevel levelCapabilityCache = cableNetwork.getLevelCapabilityCache();
         World world = cableNetwork.getLevel();
 
@@ -50,7 +48,8 @@ public class SFMBlockCapabilityDiscovery {
                 pos,
                 direction,
                 logger,
-                levelCapabilityCache);
+                levelCapabilityCache
+        );
         if (cached != null && cached.isPresent()) return cached;
 
         // NEED TO DISCOVER
@@ -69,7 +68,8 @@ public class SFMBlockCapabilityDiscovery {
                 world,
                 capKind,
                 pos,
-                direction);
+                direction
+        );
         if (cap.isPresent()) {
             // Track in cache
             levelCapabilityCache.putCapability(world, pos, capKind, direction, cap);
@@ -77,14 +77,16 @@ public class SFMBlockCapabilityDiscovery {
             logger.warn(x -> x.accept(LocalizationKeys.LOGS_EMPTY_CAPABILITY.get(
                     pos,
                     capKind.getName(),
-                    direction)));
+                    direction
+            )));
         }
         return cap;
     }
 
     public static boolean hasAnyCapabilityAnyDirection(
-                                                       World level,
-                                                       BlockPos pos) {
+            World level,
+            BlockPos pos
+    ) {
         return SFMWellKnownCapabilities.streamCapabilities().anyMatch(cap -> {
             for (EnumFacing direction : SFMDirections.DIRECTIONS_WITH_NULL) {
                 if (discoverCapabilityFromLevel(level, cap, pos, direction).isPresent()) {
@@ -96,26 +98,29 @@ public class SFMBlockCapabilityDiscovery {
     }
 
     public static <CAP> @NotNull SFMBlockCapabilityResult<CAP> discoverCapabilityFromLevel(
-                                                                                           World level,
-                                                                                           SFMBlockCapabilityKind<CAP> capKind,
-                                                                                           @NotStored BlockPos pos,
-                                                                                           @Nullable EnumFacing direction) {
+            World level,
+            SFMBlockCapabilityKind<CAP> capKind,
+            @NotStored BlockPos pos,
+            @Nullable EnumFacing direction
+    ) {
         return SFMBlockCapabilityProviderDiscovery.getCapabilityFromLevel(
                 capKind,
                 level,
                 pos,
                 level.getBlockState(pos),
                 level.getTileEntity(pos),
-                direction);
+                direction
+        );
     }
 
     private static <CAP> @Nullable SFMBlockCapabilityResult<CAP> discoverCapabilityFromCache(
-                                                                                             World world,
-                                                                                             SFMBlockCapabilityKind<CAP> capKind,
-                                                                                             @NotStored BlockPos pos,
-                                                                                             @Nullable EnumFacing direction,
-                                                                                             TranslatableLogger logger,
-                                                                                             SFMBlockCapabilityCacheForLevel levelCapabilityCache) {
+            World world,
+            SFMBlockCapabilityKind<CAP> capKind,
+            @NotStored BlockPos pos,
+            @Nullable EnumFacing direction,
+            TranslatableLogger logger,
+            SFMBlockCapabilityCacheForLevel levelCapabilityCache
+    ) {
         var found = levelCapabilityCache.getCapability(world, pos, capKind, direction);
         if (found != null) {
             // CACHE HIT
@@ -123,7 +128,8 @@ public class SFMBlockCapabilityDiscovery {
                 logger.trace(x -> x.accept(LocalizationKeys.LOG_CAPABILITY_CACHE_HIT.get(
                         pos,
                         capKind.getName(),
-                        direction)));
+                        direction
+                )));
                 return found;
             } else {
                 // CACHE HIT BUT EMPTY
@@ -135,7 +141,8 @@ public class SFMBlockCapabilityDiscovery {
             logger.trace(x -> x.accept(LocalizationKeys.LOG_CAPABILITY_CACHE_MISS.get(
                     pos,
                     capKind.getName(),
-                    direction)));
+                    direction
+            )));
         }
         return null;
     }

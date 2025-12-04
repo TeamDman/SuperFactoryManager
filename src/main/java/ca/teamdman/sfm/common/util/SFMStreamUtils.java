@@ -1,13 +1,12 @@
 package ca.teamdman.sfm.common.util;
 
+import net.minecraft.util.math.BlockPos;
+
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import net.minecraft.util.math.BlockPos;
-
 public class SFMStreamUtils {
-
     /**
      * Gets a stream using a self-feeding mapping function. Prevents the
      * re-traversal of elements that have been visited before.
@@ -19,8 +18,9 @@ public class SFMStreamUtils {
      * @return Stream result after termination of the recursive mapping process
      */
     public static <T, R> Stream<R> getRecursiveStream(
-                                                      RecursiveBuilder<T, R> operator,
-                                                      T first) {
+            RecursiveBuilder<T, R> operator,
+            T first
+    ) {
         Set<T> visitDebounce = new HashSet<>();
         Deque<T> toVisit = new ArrayDeque<>();
         toVisit.add(first);
@@ -29,9 +29,10 @@ public class SFMStreamUtils {
     }
 
     public static <T, R> Stream<R> getRecursiveStream(
-                                                      RecursiveBuilder<T, R> operator,
-                                                      Set<T> visitDebounce,
-                                                      Deque<T> toVisit) {
+            RecursiveBuilder<T, R> operator,
+            Set<T> visitDebounce,
+            Deque<T> toVisit
+    ) {
         Stream.Builder<R> builder = Stream.builder();
         while (!toVisit.isEmpty()) {
             T current = toVisit.pop();
@@ -43,7 +44,8 @@ public class SFMStreamUtils {
                             toVisit.add(next);
                         }
                     },
-                    builder::add);
+                    builder::add
+            );
         }
         return builder.build();
     }
@@ -66,10 +68,10 @@ public class SFMStreamUtils {
     }
 
     public interface RecursiveBuilder<T, R> {
-
         void accept(
-                    T current,
-                    Consumer<T> next,
-                    Consumer<R> results);
+                T current,
+                Consumer<T> next,
+                Consumer<R> results
+        );
     }
 }

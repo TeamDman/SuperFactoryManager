@@ -1,11 +1,5 @@
 package ca.teamdman.sfm.common.program;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-import net.minecraft.world.World;
-
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
@@ -13,9 +7,13 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfml.ast.InputStatement;
 import ca.teamdman.sfml.ast.Program;
+import net.minecraft.world.World;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public class ProgramContext {
-
     private final Program PROGRAM;
     private final ManagerBlockEntity MANAGER;
     private final CableNetwork NETWORK;
@@ -36,14 +34,15 @@ public class ProgramContext {
     }
 
     private ProgramContext(
-                           Program program,
-                           ManagerBlockEntity manager,
-                           CableNetwork network,
-                           World level,
-                           int redstonePulses,
-                           ProgramBehaviour executionBehaviour,
-                           LabelPositionHolder labelPositions,
-                           TranslatableLogger logger) {
+            Program program,
+            ManagerBlockEntity manager,
+            CableNetwork network,
+            World level,
+            int redstonePulses,
+            ProgramBehaviour executionBehaviour,
+            LabelPositionHolder labelPositions,
+            TranslatableLogger logger
+    ) {
         this.PROGRAM = program;
         this.MANAGER = manager;
         this.NETWORK = network;
@@ -54,10 +53,8 @@ public class ProgramContext {
         this.LOGGER = logger;
     }
 
-    public static ProgramContext createSimulationContext(Program program, LabelPositionHolder labelPositionHolder,
-                                                         int redstonePulses,
-                                                         SimulateExploreAllPathsProgramBehaviour behaviour) {
-        // noinspection DataFlowIssue // simulation mode must be able to run without world access
+    public static ProgramContext createSimulationContext(Program program, LabelPositionHolder labelPositionHolder, int redstonePulses, SimulateExploreAllPathsProgramBehaviour behaviour) {
+        //noinspection DataFlowIssue // simulation mode must be able to run without world access
         return new ProgramContext(
                 program,
                 null,
@@ -66,16 +63,18 @@ public class ProgramContext {
                 redstonePulses,
                 behaviour,
                 labelPositionHolder,
-                new TranslatableLogger("simulated" + Objects.hash(program, labelPositionHolder, behaviour)));
+                new TranslatableLogger("simulated" + Objects.hash(program, labelPositionHolder, behaviour))
+        );
     }
 
     public ProgramContext(
-                          Program program,
-                          ManagerBlockEntity manager,
-                          ProgramBehaviour executionBehaviour) {
+            Program program,
+            ManagerBlockEntity manager,
+            ProgramBehaviour executionBehaviour
+    ) {
         this.PROGRAM = program;
         this.MANAGER = manager;
-        // noinspection OptionalGetWithoutIsPresent // program shouldn't be ticking if the network is bad
+        //noinspection OptionalGetWithoutIsPresent // program shouldn't be ticking if the network is bad
         NETWORK = CableNetworkManager
                 .getOrRegisterNetworkFromManagerPosition(MANAGER)
                 .get();
@@ -115,7 +114,6 @@ public class ProgramContext {
      * Copy the context, used in branch investigation.
      * <p>
      * This does not fork input statement state.
-     * 
      * @return shallow copy of this context
      */
     public ProgramContext fork() {
@@ -129,6 +127,7 @@ public class ProgramContext {
     public void free() {
         INPUTS.forEach(InputStatement::freeSlots);
     }
+
 
     public ManagerBlockEntity getManager() {
         return MANAGER;
@@ -146,6 +145,7 @@ public class ProgramContext {
         return INPUTS;
     }
 
+
     public CableNetwork getNetwork() {
         return NETWORK;
     }
@@ -153,15 +153,15 @@ public class ProgramContext {
     @Override
     public String toString() {
         return "ProgramContext{" +
-                "PROGRAM=" + PROGRAM +
-                ", MANAGER=" + MANAGER +
-                ", NETWORK=" + NETWORK +
-                ", INPUTS=" + INPUTS +
-                ", LEVEL=" + LEVEL +
-                ", EXECUTION_POLICY=" + BEHAVIOUR +
-                ", REDSTONE_PULSES=" + REDSTONE_PULSES +
-                ", LABEL_POSITIONS=" + LABEL_POSITIONS +
-                ", did_something=" + did_something +
-                '}';
+               "PROGRAM=" + PROGRAM +
+               ", MANAGER=" + MANAGER +
+               ", NETWORK=" + NETWORK +
+               ", INPUTS=" + INPUTS +
+               ", LEVEL=" + LEVEL +
+               ", EXECUTION_POLICY=" + BEHAVIOUR +
+               ", REDSTONE_PULSES=" + REDSTONE_PULSES +
+               ", LABEL_POSITIONS=" + LABEL_POSITIONS +
+               ", did_something=" + did_something +
+               '}';
     }
 }

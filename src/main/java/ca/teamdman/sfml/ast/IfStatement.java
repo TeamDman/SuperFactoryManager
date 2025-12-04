@@ -1,23 +1,21 @@
 package ca.teamdman.sfml.ast;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Predicate;
-
-import com.github.bsideup.jabel.Desugar;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import com.github.bsideup.jabel.Desugar;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Predicate;
 
 @Desugar
 public record IfStatement(
-                          BoolExpr condition,
-                          Block trueBlock,
-                          Block falseBlock)
-        implements ASTNode, Statement, ToStringCondensed {
-
+        BoolExpr condition,
+        Block trueBlock,
+        Block falseBlock
+) implements ASTNode, Statement, ToStringCondensed {
     @Override
     public void tick(ProgramContext context) {
         Predicate<ProgramContext> condition = this.condition;

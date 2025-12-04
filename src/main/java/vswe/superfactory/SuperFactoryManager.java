@@ -1,7 +1,5 @@
 package vswe.superfactory;
 
-import static ca.teamdman.sfm.common.registry.SFMBlocks.MANAGER;
-
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.event.FMLInterModComms;
@@ -15,34 +13,35 @@ import vswe.superfactory.network.packets.FileHelper;
 import vswe.superfactory.network.packets.PacketEventHandler;
 
 public class SuperFactoryManager {
+	public static final String              CHANNEL                      = "factorymanager";
+	public static final String              MODID                        = Tags.MOD_ID;
+	public static final byte                NBT_CURRENT_PROTOCOL_VERSION = 15;
+	public static final String              NBT_PROTOCOL_VERSION         = "ProtocolVersion";
+	public static final String              RESOURCE_LOCATION            = "superfactorymanager";
+	public static final String              UNLOCALIZED_START            = "sfm.";
+	public static final CreativeTabs        creativeTab                  = new CreativeTabs("sfm") {
+		@Override
+		public ItemStack createIcon() {
+			return new ItemStack(MANAGER);
+		}
+	};
+	public static       SuperFactoryManager instance;
+	public static       FMLEventChannel     packetHandler;
 
-    public static final String CHANNEL = "factorymanager";
-    public static final String MODID = Tags.MOD_ID;
-    public static final byte NBT_CURRENT_PROTOCOL_VERSION = 15;
-    public static final String NBT_PROTOCOL_VERSION = "ProtocolVersion";
-    public static final String RESOURCE_LOCATION = "superfactorymanager";
-    public static final String UNLOCALIZED_START = "sfm.";
-    public static final CreativeTabs creativeTab = new CreativeTabs("sfm") {
+	public void preInit(FMLPreInitializationEvent event) {
+		packetHandler = NetworkRegistry.INSTANCE.newEventDrivenChannel(CHANNEL);
 
-        @Override
-        public ItemStack createIcon() {
-            return new ItemStack(MANAGER);
-        }
-    };
-    public static SuperFactoryManager instance;
-    public static FMLEventChannel packetHandler;
+		FileHelper.setConfigDir(event.getModConfigurationDirectory());
 
-    public void preInit(FMLPreInitializationEvent event) {
-        packetHandler = NetworkRegistry.INSTANCE.newEventDrivenChannel(CHANNEL);
+//		SFM.oldProxy.preInit();
 
-        FileHelper.setConfigDir(event.getModConfigurationDirectory());
+		packetHandler.register(new PacketEventHandler());
 
-        // SFM.oldProxy.preInit();
+		MessageHandler.init();
 
-        packetHandler.register(new PacketEventHandler());
+		FMLInterModComms.sendMessage("Waila", "register", "Provider.callbackRegister");
+	}
 
-        MessageHandler.init();
 
-        FMLInterModComms.sendMessage("Waila", "register", "Provider.callbackRegister");
-    }
+
 }

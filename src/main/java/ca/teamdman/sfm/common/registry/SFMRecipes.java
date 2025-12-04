@@ -1,12 +1,11 @@
 package ca.teamdman.sfm.common.registry;
 
-import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.util.ResourceLocation;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.recipe.DiskResetRecipe;
 import ca.teamdman.sfm.common.recipe.LabelGunResetRecipe;
+import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.util.ResourceLocation;
 
 public class SFMRecipes {
 

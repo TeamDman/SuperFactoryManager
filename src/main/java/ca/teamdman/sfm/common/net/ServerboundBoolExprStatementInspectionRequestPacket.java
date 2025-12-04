@@ -18,7 +18,8 @@ public record ServerboundBoolExprStatementInspectionRequestPacket(
         public PacketDirection getPacketDirection() {
 
             return PacketDirection.SERVERBOUND;
-        }
+
+    }
 
         @Override
         public void encode(
@@ -102,4 +103,6 @@ public record ServerboundBoolExprStatementInspectionRequestPacket(
         wrapper.ourRecord = this;
         return wrapper;
     }
+
+
 }

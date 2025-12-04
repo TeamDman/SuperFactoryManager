@@ -1,7 +1,15 @@
 package ca.teamdman.sfm.common.program.linting;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_OUTPUT_RESOURCE_TYPE_NOT_FOUND_IN_INPUTS;
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_UNUSED_INPUT_LABEL;
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.program.ProgramBehaviour;
+import ca.teamdman.sfm.common.program.ProgramContext;
+import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import ca.teamdman.sfml.ast.*;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import ca.teamdman.sfm.common.util.Pair;
+import net.minecraft.util.text.TextComponentTranslation;
 
 import java.math.BigInteger;
 import java.util.*;
@@ -9,22 +17,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import net.minecraft.util.text.TextComponentTranslation;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.program.ProgramBehaviour;
-import ca.teamdman.sfm.common.program.ProgramContext;
-import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
-import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import ca.teamdman.sfm.common.util.Pair;
-import ca.teamdman.sfml.ast.*;
+import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_OUTPUT_RESOURCE_TYPE_NOT_FOUND_IN_INPUTS;
+import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_UNUSED_INPUT_LABEL;
 
 @SuppressWarnings("rawtypes")
 public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgramBehaviour {
-
     private final List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TextComponentTranslation>>>> sharedMultiverseWarningsByPath;
     private final Consumer<Collection<TextComponentTranslation>> sharedMultiverseWarningDisplay;
     private final List<Pair<ExecutionPathElement, TextComponentTranslation>> warnings = new ArrayList<>();
@@ -37,17 +34,19 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
     }
 
     public GatherWarningsProgramBehaviour(
-                                          List<ExecutionPath> seenPaths,
-                                          ExecutionPath currentPath,
-                                          AtomicReference<BigInteger> triggerPathCount,
-                                          Consumer<Collection<TextComponentTranslation>> sharedMultiverseWarningDisplay,
-                                          List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TextComponentTranslation>>>> sharedMultiverseWarningsByPath,
-                                          List<Pair<ExecutionPathElement, TextComponentTranslation>> warnings) {
+            List<ExecutionPath> seenPaths,
+            ExecutionPath currentPath,
+            AtomicReference<BigInteger> triggerPathCount,
+            Consumer<Collection<TextComponentTranslation>> sharedMultiverseWarningDisplay,
+            List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TextComponentTranslation>>>> sharedMultiverseWarningsByPath,
+            List<Pair<ExecutionPathElement, TextComponentTranslation>> warnings
+    ) {
         super(seenPaths, currentPath, triggerPathCount);
         this.warnings.addAll(warnings);
         this.sharedMultiverseWarningDisplay = sharedMultiverseWarningDisplay;
         this.sharedMultiverseWarningsByPath = sharedMultiverseWarningsByPath;
     }
+
 
     @Override
     public ProgramBehaviour fork() {
@@ -57,13 +56,14 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
                 this.triggerPathCount,
                 this.sharedMultiverseWarningDisplay,
                 this.sharedMultiverseWarningsByPath,
-                this.warnings);
+                this.warnings
+        );
     }
 
     @Override
     public void onInputStatementExecution(
-                                          ProgramContext context,
-                                          InputStatement inputStatement) {
+            ProgramContext context,
+            InputStatement inputStatement) {
         super.onInputStatementExecution(context, inputStatement);
         Set<? extends ResourceType<?, ?, ?>> inputtingResourceTypes = inputStatement
                 .getReferencedIOResourceIds()
@@ -78,9 +78,11 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
 
     @Override
     public void onOutputStatementExecution(
-                                           ProgramContext context,
-                                           OutputStatement outputStatement) {
+            ProgramContext context,
+            OutputStatement outputStatement
+    ) {
         super.onOutputStatementExecution(context, outputStatement);
+
 
         // identify resource types being outputted
         Set<ResourceType> seekingResourceTypes = outputStatement
@@ -96,9 +98,12 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
                         PROGRAM_WARNING_OUTPUT_RESOURCE_TYPE_NOT_FOUND_IN_INPUTS.get(
                                 outputStatement,
                                 context.getProgram().astBuilder().getLineColumnForNode(outputStatement),
-                                resourceType.displayAsCode())));
+                                resourceType.displayAsCode()
+                        )
+                ));
             }
         }
+
 
         // track what we have outputted, so we can find what we input and never use
         resourceTypesOutputted.addAll(seekingResourceTypes);
@@ -106,16 +111,18 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
 
     @Override
     public void onInputStatementForgetTransform(
-                                                ProgramContext context,
-                                                InputStatement old,
-                                                InputStatement next) {
+            ProgramContext context,
+            InputStatement old,
+            InputStatement next
+    ) {
         super.onInputStatementForgetTransform(context, old, next);
 
         /*
-         * INPUT stick FROM a,b
-         * FORGET a - (item::,a) going out of scope, warn a is never used
-         * OUTPUT TO chest
-         */
+        INPUT stick FROM a,b
+        FORGET a - (item::,a) going out of scope, warn a is never used
+        OUTPUT TO chest
+        */
+
 
         // Identify labels that are no longer active
         Set<Label> oldLabels = new HashSet<>(old.labelAccess().labels());
@@ -146,14 +153,14 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
 
     @Override
     public void onInputStatementDropped(
-                                        ProgramContext context,
-                                        InputStatement inputStatement) {
+            ProgramContext context,
+            InputStatement inputStatement) {
         super.onInputStatementDropped(context, inputStatement);
 
         /*
-         * INPUT stick FROM a
-         * -- input never used
-         */
+        INPUT stick FROM a
+        -- input never used
+        */
 
         // identify resource types being dropped
         Set<? extends ResourceType<?, ?, ?>> droppingResourceTypes = inputStatement
@@ -169,8 +176,8 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
 
     @Override
     public void onProgramFinished(
-                                  ProgramContext context,
-                                  Program program) {
+            ProgramContext context,
+            Program program) {
         super.onProgramFinished(context, program);
         // we need to calculate what warnings were present in ALL paths
 
@@ -208,20 +215,21 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
                 }
             }
         }
-        // for (var path : sharedMultiverseWarningsByPath) {
-        // ExecutionPathElement seeking
-        // toWarn.removeIf(pair -> path.getFirst().stream().noneMatch(element -> element.equals(pair.getFirst())));
-        // }
+//        for (var path : sharedMultiverseWarningsByPath) {
+//            ExecutionPathElement seeking
+//            toWarn.removeIf(pair -> path.getFirst().stream().noneMatch(element -> element.equals(pair.getFirst())));
+//        }
 
         // return deduplicated warnings
         sharedMultiverseWarningDisplay.accept(toWarn.stream().map(Pair::getSecond).collect(Collectors.toSet()));
     }
 
     private void warnUnusedInputLabels(
-                                       ProgramContext context,
-                                       InputStatement old,
-                                       Set<Label> removedLabels,
-                                       Set<? extends ResourceType<?, ?, ?>> droppingResourceTypes) {
+            ProgramContext context,
+            InputStatement old,
+            Set<Label> removedLabels,
+            Set<? extends ResourceType<?, ?, ?>> droppingResourceTypes
+    ) {
         for (Label label : removedLabels) {
             for (ResourceType resourceType : droppingResourceTypes) {
                 // if the label was never used, warn
@@ -237,7 +245,9 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
                                     context.getProgram().astBuilder().getLineColumnForNode(old),
                                     resourceType.displayAsCode(),
                                     label,
-                                    resourceType.displayAsCode())));
+                                    resourceType.displayAsCode()
+                            )
+                    ));
                 }
                 // mark as no longer active
                 resourceTypesInputted.remove(resourceType, label);
@@ -247,63 +257,63 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
 }
 
 /*
- * Consider the following smelly program
- * 
- * NAME "a smelly program"
- * 
- * EVERY 20 TICKS DO
- * INPUT fluid:: FROM tank1
- * OUTPUT TO tank2
- * -- missing fluid output
- * 
- * FORGET
- * 
- * INPUT FROM tank1
- * OUTPUT fluid:: TO tank2
- * -- missing fluid input
- * 
- * FORGET
- * 
- * INPUT FROM chest
- * INPUT fluid:: FROM tank1
- * OUTPUT TO chest
- * -- missing fluid output
- * 
- * FORGET
- * 
- * IF chest HAS > 0 stone THEN
- * INPUT FROM chest
- * INPUT fluid:: FROM tank
- * END
- * OUTPUT TO chest
- * -- missing fluid input
- * END
- * EVERY 20 TICKS DO
- * OUTPUT TO chest
- * -- missing input
- * 
- * FORGET
- * 
- * INPUT FROM chest
- * -- missing output
- * END
- * EVERY 20 TICKS DO
- * INPUT 5 FROM a,b,c
- * OUTPUT 1 to z1
- * FORGET b,c
- * OUTPUT TO z2
- * -- no output uses input from b,c
- * END
- * 
- * 
- * We must check for the following:
- * - INPUT without corresponding OUTPUT for all resource types
- * - OUTPUT without corresponding INPUT for all resource types
- * 
- * We should assume all if-statement blocks and else blocks are valid as we cannot know.
- * 
- * We should ensure each trigger is considered separately.
- * 
- * We should ensure FORGET statements are respected.
- * 
+Consider the following smelly program
+
+NAME "a smelly program"
+
+EVERY 20 TICKS DO
+    INPUT fluid:: FROM tank1
+    OUTPUT TO tank2
+    -- missing fluid output
+
+    FORGET
+
+    INPUT FROM tank1
+    OUTPUT fluid:: TO tank2
+    -- missing fluid input
+
+    FORGET
+
+    INPUT FROM chest
+    INPUT fluid:: FROM tank1
+    OUTPUT TO chest
+    -- missing fluid output
+
+    FORGET
+
+    IF chest HAS > 0 stone THEN
+        INPUT FROM chest
+        INPUT fluid:: FROM tank
+    END
+    OUTPUT TO chest
+    -- missing fluid input
+END
+EVERY 20 TICKS DO
+    OUTPUT TO chest
+    -- missing input
+
+    FORGET
+
+    INPUT FROM chest
+    -- missing output
+END
+EVERY 20 TICKS DO
+    INPUT 5 FROM a,b,c
+    OUTPUT 1 to z1
+    FORGET b,c
+    OUTPUT TO z2
+    -- no output uses input from b,c
+END
+
+
+We must check for the following:
+- INPUT without corresponding OUTPUT for all resource types
+- OUTPUT without corresponding INPUT for all resource types
+
+We should assume all if-statement blocks and else blocks are valid as we cannot know.
+
+We should ensure each trigger is considered separately.
+
+We should ensure FORGET statements are respected.
+
  */

@@ -1,12 +1,10 @@
 package ca.teamdman.sfm.client.screen;
 
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.util.text.ITextComponent;
 
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-
 public class SFMFontUtils {
-
     /**
      * Draws text to the screen
      *
@@ -14,12 +12,13 @@ public class SFMFontUtils {
      */
     @MCVersionDependentBehaviour
     public static int drawInBatch(
-                                  ITextComponent text,
-                                  FontRenderer font,
-                                  float x,
-                                  float y,
-                                  boolean dropShadow,
-                                  boolean transparent) {
+            ITextComponent text,
+            FontRenderer font,
+            float x,
+            float y,
+            boolean dropShadow,
+            boolean transparent
+    ) {
         return font.drawString(text.getFormattedText(), x, y, -1, dropShadow);
     }
 
@@ -31,12 +30,13 @@ public class SFMFontUtils {
     @SuppressWarnings("UnusedReturnValue")
     @MCVersionDependentBehaviour
     public static int drawInBatch(
-                                  String text,
-                                  FontRenderer font,
-                                  float x,
-                                  float y,
-                                  boolean dropShadow,
-                                  boolean transparent) {
+            String text,
+            FontRenderer font,
+            float x,
+            float y,
+            boolean dropShadow,
+            boolean transparent
+    ) {
         return font.drawString(text, x, y, -1, dropShadow);
     }
 
@@ -45,12 +45,13 @@ public class SFMFontUtils {
      */
     @MCVersionDependentBehaviour
     public static void draw(
-                            FontRenderer font,
-                            ITextComponent text,
-                            int x,
-                            int y,
-                            int colour,
-                            boolean shadow) {
+            FontRenderer font,
+            ITextComponent text,
+            int x,
+            int y,
+            int colour,
+            boolean shadow
+    ) {
         font.drawString(text.getFormattedText(), x, y, colour, shadow);
     }
 
@@ -59,12 +60,13 @@ public class SFMFontUtils {
      */
     @MCVersionDependentBehaviour
     public static void draw(
-                            FontRenderer font,
-                            String text,
-                            int x,
-                            int y,
-                            int colour,
-                            boolean shadow) {
+            FontRenderer font,
+            String text,
+            int x,
+            int y,
+            int colour,
+            boolean shadow
+    ) {
         font.drawString(text, x, y, colour, shadow);
     }
 }

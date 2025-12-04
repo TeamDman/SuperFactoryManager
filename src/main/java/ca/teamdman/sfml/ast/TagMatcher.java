@@ -1,17 +1,15 @@
 package ca.teamdman.sfml.ast;
 
+import ca.teamdman.sfm.common.program.RegexCache;
+import net.minecraft.util.ResourceLocation;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import net.minecraft.util.ResourceLocation;
-
-import ca.teamdman.sfm.common.program.RegexCache;
-
 public class TagMatcher implements Predicate<Object>, ASTNode {
-
     public final String namespacePattern;
     public final List<String> pathElementPatterns;
     private final Predicate<String> namespacePredicate;
@@ -23,13 +21,13 @@ public class TagMatcher implements Predicate<Object>, ASTNode {
     }
 
     private TagMatcher(
-                       String namespacePattern,
-                       Collection<String> pathElementPatterns) {
+            String namespacePattern,
+            Collection<String> pathElementPatterns
+    ) {
         this.namespacePattern = namespacePattern;
         this.pathElementPatterns = new ArrayList<>(pathElementPatterns);
         this.namespacePredicate = RegexCache.buildPredicate(namespacePattern);
-        this.pathElementPredicates = this.pathElementPatterns.stream().map(RegexCache::buildPredicate)
-                .collect(Collectors.toList());
+        this.pathElementPredicates = this.pathElementPatterns.stream().map(RegexCache::buildPredicate).collect(Collectors.toList());
     }
 
     public static TagMatcher fromNamespaceAndPath(String namespace, Collection<String> path) {
@@ -66,8 +64,9 @@ public class TagMatcher implements Predicate<Object>, ASTNode {
     }
 
     private boolean testPath(
-                             String checkNamespace,
-                             String[] checkPathElements) {
+            String checkNamespace,
+            String[] checkPathElements
+    ) {
         if (checkPathElements.length < this.pathElementPatterns.size()) {
             return false;
         }

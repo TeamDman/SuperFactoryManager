@@ -2,13 +2,18 @@ package ca.teamdman.sfm.common.resourcetype;
 
 import java.util.Optional;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
+import ca.teamdman.sfm.common.block.BufferBlock;
+import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
+import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
+import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
+import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
+import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidHandlerItem;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
@@ -17,13 +22,10 @@ import net.minecraftforge.oredict.OreDictionary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import ca.teamdman.sfm.common.block.BufferBlock;
-import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
-import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
-import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
-import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
+import java.util.stream.Stream;
 
 public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item, IItemHandler> {
+
 
     public ItemResourceType(ResourceTypeContainer container) {
         super(container, SFMWellKnownCapabilities.ITEM_HANDLER);
@@ -33,6 +35,7 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
     public SFMRegistryWrapper<Item> getRegistry() {
         return SFMWellKnownRegistries.ITEMS;
     }
+
 
     @Override
     public Item getItem(ItemStack itemStack) {
@@ -48,10 +51,12 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
     public IItemHandler createHandlerForBufferBlock(BufferBlockEntityContents contents) {
         return new ItemStackHandler(contents.tier.numSlots) {
 
+
             @Override
             public boolean isItemValid(
-                                       int slot,
-                                       @NotNull ItemStack stack) {
+                    int slot,
+                    @NotNull ItemStack stack
+            ) {
                 boolean isValid = !this.getStackInSlot(0).isEmpty() || contents.isEmpty();
                 if (isValid) {
                     contents.lastUsedResource = BufferBlock.ContainedResource.Item;
@@ -68,20 +73,21 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
 
     @Override
     public ItemStack getStackInSlot(
-                                    IItemHandler cap,
-                                    int slot) {
+            IItemHandler cap,
+            int slot
+    ) {
         return cap.getStackInSlot(slot);
     }
 
     @Override
     public ItemStack extract(
-                             IItemHandler handler,
-                             int slot,
-                             long amount,
-                             boolean simulate) {
+            IItemHandler handler,
+            int slot,
+            long amount,
+            boolean simulate
+    ) {
         int finalAmount = amount > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) amount;
-        // Mekanism bin (not creative?) intentionally only returns stacks with count 64, avoiding going past the max
-        // stack size
+        // Mekanism bin (not creative?) intentionally only returns stacks with count 64, avoiding going past the max stack size
         // https://github.com/mekanism/Mekanism/blob/f92b48a49e0766cd3aa78e95c9c4a47ba90402f5/src/main/java/mekanism/common/inventory/slot/BasicInventorySlot.java#L174-L175
         return handler.extractItem(slot, finalAmount, simulate);
     }
@@ -115,8 +121,9 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
 
     @Override
     public long getMaxStackSizeForSlot(
-                                       IItemHandler handler,
-                                       int slot) {
+            IItemHandler handler,
+            int slot
+    ) {
         return handler.getSlotLimit(slot);
     }
 
@@ -125,14 +132,15 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
      */
     @Override
     public ItemStack insert(
-                            IItemHandler handler,
-                            int slot,
-                            ItemStack stack,
-                            boolean simulate) {
+            IItemHandler handler,
+            int slot,
+            ItemStack stack,
+            boolean simulate
+    ) {
         // undo the fix for testing by uncommenting this lol
-        // if (true) {
-        // return handler.insertItem(slot, stack, simulate);
-        // }
+//        if (true) {
+//            return handler.insertItem(slot, stack, simulate);
+//        }
 
         if (!simulate) {
             return handler.insertItem(slot, stack, false);
@@ -140,41 +148,39 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
         // When simulating, we want to avoid integer overflows in other mods by going a bit lower than MAX_INT
         // Example we are avoiding by doing this:
         /*
-         * [18:35:49] [Server thread/ERROR] [sfm/]: !!!RESOURCE LOSS HAS OCCURRED!!!
-         * TRANSFORMER/sfm@4.19.1/ca.teamdman.sfml.ast.OutputStatement.moveTo(OutputStatement.java:197)
-         * === Summary ===
-         * Simulated extraction : 2147483647 phytogro
-         * Simulated insertion remainder : 1 air <-- the output block lied here
-         * Actual extraction : 64 phytogro
-         * Actual insertion : 1 phytogro
-         * Actual insertion remainder : 63 phytogro (sfm:item:phytogro) <-- this is what was lost
-         * === Manager ===
-         * Level: minecraft:overworld (ServerLevel[test])
-         * Position: BlockPos{x=260, y=-60, z=628}
-         * === Input Slot ===
-         * Slot: 0
-         * Position: BlockPos{x=262, y=-60, z=628}
-         * EnumFacing: up
-         * Capability: mekanism.common.capabilities.proxy.ProxyItemHandler@49cc116e
-         * (mekanism.common.capabilities.proxy.ProxyItemHandler)
-         * Block Entity: mekanism.common.tile.TileEntityBin (mekanism:creative_bin)
-         * Block: mekanism.common.block.basic.BlockBin (mekanism:creative_bin)
-         * Block State: Block{mekanism:creative_bin}[active=false,facing=north]
-         * === Output Slot ===
-         * Slot: 1
-         * Position: BlockPos{x=231, y=-2, z=628}
-         * EnumFacing: null
-         * Capability: cofh.lib.inventory.ManagedItemHandler@3141c283 (cofh.lib.inventory.ManagedItemHandler)
-         * Block Entity: cofh.thermal.expansion.block.entity.machine.MachineInsolatorTile (thermal:machine_insolator)
-         * Block: cofh.core.block.TileBlockActive4Way (thermal:machine_insolator)
-         * Block State: Block{thermal:machine_insolator}[active=true,facing=north]
+        [18:35:49] [Server thread/ERROR] [sfm/]: !!!RESOURCE LOSS HAS OCCURRED!!!    TRANSFORMER/sfm@4.19.1/ca.teamdman.sfml.ast.OutputStatement.moveTo(OutputStatement.java:197)
+        === Summary ===
+        Simulated extraction            : 2147483647 phytogro
+        Simulated insertion remainder   : 1 air <-- the output block lied here
+        Actual extraction               : 64 phytogro
+        Actual insertion                : 1 phytogro
+        Actual insertion remainder      : 63 phytogro (sfm:item:phytogro) <-- this is what was lost
+        === Manager ===
+        Level: minecraft:overworld (ServerLevel[test])
+        Position: BlockPos{x=260, y=-60, z=628}
+        === Input Slot ===
+        Slot: 0
+        Position: BlockPos{x=262, y=-60, z=628}
+        EnumFacing: up
+        Capability: mekanism.common.capabilities.proxy.ProxyItemHandler@49cc116e (mekanism.common.capabilities.proxy.ProxyItemHandler)
+        Block Entity: mekanism.common.tile.TileEntityBin (mekanism:creative_bin)
+        Block: mekanism.common.block.basic.BlockBin (mekanism:creative_bin)
+        Block State: Block{mekanism:creative_bin}[active=false,facing=north]
+        === Output Slot ===
+        Slot: 1
+        Position: BlockPos{x=231, y=-2, z=628}
+        EnumFacing: null
+        Capability: cofh.lib.inventory.ManagedItemHandler@3141c283 (cofh.lib.inventory.ManagedItemHandler)
+        Block Entity: cofh.thermal.expansion.block.entity.machine.MachineInsolatorTile (thermal:machine_insolator)
+        Block: cofh.core.block.TileBlockActive4Way (thermal:machine_insolator)
+        Block State: Block{thermal:machine_insolator}[active=true,facing=north]
          */
 
         // https://discord.com/channels/399037120930512897/434101214548852746/1306494699758157824
         // Dr Lemming — 2024-11-14 2:13 AM
-        // cool so that's stupid and SFM shouldn't do that
-        // there's literally no reason to throw a max_int there
-        // I am unlikely to fix that
+        //    cool so that's stupid and SFM shouldn't do that
+        //    there's literally no reason to throw a max_int there
+        //    I am unlikely to fix that
 
         int grace = 64 * 640;
         int count = stack.getCount();
@@ -183,8 +189,7 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
             stack.setCount(Integer.MAX_VALUE - grace);
             // perform the simulated insertion
             // hope that the callee isn't storing a reference where this deception will be noticed
-            // it's a simulated insertion anyway, so there would have to be some really wack logic for this to be a
-            // problem
+            // it's a simulated insertion anyway, so there would have to be some really wack logic for this to be a problem
             ItemStack rtn = handler.insertItem(slot, stack, true);
             // restore the stack size
             stack.setCount(count);
@@ -217,7 +222,8 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
     @Override
     protected ItemStack setCount(
             ItemStack stack,
-            long amount) {
+            long amount
+    ) {
         stack.setCount((int) Math.min(amount, Integer.MAX_VALUE));
         return stack;
     }
@@ -258,4 +264,5 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
             return null;
         }
     }
+
 }

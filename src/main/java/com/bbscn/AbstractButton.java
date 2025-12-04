@@ -1,5 +1,6 @@
 package com.bbscn;
 
+import ca.teamdman.sfm.SFM;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -8,17 +9,15 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import ca.teamdman.sfm.SFM;
-
 @SideOnly(Side.CLIENT)
 public abstract class AbstractButton extends AbstractWidget {
-
     protected static final int TEXT_MARGIN = 2;
 
     protected static final WidgetSprites SPRITES = new WidgetSprites(
             new ResourceLocation(SFM.MOD_ID, "widget/button.png"),
             new ResourceLocation(SFM.MOD_ID, "widget/button_disabled.png"),
-            new ResourceLocation(SFM.MOD_ID, "widget/button_highlighted.png"));
+            new ResourceLocation(SFM.MOD_ID, "widget/button_highlighted.png")
+    );
 
     public AbstractButton(int pX, int pY, int pWidth, int pHeight, ITextComponent pMessage) {
         super(pX, pY, pWidth, pHeight, pMessage);
@@ -40,7 +39,8 @@ public abstract class AbstractButton extends AbstractWidget {
                 GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
                 GlStateManager.SourceFactor.ONE,
-                GlStateManager.DestFactor.ZERO);
+                GlStateManager.DestFactor.ZERO
+        );
         GlStateManager.enableDepth();
 
         Tools.blitSprite(SPRITES.get(this.active, this.isHoveredOrFocused()), getX(), getY(), getWidth(), getHeight());
@@ -52,7 +52,8 @@ public abstract class AbstractButton extends AbstractWidget {
         int textColor = this.getFGColor() | ((int) (this.alpha * 255.0F) << 24);
         this.renderString(
                 mc.fontRenderer,
-                textColor);
+                textColor
+        );
     }
 
     public void renderString(FontRenderer pFont, int pColor) {
@@ -63,6 +64,7 @@ public abstract class AbstractButton extends AbstractWidget {
     public void onClick(int pMouseX, int pMouseY, int button) {
         this.onPress();
     }
+
 
     public static boolean isSelectedInput(int pKey) {
         return pKey == 257 || pKey == 32 || pKey == 335;

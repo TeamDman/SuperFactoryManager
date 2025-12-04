@@ -2,11 +2,9 @@ package ca.teamdman.sfml.ast;
 
 import com.github.bsideup.jabel.Desugar;
 
-@Desugar
-public record Number(
-                     long value)
-        implements ASTNode {
-
+@Desugar public record Number(
+        long value
+) implements ASTNode {
     @Override
     public String toString() {
         return String.valueOf(value);

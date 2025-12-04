@@ -1,24 +1,22 @@
 package ca.teamdman.sfm.common.resourcetype;
 
-import java.util.*;
-
-import net.minecraft.util.ResourceLocation;
-
-import org.jetbrains.annotations.Nullable;
-
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import net.minecraft.util.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
 
 public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK, Class<STACK>, CAP> {
-
     public final ResourceLocation registryKey;
     public final Class<STACK> item;
 
     public ScalarResourceType(
-                              ResourceTypeContainer container,
-                              SFMBlockCapabilityKind<CAP> capability,
-                              ResourceLocation registryKey,
-                              Class<STACK> item) {
+            ResourceTypeContainer container,
+            SFMBlockCapabilityKind<CAP> capability,
+            ResourceLocation registryKey,
+            Class<STACK> item
+    ) {
         super(container, capability);
         this.registryKey = registryKey;
         this.item = item;

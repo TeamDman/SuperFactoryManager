@@ -9,5 +9,6 @@ import java.lang.annotation.Target;
 /// A BlockPos passed here will not be stored as a reference beyond the method call.
 /// BlockPos::asLong may be used which is fine because that doesn't persistently borrow the parameter by reference.
 @Retention(RetentionPolicy.CLASS)
-@Target({ ElementType.PARAMETER })
-public @interface NotStored {}
+@Target({ElementType.PARAMETER})
+public @interface NotStored {
+}

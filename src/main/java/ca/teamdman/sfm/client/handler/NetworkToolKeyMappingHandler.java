@@ -1,5 +1,11 @@
 package ca.teamdman.sfm.client.handler;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.common.net.ServerboundNetworkToolToggleOverlayPacket;
+import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.util.SFMHandUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.util.EnumHand;
@@ -8,17 +14,9 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.client.registry.SFMKeyMappings;
-import ca.teamdman.sfm.common.net.ServerboundNetworkToolToggleOverlayPacket;
-import ca.teamdman.sfm.common.registry.SFMItems;
-import ca.teamdman.sfm.common.registry.SFMPackets;
-import ca.teamdman.sfm.common.util.SFMHandUtils;
-
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.CLIENT)
 
 public class NetworkToolKeyMappingHandler {
-
     private static ToggleKeyState toggleKeyState = ToggleKeyState.Idle;
 
     public static void setExternalDebounce() {
@@ -57,7 +55,8 @@ public class NetworkToolKeyMappingHandler {
                     assert minecraft.player != null;
                     EnumHand hand = SFMHandUtils.getHandHoldingItem(
                             minecraft.player,
-                            SFMItems.NETWORK_TOOL_ITEM);
+                            SFMItems.NETWORK_TOOL_ITEM
+                    );
                     if (hand == null) return;
                     // send packet to server to toggle mode
                     SFMPackets.sendToServer(new ServerboundNetworkToolToggleOverlayPacket(hand));

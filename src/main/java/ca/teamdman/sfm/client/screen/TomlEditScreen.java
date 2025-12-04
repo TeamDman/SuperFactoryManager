@@ -5,12 +5,13 @@ import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 
 public class TomlEditScreen extends SFMTextEditScreenV1 {
-
     public TomlEditScreen(
-                          TomlEditScreenOpenContext openContext) {
+            TomlEditScreenOpenContext openContext
+    ) {
         super(new SFMTextEditScreenDiskOpenContext(
                 openContext.textContents(),
                 LabelPositionHolder.empty(),
-                openContext.saveCallback()));
+                openContext.saveCallback()
+        ));
     }
 }

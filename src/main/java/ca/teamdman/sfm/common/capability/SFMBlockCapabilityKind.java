@@ -23,9 +23,9 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 /// This class helps keep {@link MCVersionDependentBehaviour} out of other classes.
 @Desugar
 @MCVersionDependentBehaviour
-public record SFMBlockCapabilityKind<CAP> (
-                                           Supplier<Capability<CAP>> capabilityKind) {
-
+public record SFMBlockCapabilityKind<CAP>(
+        Supplier<Capability<CAP>> capabilityKind
+) {
     public String getName() {
         return capabilityKind.get().getName();
     }

@@ -1,25 +1,25 @@
 package ca.teamdman.sfm.common.program;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.IdentityHashMap;
-
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.SFMPerformanceTweaks;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.Label;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.IdentityHashMap;
 
 /**
  * A pool of {@link LimitedInputSlot} objects to avoid the garbage collector
  */
 @SuppressWarnings("DuplicatedCode")
 public class LimitedInputSlotObjectPool {
-
     public static final IdentityHashMap<LimitedInputSlot<?, ?, ?>, Boolean> LEASED = new IdentityHashMap<>();
     @SuppressWarnings("rawtypes")
     private static LimitedInputSlot[] pool = new LimitedInputSlot[27];
@@ -29,14 +29,15 @@ public class LimitedInputSlotObjectPool {
      * Acquire a {@link LimitedInputSlot} from the pool, or creates a new one if none available
      */
     public static <STACK, ITEM, CAP> LimitedInputSlot<STACK, ITEM, CAP> acquire(
-                                                                                Label label,
-                                                                                @Stored BlockPos pos,
-                                                                                EnumFacing direction,
-                                                                                int slot,
-                                                                                CAP handler,
-                                                                                IInputResourceTracker tracker,
-                                                                                STACK stack,
-                                                                                ResourceType<STACK, ITEM, CAP> type) {
+            Label label,
+            @Stored BlockPos pos,
+            EnumFacing direction,
+            int slot,
+            CAP handler,
+            IInputResourceTracker tracker,
+            STACK stack,
+            ResourceType<STACK, ITEM, CAP> type
+    ) {
         if (!SFMPerformanceTweaks.OBJECT_POOL_ENABLED) {
             return new LimitedInputSlot<>(label, pos, direction, slot, handler, tracker, stack, type);
         }
@@ -45,12 +46,12 @@ public class LimitedInputSlotObjectPool {
             if (SFMPerformanceTweaks.OBJECT_POOL_VALIDATION && LEASED.put(rtn, true) != null) {
                 SFM.LOGGER.warn(
                         "new input slot was somehow already leased, this should literally never happen: {}",
-                        rtn);
+                        rtn
+                );
             }
             return rtn;
         } else {
-            @SuppressWarnings("unchecked")
-            LimitedInputSlot<STACK, ITEM, CAP> obj = pool[index];
+            @SuppressWarnings("unchecked") LimitedInputSlot<STACK, ITEM, CAP> obj = pool[index];
             index--;
             obj.init(handler, label, pos, direction, slot, tracker, stack, type);
             if (SFMPerformanceTweaks.OBJECT_POOL_VALIDATION && LEASED.put(obj, true) != null) {

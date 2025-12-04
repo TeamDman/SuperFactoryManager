@@ -1,51 +1,54 @@
 package ca.teamdman.sfm.common.program;
 
-import net.minecraft.util.math.BlockPos;
-
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimit;
+import net.minecraft.util.math.BlockPos;
 
 public interface IInputResourceTracker {
-
     ResourceLimit getResourceLimit();
 
     ResourceIdSet getExclusions();
 
     <STACK, CAP, ITEM> boolean isDone(
-                                      ResourceType<STACK, ITEM, CAP> type,
-                                      STACK stack);
+            ResourceType<STACK, ITEM, CAP> type,
+            STACK stack
+    );
 
     <STACK, ITEM, CAP> long getRetentionObligationForSlot(
-                                                          ResourceType<STACK, ITEM, CAP> resourceType,
-                                                          STACK key,
-                                                          BlockPos pos,
-                                                          int slot);
+            ResourceType<STACK, ITEM, CAP> resourceType,
+            STACK key,
+            BlockPos pos,
+            int slot
+    );
 
     <STACK, ITEM, CAP> long getRemainingRetentionObligation(
-                                                            ResourceType<STACK, ITEM, CAP> resourceType,
-                                                            STACK key);
+            ResourceType<STACK, ITEM, CAP> resourceType,
+            STACK key
+    );
 
     <STACK, ITEM, CAP> void trackRetentionObligation(
-                                                     ResourceType<STACK, ITEM, CAP> resourceType,
-                                                     STACK key,
-                                                     int slot,
-                                                     BlockPos pos,
-                                                     long dedicatingToObligation);
+            ResourceType<STACK, ITEM, CAP> resourceType,
+            STACK key,
+            int slot,
+            BlockPos pos,
+            long dedicatingToObligation
+    );
 
     /**
      * Get the maximum amount of a resource that can be transferred.
-     * This does not account for any retention obligations on the input side, since that is accounted for using the
-     * slot-level checks in moveTo.
+     * This does not account for any retention obligations on the input side, since that is accounted for using the slot-level checks in moveTo.
      */
     <STACK, ITEM, CAP> long getMaxTransferable(
-                                               ResourceType<STACK, ITEM, CAP> resourceType,
-                                               STACK stack);
+            ResourceType<STACK, ITEM, CAP> resourceType,
+            STACK stack
+    );
 
     <STACK, ITEM, CAP> void trackTransfer(
-                                          ResourceType<STACK, ITEM, CAP> resourceType,
-                                          STACK stack,
-                                          long amount);
+            ResourceType<STACK, ITEM, CAP> resourceType,
+            STACK stack,
+            long amount
+    );
 
     default boolean matchesStack(Object stack) {
         return getResourceLimit().matchesStack(stack) && getExclusions().noneMatchStack(stack);

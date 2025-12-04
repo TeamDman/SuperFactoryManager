@@ -10,12 +10,12 @@ import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import ca.teamdman.sfm.common.util.StringUtil;
 
+
 @Desugar
 public record TimerTrigger(
-                           Interval interval,
-                           Block block)
-        implements Trigger, ToStringCondensed {
-
+        Interval interval,
+        Block block
+) implements Trigger, ToStringCondensed {
     @Override
     public Block getBlock() {
         return block;

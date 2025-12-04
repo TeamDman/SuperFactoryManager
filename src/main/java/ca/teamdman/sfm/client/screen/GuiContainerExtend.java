@@ -1,26 +1,23 @@
 package ca.teamdman.sfm.client.screen;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.inventory.Container;
-
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
-
 import com.bbscn.GuiEventListener;
 import com.bbscn.Renderable;
 import com.bbscn.Tools;
 import com.google.common.collect.Lists;
 
-public abstract class GuiContainerExtend extends GuiContainer implements IStackableScreen {
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.inventory.Container;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+public abstract class GuiContainerExtend extends GuiContainer implements IStackableScreen {
     private GuiScreen parentScreen;
 
     public GuiContainerExtend(Container inventorySlotsIn) {
@@ -141,11 +138,11 @@ public abstract class GuiContainerExtend extends GuiContainer implements IStacka
         }
 
         this.getChildAt(mouseX, mouseY).filter(p_94708_ -> p_94708_.mouseReleased(mouseX, mouseY, state));
+
     }
 
     boolean mouseScrolled(int pMouseX, int pMouseY, int pScrollX, int pScrollY) {
-        return this.getChildAt(pMouseX, pMouseY)
-                .filter(p_293596_ -> p_293596_.mouseScrolled(pMouseX, pMouseY, pScrollX, pScrollY)).isPresent();
+        return this.getChildAt(pMouseX, pMouseY).filter(p_293596_ -> p_293596_.mouseScrolled(pMouseX, pMouseY, pScrollX, pScrollY)).isPresent();
     }
 
     @Override
@@ -161,7 +158,8 @@ public abstract class GuiContainerExtend extends GuiContainer implements IStacka
 
     public boolean charTyped(
             char pCodePoint,
-            int pModifiers) {
+            int pModifiers
+    ) {
         if (GuiScreen.isCtrlKeyDown() && pCodePoint == ' ') {
             return true;
         }
@@ -178,6 +176,7 @@ public abstract class GuiContainerExtend extends GuiContainer implements IStacka
         }
         super.handleMouseInput();
     }
+
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {

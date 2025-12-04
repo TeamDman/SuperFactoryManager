@@ -1,14 +1,13 @@
 package ca.teamdman.sfml.ast;
 
+import ca.teamdman.sfm.common.program.ProgramContext;
+
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 
-import ca.teamdman.sfm.common.program.ProgramContext;
-
 public interface Trigger extends Statement {
-
     boolean shouldTick(ProgramContext context);
 
     Block getBlock();

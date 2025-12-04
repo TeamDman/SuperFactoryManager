@@ -1,22 +1,20 @@
 package ca.teamdman.sfm.common.blockentity;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.jetbrains.annotations.Nullable;
-
 import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.block.BufferBlockTier;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /// Can hold one stack worth of any resource type.
 /// Each resource type has its own independent handler.
 /// Handlers are created on demand and cached.
 /// Only one resource type can have a non-empty handler at a time.
-@SuppressWarnings({ "unchecked", "rawtypes" })
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class BufferBlockEntityContents {
-
     /// Mapping from resource type to the handler.
     private final Map<ResourceType<?, ?, ?>, Object> contents = new HashMap<>();
     public final BufferBlockTier tier;
@@ -27,12 +25,13 @@ public class BufferBlockEntityContents {
 
     public BufferBlock.ContainedResource lastUsedResource = BufferBlock.ContainedResource.Unknown;
 
+
     /// Should return None if querying for a resource type when other resource types are not empty.
     public <CAP> SFMBlockCapabilityResult<CAP> getCapability(
-                                                             ResourceType<?, ?, CAP> type) {
+            ResourceType<?, ?, CAP> type
+    ) {
         // Discover existing handler
-        @Nullable
-        CAP handler = (CAP) contents.get(type);
+        @Nullable CAP handler = (CAP) contents.get(type);
 
         if (handler != null) {
             // The handler is present.
@@ -65,7 +64,8 @@ public class BufferBlockEntityContents {
         for (Map.Entry<ResourceType<?, ?, ?>, Object> entry : contents.entrySet()) {
             if (!isHandlerEmpty(
                     (ResourceType) entry.getKey(),
-                    entry.getValue())) {
+                    entry.getValue()
+            )) {
                 return false;
             }
         }
@@ -101,8 +101,9 @@ public class BufferBlockEntityContents {
     /// Check if a specific handler is empty.
     /// Helps with generic safety.
     private <STACK, ITEM, CAP> boolean isHandlerEmpty(
-                                                      ResourceType<STACK, ITEM, CAP> type,
-                                                      CAP handler) {
+            ResourceType<STACK, ITEM, CAP> type,
+            CAP handler
+    ) {
         return type.isHandlerEmpty(handler);
     }
 }

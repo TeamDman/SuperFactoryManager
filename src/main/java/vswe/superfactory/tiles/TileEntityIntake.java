@@ -1,10 +1,6 @@
 package vswe.superfactory.tiles;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
-
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
@@ -16,213 +12,217 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
-
-import ca.teamdman.sfm.common.registry.SFMBlocks;
 import vswe.superfactory.blocks.BlockCableIntake;
 import vswe.superfactory.blocks.ClusterMethodRegistration;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+
 public class TileEntityIntake extends TileEntityClusterElement implements IInventory {
+	private static final int DISTANCE = 3;
+	private List<EntityItem> items;
 
-    private static final int DISTANCE = 3;
-    private List<EntityItem> items;
+	@Override
+	public int getSizeInventory() {
+		updateInventory();
+		return items.size() + 1; //always leave an empty slot
+	}
 
-    @Override
-    public int getSizeInventory() {
-        updateInventory();
-        return items.size() + 1; // always leave an empty slot
-    }
+	@Override
+	public boolean isEmpty() {
+		return false;
+	}
 
-    @Override
-    public boolean isEmpty() {
-        return false;
-    }
+	@Override
+	public ItemStack getStackInSlot(int id) {
+		updateInventory();
+		id--;
+		if (id < 0 || !canPickUp(items.get(id))) {
+			return ItemStack.EMPTY;
+		} else {
+			return items.get(id).getItem();
+		}
+	}
 
-    @Override
-    public ItemStack getStackInSlot(int id) {
-        updateInventory();
-        id--;
-        if (id < 0 || !canPickUp(items.get(id))) {
-            return ItemStack.EMPTY;
-        } else {
-            return items.get(id).getItem();
-        }
-    }
+	@Override
+	public ItemStack decrStackSize(int id, int count) {
+		ItemStack item = getStackInSlot(id);
+		if (!item.isEmpty()) {
+			if (item.getCount() <= count) {
+				setInventorySlotContents(id, ItemStack.EMPTY);
+				return item;
+			}
 
-    @Override
-    public ItemStack decrStackSize(int id, int count) {
-        ItemStack item = getStackInSlot(id);
-        if (!item.isEmpty()) {
-            if (item.getCount() <= count) {
-                setInventorySlotContents(id, ItemStack.EMPTY);
-                return item;
-            }
+			ItemStack ret = item.splitStack(count);
 
-            ItemStack ret = item.splitStack(count);
+			if (item.getCount() == 0) {
+				setInventorySlotContents(id, ItemStack.EMPTY);
+			}
 
-            if (item.getCount() == 0) {
-                setInventorySlotContents(id, ItemStack.EMPTY);
-            }
+			return ret;
+		} else {
+			return ItemStack.EMPTY;
+		}
+	}
 
-            return ret;
-        } else {
-            return ItemStack.EMPTY;
-        }
-    }
+	@Override
+	public ItemStack removeStackFromSlot(int i) {
+		return ItemStack.EMPTY;
+	}
 
-    @Override
-    public ItemStack removeStackFromSlot(int i) {
-        return ItemStack.EMPTY;
-    }
+	@Override
+	public void setInventorySlotContents(int id, ItemStack itemstack) {
+		updateInventory();
+		id--;
+		if (id < 0 || !canPickUp(items.get(id))) {
+			if (!itemstack.isEmpty()) {
+				EnumFacing direction = EnumFacing.byIndex(BlockCableIntake.getSideMeta(getBlockMetadata()) % EnumFacing.values().length);
 
-    @Override
-    public void setInventorySlotContents(int id, ItemStack itemstack) {
-        updateInventory();
-        id--;
-        if (id < 0 || !canPickUp(items.get(id))) {
-            if (!itemstack.isEmpty()) {
-                EnumFacing direction = EnumFacing
-                        .byIndex(BlockCableIntake.getSideMeta(getBlockMetadata()) % EnumFacing.values().length);
+				double posX = getPos().getX() + 0.5 + direction.getXOffset() * 0.75;
+				double posY = getPos().getY() + 0.5 + direction.getYOffset() * 0.75;
+				double posZ = getPos().getZ() + 0.5 + direction.getZOffset() * 0.75;
 
-                double posX = getPos().getX() + 0.5 + direction.getXOffset() * 0.75;
-                double posY = getPos().getY() + 0.5 + direction.getYOffset() * 0.75;
-                double posZ = getPos().getZ() + 0.5 + direction.getZOffset() * 0.75;
+				if (direction.getYOffset() == 0) {
+					posY -= 0.1;
+				}
 
-                if (direction.getYOffset() == 0) {
-                    posY -= 0.1;
-                }
+				EntityItem item = new EntityItem(world, posX, posY, posZ, itemstack);
 
-                EntityItem item = new EntityItem(world, posX, posY, posZ, itemstack);
+				item.motionX = direction.getXOffset() * 0.2;
+				item.motionY = direction.getYOffset() * 0.2;
+				item.motionZ = direction.getZOffset() * 0.2;
 
-                item.motionX = direction.getXOffset() * 0.2;
-                item.motionY = direction.getYOffset() * 0.2;
-                item.motionZ = direction.getZOffset() * 0.2;
 
-                item.setPickupDelay(40);
-                world.spawnEntity(item);
+				item.setPickupDelay(40);
+				world.spawnEntity(item);
 
-                if (id < 0) {
-                    items.add(item);
-                } else {
-                    items.set(id, item);
-                }
-            }
-        } else if (!itemstack.isEmpty()) {
-            items.get(id).setItem(itemstack);
-        } else {
-            // seems to be an issue with setting it to null
-            items.get(id).setItem(items.get(id).getItem().copy());
-            items.get(id).getItem().setCount(0);
-            items.get(id).setDead();
-        }
-    }
 
-    @Override
-    public int getInventoryStackLimit() {
-        return 64;
-    }
+				if (id < 0) {
+					items.add(item);
+				} else {
+					items.set(id, item);
+				}
+			}
+		} else if (!itemstack.isEmpty()) {
+			items.get(id).setItem(itemstack);
+		} else {
+			//seems to be an issue with setting it to null
+			items.get(id).setItem(items.get(id).getItem().copy());
+			items.get(id).getItem().setCount(0);
+			items.get(id).setDead();
+		}
+	}
 
-    @Override
-    public boolean isUsableByPlayer(EntityPlayer entityplayer) {
-        return false;
-    }
+	@Override
+	public int getInventoryStackLimit() {
+		return 64;
+	}
 
-    @Override
-    public void openInventory(EntityPlayer player) {}
+	@Override
+	public boolean isUsableByPlayer(EntityPlayer entityplayer) {
+		return false;
+	}
 
-    @Override
-    public void closeInventory(EntityPlayer player) {}
+	@Override
+	public void openInventory(EntityPlayer player) {
+	}
 
-    @Override
-    public boolean isItemValidForSlot(int i, ItemStack itemstack) {
-        return true;
-    }
+	@Override
+	public void closeInventory(EntityPlayer player) {
+	}
 
-    @Override
-    public int getField(int id) {
-        return 0;
-    }
+	@Override
+	public boolean isItemValidForSlot(int i, ItemStack itemstack) {
+		return true;
+	}
 
-    @Override
-    public void setField(int id, int value) {}
+	@Override
+	public int getField(int id) {
+		return 0;
+	}
 
-    @Override
-    public int getFieldCount() {
-        return 0;
-    }
+	@Override
+	public void setField(int id, int value) {
+	}
 
-    @Override
-    public void clear() {
-        items.clear();
-    }
+	@Override
+	public int getFieldCount() {
+		return 0;
+	}
 
-    private void updateInventory() {
-        if (items == null) {
-            items = new ArrayList<EntityItem>();
+	@Override
+	public void clear() {
+		items.clear();
+	}
 
-            int lowX = getPos().getX() - DISTANCE;
-            int lowY = getPos().getY() - DISTANCE;
-            int lowZ = getPos().getZ() - DISTANCE;
+	private void updateInventory() {
+		if (items == null) {
+			items = new ArrayList<EntityItem>();
 
-            int highX = getPos().getX() + 1 + DISTANCE;
-            int highY = getPos().getY() + 1 + DISTANCE;
-            int highZ = getPos().getZ() + 1 + DISTANCE;
+			int lowX = getPos().getX() - DISTANCE;
+			int lowY = getPos().getY() - DISTANCE;
+			int lowZ = getPos().getZ() - DISTANCE;
 
-            items = world.getEntitiesWithinAABB(EntityItem.class,
-                    new AxisAlignedBB(lowX, lowY, lowZ, highX, highY, highZ));
+			int highX = getPos().getX() + 1 + DISTANCE;
+			int highY = getPos().getY() + 1 + DISTANCE;
+			int highZ = getPos().getZ() + 1 + DISTANCE;
 
-            // remove items we can't use right away, this check is done when we interact with items too, to make sure it
-            // hasn't changed
-            for (Iterator<EntityItem> iterator = items.iterator(); iterator.hasNext();) {
-                EntityItem next = iterator.next();
-                if (!canPickUp(next)) {
-                    iterator.remove();
-                }
-            }
-        }
-    }
+			items = world.getEntitiesWithinAABB(EntityItem.class, new AxisAlignedBB(lowX, lowY, lowZ, highX, highY, highZ));
 
-    private boolean canPickUp(EntityItem item) {
-        return !item.isDead && (!item.cannotPickup() || BlockCableIntake.isAdvanced(getBlockMetadata()));
-    }
+			//remove items we can't use right away, this check is done when we interact with items too, to make sure it hasn't changed
+			for (Iterator<EntityItem> iterator = items.iterator(); iterator.hasNext(); ) {
+				EntityItem next = iterator.next();
+				if (!canPickUp(next)) {
+					iterator.remove();
+				}
+			}
+		}
+	}
 
-    @Override
-    public String getName() {
-        return SFMBlocks.CABLE_INTAKE.getLocalizedName();
-    }
+	private boolean canPickUp(EntityItem item) {
+		return !item.isDead && (!item.cannotPickup() || BlockCableIntake.isAdvanced(getBlockMetadata()));
+	}
 
-    @Override
-    public boolean hasCustomName() {
-        return true;
-    }
+	@Override
+	public String getName() {
+		return SFMBlocks.CABLE_INTAKE.getLocalizedName();
+	}
 
-    @Override
-    public ITextComponent getDisplayName() {
-        return new TextComponentString(SFMBlocks.CABLE_INTAKE.getLocalizedName());
-    }
+	@Override
+	public boolean hasCustomName() {
+		return true;
+	}
 
-    @Override
-    public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
-        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-            return true;
-        }
-        return super.hasCapability(capability, facing);
-    }
+	@Override
+	public ITextComponent getDisplayName() {
+		return new TextComponentString(SFMBlocks.CABLE_INTAKE.getLocalizedName());
+	}
 
-    @Override
-    public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
-        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-            return (T) new InvWrapper(this);
-        }
-        return super.getCapability(capability, facing);
-    }
+	@Override
+	public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
+		if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
+			return true;
+		}
+		return super.hasCapability(capability, facing);
+	}
 
-    @Override
-    public void update() {
-        items = null;
-    }
+	@Override
+	public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
+		if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
+			return (T) new InvWrapper(this);
+		}
+		return super.getCapability(capability, facing);
+	}
 
-    @Override
-    protected EnumSet<ClusterMethodRegistration> getRegistrations() {
-        return EnumSet.of(ClusterMethodRegistration.ON_BLOCK_PLACED_BY);
-    }
+	@Override
+	public void update() {
+		items = null;
+	}
+
+	@Override
+	protected EnumSet<ClusterMethodRegistration> getRegistrations() {
+		return EnumSet.of(ClusterMethodRegistration.ON_BLOCK_PLACED_BY);
+	}
 }

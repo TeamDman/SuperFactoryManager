@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.client.text_editor;
 
 import com.github.bsideup.jabel.Desugar;
-
 import it.unimi.dsi.fastutil.ints.Int2IntFunction;
 
 /**
@@ -9,21 +8,23 @@ import it.unimi.dsi.fastutil.ints.Int2IntFunction;
  */
 @Desugar
 public record Cursor(
-                     Caret tail,
-                     Caret head) {
+        Caret tail,
+        Caret head
+) {
 
     @Override
     public String toString() {
         return "Cursor{" +
-                "tail=" + tail +
-                ", head=" + head +
-                '}';
+               "tail=" + tail +
+               ", head=" + head +
+               '}';
     }
 
     public Cursor(int position) {
         this(
                 new Caret(position, 0),
-                new Caret(position, 0));
+                new Caret(position, 0)
+        );
     }
 
     public Cursor growSelectionLeft(Int2IntFunction lineLengths) {

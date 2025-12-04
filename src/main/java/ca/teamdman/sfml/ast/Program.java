@@ -1,7 +1,17 @@
 package ca.teamdman.sfml.ast;
 
-import static ca.teamdman.sfm.common.blockentity.ManagerBlockEntity.TICK_TIME_HISTORY_SIZE;
-import static ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.config.SFMConfig;
+import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.program.*;
+import ca.teamdman.sfml.program_builder.ProgramBuilder;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.world.World;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.DataOutput;
 import java.util.ArrayDeque;
@@ -10,45 +20,34 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.world.World;
-
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
-import org.jetbrains.annotations.NotNull;
-
-import com.github.bsideup.jabel.Desugar;
-
-import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.program.*;
-import ca.teamdman.sfml.program_builder.ProgramBuilder;
+import static ca.teamdman.sfm.common.blockentity.ManagerBlockEntity.TICK_TIME_HISTORY_SIZE;
+import static ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH;
 
 @Desugar
 public record Program(
-                      ASTBuilder astBuilder,
-                      String name,
-                      List<Trigger> triggers,
-                      Set<String> referencedLabels,
-                      Set<ResourceIdentifier<?, ?, ?>> referencedResources)
-        implements Statement {
-
+        ASTBuilder astBuilder,
+        String name,
+        List<Trigger> triggers,
+        Set<String> referencedLabels,
+        Set<ResourceIdentifier<?, ?, ?>> referencedResources
+) implements Statement {
     /**
      * This comes from {@link java.io.DataOutputStream#writeUTF(String, DataOutput)}
      * and {@link NetworkHooks#openScreen(ServerPlayer, MenuProvider, Consumer)}
      */
     @SuppressWarnings("JavadocReference")
     public static final int MAX_PROGRAM_LENGTH = 32600 // from openScreen
-            - 8 * TICK_TIME_HISTORY_SIZE - MAX_LOG_LEVEL_NAME_LENGTH - 1 // manager state enum
-            - 8; // block pos
+                                                 - 8 * TICK_TIME_HISTORY_SIZE
+                                                 - MAX_LOG_LEVEL_NAME_LENGTH
+                                                 - 1 // manager state enum
+                                                 - 8; // block pos
     public static final int MAX_LABEL_LENGTH = 256;
 
     public static void compile(
-                               String programString,
-                               Consumer<Program> onSuccess,
-                               Consumer<List<TextComponentTranslation>> onFailure) {
+            String programString,
+            Consumer<Program> onSuccess,
+            Consumer<List<TextComponentTranslation>> onFailure
+    ) {
         ProgramBuilder
                 .build(programString)
                 .caseSuccess((program, metadata) -> onSuccess.accept(program))
@@ -70,6 +69,7 @@ public record Program(
                     unprocessedRedstonePulseCount)));
         }
 
+
         tick(context);
 
         manager.clearRedstonePulseQueue();
@@ -79,7 +79,7 @@ public record Program(
 
     @Override
     public List<Statement> getStatements() {
-        // noinspection unchecked
+        //noinspection unchecked
         return (List<Statement>) (List<? extends Statement>) triggers;
     }
 
@@ -122,14 +122,14 @@ public record Program(
                         ProgramContext forkedContext = context.fork();
                         trigger.tick(forkedContext);
                         forkedContext.free();
-                        ((SimulateExploreAllPathsProgramBehaviour) forkedContext.getBehaviour())
-                                .terminatePathAndBeginAnew();
+                        ((SimulateExploreAllPathsProgramBehaviour) forkedContext.getBehaviour()).terminatePathAndBeginAnew();
                     }
                 } else {
                     context.getLogger().warn(LocalizationKeys.PROGRAM_WARNING_TOO_MANY_CONDITIONS.get(
                             trigger.toString(),
                             conditionCount,
-                            maxConditionCount));
+                            maxConditionCount
+                    ));
                 }
                 simulation.prepareNextTrigger();
             } else {
@@ -144,7 +144,8 @@ public record Program(
             // Log trigger time
             context.getLogger().info(x -> x.accept(LocalizationKeys.PROGRAM_TICK_TRIGGER_TIME_MS.get(
                     nanoTimePassed / 1_000_000.0,
-                    trigger.toString())));
+                    trigger.toString()
+            )));
         }
 
         LimitedInputSlotObjectPool.checkInvariant();
@@ -176,8 +177,9 @@ public record Program(
     }
 
     public void replaceOutputStatement(
-                                       OutputStatement oldStatement,
-                                       OutputStatement newStatement) {
+            OutputStatement oldStatement,
+            OutputStatement newStatement
+    ) {
         Deque<Statement> toPatch = new ArrayDeque<>();
         toPatch.add(this);
         while (!toPatch.isEmpty()) {
@@ -201,17 +203,20 @@ public record Program(
             World level = context
                     .getManager()
                     .getWorld();
-            // noinspection DataFlowIssue
+            //noinspection DataFlowIssue
             context
                     .getNetwork()
                     .getCablePositions()
-                    .map(pos -> "- " + pos.toString() + " " + level
-                            .getBlockState(
-                                    pos))
+                    .map(pos -> "- "
+                                + pos.toString()
+                                + " "
+                                + level
+                                        .getBlockState(
+                                                pos))
                     .forEach(body -> trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_BODY.get(
                             body)));
             trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_HEADER_3.get());
-            // noinspection DataFlowIssue
+            //noinspection DataFlowIssue
             context
                     .getNetwork()
                     .getCapabilityProviderPositions()
@@ -222,16 +227,21 @@ public record Program(
             trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_FOOTER.get());
 
             trace.accept(LocalizationKeys.LOG_LABEL_POSITION_HOLDER_DETAILS_HEADER.get());
-            // noinspection DataFlowIssue
+            //noinspection DataFlowIssue
             context
                     .getLabelPositionHolder()
                     .labels()
                     .forEach((label, positions) -> positions
                             .stream()
                             .map(
-                                    pos -> "- " + label + ": " + pos.toString() + " " + level
-                                            .getBlockState(
-                                                    pos)
+                                    pos -> "- "
+                                           + label
+                                           + ": "
+                                           + pos.toString()
+                                           + " "
+                                           + level
+                                                   .getBlockState(
+                                                           pos)
 
                             )
                             .forEach(body -> trace.accept(LocalizationKeys.LOG_LABEL_POSITION_HOLDER_DETAILS_BODY.get(
@@ -242,7 +252,6 @@ public record Program(
     }
 
     public static class ListErrorListener extends BaseErrorListener {
-
         private final List<String> errors;
 
         public ListErrorListener(List<String> errors) {
@@ -251,12 +260,13 @@ public record Program(
 
         @Override
         public void syntaxError(
-                                Recognizer<?, ?> recognizer,
-                                Object offendingSymbol,
-                                int line,
-                                int charPositionInLine,
-                                String msg,
-                                RecognitionException e) {
+                Recognizer<?, ?> recognizer,
+                Object offendingSymbol,
+                int line,
+                int charPositionInLine,
+                String msg,
+                RecognitionException e
+        ) {
             errors.add("line " + line + ":" + charPositionInLine + " " + msg);
         }
     }

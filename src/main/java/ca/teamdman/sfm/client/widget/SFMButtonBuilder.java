@@ -1,18 +1,14 @@
 package ca.teamdman.sfm.client.widget;
 
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.bbscn.Button;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.text.ITextComponent;
-
 import org.jetbrains.annotations.Nullable;
 
-import com.bbscn.Button;
-
-import ca.teamdman.sfm.common.localization.LocalizationEntry;
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-
 public class SFMButtonBuilder {
-
     private @Nullable ITextComponent text = null;
     private int x = 0;
     private int y = 0;
@@ -32,16 +28,18 @@ public class SFMButtonBuilder {
     }
 
     public SFMButtonBuilder setSize(
-                                    int width,
-                                    int height) {
+            int width,
+            int height
+    ) {
         this.width = width;
         this.height = height;
         return this;
     }
 
     public SFMButtonBuilder setPosition(
-                                        int x,
-                                        int y) {
+            int x,
+            int y
+    ) {
         this.x = x;
         this.y = y;
         return this;
@@ -51,6 +49,9 @@ public class SFMButtonBuilder {
         this.onPress = onPress;
         return this;
     }
+
+
+
 
     public Button build() {
         if (text == null) {
@@ -66,23 +67,27 @@ public class SFMButtonBuilder {
                     height,
                     text,
                     onPress,
-                    tooltip);
+                    tooltip
+            );
         }
     }
 
     public SFMButtonBuilder setTooltip(
-                                       GuiScreen screen,
-                                       FontRenderer font,
-                                       LocalizationEntry tooltip) {
+            GuiScreen screen,
+            FontRenderer font,
+            LocalizationEntry tooltip
+    ) {
         return this.setTooltip(screen, font, tooltip.getComponent());
     }
 
     @MCVersionDependentBehaviour
     @SuppressWarnings("unused")
     public SFMButtonBuilder setTooltip(
-                                       GuiScreen screen,
-                                       FontRenderer font,
-                                       ITextComponent tooltip) {
+            GuiScreen screen,
+            FontRenderer font,
+            ITextComponent tooltip
+    ) {
+
         this.tooltip = Tooltip.create(tooltip);
         return this;
     }

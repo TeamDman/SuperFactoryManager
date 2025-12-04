@@ -15,6 +15,7 @@ public record ClientboundManagerGuiUpdatePacket(
         ManagerBlockEntity.State state,
         long[] tickTimes
 ) implements SFMPacket<ClientboundManagerGuiUpdatePacket> {
+
     public ClientboundManagerGuiUpdatePacket cloneWithWindowId(int windowId) {
         return new ClientboundManagerGuiUpdatePacket(windowId, program(), state(), tickTimes());
     }

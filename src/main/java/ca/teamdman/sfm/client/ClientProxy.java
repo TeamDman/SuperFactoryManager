@@ -1,5 +1,9 @@
 package ca.teamdman.sfm.client;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.CommonProxy;
+import ca.teamdman.sfm.common.registry.SFMBlocks;
+import ca.teamdman.sfm.common.registry.SFMItems;
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.block.model.ModelBakery;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -8,35 +12,33 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoaderRegistry;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-
-import ca.teamdman.sfm.common.CommonProxy;
-import ca.teamdman.sfm.common.registry.SFMBlocks;
-import ca.teamdman.sfm.common.registry.SFMItems;
 import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.blocks.client.ModelLoader;
 import vswe.superfactory.settings.Settings;
+
 
 public class ClientProxy extends CommonProxy {
 
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public void registerRenderers(ModelRegistryEvent event) {
+
         addVariantNames(SFMBlocks.CABLE_RELAY, "cable_relay", "cable_relay_advanced");
         addVariantNames(SFMBlocks.CABLE_INTAKE, "cable_valve", "cable_valve_instant");
         addVariantNames(SFMBlocks.CABLE_CLUSTER, "cable_cluster", "cable_cluster_advanced");
-        addVariantNames(SFMBlocks.CABLE_CAMOUFLAGE, "cable_camouflage", "cable_camouflage_inside",
-                "cable_camouflage_shape");
+        addVariantNames(SFMBlocks.CABLE_CAMOUFLAGE, "cable_camouflage", "cable_camouflage_inside", "cable_camouflage_shape");
 
         registerBlockModel(SFMBlocks.MANAGER);
         registerBlockModel(SFMBlocks.CABLE);
         registerBlockModel(SFMBlocks.CABLE_OUTPUT);
         registerBlockModel(SFMBlocks.CABLE_INPUT);
         registerBlockModel(SFMBlocks.MANAGER_BLOCK);
-        // registerBlockModel(SFMBlocks.CABLE_BLOCK);
-        // registerBlockModel(ModBlocks.CABLE_CREATIVE);
+//        registerBlockModel(SFMBlocks.CABLE_BLOCK);
+        //		        registerBlockModel(ModBlocks.CABLE_CREATIVE);
         registerBlockModel(SFMBlocks.CABLE_BUD);
         registerBlockModel(SFMBlocks.CABLE_BREAKER);
         registerBlockModel(SFMBlocks.CABLE_SIGN);
@@ -86,6 +88,7 @@ public class ClientProxy extends CommonProxy {
     public static String getResource(String resource) {
         return (SuperFactoryManager.MODID.toLowerCase() + ":") + resource;
     }
+
 
     @Override
     public void preInit() {

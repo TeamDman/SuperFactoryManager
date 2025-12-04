@@ -1,22 +1,21 @@
 package ca.teamdman.sfm.common.net;
 
-import java.util.function.BiConsumer;
-
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.inventory.Container;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.Program;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.inventory.Container;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.function.BiConsumer;
 
 public class SFMPacketHandlingContext {
-
     private final MessageContext inner;
 
     public SFMPacketHandlingContext(MessageContext inner) {
@@ -43,27 +42,30 @@ public class SFMPacketHandlingContext {
     }
 
     public <MENU extends Container, BE extends TileEntity> void handleServerboundContainerPacket(
-                                                                                                 Class<MENU> menuClass,
-                                                                                                 Class<BE> blockEntityClass,
-                                                                                                 @Stored BlockPos pos,
-                                                                                                 int containerId,
-                                                                                                 BiConsumer<MENU, BE> callback) {
+            Class<MENU> menuClass,
+            Class<BE> blockEntityClass,
+            @Stored BlockPos pos,
+            int containerId,
+            BiConsumer<MENU, BE> callback
+    ) {
         handleServerboundContainerPacket(
                 this,
                 menuClass,
                 blockEntityClass,
                 pos,
                 containerId,
-                callback);
+                callback
+        );
     }
 
     public static <MENU extends Container, BE extends TileEntity> void handleServerboundContainerPacket(
-                                                                                                        SFMPacketHandlingContext ctx,
-                                                                                                        Class<MENU> menuClass,
-                                                                                                        Class<BE> blockEntityClass,
-                                                                                                        @Stored BlockPos pos,
-                                                                                                        int containerId,
-                                                                                                        BiConsumer<MENU, BE> callback) {
+            SFMPacketHandlingContext ctx,
+            Class<MENU> menuClass,
+            Class<BE> blockEntityClass,
+            @Stored BlockPos pos,
+            int containerId,
+            BiConsumer<MENU, BE> callback
+    ) {
         var sender = ctx.inner.getServerHandler().player;
         if (sender == null) {
             SFM.LOGGER.warn("Invalid packet received: no sender");
@@ -78,18 +80,20 @@ public class SFMPacketHandlingContext {
         if (!menuClass.isInstance(menu)) {
             SFM.LOGGER.warn(
                     "Invalid packet received from {}: menu is not instance of expected class",
-                    sender.getName());
+                    sender.getName()
+            );
             return;
         }
         if (menu.windowId != containerId) {
             SFM.LOGGER.warn(
                     "Invalid packet received from {}: containerId does not match",
-                    sender.getName());
+                    sender.getName()
+            );
             return;
         }
 
         var level = sender.getServerWorld();
-        // noinspection ConstantValue
+        //noinspection ConstantValue
         if (level == null) {
             SFM.LOGGER.warn("Invalid packet received from {}: level is null", sender.getName());
             return;
@@ -97,7 +101,8 @@ public class SFMPacketHandlingContext {
         if (!level.isBlockLoaded(pos)) {
             SFM.LOGGER.warn(
                     "Invalid packet received from {}: tile entity is not loaded",
-                    sender.getName());
+                    sender.getName()
+            );
             return;
         }
 
@@ -105,16 +110,18 @@ public class SFMPacketHandlingContext {
         if (!blockEntityClass.isInstance(blockEntity)) {
             SFM.LOGGER.warn(
                     "Invalid packet received from {}: block entity is not instance of expected class",
-                    sender.getName());
+                    sender.getName()
+            );
             return;
         }
-        // noinspection unchecked
+        //noinspection unchecked
         callback.accept((MENU) menu, (BE) blockEntity);
     }
 
     public void compileAndThen(
-                               String programString,
-                               ProgramConsumer callback) {
+            String programString,
+            ProgramConsumer callback
+    ) {
         EntityPlayerMP player = this.serverPlayer();
         if (player == null) return;
         ManagerBlockEntity manager;
@@ -136,19 +143,21 @@ public class SFMPacketHandlingContext {
                 programString,
                 successProgram -> callback.accept(successProgram, player, manager),
                 failure -> {
-                    // todo: localize
+                    //todo: localize
                     SFMPackets.sendToPlayer(
                             player,
-                            new ClientboundOutputInspectionResultsPacket("failed to compile program"));
-                });
+                            new ClientboundOutputInspectionResultsPacket("failed to compile program")
+                    );
+                }
+        );
     }
 
     @FunctionalInterface
     public interface ProgramConsumer {
-
         void accept(
-                    Program program,
-                    EntityPlayerMP player,
-                    ManagerBlockEntity managerBlockEntity);
+                Program program,
+                EntityPlayerMP player,
+                ManagerBlockEntity managerBlockEntity
+        );
     }
 }

@@ -1,12 +1,11 @@
 package ca.teamdman.sfm.common.command;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
-
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 
 public class BustCableNetworkCacheCommand extends CommandBase {
 
@@ -24,7 +23,8 @@ public class BustCableNetworkCacheCommand extends CommandBase {
     public void execute(MinecraftServer server, ICommandSender sender, String[] args) throws CommandException {
         SFM.LOGGER.info(
                 "Busting cable networks - slash command used by {}",
-                sender.getName());
+                sender.getName()
+        );
         CableNetworkManager.clear();
     }
 

@@ -1,25 +1,22 @@
 package ca.teamdman.sfm.common.util;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-
+import com.github.bsideup.jabel.Desugar;
+import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.nbt.NBTTagByteArray;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 
-import com.github.bsideup.jabel.Desugar;
-
-import io.netty.buffer.Unpooled;
-import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Compress a set of BlockPos by storing cuboids.
  */
 public class CompressedBlockPosSet {
-
     private final ArrayList<Volume> boundingVolumes = new ArrayList<>();
 
     /**
@@ -38,8 +35,7 @@ public class CompressedBlockPosSet {
             EnumFacing direction = EnumFacing.NORTH;
             int extension = 0;
             // we want to put down/up last so we don't use .values() here
-            for (var dir : new EnumFacing[] { EnumFacing.NORTH, EnumFacing.EAST, EnumFacing.SOUTH, EnumFacing.WEST,
-                    EnumFacing.DOWN, EnumFacing.UP }) {
+            for (var dir : new EnumFacing[]{EnumFacing.NORTH, EnumFacing.EAST, EnumFacing.SOUTH, EnumFacing.WEST, EnumFacing.DOWN, EnumFacing.UP}) {
                 BlockPos offset = BlockPos.fromLong(start).offset(dir);
                 if (remaining.contains(offset.toLong())) {
                     direction = dir;
@@ -103,12 +99,11 @@ public class CompressedBlockPosSet {
         return CompressedBlockPosSet.read(buf);
     }
 
-    @Desugar
-    private record Volume(
-                          BlockPos start,
-                          EnumFacing direction,
-                          int extension) {
-
+    @Desugar private record Volume(
+        BlockPos start,
+            EnumFacing direction,
+            int extension
+) {
         public void write(PacketBuffer buf) {
             buf.writeBlockPos(start);
             buf.writeInt(direction.ordinal());
@@ -119,7 +114,8 @@ public class CompressedBlockPosSet {
             return new Volume(
                     buf.readBlockPos(),
                     EnumFacing.byIndex(buf.readInt()),
-                    buf.readVarInt());
+                    buf.readVarInt()
+            );
         }
     }
 

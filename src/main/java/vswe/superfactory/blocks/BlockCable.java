@@ -14,7 +14,6 @@ import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
 
 public class BlockCable extends Block implements ICableBlock {
-
     public BlockCable() {
         super(Material.IRON);
         setSoundType(SoundType.METAL);
@@ -26,6 +25,7 @@ public class BlockCable extends Block implements ICableBlock {
         super.onBlockAdded(worldIn, pos, state);
         CableNetworkManager.onCablePlaced(worldIn, pos);
     }
+
 
     @Override
     public void onNeighborChange(IBlockAccess world, BlockPos pos, BlockPos neighbor) {
@@ -55,4 +55,6 @@ public class BlockCable extends Block implements ICableBlock {
         super.breakBlock(world, pos, state);
         CableNetworkManager.onCableRemoved(world, pos);
     }
+
+
 }

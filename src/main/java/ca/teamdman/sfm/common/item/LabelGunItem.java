@@ -1,10 +1,14 @@
 package ca.teamdman.sfm.common.item;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import ca.teamdman.sfm.client.ClientLabelGunWarningHelper;
+import ca.teamdman.sfm.client.handler.LabelGunKeyMappingHandler;
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
+import ca.teamdman.sfm.common.block.ManagerBlock;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+import ca.teamdman.sfm.common.util.SFMItemUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.util.ITooltipFlag;
@@ -25,31 +29,25 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import ca.teamdman.sfm.client.ClientLabelGunWarningHelper;
-import ca.teamdman.sfm.client.handler.LabelGunKeyMappingHandler;
-import ca.teamdman.sfm.client.registry.SFMKeyMappings;
-import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import ca.teamdman.sfm.common.block.ManagerBlock;
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
-import ca.teamdman.sfm.common.util.SFMItemUtils;
 import vswe.superfactory.blocks.BlockManager;
 
-public class LabelGunItem extends Item {
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
+public class LabelGunItem extends Item {
     public LabelGunItem() {
         super();
         setMaxStackSize(1);
     }
 
     public static void setActiveLabel(
-                                      ItemStack stack,
-                                      @Nullable String label) {
+            ItemStack stack,
+            @Nullable String label
+    ) {
         if (label == null || label.isEmpty()) {
             clearActiveLabel(stack);
         } else {
@@ -59,18 +57,20 @@ public class LabelGunItem extends Item {
     }
 
     public static void clearActiveLabel(
-                                        ItemStack gun) {
+            ItemStack gun
+    ) {
         gun.removeSubCompound("sfm:active_label");
     }
 
     public static String getActiveLabel(ItemStack stack) {
-        // noinspection DataFlowIssue
+        //noinspection DataFlowIssue
         return !stack.hasTagCompound() ? "" : stack.getTagCompound().getString("sfm:active_label");
     }
 
     public static String getNextLabel(
-                                      ItemStack gun,
-                                      int change) {
+            ItemStack gun,
+            int change
+    ) {
         var labels = LabelPositionHolder
                 .from(gun)
                 .labels()
@@ -112,8 +112,9 @@ public class LabelGunItem extends Item {
      * Sets the view mode in NBT.
      */
     public static void setViewMode(
-                                   ItemStack stack,
-                                   LabelGunViewMode mode) {
+            ItemStack stack,
+            LabelGunViewMode mode
+    ) {
         stack.setTagInfo("sfm:label_gun_view_mode", new NBTTagInt(mode.ordinal()));
     }
 
@@ -123,16 +124,18 @@ public class LabelGunItem extends Item {
         setViewMode(stack, LabelGunViewMode.values()[nextOrdinal]);
     }
 
+
     @Override
     public EnumActionResult onItemUseFirst(
-                                           EntityPlayer player,
-                                           World world,
-                                           BlockPos pos,
-                                           EnumFacing side,
-                                           float hitX,
-                                           float hitY,
-                                           float hitZ,
-                                           EnumHand hand) {
+            EntityPlayer player,
+            World world,
+            BlockPos pos,
+            EnumFacing side,
+            float hitX,
+            float hitY,
+            float hitZ,
+            EnumHand hand
+    ) {
         if (world.isRemote && player != null) {
             boolean pickBlock = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_PICK_BLOCK_MODIFIER_KEY);
             boolean contiguous = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY);
@@ -140,8 +143,7 @@ public class LabelGunItem extends Item {
             boolean pull = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY);
             boolean targetManager = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY);
 
-            if (targetManager && !(world.getBlockState(pos).getBlock() instanceof ManagerBlock ||
-                    world.getBlockState(pos).getBlock() instanceof BlockManager)) {
+            if (targetManager && !(world.getBlockState(pos).getBlock() instanceof ManagerBlock || world.getBlockState(pos).getBlock() instanceof BlockManager)) {
                 SFMScreenChangeHelpers.showLabelGunScreen(player.getHeldItem(hand), hand);
                 return EnumActionResult.SUCCESS;
             }
@@ -153,7 +155,8 @@ public class LabelGunItem extends Item {
                     pickBlock,
                     clear,
                     pull,
-                    targetManager);
+                    targetManager
+            );
             ClientLabelGunWarningHelper.sendLabelGunUsePacketFromClientWithConfirmationIfNecessary(msg, player);
             if (pickBlock) {
                 // we don't want to toggle the overlay if we're using pick-block
@@ -166,9 +169,10 @@ public class LabelGunItem extends Item {
 
     @Override
     public ActionResult<ItemStack> onItemRightClick(
-                                                    World world,
-                                                    EntityPlayer player,
-                                                    EnumHand hand) {
+            World world,
+            EntityPlayer player,
+            EnumHand hand
+    ) {
         ItemStack stack = player.getHeldItem(hand);
 
         if (world.isRemote) {
@@ -180,65 +184,78 @@ public class LabelGunItem extends Item {
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(
-                               ItemStack stack,
-                               @Nullable World level,
-                               List<String> lines,
-                               ITooltipFlag detail) {
+            ItemStack stack,
+            @Nullable World level,
+            List<String> lines,
+            ITooltipFlag detail
+    ) {
         ArrayList<ITextComponent> textComponentStrings = new ArrayList<>();
         if (SFMItemUtils.isClientAndMoreInfoKeyPressed()) {
             GameSettings options = Minecraft.getMinecraft().gameSettings;
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER.get(
-                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_CLEAR_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY),
-                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_PULL_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY),
-                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_PUSH_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_TARGET_MANAGER_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY),
-                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_CONTIGUOUS_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_PICK_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PICK_BLOCK_MODIFIER_KEY),
-                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_NEXT_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_NEXT_LABEL_KEY))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_NEXT_LABEL_KEY)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_PREVIOUS_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PREVIOUS_LABEL_KEY))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PREVIOUS_LABEL_KEY)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_SCROLL_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_SCROLL_MODIFIER_KEY))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_SCROLL_MODIFIER_KEY)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_CYCLE_VIEW_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.CYCLE_LABEL_VIEW_KEY))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.CYCLE_LABEL_VIEW_KEY)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
             lines.add(
                     LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_GUI_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem))
-                            .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                            SFMKeyMappings.getKeyDisplay(options.keyBindUseItem)
+                    ).setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText()
+            );
         } else {
             SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(lines);
             lines.addAll(LabelPositionHolder.from(stack).asHoverText());
@@ -247,14 +264,14 @@ public class LabelGunItem extends Item {
 
     @NotNull
     @Override
-    public EnumActionResult onItemUse(EntityPlayer player, World world, BlockPos pos, EnumHand hand, EnumFacing facing,
-                                      float hitX, float hitY, float hitZ) {
+    public EnumActionResult onItemUse(EntityPlayer player, World world, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
         var stack = player.getHeldItem(hand);
         if (world.isRemote) {
             SFMScreenChangeHelpers.showLabelGunScreen(stack, hand);
         }
         return EnumActionResult.SUCCESS;
     }
+
 
     @Override
     public String getItemStackDisplayName(ItemStack stack) {

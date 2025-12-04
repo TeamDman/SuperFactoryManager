@@ -9,5 +9,6 @@ import java.lang.annotation.Target;
 /// If passed a BlockPos.MutableBlockPos, expect pain and suffering.
 /// The semantics of this are to prevent MutableBlockPos from being passed here.
 @Retention(RetentionPolicy.CLASS)
-@Target({ ElementType.PARAMETER })
-public @interface Stored {}
+@Target({ElementType.PARAMETER})
+public @interface Stored {
+}

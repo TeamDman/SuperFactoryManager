@@ -30,7 +30,6 @@ import ca.teamdman.sfm.common.logging.TranslatableLogEvent;
 
 // todo: checkbox for auto-scrolling
 public class LogsScreen extends GuiScreenExtend {
-
     private final ManagerContainerMenu MENU;
     @SuppressWarnings("NotNullFieldNotInitialized")
     private MyMultiLineEditBox textarea;
@@ -38,6 +37,7 @@ public class LogsScreen extends GuiScreenExtend {
     private int lastSize = 0;
     private Map<Level, Button> levelButtons = new HashMap<>();
     private String lastKnownLogLevel;
+
 
     public LogsScreen(ManagerContainerMenu menu) {
         super();
@@ -53,7 +53,7 @@ public class LogsScreen extends GuiScreenExtend {
 
     private boolean shouldRebuildText() {
         return MENU.logs.size() != lastSize;
-        // return false;
+//        return false;
     }
 
     private void rebuildText() {
@@ -65,14 +65,14 @@ public class LogsScreen extends GuiScreenExtend {
             toProcess.add(new TranslatableLogEvent(
                     Level.INFO,
                     instant,
-                    LocalizationKeys.LOGS_GUI_NO_CONTENT.get()));
+                    LocalizationKeys.LOGS_GUI_NO_CONTENT.get()
+            ));
         }
         for (TranslatableLogEvent log : toProcess) {
             int seconds = (int) (System.currentTimeMillis() - log.instant().getEpochMillisecond()) / 1000;
             int minutes = seconds / 60;
             seconds = seconds % 60;
-            var ago = new TextComponentString(minutes + "m" + seconds + "s ago")
-                    .setStyle(new Style().setColor(TextFormatting.GRAY));
+            var ago = new TextComponentString(minutes + "m" + seconds + "s ago").setStyle(new Style().setColor(TextFormatting.GRAY));
 
             var level = new TextComponentString(" [" + log.level() + "] ");
             if (log.level() == Level.ERROR) {
@@ -101,7 +101,8 @@ public class LogsScreen extends GuiScreenExtend {
                         // output processed code
                         var codeLines = ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(
                                 codeBlock.toString(),
-                                false);
+                                false
+                        );
                         processedLogs.addAll(codeLines);
                         codeBlock = new StringBuilder();
                     } else {
@@ -123,12 +124,13 @@ public class LogsScreen extends GuiScreenExtend {
         }
         this.content = processedLogs;
 
+
         // update textarea with plain string contents so select and copy works
         StringBuilder sb = new StringBuilder();
         for (var line : this.content) {
             sb.append(line.getUnformattedText()).append("\n");
         }
-        // textarea.setValue(sb.toString());
+//        textarea.setValue(sb.toString());
         lastSize = MENU.logs.size();
     }
 
@@ -173,18 +175,18 @@ public class LogsScreen extends GuiScreenExtend {
         int buttonIndex = 0;
 
         this.levelButtons = new HashMap<>();
-        for (Level level : buttons) {
+               for (Level level : buttons) {
             Button levelButton = new SFMButtonBuilder()
                     .setSize(buttonWidth, buttonHeight)
                     .setPosition(
                             startX + (buttonWidth + spacing) * buttonIndex,
                             startY
                     )
-                    .setText(new TextComponentString(level.name()))
+                                       .setText(new TextComponentString(level.name()))
                     .setOnPress(button -> {
                         String logLevel = level.name();
                         SFMPackets.sendToServer(new ServerboundManagerSetLogLevelPacket(
-                                MENU.windowId,
+                                                               MENU.windowId,
                                 MENU.MANAGER_POSITION,
                                 logLevel
                         ));
@@ -225,7 +227,7 @@ public class LogsScreen extends GuiScreenExtend {
                             .setText(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON)
                             .setOnPress((button) -> {
                                 SFMPackets.sendToServer(new ServerboundManagerClearLogsPacket(
-                                        MENU.windowId,
+                                                                               MENU.windowId,
                                         MENU.MANAGER_POSITION
                                 ));
                                 MENU.logs.clear();
@@ -238,37 +240,36 @@ public class LogsScreen extends GuiScreenExtend {
     private void onCopyLogsClicked(Button button) {
         StringBuilder clip = new StringBuilder();
         clip.append(SFMDiagnostics.getDiagnosticsSummary(
-                MENU.getSlot(0).getStack()
+                               MENU.getSlot(0).getStack()
         ));
         clip.append("\n-- LOGS --\n");
-        if (isShiftKeyDown()) {
+               if (isShiftKeyDown()) {
             for (TranslatableLogEvent log : MENU.logs) {
                 clip.append(log.level().name()).append(" ");
                 clip.append(log.instant().toString()).append(" ");
                 clip.append(log.contents().getKey());
-                for (Object arg : log.contents().getFormatArgs()) {
+                               for (Object arg : log.contents().getFormatArgs()) {
                     clip.append(" ").append(arg);
                 }
                 clip.append("\n");
             }
         } else {
-            for (ITextComponent line : content) {
-                clip.append(line.getFormattedText()).append("\n");
+                       for (ITextComponent line : content) {
+                               clip.append(line.getFormattedText()).append("\n");
             }
         }
         setClipboardString(clip.toString());
     }
 
     @Override
-    public void onGuiClosed() {
+       public void onGuiClosed() {
         SFMPackets.sendToServer(new ServerboundManagerLogDesireUpdatePacket(
-                MENU.windowId,
+                               MENU.windowId,
                 MENU.MANAGER_POSITION,
                 false
         ));
-        super.onGuiClosed();
+               super.onGuiClosed();
     }
-
     public void scrollToBottom() {
         textarea.scrollToBottom();
     }
@@ -283,28 +284,28 @@ public class LogsScreen extends GuiScreenExtend {
     }
 
     @Override
-    public void drawScreen(
+       public void drawScreen(
             int mx,
             int my,
             float partialTicks
-    ) {
-        for (Renderable renderable : this.renderables) {
+) {
+        for (Renderable renderable :        this.renderables) {
             renderable.render(mx, my, partialTicks);
         }
         this.drawDefaultBackground();
-        super.drawScreen(mx, my, partialTicks);
+               super.drawScreen(mx, my, partialTicks);
         if (!MENU.logLevel.equals(lastKnownLogLevel)) {
             onLogLevelChange();
         }
     }
 
-    // TODO: enable scrolling without focus
+//    TODO: enable scrolling without focus
     private class MyMultiLineEditBox extends MultiLineEditBox {
         private int frame = 0;
 
         public MyMultiLineEditBox() {
             super(
-                    LogsScreen.this.fontRenderer,
+                                       LogsScreen.this.fontRenderer,
                     LogsScreen.this.width / 2 - 200,
                     LogsScreen.this.height / 2 - 90,
                     400,
@@ -326,7 +327,7 @@ public class LogsScreen extends GuiScreenExtend {
         }
 
         @Override
-        public boolean mouseClicked(int p_239101_, int p_239102_, int p_239103_) {
+               public boolean mouseClicked(int p_239101_, int p_239102_, int p_239103_) {
             try {
                 return super.mouseClicked(p_239101_, p_239102_, p_239103_);
             } catch (Exception e) {
@@ -339,15 +340,15 @@ public class LogsScreen extends GuiScreenExtend {
         public int getInnerHeight() {
             // parent method uses this.textField.getLineCount() which is split for text wrapping
             // we don't use the wrapped text, so we need to calculate the height ourselves to avoid overshooting
-            return this.font.FONT_HEIGHT * (content.size() + 2);
+                       return this.font.FONT_HEIGHT * (content.size() + 2);
         }
 
         @Override
-        protected void renderContents(int mx, int my, float partialTicks) {
+               protected void renderContents(int mx, int my, float partialTicks) {
             if (shouldRebuildText()) {
                 rebuildText();
             }
-            boolean isCursorVisible = this.isFocused() && this.frame++ / 60 % 2 == 0;
+                       boolean isCursorVisible = this.isFocused() && this.frame++ / 60 % 2 == 0;
             boolean isCursorAtEndOfLine = false;
             int cursorIndex = textField.cursor();
             int lineX = SFMScreenRenderUtils.getX(this) + this.innerPadding();
@@ -363,8 +364,8 @@ public class LogsScreen extends GuiScreenExtend {
             // draw the last 500 lines
             for (int line = Math.max(0, content.size() - 500); line < content.size(); ++line) {
                 ITextComponent componentColoured = content.get(line);
-                int lineLength = componentColoured.getUnformattedText().length();
-                int lineHeight = this.font.FONT_HEIGHT + (line == 0 ? 2 : 0);
+                               int lineLength = componentColoured.getUnformattedText().length();
+                               int lineHeight = this.font.FONT_HEIGHT + (line == 0 ? 2 : 0);
                 boolean cursorOnThisLine = isCursorVisible
                         && cursorIndex >= charCount
                         && cursorIndex <= charCount + lineLength;
@@ -380,22 +381,22 @@ public class LogsScreen extends GuiScreenExtend {
                             lineX,
                             lineY,
                             true,
-                            false) - 1;
+                                                       false) - 1;
                     SFMFontUtils.drawInBatch(
                             SFMTextEditScreenV1.substring(componentColoured, cursorIndex - charCount, lineLength),
                             font,
                             cursorX,
                             lineY,
                             true,
-                            false);
+                                                       false);
                 } else {
                     SFMFontUtils.drawInBatch(
-                            componentColoured.getFormattedText(),
+                                                       componentColoured.getFormattedText(),
                             font,
                             lineX,
                             lineY,
                             true,
-                            false);
+                                                       false);
                 }
 
                 // Check if the selection is within the current line
@@ -403,12 +404,12 @@ public class LogsScreen extends GuiScreenExtend {
                     int lineSelectionStart = Math.max(selectionStart - charCount, 0);
                     int lineSelectionEnd = Math.min(selectionEnd - charCount, lineLength);
 
-                    int highlightStartX = this.font.getStringWidth(SFMTextEditScreenV1.substring(
+                                       int highlightStartX = this.font.getStringWidth(SFMTextEditScreenV1.substring(
                             componentColoured,
                             0,
                             lineSelectionStart
                     ));
-                    int highlightEndX = this.font.getStringWidth(SFMTextEditScreenV1.substring(
+                                       int highlightEndX = this.font.getStringWidth(SFMTextEditScreenV1.substring(
                             componentColoured,
                             0,
                             lineSelectionEnd
@@ -439,5 +440,6 @@ public class LogsScreen extends GuiScreenExtend {
                 Gui.drawRect(cursorX, cursorY - 1, cursorX + 1, cursorY + 1 + 9, -1);
             }
         }
-    }
+       }
 }
+

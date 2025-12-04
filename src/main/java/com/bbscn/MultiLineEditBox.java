@@ -1,5 +1,6 @@
 package com.bbscn;
 
+import ca.teamdman.sfm.SFM;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
@@ -7,11 +8,8 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 
-import ca.teamdman.sfm.SFM;
-
 public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventListener {
-
-    private static final ResourceLocation SCROLLER_SPRITE = new ResourceLocation(SFM.MOD_ID, "widget/scroller.png");
+    private static final ResourceLocation SCROLLER_SPRITE = new ResourceLocation(SFM.MOD_ID,"widget/scroller.png");
     private static final int CURSOR_INSERT_WIDTH = 1;
     private static final int CURSOR_INSERT_COLOR = -3092272;
     private static final String CURSOR_APPEND_CHARACTER = "_";
@@ -23,8 +21,7 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
     private long focusedTime = Minecraft.getSystemTime();
     protected MultilineTextField textField;
 
-    public MultiLineEditBox(FontRenderer font, int pX, int pY, int pWidth, int pHeight, String placeholder,
-                            String pMessage) {
+    public MultiLineEditBox(FontRenderer font, int pX, int pY, int pWidth, int pHeight, String placeholder, String pMessage) {
         super(pX, pY, pWidth, pHeight, new TextComponentString(pMessage));
         this.placeholder = new TextComponentString(placeholder);
         this.font = font;
@@ -32,18 +29,17 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
         this.textField.setCursorListener(this::scrollToCursor);
     }
 
-    // @Override
-    // public void updateWidgetNarration(NarrationElementOutput pNarrationElementOutput) {
-    // pNarrationElementOutput.add(NarratedElementType.TITLE, Component.translatable("gui.narrate.editBox",
-    // this.getMessage(), this.getValue()));
-    // }
+    //    @Override
+//    public void updateWidgetNarration(NarrationElementOutput pNarrationElementOutput) {
+//        pNarrationElementOutput.add(NarratedElementType.TITLE, Component.translatable("gui.narrate.editBox", this.getMessage(), this.getValue()));
+//    }
     public String getValue() {
         return this.textField.value();
     }
-
     public void setValue(String pFullText) {
         this.textField.setValue(pFullText);
     }
+
 
     @Override
     public boolean mouseClicked(int pMouseX, int pMouseY, int pButton) {
@@ -93,22 +89,24 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
         }
     }
 
+
     private static final WidgetSprites BACKGROUND_SPRITES = new WidgetSprites(
-            // todo 纹理不知道是否存在
-            new ResourceLocation(SFM.MOD_ID, "widget/text_field"),
-            new ResourceLocation(SFM.MOD_ID, "widget/text_field_highlighted"));
+            //todo 纹理不知道是否存在
+            new ResourceLocation(SFM.MOD_ID,"widget/text_field"), new ResourceLocation(SFM.MOD_ID,"widget/text_field_highlighted")
+    );
+
 
     public boolean isActive() {
         return this.visible && this.active;
     }
+
 
     protected int totalInnerPadding() {
         return this.innerPadding() * 2;
     }
 
     protected boolean withinContentAreaTopBottom(int pTop, int pBottom) {
-        return (double) pBottom - this.scrollAmount >= (double) this.getY() &&
-                (double) pTop - this.scrollAmount <= (double) (this.getY() + this.height);
+        return (double) pBottom - this.scrollAmount >= (double) this.getY() && (double) pTop - this.scrollAmount <= (double) (this.getY() + this.height);
     }
 
     @Override
@@ -122,7 +120,8 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
                     (int) this.getY() + this.innerPadding(),
                     this.width - this.totalInnerPadding(),
                     -857677600,
-                    font.FONT_HEIGHT);
+                    font.FONT_HEIGHT
+            );
         } else {
             int i = this.textField.cursor();
             boolean flag = this.isFocused() && (Minecraft.getSystemTime() - this.focusedTime) / 300L % 2L == 0L;
@@ -133,29 +132,30 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
 
             for (MultilineTextField.StringView multilinetextfield$stringview : this.textField.iterateLines()) {
                 boolean flag2 = this.withinContentAreaTopBottom(l, l + 9);
-                if (flag && flag1 && i >= multilinetextfield$stringview.beginIndex &&
-                        i <= multilinetextfield$stringview.endIndex) {
+                if (flag && flag1 && i >= multilinetextfield$stringview.beginIndex && i <= multilinetextfield$stringview.endIndex) {
                     if (flag2) {
                         j = this.font.drawString(
                                 s.substring(multilinetextfield$stringview.beginIndex, i),
                                 (int) this.getX() + this.innerPadding(),
                                 l,
-                                -2039584) - 1;
+                                -2039584
+                        ) - 1;
                         drawRect(j, l - 1, j + 1, l + 1 + 9, -3092272);
                         this.font.drawString(
                                 s.substring(i, multilinetextfield$stringview.endIndex),
                                 j,
                                 l,
-                                -2039584);
+                                -2039584
+                        );
                     }
                 } else {
                     if (flag2) {
                         j = this.font.drawString(
-                                s.substring(multilinetextfield$stringview.beginIndex,
-                                        multilinetextfield$stringview.endIndex),
+                                s.substring(multilinetextfield$stringview.beginIndex, multilinetextfield$stringview.endIndex),
                                 (int) this.getX() + this.innerPadding(),
                                 l,
-                                -2039584) - 1;
+                                -2039584
+                        ) - 1;
                     }
 
                     k = l;
@@ -185,14 +185,14 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
                             int i1 = this.font.getStringWidth(
                                     s.substring(
                                             multilinetextfield$stringview1.beginIndex,
-                                            Math.max(multilinetextfield$stringview2.beginIndex,
-                                                    multilinetextfield$stringview1.beginIndex)));
+                                            Math.max(multilinetextfield$stringview2.beginIndex, multilinetextfield$stringview1.beginIndex)
+                                    )
+                            );
                             int j1;
                             if (multilinetextfield$stringview2.endIndex > multilinetextfield$stringview1.endIndex) {
                                 j1 = this.width - this.innerPadding();
                             } else {
-                                j1 = this.font.getStringWidth(s.substring(multilinetextfield$stringview1.beginIndex,
-                                        multilinetextfield$stringview2.endIndex));
+                                j1 = this.font.getStringWidth(s.substring(multilinetextfield$stringview1.beginIndex, multilinetextfield$stringview2.endIndex));
                             }
 
                             this.renderHighlight(k1 + i1, l, k1 + j1, l + 9);
@@ -203,6 +203,7 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
                 }
             }
         }
+
     }
 
     @Override
@@ -230,8 +231,7 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
         if (this.textField.cursor() <= multilinetextfield$stringview.beginIndex) {
             d0 = (double) (this.textField.getLineAtCursor() * 9);
         } else {
-            MultilineTextField.StringView multilinetextfield$stringview1 = this.textField
-                    .getLineView((int) ((d0 + (double) this.height) / 9.0) - 1);
+            MultilineTextField.StringView multilinetextfield$stringview1 = this.textField.getLineView((int) ((d0 + (double) this.height) / 9.0) - 1);
             if (this.textField.cursor() > multilinetextfield$stringview1.endIndex) {
                 d0 = (double) (this.textField.getLineAtCursor() * 9 - this.height + 9 + this.totalInnerPadding());
             }
@@ -257,4 +257,5 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
             this.focusedTime = Minecraft.getSystemTime();
         }
     }
+
 }

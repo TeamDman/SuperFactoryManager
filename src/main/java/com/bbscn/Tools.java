@@ -1,22 +1,10 @@
 package com.bbscn;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.*;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-
-import javax.imageio.ImageIO;
-
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.capability.*;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.mojang.realmsclient.gui.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -34,19 +22,26 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.event.ClickEvent;
 import net.minecraft.util.text.event.HoverEvent;
 import net.minecraftforge.common.capabilities.Capability;
-
 import org.lwjgl.opengl.GL11;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.mojang.realmsclient.gui.ChatFormatting;
-
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.capability.*;
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 /**
- * class copied frombbscncom's unofficial 1.12 backport of sfm4
- * <a href="https://github.com/bbscncom/SuperFactoryManagerCodeVersion112Unoffical">here</a>
+ * class copied frombbscncom's unofficial 1.12 backport of sfm4 <a href="https://github.com/bbscncom/SuperFactoryManagerCodeVersion112Unoffical">here</a>
  */
 public class Tools {
 
@@ -60,17 +55,17 @@ public class Tools {
             return result;
         }
         return capability;
-        // try {
-        // Class<?> clazz = capability.getClass();
-        // Field dataField = clazz.getDeclaredField("data");
-        // Object dataValue = dataField.get(capability);
-        // if (dataValue != null) {
-        // return (T) dataValue;
-        // }
-        // } catch (NoSuchFieldException | IllegalAccessException e) {
-        // e.printStackTrace();
-        // }
-        // return result;
+//        try {
+//            Class<?> clazz = capability.getClass();
+//            Field dataField = clazz.getDeclaredField("data");
+//            Object dataValue = dataField.get(capability);
+//            if (dataValue != null) {
+//                return (T) dataValue;
+//            }
+//        } catch (NoSuchFieldException | IllegalAccessException e) {
+//            e.printStackTrace();
+//        }
+//        return result;
     }
 
     public static String strip(String s) {
@@ -88,14 +83,16 @@ public class Tools {
     }
 
     public static String truncate(
-                                  String input,
-                                  int maxLength) {
+            String input,
+            int maxLength
+    ) {
         if (input.length() > maxLength) {
             SFM.LOGGER.warn(
                     "input too big, truncation has occurred! (len={}, max={}, over={})",
                     input.length(),
                     maxLength,
-                    maxLength - input.length());
+                    maxLength - input.length()
+            );
             String truncationWarning = "\n...truncated";
             return input.substring(0, maxLength - truncationWarning.length()) + truncationWarning;
         }
@@ -108,6 +105,7 @@ public class Tools {
         return (int) value;
     }
 
+
     public static boolean isAllowedChatCharacter(char pCharacter) {
         return pCharacter != 167 && pCharacter >= ' ' && pCharacter != 127;
     }
@@ -116,10 +114,10 @@ public class Tools {
         if (pString.length() <= pMaxSize) {
             return pString;
         } else {
-            return pAddEllipsis && pMaxSize > 3 ? pString.substring(0, pMaxSize - 3) + "..." :
-                    pString.substring(0, pMaxSize);
+            return pAddEllipsis && pMaxSize > 3 ? pString.substring(0, pMaxSize - 3) + "..." : pString.substring(0, pMaxSize);
         }
     }
+
 
     public static Set<Integer> ofset(int ruleResourceId, int ruleLabel) {
         HashSet<Integer> integers = new HashSet<>();
@@ -136,8 +134,7 @@ public class Tools {
         return formatList(pElements, pSeparator, Function.identity());
     }
 
-    public static <T> ITextComponent formatList(Collection<? extends T> pElements, ITextComponent pSeparator,
-                                                Function<T, ITextComponent> pComponentExtractor) {
+    public static <T> ITextComponent formatList(Collection<? extends T> pElements, ITextComponent pSeparator, Function<T, ITextComponent> pComponentExtractor) {
         if (pElements.isEmpty()) {
             return new TextComponentString("");
         } else if (pElements.size() == 1) {
@@ -215,16 +212,14 @@ public class Tools {
         int i = pText.length();
         if (pDirection >= 0) {
             for (int j = 0; pCursorPos < i && j < pDirection; j++) {
-                if (Character.isHighSurrogate(pText.charAt(pCursorPos++)) && pCursorPos < i &&
-                        Character.isLowSurrogate(pText.charAt(pCursorPos))) {
+                if (Character.isHighSurrogate(pText.charAt(pCursorPos++)) && pCursorPos < i && Character.isLowSurrogate(pText.charAt(pCursorPos))) {
                     pCursorPos++;
                 }
             }
         } else {
             for (int k = pDirection; pCursorPos > 0 && k < 0; k++) {
                 pCursorPos--;
-                if (Character.isLowSurrogate(pText.charAt(pCursorPos)) && pCursorPos > 0 &&
-                        Character.isHighSurrogate(pText.charAt(pCursorPos - 1))) {
+                if (Character.isLowSurrogate(pText.charAt(pCursorPos)) && pCursorPos > 0 && Character.isHighSurrogate(pText.charAt(pCursorPos - 1))) {
                     pCursorPos--;
                 }
             }
@@ -358,8 +353,8 @@ public class Tools {
         drawTexturedModalRect(x, y, 0, 0, border, border); // 左上
         drawTexturedModalRect(x + width - border, y, texWidth - border, 0, border, border); // 右上
         drawTexturedModalRect(x, y + height - border, 0, texHeight - border, border, border); // 左下
-        drawTexturedModalRect(x + width - border, y + height - border, texWidth - border, texHeight - border, border,
-                border); // 右下
+        drawTexturedModalRect(x + width - border, y + height - border, texWidth - border, texHeight - border, border, border); // 右下
+
 
         // 6. 渲染边缘（单轴分块拉伸）
         if (centerWidth > 0) {
@@ -397,7 +392,8 @@ public class Tools {
                     y,
                     border, 0,
                     segW, border,
-                    texWidth, texHeight);
+                    texWidth, texHeight
+            );
 
             // 下边缘
             drawTextureSegment(
@@ -405,7 +401,8 @@ public class Tools {
                     y + height - border,
                     border, texHeight - border,
                     segW, border,
-                    texWidth, texHeight);
+                    texWidth, texHeight
+            );
         }
     }
 
@@ -431,7 +428,8 @@ public class Tools {
                     y + border + (int) (i * segmentHeight * scale),
                     0, border,
                     border, segH,
-                    texWidth, texHeight);
+                    texWidth, texHeight
+            );
 
             // 右边缘
             drawTextureSegment(
@@ -439,7 +437,8 @@ public class Tools {
                     y + border + (int) (i * segmentHeight * scale),
                     texWidth - border, border,
                     border, segH,
-                    texWidth, texHeight);
+                    texWidth, texHeight
+            );
         }
     }
 
@@ -484,7 +483,8 @@ public class Tools {
                         x + border + (int) (xi * tileWidth * xScale),
                         y + border + (int) (yi * tileHeight * yScale),
                         tileW, tileH,
-                        u1, v1, u2, v2);
+                        u1, v1, u2, v2
+                );
             }
         }
     }
@@ -546,7 +546,8 @@ public class Tools {
         try {
             // 3. 构建 JSON 路径（如 textures.json）
             ResourceLocation jsonLocation = new ResourceLocation(
-                    resourcelocation.getNamespace(), resourcelocation.getPath() + ".mcmeta");
+                    resourcelocation.getNamespace(), resourcelocation.getPath() + ".mcmeta"
+            );
 
             // 4. 读取 JSON 文件
             InputStream is = Minecraft.getMinecraft().getResourceManager().getResource(jsonLocation).getInputStream();
@@ -651,13 +652,14 @@ public class Tools {
     }
 
     public static void drawWordWrap(
-                                    FontRenderer fontRenderer,
-                                    String text,
-                                    int x,
-                                    int y,
-                                    int maxWidth,
-                                    int color,
-                                    int lineHeight) {
+            FontRenderer fontRenderer,
+            String text,
+            int x,
+            int y,
+            int maxWidth,
+            int color,
+            int lineHeight
+    ) {
         // 1. 将文本分割为多行
         List<String> lines = fontRenderer.listFormattedStringToWidth(text, maxWidth);
 
@@ -724,6 +726,7 @@ public class Tools {
         }
     }
 
+
     private static BufferedImage resizeImage(BufferedImage original, Map<String, Integer> config) {
         int originalWidth = config.get("width");
         int originalHeight = config.get("height");
@@ -766,8 +769,7 @@ public class Tools {
 
         // 中心
         g.drawImage(original.getSubimage(border, border, origCenterWidth, origCenterHeight),
-                border, border, targetSize - border, targetSize - border, 0, 0, origCenterWidth, origCenterHeight,
-                null);
+                border, border, targetSize - border, targetSize - border, 0, 0, origCenterWidth, origCenterHeight, null);
 
         g.dispose();
         return resized;
@@ -781,6 +783,7 @@ public class Tools {
         }
         return pow;
     }
+
 
     public static Color intToColor(int color) {
         return new Color(
@@ -809,7 +812,7 @@ public class Tools {
      * 获取浮点数形式的颜色（用于 OpenGL）
      */
     public static float[] toFloatArray(int[] colorArray) {
-        return new float[] {
+        return new float[]{
                 colorArray[1] / 255f, // R
                 colorArray[2] / 255f, // G
                 colorArray[3] / 255f, // B
@@ -850,15 +853,16 @@ public class Tools {
         }
     }
 
-    // todo thermal direction null cause exception, maybe a bug, temp to solve
+    //todo  thermal direction null cause exception, maybe a bug, temp to solve
 
     public static boolean isCantNullDirection(TileEntity tileEntity) {
         if (tileEntity == null) return false;
         String name = tileEntity.getClass().getName();
-        String[] modlist = new String[] { "thermalexpansion" };
+        String[] modlist = new String[]{"thermalexpansion"};
         for (String s : modlist) {
             if (name.contains(s)) return true;
         }
         return false;
     }
 }
+

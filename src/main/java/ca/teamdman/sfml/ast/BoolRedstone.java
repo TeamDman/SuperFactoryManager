@@ -1,17 +1,13 @@
 package ca.teamdman.sfml.ast;
 
-import net.minecraft.world.World;
-
-import com.github.bsideup.jabel.Desugar;
-
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.program.ProgramContext;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.world.World;
 
-@Desugar
-public record BoolRedstone(
-                           ComparisonOperator operator, long number)
-        implements BoolExpr {
-
+@Desugar public record BoolRedstone(
+        ComparisonOperator operator, long number
+) implements BoolExpr {
     @SuppressWarnings("UnnecessaryLocalVariable")
     @Override
     public boolean test(ProgramContext programContext) {

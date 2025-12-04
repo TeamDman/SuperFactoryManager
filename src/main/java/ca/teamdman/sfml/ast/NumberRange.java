@@ -2,12 +2,10 @@ package ca.teamdman.sfml.ast;
 
 import com.github.bsideup.jabel.Desugar;
 
-@Desugar
-public record NumberRange(
-                          long start,
-                          long end)
-        implements ASTNode {
-
+@Desugar public record NumberRange(
+        long start,
+        long end
+) implements ASTNode {
     public static final NumberRange MAX_RANGE = new NumberRange(Long.MIN_VALUE, Long.MAX_VALUE);
 
     /**

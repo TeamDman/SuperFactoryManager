@@ -26,23 +26,18 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.*;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
-import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.net.ServerboundDiskItemSetProgramPacket;
-import ca.teamdman.sfm.common.program.linting.ProgramLinter;
-import ca.teamdman.sfm.common.registry.SFMPackets;
-import ca.teamdman.sfm.common.util.SFMTranslationUtils;
-import ca.teamdman.sfml.ast.Program;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class DiskItem extends Item {
-
     public DiskItem() {
         super();
     }
@@ -52,8 +47,9 @@ public class DiskItem extends Item {
     }
 
     public static void setProgram(
-                                  ItemStack stack,
-                                  String program) {
+            ItemStack stack,
+            String program
+    ) {
         program = program.replaceAll("\r", "");
         if (stack
                 .getTagCompound() == null) {
@@ -62,6 +58,7 @@ public class DiskItem extends Item {
         stack
                 .getTagCompound()
                 .setString("sfm:program", program);
+
     }
 
     public static void pruneIfDefault(ItemStack stack) {
@@ -71,8 +68,9 @@ public class DiskItem extends Item {
     }
 
     public static @Nullable Program compileAndUpdateErrorsAndWarnings(
-                                                                      ItemStack stack,
-                                                                      @Nullable ManagerBlockEntity manager) {
+            ItemStack stack,
+            @Nullable ManagerBlockEntity manager
+    ) {
         if (manager != null) {
             manager.logger.info(x -> x.accept(LocalizationKeys.PROGRAM_COMPILE_FROM_DISK_BEGIN.get()));
         }
@@ -83,13 +81,15 @@ public class DiskItem extends Item {
                     ArrayList<TextComponentTranslation> warnings = ProgramLinter.gatherWarnings(
                             successProgram,
                             LabelPositionHolder.from(stack),
-                            manager);
+                            manager
+                    );
 
                     // Log to disk
                     if (manager != null) {
                         manager.logger.info(x -> x.accept(LocalizationKeys.PROGRAM_COMPILE_SUCCEEDED_WITH_WARNINGS.get(
                                 successProgram.name(),
-                                warnings.size())));
+                                warnings.size()
+                        )));
                         manager.logger.warn(warnings::forEach);
                     }
 
@@ -114,22 +114,26 @@ public class DiskItem extends Item {
                     // Update disk properties
                     setWarnings(stack, warnings);
                     setErrors(stack, errors);
-                });
+                }
+        );
         return rtn.get();
     }
 
     public static List<TextComponentTranslation> getErrors(ItemStack stack) {
-        return stack.getTagCompound() != null ? StreamSupport.stream(stack
-                .getTagCompound()
-                .getTagList("sfm:errors", Constants.NBT.TAG_COMPOUND).spliterator(), false)
+        return stack.getTagCompound() != null
+                ? StreamSupport.stream(stack
+                        .getTagCompound()
+                        .getTagList("sfm:errors", Constants.NBT.TAG_COMPOUND).spliterator(), false)
                 .map(NBTTagCompound.class::cast)
                 .map(SFMTranslationUtils::deserializeTranslation)
-                .collect(Collectors.toList()) : Collections.emptyList();
+                .collect(Collectors.toList())
+                : Collections.emptyList();
     }
 
     public static void setErrors(
-                                 ItemStack stack,
-                                 List<TextComponentTranslation> errors) {
+            ItemStack stack,
+            List<TextComponentTranslation> errors
+    ) {
         stack.setTagInfo(
                 "sfm:errors",
                 errors
@@ -143,7 +147,8 @@ public class DiskItem extends Item {
                             for (var t : b) {
                                 tag.appendTag(t);
                             }
-                        }));
+                        })
+        );
     }
 
     public static List<TextComponentTranslation> getWarnings(ItemStack stack) {
@@ -152,16 +157,18 @@ public class DiskItem extends Item {
         }
         assert stack.getTagCompound() != null;
         return StreamSupport.stream(stack
-                .getTagCompound()
-                .getTagList("sfm:warnings", Constants.NBT.TAG_COMPOUND).spliterator(), false)
+                        .getTagCompound()
+                        .getTagList("sfm:warnings", Constants.NBT.TAG_COMPOUND).spliterator(), false
+                )
                 .map(NBTTagCompound.class::cast)
                 .map(SFMTranslationUtils::deserializeTranslation)
                 .collect(Collectors.toList());
     }
 
     public static void setWarnings(
-                                   ItemStack stack,
-                                   List<TextComponentTranslation> warnings) {
+            ItemStack stack,
+            List<TextComponentTranslation> warnings
+    ) {
         stack.setTagInfo(
                 "sfm:warnings",
                 warnings
@@ -175,7 +182,8 @@ public class DiskItem extends Item {
                             for (var t : b) {
                                 tag.appendTag(t);
                             }
-                        }));
+                        })
+        );
     }
 
     public static String getProgramName(ItemStack stack) {
@@ -183,8 +191,9 @@ public class DiskItem extends Item {
     }
 
     public static void setProgramName(
-                                      ItemStack stack,
-                                      String name) {
+            ItemStack stack,
+            String name
+    ) {
         if (stack.getItem() instanceof DiskItem) {
             stack.setTagInfo("sfm:name", new NBTTagString(name));
         }
@@ -192,8 +201,7 @@ public class DiskItem extends Item {
 
     @NotNull
     @Override
-    public EnumActionResult onItemUse(EntityPlayer player, World worldIn, BlockPos pos, EnumHand hand,
-                                      EnumFacing facing, float hitX, float hitY, float hitZ) {
+    public EnumActionResult onItemUse(EntityPlayer player, World worldIn, BlockPos pos, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
         if (worldIn.isRemote) {
             var stack = player.getHeldItem(hand);
             SFMScreenChangeHelpers.showProgramEditScreen(new SFMTextEditScreenDiskOpenContext(
@@ -201,7 +209,9 @@ public class DiskItem extends Item {
                     LabelPositionHolder.from(stack),
                     newProgramString -> SFMPackets.sendToServer(new ServerboundDiskItemSetProgramPacket(
                             newProgramString,
-                            hand))));
+                            hand
+                    ))
+            ));
         }
         return super.onItemUse(player, worldIn, pos, hand, facing, hitX, hitY, hitZ);
     }
@@ -215,7 +225,9 @@ public class DiskItem extends Item {
                     LabelPositionHolder.from(stack),
                     newProgramString -> SFMPackets.sendToServer(new ServerboundDiskItemSetProgramPacket(
                             newProgramString,
-                            hand))));
+                            hand
+                    ))
+            ));
         }
         return ActionResult.newResult(EnumActionResult.SUCCESS, stack);
     }
@@ -231,29 +243,29 @@ public class DiskItem extends Item {
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> lines, ITooltipFlag flagIn) {
+       public void addInformation(ItemStack stack,            @Nullable World worldIn,            List<String> lines, ITooltipFlag flagIn) {
         super.addInformation(stack, worldIn, lines, flagIn);
 
         var program = getProgram(stack);
         if (SFMItemUtils.isClientAndMoreInfoKeyPressed() && !program.isEmpty()) {
-            lines.add(SFMItemUtils.getRainbow(super.getItemStackDisplayName(stack).length()).getFormattedText());
-            lines.addAll(ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false).stream().map(ITextComponent::getFormattedText).collect(Collectors.toList()));
+                       lines.add(SFMItemUtils.getRainbow(super.getItemStackDisplayName(stack).length()).getFormattedText());
+                       lines.addAll(ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false).stream().map(ITextComponent::getFormattedText).collect(Collectors.toList()));
         } else {
             lines.addAll(LabelPositionHolder.from(stack).asHoverText());
             getErrors(stack)
                     .stream()
-                    .map(line -> line.setStyle(line.getStyle().setColor(TextFormatting.RED)).getFormattedText())
+                                       .map(line -> line.setStyle(line.getStyle().setColor(TextFormatting.RED)).getFormattedText())
                     .forEach(lines::add);
             getWarnings(stack)
                     .stream()
-                    .map(line -> line.setStyle(line.getStyle().setColor(TextFormatting.YELLOW)).getFormattedText())
+                                       .map(line -> line.setStyle(line.getStyle().setColor(TextFormatting.YELLOW)).getFormattedText())
                     .forEach(lines::add);
             if (!program.isEmpty()) {
                 SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(lines);
             }
         }
         if (program.isEmpty()) {
-            lines.add(LocalizationKeys.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+                       lines.add(LocalizationKeys.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
         }
-    }
+       }
 }

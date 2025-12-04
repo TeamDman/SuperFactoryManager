@@ -1,37 +1,34 @@
 package com.bbscn;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 
-public class CommonComponents {
+import java.util.Arrays;
+import java.util.Collection;
 
+public class CommonComponents {
     public static final ITextComponent EMPTY = new TextComponentTranslation("");
-    public static final ITextComponent OPTION_ON = new TextComponentTranslation("options.on");
-    public static final ITextComponent OPTION_OFF = new TextComponentTranslation("options.off");
-    public static final ITextComponent GUI_DONE = new TextComponentTranslation("gui.done");
-    public static final ITextComponent GUI_CANCEL = new TextComponentTranslation("gui.cancel");
-    public static final ITextComponent GUI_YES = new TextComponentTranslation("gui.yes");
-    public static final ITextComponent GUI_NO = new TextComponentTranslation("gui.no");
-    public static final ITextComponent GUI_OK = new TextComponentTranslation("gui.ok");
-    public static final ITextComponent GUI_PROCEED = new TextComponentTranslation("gui.proceed");
-    public static final ITextComponent GUI_CONTINUE = new TextComponentTranslation("gui.continue");
-    public static final ITextComponent GUI_BACK = new TextComponentTranslation("gui.back");
-    public static final ITextComponent GUI_TO_TITLE = new TextComponentTranslation("gui.toTitle");
-    public static final ITextComponent GUI_ACKNOWLEDGE = new TextComponentTranslation("gui.acknowledge");
-    public static final ITextComponent GUI_OPEN_IN_BROWSER = new TextComponentTranslation("chat.link.open");
-    public static final ITextComponent GUI_COPY_LINK_TO_CLIPBOARD = new TextComponentTranslation(
-            "gui.copy_link_to_clipboard");
-    public static final ITextComponent GUI_DISCONNECT = new TextComponentTranslation("menu.disconnect");
-    public static final ITextComponent TRANSFER_CONNECT_FAILED = new TextComponentTranslation(
-            "connect.failed.transfer");
-    public static final ITextComponent CONNECT_FAILED = new TextComponentTranslation("connect.failed");
+    public static final ITextComponent OPTION_ON =new TextComponentTranslation("options.on");
+    public static final ITextComponent OPTION_OFF =new TextComponentTranslation("options.off");
+    public static final ITextComponent GUI_DONE =new TextComponentTranslation("gui.done");
+    public static final ITextComponent GUI_CANCEL =new TextComponentTranslation("gui.cancel");
+    public static final ITextComponent GUI_YES =new TextComponentTranslation("gui.yes");
+    public static final ITextComponent GUI_NO =new TextComponentTranslation("gui.no");
+    public static final ITextComponent GUI_OK =new TextComponentTranslation("gui.ok");
+    public static final ITextComponent GUI_PROCEED =new TextComponentTranslation("gui.proceed");
+    public static final ITextComponent GUI_CONTINUE =new TextComponentTranslation("gui.continue");
+    public static final ITextComponent GUI_BACK =new TextComponentTranslation("gui.back");
+    public static final ITextComponent GUI_TO_TITLE =new TextComponentTranslation("gui.toTitle");
+    public static final ITextComponent GUI_ACKNOWLEDGE =new TextComponentTranslation("gui.acknowledge");
+    public static final ITextComponent GUI_OPEN_IN_BROWSER =new TextComponentTranslation("chat.link.open");
+    public static final ITextComponent GUI_COPY_LINK_TO_CLIPBOARD =new TextComponentTranslation("gui.copy_link_to_clipboard");
+    public static final ITextComponent GUI_DISCONNECT =new TextComponentTranslation("menu.disconnect");
+    public static final ITextComponent TRANSFER_CONNECT_FAILED =new TextComponentTranslation("connect.failed.transfer");
+    public static final ITextComponent CONNECT_FAILED =new TextComponentTranslation("connect.failed");
     public static final ITextComponent NEW_LINE = new TextComponentString("\n");
-    public static final ITextComponent NARRATION_SEPARATOR = new TextComponentString(". ");
-    public static final ITextComponent ELLIPSIS = new TextComponentString("...");
+    public static final ITextComponent NARRATION_SEPARATOR =  new TextComponentString(". ");
+    public static final ITextComponent ELLIPSIS =  new TextComponentString("...");
     public static final ITextComponent SPACE = space();
 
     public static TextComponentString space() {

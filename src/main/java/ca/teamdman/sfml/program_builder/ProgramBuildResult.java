@@ -1,21 +1,19 @@
 package ca.teamdman.sfml.program_builder;
 
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
+import ca.teamdman.sfml.ast.Program;
+import com.github.bsideup.jabel.Desugar;
 import org.antlr.v4.runtime.Token;
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
-
-import ca.teamdman.sfml.ast.Program;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 @SuppressWarnings("UnusedReturnValue")
 @Desugar
 public record ProgramBuildResult(
-                                 @Nullable Program program,
-                                 ProgramMetadata metadata) {
-
+        @Nullable Program program,
+        ProgramMetadata metadata
+) {
     public boolean isBuildSuccessful() {
         return program != null && metadata.errors().isEmpty();
     }
@@ -36,7 +34,7 @@ public record ProgramBuildResult(
 
     public @Nullable Token getTokenAtCursorPosition(int cursorPos) {
         for (Token token : metadata().tokens().getTokens()) {
-            if (token.getStartIndex() <= cursorPos && token.getStopIndex() + 1 >= cursorPos) {
+            if (token.getStartIndex() <= cursorPos && token.getStopIndex()+1 >= cursorPos) {
                 return token;
             }
         }

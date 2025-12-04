@@ -1,6 +1,8 @@
 package ca.teamdman.sfml.ast;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.LOG_PROGRAM_TICK_FORGET_STATEMENT;
+import ca.teamdman.sfm.common.program.ProgramContext;
+import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import com.github.bsideup.jabel.Desugar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,16 +10,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.github.bsideup.jabel.Desugar;
-
-import ca.teamdman.sfm.common.program.ProgramContext;
-import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import static ca.teamdman.sfm.common.localization.LocalizationKeys.LOG_PROGRAM_TICK_FORGET_STATEMENT;
 
 @Desugar
 public record ForgetStatement(
-                              Set<Label> labelToForget)
-        implements Statement {
-
+        Set<Label> labelToForget
+) implements Statement {
     @Override
     public void tick(ProgramContext context) {
         List<InputStatement> newInputs = new ArrayList<>();
@@ -32,9 +30,11 @@ public record ForgetStatement(
                             newLabels,
                             oldInputStatement.labelAccess().directions(),
                             oldInputStatement.labelAccess().slots(),
-                            oldInputStatement.labelAccess().roundRobin()),
+                            oldInputStatement.labelAccess().roundRobin()
+                    ),
                     oldInputStatement.resourceLimits(),
-                    oldInputStatement.each());
+                    oldInputStatement.each()
+            );
             context.getProgram().astBuilder().setLocationFromOtherNode(newInputStatement, oldInputStatement);
             if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
                 simulation.onInputStatementForgetTransform(context, oldInputStatement, newInputStatement);
@@ -52,7 +52,8 @@ public record ForgetStatement(
         context.getInputs().clear();
         context.getInputs().addAll(newInputs);
         context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_FORGET_STATEMENT.get(
-                labelToForget.stream().map(Objects::toString).collect(Collectors.joining(", ")))));
+                labelToForget.stream().map(Objects::toString).collect(Collectors.joining(", "))
+        )));
     }
 
     @Override

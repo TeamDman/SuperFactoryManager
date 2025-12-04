@@ -1,5 +1,13 @@
 package ca.teamdman.sfm.client.handler;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.common.item.LabelGunItem;
+import ca.teamdman.sfm.common.net.ServerboundLabelGunCycleViewModePacket;
+import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
+import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.util.SFMHandUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
@@ -10,18 +18,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.client.registry.SFMKeyMappings;
-import ca.teamdman.sfm.common.item.LabelGunItem;
-import ca.teamdman.sfm.common.net.ServerboundLabelGunCycleViewModePacket;
-import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
-import ca.teamdman.sfm.common.registry.SFMItems;
-import ca.teamdman.sfm.common.registry.SFMPackets;
-import ca.teamdman.sfm.common.util.SFMHandUtils;
-
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.CLIENT)
 public class LabelGunKeyMappingHandler {
-
     private static final KeyState cycleViewKeyState = KeyState.idle();
     private static final KeyState nextLabelKeyState = KeyState.idle();
     private static final KeyState prevLabelKeyState = KeyState.idle();
@@ -69,8 +67,8 @@ public class LabelGunKeyMappingHandler {
             if (minecraft.currentScreen != null) return;
             EnumHand hand = SFMHandUtils.getHandHoldingItem(
                     player,
-                    SFMItems.LABEL_GUN_ITEM);
-            if (hand == null) return;
+                    SFMItems.LABEL_GUN_ITEM
+            );if (hand == null) return;
             // send packet to server to toggle mode
             SFMPackets.sendToServer(new ServerboundLabelGunCycleViewModePacket(hand));
         }

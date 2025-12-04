@@ -16,6 +16,7 @@ public record ClientboundManagerLogsPacket(
         int windowId,
         PacketBuffer logsBuf
 ) implements SFMPacket<ClientboundManagerLogsPacket> {
+
     public static ClientboundManagerLogsPacket drainToCreate(
             int windowId,
             Collection<TranslatableLogEvent> logs

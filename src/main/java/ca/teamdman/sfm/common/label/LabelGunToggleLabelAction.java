@@ -1,26 +1,22 @@
 package ca.teamdman.sfm.common.label;
 
-import java.util.HashSet;
-
+import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 
-import com.github.bsideup.jabel.Desugar;
+import java.util.HashSet;
 
-import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
-
-@Desugar
-public record LabelGunToggleLabelAction(
-                                        EntityPlayer player,
-                                        World level,
-                                        ServerboundLabelGunUsePacket msg,
-                                        ItemStack gunStack,
-                                        LabelPositionHolder gunLabels,
-                                        LabelGunPlanTargets targets,
-                                        String activeLabel)
-        implements LabelGunPlan {
-
+@Desugar public record LabelGunToggleLabelAction(
+        EntityPlayer player,
+        World level,
+        ServerboundLabelGunUsePacket msg,
+        ItemStack gunStack,
+        LabelPositionHolder gunLabels,
+        LabelGunPlanTargets targets,
+        String activeLabel
+) implements LabelGunPlan {
     @Override
     public void run() {
         // if any missing label, make all blocks have label, otherwise remove label from all those blocks
@@ -38,5 +34,6 @@ public record LabelGunToggleLabelAction(
         }
         // write changes to label gun
         gunLabels.save(gunStack);
+
     }
 }

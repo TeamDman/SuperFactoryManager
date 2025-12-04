@@ -1,7 +1,7 @@
 package com.bbscn;
 
-import javax.annotation.Nullable;
-
+import ca.teamdman.sfm.client.widget.Tooltip;
+import ca.teamdman.sfm.client.widget.WidgetTooltipHolder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.gui.FontRenderer;
@@ -9,11 +9,9 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.util.text.ITextComponent;
 
-import ca.teamdman.sfm.client.widget.Tooltip;
-import ca.teamdman.sfm.client.widget.WidgetTooltipHolder;
+import javax.annotation.Nullable;
 
 public abstract class AbstractWidget extends Gui implements GuiEventListener, Renderable {
-
     protected int width;
     protected int height;
     protected int x;
@@ -55,8 +53,7 @@ public abstract class AbstractWidget extends Gui implements GuiEventListener, Re
         this.isHovered = mouseX >= x && mouseY >= y && mouseX < x + width && mouseY < y + height;
         this.renderWidget(mouseX, mouseY, partialTicks);
         if (tooltip.get() != null) {
-            this.tooltip.refreshTooltipForNextRenderPass(this.isHovered(), this.isFocused(),
-                    new ScreenRectangle(x, y, width, height));
+            this.tooltip.refreshTooltipForNextRenderPass(this.isHovered(), this.isFocused(), new ScreenRectangle(x, y, width, height));
         }
     }
 
@@ -72,11 +69,14 @@ public abstract class AbstractWidget extends Gui implements GuiEventListener, Re
         return false;
     }
 
-    protected void onClick(int mouseX, int mouseY, int button) {}
+    protected void onClick(int mouseX, int mouseY, int button) {
+    }
 
-    public void onRelease(int pMouseX, int pMouseY) {}
+    public void onRelease(int pMouseX, int pMouseY) {
+    }
 
-    protected void onDrag(int pMouseX, int pMouseY, int pDragX, int pDragY) {}
+    protected void onDrag(int pMouseX, int pMouseY, int pDragX, int pDragY) {
+    }
 
     protected boolean isValidClickButton(int button) {
         return button == 0;
@@ -176,8 +176,7 @@ public abstract class AbstractWidget extends Gui implements GuiEventListener, Re
         renderScrollingString(pFont, this.getMessage(), i, this.getY(), j, this.getY() + this.getHeight(), pColor);
     }
 
-    private static void renderScrollingString(FontRenderer pFont, ITextComponent pText, int pCenterX, int pMinX,
-                                              int pMinY, int pMaxX, int pMaxY, int pColor) {
+    private static void renderScrollingString(FontRenderer pFont, ITextComponent pText, int pCenterX, int pMinX, int pMinY, int pMaxX, int pMaxY, int pColor) {
         int i = pFont.getStringWidth(pText.getUnformattedText());
         int j = (pMinY + pMaxY - 9) / 2 + 1;
         int k = pMaxX - pMinX;
@@ -195,8 +194,8 @@ public abstract class AbstractWidget extends Gui implements GuiEventListener, Re
         }
     }
 
-    public static void renderScrollingString(FontRenderer pFont, ITextComponent pText, int pMinX, int pMinY, int pMaxX,
-                                             int pMaxY, int pColor) {
+    public static void renderScrollingString(FontRenderer pFont, ITextComponent pText, int pMinX, int pMinY, int pMaxX, int pMaxY, int pColor
+    ) {
         renderScrollingString(pFont, pText, (pMinX + pMaxX) / 2, pMinX, pMinY, pMaxX, pMaxY, pColor);
     }
 }

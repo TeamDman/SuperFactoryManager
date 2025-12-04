@@ -1,17 +1,15 @@
 package ca.teamdman.sfml.ast;
 
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.util.Pair;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import net.minecraft.util.math.BlockPos;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import net.minecraft.util.math.BlockPos;
-
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.util.Pair;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-
 public class RoundRobin implements ASTNode {
-
     private final Behaviour behaviour;
     private int nextIndex = 0;
 
@@ -46,8 +44,9 @@ public class RoundRobin implements ASTNode {
     }
 
     public ArrayList<Pair<Label, BlockPos>> getPositionsForLabels(
-                                                                  List<Label> labels,
-                                                                  LabelPositionHolder labelPositionHolder) {
+            List<Label> labels,
+            LabelPositionHolder labelPositionHolder
+    ) {
         ArrayList<Pair<Label, BlockPos>> positions = new ArrayList<>();
         switch (getBehaviour()) {
             case BY_LABEL -> {

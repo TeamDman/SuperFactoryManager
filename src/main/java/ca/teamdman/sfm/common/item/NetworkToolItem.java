@@ -1,10 +1,12 @@
 package ca.teamdman.sfm.common.item;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
+import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
+import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.net.ServerboundNetworkToolUsePacket;
+import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -21,50 +23,46 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-
 import org.jetbrains.annotations.Nullable;
 
-import ca.teamdman.sfm.client.registry.SFMKeyMappings;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.net.ServerboundNetworkToolUsePacket;
-import ca.teamdman.sfm.common.registry.SFMPackets;
-import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class NetworkToolItem extends Item {
-
     public NetworkToolItem() {
         super();
         setMaxStackSize(1);
     }
 
     @Override
-    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
-                                           float hitY, float hitZ, EnumHand hand) {
+    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, EnumHand hand) {
         if (!world.isRemote) return EnumActionResult.SUCCESS;
         SFMPackets.sendToServer(new ServerboundNetworkToolUsePacket(
                 pos,
-                side));
+                side
+        ));
         return EnumActionResult.SUCCESS;
     }
 
-    @Override
+        @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(
-                               ItemStack stack,
-                               @Nullable World level,
-                               List<String> lines,
-                               ITooltipFlag detail) {
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_1.getComponent()
-                .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_2.getComponent()
-                .setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+            ItemStack stack,
+            @Nullable World level,
+            List<String> lines,
+            ITooltipFlag detail
+    ) {
+        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_1.getComponent().setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
+        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_2.getComponent().setStyle(new Style().setColor(TextFormatting.GRAY)).getFormattedText());
         lines.add(
                 LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_3
                         .getComponent(SFMKeyMappings.CONTAINER_INSPECTOR_KEY.getDisplayName())
-                        .setStyle(new Style().setColor(TextFormatting.AQUA)).getFormattedText());
+                        .setStyle(new Style().setColor(TextFormatting.AQUA)).getFormattedText()
+        );
     }
+
 
     @Override
     public void onUpdate(ItemStack pStack, World pLevel, Entity pEntity, int pSlotId, boolean pIsSelected) {
@@ -89,6 +87,7 @@ public class NetworkToolItem extends Item {
         setCapabilityProviderPositions(pStack, capabilityProviderPositions);
     }
 
+
     public static boolean getOverlayEnabled(ItemStack stack) {
         if (stack.getTagCompound() == null) {
             return true;
@@ -97,44 +96,49 @@ public class NetworkToolItem extends Item {
     }
 
     public static void setOverlayEnabled(
-                                         ItemStack stack,
-                                         boolean value) {
+            ItemStack stack,
+            boolean value
+    ) {
         if (value) {
             if (stack.getTagCompound() != null) {
                 stack.getTagCompound().removeTag("sfm:network_tool_overlay_disabled");
             }
         } else {
-            stack.setTagInfo("sfm:network_tool_overlay_disabled", new NBTTagByte((byte) 1));
+            stack.setTagInfo("sfm:network_tool_overlay_disabled", new NBTTagByte((byte)1));
         }
     }
 
     public static void setCablePositions(
-                                         ItemStack stack,
-                                         Set<BlockPos> positions) {
+            ItemStack stack,
+            Set<BlockPos> positions
+    ) {
         stack.setTagInfo(
                 "sfm:cable_positions",
-                CompressedBlockPosSet.from(positions).asTag());
+                CompressedBlockPosSet.from(positions).asTag()
+        );
     }
 
     public static Set<BlockPos> getCablePositions(ItemStack stack) {
-        if (stack.getTagCompound() != null &&
-                stack.getTagCompound().getTag("sfm:cable_positions") instanceof NBTTagByteArray byteArrayTag) {
+        if (stack.getTagCompound() != null
+                && stack.getTagCompound().getTag("sfm:cable_positions") instanceof NBTTagByteArray byteArrayTag) {
             return CompressedBlockPosSet.from(byteArrayTag).into();
         }
         return Collections.emptySet();
     }
 
     public static void setCapabilityProviderPositions(
-                                                      ItemStack stack,
-                                                      Set<BlockPos> positions) {
+            ItemStack stack,
+            Set<BlockPos> positions
+    ) {
         stack.setTagInfo(
                 "sfm:capability_provider_positions",
-                CompressedBlockPosSet.from(positions).asTag());
+                CompressedBlockPosSet.from(positions).asTag()
+        );
     }
 
     public static Set<BlockPos> getCapabilityProviderPositions(ItemStack stack) {
-        if (stack.getTagCompound() != null && stack.getTagCompound()
-                .getTag("sfm:capability_provider_positions") instanceof NBTTagByteArray byteArrayTag) {
+        if (stack.getTagCompound() != null
+                && stack.getTagCompound().getTag("sfm:capability_provider_positions") instanceof NBTTagByteArray byteArrayTag) {
             return CompressedBlockPosSet.from(byteArrayTag).into();
         }
         return Collections.emptySet();

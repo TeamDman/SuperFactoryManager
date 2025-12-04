@@ -1,8 +1,7 @@
 package vswe.superfactory.blocks;
 
 public interface ITriggerNode {
+	int[] getData();
 
-    int[] getData();
-
-    int[] getOldData();
+	int[] getOldData();
 }

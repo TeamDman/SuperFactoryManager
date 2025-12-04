@@ -12,17 +12,13 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
-
 import org.jetbrains.annotations.Nullable;
 
-import ca.teamdman.sfm.common.block.BufferBlock;
-import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
-import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
-import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import ca.teamdman.sfm.common.util.Mth;
+import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Stream;
 
 public class FluidResourceType extends ResourceType<Optional<FluidStack>, Optional<Fluid>, IFluidHandler> {
-
     public FluidResourceType(ResourceTypeContainer container) {
         super(container, SFMWellKnownCapabilities.FLUID_HANDLER);
     }
@@ -40,6 +36,7 @@ public class FluidResourceType extends ResourceType<Optional<FluidStack>, Option
     @Override
     public Stream<ResourceLocation> getTagsForStack(Optional<FluidStack> fluidStack) {
         return Stream.empty();
+        //noinspection deprecation
     }
 
     @Override
@@ -91,7 +88,6 @@ public class FluidResourceType extends ResourceType<Optional<FluidStack>, Option
     @Override
     public IFluidHandler createHandlerForBufferBlock(BufferBlockEntityContents contents) {
         return new FluidTank(contents.tier.getIntMaxStackSize()) {
-
             @Override
             public int fillInternal(FluidStack resource, boolean doFill) {
                 int ret = super.fillInternal(resource, doFill);
@@ -119,7 +115,8 @@ public class FluidResourceType extends ResourceType<Optional<FluidStack>, Option
                                         IFluidHandler handler,
                                         int slot,
                                         long amount_long,
-                                        boolean simulate) {
+                                        boolean simulate
+    ) {
         var optional = getStackInSlot(handler, slot);
         if (!optional.isPresent()) {
             return optional;
@@ -128,7 +125,8 @@ public class FluidResourceType extends ResourceType<Optional<FluidStack>, Option
         var toExtract = new FluidStack(
                 in.getFluid(),
                 (int) Mth.clamp(amount_long, Integer.MIN_VALUE, Integer.MAX_VALUE),
-                in.tag);
+                in.tag
+        );
         return Optional.ofNullable(handler.drain(toExtract, !simulate));
     }
 

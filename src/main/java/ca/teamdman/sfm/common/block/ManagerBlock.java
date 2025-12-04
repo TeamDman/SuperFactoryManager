@@ -31,7 +31,6 @@ import ca.teamdman.sfm.common.program.linting.ProgramLinter;
 import vswe.superfactory.SuperFactoryManager;
 
 public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEntityProvider {
-
     public static final PropertyBool TRIGGERED = PropertyBool.create("triggered");
 
     public ManagerBlock() {
@@ -86,9 +85,9 @@ public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEn
         }
     }
 
+
     @Override
-    public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand,
-                                    EnumFacing facing, float hitX, float hitY, float hitZ) {
+    public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
         if (!world.isRemote) {
             TileEntity te = world.getTileEntity(pos);
             if (te instanceof ManagerBlockEntity manager) {
@@ -99,11 +98,11 @@ public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEn
                     if (program != null) {
                         DiskItem.setWarnings(
                                 disk,
-                                ProgramLinter.gatherWarnings(program, LabelPositionHolder.from(disk), manager));
+                                ProgramLinter.gatherWarnings(program, LabelPositionHolder.from(disk), manager)
+                        );
                     }
                 }
-                player.openGui(SFM.instance, CommonProxy.GuiType.PROVIDER.ordinal(), world, pos.getX(), pos.getY(),
-                        pos.getZ());
+                player.openGui(SFM.instance, CommonProxy.GuiType.PROVIDER.ordinal(), world, pos.getX(), pos.getY(), pos.getZ());
             }
         }
         return true;

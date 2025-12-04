@@ -1,43 +1,44 @@
 package ca.teamdman.sfm.common.capability;
 
-import java.util.ArrayList;
-
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
+import ca.teamdman.sfm.common.cablenetwork.SFMBlockCapabilityCacheForLevel;
+import ca.teamdman.sfm.common.registry.SFMGlobalBlockCapabilityProviders;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-
 import org.jetbrains.annotations.Nullable;
 
-import ca.teamdman.sfm.common.registry.SFMGlobalBlockCapabilityProviders;
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import java.util.ArrayList;
 
 /// This cache is for reducing duplicate computation when looking up capabilities by kind.
-/// The first time a capability kind is requested, we identify the {@link SFMBlockCapabilityProvider} that match and
-/// sort them by priority.
-/// The capabilities for stochastic {@link ManagerBlockEntity} operations are cached in the {@link CableNetwork} using a
-/// {@link SFMBlockCapabilityCacheForLevel}.
+/// The first time a capability kind is requested, we identify the {@link SFMBlockCapabilityProvider} that match and sort them by priority.
+/// The capabilities for stochastic {@link ManagerBlockEntity} operations are cached in the {@link CableNetwork} using a {@link SFMBlockCapabilityCacheForLevel}.
 public class SFMBlockCapabilityProviderDiscovery {
-
-    private static final Object2ObjectOpenHashMap<SFMBlockCapabilityKind<?>, ArrayList<SFMBlockCapabilityProvider<?>>> BLOCK_CAPABILITY_PROVIDERS_BY_KIND = new Object2ObjectOpenHashMap<>();
+    private static final Object2ObjectOpenHashMap<SFMBlockCapabilityKind<?>, ArrayList<SFMBlockCapabilityProvider<?>>>
+            BLOCK_CAPABILITY_PROVIDERS_BY_KIND = new Object2ObjectOpenHashMap<>();
 
     @MCVersionDependentBehaviour
     public static <CAP> SFMBlockCapabilityResult<CAP> getCapabilityFromLevel(
-                                                                             SFMBlockCapabilityKind<CAP> capKind,
-                                                                             World level,
-                                                                             BlockPos pos,
-                                                                             IBlockState blockState,
-                                                                             TileEntity blockEntity,
-                                                                             @Nullable EnumFacing direction) {
+            SFMBlockCapabilityKind<CAP> capKind,
+            World level,
+            BlockPos pos,
+            IBlockState blockState,
+            TileEntity blockEntity,
+            @Nullable EnumFacing direction
+    ) {
         for (var capabilityProviderMapper : getCapabilityProvidersForKindFast(capKind)) {
             var capability = capabilityProviderMapper.getCapability(
                     capKind, level,
                     pos,
                     blockState,
                     blockEntity,
-                    direction);
+                    direction
+            );
             if (capability.isPresent()) {
                 return capability;
             }
@@ -45,18 +46,20 @@ public class SFMBlockCapabilityProviderDiscovery {
         return SFMBlockCapabilityResult.empty();
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static <CAP> ArrayList<SFMBlockCapabilityProvider<CAP>> getCapabilityProvidersForKindFast(
-                                                                                                     SFMBlockCapabilityKind<CAP> capabilityKind) {
-        return (ArrayList<SFMBlockCapabilityProvider<CAP>>) (ArrayList) BLOCK_CAPABILITY_PROVIDERS_BY_KIND
-                .computeIfAbsent(
-                        capabilityKind,
-                        __ -> (ArrayList<SFMBlockCapabilityProvider<?>>) (ArrayList) getCapabilityProvidersForKind(
-                                capabilityKind));
+            SFMBlockCapabilityKind<CAP> capabilityKind
+    ) {
+        return (ArrayList<SFMBlockCapabilityProvider<CAP>>) (ArrayList) BLOCK_CAPABILITY_PROVIDERS_BY_KIND.computeIfAbsent(
+                capabilityKind,
+                __ -> (ArrayList<SFMBlockCapabilityProvider<?>>) (ArrayList)
+                        getCapabilityProvidersForKind(capabilityKind)
+        );
     }
 
     private static <CAP> ArrayList<SFMBlockCapabilityProvider<CAP>> getCapabilityProvidersForKind(
-                                                                                                  SFMBlockCapabilityKind<CAP> capabilityKind) {
+            SFMBlockCapabilityKind<CAP> capabilityKind
+    ) {
         ArrayList<SFMBlockCapabilityProvider<CAP>> rtn = new ArrayList<>();
         for (SFMBlockCapabilityProvider<?> mapper : SFMGlobalBlockCapabilityProviders.getAllProviders()) {
             if (mapper.matchesCapabilityKind(capabilityKind)) {
@@ -68,4 +71,5 @@ public class SFMBlockCapabilityProviderDiscovery {
         }
         return rtn;
     }
+
 }

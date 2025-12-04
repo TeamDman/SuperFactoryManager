@@ -1,11 +1,6 @@
 package com.bbscn;
 
-import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
-import javax.annotation.Nullable;
-
+import ca.teamdman.sfm.SFM;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
@@ -15,18 +10,19 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
-import ca.teamdman.sfm.SFM;
+import javax.annotation.Nullable;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @SideOnly(Side.CLIENT)
 public class EditBox extends AbstractWidget implements Renderable {
-
     private static final WidgetSprites SPRITES = new WidgetSprites(
-            new ResourceLocation(SFM.MOD_ID, "widget/text_field.png"),
-            new ResourceLocation(SFM.MOD_ID, "widget/text_field_highlighted.png"));
+        new ResourceLocation(SFM.MOD_ID,"widget/text_field.png"),new ResourceLocation(SFM.MOD_ID,"widget/text_field_highlighted.png")
+    );
     public static final int BACKWARDS = -1;
     public static final int FORWARDS = 1;
     private static final int CURSOR_INSERT_WIDTH = 1;
@@ -81,8 +77,7 @@ public class EditBox extends AbstractWidget implements Renderable {
         this(pFont, pX, pY, pWidth, pHeight, null, pMessage);
     }
 
-    public EditBox(FontRenderer pFont, int pX, int pY, int pWidth, int pHeight, @Nullable EditBox pEditBox,
-                   ITextComponent pMessage) {
+    public EditBox(FontRenderer pFont, int pX, int pY, int pWidth, int pHeight, @Nullable EditBox pEditBox, ITextComponent pMessage) {
         super(pX, pY, pWidth, pHeight, pMessage);
         this.font = pFont;
         if (pEditBox != null) {
@@ -93,6 +88,7 @@ public class EditBox extends AbstractWidget implements Renderable {
     public void setResponder(Consumer<String> pResponder) {
         this.responder = pResponder;
     }
+
 
     /**
      * Sets the text of the textbox, and moves the cursor to the end.
@@ -169,8 +165,7 @@ public class EditBox extends AbstractWidget implements Renderable {
     }
 
     /**
-     * Deletes the given number of words from the current cursor's position, unless there is currently a selection, in
-     * which case the selection is deleted instead.
+     * Deletes the given number of words from the current cursor's position, unless there is currently a selection, in which case the selection is deleted instead.
      */
     public void deleteWords(int pNum) {
         if (!this.value.isEmpty()) {
@@ -183,8 +178,7 @@ public class EditBox extends AbstractWidget implements Renderable {
     }
 
     /**
-     * Deletes the given number of characters from the current cursor's position, unless there is currently a selection,
-     * in which case the selection is deleted instead.
+     * Deletes the given number of characters from the current cursor's position, unless there is currently a selection, in which case the selection is deleted instead.
      */
     public void deleteChars(int pNum) {
         this.deleteCharsToPos(this.getCursorPos(pNum));
@@ -288,7 +282,6 @@ public class EditBox extends AbstractWidget implements Renderable {
     /**
      * Called when a keyboard key is pressed within the GUI element.
      * <p>
-     * 
      * @return {@code true} if the event is consumed, {@code false} otherwise.
      *
      * @param pKeyCode   the key code of the pressed key.
@@ -313,38 +306,31 @@ public class EditBox extends AbstractWidget implements Renderable {
 
                 case Keyboard.KEY_RIGHT:  // 262 -> 右箭头
                     if (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)) {
-                        this.moveCursorTo(this.getWordPosition(1),
-                                Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
+                        this.moveCursorTo(this.getWordPosition(1), Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
                     } else {
-                        this.moveCursor(1,
-                                Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
+                        this.moveCursor(1, Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
                     }
                     return true;
 
                 case Keyboard.KEY_LEFT:  // 263 -> 左箭头
                     if (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)) {
-                        this.moveCursorTo(this.getWordPosition(-1),
-                                Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
+                        this.moveCursorTo(this.getWordPosition(-1), Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
                     } else {
-                        this.moveCursor(-1,
-                                Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
+                        this.moveCursor(-1, Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
                     }
                     return true;
 
                 case Keyboard.KEY_HOME:  // 268 -> Home
-                    this.moveCursorToStart(
-                            Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
+                    this.moveCursorToStart(Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
                     return true;
 
                 case Keyboard.KEY_END:  // 269 -> End
-                    this.moveCursorToEnd(
-                            Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
+                    this.moveCursorToEnd(Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
                     return true;
 
                 default:
                     // 处理组合键（Ctrl+A/C/V/X）
-                    boolean ctrlDown = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) ||
-                            Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+                    boolean ctrlDown = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
 
                     // Ctrl+A (全选)
                     if (ctrlDown && pKeyCode == Keyboard.KEY_A) {
@@ -385,7 +371,6 @@ public class EditBox extends AbstractWidget implements Renderable {
     /**
      * Called when a character is typed within the GUI element.
      * <p>
-     * 
      * @return {@code true} if the event is consumed, {@code false} otherwise.
      *
      * @param pCodePoint the code point of the typed character.
@@ -407,7 +392,7 @@ public class EditBox extends AbstractWidget implements Renderable {
     }
 
     @Override
-    public void onClick(int pMouseX, int pMouseY, int button) {
+    public void onClick(int pMouseX, int pMouseY,int button) {
         int i = (int) (Math.floor(pMouseX) - this.getX());
         if (this.bordered) {
             i -= 4;
@@ -418,29 +403,29 @@ public class EditBox extends AbstractWidget implements Renderable {
     }
 
     @Override
-    public void playDownSound(Minecraft mc) {}
+    public void playDownSound(Minecraft mc) {
+    }
 
     @Override
-    public void renderWidget(int pMouseX, int pMouseY, float pPartialTick) {
+    public void renderWidget( int pMouseX, int pMouseY, float pPartialTick) {
         if (this.isVisible()) {
             if (this.isBordered()) {
                 ResourceLocation resourcelocation = SPRITES.get(this.isActive(), this.isFocused());
-                Tools.blitSprite(resourcelocation, this.x, this.y, this.width, this.height);
+                Tools.blitSprite(resourcelocation,this.x, this.y, this.width, this.height);
             }
 
             int l1 = this.isEditable ? this.textColor : this.textColorUneditable;
             int i = this.cursorPos - this.displayPos;
             String s = this.font.trimStringToWidth(this.value.substring(this.displayPos), this.getInnerWidth());
             boolean flag = i >= 0 && i <= s.length();
-            boolean flag1 = this.isFocused() && (Minecraft.getSystemTime() - this.focusedTime) / 300L % 2L == 0L &&
-                    flag;
+            boolean flag1 = this.isFocused() && (Minecraft.getSystemTime() - this.focusedTime) / 300L % 2L == 0L && flag;
             int j = this.bordered ? this.getX() + 4 : this.getX();
             int k = this.bordered ? this.getY() + (this.height - 8) / 2 : this.getY();
             int l = j;
             int i1 = Tools.clamp(this.highlightPos - this.displayPos, 0, s.length());
             if (!s.isEmpty()) {
                 String s1 = flag ? s.substring(0, i) : s;
-                l = font.drawString(s1, j, k, l1, this.textShadow);
+                l=font.drawString( s1,j, k, l1, this.textShadow);
             }
 
             boolean flag2 = this.cursorPos < this.value.length() || this.value.length() >= this.getMaxLength();
@@ -457,18 +442,18 @@ public class EditBox extends AbstractWidget implements Renderable {
             }
 
             if (this.hint != null && s.isEmpty() && !this.isFocused()) {
-                font.drawString(this.hint.getUnformattedText(), l, k, l1, this.textShadow);
+                font.drawString( this.hint.getUnformattedText(), l, k, l1, this.textShadow);
             }
 
             if (!flag2 && this.suggestion != null) {
-                font.drawString(this.suggestion, j1 - 1, k, -8355712, this.textShadow);
+                font.drawString( this.suggestion, j1 - 1, k, -8355712, this.textShadow);
             }
 
             if (flag1) {
                 if (flag2) {
                     Gui.drawRect(j1, k - 1, j1 + 1, k + 1 + 9, -3092272);
                 } else {
-                    renderCursor(j1, k, l1);
+                    renderCursor(j1, k,l1);
                     font.drawString("_", j1, k, l1, true);
                 }
             }
@@ -508,7 +493,7 @@ public class EditBox extends AbstractWidget implements Renderable {
         GlStateManager.popMatrix();
     }
 
-    private void renderHighlight(int pMinX, int pMinY, int pMaxX, int pMaxY) {
+    private void renderHighlight( int pMinX, int pMinY, int pMaxX, int pMaxY) {
         if (pMinX < pMaxX) {
             int i = pMinX;
             pMinX = pMaxX;
@@ -533,8 +518,7 @@ public class EditBox extends AbstractWidget implements Renderable {
     }
 
     /**
-     * Sets the maximum length for the text in this text box. If the current text is longer than this length, the
-     * current text will be trimmed.
+     * Sets the maximum length for the text in this text box. If the current text is longer than this length, the current text will be trimmed.
      */
     public void setMaxLength(int pLength) {
         this.maxLength = pLength;
@@ -608,8 +592,7 @@ public class EditBox extends AbstractWidget implements Renderable {
     }
 
     /**
-     * Sets the position of the selection anchor (the selection anchor and the cursor position mark the edges of the
-     * selection). If the anchor is set beyond the bounds of the current text, it will be put back inside.
+     * Sets the position of the selection anchor (the selection anchor and the cursor position mark the edges of the selection). If the anchor is set beyond the bounds of the current text, it will be put back inside.
      */
     public void setHighlightPos(int pPosition) {
         this.highlightPos = Tools.clamp(pPosition, 0, this.value.length());
@@ -659,10 +642,9 @@ public class EditBox extends AbstractWidget implements Renderable {
     }
 
     public int getScreenX(int pCharNum) {
-        return pCharNum > this.value.length() ? this.getX() :
-                this.getX() + this.font.getStringWidth(this.value.substring(0, pCharNum));
+        return pCharNum > this.value.length() ? this.getX() : this.getX() + this.font.getStringWidth(this.value.substring(0, pCharNum));
     }
-
+    
     public void setHint(ITextComponent pHint) {
         this.hint = pHint;
     }

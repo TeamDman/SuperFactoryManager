@@ -1,7 +1,6 @@
 package ca.teamdman.sfml.manipulation;
 
 public class ProgramStringManipulationUtils {
-
     private static int findLineStart(String content, int cursorPos) {
         while (cursorPos > 0 && content.charAt(cursorPos - 1) != '\n') {
             cursorPos--;
@@ -21,8 +20,7 @@ public class ProgramStringManipulationUtils {
      *
      * @param content            The content to indent
      * @param cursorPos          The index within the string of the cursor
-     * @param selectionCursorPos The index within the string of the selection cursor. If equal to cursorPosition, no
-     *                           selection is present.
+     * @param selectionCursorPos The index within the string of the selection cursor. If equal to cursorPosition, no selection is present.
      * @return The indented content, and the new cursor and selection cursor positions
      */
     public static ManipulationResult indent(String content, int cursorPos, int selectionCursorPos) {
@@ -58,8 +56,7 @@ public class ProgramStringManipulationUtils {
      *
      * @param content            The content to deindent
      * @param cursorPos          The index within the string of the cursor
-     * @param selectionCursorPos The index within the string of the selection cursor. If equal to cursorPosition, no
-     *                           selection is present.
+     * @param selectionCursorPos The index within the string of the selection cursor. If equal to cursorPosition, no selection is present.
      * @return The deindented content, and the new cursor and selection cursor positions
      */
     public static ManipulationResult deindent(String content, int cursorPos, int selectionCursorPos) {
@@ -88,10 +85,9 @@ public class ProgramStringManipulationUtils {
      * If the selection contains a line not starting with "--", prepend each line with "--"
      * If all lines in the selection start with "--", trim "--" from the start of each line
      *
-     * @param content            The content in the buffer
-     * @param cursorPos          The index within the content for the cursor position
-     * @param selectionCursorPos The index within the content for the selection cursor. If equal to cursorPosition, no
-     *                           selection is present.
+     * @param content The content in the buffer
+     * @param cursorPos The index within the content for the cursor position
+     * @param selectionCursorPos The index within the content for the selection cursor. If equal to cursorPosition, no selection is present.
      * @return The modified content, and the new cursor positions accommodating the shifting of said content
      */
     public static ManipulationResult toggleComments(String content, int cursorPos, int selectionCursorPos) {

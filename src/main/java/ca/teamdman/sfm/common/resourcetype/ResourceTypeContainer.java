@@ -28,10 +28,9 @@ import ca.teamdman.sfml.ast.*;
 
 public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<ResourceTypeContainer> {
 
-    public abstract ResourceType<?, ?, ?> get();
+    public abstract ResourceType<?,?,?> get();
 
     public abstract static class ResourceType<STACK, ITEM, CAP> {
-
         public final ResourceTypeContainer container;
         public final SFMBlockCapabilityKind<CAP> CAPABILITY_KIND;
 
@@ -47,7 +46,7 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof ResourceType<?, ?, ?>that)) return false;
+            if (!(o instanceof ResourceType<?, ?, ?> that)) return false;
             return Objects.equals(CAPABILITY_KIND, that.CAPABILITY_KIND);
         }
 
@@ -59,8 +58,7 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
         /// Creates a new empty handler for use in a {@link BufferBlockEntityContents}.
         /// This handler should only accept items when the buffer is empty or when the handler is already not empty.
         ///
-        /// Note that in the implementations, we always check if this.hasAnything() before contents.isEmpty() since the
-        /// former
+        /// Note that in the implementations, we always check if this.hasAnything() before contents.isEmpty() since the former
         /// should be a less expensive check.
         public abstract CAP createHandlerForBufferBlock(BufferBlockEntityContents contents);
 
@@ -79,37 +77,42 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
          * Some resource types may exceed MAX_LONG, this method should be used to get the difference between two stacks
          */
         public long getAmountDifference(
-                                        STACK stack1,
-                                        STACK stack2) {
+                STACK stack1,
+                STACK stack2
+        ) {
             return getAmount(stack1) - getAmount(stack2);
         }
 
         public abstract STACK getStackInSlot(
-                                             CAP cap,
-                                             int slot);
+                CAP cap,
+                int slot
+        );
 
         public abstract STACK extract(
-                                      CAP cap,
-                                      int slot,
-                                      long amount,
-                                      boolean simulate);
+                CAP cap,
+                int slot,
+                long amount,
+                boolean simulate
+        );
 
         public abstract int getSlots(CAP handler);
 
         public abstract long getMaxStackSize(STACK stack);
 
         public abstract long getMaxStackSizeForSlot(
-                                                    CAP cap,
-                                                    int slot);
+                CAP cap,
+                int slot
+        );
 
         /**
          * @return the remainder, what was not inserted
          */
         public abstract STACK insert(
-                                     CAP cap,
-                                     int slot,
-                                     STACK stack,
-                                     boolean simulate);
+                CAP cap,
+                int slot,
+                STACK stack,
+                boolean simulate
+        );
 
         public abstract boolean isEmpty(STACK stack);
 
@@ -119,11 +122,11 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
         public abstract boolean matchesStackType(Object o);
 
         public boolean matchesStack(
-                                    ResourceIdentifier<STACK, ITEM, CAP> resourceId,
-                                    Object stack) {
+                ResourceIdentifier<STACK, ITEM, CAP> resourceId,
+                Object stack
+        ) {
             if (!matchesStackType(stack)) return false;
-            @SuppressWarnings("unchecked")
-            STACK stack_ = (STACK) stack;
+            @SuppressWarnings("unchecked") STACK stack_ = (STACK) stack;
             if (isEmpty(stack_)) return false;
             var stackId = getRegistryKeyForStack(stack_);
             return resourceId.matchesResourceLocation(stackId);
@@ -133,16 +136,18 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
         public abstract boolean matchesCapabilityHandler(Object o);
 
         public void forEachCapability(
-                                      ProgramContext programContext,
-                                      LabelAccess labelAccess,
-                                      CapabilityConsumer<CAP> consumer) {
+                ProgramContext programContext,
+                LabelAccess labelAccess,
+                CapabilityConsumer<CAP> consumer
+        ) {
             // Log
             programContext
                     .getLogger()
                     .trace(x -> x.accept(LocalizationKeys.LOG_RESOURCE_TYPE_GET_CAPABILITIES_BEGIN.get(
                             displayAsCode(),
                             displayAsCapabilityClass(),
-                            labelAccess)));
+                            labelAccess
+                    )));
 
             DirectionQualifier directions = labelAccess.directions();
             LabelPositionHolder labelPositionHolder = programContext.getLabelPositionHolder();
@@ -155,15 +160,17 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
                         programContext,
                         directions,
                         pos,
-                        (dir, cap) -> consumer.accept(label, pos, dir, cap));
+                        (dir, cap) -> consumer.accept(label, pos, dir, cap)
+                );
             }
         }
 
         public void forEachDirectionalCapability(
-                                                 ProgramContext programContext,
-                                                 DirectionQualifier directions,
-                                                 @Stored BlockPos pos,
-                                                 BiConsumer<EnumFacing, CAP> consumer) {
+                ProgramContext programContext,
+                DirectionQualifier directions,
+                @Stored BlockPos pos,
+                BiConsumer<EnumFacing, CAP> consumer
+        ) {
             for (EnumFacing dir : directions) {
                 SFMBlockCapabilityResult<CAP> maybeCap = programContext.getNetwork()
                         .getCapability(CAPABILITY_KIND, pos, dir, programContext.getLogger());
@@ -173,18 +180,19 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
                             .debug(x -> x.accept(LocalizationKeys.LOG_RESOURCE_TYPE_GET_CAPABILITIES_CAP_PRESENT.get(
                                     displayAsCapabilityClass(),
                                     pos,
-                                    dir)));
+                                    dir
+                            )));
                     CAP cap = maybeCap.capability();
                     consumer.accept(dir, cap);
                 } else {
                     // Log error
                     programContext
                             .getLogger()
-                            .error(x -> x
-                                    .accept(LocalizationKeys.LOG_RESOURCE_TYPE_GET_CAPABILITIES_CAP_NOT_PRESENT.get(
-                                            displayAsCapabilityClass(),
-                                            pos,
-                                            dir)));
+                            .error(x -> x.accept(LocalizationKeys.LOG_RESOURCE_TYPE_GET_CAPABILITIES_CAP_NOT_PRESENT.get(
+                                    displayAsCapabilityClass(),
+                                    pos,
+                                    dir
+                            )));
                 }
             }
         }
@@ -192,8 +200,9 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
         public abstract Stream<ResourceLocation> getTagsForStack(STACK stack);
 
         public Stream<STACK> getStacksInSlots(
-                                              CAP cap,
-                                              NumberRangeSet slots) {
+                CAP cap,
+                NumberRangeSet slots
+        ) {
             var rtn = Stream.<STACK>builder();
             for (int slot = 0; slot < getSlots(cap); slot++) {
                 if (!slots.contains(slot)) continue;
@@ -224,8 +233,9 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
 
         @SuppressWarnings("unused")
         public STACK withCount(
-                               STACK stack,
-                               long count) {
+                STACK stack,
+                long count
+        ) {
             return setCount(copy(stack), count);
         }
 
@@ -239,8 +249,9 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
         }
 
         protected abstract STACK setCount(
-                                          STACK stack,
-                                          long amount);
+                STACK stack,
+                long amount
+        );
 
         public abstract Optional<Long> getMetaForStack(STACK stack);
     }

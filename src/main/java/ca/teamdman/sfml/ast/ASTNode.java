@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public interface ASTNode {
-
     default List<Statement> getStatements() {
         return Collections.emptyList();
     }

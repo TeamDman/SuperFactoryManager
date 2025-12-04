@@ -1,24 +1,20 @@
 package ca.teamdman.sfml.intellisense;
 
-import java.util.List;
-
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
-
-import org.antlr.v4.runtime.Vocabulary;
-
-import com.github.bsideup.jabel.Desugar;
-
 import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.sfml.manipulation.ManipulationResult;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import org.antlr.v4.runtime.Vocabulary;
+
+import java.util.List;
 
 @Desugar
 public record SuggestedTokensIntellisenseAction(
-                                                Integer nextTokenType,
-                                                List<Integer> followingTokenTypes,
-                                                Vocabulary vocabulary)
-        implements IntellisenseAction {
-
+        Integer nextTokenType,
+        List<Integer> followingTokenTypes,
+        Vocabulary vocabulary
+) implements IntellisenseAction {
     @Override
     public ITextComponent getComponent() {
         return new TextComponentString(getDisplay());
@@ -29,10 +25,8 @@ public record SuggestedTokensIntellisenseAction(
     // Add suggestions for each label in the program
 
     /*
-     * - If suggesting NAME nextTokenType and NAME already present, jump cursor to inside existing string nextTokenType
-     * followingTokenTypes existing NAME nextTokenType
-     * - If suggesting NAME nextTokenType and NAME already present but STRING followingTokenTypes name missing, insert
-     * string and place cursor inside
+    - If suggesting NAME nextTokenType and NAME already present, jump cursor to inside existing string nextTokenType followingTokenTypes existing NAME nextTokenType
+    - If suggesting NAME nextTokenType and NAME already present but STRING followingTokenTypes name missing, insert string and place cursor inside
      */
     @Override
     public ManipulationResult perform(IntellisenseContext context) {
@@ -83,7 +77,8 @@ public record SuggestedTokensIntellisenseAction(
         return new ManipulationResult(
                 programStringMut.getContent(),
                 programStringMut.getCursorPosition(),
-                programStringMut.getSelectionCursorPosition());
+                programStringMut.getSelectionCursorPosition()
+        );
     }
 
     private String getDisplay() {

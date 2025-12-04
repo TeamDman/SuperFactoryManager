@@ -1,14 +1,11 @@
 package ca.teamdman.sfml.ast;
 
+import ca.teamdman.sfm.common.program.ProgramContext;
 import com.github.bsideup.jabel.Desugar;
 
-import ca.teamdman.sfm.common.program.ProgramContext;
-
-@Desugar
-public record BoolNegation(
-                           BoolExpr inner)
-        implements BoolExpr {
-
+@Desugar public record BoolNegation(
+        BoolExpr inner
+) implements BoolExpr {
     @Override
     public boolean test(ProgramContext programContext) {
         return !inner.test(programContext);

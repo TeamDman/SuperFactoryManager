@@ -1,25 +1,22 @@
 package ca.teamdman.sfm.client.text_editor;
 
-import java.util.Map;
-import java.util.function.Consumer;
-
-import net.minecraft.client.gui.GuiYesNo;
-
-import com.github.bsideup.jabel.Desugar;
-
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.client.gui.GuiYesNo;
+
+import java.util.Map;
+import java.util.function.Consumer;
 
 @Desugar
 public record SFMTextEditScreenExampleProgramOpenContext(
-                                                         String initialExampleContent,
-                                                         String initialDiskContent,
-                                                         Map<String, String> examples,
-                                                         LabelPositionHolder labelPositionHolder,
-                                                         Consumer<String> saveWriter)
-        implements ISFMTextEditScreenOpenContext {
-
+        String initialExampleContent,
+        String initialDiskContent,
+        Map<String, String> examples,
+        LabelPositionHolder labelPositionHolder,
+        Consumer<String> saveWriter
+) implements ISFMTextEditScreenOpenContext {
     @Override
     public void onSaveAndClose(String latestContent) {
         if (isSafeToOverwriteDisk()) {
@@ -37,7 +34,8 @@ public record SFMTextEditScreenExampleProgramOpenContext(
                     LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_MESSAGE.getComponent().getFormattedText(),
                     LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_YES_BUTTON.getComponent().getFormattedText(),
                     LocalizationKeys.SAVE_CHANGES_CONFIRM_SCREEN_NO_BUTTON.getComponent().getFormattedText(),
-                    0);
+                    0
+            );
             SFMScreenChangeHelpers.setOrPushScreen(saveConfirmScreen);
             saveConfirmScreen.setButtonDelay(20);
         }

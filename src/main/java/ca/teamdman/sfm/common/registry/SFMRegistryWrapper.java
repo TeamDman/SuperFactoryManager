@@ -1,32 +1,31 @@
 package ca.teamdman.sfm.common.registry;
 
-import java.util.*;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.google.common.reflect.TypeToken;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryManager;
-
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.reflect.TypeToken;
-
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /// Helps reduce {@link MCVersionDependentBehaviour}
 @MCVersionDependentBehaviour
 public final class SFMRegistryWrapper<T extends IForgeRegistryEntry<T>> implements Iterable<T> {
-
     private @Nullable IForgeRegistry<T> maybeInner;
-    private TypeToken<T> token = new TypeToken<T>(getClass()) {};
+    private TypeToken<T> token = new TypeToken<T>(getClass()){};
     private final Class<T> registryKey;
 
     public SFMRegistryWrapper(
-                              @MCVersionDependentBehaviour IForgeRegistry<T> inner) {
+            @MCVersionDependentBehaviour
+            IForgeRegistry<T> inner
+    ) {
         this.maybeInner = inner;
-        this.registryKey = (Class<T>) token.getRawType();
+        this.registryKey = (Class<T>)token.getRawType();
     }
 
     public SFMRegistryWrapper(Class<T> registryKey) {
@@ -100,6 +99,7 @@ public final class SFMRegistryWrapper<T extends IForgeRegistryEntry<T>> implemen
     @Override
     public String toString() {
         return "SFMRegistryWrapper[" +
-                "inner=" + maybeInner + ']';
+               "inner=" + maybeInner + ']';
     }
+
 }

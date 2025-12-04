@@ -1,25 +1,21 @@
 package ca.teamdman.sfml.ast;
 
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.util.Pair;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.math.BlockPos;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import net.minecraft.util.math.BlockPos;
-
-import com.github.bsideup.jabel.Desugar;
-
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.util.Pair;
-
-@Desugar
-public record LabelAccess(
-                          List<Label> labels,
-                          DirectionQualifier directions,
-                          NumberRangeSet slots,
-                          RoundRobin roundRobin)
-        implements ASTNode {
-
+@Desugar public record LabelAccess(
+        List<Label> labels,
+        DirectionQualifier directions,
+        NumberRangeSet slots,
+        RoundRobin roundRobin
+) implements ASTNode {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -31,9 +27,9 @@ public record LabelAccess(
             builder.append(" ");
             builder
                     .append(directions
-                            .stream()
-                            .map(DirectionQualifier::directionToString)
-                            .collect(Collectors.joining(", ")))
+                                    .stream()
+                                    .map(DirectionQualifier::directionToString)
+                                    .collect(Collectors.joining(", ")))
                     .append(" SIDE");
         }
         if (slots.ranges().length > 0) {

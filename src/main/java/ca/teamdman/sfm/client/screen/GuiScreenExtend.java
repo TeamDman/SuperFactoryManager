@@ -1,24 +1,22 @@
 package ca.teamdman.sfm.client.screen;
 
+import com.bbscn.GuiEventListener;
+import com.bbscn.Renderable;
+import com.bbscn.Tools;
+import com.google.common.collect.Lists;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import javax.annotation.Nullable;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiScreen;
-
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
-
-import com.bbscn.GuiEventListener;
-import com.bbscn.Renderable;
-import com.bbscn.Tools;
-import com.google.common.collect.Lists;
-
 public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
+
 
     private @Nullable GuiScreen parentScreen;
 
@@ -31,7 +29,7 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
 
     @Override
     public void setParent(GuiScreen parent) {
-        this.parentScreen = parent;
+        this.parentScreen=parent;
     }
 
     @Nullable
@@ -43,7 +41,7 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
     public void onClose() {
         if (this.getParent() != null) {
             Minecraft.getMinecraft().displayGuiScreen(this.getParent());
-        } else {
+        }else{
             this.mc.displayGuiScreen(null);
         }
     }
@@ -139,11 +137,11 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
         }
 
         this.getChildAt(mouseX, mouseY).filter(p_94708_ -> p_94708_.mouseReleased(mouseX, mouseY, state));
+
     }
 
     boolean mouseScrolled(int pMouseX, int pMouseY, int pScrollX, int pScrollY) {
-        return this.getChildAt(pMouseX, pMouseY)
-                .filter(p_293596_ -> p_293596_.mouseScrolled(pMouseX, pMouseY, pScrollX, pScrollY)).isPresent();
+        return this.getChildAt(pMouseX, pMouseY).filter(p_293596_ -> p_293596_.mouseScrolled(pMouseX, pMouseY, pScrollX, pScrollY)).isPresent();
     }
 
     @Override
@@ -158,8 +156,9 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
     }
 
     public boolean charTyped(
-                             char pCodePoint,
-                             int pModifiers) {
+            char pCodePoint,
+            int pModifiers
+    ) {
         if (GuiScreen.isCtrlKeyDown() && pCodePoint == ' ') {
             return true;
         }
@@ -176,6 +175,7 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
         }
         super.handleMouseInput();
     }
+
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {

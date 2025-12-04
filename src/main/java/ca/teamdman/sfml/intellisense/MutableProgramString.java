@@ -4,15 +4,15 @@ import ca.teamdman.sfml.manipulation.ManipulationResult;
 
 @SuppressWarnings("UnusedReturnValue")
 public class MutableProgramString {
-
     private StringBuilder content;
     private int cursorPosition;
     private int selectionCursorPosition;
 
     public MutableProgramString(
-                                String content,
-                                int cursorPosition,
-                                int selectionCursorPosition) {
+            String content,
+            int cursorPosition,
+            int selectionCursorPosition
+    ) {
         this.content = new StringBuilder(content);
         this.cursorPosition = cursorPosition;
         this.selectionCursorPosition = selectionCursorPosition;
@@ -83,6 +83,7 @@ public class MutableProgramString {
         return new ManipulationResult(
                 getContent(),
                 getCursorPosition(),
-                getSelectionCursorPosition());
+                getSelectionCursorPosition()
+        );
     }
 }

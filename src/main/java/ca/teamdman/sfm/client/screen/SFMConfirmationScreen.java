@@ -1,12 +1,10 @@
 package ca.teamdman.sfm.client.screen;
 
+import ca.teamdman.sfm.common.util.ConfirmationParams;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiYesNo;
 import net.minecraft.util.text.ITextComponent;
-
 import org.jetbrains.annotations.Nullable;
-
-import ca.teamdman.sfm.common.util.ConfirmationParams;
 
 /// Automatically pops the screen after a choice is made
 /// Only runs the callback if the user confirms
@@ -34,7 +32,8 @@ public class SFMConfirmationScreen extends GuiYesNo implements IStackableScreen 
             ITextComponent confirmMessage,
             ITextComponent confirmYes,
             ITextComponent confirmNo,
-            int delay) {
+            int delay
+    ) {
         super(
                 (confirmedYes, parentButton) -> {
                     SFMScreenChangeHelpers.popScreen(); // Close confirm screen
@@ -46,21 +45,24 @@ public class SFMConfirmationScreen extends GuiYesNo implements IStackableScreen 
                 confirmMessage.getUnformattedComponentText(),
                 confirmYes.getUnformattedComponentText(),
                 confirmNo.getUnformattedComponentText(),
-                0);
+                0
+        );
         setButtonDelay(delay);
     }
 
     public SFMConfirmationScreen(
             ConfirmationParams confirmationParams,
             int delay,
-            Runnable callback) {
+            Runnable callback
+    ) {
         this(
                 callback,
                 confirmationParams.confirmTitle(),
                 confirmationParams.confirmMessage(),
                 confirmationParams.confirmYes(),
                 confirmationParams.confirmNo(),
-                delay);
+                delay
+        );
     }
 
     @Override

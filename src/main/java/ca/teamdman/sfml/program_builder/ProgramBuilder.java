@@ -1,16 +1,5 @@
 package ca.teamdman.sfml.program_builder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TextComponentTranslation;
-
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.jetbrains.annotations.Nullable;
-
 import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.langs.SFMLParser;
 import ca.teamdman.sfm.SFM;
@@ -23,11 +12,20 @@ import ca.teamdman.sfm.common.util.SFMTranslationUtils;
 import ca.teamdman.sfml.ast.ASTBuilder;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.ResourceLocation;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public class ProgramBuilder {
-
     public static ProgramBuildResult build(
-                                           @Nullable String programString) {
+            @Nullable String programString
+    ) {
         if (programString == null) {
             programString = "";
         }
@@ -49,14 +47,13 @@ public class ProgramBuilder {
         SFMLParser.ProgramContext context = parser.program();
         buildErrors.stream().map(LocalizationKeys.PROGRAM_ERROR_LITERAL::get).forEach(errors::add);
 
+
         // build program from AST only when there are no errors from previous phases
-        @Nullable
-        Program program = null;
+        @Nullable Program program = null;
         if (errors.isEmpty()) {
             try {
                 program = builder.visitProgram(context);
-                // Make sure all referenced resources are valid during compilation instead of waiting for the program to
-                // tick
+                // Make sure all referenced resources are valid during compilation instead of waiting for the program to tick
                 checkResourceTypes(program, errors);
             } catch (IllegalArgumentException | AssertionError e) {
                 errors.add(LocalizationKeys.PROGRAM_ERROR_LITERAL.get(e.getMessage()));
@@ -65,11 +62,13 @@ public class ProgramBuilder {
                 SFM.LOGGER.warn(
                         "Encountered unhandled error while compiling program\n```\n{}\n```",
                         programString,
-                        t);
+                        t
+                );
                 var message = t.getMessage();
                 if (message != null) {
                     errors.add(SFMTranslationUtils.getTextComponentTranslation(
-                            t.getClass().getSimpleName() + ": " + message));
+                            t.getClass().getSimpleName() + ": " + message
+                    ));
                 } else {
                     errors.add(SFMTranslationUtils.getTextComponentTranslation(t.getClass().getSimpleName()));
                 }
@@ -77,12 +76,13 @@ public class ProgramBuilder {
         }
 
         // Assert just in case, this should never happen
-        // noinspection ConstantValue
+        //noinspection ConstantValue
         if (program == null && errors.isEmpty()) {
             errors.add(LocalizationKeys.PROGRAM_ERROR_COMPILE_FAILED.get());
             SFM.LOGGER.error(
                     "Program was somehow null after a successful compile. I have no idea how this could happen, but it definitely shouldn't.\n```\n{}\n```",
-                    programString);
+                    programString
+            );
         }
 
         ProgramMetadata metadata = new ProgramMetadata(
@@ -91,18 +91,20 @@ public class ProgramBuilder {
                 tokens,
                 parser,
                 builder,
-                errors);
+                errors
+        );
         return new ProgramBuildResult(program, metadata);
     }
 
+
     private static void checkResourceTypes(
-                                           Program program,
-                                           List<TextComponentTranslation> errors) {
+            Program program,
+            List<TextComponentTranslation> errors
+    ) {
         if (!SFMEnvironmentUtils.isGameLoaded()) {
             return;
         }
-        List<String> disallowedResourceTypes = java.util.Arrays
-                .asList(SFMConfig.server.disallowedResourceTypesForTransfer);
+        List<String> disallowedResourceTypes = java.util.Arrays.asList(SFMConfig.server.disallowedResourceTypesForTransfer);
         for (ResourceIdentifier<?, ?, ?> referencedResource : program.referencedResources()) {
             try {
                 ResourceType<?, ?, ?> resourceType = referencedResource.getResourceType();
@@ -111,8 +113,8 @@ public class ProgramBuilder {
                             referencedResource));
                 } else {
                     ResourceLocation resourceTypeId = Objects.requireNonNull(SFMResourceTypes
-                            .registry()
-                            .getKey(resourceType.container));
+                                                                                     .registry()
+                                                                                     .getKey(resourceType.container));
                     if (disallowedResourceTypes.contains(resourceTypeId.toString())) {
                         errors.add(LocalizationKeys.PROGRAM_ERROR_DISALLOWED_RESOURCE_TYPE.get(
                                 referencedResource));

@@ -1,17 +1,15 @@
 package ca.teamdman.sfm.common.registry;
 
-import javax.annotation.Nullable;
-
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.registries.IForgeRegistry;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.resourcetype.*;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.registries.IForgeRegistry;
+
+import javax.annotation.Nullable;
 
 public class SFMResourceTypes {
-
     @SuppressWarnings("NotNullFieldNotInitialized") // set in initialize()
     public static ItemResourceType ITEM;
     @SuppressWarnings("NotNullFieldNotInitialized") // set in initialize()
@@ -28,19 +26,16 @@ public class SFMResourceTypes {
         REDSTONE = prepareRegister(RedstoneResourceType::new, "redstone");
 
         // if (SFMModCompat.isMekanismLoaded()) {
-        // SFMMekanismCompat.registerResourceTypes();
+        //     SFMMekanismCompat.registerResourceTypes();
         // }
     }
 
     public interface ResourceTypeGenerator<T extends ResourceType<?, ?, ?>> {
-
         T generate(ResourceTypeContainer container);
     }
 
-    private static <T extends ResourceType<?, ?, ?>> T prepareRegister(ResourceTypeGenerator<T> resourceType,
-                                                                       String name) {
+    private static <T extends ResourceType<?, ?, ?>> T prepareRegister(ResourceTypeGenerator<T> resourceType, String name) {
         var container = new ResourceTypeContainer() {
-
             @Nullable
             T resource;
 
@@ -87,7 +82,8 @@ public class SFMResourceTypes {
     }
 
     public static @Nullable ResourceType<?, ?, ?> fastLookup(
-                                                             ResourceLocation resourceTypeId) {
+            ResourceLocation resourceTypeId
+    ) {
         ResourceTypeContainer container = registry().getValue(resourceTypeId);
         return container != null ? container.get() : null;
     }
@@ -96,8 +92,8 @@ public class SFMResourceTypes {
         return SFMRegistries.RESOURCE_TYPE_REGISTRY;
     }
 
-    /*
-     * TODO: add support for new resource types
+
+    /* TODO: add support for new resource types
      * - botania mana
      * - flux plugs
      */

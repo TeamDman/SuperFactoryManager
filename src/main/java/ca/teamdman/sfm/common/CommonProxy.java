@@ -1,7 +1,12 @@
 package ca.teamdman.sfm.common;
 
-import javax.annotation.Nullable;
-
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.screen.ManagerScreen;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
+import ca.teamdman.sfm.common.registry.*;
+import ca.teamdman.sfm.common.registry.internal.InternalRegistryPrimer;
+import ca.teamdman.sfm.common.registry.internal.PrimerEventHandler;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
@@ -13,11 +18,10 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
+import vswe.superfactory.tiles.TileEntityManager;
 
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.registry.*;
-import ca.teamdman.sfm.common.registry.internal.InternalRegistryPrimer;
-import ca.teamdman.sfm.common.registry.internal.PrimerEventHandler;
+
+import javax.annotation.Nullable;
 
 public class CommonProxy implements IGuiHandler {
 
@@ -29,9 +33,9 @@ public class CommonProxy implements IGuiHandler {
         MinecraftForge.EVENT_BUS.register(new PrimerEventHandler(registryPrimer));
     }
 
+
     public void preInit() {
         creativeTabsSFM = new CreativeTabs(SFM.MOD_ID) {
-
             @Override
             public ItemStack createIcon() {
                 return new ItemStack(SFMBlocks.MANAGER_BLOCK);
@@ -46,20 +50,29 @@ public class CommonProxy implements IGuiHandler {
     }
 
     public void init() {
-        // FuelItemHelper.initialize();
-        // IntegrationTypeHelper.filterModIdComponents();
-        // IntegrationTypeHelper.filterModIdRequirementTypes();
+//        FuelItemHelper.initialize();
+//        IntegrationTypeHelper.filterModIdComponents();
+//        IntegrationTypeHelper.filterModIdRequirementTypes();
+
+
+
     }
 
-    public void postInit() {}
+    public void postInit() {
+
+    }
 
     public void loadComplete() {
-        // CompletableFuture.runAsync(() -> BlockArrayCache.buildCache(MachineRegistry.getLoadedMachines()));
+
+//        CompletableFuture.runAsync(() -> BlockArrayCache.buildCache(MachineRegistry.getLoadedMachines()));
     }
 
-    public void registerItemModel(Item item) {}
 
-    public void registerItemModelWithCustomName(Item item) {}
+    public void registerItemModel(Item item) {
+    }
+
+    public void registerItemModelWithCustomName(Item item) {
+    }
 
     @Nullable
     @Override
@@ -113,10 +126,9 @@ public class CommonProxy implements IGuiHandler {
     }
 
     public enum GuiType {
-
         PROVIDER(IGuiProvider.class),
-        // MANAGER(ManagerBlockEntity.class),
-        // OLD_MANAGER(TileEntityManager.class)
+//        MANAGER(ManagerBlockEntity.class),
+//        OLD_MANAGER(TileEntityManager.class)
         ;
 
         public final @Nullable Class<?> requiredTileEntity;

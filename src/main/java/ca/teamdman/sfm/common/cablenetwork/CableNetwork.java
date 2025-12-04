@@ -1,18 +1,6 @@
 package ca.teamdman.sfm.common.cablenetwork;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
@@ -21,17 +9,26 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
+import ca.teamdman.sfml.ast.Block;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import vswe.superfactory.blocks.BlockManager;
 import vswe.superfactory.tiles.TileEntityManager;
 
-/// When a {@link ManagerBlockEntity} is ticking many times in a row, there is worldly context that changes
-/// infrequently.
-/// This class stores a cache of the cables and capabilities that the manager is aware of, to avoid repeated expensive
-/// lookups.
-public class CableNetwork {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+/// When a {@link ManagerBlockEntity} is ticking many times in a row, there is worldly context that changes infrequently.
+/// This class stores a cache of the cables and capabilities that the manager is aware of, to avoid repeated expensive lookups.
+public class CableNetwork {
     protected final World level;
     protected final LongSet cablePositions = new LongOpenHashSet();
     protected final SFMBlockCapabilityCacheForLevel levelCapabilityCache = new SFMBlockCapabilityCacheForLevel();
@@ -53,8 +50,9 @@ public class CableNetwork {
      * Only cable blocks are valid network members
      */
     public static boolean isCable(
-                                  @Nullable World world,
-                                  @NotStored BlockPos cablePos) {
+            @Nullable World world,
+            @NotStored BlockPos cablePos
+    ) {
         if (world == null) return false;
         return world
                 .getBlockState(cablePos)
@@ -62,8 +60,9 @@ public class CableNetwork {
     }
 
     public static boolean isVisualManager(
-                                          @Nullable World world,
-                                          @NotStored BlockPos cablePos) {
+            @Nullable World world,
+            @NotStored BlockPos cablePos
+    ) {
         if (world == null) return false;
         return world.getBlockState(cablePos).getBlock() instanceof BlockManager;
     }
@@ -75,8 +74,9 @@ public class CableNetwork {
     }
 
     public void rebuildNetworkFromCache(
-                                        @NotStored BlockPos start,
-                                        CableNetwork other) {
+            @NotStored BlockPos start,
+            CableNetwork other
+    ) {
         cablePositions.clear();
         levelCapabilityCache.clear();
         visualManagerPositions.clear();
@@ -92,7 +92,8 @@ public class CableNetwork {
                             next.accept(target.toImmutable());
                         }
                     }
-                }, start).collect(Collectors.toList());
+                }, start
+        ).collect(Collectors.toList());
 
         // restore cable positions
         for (BlockPos cablePos : cables) {
@@ -119,8 +120,9 @@ public class CableNetwork {
 
     /// This assumes that the start position is a cable block
     public static Stream<BlockPos> discoverCables(
-                                                  World level,
-                                                  @NotStored BlockPos startPos) {
+            World level,
+            @NotStored BlockPos startPos
+    ) {
         return SFMStreamUtils.getRecursiveStream(
                 (current, next, results) -> {
                     results.accept(current);
@@ -131,7 +133,8 @@ public class CableNetwork {
                             next.accept(target.toImmutable());
                         }
                     }
-                }, startPos);
+                }, startPos
+        );
     }
 
     public void addCable(@NotStored BlockPos pos) {
@@ -151,8 +154,13 @@ public class CableNetwork {
 
     @Override
     public String toString() {
-        return "CableNetwork{level=" + getLevel().provider.getDimension() + ", #cables=" + getCableCount() +
-                ", #cache=" + levelCapabilityCache.size() + "}";
+        return "CableNetwork{level="
+                + getLevel().provider.getDimension()
+                + ", #cables="
+                + getCableCount()
+                + ", #cache="
+                + levelCapabilityCache.size()
+                + "}";
     }
 
     /**
@@ -178,16 +186,18 @@ public class CableNetwork {
 
     @MCVersionDependentBehaviour
     public <CAP> @NotNull SFMBlockCapabilityResult<CAP> getCapability(
-                                                                      SFMBlockCapabilityKind<CAP> capKind,
-                                                                      @NotStored BlockPos pos,
-                                                                      @Nullable EnumFacing direction,
-                                                                      TranslatableLogger logger) {
+            SFMBlockCapabilityKind<CAP> capKind,
+            @NotStored BlockPos pos,
+            @Nullable EnumFacing direction,
+            TranslatableLogger logger
+    ) {
         return SFMBlockCapabilityDiscovery.discoverCapabilityFromNetwork(
                 this,
                 capKind,
                 pos,
                 direction,
-                logger);
+                logger
+        );
     }
 
     public int getCableCount() {

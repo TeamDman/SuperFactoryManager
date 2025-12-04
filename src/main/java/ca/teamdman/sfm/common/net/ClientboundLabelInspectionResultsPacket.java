@@ -2,6 +2,12 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import com.github.bsideup.jabel.Desugar;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
 
 @Desugar
 public record ClientboundLabelInspectionResultsPacket(
@@ -27,7 +33,8 @@ public record ClientboundLabelInspectionResultsPacket(
             return new ClientboundLabelInspectionResultsPacket(
                     friendlyByteBuf.readString(MAX_RESULTS_LENGTH)
             );
-        }
+
+    }
 
         @Override
         public void handle(

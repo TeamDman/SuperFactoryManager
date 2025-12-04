@@ -4,16 +4,17 @@ import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimit;
 
-public class SharedQuantitySharedRetentionOutputResourceTracker implements IOutputResourceTracker {
 
+public class SharedQuantitySharedRetentionOutputResourceTracker implements IOutputResourceTracker {
     private final ResourceLimit resource_limit;
     private final ResourceIdSet exclusions;
     private long transferred = 0;
     private long retention_obligation_progress = 0;
 
     public SharedQuantitySharedRetentionOutputResourceTracker(
-                                                              ResourceLimit resourceLimit,
-                                                              ResourceIdSet exclusions) {
+            ResourceLimit resourceLimit,
+            ResourceIdSet exclusions
+    ) {
         this.resource_limit = resourceLimit;
         this.exclusions = exclusions;
     }
@@ -34,8 +35,9 @@ public class SharedQuantitySharedRetentionOutputResourceTracker implements IOutp
     @SuppressWarnings("RedundantIfStatement")
     @Override
     public <STACK, CAP, ITEM> boolean isDone(
-                                             ResourceType<STACK, ITEM, CAP> type,
-                                             STACK stack) {
+            ResourceType<STACK, ITEM, CAP> type,
+            STACK stack
+    ) {
         long max_transfer = resource_limit.limit().quantity().number().value();
         if (transferred >= max_transfer) {
             return true;
@@ -52,8 +54,9 @@ public class SharedQuantitySharedRetentionOutputResourceTracker implements IOutp
      */
     @Override
     public <STACK, ITEM, CAP> void updateRetentionObservation(
-                                                              ResourceType<STACK, ITEM, CAP> type,
-                                                              STACK observed) {
+            ResourceType<STACK, ITEM, CAP> type,
+            STACK observed
+    ) {
         if (matchesStack(observed)) {
             retention_obligation_progress += type.getAmount(observed);
         }
@@ -61,9 +64,10 @@ public class SharedQuantitySharedRetentionOutputResourceTracker implements IOutp
 
     @Override
     public <STACK, ITEM, CAP> void trackTransfer(
-                                                 ResourceType<STACK, ITEM, CAP> resourceType,
-                                                 STACK key,
-                                                 long amount) {
+            ResourceType<STACK, ITEM, CAP> resourceType,
+            STACK key,
+            long amount
+    ) {
         transferred += amount;
         retention_obligation_progress += amount;
     }
@@ -73,8 +77,9 @@ public class SharedQuantitySharedRetentionOutputResourceTracker implements IOutp
      */
     @Override
     public <STACK, ITEM, CAP> long getMaxTransferable(
-                                                      ResourceType<STACK, ITEM, CAP> resourceType,
-                                                      STACK key) {
+            ResourceType<STACK, ITEM, CAP> resourceType,
+            STACK key
+    ) {
         long max_transfer = resource_limit.limit().quantity().number().value();
         long unusedQuantity = max_transfer - transferred;
 
@@ -86,12 +91,13 @@ public class SharedQuantitySharedRetentionOutputResourceTracker implements IOutp
 
     @Override
     public String toString() {
-        return "SharedQuantitySharedRetentionOutputResourceTracker@" +
-                Integer.toHexString(System.identityHashCode(this)) + "{" +
-                "TRANSFERRED=" + transferred +
-                ", RETENTION_OBLIGATION_PROGRESS=" + retention_obligation_progress +
-                ", RESOURCE_LIMIT=" + resource_limit +
-                ", EXCLUSIONS=" + exclusions +
-                "}";
+        return "SharedQuantitySharedRetentionOutputResourceTracker@" + Integer.toHexString(System.identityHashCode(this)) + "{" +
+               "TRANSFERRED=" + transferred +
+               ", RETENTION_OBLIGATION_PROGRESS=" + retention_obligation_progress
+               +
+               ", RESOURCE_LIMIT=" + resource_limit
+               +
+               ", EXCLUSIONS=" + exclusions +
+               "}";
     }
 }

@@ -1,11 +1,8 @@
 package vswe.superfactory.components;
 
-import java.util.List;
-
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-
 import vswe.superfactory.Localization;
 import vswe.superfactory.components.internal.ConnectionSet;
 import vswe.superfactory.interfaces.ContainerManager;
@@ -15,309 +12,305 @@ import vswe.superfactory.network.packets.DataReader;
 import vswe.superfactory.network.packets.DataWriter;
 import vswe.superfactory.network.packets.PacketHandler;
 
+import java.util.List;
+
 public class ComponentMenuVariable extends ComponentMenu {
+	private static final int CHECK_BOX_X = 5;
+	private static final int CHECK_BOX_Y = 52;
+	private static final String NBT_EXECUTED = "Executed";
+	private static final String NBT_MODE     = "Mode";
+	private static final String NBT_VARIABLE = "Variable";
+	private static final int RADIO_BUTTON_SPACING = 12;
+	private static final int RADIO_BUTTON_X       = 5;
+	private static final int RADIO_BUTTON_Y       = 28;
+	private CheckBoxList    checkBoxes;
+	private boolean         executed;
+	private RadioButtonList radioButtons;
+	private int             selectedVariable = 0;
+	private VariableDisplay varDisplay;
+	public ComponentMenuVariable(FlowComponent parent) {
+		super(parent);
 
-    private static final int CHECK_BOX_X = 5;
-    private static final int CHECK_BOX_Y = 52;
-    private static final String NBT_EXECUTED = "Executed";
-    private static final String NBT_MODE = "Mode";
-    private static final String NBT_VARIABLE = "Variable";
-    private static final int RADIO_BUTTON_SPACING = 12;
-    private static final int RADIO_BUTTON_X = 5;
-    private static final int RADIO_BUTTON_Y = 28;
-    private CheckBoxList checkBoxes;
-    private boolean executed;
-    private RadioButtonList radioButtons;
-    private int selectedVariable = 0;
-    private VariableDisplay varDisplay;
+		int declarationCount  = 0;
+		int modificationCount = 0;
 
-    public ComponentMenuVariable(FlowComponent parent) {
-        super(parent);
+		radioButtons = new RadioButtonList() {
+			@Override
+			public int getSelectedOption() {
+				int          id   = super.getSelectedOption();
+				VariableMode mode = VariableMode.values()[id];
+				if (mode.declaration != isDeclaration()) {
+					setSelectedOption(id = getDefaultId());
+				}
 
-        int declarationCount = 0;
-        int modificationCount = 0;
+				return id;
+			}
 
-        radioButtons = new RadioButtonList() {
+			@Override
+			public void setSelectedOption(int selectedOption) {
+				super.setSelectedOption(selectedOption);
 
-            @Override
-            public int getSelectedOption() {
-                int id = super.getSelectedOption();
-                VariableMode mode = VariableMode.values()[id];
-                if (mode.declaration != isDeclaration()) {
-                    setSelectedOption(id = getDefaultId());
-                }
+				if (isDeclaration()) {
+					getParent().getManager().updateVariables();
+				}
+			}
 
-                return id;
-            }
+			@Override
+			public void updateSelectedOption(int selectedOption) {
+				setSelectedOption(selectedOption);
+				DataWriter dw = getWriterForServerComponentPacket();
+				dw.writeBoolean(true); //var || mode
+				dw.writeBoolean(false); //mode
+				dw.writeData(selectedOption, DataBitHelper.CONTAINER_MODE);
+				PacketHandler.sendDataToServer(dw);
+			}
+		};
 
-            @Override
-            public void setSelectedOption(int selectedOption) {
-                super.setSelectedOption(selectedOption);
+		for (int i = 0; i < VariableMode.values().length; i++) {
+			final VariableMode mode = VariableMode.values()[i];
+			int                id   = mode.declaration ? declarationCount++ : modificationCount++;
 
-                if (isDeclaration()) {
-                    getParent().getManager().updateVariables();
-                }
-            }
+			radioButtons.add(new RadioButton(RADIO_BUTTON_X, RADIO_BUTTON_Y + id * RADIO_BUTTON_SPACING, mode.getName()) {
+				@Override
+				public boolean isVisible() {
+					return mode.declaration == isDeclaration();
+				}
+			});
+		}
 
-            @Override
-            public void updateSelectedOption(int selectedOption) {
-                setSelectedOption(selectedOption);
-                DataWriter dw = getWriterForServerComponentPacket();
-                dw.writeBoolean(true); // var || mode
-                dw.writeBoolean(false); // mode
-                dw.writeData(selectedOption, DataBitHelper.CONTAINER_MODE);
-                PacketHandler.sendDataToServer(dw);
-            }
-        };
+		radioButtons.setSelectedOption(getDefaultId());
 
-        for (int i = 0; i < VariableMode.values().length; i++) {
-            final VariableMode mode = VariableMode.values()[i];
-            int id = mode.declaration ? declarationCount++ : modificationCount++;
+		varDisplay = new VariableDisplay(null, 5, 5) {
+			@Override
+			public int getValue() {
+				return selectedVariable;
+			}
 
-            radioButtons
-                    .add(new RadioButton(RADIO_BUTTON_X, RADIO_BUTTON_Y + id * RADIO_BUTTON_SPACING, mode.getName()) {
+			@Override
+			public void setValue(int val) {
+				setSelectedVariable(val);
+			}
 
-                        @Override
-                        public boolean isVisible() {
-                            return mode.declaration == isDeclaration();
-                        }
-                    });
-        }
+			@Override
+			public void onUpdate() {
+				DataWriter dw = getWriterForServerComponentPacket();
+				dw.writeBoolean(true); //var || mode
+				dw.writeBoolean(true); //var
+				dw.writeData(selectedVariable, DataBitHelper.VARIABLE_TYPE);
+				PacketHandler.sendDataToServer(dw);
+			}
+		};
 
-        radioButtons.setSelectedOption(getDefaultId());
+		checkBoxes = new CheckBoxList();
+		checkBoxes.addCheckBox(new CheckBox(Localization.GLOBAL_VALUE_SET, CHECK_BOX_X, CHECK_BOX_Y) {
+			@Override
+			public boolean getValue() {
+				return executed;
+			}
 
-        varDisplay = new VariableDisplay(null, 5, 5) {
+			@Override
+			public void setValue(boolean val) {
+				executed = val;
+			}
 
-            @Override
-            public int getValue() {
-                return selectedVariable;
-            }
+			@Override
+			public void onUpdate() {
+				DataWriter dw = getWriterForServerComponentPacket();
+				dw.writeBoolean(false); //executed
+				dw.writeBoolean(executed);
+				PacketHandler.sendDataToServer(dw);
+			}
 
-            @Override
-            public void setValue(int val) {
-                setSelectedVariable(val);
-            }
+			@Override
+			public boolean isVisible() {
+				return getVariableMode() == VariableMode.GLOBAL;
+			}
+		});
+	}
 
-            @Override
-            public void onUpdate() {
-                DataWriter dw = getWriterForServerComponentPacket();
-                dw.writeBoolean(true); // var || mode
-                dw.writeBoolean(true); // var
-                dw.writeData(selectedVariable, DataBitHelper.VARIABLE_TYPE);
-                PacketHandler.sendDataToServer(dw);
-            }
-        };
+	public boolean isDeclaration() {
+		return getParent().getConnectionSet() == ConnectionSet.EMPTY;
+	}
 
-        checkBoxes = new CheckBoxList();
-        checkBoxes.addCheckBox(new CheckBox(Localization.GLOBAL_VALUE_SET, CHECK_BOX_X, CHECK_BOX_Y) {
+	private int getDefaultId() {
+		return isDeclaration() ? 1 : 2;
+	}
 
-            @Override
-            public boolean getValue() {
-                return executed;
-            }
+	public VariableMode getVariableMode() {
+		return VariableMode.values()[radioButtons.getSelectedOption()];
+	}
 
-            @Override
-            public void setValue(boolean val) {
-                executed = val;
-            }
+	@Override
+	public String getName() {
+		return Localization.VARIABLE_MENU.toString();
+	}
 
-            @Override
-            public void onUpdate() {
-                DataWriter dw = getWriterForServerComponentPacket();
-                dw.writeBoolean(false); // executed
-                dw.writeBoolean(executed);
-                PacketHandler.sendDataToServer(dw);
-            }
+	@SideOnly(Side.CLIENT)
+	@Override
+	public void draw(GuiManager gui, int mX, int mY) {
+		radioButtons.draw(gui, mX, mY);
+		varDisplay.draw(gui, mX, mY);
+		checkBoxes.draw(gui, mX, mY);
+	}
 
-            @Override
-            public boolean isVisible() {
-                return getVariableMode() == VariableMode.GLOBAL;
-            }
-        });
-    }
+	@SideOnly(Side.CLIENT)
+	@Override
+	public void drawMouseOver(GuiManager gui, int mX, int mY) {
+		varDisplay.drawMouseOver(gui, mX, mY);
+	}
 
-    public boolean isDeclaration() {
-        return getParent().getConnectionSet() == ConnectionSet.EMPTY;
-    }
+	@Override
+	public void onClick(int mX, int mY, int button) {
+		radioButtons.onClick(mX, mY, button);
+		varDisplay.onClick(mX, mY);
+		checkBoxes.onClick(mX, mY);
+	}
 
-    private int getDefaultId() {
-        return isDeclaration() ? 1 : 2;
-    }
+	@Override
+	public void onDrag(int mX, int mY, boolean isMenuOpen) {
+		//To change body of implemented methods use File | Settings | File Templates.
+	}
 
-    public VariableMode getVariableMode() {
-        return VariableMode.values()[radioButtons.getSelectedOption()];
-    }
+	@Override
+	public void onRelease(int mX, int mY, boolean isMenuOpen) {
+		//To change body of implemented methods use File | Settings | File Templates.
+	}
 
-    @Override
-    public String getName() {
-        return Localization.VARIABLE_MENU.toString();
-    }
+	@Override
+	public void writeData(DataWriter dw) {
+		dw.writeData(selectedVariable, DataBitHelper.VARIABLE_TYPE);
+		dw.writeData(radioButtons.getSelectedOption(), DataBitHelper.CONTAINER_MODE);
+		dw.writeBoolean(executed);
+	}
 
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void draw(GuiManager gui, int mX, int mY) {
-        radioButtons.draw(gui, mX, mY);
-        varDisplay.draw(gui, mX, mY);
-        checkBoxes.draw(gui, mX, mY);
-    }
+	@Override
+	public void readData(DataReader dr) {
+		setSelectedVariable(dr.readData(DataBitHelper.VARIABLE_TYPE));
+		radioButtons.setSelectedOption(dr.readData(DataBitHelper.CONTAINER_MODE));
+		executed = dr.readBoolean();
+	}
 
-    @SideOnly(Side.CLIENT)
-    @Override
-    public void drawMouseOver(GuiManager gui, int mX, int mY) {
-        varDisplay.drawMouseOver(gui, mX, mY);
-    }
+	@Override
+	public void copyFrom(ComponentMenu menu) {
+		setSelectedVariable(((ComponentMenuVariable) menu).selectedVariable);
+		radioButtons.setSelectedOption(((ComponentMenuVariable) menu).radioButtons.getSelectedOption());
+		executed = ((ComponentMenuVariable) menu).executed;
+	}
 
-    @Override
-    public void onClick(int mX, int mY, int button) {
-        radioButtons.onClick(mX, mY, button);
-        varDisplay.onClick(mX, mY);
-        checkBoxes.onClick(mX, mY);
-    }
+	@Override
+	public void refreshData(ContainerManager container, ComponentMenu newData) {
+		ComponentMenuVariable newDataMode = (ComponentMenuVariable) newData;
 
-    @Override
-    public void onDrag(int mX, int mY, boolean isMenuOpen) {
-        // To change body of implemented methods use File | Settings | File Templates.
-    }
+		if (selectedVariable != newDataMode.selectedVariable) {
+			setSelectedVariable(newDataMode.selectedVariable);
 
-    @Override
-    public void onRelease(int mX, int mY, boolean isMenuOpen) {
-        // To change body of implemented methods use File | Settings | File Templates.
-    }
+			DataWriter dw = getWriterForClientComponentPacket(container);
+			dw.writeBoolean(true); //var  || mode
+			dw.writeBoolean(true); //var
+			dw.writeData(selectedVariable, DataBitHelper.VARIABLE_TYPE);
+			PacketHandler.sendDataToListeningClients(container, dw);
+		}
 
-    @Override
-    public void writeData(DataWriter dw) {
-        dw.writeData(selectedVariable, DataBitHelper.VARIABLE_TYPE);
-        dw.writeData(radioButtons.getSelectedOption(), DataBitHelper.CONTAINER_MODE);
-        dw.writeBoolean(executed);
-    }
+		if (radioButtons.getRawSelectedOption() != newDataMode.radioButtons.getRawSelectedOption()) {
+			radioButtons.setSelectedOption(newDataMode.radioButtons.getRawSelectedOption());
 
-    @Override
-    public void readData(DataReader dr) {
-        setSelectedVariable(dr.readData(DataBitHelper.VARIABLE_TYPE));
-        radioButtons.setSelectedOption(dr.readData(DataBitHelper.CONTAINER_MODE));
-        executed = dr.readBoolean();
-    }
+			DataWriter dw = getWriterForClientComponentPacket(container);
+			dw.writeBoolean(true); //var  || mode
+			dw.writeBoolean(false); //mode
+			dw.writeData(radioButtons.getRawSelectedOption(), DataBitHelper.CONTAINER_MODE);
+			PacketHandler.sendDataToListeningClients(container, dw);
+		}
 
-    @Override
-    public void copyFrom(ComponentMenu menu) {
-        setSelectedVariable(((ComponentMenuVariable) menu).selectedVariable);
-        radioButtons.setSelectedOption(((ComponentMenuVariable) menu).radioButtons.getSelectedOption());
-        executed = ((ComponentMenuVariable) menu).executed;
-    }
 
-    @Override
-    public void refreshData(ContainerManager container, ComponentMenu newData) {
-        ComponentMenuVariable newDataMode = (ComponentMenuVariable) newData;
+		if (executed != newDataMode.getVariable().hasBeenExecuted()) {
+			executed = newDataMode.getVariable().hasBeenExecuted();
 
-        if (selectedVariable != newDataMode.selectedVariable) {
-            setSelectedVariable(newDataMode.selectedVariable);
+			DataWriter dw = getWriterForClientComponentPacket(container);
+			dw.writeBoolean(false); //executed
+			dw.writeBoolean(executed);
+			PacketHandler.sendDataToListeningClients(container, dw);
+		}
+	}
 
-            DataWriter dw = getWriterForClientComponentPacket(container);
-            dw.writeBoolean(true); // var || mode
-            dw.writeBoolean(true); // var
-            dw.writeData(selectedVariable, DataBitHelper.VARIABLE_TYPE);
-            PacketHandler.sendDataToListeningClients(container, dw);
-        }
+	private Variable getVariable() {
+		return getParent().getManager().getVariables()[getSelectedVariable()];
+	}
 
-        if (radioButtons.getRawSelectedOption() != newDataMode.radioButtons.getRawSelectedOption()) {
-            radioButtons.setSelectedOption(newDataMode.radioButtons.getRawSelectedOption());
+	public int getSelectedVariable() {
+		return selectedVariable;
+	}
 
-            DataWriter dw = getWriterForClientComponentPacket(container);
-            dw.writeBoolean(true); // var || mode
-            dw.writeBoolean(false); // mode
-            dw.writeData(radioButtons.getRawSelectedOption(), DataBitHelper.CONTAINER_MODE);
-            PacketHandler.sendDataToListeningClients(container, dw);
-        }
+	private void setSelectedVariable(int val) {
+		selectedVariable = val;
 
-        if (executed != newDataMode.getVariable().hasBeenExecuted()) {
-            executed = newDataMode.getVariable().hasBeenExecuted();
+		if (isDeclaration()) {
+			getParent().getManager().updateVariables();
+		}
+	}
 
-            DataWriter dw = getWriterForClientComponentPacket(container);
-            dw.writeBoolean(false); // executed
-            dw.writeBoolean(executed);
-            PacketHandler.sendDataToListeningClients(container, dw);
-        }
-    }
+	@Override
+	public void readFromNBT(NBTTagCompound nbtTagCompound, int version, boolean pickup) {
+		setSelectedVariable(nbtTagCompound.getByte(NBT_VARIABLE));
+		radioButtons.setSelectedOption(nbtTagCompound.getByte(NBT_MODE));
+		executed = nbtTagCompound.getBoolean(NBT_EXECUTED);
+	}
 
-    private Variable getVariable() {
-        return getParent().getManager().getVariables()[getSelectedVariable()];
-    }
+	@Override
+	public void writeToNBT(NBTTagCompound nbtTagCompound, boolean pickup) {
+		nbtTagCompound.setByte(NBT_VARIABLE, (byte) selectedVariable);
+		nbtTagCompound.setByte(NBT_MODE, (byte) radioButtons.getSelectedOption());
+		nbtTagCompound.setBoolean(NBT_EXECUTED, executed);
+	}
 
-    public int getSelectedVariable() {
-        return selectedVariable;
-    }
+	@Override
+	public void addErrors(List<String> errors) {
+		Variable variable = getParent().getManager().getVariables()[selectedVariable];
+		if (!variable.isValid()) {
+			errors.add(Localization.NOT_DECLARED_ERROR.toString());
+		} else if (isDeclaration() && variable.getDeclaration().getId() != getParent().getId()) {
+			errors.add(Localization.ALREADY_DECLARED_ERROR.toString());
+		}
+	}
 
-    private void setSelectedVariable(int val) {
-        selectedVariable = val;
+	@Override
+	public void readNetworkComponent(DataReader dr) {
+		if (dr.readBoolean()) {
+			if (dr.readBoolean()) {
+				setSelectedVariable(dr.readData(DataBitHelper.VARIABLE_TYPE));
+			} else {
+				radioButtons.setSelectedOption(dr.readData(DataBitHelper.CONTAINER_MODE));
+			}
+		} else {
+			executed = dr.readBoolean();
+			if (!getParent().getManager().getWorld().isRemote) {
+				getVariable().setExecuted(executed);
+			}
+		}
+	}
 
-        if (isDeclaration()) {
-            getParent().getManager().updateVariables();
-        }
-    }
 
-    @Override
-    public void readFromNBT(NBTTagCompound nbtTagCompound, int version, boolean pickup) {
-        setSelectedVariable(nbtTagCompound.getByte(NBT_VARIABLE));
-        radioButtons.setSelectedOption(nbtTagCompound.getByte(NBT_MODE));
-        executed = nbtTagCompound.getBoolean(NBT_EXECUTED);
-    }
+	public enum VariableMode {
+		GLOBAL(Localization.GLOBAL, true),
+		LOCAL(Localization.LOCAL, true),
+		ADD(Localization.ADD, false),
+		REMOVE(Localization.REMOVE, false),
+		SET(Localization.SET, false);
 
-    @Override
-    public void writeToNBT(NBTTagCompound nbtTagCompound, boolean pickup) {
-        nbtTagCompound.setByte(NBT_VARIABLE, (byte) selectedVariable);
-        nbtTagCompound.setByte(NBT_MODE, (byte) radioButtons.getSelectedOption());
-        nbtTagCompound.setBoolean(NBT_EXECUTED, executed);
-    }
+		private boolean      declaration;
+		private Localization name;
 
-    @Override
-    public void addErrors(List<String> errors) {
-        Variable variable = getParent().getManager().getVariables()[selectedVariable];
-        if (!variable.isValid()) {
-            errors.add(Localization.NOT_DECLARED_ERROR.toString());
-        } else if (isDeclaration() && variable.getDeclaration().getId() != getParent().getId()) {
-            errors.add(Localization.ALREADY_DECLARED_ERROR.toString());
-        }
-    }
+		VariableMode(Localization name, boolean declaration) {
+			this.name = name;
+			this.declaration = declaration;
+		}
 
-    @Override
-    public void readNetworkComponent(DataReader dr) {
-        if (dr.readBoolean()) {
-            if (dr.readBoolean()) {
-                setSelectedVariable(dr.readData(DataBitHelper.VARIABLE_TYPE));
-            } else {
-                radioButtons.setSelectedOption(dr.readData(DataBitHelper.CONTAINER_MODE));
-            }
-        } else {
-            executed = dr.readBoolean();
-            if (!getParent().getManager().getWorld().isRemote) {
-                getVariable().setExecuted(executed);
-            }
-        }
-    }
+		public Localization getName() {
+			return name;
+		}
 
-    public enum VariableMode {
-
-        GLOBAL(Localization.GLOBAL, true),
-        LOCAL(Localization.LOCAL, true),
-        ADD(Localization.ADD, false),
-        REMOVE(Localization.REMOVE, false),
-        SET(Localization.SET, false);
-
-        private boolean declaration;
-        private Localization name;
-
-        VariableMode(Localization name, boolean declaration) {
-            this.name = name;
-            this.declaration = declaration;
-        }
-
-        public Localization getName() {
-            return name;
-        }
-
-        @Override
-        public String toString() {
-            return super.toString().charAt(0) + super.toString().substring(1).toLowerCase();
-        }
-    }
+		@Override
+		public String toString() {
+			return super.toString().charAt(0) + super.toString().substring(1).toLowerCase();
+		}
+	}
 }

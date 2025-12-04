@@ -1,11 +1,6 @@
 package ca.teamdman.sfm.common.logging;
 
-import java.io.Serializable;
-import java.util.LinkedList;
-import java.util.Objects;
-
 import net.minecraft.util.text.TextComponentTranslation;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Layout;
@@ -18,9 +13,12 @@ import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.core.time.MutableInstant;
 import org.apache.logging.log4j.message.Message;
 
+import java.io.Serializable;
+import java.util.LinkedList;
+import java.util.Objects;
+
 @Plugin(name = "TranslatableAppender", category = "Core", elementType = Appender.ELEMENT_TYPE, printObject = true)
 public class TranslatableAppender extends AbstractAppender {
-
     public final LinkedList<TranslatableLogEvent> contents;
 
     protected TranslatableAppender(String name, Layout<? extends Serializable> layout) {
@@ -54,6 +52,7 @@ public class TranslatableAppender extends AbstractAppender {
         contents.add(new TranslatableLogEvent(
                 level,
                 instant,
-                content));
+                content
+        ));
     }
 }

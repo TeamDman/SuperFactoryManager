@@ -1,23 +1,22 @@
 package ca.teamdman.sfm.client.render;
 
-import java.awt.*;
-import java.util.HashSet;
-
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.math.BlockPos;
-
 import org.lwjgl.opengl.GL11;
 
-public class HighlightRenderList {
+import java.awt.*;
+import java.util.HashSet;
 
+public class HighlightRenderList {
     private final double size;
     public final HashSet<BlockPos> positions;
     private int renderList;
 
     private final int r, g, b, a;
+
 
     public HighlightRenderList(HashSet<BlockPos> blockPos, int r, int g, int b, int a, float highlightFraction) {
         this.size = highlightFraction;
@@ -101,7 +100,8 @@ public class HighlightRenderList {
                 r,
                 g,
                 b,
-                255);
+                255
+        );
 
         for (BlockPos pos : positions) {
             wr.setTranslation(pos.getX() + start, pos.getY() + start, pos.getZ() + start);
@@ -181,11 +181,11 @@ public class HighlightRenderList {
         GL11.glEndList();
     }
 
-    // private int getFaceAlpha(HighlightRenderList.CompiledPosition cp, BlockPos pos, EnumFacing face) {
-    // return cp.checkFace(pos, face) ? 224 : 64;
-    // }
+//    private int getFaceAlpha(HighlightRenderList.CompiledPosition cp, BlockPos pos, EnumFacing face) {
+//        return cp.checkFace(pos, face) ? 224 : 64;
+//    }
 
-    public void render() {
+   public void render() {
         GL11.glCallList(renderList);
     }
 

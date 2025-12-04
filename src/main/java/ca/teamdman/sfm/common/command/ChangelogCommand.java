@@ -1,16 +1,14 @@
 package ca.teamdman.sfm.common.command;
 
+import ca.teamdman.sfm.common.net.ClientboundShowChangelogPacket;
+import ca.teamdman.sfm.common.registry.SFMPackets;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 
-import ca.teamdman.sfm.common.net.ClientboundShowChangelogPacket;
-import ca.teamdman.sfm.common.registry.SFMPackets;
-
 public class ChangelogCommand extends CommandBase {
-
     @Override
     public String getName() {
         return "changelog";
@@ -26,7 +24,8 @@ public class ChangelogCommand extends CommandBase {
         if (sender.getCommandSenderEntity() instanceof EntityPlayerMP player) {
             SFMPackets.sendToPlayer(
                     player,
-                    new ClientboundShowChangelogPacket());
+                    new ClientboundShowChangelogPacket()
+            );
         }
     }
 }

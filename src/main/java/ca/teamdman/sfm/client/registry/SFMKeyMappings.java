@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.registry;
 
+import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
@@ -8,10 +9,7 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.client.settings.KeyModifier;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
-
 import org.lwjgl.input.Keyboard;
-
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
 
 public class SFMKeyMappings {
 
@@ -78,12 +76,9 @@ public class SFMKeyMappings {
     public static final KeyBinding LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY = new KeyBinding(
             LocalizationKeys.LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY.key().get(),
             SFMKeyConflictContext.LABEL_GUN,
-            KeyModifier.NONE, Keyboard.KEY_RMENU,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get());
-    public static final KeyBinding MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY = new KeyBinding(
-            LocalizationKeys.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.key().get(), SFMKeyConflictContext.MANAGER,
-            KeyModifier.CONTROL, Keyboard.KEY_E,
-            LocalizationKeys.SFM_KEY_CATEGORY.key().get());
+            KeyModifier.NONE, Keyboard.KEY_RMENU, LocalizationKeys.SFM_KEY_CATEGORY.key().get());
+    public static final KeyBinding MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY = new KeyBinding(LocalizationKeys.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.key().get(), SFMKeyConflictContext.MANAGER,
+            KeyModifier.CONTROL, Keyboard.KEY_E, LocalizationKeys.SFM_KEY_CATEGORY.key().get());
 
     public static void register() {
         ClientRegistry.registerKeyBinding(MORE_INFO_TOOLTIP_KEY);

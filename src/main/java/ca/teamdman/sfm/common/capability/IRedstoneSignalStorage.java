@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.common.capability;
 
 public interface IRedstoneSignalStorage {
-
     /// @return The amount that was (or would have been, if simulated) inserted into the storage.
     int insert(int amount, boolean simulate);
 

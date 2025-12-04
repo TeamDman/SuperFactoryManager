@@ -31,6 +31,7 @@ public record ServerboundContainerExportsInspectionRequestPacket(
         int windowId,
         BlockPos pos
 ) implements SFMPacket<ServerboundContainerExportsInspectionRequestPacket> {
+
     public static String buildInspectionResults(
             World level,
             BlockPos pos
@@ -129,8 +130,8 @@ public record ServerboundContainerExportsInspectionRequestPacket(
                         new ResourceLimits(
                                 resourceLimitList.stream().distinct().collect(Collectors.toList()),
                                 ResourceIdSet.EMPTY
-                        ),
-                        false
+
+                        ),false
                 );
                 sb.append(inputStatement.toStringPretty());
             }

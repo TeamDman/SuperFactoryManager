@@ -2,6 +2,10 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import com.github.bsideup.jabel.Desugar;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+
+import javax.annotation.Nullable;
 
 @Desugar
 public record ClientboundShowChangelogPacket(

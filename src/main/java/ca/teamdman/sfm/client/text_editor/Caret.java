@@ -1,15 +1,12 @@
 package ca.teamdman.sfm.client.text_editor;
 
 import com.github.bsideup.jabel.Desugar;
-
 import it.unimi.dsi.fastutil.ints.Int2IntFunction;
 
 @Desugar
 public record Caret(int lineIndex, int gapIndex) {
-
     /**
      * Compares two {@code caret} values numerically.
-     * 
      * @return the value {@code 0} if {@code this == other};
      *         a value less than {@code 0} if {@code other comes after this}; and
      *         a value greater than {@code 0} if {@code this comes after other}

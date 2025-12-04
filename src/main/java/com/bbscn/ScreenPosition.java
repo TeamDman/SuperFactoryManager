@@ -4,7 +4,6 @@ import com.bbscn.ScreenRectangle.ScreenAxis;
 import com.bbscn.ScreenRectangle.ScreenDirection;
 
 public class ScreenPosition {
-
     private final int x;
     private final int y;
 

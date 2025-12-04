@@ -11,7 +11,6 @@ import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 
 public class SFMItemUtils {
-
     public static void appendMoreInfoKeyReminderTextIfOnClient(List<String> lines) {
         if (SFMEnvironmentUtils.isClient()) {
             lines.add(
@@ -26,8 +25,8 @@ public class SFMItemUtils {
         return SFMEnvironmentUtils.isClient() && SFMKeyMappings.isKeyDown(SFMKeyMappings.MORE_INFO_TOOLTIP_KEY);
     }
 
-    public static ITextComponent getRainbow(int length) {
-        var start = new TextComponentString("");
+       public static ITextComponent getRainbow(int length) {
+               var start = new TextComponentString("");
         TextFormatting[] rainbowColors = new TextFormatting[]{
                 TextFormatting.DARK_RED,
                 TextFormatting.RED,
@@ -53,5 +52,5 @@ public class SFMItemUtils {
             start.appendSibling(new TextComponentString("=").setStyle(new Style().setColor(color)));
         }
         return start;
-    }
+       }
 }

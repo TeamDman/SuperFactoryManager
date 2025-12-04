@@ -1,35 +1,5 @@
 package ca.teamdman.sfm.client.screen;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
-
-import java.awt.*;
-import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiConfirmOpenLink;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextFormatting;
-
-import org.apache.logging.log4j.Level;
-import org.jetbrains.annotations.Nullable;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.opengl.GL11;
-
-import com.bbscn.Button;
-import com.bbscn.Renderable;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
@@ -48,13 +18,44 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import ca.teamdman.sfm.common.util.TextFormattingColors;
 import ca.teamdman.sfml.ast.Program;
+import com.bbscn.Button;
+import com.bbscn.Renderable;
 import mezz.jei.api.gui.IAdvancedGuiHandler;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiConfirmOpenLink;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
+import org.apache.logging.log4j.Level;
+import org.jetbrains.annotations.Nullable;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
-@SuppressWarnings({ "FieldCanBeLocal", "unused", "NotNullFieldNotInitialized" })
+import java.awt.*;
+import java.io.IOException;
+import java.text.DecimalFormat;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
+
+
+@SuppressWarnings({"FieldCanBeLocal", "unused", "NotNullFieldNotInitialized"})
 public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHandler<ManagerScreen> {
-
     private static final ResourceLocation BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
-            "textures/gui/container/manager.png");
+            "textures/gui/container/manager.png"
+    );
     private final float STATUS_DURATION = 40;
     private ITextComponent status = new TextComponentString("");
     private float statusCountdown = 0;
@@ -71,6 +72,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
 
     private final SFMButtonBuilder buttonBuilder = new SFMButtonBuilder();
 
+
     protected int titleLabelX;
     protected int titleLabelY;
     protected int inventoryLabelX;
@@ -79,7 +81,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
     protected ManagerContainerMenu menu;
 
     public ManagerScreen(
-                         ManagerContainerMenu menu) {
+            ManagerContainerMenu menu
+    ) {
         super(menu);
         this.menu = menu;
 
@@ -97,7 +100,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 clipboardCopyButton,
                 logsButton,
                 rebuildButton,
-                serverConfigButton);
+                serverConfigButton
+        );
     }
 
     public boolean isReadOnly() {
@@ -117,24 +121,27 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
     }
 
     public boolean keyPressed(
-                              int pKeyCode,
-                              int pScanCode,
-                              int pModifiers) {
+            int pKeyCode,
+            int pScanCode,
+            int pModifiers
+    ) {
         if (GuiScreen.isKeyComboCtrlV(pKeyCode) && clipboardPasteButton.visible) {
             onClipboardPasteButtonClicked();
             return true;
         } else if (GuiScreen.isKeyComboCtrlC(pKeyCode) && clipboardCopyButton.visible) {
             onClipboardCopyButtonClicked();
             return true;
-        } else if (pKeyCode == Keyboard.KEY_E && GuiScreen.isCtrlKeyDown() && GuiScreen.isShiftKeyDown() &&
-                examplesButton.visible) {
-                    onExamplesButtonClicked();
-                    return true;
-                } else
-            if (SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.isActiveAndMatches(pKeyCode) && editButton.visible) {
-                onEditButtonClicked();
-                return true;
-            }
+        } else if (pKeyCode == Keyboard.KEY_E
+                && GuiScreen.isCtrlKeyDown()
+                && GuiScreen.isShiftKeyDown()
+                && examplesButton.visible) {
+            onExamplesButtonClicked();
+            return true;
+        } else if (SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.isActiveAndMatches(pKeyCode)
+                && editButton.visible) {
+            onEditButtonClicked();
+            return true;
+        }
 
         return super.keyPressed(pKeyCode, pScanCode, pModifiers);
     }
@@ -148,6 +155,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
             return TextFormatting.RED;
         }
     }
+
 
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
@@ -187,6 +195,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
         this.drawTexturedModalRect(i, j, 0, 0, this.xSize, this.ySize);
     }
 
+
     @Override
     public void initGui() {
         super.initGui();
@@ -196,101 +205,122 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
-                                (this.height - this.ySize) / 2 + 16)
+                                (this.height - this.ySize) / 2 + 16
+                        )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_PASTE_FROM_CLIPBOARD_BUTTON)
                         .setOnPress(button -> this.onClipboardPasteButtonClicked())
                         .setTooltip(
                                 this,
                                 this.fontRenderer,
-                                MANAGER_GUI_PASTE_FROM_CLIPBOARD_BUTTON_TOOLTIP)
-                        .build());
+                                MANAGER_GUI_PASTE_FROM_CLIPBOARD_BUTTON_TOOLTIP
+                        )
+                        .build()
+        );
         editButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
-                                (this.height - this.ySize) / 2 + 16 + 50)
+                                (this.height - this.ySize) / 2 + 16 + 50
+                        )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_EDIT_BUTTON)
                         .setOnPress(button -> onEditButtonClicked())
                         .setTooltip(
                                 this,
                                 this.fontRenderer,
-                                MANAGER_GUI_EDIT_BUTTON_TOOLTIP.getComponent(SFMKeyMappings
-                                        .getKeyDisplay(SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY)))
-                        .build());
+                                MANAGER_GUI_EDIT_BUTTON_TOOLTIP.getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY))
+                        )
+                        .build()
+        );
 //        examplesButton = this.addRenderableWidget(
 //                new SFMButtonBuilder()
 //                        .setPosition(
 //                                (this.width - this.xSize) / 2 - buttonWidth,
-//                                (this.height - this.ySize) / 2 + 16 * 2 + 50)
+//                                (this.height - this.ySize) / 2 + 16 * 2 + 50
+//                        )
 //                        .setSize(buttonWidth, buttonHeight)
 //                        .setText(MANAGER_GUI_VIEW_EXAMPLES_BUTTON)
 //                        .setOnPress(button -> onExamplesButtonClicked())
 //                        .setTooltip(
 //                                this,
 //                                this.fontRenderer,
-//                                MANAGER_GUI_VIEW_EXAMPLES_BUTTON_TOOLTIP)
-//                        .build());
+//                                MANAGER_GUI_VIEW_EXAMPLES_BUTTON_TOOLTIP
+//                        )
+//                        .build()
+//        );
         discordButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
-                                (this.height - this.ySize) / 2 + 112)
+                                (this.height - this.ySize) / 2 + 112
+                        )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_DISCORD_BUTTON)
                         .setOnPress(button -> this.onDiscordButtonClicked())
-                        .build());
+                        .build()
+        );
         clipboardCopyButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
-                                (this.height - this.ySize) / 2 + 128)
+                                (this.height - this.ySize) / 2 + 128
+                        )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_COPY_TO_CLIPBOARD_BUTTON)
                         .setOnPress(button -> this.onClipboardCopyButtonClicked())
-                        .build());
+                        .build()
+        );
         logsButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
-                                (this.height - this.ySize) / 2 + 16 * 9)
+                                (this.height - this.ySize) / 2 + 16 * 9
+                        )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_VIEW_LOGS_BUTTON)
                         .setOnPress(button -> onLogsButtonClicked())
-                        .build());
+                        .build()
+        );
         rebuildButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 - buttonWidth,
-                                (this.height - this.ySize) / 2 + 16 * 10)
+                                (this.height - this.ySize) / 2 + 16 * 10
+                        )
                         .setSize(buttonWidth, buttonHeight)
                         .setText(MANAGER_GUI_REBUILD_BUTTON)
                         .setOnPress(button -> this.onRebuildButtonClicked())
-                        .build());
+                        .build()
+        );
         resetButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 + 120,
-                                (this.height - this.ySize) / 2 + 10)
+                                (this.height - this.ySize) / 2 + 10
+                        )
                         .setSize(50, 12)
                         .setText(MANAGER_GUI_RESET_BUTTON)
                         .setOnPress(button -> onResetButtonClicked())
                         .setTooltip(this, this.fontRenderer, MANAGER_GUI_RESET_BUTTON_TOOLTIP)
-                        .build());
+                        .build()
+        );
         diagButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
                                 (this.width - this.xSize) / 2 + 35,
-                                (this.height - this.ySize) / 2 + 48)
+                                (this.height - this.ySize) / 2 + 48
+                        )
                         .setSize(12, 14)
                         .setText(new TextComponentString("!"))
                         .setOnPress(button -> onDiagButtonClicked())
                         .setTooltip(
-                                this, this.fontRenderer,
-                                isReadOnly() ? MANAGER_GUI_WARNING_BUTTON_TOOLTIP_READ_ONLY :
-                                        MANAGER_GUI_WARNING_BUTTON_TOOLTIP)
-                        .build());
+                                this, this.fontRenderer, isReadOnly()
+                                        ? MANAGER_GUI_WARNING_BUTTON_TOOLTIP_READ_ONLY
+                                        : MANAGER_GUI_WARNING_BUTTON_TOOLTIP
+                        )
+                        .build()
+        );
         updateVisibilities();
     }
 
@@ -310,14 +340,16 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
         SFMScreenChangeHelpers.showProgramEditScreen(new SFMTextEditScreenDiskOpenContext(
                 getProgram(),
                 LabelPositionHolder.from(menu.getDisk()),
-                this::sendProgram));
+                this::sendProgram
+        ));
     }
 
     private void onExamplesButtonClicked() {
         SFMScreenChangeHelpers.showExampleListScreen(
                 getProgram(),
                 LabelPositionHolder.from(menu.getDisk()),
-                this::sendProgram);
+                this::sendProgram
+        );
     }
 
     private void onLogsButtonClicked() {
@@ -327,7 +359,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
     private void performReset() {
         SFMPackets.sendToServer(new ServerboundManagerResetPacket(
                 menu.windowId,
-                menu.MANAGER_POSITION));
+                menu.MANAGER_POSITION
+        ));
         status = MANAGER_GUI_STATUS_RESET.getComponent();
         statusCountdown = STATUS_DURATION;
     }
@@ -343,32 +376,36 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 LocalizationKeys.MANAGER_RESET_CONFIRM_SCREEN_MESSAGE.getComponent(),
                 LocalizationKeys.MANAGER_RESET_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
                 LocalizationKeys.MANAGER_RESET_CONFIRM_SCREEN_NO_BUTTON.getComponent(),
-                20));
+                20
+        ));
     }
 
     private void onRebuildButtonClicked() {
         SFMPackets.sendToServer(new ServerboundManagerRebuildPacket(
                 menu.windowId,
-                menu.MANAGER_POSITION));
+                menu.MANAGER_POSITION
+        ));
         status = MANAGER_GUI_STATUS_REBUILD.getComponent();
         statusCountdown = STATUS_DURATION;
     }
 
+
     private void sendAttemptFix() {
         SFMPackets.sendToServer(new ServerboundManagerFixPacket(
                 menu.windowId,
-                menu.MANAGER_POSITION));
+                menu.MANAGER_POSITION
+        ));
         status = MANAGER_GUI_STATUS_FIX.getComponent();
         statusCountdown = STATUS_DURATION;
     }
 
     private void sendProgram(String program) {
-        program = program.length() > Program.MAX_PROGRAM_LENGTH ? program.substring(0, Program.MAX_PROGRAM_LENGTH) :
-                program;
+        program = program.length() > Program.MAX_PROGRAM_LENGTH ? program.substring(0, Program.MAX_PROGRAM_LENGTH) : program;
         SFMPackets.sendToServer(new ServerboundManagerProgramPacket(
                 menu.windowId,
                 menu.MANAGER_POSITION,
-                program));
+                program
+        ));
         menu.program = program;
         status = MANAGER_GUI_STATUS_LOADED_CLIPBOARD.getComponent();
         statusCountdown = STATUS_DURATION;
@@ -380,13 +417,15 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 new GuiConfirmOpenLink(
                         (proceed, buttonId) -> {
                             if (proceed) {
-                                // Util.getPlatform().openUri(discordUrl);
+//                                Util.getPlatform().openUri(discordUrl);
                             }
                             SFMScreenChangeHelpers.popScreen();
                         },
                         discordUrl,
                         0,
-                        false));
+                        false
+                )
+        );
     }
 
     private void onClipboardCopyButtonClicked() {
@@ -440,7 +479,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 LocalizationKeys.MANAGER_PASTE_CONFIRM_SCREEN_MESSAGE.getComponent(),
                 LocalizationKeys.MANAGER_PASTE_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
                 LocalizationKeys.MANAGER_PASTE_CONFIRM_SCREEN_NO_BUTTON.getComponent(),
-                20));
+                20
+        ));
     }
 
     @MCVersionDependentBehaviour
@@ -449,12 +489,12 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
     }
 
     protected void drawLabels(
-                              int mx,
-                              int my) {
-        this.fontRenderer.drawString(menu.CONTAINER.getDisplayName().getFormattedText(), this.titleLabelX,
-                this.titleLabelY, 4210752);
-        this.fontRenderer.drawString(menu.PLAYER_INVENTORY.getDisplayName().getUnformattedText(), this.inventoryLabelX,
-                this.inventoryLabelY, 4210752);
+            int mx,
+            int my
+    ) {
+        this.fontRenderer.drawString(menu.CONTAINER.getDisplayName().getFormattedText(), this.titleLabelX, this.titleLabelY, 4210752);
+        this.fontRenderer.drawString(menu.PLAYER_INVENTORY.getDisplayName().getUnformattedText(), this.inventoryLabelX, this.inventoryLabelY, 4210752);
+
 
         // draw state string
         var state = menu.state;
@@ -464,7 +504,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 titleLabelX,
                 20,
                 0,
-                false);
+                false
+        );
 
         // draw log level
         if (!menu.logLevel.equals(Level.OFF.name())) {
@@ -472,7 +513,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
             GlStateManager.translate(
                     titleLabelX,
                     this.fontRenderer.FONT_HEIGHT * 1.5,
-                    0f);
+                    0f
+            );
             GlStateManager.scale(0.5f, 0.5f, 1f);
             SFMFontUtils.draw(
                     this.fontRenderer,
@@ -480,7 +522,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                     0,
                     0,
                     0xFFFFFF,
-                    false);
+                    false
+            );
             GlStateManager.popMatrix();
         }
 
@@ -489,12 +532,11 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
             SFMFontUtils.draw(
                     this.fontRenderer,
                     status,
-                    inventoryLabelX +
-                            fontRenderer.getStringWidth(menu.PLAYER_INVENTORY.getDisplayName().getUnformattedText()) +
-                            5,
+                    inventoryLabelX + fontRenderer.getStringWidth(menu.PLAYER_INVENTORY.getDisplayName().getUnformattedText()) + 5,
                     inventoryLabelY,
                     0,
-                    false);
+                    false
+            );
         }
 
         // Find the maximum tick time for normalization
@@ -511,17 +553,18 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
         final int plotWidth = spaceBetweenPoints * (menu.tickTimeNanos.length - 1);
         final int plotHeight = 30;
 
+
         // Set up rendering
         disableTexture();
         GlStateManager.enableBlend();
         GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
 
-        // GlStateManager.tryBlendFuncSeparate(
-        // GlStateManager.SourceFactor.SRC_ALPHA,
-        // GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
-        // GlStateManager.SourceFactor.ONE,
-        // GlStateManager.DestFactor.ZERO
-        // );
+//        GlStateManager.tryBlendFuncSeparate(
+//                GlStateManager.SourceFactor.SRC_ALPHA,
+//                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+//                GlStateManager.SourceFactor.ONE,
+//                GlStateManager.DestFactor.ZERO
+//        );
 
         Tessellator tesselator = Tessellator.getInstance();
         BufferBuilder buffer;
@@ -550,7 +593,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
 
             // Color the lines based on their tick times (green to red)
             var c = TextFormattingColors.getColorCode(getMillisecondColour(y / 1_000_000f));
-            // noinspection DataFlowIssue
+            //noinspection DataFlowIssue
             float red = ((c >> 16) & 0xFF) / 255f;
             float green = ((c >> 8) & 0xFF) / 255f;
             float blue = (c & 0xFF) / 255f;
@@ -560,9 +603,10 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                     .endVertex();
 
             // Check if the mouse is hovering over this line
-            if (mx - guiLeft >= plotPosX - spaceBetweenPoints / 2 &&
-                    mx - guiLeft <= plotPosX + spaceBetweenPoints / 2 && my - guiTop >= plotY - 2 &&
-                    my - guiTop <= plotY + plotHeight + 2) {
+            if (mx - guiLeft >= plotPosX - spaceBetweenPoints / 2
+                    && mx - guiLeft <= plotPosX + spaceBetweenPoints / 2
+                    && my - guiTop >= plotY - 2
+                    && my - guiTop <= plotY + plotHeight + 2) {
                 mouseTickTimeIndex = i;
             }
         }
@@ -577,8 +621,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 var hoveredTickTimeMilliseconds = hoveredTickTimeNanoseconds / 1_000_000f;
                 String formattedMillis = format.format(hoveredTickTimeMilliseconds);
                 TextFormatting lagColor = getMillisecondColour(hoveredTickTimeMilliseconds);
-                ITextComponent milliseconds = new TextComponentString(formattedMillis)
-                        .setStyle(new Style().setColor(lagColor));
+                ITextComponent milliseconds = new TextComponentString(formattedMillis).setStyle(new Style().setColor(lagColor));
 
                 enableTexture();
                 GlStateManager.enableBlend();
@@ -589,8 +632,9 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                         MANAGER_GUI_HOVERED_TICK_TIME_MS.getComponent(milliseconds).getFormattedText(),
                         titleLabelX,
                         20 + fontRenderer.FONT_HEIGHT,
-                        0xFFFFFF, // TextFormattingColors.getColorCode(lagColor),
-                        false);
+                        0xFFFFFF, //  TextFormattingColors.getColorCode(lagColor),
+                        false
+                );
             }
 
             // draw a vertical line
@@ -613,8 +657,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
             var peakTickTimeMilliseconds = peakTickTimeNanoseconds / 1_000_000f;
             String formattedMillis = format.format(peakTickTimeMilliseconds);
             TextFormatting lagColor = getMillisecondColour(peakTickTimeMilliseconds);
-            ITextComponent milliseconds = new TextComponentString(formattedMillis)
-                    .setStyle(new Style().setColor(lagColor));
+            ITextComponent milliseconds = new TextComponentString(formattedMillis).setStyle(new Style().setColor(lagColor));
             enableTexture();
 
             SFMFontUtils.draw(
@@ -623,7 +666,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                     titleLabelX,
                     20 + fontRenderer.FONT_HEIGHT,
                     0,
-                    false);
+                    false
+            );
         }
 
         // Restore stuff
@@ -654,4 +698,5 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 .map(button -> new Rectangle(button.getX(), button.getY(), button.getWidth(), button.getHeight()))
                 .collect(Collectors.toList());
     }
+
 }

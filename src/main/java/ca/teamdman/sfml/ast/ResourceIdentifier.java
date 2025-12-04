@@ -1,22 +1,20 @@
 package ca.teamdman.sfml.ast;
 
-import java.util.*;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import java.util.stream.Collectors;
-
-import net.minecraft.util.ResourceLocation;
-
-import org.apache.commons.lang3.NotImplementedException;
-import org.jetbrains.annotations.Nullable;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.program.RegexCache;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.util.ResourceLocation;
+import org.apache.commons.lang3.NotImplementedException;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 
 // resourceTypeName resourceNamespace, resourceTypeName name, resource resourceNamespace, resource name
 // sfm:item:minecraft:stone
@@ -24,7 +22,8 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
 
     public static final ResourceIdentifier<?, ?, ?> MATCH_ALL = new ResourceIdentifier<>(
             ".*",
-            ".*");
+            ".*"
+    );
     private static final Map<ResourceIdentifier<?, ?, ?>, List<ResourceIdentifier<?, ?, ?>>> expansionCache = new Object2ObjectOpenHashMap<>();
     public final String resourceTypeNamespace;
     public final String resourceTypeName;
@@ -38,7 +37,8 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
             String resourceTypeNamespace,
             String resourceTypeName,
             String resourceNamespace,
-            String resourceName) {
+            String resourceName
+    ) {
         // prevent crash on ctrl+space on "Gas::" (capital)
         // we could throw an exception and let it get bubbled to the user
         // but why bother when we know lowercasing it fixes it
@@ -59,12 +59,14 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
 
     public ResourceIdentifier(
             ResourceLocation resourceTypeKey,
-            ResourceLocation resourceKey) {
+            ResourceLocation resourceKey
+    ) {
         this(
                 resourceTypeKey.getNamespace(),
                 resourceTypeKey.getPath(),
                 resourceKey.getNamespace(),
-                resourceKey.getPath());
+                resourceKey.getPath()
+        );
     }
 
     public ResourceIdentifier(String value) {
@@ -73,14 +75,16 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
 
     public ResourceIdentifier(
             String namespace,
-            String value) {
+            String value
+    ) {
         this(SFM.RESOURCE_SHORT_ID, "item", namespace, value);
     }
 
     public ResourceIdentifier(
             String typeName,
             String resourceNamespace,
-            String resourceName) {
+            String resourceName
+    ) {
         this(SFM.RESOURCE_SHORT_ID, typeName, resourceNamespace, resourceName);
     }
 
@@ -112,8 +116,10 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
                 Pattern.compile(this.resourceName);
             }
         } catch (PatternSyntaxException e) {
-            throw new IllegalArgumentException(
-                    "Invalid resource identifier pattern \"" + this + "\" - " + e.getMessage());
+            throw new IllegalArgumentException("Invalid resource identifier pattern \""
+                    + this
+                    + "\" - "
+                    + e.getMessage());
         }
     }
 
@@ -136,9 +142,10 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
                         this.resourceTypeNamespace,
                         this.resourceTypeName,
                         "forge",
-                        "energy"));
+                        "energy"
+                ));
             if (expansionCache.containsKey(this)) {
-                // noinspection unchecked,rawtypes
+                //noinspection unchecked,rawtypes
                 return (List<ResourceIdentifier<STACK, ITEM, CAP>>) (List) expansionCache.get(this);
             }
             ResourceType<STACK, ITEM, CAP> resourceType = getResourceType();
@@ -153,9 +160,9 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
                             resourceTypeNamespace,
                             resourceTypeName,
                             e.getNamespace(),
-                            e.getPath()))
-                    .collect(Collectors.toList());
-            // noinspection unchecked,rawtypes
+                            e.getPath()
+                    )).collect(Collectors.toList());
+            //noinspection unchecked,rawtypes
             expansionCache.put(this, (List) rtn);
             return rtn;
         } catch (NotImplementedException e) {
@@ -177,7 +184,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
 
     public @Nullable ResourceType<STACK, ITEM, CAP> getResourceType() {
         if (resourceTypeCache == null) {
-            // noinspection unchecked
+            //noinspection unchecked
             setResourceTypeCache((ResourceType<STACK, ITEM, CAP>) SFMResourceTypes.fastLookup(getResourceTypeId()));
         }
         return resourceTypeCache;
@@ -232,15 +239,16 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         }
     }
 
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ResourceIdentifier<?, ?, ?> that = (ResourceIdentifier<?, ?, ?>) o;
-        return Objects.equals(resourceTypeNamespace, that.resourceTypeNamespace) &&
-                Objects.equals(resourceTypeName, that.resourceTypeName) &&
-                Objects.equals(resourceNamespace, that.resourceNamespace) &&
-                Objects.equals(resourceName, that.resourceName);
+        return Objects.equals(resourceTypeNamespace, that.resourceTypeNamespace)
+                && Objects.equals(resourceTypeName, that.resourceTypeName)
+                && Objects.equals(resourceNamespace, that.resourceNamespace)
+                && Objects.equals(resourceName, that.resourceName);
     }
 
     @Override

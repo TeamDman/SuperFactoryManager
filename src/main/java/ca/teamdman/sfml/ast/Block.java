@@ -1,15 +1,13 @@
 package ca.teamdman.sfml.ast;
 
-import java.util.List;
-
-import com.github.bsideup.jabel.Desugar;
-
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.ProgramContext;
+import com.github.bsideup.jabel.Desugar;
+
+import java.util.List;
 
 @Desugar
 public record Block(List<Statement> statements) implements Statement {
-
     @Override
     public void tick(ProgramContext context) {
         for (Statement statement : statements) {
@@ -19,11 +17,13 @@ public record Block(List<Statement> statements) implements Statement {
             if (statement instanceof ToStringPretty ps) {
                 context.getLogger().info(x -> x.accept(LocalizationKeys.PROGRAM_TICK_STATEMENT_TIME_MS.get(
                         elapsed,
-                        ps.toStringPretty())));
+                        ps.toStringPretty()
+                )));
             } else {
                 context.getLogger().info(x -> x.accept(LocalizationKeys.PROGRAM_TICK_STATEMENT_TIME_MS.get(
                         elapsed,
-                        statement.toString())));
+                        statement.toString()
+                )));
             }
         }
     }

@@ -3,7 +3,6 @@ package ca.teamdman.sfm.common.capability;
 import org.jetbrains.annotations.Nullable;
 
 public class SFMBlockCapabilityResult<CAP> {
-
     private final @Nullable CAP capability;
 
     private SFMBlockCapabilityResult(@Nullable CAP capability) {

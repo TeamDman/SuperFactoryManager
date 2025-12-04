@@ -1,19 +1,5 @@
 package ca.teamdman.sfm.client.screen;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumHand;
-
-import com.bbscn.Button;
-import com.bbscn.CommonComponents;
-import com.bbscn.EditBox;
-import com.bbscn.Renderable;
-
 import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
@@ -22,9 +8,20 @@ import ca.teamdman.sfm.common.net.ServerboundLabelGunCycleViewModePacket;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunPrunePacket;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
+import com.bbscn.Button;
+import com.bbscn.CommonComponents;
+import com.bbscn.EditBox;
+import com.bbscn.Renderable;
+import net.minecraft.client.Minecraft;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumHand;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class LabelGunScreen extends GuiScreenExtend {
-
     private final EnumHand HAND;
     private final LabelPositionHolder LABEL_HOLDER;
     private final ArrayList<Button> labelButtons = new ArrayList<>();
@@ -33,7 +30,7 @@ public class LabelGunScreen extends GuiScreenExtend {
     private boolean shouldRebuildWidgets = false;
 
     public LabelGunScreen(ItemStack stack, EnumHand hand) {
-        // super(LocalizationKeys.LABEL_GUN_GUI_TITLE.getComponent());
+//        super(LocalizationKeys.LABEL_GUN_GUI_TITLE.getComponent());
         LABEL_HOLDER = LabelPositionHolder.from(stack);
         HAND = hand;
     }
@@ -50,11 +47,12 @@ public class LabelGunScreen extends GuiScreenExtend {
                 50,
                 300,
                 20,
-                LocalizationKeys.LABEL_GUN_GUI_LABEL_PLACEHOLDER.getComponent()));
+                LocalizationKeys.LABEL_GUN_GUI_LABEL_PLACEHOLDER.getComponent()
+        ));
         this.labelField.setResponder(this::onTextUpdated);
         this.labelField.setSuggestion(LocalizationKeys.LABEL_GUN_GUI_LABEL_EDIT_PLACEHOLDER.getString());
 
-        // this.setInitialFocus(labelField);
+//        this.setInitialFocus(labelField);
         this.setFocused(labelField);
         this.labelField.setFocused(true);
 
@@ -68,7 +66,8 @@ public class LabelGunScreen extends GuiScreenExtend {
                             LABEL_HOLDER.clear();
                             shouldRebuildWidgets = true;
                         })
-                        .build());
+                        .build()
+        );
         this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setSize(50, 20)
@@ -79,7 +78,8 @@ public class LabelGunScreen extends GuiScreenExtend {
                             LABEL_HOLDER.prune();
                             shouldRebuildWidgets = true;
                         })
-                        .build());
+                        .build()
+        );
         this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setSize(200, 20)
@@ -89,16 +89,20 @@ public class LabelGunScreen extends GuiScreenExtend {
                             SFMPackets.sendToServer(new ServerboundLabelGunCycleViewModePacket(HAND));
                             onClose();
                         })
-                        .build());
+                        .build()
+        );
         this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setSize(300, 20)
                         .setPosition(this.width / 2 - 2 - 150, this.height - 50)
                         .setText(CommonComponents.GUI_DONE)
                         .setOnPress((p_97691_) -> this.onDone())
-                        .build());
+                        .build()
+        );
         onTextUpdated("");
     }
+
+
 
     @Override
     public void onResize(Minecraft mc, int x, int y) {
@@ -110,9 +114,10 @@ public class LabelGunScreen extends GuiScreenExtend {
 
     @Override
     public void drawScreen(
-                           int mx,
-                           int my,
-                           float partialTicks) {
+            int mx,
+            int my,
+            float partialTicks
+    ) {
         if (shouldRebuildWidgets) {
             // we delay this because focus gets reset _after_ the button event handler
             // we want to end with the label input field focused
@@ -138,16 +143,15 @@ public class LabelGunScreen extends GuiScreenExtend {
         this.labelButtons.clear();
     }
 
+
     private void onTextUpdated(String newText) {
-        labelField.setSuggestion(
-                newText.isEmpty() ? LocalizationKeys.LABEL_GUN_GUI_LABEL_EDIT_PLACEHOLDER.getString() : "");
+        labelField.setSuggestion(newText.isEmpty() ? LocalizationKeys.LABEL_GUN_GUI_LABEL_EDIT_PLACEHOLDER.getString() : "");
         labelButtons.forEach(this::removeWidget);
         labelButtons.clear();
 
         int buttonWidth = LABEL_HOLDER.labels().entrySet().stream()
-                .map(entry -> LocalizationKeys.LABEL_GUN_GUI_LABEL_BUTTON.getComponent(entry.getKey(), entry.getValue()
-                        .size()).getUnformattedText())
-                .mapToInt(this.fontRenderer::getStringWidth).max().orElse(50) + 10;
+                                  .map(entry -> LocalizationKeys.LABEL_GUN_GUI_LABEL_BUTTON.getComponent(entry.getKey(), entry.getValue()
+                                          .size()).getUnformattedText()).mapToInt(this.fontRenderer::getStringWidth).max().orElse(50) + 10;
         int paddingX = 5;
         int paddingY = 5;
         int buttonHeight = 20;
@@ -160,8 +164,7 @@ public class LabelGunScreen extends GuiScreenExtend {
                 .sorted(Comparator.naturalOrder()).collect(Collectors.toList());
 
         for (String label : labels) {
-            int x = (this.width - (buttonWidth + paddingX) * Math.min(buttonsPerRow, labels.size())) / 2 + paddingX +
-                    (i % buttonsPerRow) * (buttonWidth + paddingX);
+            int x = (this.width - (buttonWidth + paddingX) * Math.min(buttonsPerRow, labels.size())) / 2 + paddingX + (i % buttonsPerRow) * (buttonWidth + paddingX);
             int y = 80 + (i / buttonsPerRow) * (buttonHeight + paddingY);
             addLabelButton(label, x, y, buttonWidth, buttonHeight);
 
@@ -170,11 +173,12 @@ public class LabelGunScreen extends GuiScreenExtend {
     }
 
     private void addLabelButton(
-                                String label,
-                                int x,
-                                int y,
-                                int width,
-                                int height) {
+            String label,
+            int x,
+            int y,
+            int width,
+            int height
+    ) {
         int count = LABEL_HOLDER.getPositions(label).size();
         Button button = new SFMButtonBuilder()
                 .setSize(width, height)
@@ -192,7 +196,8 @@ public class LabelGunScreen extends GuiScreenExtend {
     public void onDone() {
         SFMPackets.sendToServer(new ServerboundLabelGunSetActiveLabelPacket(
                 this.labelField.getValue(),
-                HAND));
+                HAND
+        ));
         onClose();
     }
 }

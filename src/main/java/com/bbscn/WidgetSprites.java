@@ -6,7 +6,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public class WidgetSprites {
-
     ResourceLocation enabled;
     ResourceLocation disabled;
     ResourceLocation enabledFocused;
@@ -20,12 +19,11 @@ public class WidgetSprites {
         this(p_296152_, p_296020_, p_296073_, p_296020_);
     }
 
-    public WidgetSprites(ResourceLocation enabled, ResourceLocation disabled, ResourceLocation enabledFocused,
-                         ResourceLocation disabledFocused) {
-        this.enabled = enabled;
-        this.disabled = disabled;
-        this.enabledFocused = enabledFocused;
-        this.disabledFocused = disabledFocused;
+    public WidgetSprites(ResourceLocation enabled, ResourceLocation disabled, ResourceLocation enabledFocused, ResourceLocation disabledFocused) {
+        this.enabled=enabled;
+        this.disabled=disabled;
+        this.enabledFocused=enabledFocused;
+        this.disabledFocused=disabledFocused;
     }
 
     public ResourceLocation get(boolean pEnabled, boolean pFocused) {

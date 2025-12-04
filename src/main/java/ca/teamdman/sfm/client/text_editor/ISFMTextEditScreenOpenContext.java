@@ -1,15 +1,14 @@
 package ca.teamdman.sfm.client.text_editor;
 
-import java.util.function.Consumer;
-
-import net.minecraft.client.gui.GuiYesNo;
-
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import net.minecraft.client.gui.GuiYesNo;
+import net.minecraft.client.gui.GuiYesNoCallback;
+
+import java.util.function.Consumer;
 
 public interface ISFMTextEditScreenOpenContext {
-
     String initialValue();
 
     default void onTryClose(String latestContent, Runnable finalizeClose) {
@@ -33,7 +32,8 @@ public interface ISFMTextEditScreenOpenContext {
                     LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_MESSAGE.getComponent().getUnformattedText(),
                     LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_YES_BUTTON.getComponent().getUnformattedText(),
                     LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_NO_BUTTON.getComponent().getUnformattedText(),
-                    0);
+                    0
+            );
             SFMScreenChangeHelpers.setOrPushScreen(exitWithoutSavingConfirmScreen);
             exitWithoutSavingConfirmScreen.setButtonDelay(20);
         }

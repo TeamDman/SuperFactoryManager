@@ -7,7 +7,6 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
-
 import org.jetbrains.annotations.Nullable;
 import org.simmetrics.ListDistance;
 import org.simmetrics.StringDistance;
@@ -15,18 +14,12 @@ import org.simmetrics.builders.StringDistanceBuilder;
 import org.simmetrics.metrics.StringDistances;
 import org.simmetrics.simplifiers.Simplifiers;
 
-import com.bbscn.AbstractScrollWidget;
-import com.bbscn.ScreenRectangle;
-
-import ca.teamdman.sfm.client.screen.SFMFontUtils;
-import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import ca.teamdman.sfm.common.util.Mth;
+import java.util.Comparator;
+import java.util.List;
 import ca.teamdman.sfm.common.util.Pair;
 import org.simmetrics.tokenizers.Tokenizers;
 
 public class PickList<T extends PickListItem> extends AbstractScrollWidget {
-
     protected final FontRenderer font;
     protected List<T> items;
     protected List<T> sortedItems;
@@ -40,7 +33,8 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
             int pWidth,
             int pHeight,
             ITextComponent title,
-            List<T> items) {
+            List<T> items
+    ) {
         super(pX, pY, pWidth, pHeight, title);
         this.font = font;
         this.items = items;
@@ -64,6 +58,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
         return font.FONT_HEIGHT;
     }
 
+
     public @Nullable T getSelected() {
         if (sortedItems.isEmpty()) return null;
         if (selectionIndex < 0) return null;
@@ -82,16 +77,19 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
     @MCVersionDependentBehaviour
     public void setXY(
             int x,
-            int y) {
+            int y
+    ) {
         this.setX(x);
         this.setY(y);
     }
+
 
     @Override
     public void renderWidget(
             int pMouseX,
             int pMouseY,
-            float pPartialTick) {
+            float pPartialTick
+    ) {
         if (sortedItems.isEmpty()) return;
         super.renderWidget(pMouseX, pMouseY, pPartialTick);
     }
@@ -137,7 +135,9 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
             this.setScrollAmount(0);
         } else {
             this.setScrollAmount(
-                    this.selectionIndex * this.getItemHeight() - this.height / 2.0f + this.getItemHeight());
+                    this.selectionIndex * this.getItemHeight()
+                            - this.height / 2.0f + this.getItemHeight()
+            );
         }
     }
 
@@ -202,7 +202,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
                 return preferredOrder.length;
             }));
         } else {
-            // SFM.LOGGER.debug("Sorting by distance using query: {}", queryString);
+//            SFM.LOGGER.debug("Sorting by distance using query: {}", queryString);
             var bestOptionsHeap = new PriorityQueue<>(20, Comparator.comparing(Pair<Float,T>::getFirst).reversed());
             for (T item : items) {
                 float d = distance.distance(item.getComponent().getUnformattedComponentText(), queryString);
@@ -236,16 +236,19 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
         return (double) (this.height - this.totalInnerPadding()) / (double) getItemHeight();
     }
 
+
     @Override
     protected double scrollRate() {
         return this.getItemHeight() / 2.0d;
     }
 
+
     @Override
     protected void renderContents(
             int mx,
             int my,
-            float partialTick) {
+            float partialTick
+    ) {
         var tess = Tessellator.getInstance();
 
         if (sortedItems.isEmpty()) return;
@@ -255,6 +258,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
         int startIndex = (int) (scrollAmount() / itemHeight);
         int visibleCount = (int) Math.ceil((double) height / itemHeight) + 1;
         int endIndex = Math.min(sortedItems.size(), startIndex + visibleCount);
+
 
         var buffer = Tessellator.getInstance().getBuffer();
         int lineX = SFMScreenRenderUtils.getX(this) + this.innerPadding();
@@ -272,14 +276,16 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
                     lineX,
                     lineY,
                     true,
-                    false);
+                    false
+            );
 
             if (i == this.selectionIndex) {
                 highlight = new ScreenRectangle(
                         lineX,
                         lineY,
                         this.width,
-                        itemHeight);
+                        itemHeight
+                );
             }
         }
 
@@ -288,7 +294,9 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
                     highlight.getBoundInDirection(ScreenRectangle.ScreenDirection.LEFT),
                     highlight.getBoundInDirection(ScreenRectangle.ScreenDirection.UP),
                     highlight.getBoundInDirection(ScreenRectangle.ScreenDirection.RIGHT) + highlight.getWidth(),
-                    highlight.getBoundInDirection(ScreenRectangle.ScreenDirection.DOWN));
+                    highlight.getBoundInDirection(ScreenRectangle.ScreenDirection.DOWN)
+            );
         }
     }
+
 }
