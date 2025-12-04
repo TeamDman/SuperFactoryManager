@@ -1,46 +1,68 @@
 package ca.teamdman.sfm.common.net;
 
-import javax.annotation.Nullable;
-
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumHand;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-
 import ca.teamdman.sfm.common.item.LabelGunItem;
-import io.netty.buffer.ByteBuf;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.util.EnumHand;
 
-public class ServerboundLabelGunCycleViewModePacket extends SFMPacket<ServerboundLabelGunCycleViewModePacket> {
+@Desugar
+public record ServerboundLabelGunCycleViewModePacket(
+        EnumHand hand
+) implements SFMPacket<ServerboundLabelGunCycleViewModePacket> {
+    public static class Daddy implements SFMPacketDaddy<ServerboundLabelGunCycleViewModePacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
+        }
+        @Override
+        public void encode(
+                ServerboundLabelGunCycleViewModePacket msg,
+                FriendlyByteBuf buf
+        ) {
+            buf.writeEnum(msg.hand);
+        }
 
-    private EnumHand hand;
+        @Override
+        public ServerboundLabelGunCycleViewModePacket decode(FriendlyByteBuf buf) {
+            return new ServerboundLabelGunCycleViewModePacket(buf.readEnum(EnumHand.class));
+        }
 
-    public ServerboundLabelGunCycleViewModePacket(EnumHand hand) {
-        this.hand = hand;
+        @Override
+        public void handle(
+                ServerboundLabelGunCycleViewModePacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            EntityPlayerMP sender = context.sender();
+            if (sender == null) return;
+
+            var stack = sender.getHeldItem(msg.hand());
+            if (!(stack.getItem() instanceof LabelGunItem)) return;
+
+            LabelGunItem.cycleViewMode(stack);
+        }
+
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
     }
 
-    public ServerboundLabelGunCycleViewModePacket() {}
+    public static final Daddy daddy = new Daddy();
 
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        hand = EnumHand.values()[buf.readInt()];
+    public static class Packet extends Wrapper<ServerboundLabelGunCycleViewModePacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundLabelGunCycleViewModePacket> getDaddy() {
+            return daddy;
+        }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        buf.writeInt(hand.ordinal());
-    }
 
     @Override
-    @Nullable
-    public IMessage onMessage(ServerboundLabelGunCycleViewModePacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            ItemStack stack = player.getHeldItem(message.hand);
-            if (stack.getItem() instanceof LabelGunItem) {
-                LabelGunItem.cycleViewMode(stack);
-            }
-        });
-        return null;
+    public Wrapper<ServerboundLabelGunCycleViewModePacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }
+

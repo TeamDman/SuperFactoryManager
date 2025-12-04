@@ -1,61 +1,74 @@
 package ca.teamdman.sfm.common.net;
 
-import javax.annotation.Nullable;
-
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.inventory.Container;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
 
-public class ClientboundManagerLogLevelUpdatedPacket extends SFMPacket<ClientboundManagerLogLevelUpdatedPacket> {
+@Desugar
+public record ClientboundManagerLogLevelUpdatedPacket(
+        int windowId,
+        String logLevel
+) implements SFMPacket<ClientboundManagerLogLevelUpdatedPacket> {
+    public static class Daddy implements SFMPacketDaddy<ClientboundManagerLogLevelUpdatedPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.CLIENTBOUND;
+        }
+        @Override
+        public void encode(
+                ClientboundManagerLogLevelUpdatedPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeVarInt(msg.windowId());
+            friendlyByteBuf.writeString(SFMPacketDaddy.truncate(msg.logLevel(), ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH));
+        }
 
-    private int windowId;
-    private String logLevel;
+        @Override
+        public ClientboundManagerLogLevelUpdatedPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ClientboundManagerLogLevelUpdatedPacket(
+                    friendlyByteBuf.readVarInt(),
+                    friendlyByteBuf.readString(ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH)
+            );
+        }
 
-    public ClientboundManagerLogLevelUpdatedPacket(int windowId, String logLevel) {
-        this.windowId = windowId;
-        this.logLevel = logLevel;
-    }
+        @Override
+        public void handle(
+                ClientboundManagerLogLevelUpdatedPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            EntityPlayerSP player = Minecraft.getMinecraft().player;
+            if (player == null
+                || !(player.openContainer instanceof ManagerContainerMenu menu)
+                || menu.windowId != msg.windowId()) {
+                SFM.LOGGER.error("Invalid log level packet received, ignoring.");
+                return;
+            }
+            menu.logLevel = msg.logLevel;
+        }
 
-    public ClientboundManagerLogLevelUpdatedPacket() {}
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        windowId = packetBuffer.readVarInt();
-        try {
-            logLevel = packetBuffer.readString(ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
         }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        packetBuffer.writeVarInt(windowId);
-        packetBuffer.writeString(logLevel);
+    public static final Daddy daddy = new Daddy();
+
+    public static class Packet extends Wrapper<ClientboundManagerLogLevelUpdatedPacket> {
+
+        @Override
+        SFMPacketDaddy<ClientboundManagerLogLevelUpdatedPacket> getDaddy() {
+            return daddy;
+        }
     }
 
+
     @Override
-    @Nullable
-    public IMessage onMessage(ClientboundManagerLogLevelUpdatedPacket message, MessageContext ctx) {
-        EntityPlayerSP player = Minecraft.getMinecraft().player;
-        if (player == null) return null;
-        Container container = player.openContainer;
-        if (!(container instanceof ManagerContainerMenu) || container.windowId != message.windowId) {
-            SFM.LOGGER.error("Invalid log level packet received, ignoring.");
-            return null;
-        }
-        ManagerContainerMenu menu = (ManagerContainerMenu) container;
-        menu.logLevel = message.logLevel;
-        return null;
+    public Wrapper<ClientboundManagerLogLevelUpdatedPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

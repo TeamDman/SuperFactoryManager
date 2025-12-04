@@ -1,59 +1,74 @@
 package ca.teamdman.sfm.common.net;
 
-import javax.annotation.Nullable;
-
+import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.inventory.Container;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
-
-public class ClientboundContainerExportsInspectionResultsPacket extends
-                                                                SFMPacket<ClientboundContainerExportsInspectionResultsPacket> {
-
+@Desugar
+public record ClientboundContainerExportsInspectionResultsPacket(
+        int windowId,
+        String results
+) implements SFMPacket<ClientboundContainerExportsInspectionResultsPacket> {
     public static final int MAX_RESULTS_LENGTH = 20480;
 
-    private int windowId;
-    private String results;
+    public static class Daddy implements SFMPacketDaddy<ClientboundContainerExportsInspectionResultsPacket> {
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
 
-    public ClientboundContainerExportsInspectionResultsPacket(int windowId, String results) {
-        this.windowId = windowId;
-        this.results = results;
-    }
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.CLIENTBOUND;
+        }
 
-    public ClientboundContainerExportsInspectionResultsPacket() {}
+        @Override
+        public void encode(
+                ClientboundContainerExportsInspectionResultsPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeVarInt(msg.windowId());
+            friendlyByteBuf.writeString(SFMPacketDaddy.truncate(msg.results(), MAX_RESULTS_LENGTH));
+        }
 
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        windowId = packetBuffer.readVarInt();
-        try {
-            results = packetBuffer.readString(20480);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+        @Override
+        public ClientboundContainerExportsInspectionResultsPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ClientboundContainerExportsInspectionResultsPacket(
+                    friendlyByteBuf.readVarInt(),
+                    friendlyByteBuf.readString(MAX_RESULTS_LENGTH)
+            );
+        }
+
+        @Override
+        public void handle(
+                ClientboundContainerExportsInspectionResultsPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            EntityPlayerSP player = Minecraft.getMinecraft().player;
+            if (player == null) return;
+            Container container = player.openContainer;
+            if (container.windowId != msg.windowId) return;
+            SFMScreenChangeHelpers.showProgramEditScreen(msg.results);
         }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        packetBuffer.writeVarInt(windowId);
-        packetBuffer.writeString(results);
+    public static final Daddy daddy = new Daddy();
+
+    public static class Packet extends Wrapper<ClientboundContainerExportsInspectionResultsPacket> {
+
+        @Override
+        SFMPacketDaddy<ClientboundContainerExportsInspectionResultsPacket> getDaddy() {
+            return daddy;
+        }
     }
 
+
     @Override
-    @Nullable
-    public IMessage onMessage(ClientboundContainerExportsInspectionResultsPacket message, MessageContext ctx) {
-        EntityPlayerSP player = Minecraft.getMinecraft().player;
-        if (player == null) return null;
-        Container container = player.openContainer;
-        if (container.windowId != message.windowId) return null;
-        SFMScreenChangeHelpers.showProgramEditScreen(message.results);
-        return null;
+    public Wrapper<ClientboundContainerExportsInspectionResultsPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

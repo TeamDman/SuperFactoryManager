@@ -19,7 +19,7 @@ public class LabelGunPlanner {
                                                          ServerboundLabelGunUsePacket msg,
                                                          boolean doWarning) {
         World world = player.getEntityWorld();
-        var gunStack = player.getHeldItem(msg.getHand());
+        var gunStack = player.getHeldItem(msg.hand());
         if (!(gunStack.getItem() instanceof LabelGunItem)) {
             return null;
         }
@@ -27,7 +27,7 @@ public class LabelGunPlanner {
         var gunLabels = LabelPositionHolder.from(gunStack).toOwned();
 
         if (!msg.isTargetManagerModifierActive() &&
-                world.getTileEntity(msg.getPos()) instanceof ManagerBlockEntity manager) {
+                world.getTileEntity(msg.pos()) instanceof ManagerBlockEntity manager) {
             return new LabelGunManagerPushOrPullAction(
                     player,
                     world,
@@ -38,7 +38,7 @@ public class LabelGunPlanner {
         }
 
         if (!msg.isTargetManagerModifierActive() &&
-                world.getTileEntity(msg.getPos()) instanceof TileEntityManager manager) {
+                world.getTileEntity(msg.pos()) instanceof TileEntityManager manager) {
             return new LabelGunOldManagerPushOrPullAction(
                     player,
                     world,

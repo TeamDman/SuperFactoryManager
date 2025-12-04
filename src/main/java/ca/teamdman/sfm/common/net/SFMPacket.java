@@ -1,16 +1,24 @@
 package ca.teamdman.sfm.common.net;
 
+import io.netty.buffer.ByteBuf;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-import org.jetbrains.annotations.Nullable;
+public interface SFMPacket<T> {
+    public Wrapper<T> wrap();
 
-public abstract class SFMPacket<T extends SFMPacket<T>> implements IMessage, IMessageHandler<T, IMessage> {
+    abstract class Wrapper<T> implements IMessage {
+        abstract SFMPacketDaddy<T> getDaddy();
 
-    @Override
-    @Nullable
-    public IMessage onMessage(T message, MessageContext ctx) {
-        return null;
+        public T ourRecord;
+
+        @Override
+        public void fromBytes(ByteBuf buf) {
+            ourRecord = getDaddy().decode(new FriendlyByteBuf(buf));
+        }
+
+        @Override
+        public void toBytes(ByteBuf buf) {
+            getDaddy().encode(ourRecord, new FriendlyByteBuf(buf));
+        }
     }
 }

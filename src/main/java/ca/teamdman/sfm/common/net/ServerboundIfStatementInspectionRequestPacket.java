@@ -1,72 +1,93 @@
 package ca.teamdman.sfm.common.net;
 
-import net.minecraft.network.PacketBuffer;
-
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfml.ast.IfStatement;
 import ca.teamdman.sfml.ast.Program;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import com.github.bsideup.jabel.Desugar;
 
-public class ServerboundIfStatementInspectionRequestPacket extends
-                                                           SFMAdvancedPacket<ServerboundIfStatementInspectionRequestPacket> {
-
-    private String programString;
-    private int inputNodeIndex;
-
-    public ServerboundIfStatementInspectionRequestPacket(String programString, int inputNodeIndex) {
-        this.programString = programString;
-        this.inputNodeIndex = inputNodeIndex;
-    }
-
-    public ServerboundIfStatementInspectionRequestPacket() {}
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        try {
-            programString = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+@Desugar
+public record ServerboundIfStatementInspectionRequestPacket(
+        String programString,
+        int inputNodeIndex
+) implements SFMPacket<ServerboundIfStatementInspectionRequestPacket> {
+    public static class Daddy implements SFMPacketDaddy<ServerboundIfStatementInspectionRequestPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
         }
-        inputNodeIndex = packetBuffer.readInt();
+        @Override
+        public void encode(
+                ServerboundIfStatementInspectionRequestPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeString(SFMPacketDaddy.truncate(msg.programString, Program.MAX_PROGRAM_LENGTH));
+            friendlyByteBuf.writeInt(msg.inputNodeIndex());
+        }
+
+        @Override
+        public ServerboundIfStatementInspectionRequestPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ServerboundIfStatementInspectionRequestPacket(
+                    friendlyByteBuf.readString(Program.MAX_PROGRAM_LENGTH),
+                    friendlyByteBuf.readInt()
+            );
+        }
+
+        @Override
+        public void handle(
+                ServerboundIfStatementInspectionRequestPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            context.compileAndThen(
+                    msg.programString,
+                    (program, player, managerBlockEntity) -> program.astBuilder()
+                            .getNodeAtIndex(msg.inputNodeIndex)
+                            .filter(IfStatement.class::isInstance)
+                            .map(IfStatement.class::cast)
+                            .ifPresent(ifStatement -> {
+                                StringBuilder payload = new StringBuilder();
+                                payload
+                                        .append(ifStatement.toStringCondensed())
+                                        .append("\n-- peek results --\n");
+                                ProgramContext programContext = new ProgramContext(
+                                        program,
+                                        managerBlockEntity,
+                                        new SimulateExploreAllPathsProgramBehaviour()
+                                );
+                                boolean result = ifStatement.condition().test(programContext);
+                                payload.append(result ? "TRUE" : "FALSE");
+
+                                SFMPackets.sendToPlayer(player, new ClientboundIfStatementInspectionResultsPacket(
+                                        SFMPacketDaddy.truncate(
+                                                payload.toString(),
+                                                ClientboundIfStatementInspectionResultsPacket.MAX_RESULTS_LENGTH
+                                        )));
+                            })
+            );
+        }
+
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        packetBuffer.writeString(programString);
-        packetBuffer.writeInt(inputNodeIndex);
+    public static final Daddy daddy = new Daddy();
+
+    public static class Packet extends Wrapper<ServerboundIfStatementInspectionRequestPacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundIfStatementInspectionRequestPacket> getDaddy() {
+            return daddy;
+        }
     }
 
-    @Override
-    public void handle(
-                       ServerboundIfStatementInspectionRequestPacket msg,
-                       SFMPacketHandlingContext context) {
-        context.compileAndThen(
-                msg.programString,
-                (program, player, managerBlockEntity) -> program.astBuilder()
-                        .getNodeAtIndex(msg.inputNodeIndex)
-                        .filter(IfStatement.class::isInstance)
-                        .map(IfStatement.class::cast)
-                        .ifPresent(ifStatement -> {
-                            StringBuilder payload = new StringBuilder();
-                            payload
-                                    .append(ifStatement.toStringCondensed())
-                                    .append("\n-- peek results --\n");
-                            ProgramContext programContext = new ProgramContext(
-                                    program,
-                                    managerBlockEntity,
-                                    new SimulateExploreAllPathsProgramBehaviour());
-                            boolean result = ifStatement.condition().test(programContext);
-                            payload.append(result ? "TRUE" : "FALSE");
 
-                            SFMPackets.sendToPlayer(player, new ClientboundIfStatementInspectionResultsPacket(
-                                    SFMAdvancedPacket.truncate(
-                                            payload.toString(),
-                                            ClientboundIfStatementInspectionResultsPacket.MAX_RESULTS_LENGTH)));
-                        }));
+    @Override
+    public Wrapper<ServerboundIfStatementInspectionRequestPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

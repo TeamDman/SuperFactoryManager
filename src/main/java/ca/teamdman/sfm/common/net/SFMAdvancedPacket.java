@@ -1,5 +1,8 @@
 package ca.teamdman.sfm.common.net;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.DecoderException;
+import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
@@ -7,13 +10,12 @@ import org.jetbrains.annotations.Nullable;
 
 import ca.teamdman.sfm.SFM;
 
-abstract public class SFMAdvancedPacket<T extends SFMPacket<T>> extends SFMPacket<T> {
+abstract public class SFMAdvancedPacket<T extends SFMAdvancedPacket> implements IMessage  {
 
     abstract void handle(
                          T msg,
                          SFMPacketHandlingContext context);
 
-    @Override
     @Nullable
     public IMessage onMessage(T message, MessageContext ctx) {
         var context = new SFMPacketHandlingContext(ctx);
@@ -27,6 +29,10 @@ abstract public class SFMAdvancedPacket<T extends SFMPacket<T>> extends SFMPacke
         });
         return null;
     }
+
+    abstract public void fromBytes(ByteBuf buf) ;
+
+    abstract public void toBytes(ByteBuf buf);
 
     public static String truncate(
                                   String input,

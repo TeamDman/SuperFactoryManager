@@ -1,57 +1,76 @@
 package ca.teamdman.sfm.common.net;
 
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.math.BlockPos;
-
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfml.ast.Program;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.math.BlockPos;
 
-public class ServerboundManagerProgramPacket extends SFMAdvancedPacket<ServerboundManagerProgramPacket> {
+@Desugar
+public record ServerboundManagerProgramPacket(
+        int windowId,
+        BlockPos pos,
+        String program
+) implements SFMPacket<ServerboundManagerProgramPacket> {
+    public static class Daddy implements SFMPacketDaddy<ServerboundManagerProgramPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
+        }
+        @Override
+        public void encode(
+                ServerboundManagerProgramPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeVarInt(msg.windowId());
+            friendlyByteBuf.writeBlockPos(msg.pos());
+            friendlyByteBuf.writeUtf(msg.program(), Program.MAX_PROGRAM_LENGTH);
+        }
 
-    private int windowId;
-    private BlockPos pos;
-    private String program;
+        @Override
+        public ServerboundManagerProgramPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ServerboundManagerProgramPacket(
+                    friendlyByteBuf.readVarInt(),
+                    friendlyByteBuf.readBlockPos(),
+                    friendlyByteBuf.readUtf(Program.MAX_PROGRAM_LENGTH)
+            );
+        }
 
-    public ServerboundManagerProgramPacket(int windowId, BlockPos pos, String program) {
-        this.windowId = windowId;
-        this.pos = pos;
-        this.program = program;
-    }
+        @Override
+        public void handle(
+                ServerboundManagerProgramPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            context.handleServerboundContainerPacket(
+                    ManagerContainerMenu.class,
+                    ManagerBlockEntity.class,
+                    msg.pos,
+                    msg.windowId,
+                    (menu, manager) -> manager.setProgram(msg.program())
+            );
+        }
 
-    public ServerboundManagerProgramPacket() {}
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        windowId = packetBuffer.readVarInt();
-        pos = packetBuffer.readBlockPos();
-        try {
-            program = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
         }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        packetBuffer.writeVarInt(windowId);
-        packetBuffer.writeBlockPos(pos);
-        packetBuffer.writeString(program);
+    public static final Daddy daddy = new Daddy();
+
+    public static class Packet extends Wrapper<ServerboundManagerProgramPacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundManagerProgramPacket> getDaddy() {
+            return daddy;
+        }
     }
 
+
     @Override
-    public void handle(
-                       ServerboundManagerProgramPacket msg,
-                       SFMPacketHandlingContext context) {
-        context.handleServerboundContainerPacket(
-                ManagerContainerMenu.class,
-                ManagerBlockEntity.class,
-                msg.pos,
-                msg.windowId,
-                (menu, manager) -> manager.setProgram(msg.program));
+    public Wrapper<ServerboundManagerProgramPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

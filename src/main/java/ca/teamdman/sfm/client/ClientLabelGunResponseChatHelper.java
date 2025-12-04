@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client;
 
+import ca.teamdman.sfm.common.net.SFMPacketHandlingContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
@@ -12,10 +13,10 @@ public class ClientLabelGunResponseChatHelper {
 
     public static void handle(
                               ClientboundLabelGunUseResponsePacket msg,
-                              MessageContext context) {
+                              SFMPacketHandlingContext context) {
         EntityPlayerSP player = Minecraft.getMinecraft().player;
         assert player != null;
-        switch (msg.getBehaviour()) {
+        switch (msg.behaviour()) {
             case Pushed -> {
                 player.sendStatusMessage(LocalizationKeys.LABEL_GUN_CHAT_PUSHED.getComponent(
                         SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY)), false);

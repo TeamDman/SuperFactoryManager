@@ -60,7 +60,7 @@ public class NetworkToolKeyMappingHandler {
                             SFMItems.NETWORK_TOOL_ITEM);
                     if (hand == null) return;
                     // send packet to server to toggle mode
-                    SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundNetworkToolToggleOverlayPacket(hand));
+                    SFMPackets.sendToServer(new ServerboundNetworkToolToggleOverlayPacket(hand));
                 }
                 break;
             }

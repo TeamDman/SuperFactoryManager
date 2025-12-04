@@ -1,46 +1,72 @@
 package ca.teamdman.sfm.common.net;
 
-import net.minecraft.util.math.BlockPos;
-
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import io.netty.buffer.ByteBuf;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.math.BlockPos;
 
-public class ServerboundManagerResetPacket extends SFMAdvancedPacket<ServerboundManagerResetPacket> {
+@Desugar
+public record ServerboundManagerResetPacket(
+        int windowId,
+        BlockPos pos
+) implements SFMPacket<ServerboundManagerResetPacket> {
+    public static class Daddy implements SFMPacketDaddy<ServerboundManagerResetPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
+        }
+        @Override
+        public void encode(
+                ServerboundManagerResetPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeVarInt(msg.windowId());
+            friendlyByteBuf.writeBlockPos(msg.pos());
+        }
 
-    private int windowId;
-    private BlockPos pos;
+        @Override
+        public ServerboundManagerResetPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ServerboundManagerResetPacket(
+                    friendlyByteBuf.readVarInt(),
+                    friendlyByteBuf.readBlockPos()
+            );
+        }
 
-    public ServerboundManagerResetPacket(int windowId, BlockPos pos) {
-        this.windowId = windowId;
-        this.pos = pos;
+        @Override
+        public void handle(
+                ServerboundManagerResetPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            context.handleServerboundContainerPacket(
+                    ManagerContainerMenu.class,
+                    ManagerBlockEntity.class,
+                    msg.pos,
+                    msg.windowId,
+                    (menu, manager) -> manager.reset()
+            );
+        }
+
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
     }
 
-    public ServerboundManagerResetPacket() {}
+    public static final Daddy daddy = new Daddy();
 
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        windowId = buf.readInt();
-        pos = new BlockPos(buf.readInt(), buf.readInt(), buf.readInt());
+    public static class Packet extends Wrapper<ServerboundManagerResetPacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundManagerResetPacket> getDaddy() {
+            return daddy;
+        }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        buf.writeInt(windowId);
-        buf.writeInt(pos.getX());
-        buf.writeInt(pos.getY());
-        buf.writeInt(pos.getZ());
-    }
 
     @Override
-    public void handle(
-                       ServerboundManagerResetPacket msg,
-                       SFMPacketHandlingContext context) {
-        context.handleServerboundContainerPacket(
-                ManagerContainerMenu.class,
-                ManagerBlockEntity.class,
-                msg.pos,
-                msg.windowId,
-                (menu, manager) -> manager.reset());
+    public Wrapper<ServerboundManagerResetPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

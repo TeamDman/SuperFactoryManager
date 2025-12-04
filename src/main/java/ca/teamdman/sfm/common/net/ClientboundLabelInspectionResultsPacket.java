@@ -1,43 +1,63 @@
 package ca.teamdman.sfm.common.net;
 
-import javax.annotation.Nullable;
-
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import com.github.bsideup.jabel.Desugar;
 
-public class ClientboundLabelInspectionResultsPacket extends SFMPacket<ClientboundLabelInspectionResultsPacket> {
+@Desugar
+public record ClientboundLabelInspectionResultsPacket(
+        String results
+) implements SFMPacket<ClientboundLabelInspectionResultsPacket> {
+    public static final int MAX_RESULTS_LENGTH = 50_000;
 
-    private String results;
+    public static class Daddy implements SFMPacketDaddy<ClientboundLabelInspectionResultsPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.CLIENTBOUND;
+        }
+        @Override
+        public void encode(
+                ClientboundLabelInspectionResultsPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeString(SFMPacketDaddy.truncate(msg.results(), MAX_RESULTS_LENGTH));
+        }
 
-    public ClientboundLabelInspectionResultsPacket(String results) {
-        this.results = results;
-    }
+        @Override
+        public ClientboundLabelInspectionResultsPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ClientboundLabelInspectionResultsPacket(
+                    friendlyByteBuf.readString(MAX_RESULTS_LENGTH)
+            );
+        }
 
-    public ClientboundLabelInspectionResultsPacket() {}
+        @Override
+        public void handle(
+                ClientboundLabelInspectionResultsPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            SFMScreenChangeHelpers.showProgramEditScreen(msg.results());
+        }
 
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        try {
-            results = new PacketBuffer(buf).readString(50000);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
         }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        new PacketBuffer(buf).writeString(results);
+    public static final Daddy daddy = new Daddy();
+
+    public static class Packet extends Wrapper<ClientboundLabelInspectionResultsPacket> {
+
+        @Override
+        SFMPacketDaddy<ClientboundLabelInspectionResultsPacket> getDaddy() {
+            return daddy;
+        }
     }
 
+
     @Override
-    @Nullable
-    public IMessage onMessage(ClientboundLabelInspectionResultsPacket message, MessageContext ctx) {
-        SFMScreenChangeHelpers.showProgramEditScreen(message.results);
-        return null;
+    public Wrapper<ClientboundLabelInspectionResultsPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

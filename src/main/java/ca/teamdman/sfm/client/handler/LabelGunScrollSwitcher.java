@@ -33,7 +33,7 @@ public class LabelGunScrollSwitcher {
         if (!(gun.getItem() instanceof LabelGunItem)) return;
 
         var next = LabelGunItem.getNextLabel(gun, event.getDwheel() < 0 ? -1 : 1);
-        SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundLabelGunSetActiveLabelPacket(
+        SFMPackets.sendToServer(new ServerboundLabelGunSetActiveLabelPacket(
                 next,
                 hand));
         LabelGunKeyMappingHandler.setExternalDebounce();

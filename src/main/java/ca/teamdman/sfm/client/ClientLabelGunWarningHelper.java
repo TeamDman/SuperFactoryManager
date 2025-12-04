@@ -25,12 +25,12 @@ public class ClientLabelGunWarningHelper {
         ConfirmationParams confirmation = plan.getConfirmation();
         if (confirmation == null) {
             // No confirmation necessary for single updates
-            SFMPackets.SFM_CHANNEL.sendToServer(msg);
+            SFMPackets.sendToServer(msg);
         } else {
             SFMScreenChangeHelpers.setOrPushScreen(new SFMConfirmationScreen(
                     confirmation,
                     10,
-                    () -> SFMPackets.SFM_CHANNEL.sendToServer(msg)));
+                    () -> SFMPackets.sendToServer(msg)));
         }
     }
 }

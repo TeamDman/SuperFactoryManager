@@ -1,45 +1,66 @@
 package ca.teamdman.sfm.common.net;
 
-import javax.annotation.Nullable;
-
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import com.github.bsideup.jabel.Desugar;
 
-public class ClientboundInputInspectionResultsPacket extends SFMPacket<ClientboundInputInspectionResultsPacket> {
-
+@Desugar
+public record ClientboundInputInspectionResultsPacket(
+        String results
+) implements SFMPacket<ClientboundInputInspectionResultsPacket> {
     public static final int MAX_RESULTS_LENGTH = 20480;
 
-    private String results;
+    public static class Daddy implements SFMPacketDaddy<ClientboundInputInspectionResultsPacket> {
+        @Override
 
-    public ClientboundInputInspectionResultsPacket(String results) {
-        this.results = results;
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
+
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.CLIENTBOUND;
+        }
+        @Override
+        public void encode(
+                ClientboundInputInspectionResultsPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeString(SFMPacketDaddy.truncate(msg.results(), MAX_RESULTS_LENGTH));
+        }
+
+        @Override
+        public ClientboundInputInspectionResultsPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ClientboundInputInspectionResultsPacket(
+                    friendlyByteBuf.readString(MAX_RESULTS_LENGTH)
+            );
+        }
+
+        @Override
+        public void handle(
+                ClientboundInputInspectionResultsPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            SFMScreenChangeHelpers.showProgramEditScreen(msg.results());
+        }
+
     }
 
-    public ClientboundInputInspectionResultsPacket() {}
+    public static final Daddy daddy = new Daddy();
 
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        try {
-            results = new PacketBuffer(buf).readString(20480);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+    public static class Packet extends Wrapper<ClientboundInputInspectionResultsPacket> {
+
+        @Override
+        SFMPacketDaddy<ClientboundInputInspectionResultsPacket> getDaddy() {
+            return daddy;
         }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        new PacketBuffer(buf).writeString(results);
-    }
 
     @Override
-    @Nullable
-    public IMessage onMessage(ClientboundInputInspectionResultsPacket message, MessageContext ctx) {
-        SFMScreenChangeHelpers.showProgramEditScreen(message.results);
-        return null;
+    public Wrapper<ClientboundInputInspectionResultsPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
+
 }

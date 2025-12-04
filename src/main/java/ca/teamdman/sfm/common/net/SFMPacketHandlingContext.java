@@ -30,8 +30,16 @@ public class SFMPacketHandlingContext {
         return inner.getServerHandler().player;
     }
 
+    public EntityPlayerMP sender() {
+        return this.serverPlayer();
+    }
+
     public void enqueueAndFinish(Runnable runnable) {
-        serverPlayer().getServerWorld().addScheduledTask(runnable);
+        if (inner.side.isServer()) {
+            serverPlayer().getServerWorld().addScheduledTask(runnable);
+        } else {
+            runnable.run();
+        }
     }
 
     public <MENU extends Container, BE extends TileEntity> void handleServerboundContainerPacket(
@@ -117,9 +125,11 @@ public class SFMPacketHandlingContext {
                 return;
             }
         } else {
-            // todo: localize
-            SFMPackets.sendToPlayer(player, new ClientboundInputInspectionResultsPacket(
-                    "This inspection is only available when editing inside a manager."));
+            //todo: localize
+            SFMPackets.sendToPlayer(
+                    player, new ClientboundInputInspectionResultsPacket(
+                            "This inspection is only available when editing inside a manager.")
+            );
             return;
         }
         Program.compile(

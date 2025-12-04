@@ -1,54 +1,78 @@
 package ca.teamdman.sfm.common.net;
 
-import net.minecraft.util.math.BlockPos;
-
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import io.netty.buffer.ByteBuf;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.math.BlockPos;
 
-public class ServerboundManagerLogDesireUpdatePacket extends
-                                                     SFMAdvancedPacket<ServerboundManagerLogDesireUpdatePacket> {
+@Desugar
+public record ServerboundManagerLogDesireUpdatePacket(
+        int windowId,
+        BlockPos pos,
+        boolean isLogScreenOpen
+) implements SFMPacket<ServerboundManagerLogDesireUpdatePacket> {
+    public static class Daddy implements SFMPacketDaddy<ServerboundManagerLogDesireUpdatePacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
+        }
+        @Override
+        public void encode(
+                ServerboundManagerLogDesireUpdatePacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeVarInt(msg.windowId());
+            friendlyByteBuf.writeBlockPos(msg.pos());
+            friendlyByteBuf.writeBoolean(msg.isLogScreenOpen());
+        }
 
-    private int windowId;
-    private BlockPos pos;
-    private boolean isLogScreenOpen;
+        @Override
+        public ServerboundManagerLogDesireUpdatePacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ServerboundManagerLogDesireUpdatePacket(
+                    friendlyByteBuf.readVarInt(),
+                    friendlyByteBuf.readBlockPos(),
+                    friendlyByteBuf.readBoolean()
+            );
+        }
 
-    public ServerboundManagerLogDesireUpdatePacket(int windowId, BlockPos pos, boolean isLogScreenOpen) {
-        this.windowId = windowId;
-        this.pos = pos;
-        this.isLogScreenOpen = isLogScreenOpen;
+        @Override
+        public void handle(
+                ServerboundManagerLogDesireUpdatePacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            context.handleServerboundContainerPacket(
+                    ManagerContainerMenu.class,
+                    ManagerBlockEntity.class,
+                    msg.pos,
+                    msg.windowId,
+                    (menu, manager) -> {
+                        menu.isLogScreenOpen = msg.isLogScreenOpen();
+                        manager.sendUpdatePacket();
+                    }
+            );
+        }
+
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
     }
 
-    public ServerboundManagerLogDesireUpdatePacket() {}
+    public static final Daddy daddy = new Daddy();
 
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        windowId = buf.readInt();
-        pos = new BlockPos(buf.readInt(), buf.readInt(), buf.readInt());
-        isLogScreenOpen = buf.readBoolean();
+    public static class Packet extends Wrapper<ServerboundManagerLogDesireUpdatePacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundManagerLogDesireUpdatePacket> getDaddy() {
+            return daddy;
+        }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        buf.writeInt(windowId);
-        buf.writeInt(pos.getX());
-        buf.writeInt(pos.getY());
-        buf.writeInt(pos.getZ());
-        buf.writeBoolean(isLogScreenOpen);
-    }
 
     @Override
-    public void handle(
-                       ServerboundManagerLogDesireUpdatePacket msg,
-                       SFMPacketHandlingContext context) {
-        context.handleServerboundContainerPacket(
-                ManagerContainerMenu.class,
-                ManagerBlockEntity.class,
-                msg.pos,
-                msg.windowId,
-                (menu, manager) -> {
-                    menu.isLogScreenOpen = msg.isLogScreenOpen;
-                    manager.sendUpdatePacket();
-                });
+    public Wrapper<ServerboundManagerLogDesireUpdatePacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

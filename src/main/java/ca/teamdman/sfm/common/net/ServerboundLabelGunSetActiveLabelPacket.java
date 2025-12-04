@@ -1,60 +1,75 @@
 package ca.teamdman.sfm.common.net;
 
-import javax.annotation.Nullable;
-
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.EnumHand;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-
 import ca.teamdman.sfm.common.item.LabelGunItem;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.EnumHand;
 
-public class ServerboundLabelGunSetActiveLabelPacket extends SFMPacket<ServerboundLabelGunSetActiveLabelPacket> {
-
+@Desugar
+public record ServerboundLabelGunSetActiveLabelPacket(
+        String label,
+        EnumHand hand
+) implements SFMPacket<ServerboundLabelGunSetActiveLabelPacket> {
     public static final int MAX_LABEL_LENGTH = 256;
 
-    private String label;
-    private EnumHand hand;
-
-    public ServerboundLabelGunSetActiveLabelPacket(String label, EnumHand hand) {
-        this.label = label;
-        this.hand = hand;
-    }
-
-    public ServerboundLabelGunSetActiveLabelPacket() {}
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        try {
-            label = packetBuffer.readString(MAX_LABEL_LENGTH);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+    public static class Daddy implements SFMPacketDaddy<ServerboundLabelGunSetActiveLabelPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
         }
-        hand = packetBuffer.readEnumValue(EnumHand.class);
-    }
+        @Override
+        public void encode(
+                ServerboundLabelGunSetActiveLabelPacket msg,
+                FriendlyByteBuf buf
+        ) {
+            buf.writeUtf(msg.label, MAX_LABEL_LENGTH);
+            buf.writeEnum(msg.hand);
+        }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        packetBuffer.writeString(label.length() > MAX_LABEL_LENGTH ? label.substring(0, MAX_LABEL_LENGTH) : label);
-        packetBuffer.writeEnumValue(hand);
-    }
+        @Override
+        public ServerboundLabelGunSetActiveLabelPacket decode(FriendlyByteBuf buf) {
+            return new ServerboundLabelGunSetActiveLabelPacket(
+                    buf.readUtf(MAX_LABEL_LENGTH),
+                    buf.readEnum(EnumHand.class)
+            );
+        }
 
-    @Override
-    @Nullable
-    public IMessage onMessage(ServerboundLabelGunSetActiveLabelPacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            ItemStack stack = player.getHeldItem(message.hand);
-            if (stack.getItem() instanceof LabelGunItem) {
-                LabelGunItem.setActiveLabel(stack, message.label);
+        @Override
+        public void handle(
+                ServerboundLabelGunSetActiveLabelPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            var sender = context.sender();
+            if (sender == null) {
+                return;
             }
-        });
-        return null;
+            var stack = sender.getHeldItem(msg.hand);
+            if (stack.getItem() instanceof LabelGunItem) {
+                LabelGunItem.setActiveLabel(stack, msg.label);
+            }
+        }
+
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
     }
+
+    public static final Daddy daddy = new Daddy();
+
+    public static class Packet extends Wrapper<ServerboundLabelGunSetActiveLabelPacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundLabelGunSetActiveLabelPacket> getDaddy() {
+            return daddy;
+        }
+    }
+
+
+    @Override
+    public Wrapper<ServerboundLabelGunSetActiveLabelPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
+    }
+
 }

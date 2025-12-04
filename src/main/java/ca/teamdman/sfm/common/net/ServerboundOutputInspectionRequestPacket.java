@@ -1,14 +1,5 @@
 package ca.teamdman.sfm.common.net;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-
-import org.antlr.v4.runtime.misc.Pair;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.program.LimitedInputSlot;
@@ -23,29 +14,27 @@ import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import ca.teamdman.sfm.common.util.StringUtil;
 import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfml.ast.Number;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.ResourceLocation;
+import org.antlr.v4.runtime.misc.Pair;
 
-public class ServerboundOutputInspectionRequestPacket extends
-                                                      SFMAdvancedPacket<ServerboundOutputInspectionRequestPacket> {
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
-    private String programString;
-    private int outputNodeIndex;
-
+@Desugar
+public record ServerboundOutputInspectionRequestPacket(
+        String programString,
+        int outputNodeIndex
+) implements SFMPacket<ServerboundOutputInspectionRequestPacket> {
     private static final int MAX_RESULTS_LENGTH = 20480;
 
-    public ServerboundOutputInspectionRequestPacket(String programString, int outputNodeIndex) {
-        this.programString = programString;
-        this.outputNodeIndex = outputNodeIndex;
-    }
-
-    public ServerboundOutputInspectionRequestPacket() {}
-
     public static String getOutputStatementInspectionResultsString(
-                                                                   ManagerBlockEntity manager,
-                                                                   Program successProgram,
-                                                                   OutputStatement outputStatement) {
+            ManagerBlockEntity manager,
+            Program successProgram,
+            OutputStatement outputStatement
+    ) {
         StringBuilder payload = new StringBuilder();
         payload.append(outputStatement.toStringPretty()).append("\n");
         payload.append("-- predictions may differ from actual execution results\n");
@@ -55,15 +44,13 @@ public class ServerboundOutputInspectionRequestPacket extends
                 outputStatement.labelAccess(),
                 outputStatement.resourceLimits(),
                 outputStatement.each(),
-                outputStatement.emptySlotsOnly()) {
-
+                outputStatement.emptySlotsOnly()
+        ) {
             @Override
             public void tick(ProgramContext context) {
-                if (!(context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour)) {
+                if (!(context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour behaviour)) {
                     throw new IllegalStateException("Expected behaviour to be SimulateExploreAllPathsProgramBehaviour");
                 }
-                SimulateExploreAllPathsProgramBehaviour behaviour = (SimulateExploreAllPathsProgramBehaviour) context
-                        .getBehaviour();
                 StringBuilder branchPayload = new StringBuilder();
 
                 payload
@@ -76,10 +63,10 @@ public class ServerboundOutputInspectionRequestPacket extends
                         .getCurrentPath()
                         .streamBranches()
                         .allMatch(((Predicate<Branch>) Branch::wasTrue).negate())) {
-                            payload.append(" all false\n");
-                        } else {
-                            payload.append('\n');
-                        }
+                    payload.append(" all false\n");
+                } else {
+                    payload.append('\n');
+                }
                 behaviour.getCurrentPath()
                         .streamBranches()
                         .forEach(branch -> {
@@ -96,6 +83,7 @@ public class ServerboundOutputInspectionRequestPacket extends
                         });
                 payload.append("\n");
 
+
                 branchPayload.append("-- predicted inputs:\n");
                 List<Pair<LimitedInputSlot<?, ?, ?>, LabelAccess>> inputSlots = new ArrayList<>();
                 context
@@ -104,12 +92,14 @@ public class ServerboundOutputInspectionRequestPacket extends
                                 context,
                                 slot -> inputSlots.add(new Pair<>(
                                         slot,
-                                        inputStatement.labelAccess()))));
+                                        inputStatement.labelAccess()
+                                ))
+                        ));
                 List<InputStatement> inputStatements = inputSlots.stream()
                         .map(slot -> SFMASTUtils.getInputStatementForSlot(slot.a, slot.b))
                         .filter(Optional::isPresent)
                         .map(Optional::get)
-                        .collect(java.util.stream.Collectors.toList());
+                        .collect(Collectors.toList());
                 if (inputStatements.isEmpty()) {
                     branchPayload.append("none\n-- predicted outputs:\nnone");
                 } else {
@@ -127,30 +117,33 @@ public class ServerboundOutputInspectionRequestPacket extends
                                         .stream()
                                         .map(slot -> slot.a)
                                         .map(ServerboundOutputInspectionRequestPacket::getSlotResource)
-                                        .collect(java.util.stream.Collectors.toList()),
-                                ResourceIdSet.EMPTY);
+                                        .collect(Collectors.toList()),
+                                ResourceIdSet.EMPTY
+                        );
                         List<ResourceLimit> condensedResourceLimitList = new ArrayList<>();
                         for (ResourceLimit resourceLimit : resourceLimits.resourceLimitList()) {
                             // check if an existing resource limit has the same resource identifier
-                            var limit = condensedResourceLimitList
+                            condensedResourceLimitList
                                     .stream()
                                     .filter(x -> x
                                             .resourceIds()
                                             .equals(resourceLimit.resourceIds()))
-                                    .findFirst();
-                            if (limit.isPresent()) {
-                                var found = limit.get();
-                                int i = condensedResourceLimitList.indexOf(found);
-                                ResourceLimit newLimit = found.withLimit(new Limit(
-                                        found
-                                                .limit()
-                                                .quantity()
-                                                .add(resourceLimit.limit().quantity()),
-                                        ResourceQuantity.MAX_QUANTITY));
-                                condensedResourceLimitList.set(i, newLimit);
-                            } else {
-                                condensedResourceLimitList.add(resourceLimit);
-                            }
+                                    .findFirst()
+                                    .map(found -> {
+                                        int i = condensedResourceLimitList.indexOf(found);
+                                        ResourceLimit newLimit = found.withLimit(new Limit(
+                                                found
+                                                        .limit()
+                                                        .quantity()
+                                                        .add(resourceLimit.limit().quantity()),
+                                                ResourceQuantity.MAX_QUANTITY
+                                        ));
+                                        condensedResourceLimitList.set(i, newLimit);
+                                        return found;
+                                    }).orElseGet(() -> {
+                                        condensedResourceLimitList.add(resourceLimit);
+                                        return null;
+                                    });
                         }
                         {
                             // prune items not covered by the output resource limits
@@ -171,22 +164,23 @@ public class ServerboundOutputInspectionRequestPacket extends
                                 // they should always be valid resource locations (not patterns)
                                 ResourceLocation resourceLimitLocation = SFMResourceLocation.fromNamespaceAndPath(
                                         resourceId.resourceNamespace,
-                                        resourceId.resourceName);
+                                        resourceId.resourceName
+                                );
                                 long accept = outputStatement
                                         .resourceLimits()
                                         .resourceLimitList()
                                         .stream()
                                         .filter(outputResourceLimit -> outputResourceLimit
-                                                .resourceIds()
-                                                .anyMatchResourceLocation(
-                                                        resourceLimitLocation) &&
-                                                outputStatement
-                                                        .resourceLimits()
-                                                        .exclusions()
-                                                        .stream()
-                                                        .noneMatch(
-                                                                exclusion -> exclusion.matchesResourceLocation(
-                                                                        resourceLimitLocation)))
+                                                                               .resourceIds()
+                                                                               .anyMatchResourceLocation(
+                                                                                       resourceLimitLocation)
+                                                                       && outputStatement
+                                                                               .resourceLimits()
+                                                                               .exclusions()
+                                                                               .stream()
+                                                                               .noneMatch(
+                                                                                       exclusion -> exclusion.matchesResourceLocation(
+                                                                                               resourceLimitLocation)))
                                         .mapToLong(rl -> rl.limit().quantity().number().value())
                                         .max()
                                         .orElse(0);
@@ -200,16 +194,18 @@ public class ServerboundOutputInspectionRequestPacket extends
                                                             .limit()
                                                             .quantity()
                                                             .number()
-                                                            .value())),
-                                                    resourceLimit.limit().quantity()
-                                                            .idExpansionBehaviour()),
-                                            ResourceQuantity.MAX_QUANTITY)));
+                                                            .value()
+                                            )), resourceLimit.limit().quantity()
+                                                                         .idExpansionBehaviour()),
+                                            ResourceQuantity.MAX_QUANTITY
+                                    )));
                                 }
                             }
                         }
                         condensedResourceLimits = new ResourceLimits(
                                 condensedResourceLimitList,
-                                ResourceIdSet.EMPTY);
+                                ResourceIdSet.EMPTY
+                        );
                     }
                     if (condensedResourceLimits.resourceLimitList().isEmpty()) {
                         branchPayload.append("none\n");
@@ -219,7 +215,8 @@ public class ServerboundOutputInspectionRequestPacket extends
                                         outputStatement.labelAccess(),
                                         condensedResourceLimits,
                                         outputStatement.each(),
-                                        outputStatement.emptySlotsOnly()).toStringPretty());
+                                        outputStatement.emptySlotsOnly()
+                                ).toStringPretty());
                     }
 
                 }
@@ -231,13 +228,15 @@ public class ServerboundOutputInspectionRequestPacket extends
         successProgram.tick(new ProgramContext(
                 successProgram,
                 manager,
-                new SimulateExploreAllPathsProgramBehaviour()));
+                new SimulateExploreAllPathsProgramBehaviour()
+        ));
 
         return payload.toString().trim();
     }
 
     private static <STACK, ITEM, CAP> ResourceLimit getSlotResource(
-                                                                    LimitedInputSlot<STACK, ITEM, CAP> limitedInputSlot) {
+            LimitedInputSlot<STACK, ITEM, CAP> limitedInputSlot
+    ) {
         ResourceType<STACK, ITEM, CAP> resourceType = limitedInputSlot.type;
         // noinspection OptionalGetWithoutIsPresent
         ResourceLocation resourceTypeResourceKey = SFMResourceTypes
@@ -250,57 +249,96 @@ public class ServerboundOutputInspectionRequestPacket extends
         amount -= Long.min(amount, remainingObligation);
         Limit amountLimit = new Limit(
                 new ResourceQuantity(new Number(amount), ResourceQuantity.IdExpansionBehaviour.NO_EXPAND),
-                ResourceQuantity.MAX_QUANTITY);
+                ResourceQuantity.MAX_QUANTITY
+        );
         ResourceLocation stackId = resourceType.getRegistryKeyForStack(stack);
         ResourceIdentifier<STACK, ITEM, CAP> resourceIdentifier = new ResourceIdentifier<>(
                 resourceTypeResourceKey,
-                stackId);
+                stackId
+        );
         return new ResourceLimit(
                 new ResourceIdSet(Arrays.asList(resourceIdentifier)),
                 amountLimit,
-                With.ALWAYS_TRUE);
+                With.ALWAYS_TRUE
+        );
     }
 
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        try {
-            programString = packetBuffer.readString(Program.MAX_PROGRAM_LENGTH);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+    public static class Daddy implements SFMPacketDaddy<ServerboundOutputInspectionRequestPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
         }
-        outputNodeIndex = packetBuffer.readInt();
+        @Override
+        public void encode(
+                ServerboundOutputInspectionRequestPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeUtf(msg.programString, Program.MAX_PROGRAM_LENGTH);
+            friendlyByteBuf.writeInt(msg.outputNodeIndex());
+        }
+
+        @Override
+        public ServerboundOutputInspectionRequestPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ServerboundOutputInspectionRequestPacket(
+                    friendlyByteBuf.readUtf(Program.MAX_PROGRAM_LENGTH),
+                    friendlyByteBuf.readInt()
+            );
+        }
+
+        @Override
+        public void handle(
+                ServerboundOutputInspectionRequestPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            context.compileAndThen(
+                    msg.programString,
+                    (program, player, managerBlockEntity) -> program.astBuilder()
+                            .getNodeAtIndex(msg.outputNodeIndex)
+                            .filter(OutputStatement.class::isInstance)
+                            .map(OutputStatement.class::cast)
+                            .ifPresent(outputStatement -> {
+                                String payload = getOutputStatementInspectionResultsString(
+                                        managerBlockEntity,
+                                        program,
+                                        outputStatement
+                                );
+                                payload = SFMPacketDaddy.truncate(
+                                        payload,
+                                        ServerboundOutputInspectionRequestPacket.MAX_RESULTS_LENGTH
+                                );
+                                SFM.LOGGER.debug(
+                                        "Sending output inspection results packet with length {}",
+                                        payload.length()
+                                );
+                                SFMPackets.sendToPlayer(
+                                        player,
+                                        new ClientboundOutputInspectionResultsPacket(payload)
+                                );
+                            })
+            );
+        }
+
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        packetBuffer.writeString(programString);
-        packetBuffer.writeInt(outputNodeIndex);
+    public static final Daddy daddy = new Daddy();
+
+    public static class Packet extends Wrapper<ServerboundOutputInspectionRequestPacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundOutputInspectionRequestPacket> getDaddy() {
+            return daddy;
+        }
     }
 
+
     @Override
-    public void handle(ServerboundOutputInspectionRequestPacket msg, SFMPacketHandlingContext context) {
-        context.compileAndThen(
-                msg.programString,
-                (program, player, managerBlockEntity) -> program.astBuilder()
-                        .getNodeAtIndex(msg.outputNodeIndex)
-                        .filter(OutputStatement.class::isInstance)
-                        .map(OutputStatement.class::cast)
-                        .ifPresent(outputStatement -> {
-                            String payload = getOutputStatementInspectionResultsString(
-                                    managerBlockEntity,
-                                    program,
-                                    outputStatement);
-                            payload = SFMAdvancedPacket.truncate(
-                                    payload,
-                                    ServerboundOutputInspectionRequestPacket.MAX_RESULTS_LENGTH);
-                            SFM.LOGGER.debug(
-                                    "Sending output inspection results packet with length {}",
-                                    payload.length());
-                            SFMPackets.sendToPlayer(
-                                    player,
-                                    new ClientboundOutputInspectionResultsPacket(payload));
-                        }));
+    public Wrapper<ServerboundOutputInspectionRequestPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

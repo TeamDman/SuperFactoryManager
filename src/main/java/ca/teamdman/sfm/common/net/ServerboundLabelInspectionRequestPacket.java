@@ -1,12 +1,5 @@
 package ca.teamdman.sfm.common.net;
 
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -14,45 +7,47 @@ import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.StringUtil;
 import ca.teamdman.sfml.ast.Program;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.util.math.BlockPos;
 
-public class ServerboundLabelInspectionRequestPacket extends SFMPacket<ServerboundLabelInspectionRequestPacket> {
-
+@Desugar
+public record ServerboundLabelInspectionRequestPacket(
+        String label
+) implements SFMPacket<ServerboundLabelInspectionRequestPacket> {
     private static final int MAX_RESULTS_LENGTH = 20480;
 
-    private String label;
-
-    public ServerboundLabelInspectionRequestPacket(String label) {
-        this.label = label;
-    }
-
-    public ServerboundLabelInspectionRequestPacket() {}
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        try {
-            label = packetBuffer.readString(Program.MAX_LABEL_LENGTH);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+    public static class Daddy implements SFMPacketDaddy<ServerboundLabelInspectionRequestPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
         }
-    }
+        @Override
+        public void encode(
+                ServerboundLabelInspectionRequestPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeUtf(msg.label(), Program.MAX_LABEL_LENGTH);
+        }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        packetBuffer.writeString(label);
-    }
+        @Override
+        public ServerboundLabelInspectionRequestPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ServerboundLabelInspectionRequestPacket(
+                    friendlyByteBuf.readUtf(Program.MAX_LABEL_LENGTH)
+            );
+        }
 
-    @Override
-    public IMessage onMessage(ServerboundLabelInspectionRequestPacket message, MessageContext ctx) {
-        EntityPlayerMP player = ctx.getServerHandler().player;
-        player.getServerWorld().addScheduledTask(() -> {
-            SFM.LOGGER.info("Received label inspection request packet from player {}", player.getUniqueID());
+        @Override
+        public void handle(
+                ServerboundLabelInspectionRequestPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            // we don't know if the player has the program edit screen open from a manager or a disk in hand
+            EntityPlayerMP player = context.sender();
+            if (player == null) return;
+            SFM.LOGGER.info("Received label inspection request packet from player {}", player.getUniqueID().toString());
             LabelPositionHolder labelPositionHolder;
-            if (player.openContainer instanceof ManagerContainerMenu) {
-                ManagerContainerMenu mcm = (ManagerContainerMenu) player.openContainer;
+            if (player.openContainer instanceof ManagerContainerMenu mcm) {
                 SFM.LOGGER.info("Player is using a manager container menu - will append additional info to payload");
                 labelPositionHolder = LabelPositionHolder.from(mcm.getSlot(0).getStack());
             } else {
@@ -70,21 +65,20 @@ public class ServerboundLabelInspectionRequestPacket extends SFMPacket<Serverbou
             }
             SFM.LOGGER.info("building payload");
             StringBuilder payload = new StringBuilder();
-            payload.append("-- Positions for label \"").append(message.label).append("\" --\n");
-            payload.append(labelPositionHolder.getPositions(message.label).size()).append(" assignments\n");
+            payload.append("-- Positions for label \"").append(msg.label()).append("\" --\n");
+            payload.append(labelPositionHolder.getPositions(msg.label()).size()).append(" assignments\n");
             payload.append("-- Summary --\n");
-            World world = player.getEntityWorld();
-            labelPositionHolder.getPositions(message.label).forEach(pos -> {
+            labelPositionHolder.getPositions(msg.label()).forEach(pos -> {
                 payload
                         .append(pos.getX())
                         .append(",")
                         .append(pos.getY())
                         .append(",")
                         .append(pos.getZ());
-                if (world.isBlockLoaded(pos)) {
+                if (player.getServerWorld().isBlockLoaded(pos)) {
                     payload
                             .append(" -- ")
-                            .append(world.getBlockState(pos).getBlock().getLocalizedName());
+                            .append(player.getServerWorld().getBlockState(pos).getBlock().getLocalizedName());
                 } else {
                     payload
                             .append(" -- chunk not loaded");
@@ -94,8 +88,8 @@ public class ServerboundLabelInspectionRequestPacket extends SFMPacket<Serverbou
             });
 
             payload.append("\n\n\n-- Detailed --\n");
-            for (BlockPos pos : labelPositionHolder.getPositions(message.label)) {
-                if (payload.length() > 20000) {
+            for (BlockPos pos : labelPositionHolder.getPositions(msg.label())) {
+                if (payload.length() > 20_000) {
                     payload.append("... (truncated)");
                     break;
                 }
@@ -105,14 +99,14 @@ public class ServerboundLabelInspectionRequestPacket extends SFMPacket<Serverbou
                         .append(pos.getY())
                         .append(",")
                         .append(pos.getZ());
-                if (world.isBlockLoaded(pos)) {
+                if (player.getServerWorld().isBlockLoaded(pos)) {
                     payload
                             .append(" -- ")
-                            .append(world.getBlockState(pos).getBlock().getLocalizedName());
+                            .append(player.getServerWorld().getBlockState(pos).getBlock().getLocalizedName());
 
-                    payload.append("\n")
-                            .append(StringUtil.indentPonyfill(ServerboundContainerExportsInspectionRequestPacket
-                                    .buildInspectionResults(world, pos), 1));
+                    payload.append("\n").append(StringUtil.indentPonyfill(ServerboundContainerExportsInspectionRequestPacket
+                                                        .buildInspectionResults(player.getServerWorld(), pos),
+                                                        1));
                 } else {
                     payload
                             .append(" -- chunk not loaded");
@@ -121,14 +115,39 @@ public class ServerboundLabelInspectionRequestPacket extends SFMPacket<Serverbou
                         .append("\n");
             }
             SFM.LOGGER.info(
-                    "Sending payload response length={} to playerજી",
+                    "Sending payload response length={} to player {}",
                     payload.length(),
-                    player.getUniqueID());
+                    player.getUniqueID().toString()
+            );
             SFMPackets.sendToPlayer(player, new ClientboundLabelInspectionResultsPacket(
-                    SFMAdvancedPacket.truncate(
+                    SFMPacketDaddy.truncate(
                             payload.toString(),
-                            ServerboundLabelInspectionRequestPacket.MAX_RESULTS_LENGTH)));
-        });
-        return null;
+                            ServerboundLabelInspectionRequestPacket.MAX_RESULTS_LENGTH
+                    )
+            ));
+        }
+
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
+    }
+
+    public static final Daddy daddy = new Daddy();
+
+    public static class Packet extends Wrapper<ServerboundLabelInspectionRequestPacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundLabelInspectionRequestPacket> getDaddy() {
+            return daddy;
+        }
+    }
+
+
+    @Override
+    public Wrapper<ServerboundLabelInspectionRequestPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

@@ -79,7 +79,7 @@ public class ProgramTokenContextActions {
         } else if (node instanceof Label) {
             Label label = (Label) node;
             SFM.LOGGER.info("Found context action for label node");
-            return Optional.of(() -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundLabelInspectionRequestPacket(
+            return Optional.of(() -> SFMPackets.sendToServer(new ServerboundLabelInspectionRequestPacket(
                     label.name())));
         } else if (node instanceof InputStatement) {
             if (cursorPosition > parserRuleContext.getStart().getStartIndex() + "INPUT".length()) {
@@ -88,7 +88,7 @@ public class ProgramTokenContextActions {
             }
             SFM.LOGGER.info("Found context action for input node");
             int nodeIndex = builder.getIndexForNode(node);
-            return Optional.of(() -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundInputInspectionRequestPacket(
+            return Optional.of(() -> SFMPackets.sendToServer(new ServerboundInputInspectionRequestPacket(
                     programString,
                     nodeIndex)));
         } else if (node instanceof OutputStatement) {
@@ -98,21 +98,21 @@ public class ProgramTokenContextActions {
             }
             SFM.LOGGER.info("Found context action for output node");
             int nodeIndex = builder.getIndexForNode(node);
-            return Optional.of(() -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundOutputInspectionRequestPacket(
+            return Optional.of(() -> SFMPackets.sendToServer(new ServerboundOutputInspectionRequestPacket(
                     programString,
                     nodeIndex)));
         } else if (node instanceof BoolExpr) {
             SFM.LOGGER.info("Found context action for BoolExpr node");
             int nodeIndex = builder.getIndexForNode(node);
             return Optional.of(
-                    () -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundBoolExprStatementInspectionRequestPacket(
+                    () -> SFMPackets.sendToServer(new ServerboundBoolExprStatementInspectionRequestPacket(
                             programString,
                             nodeIndex)));
         } else if (node instanceof IfStatement) {
             SFM.LOGGER.info("Found context action for if statement node");
             int nodeIndex = builder.getIndexForNode(node);
             return Optional
-                    .of(() -> SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundIfStatementInspectionRequestPacket(
+                    .of(() -> SFMPackets.sendToServer(new ServerboundIfStatementInspectionRequestPacket(
                             programString,
                             nodeIndex)));
         }

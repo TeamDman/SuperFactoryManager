@@ -1,80 +1,106 @@
 package ca.teamdman.sfm.common.net;
 
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.math.BlockPos;
-
-import org.apache.logging.log4j.Level;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.DecoderException;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.util.math.BlockPos;
+import org.apache.logging.log4j.Level;
 
-public class ServerboundManagerSetLogLevelPacket extends SFMAdvancedPacket<ServerboundManagerSetLogLevelPacket> {
-
+@Desugar
+public record ServerboundManagerSetLogLevelPacket(
+        int windowId,
+        BlockPos pos,
+        String logLevel
+) implements SFMPacket {
     public static final int MAX_LOG_LEVEL_NAME_LENGTH = 64;
 
-    private int windowId;
-    private BlockPos pos;
-    private String logLevel;
+    public static class Daddy implements SFMPacketDaddy<ServerboundManagerSetLogLevelPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
+        }
+        @Override
+        public void encode(
+                ServerboundManagerSetLogLevelPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeVarInt(msg.windowId());
+            friendlyByteBuf.writeBlockPos(msg.pos());
+            friendlyByteBuf.writeUtf(msg.logLevel(), MAX_LOG_LEVEL_NAME_LENGTH);
+        }
 
-    public ServerboundManagerSetLogLevelPacket(int windowId, BlockPos pos, String logLevel) {
-        this.windowId = windowId;
-        this.pos = pos;
-        this.logLevel = logLevel;
-    }
+        @Override
+        public ServerboundManagerSetLogLevelPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ServerboundManagerSetLogLevelPacket(
+                    friendlyByteBuf.readVarInt(),
+                    friendlyByteBuf.readBlockPos(),
+                    friendlyByteBuf.readUtf(MAX_LOG_LEVEL_NAME_LENGTH)
+            );
+        }
 
-    public ServerboundManagerSetLogLevelPacket() {}
+        @Override
+        public void handle(
+                ServerboundManagerSetLogLevelPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            context.handleServerboundContainerPacket(
+                    ManagerContainerMenu.class,
+                    ManagerBlockEntity.class,
+                    msg.pos,
+                    msg.windowId,
+                    (menu, manager) -> {
+                        // get the level
+                        Level logLevelObj = Level.getLevel(msg.logLevel());
 
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        windowId = packetBuffer.readVarInt();
-        pos = packetBuffer.readBlockPos();
-        try {
-            logLevel = packetBuffer.readString(MAX_LOG_LEVEL_NAME_LENGTH);
-        } catch (DecoderException e) {
-            throw new RuntimeException(e);
+                        // set the level
+                        manager.setLogLevel(logLevelObj);
+
+                        // log in manager
+                        manager.logger.info(x -> x.accept(LocalizationKeys.LOG_LEVEL_UPDATED.get(
+                                msg.logLevel())));
+
+                        // log in server console
+                        String sender = "UNKNOWN SENDER";
+                        EntityPlayerMP player = context.sender();
+                        if (player != null) {
+                            sender = player.getName();
+                        }
+                        SFM.LOGGER.debug(
+                                "{} updated manager {} {} log level to {}",
+                                sender,
+                                msg.pos(),
+                                manager.getWorld(),
+                                msg.logLevel()
+                        );
+                    }
+            );
+        }
+
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
         }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        PacketBuffer packetBuffer = new PacketBuffer(buf);
-        packetBuffer.writeVarInt(windowId);
-        packetBuffer.writeBlockPos(pos);
-        packetBuffer.writeString(logLevel);
+    public static final Daddy daddy = new Daddy();
+
+    public static class Packet extends Wrapper<ServerboundManagerSetLogLevelPacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundManagerSetLogLevelPacket> getDaddy() {
+            return daddy;
+        }
     }
 
+
     @Override
-    public void handle(
-                       ServerboundManagerSetLogLevelPacket msg,
-                       SFMPacketHandlingContext context) {
-        context.handleServerboundContainerPacket(
-                ManagerContainerMenu.class,
-                ManagerBlockEntity.class,
-                msg.pos,
-                msg.windowId,
-                (menu, manager) -> {
-                    // get the level
-                    Level logLevelObj = Level.getLevel(msg.logLevel);
-
-                    // set the level
-                    manager.setLogLevel(logLevelObj);
-
-                    // log in manager
-                    manager.logger.info(x -> x.accept(LocalizationKeys.LOG_LEVEL_UPDATED.get(
-                            msg.logLevel)));
-
-                    // log in server console
-                    SFM.LOGGER.debug(
-                            "{} updated manager {} {} log level to {}",
-                            context.serverPlayer().getName(),
-                            msg.pos,
-                            manager.getWorld(),
-                            msg.logLevel);
-                });
+    public Wrapper<ServerboundManagerSetLogLevelPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
+
 }

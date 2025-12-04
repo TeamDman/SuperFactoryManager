@@ -27,10 +27,10 @@ public record LabelGunPlanTargets(
                                                  World level,
                                                  ServerboundLabelGunUsePacket msg) {
         // get the block type of the target position
-        Block targetBlock = level.getBlockState(msg.getPos()).getBlock();
+        Block targetBlock = level.getBlockState(msg.pos()).getBlock();
 
         if (!msg.isContiguousModifierActive()) {
-            return new LabelGunPlanTargets(new HashSet<>(Arrays.asList(msg.getPos())), Collections.emptySet());
+            return new LabelGunPlanTargets(new HashSet<>(Arrays.asList(msg.pos())), Collections.emptySet());
         }
         Set<BlockPos> targets;
 
@@ -40,12 +40,12 @@ public record LabelGunPlanTargets(
             // There are no cable networks on the client, so we need to discover the cable positions
             // We need to know this to determine how large the change is and if we need to ask the client for
             // confirmation
-            cablePositions = get3DNeighbours(msg.getPos())
+            cablePositions = get3DNeighbours(msg.pos())
                     .filter(pos -> CableNetwork.isCable(level, pos))
                     .flatMap(cablePos -> CableNetwork.discoverCables(level, cablePos))
                     .collect(Collectors.toSet());
         } else {
-            cablePositions = get3DNeighbours(msg.getPos())
+            cablePositions = get3DNeighbours(msg.pos())
                     .map(suspected_cable_pos -> CableNetworkManager.getOrRegisterNetworkFromCablePosition(
                             level,
                             suspected_cable_pos))
@@ -70,7 +70,7 @@ public record LabelGunPlanTargets(
                             .filter(p -> level.getBlockState(p).getBlock() == targetBlock)
                             .filter(isAdjacentToCable)
                             .forEach(nextQueue);
-                }, msg.getPos())
+                }, msg.pos())
                 .collect(Collectors.toSet());
         return new LabelGunPlanTargets(targets, warnBecauseNoCableNeighbour);
     }

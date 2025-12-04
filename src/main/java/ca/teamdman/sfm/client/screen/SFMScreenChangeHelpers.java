@@ -122,7 +122,7 @@ public class SFMScreenChangeHelpers {
         LogsScreen screen = new LogsScreen(menu);
         setOrPushScreen(screen);
         screen.scrollToBottom();
-        SFMPackets.SFM_CHANNEL.sendToServer(new ServerboundManagerLogDesireUpdatePacket(
+        SFMPackets.sendToServer(new ServerboundManagerLogDesireUpdatePacket(
                 menu.windowId,
                 menu.MANAGER_POSITION,
                 true));

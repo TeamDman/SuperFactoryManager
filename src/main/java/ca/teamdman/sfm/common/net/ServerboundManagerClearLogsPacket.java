@@ -1,51 +1,76 @@
 package ca.teamdman.sfm.common.net;
 
-import net.minecraft.util.math.BlockPos;
-
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import io.netty.buffer.ByteBuf;
+import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.math.BlockPos;
 
-public class ServerboundManagerClearLogsPacket extends SFMAdvancedPacket<ServerboundManagerClearLogsPacket> {
+@Desugar
+public record ServerboundManagerClearLogsPacket(
+        int windowId,
+        BlockPos pos
+) implements SFMPacket<ServerboundManagerClearLogsPacket> {
+    public static class Daddy implements SFMPacketDaddy<ServerboundManagerClearLogsPacket> {
+        @Override
+        public PacketDirection getPacketDirection() {
+            return PacketDirection.SERVERBOUND;
+        }
+        @Override
+        public void encode(
+                ServerboundManagerClearLogsPacket msg,
+                FriendlyByteBuf friendlyByteBuf
+        ) {
+            friendlyByteBuf.writeVarInt(msg.windowId());
+            friendlyByteBuf.writeBlockPos(msg.pos());
+        }
 
-    private int windowId;
-    private BlockPos pos;
+        @Override
+        public ServerboundManagerClearLogsPacket decode(FriendlyByteBuf friendlyByteBuf) {
+            return new ServerboundManagerClearLogsPacket(
+                    friendlyByteBuf.readVarInt(),
+                    friendlyByteBuf.readBlockPos()
+            );
+        }
 
-    public ServerboundManagerClearLogsPacket(int windowId, BlockPos pos) {
-        this.windowId = windowId;
-        this.pos = pos;
+        @Override
+        public void handle(
+                ServerboundManagerClearLogsPacket msg,
+                SFMPacketHandlingContext context
+        ) {
+            context.handleServerboundContainerPacket(
+                    ManagerContainerMenu.class,
+                    ManagerBlockEntity.class,
+                    msg.pos,
+                    msg.windowId,
+                    (menu, manager) -> {
+                        manager.logger.clear();
+                        manager.logger.info(x -> x.accept(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON_PACKET_RECEIVED.get()));
+                    }
+            );
+        }
+
+        @Override
+        public Class<Packet> getPacketClass() {
+            return Packet.class;
+        }
     }
 
-    public ServerboundManagerClearLogsPacket() {}
+    public static final Daddy daddy = new Daddy();
 
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        windowId = buf.readInt();
-        pos = new BlockPos(buf.readInt(), buf.readInt(), buf.readInt());
+    public static class Packet extends Wrapper<ServerboundManagerClearLogsPacket> {
+
+        @Override
+        SFMPacketDaddy<ServerboundManagerClearLogsPacket> getDaddy() {
+            return daddy;
+        }
     }
 
-    @Override
-    public void toBytes(ByteBuf buf) {
-        buf.writeInt(windowId);
-        buf.writeInt(pos.getX());
-        buf.writeInt(pos.getY());
-        buf.writeInt(pos.getZ());
-    }
 
     @Override
-    public void handle(
-                       ServerboundManagerClearLogsPacket msg,
-                       SFMPacketHandlingContext context) {
-        context.handleServerboundContainerPacket(
-                ManagerContainerMenu.class,
-                ManagerBlockEntity.class,
-                msg.pos,
-                msg.windowId,
-                (menu, manager) -> {
-                    manager.logger.clear();
-                    manager.logger
-                            .info(x -> x.accept(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON_PACKET_RECEIVED.get()));
-                });
+    public Wrapper<ServerboundManagerClearLogsPacket> wrap() {
+        var wrapper = new Packet();
+        wrapper.ourRecord = this;
+        return wrapper;
     }
 }

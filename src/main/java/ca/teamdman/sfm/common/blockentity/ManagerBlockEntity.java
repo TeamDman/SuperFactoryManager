@@ -357,16 +357,16 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                     ManagerContainerMenu menu = entry.getValue();
 
                     // Send a copy of the manager update packet
-                    SFMPackets.SFM_CHANNEL.sendTo(managerUpdatePacket.cloneWithWindowId(menu.windowId), entry.getKey());
+                    SFMPackets.sendToPlayer(entry.getKey(), managerUpdatePacket.cloneWithWindowId(menu.windowId));
 
                     // The rest of the sync is only relevant if the log screen is open
                     if (!menu.isLogScreenOpen) return;
 
                     // Send log level changes
                     if (!menu.logLevel.equals(logger.getLogLevel().name())) {
-                        SFMPackets.SFM_CHANNEL.sendTo(new ClientboundManagerLogLevelUpdatedPacket(
+                        SFMPackets.sendToPlayer(entry.getKey(), new ClientboundManagerLogLevelUpdatedPacket(
                                 menu.windowId,
-                                logger.getLogLevel().name()), entry.getKey());
+                                logger.getLogLevel().name()));
                         menu.logLevel = logger.getLogLevel().name();
                     }
 
@@ -384,9 +384,9 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                         // Send the logs
                         while (!logsToSend.isEmpty()) {
                             int remaining = logsToSend.size();
-                            SFMPackets.SFM_CHANNEL.sendTo(ClientboundManagerLogsPacket.drainToCreate(
+                            SFMPackets.sendToPlayer(entry.getKey(), ClientboundManagerLogsPacket.drainToCreate(
                                     menu.windowId,
-                                    logsToSend), entry.getKey());
+                                    logsToSend));
                             if (logsToSend.size() >= remaining) {
                                 throw new IllegalStateException("Failed to send logs, infinite loop detected");
                             }
