@@ -68,10 +68,10 @@ public final class InputStatement implements IOStatement {
         // log cache miss
         context.getLogger().trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_CACHE_MISS.get()));
 
-        // prepare cache state
+        // prepare the cache state
         limitedInputSlotsCache = new ArrayDeque<>(27);
 
-        // monkey patch the results acceptor to update the cache before returning results
+        // monkey-patch the result acceptor to update the cache before returning results
         {
             var original = slotConsumer;
             slotConsumer = slot -> {
@@ -137,9 +137,14 @@ public final class InputStatement implements IOStatement {
 
     @Override
     public String toString() {
-        return "INPUT " + resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_NO_RETENTION) + " FROM " + (
-                each ? "EACH " : ""
-        ) + labelAccess;
+        StringBuilder rtn = new StringBuilder();
+        rtn.append("INPUT ");
+        String limits = resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_NO_RETENTION);
+        if (!limits.isEmpty()) rtn.append(limits).append(" ");
+        rtn.append("FROM ");
+        if (each) rtn.append("EACH ");
+        rtn.append(labelAccess);
+        return rtn.toString();
     }
 
     @Override

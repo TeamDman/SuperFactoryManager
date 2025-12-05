@@ -69,7 +69,7 @@ public abstract class AbstractScrollWidget extends AbstractWidget{
     private int getContentHeight() {
         return this.getInnerHeight() + 4;
     }
-    private int getScrollBarHeight() {
+    public int getScrollBarHeight() {
         return Tools.clamp((int)((float)(this.height * this.height) / (float)this.getContentHeight()), 32, this.height);
     }
     @Override

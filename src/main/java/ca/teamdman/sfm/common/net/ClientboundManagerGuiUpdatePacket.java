@@ -2,20 +2,21 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
+import ca.teamdman.sfm.common.timing.SFMDurationNetworkUtils;
 import ca.teamdman.sfml.ast.Program;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 
+import java.time.Duration;
 
 @Desugar
 public record ClientboundManagerGuiUpdatePacket(
         int windowId,
         String program,
         ManagerBlockEntity.State state,
-        long[] tickTimes
+        Duration[] tickTimes
 ) implements SFMPacket<ClientboundManagerGuiUpdatePacket> {
-
     public ClientboundManagerGuiUpdatePacket cloneWithWindowId(int windowId) {
         return new ClientboundManagerGuiUpdatePacket(windowId, program(), state(), tickTimes());
     }
@@ -39,7 +40,7 @@ public record ClientboundManagerGuiUpdatePacket(
             friendlyByteBuf.writeVarInt(msg.windowId());
             friendlyByteBuf.writeString(SFMPacketDaddy.truncate(msg.program(), Program.MAX_PROGRAM_LENGTH));
             friendlyByteBuf.writeEnumValue(msg.state());
-            friendlyByteBuf.writeLongArray(msg.tickTimes());
+            SFMDurationNetworkUtils.writeDurationArray(msg.tickTimes, friendlyByteBuf);
         }
 
         @Override
@@ -48,7 +49,7 @@ public record ClientboundManagerGuiUpdatePacket(
                     friendlyByteBuf.readVarInt(),
                     friendlyByteBuf.readString(Program.MAX_PROGRAM_LENGTH),
                     friendlyByteBuf.readEnumValue(ManagerBlockEntity.State.class),
-                    friendlyByteBuf.readLongArray(new long[]{}, ManagerBlockEntity.TICK_TIME_HISTORY_SIZE * 2)
+                    SFMDurationNetworkUtils.readDurationArray(friendlyByteBuf.readLongArray(new long[]{}, ManagerBlockEntity.TICK_TIME_HISTORY_SIZE * 2))
             );
         }
 
@@ -65,7 +66,7 @@ public record ClientboundManagerGuiUpdatePacket(
 //                SFM.LOGGER.error("Invalid manager gui packet received, ignoring.");
                 return;
             }
-            menu.tickTimeNanos = msg.tickTimes();
+            menu.tickTimes = msg.tickTimes();
             menu.state = msg.state();
             menu.program = msg.program();
             return;

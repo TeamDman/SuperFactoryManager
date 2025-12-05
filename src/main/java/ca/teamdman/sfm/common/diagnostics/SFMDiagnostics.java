@@ -25,7 +25,7 @@ public class SFMDiagnostics {
                     .append("-- Diagnostic info --\n");
 
             content.append("-- Program:\n")
-                    .append(DiskItem.getProgram(diskStack))
+                    .append(DiskItem.getProgramString(diskStack))
                     .append("\n\n");
 
             content.append("-- DateTime: ")

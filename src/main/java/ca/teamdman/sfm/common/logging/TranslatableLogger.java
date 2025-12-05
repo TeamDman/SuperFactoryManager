@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.logging;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.net.FriendlyByteBuf;
+import ca.teamdman.sfm.common.timing.SFMEpochInstant;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -9,7 +11,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
-import org.apache.logging.log4j.core.time.Instant;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -126,18 +127,7 @@ public class TranslatableLogger {
         getContents().clear();
     }
 
-    public static boolean comesAfter(
-            Instant a,
-            Instant b
-    ) {
-        return a.getEpochSecond() > b.getEpochSecond()
-               || (
-                       a.getEpochSecond() == b.getEpochSecond()
-                       && a.getNanoOfSecond() > b.getNanoOfSecond()
-               );
-    }
-
-    public static ArrayDeque<TranslatableLogEvent> decode(PacketBuffer buf) {
+    public static ArrayDeque<TranslatableLogEvent> decode(FriendlyByteBuf buf) {
         int size = buf.readVarInt();
         ArrayDeque<TranslatableLogEvent> contents = new ArrayDeque<>(size);
         for (int i = 0; i < size; i++) {
@@ -157,14 +147,14 @@ public class TranslatableLogger {
      */
     public static void encodeAndDrain(
             Collection<TranslatableLogEvent> logs,
-            PacketBuffer buf
+            FriendlyByteBuf buf
     ) {
         int maxReadableBytes = 32600;
-        PacketBuffer chunk = new PacketBuffer(Unpooled.buffer());
+        FriendlyByteBuf chunk = new FriendlyByteBuf(Unpooled.buffer());
         int count = 0;
         for (Iterator<TranslatableLogEvent> iterator = logs.iterator(); iterator.hasNext(); ) {
             TranslatableLogEvent entry = iterator.next();
-            PacketBuffer check = new PacketBuffer(Unpooled.buffer());
+            FriendlyByteBuf check = new FriendlyByteBuf(Unpooled.buffer());
             entry.encode(check);
             if (check.readableBytes() + chunk.readableBytes() + buf.readableBytes() >= maxReadableBytes) {
                 break;
@@ -178,14 +168,14 @@ public class TranslatableLogger {
         buf.writeBytes(chunk);
     }
 
-    public ArrayDeque<TranslatableLogEvent> getLogsAfter(Instant instant) {
+    public ArrayDeque<TranslatableLogEvent> getLogsAfter(SFMEpochInstant instant) {
         List<TranslatableLogEvent> contents = getContents();
         ArrayDeque<TranslatableLogEvent> toSend = new ArrayDeque<>();
         // Add from tail until we reach the last sent marker
         var iter = contents.listIterator(contents.size());
         while (iter.hasPrevious()) {
             var entry = iter.previous();
-            if (comesAfter(entry.instant(), instant)) {
+            if (entry.instant().compareTo(instant) > 0) {
                 toSend.addFirst(entry);
             } else {
                 break;

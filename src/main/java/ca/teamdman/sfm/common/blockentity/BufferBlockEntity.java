@@ -60,7 +60,7 @@ public class BufferBlockEntity extends TileEntity implements ITickable {
                 side
         );
         if (found.isPresent()) {
-            return (T) found.capability();
+            return (T) found.inner();
         } else {
             return super.getCapability(cap, side);
         }

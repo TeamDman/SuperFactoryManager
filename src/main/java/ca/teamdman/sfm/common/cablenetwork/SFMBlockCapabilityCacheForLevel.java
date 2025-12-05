@@ -19,32 +19,42 @@ import org.jetbrains.annotations.Nullable;
 import java.util.stream.Stream;
 
 public class SFMBlockCapabilityCacheForLevel {
-
-    private static class CachedCapability {
-        final IBlockState state;
-        final SFMBlockCapabilityResult<?> capabilityResult;
-
-        CachedCapability(IBlockState state, SFMBlockCapabilityResult<?> result) {
-            this.state = state;
-            this.capabilityResult = result;
-        }
-    }
-
-    // Position => Capability => EnumFacing => CachedCapability
-    private final Long2ObjectMap<Object2ObjectOpenHashMap<SFMBlockCapabilityKind<?>, SFMDirections.NullableDirectionEnumMap<CachedCapability>>> CACHE = new Long2ObjectOpenHashMap<>();
+    // Position => Capability => Direction => SFMBlockCapabilityResult
+    // We don't use an EnumMap here for Direction because we need to support the null key
+    private final Long2ObjectMap<Object2ObjectOpenHashMap<SFMBlockCapabilityKind<?>, SFMDirections.NullableDirectionEnumMap<SFMBlockCapabilityResult<?>>>> CACHE = new Long2ObjectOpenHashMap<>();
     // Chunk position => Set of Block positions
     private final Long2ObjectMap<LongArraySet> CHUNK_TO_BLOCK_POSITIONS = new Long2ObjectOpenHashMap<>();
 
+    /// Used in 1.20.3+ for capability invalidation listening
+    @SuppressWarnings({"FieldCanBeLocal", "unused"})
+    private final World level;
+
+    public SFMBlockCapabilityCacheForLevel(World level) {
+
+        this.level = level;
+    }
+
     public void clear() {
+
         CACHE.clear();
         CHUNK_TO_BLOCK_POSITIONS.clear();
     }
 
     public int size() {
-        return CACHE.values().stream().flatMap(x -> x.values().stream()).mapToInt(SFMDirections.NullableDirectionEnumMap::size).sum();
+
+        return CACHE
+                .values()
+                .stream()
+                .flatMap(x -> x.values().stream())
+                .mapToInt(SFMDirections.NullableDirectionEnumMap::size)
+                .sum();
     }
 
-    public void overwriteFromOther(@NotStored BlockPos pos, SFMBlockCapabilityCacheForLevel other) {
+    public void overwriteFromOther(
+            @NotStored BlockPos pos,
+            SFMBlockCapabilityCacheForLevel other
+    ) {
+
         var found = other.CACHE.get(pos.toLong());
         if (found != null) {
             CACHE.put(pos.toLong(), new Object2ObjectOpenHashMap<>(found));
@@ -58,33 +68,39 @@ public class SFMBlockCapabilityCacheForLevel {
             SFMBlockCapabilityKind<CAP> capKind,
             @Nullable EnumFacing direction
     ) {
-        var capMap = CACHE.get(pos.toLong());
-        if (capMap != null) {
-            var dirMap = capMap.get(capKind);
-            if (dirMap != null) {
-                var found = dirMap.get(direction);
-                if (found != null) {
-                    IBlockState currentState = world.getBlockState(pos);
-                    if (currentState == found.state) {
-                        //noinspection unchecked
-                        return (SFMBlockCapabilityResult<CAP>) found.capabilityResult;
-                    } else {
-                        // Stale cache, remove it
-                        remove(pos, capKind, direction);
-                    }
-                }
-            }
+        // Get the (pos, ...) entry
+        var posEntry = CACHE.get(pos.toLong());
+        if (posEntry == null) {
+            return null;
         }
-        return null;
+
+        // Get the (pos, capKind, ...direction) entry
+        var capKindEntry = posEntry.get(capKind);
+        if (capKindEntry == null) {
+            return null;
+        }
+
+        // Get the (pos, capKind, direction) entry
+        var found = capKindEntry.get(direction);
+        if (found == null) {
+            return null;
+        }
+
+        // Return the cached capability result
+        //noinspection unchecked
+        return (SFMBlockCapabilityResult<CAP>) found;
+
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void putAll(SFMBlockCapabilityCacheForLevel other) {
+
         // This method is likely not safe with the new caching mechanism, but it's not used in the hot path.
         // For now, we'll leave it as a no-op to avoid issues.
     }
 
     public Stream<BlockPos> getPositions() {
+
         return CACHE.keySet().stream().map(BlockPos::fromLong);
     }
 
@@ -93,36 +109,69 @@ public class SFMBlockCapabilityCacheForLevel {
             SFMBlockCapabilityKind<?> capKind,
             @Nullable EnumFacing direction
     ) {
-        var capMap = CACHE.get(pos.toLong());
-        if (capMap != null) {
-            var dirMap = capMap.get(capKind);
-            if (dirMap != null) {
-                dirMap.remove(direction);
-                if (dirMap.isEmpty()) {
-                    capMap.remove(capKind);
-                    if (capMap.isEmpty()) {
-                        CACHE.remove(pos.toLong());
-                    }
-                }
-                removeFromChunkMap(pos);
-            }
+
+        // Get the (pos, ...) entry.
+        var posEntry = CACHE.get(pos.toLong());
+        if (posEntry == null) {
+            return;
         }
+
+        // Get the (pos, capKind, ...directions) entry.
+        var capKindEntry = posEntry.get(capKind);
+        if (capKindEntry == null) {
+            return;
+        }
+
+        // Remove the given direction.
+        capKindEntry.remove(direction);
+
+        // We are done if there are other directions keeping the cache entry for (pos, capKind, ...) alive
+        if (!capKindEntry.isEmpty()) {
+            return;
+        }
+
+        // capKind in (pos, capKind, ...) is now empty, remove it.
+        posEntry.remove(capKind);
+
+        // We are done if there exists other (pos, ...) entries.
+        if (!posEntry.isEmpty()) {
+            return;
+        }
+
+        // pos is now empty, remove it.
+        CACHE.remove(pos.toLong());
+        removeFromChunkMap(pos);
     }
 
     public <CAP> void putCapability(
             World world,
-            @NotStored BlockPos pos,
+            @NotStored BlockPos posIn,
             SFMBlockCapabilityKind<CAP> capKind,
             @Nullable EnumFacing direction,
             SFMBlockCapabilityResult<CAP> cap
     ) {
-        IBlockState currentState = world.getBlockState(pos);
-        CachedCapability cachedCap = new CachedCapability(currentState, cap);
 
-        var capMap = CACHE.computeIfAbsent(pos.toLong(), k -> new Object2ObjectOpenHashMap<>());
-        var dirMap = capMap.computeIfAbsent(capKind, k -> new SFMDirections.NullableDirectionEnumMap<>());
-        dirMap.put(direction, cachedCap);
+        // Ensure the position we bind to the listener lambda is immutable.
+        final BlockPos pos = posIn.toImmutable();
+
+        // Get the entry for (pos, ...capKind)
+        Object2ObjectOpenHashMap<SFMBlockCapabilityKind<?>, SFMDirections.NullableDirectionEnumMap<SFMBlockCapabilityResult<?>>>
+                posEntry = CACHE.computeIfAbsent(pos.toLong(), k -> new Object2ObjectOpenHashMap<>());
+
+        // Get the entry for the (pos, capKind, ...direction)
+        SFMDirections.NullableDirectionEnumMap<SFMBlockCapabilityResult<?>>
+                capKindEntry = posEntry.computeIfAbsent(capKind, k -> new SFMDirections.NullableDirectionEnumMap<>());
+
+        // Track the (pos, capKind, direction) entry
+        capKindEntry.put(direction, cap);
         addToChunkMap(pos);
+
+        // Register a listener to remove the cache entry when the world tells us to.
+        cap.addInvalidationListener(__ -> this.remove(
+                pos,
+                capKind,
+                direction
+        ));
     }
 
     public void bustCacheForChunk(Chunk chunkAccess) {
@@ -153,6 +202,7 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     private void removeFromChunkMap(@NotStored BlockPos pos) {
+
         long chunkKey = ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4);
         long blockPos = pos.toLong();
         LongArraySet blockPosSet = CHUNK_TO_BLOCK_POSITIONS.get(chunkKey);
@@ -163,4 +213,5 @@ public class SFMBlockCapabilityCacheForLevel {
             }
         }
     }
+
 }

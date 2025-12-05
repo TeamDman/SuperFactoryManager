@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
@@ -20,7 +21,6 @@ import org.lwjgl.input.Keyboard;
 import com.bbscn.*;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.client.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.client.ProgramTokenContextActions;
 import ca.teamdman.sfm.client.screen.*;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
@@ -131,7 +131,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             assert action != null;
             ManipulationResult result = action.perform(
                     new IntellisenseContext(
-                            ProgramBuilder.build(textarea.getValue()),
+                            new ProgramBuilder(textarea.getValue()).build(),
                             textarea.getCursorPosition(),
                             textarea.getSelectionCursorPosition(),
                             openContext.labelPositionHolder(),
@@ -417,8 +417,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                     SFMTextEditScreenV1.this.height / 2 - 110,
                     400,
                     200,
-                    "",
-                    ""
+                    new TextComponentString(""),
+                    new TextComponentString("")
             );
             this.textField.setValueListener(this::onValueOrCursorChanged);
             this.textField.setCursorListener(() -> this.onValueOrCursorChanged(this.textField.value()));
@@ -516,7 +516,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                 int dy
         ) {
             // if mouse in bounds, translate to accommodate line numbers
-            int thisX = SFMScreenRenderUtils.getX(this);
+            int thisX = SFMWidgetUtils.getX(this);
             if (mx >= thisX + 1 && mx <= thisX + this.width - 1) {
                 mx -= getLineNumberWidth();
             }
@@ -548,7 +548,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             int cursorPosition = getCursorPosition();
 
             // Build the program
-            ProgramBuildResult buildResult = ProgramBuilder.build(programString);
+            ProgramBuildResult buildResult = new ProgramBuilder(programString).build();
 
             if (this.textField.hasSelection()) {
                 SFMTextEditScreenV1.this.suggestedActions.setItems(Collections.emptyList());
@@ -630,8 +630,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             boolean isCursorFrame = this.frame++ / 60 % 2 == 0;
             boolean isCursorAtEndOfLine = false;
             int cursorIndex = textField.cursor();
-            int lineX = SFMScreenRenderUtils.getX(this) + this.innerPadding() + getLineNumberWidth();
-            int lineY = SFMScreenRenderUtils.getY(this) + this.innerPadding();
+            int lineX = SFMWidgetUtils.getX(this) + this.innerPadding() + getLineNumberWidth();
+            int lineY = SFMWidgetUtils.getY(this) + this.innerPadding();
             int charCount = 0;
             int cursorX = 0;
             int cursorY = 0;

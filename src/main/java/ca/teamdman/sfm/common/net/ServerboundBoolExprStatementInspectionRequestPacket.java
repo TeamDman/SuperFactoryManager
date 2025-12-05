@@ -20,7 +20,6 @@ public record ServerboundBoolExprStatementInspectionRequestPacket(
             return PacketDirection.SERVERBOUND;
 
     }
-
         @Override
         public void encode(
                 ServerboundBoolExprStatementInspectionRequestPacket msg,
@@ -48,6 +47,7 @@ public record ServerboundBoolExprStatementInspectionRequestPacket(
 
             context.compileAndThen(
                     msg.programString,
+                    false,
                     (program, player, managerBlockEntity) ->
                             program.astBuilder()
                                     .getNodeAtIndex(msg.inputNodeIndex)
@@ -94,6 +94,7 @@ public record ServerboundBoolExprStatementInspectionRequestPacket(
         SFMPacketDaddy<ServerboundBoolExprStatementInspectionRequestPacket> getDaddy() {
             return daddy;
         }
+
     }
 
 

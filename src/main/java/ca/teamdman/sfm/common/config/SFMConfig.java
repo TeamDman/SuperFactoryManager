@@ -40,7 +40,7 @@ public class SFMConfig {
 
     @Name("server")
     @Comment("Server-side settings")
-    @RequiresMcRestart
+
     public static final Server server = new Server();
 
     public static class Client {
@@ -90,6 +90,9 @@ public class SFMConfig {
         @Name("disallowedResourceTypesForTransfer")
         @Comment("What resource types should SFM not be allowed to move")
         public String[] disallowedResourceTypesForTransfer = new String[0];
+
+        @Name("maxDiskProblems")
+        public int maxDiskProblems = 10;
 
     }
 

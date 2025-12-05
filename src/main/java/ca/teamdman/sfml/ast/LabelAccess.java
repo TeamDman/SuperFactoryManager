@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 @Desugar public record LabelAccess(
         List<Label> labels,
-        DirectionQualifier directions,
+        SideQualifier sides,
         NumberRangeSet slots,
         RoundRobin roundRobin
 ) implements ASTNode {
@@ -23,12 +23,11 @@ import java.util.stream.Collectors;
         if (roundRobin.isEnabled()) {
             builder.append(" ").append(roundRobin);
         }
-        if (!directions.directions().isEmpty()) {
+        if (!sides.equals(SideQualifier.NULL)) {
             builder.append(" ");
             builder
-                    .append(directions
-                                    .stream()
-                                    .map(DirectionQualifier::directionToString)
+                    .append(sides.sides().stream()
+                                    .map(Side::toString)
                                     .collect(Collectors.joining(", ")))
                     .append(" SIDE");
         }

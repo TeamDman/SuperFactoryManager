@@ -39,7 +39,7 @@ public record SFMBlockCapabilityKind<CAP>(
     public <STACK, ITEM> @Nullable ResourceType<STACK, ITEM, CAP> getResourceType() {
         return (ResourceType<STACK, ITEM, CAP>) SFMResourceTypes
                 .registry()
-                .getValuesCollection().stream()
+                .stream()
                 .map(ResourceTypeContainer::get)
                 .filter(resourceType -> resourceType.CAPABILITY_KIND.equals(this))
                 .findFirst()

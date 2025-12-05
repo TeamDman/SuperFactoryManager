@@ -4,6 +4,7 @@ import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.*;
+import ca.teamdman.sfm.common.timing.SFMInstant;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -14,6 +15,7 @@ import org.antlr.v4.runtime.Recognizer;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.DataOutput;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -23,12 +25,17 @@ import java.util.function.Consumer;
 import static ca.teamdman.sfm.common.blockentity.ManagerBlockEntity.TICK_TIME_HISTORY_SIZE;
 import static ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH;
 
+/// Use {@link ProgramBuilder} to get a {@link Program} from a {@link String}
 @Desugar
 public record Program(
         ASTBuilder astBuilder,
+
         String name,
+
         List<Trigger> triggers,
+
         Set<String> referencedLabels,
+
         Set<ResourceIdentifier<?, ?, ?>> referencedResources
 ) implements Statement {
     /**
@@ -41,18 +48,8 @@ public record Program(
                                                  - MAX_LOG_LEVEL_NAME_LENGTH
                                                  - 1 // manager state enum
                                                  - 8; // block pos
-    public static final int MAX_LABEL_LENGTH = 256;
 
-    public static void compile(
-            String programString,
-            Consumer<Program> onSuccess,
-            Consumer<List<TextComponentTranslation>> onFailure
-    ) {
-        ProgramBuilder
-                .build(programString)
-                .caseSuccess((program, metadata) -> onSuccess.accept(program))
-                .caseFailure(result -> onFailure.accept(result.metadata().errors()));
-    }
+    public static final int MAX_LABEL_LENGTH = 256;
 
     /**
      * Create a context and tick the program.
@@ -60,7 +57,8 @@ public record Program(
      * @return {@code true} if a trigger entered its body
      */
     public boolean tick(ManagerBlockEntity manager) {
-        var context = new ProgramContext(this, manager, new DefaultProgramBehaviour());
+
+        var context = new ProgramContext(this, manager, new ExecuteProgramBehaviour());
 
         // log if there are unprocessed redstone pulses
         int unprocessedRedstonePulseCount = manager.getUnprocessedRedstonePulseCount();
@@ -85,6 +83,7 @@ public record Program(
 
     @Override
     public void tick(ProgramContext context) {
+
         LimitedInputSlotObjectPool.checkInvariant();
         LimitedOutputSlotObjectPool.checkInvariant();
 
@@ -110,7 +109,7 @@ public record Program(
             }
 
             // Start stopwatch
-            long start = System.nanoTime();
+            SFMInstant start = SFMInstant.now();
 
             // Perform tick
             if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
@@ -139,11 +138,11 @@ public record Program(
             }
 
             // End stopwatch
-            long nanoTimePassed = System.nanoTime() - start;
+            Duration elapsed = start.elapsed();
 
             // Log trigger time
             context.getLogger().info(x -> x.accept(LocalizationKeys.PROGRAM_TICK_TRIGGER_TIME_MS.get(
-                    nanoTimePassed / 1_000_000.0,
+                    elapsed.toMillis(),
                     trigger.toString()
             )));
         }
@@ -157,6 +156,7 @@ public record Program(
     }
 
     public int getConditionIndex(IfStatement ifStatement) {
+
         for (Trigger trigger : triggers) {
             int conditionIndex = trigger.getConditionIndex(ifStatement);
             if (conditionIndex != -1) {
@@ -168,6 +168,7 @@ public record Program(
 
     @Override
     public String toString() {
+
         var rtn = new StringBuilder();
         rtn.append("NAME \"").append(name).append("\"\n");
         for (Trigger trigger : triggers) {
@@ -180,6 +181,11 @@ public record Program(
             OutputStatement oldStatement,
             OutputStatement newStatement
     ) {
+
+        if (!ProgramBuilder.isMutationAllowed(this)) {
+            throw new IllegalArgumentException(
+                    "Mutation is not allowed on this Program object because it is cached! Program = " + this);
+        }
         Deque<Statement> toPatch = new ArrayDeque<>();
         toPatch.add(this);
         while (!toPatch.isEmpty()) {
@@ -255,6 +261,7 @@ public record Program(
         private final List<String> errors;
 
         public ListErrorListener(List<String> errors) {
+
             this.errors = errors;
         }
 
@@ -267,7 +274,10 @@ public record Program(
                 String msg,
                 RecognitionException e
         ) {
+
             errors.add("line " + line + ":" + charPositionInLine + " " + msg);
         }
+
     }
+
 }

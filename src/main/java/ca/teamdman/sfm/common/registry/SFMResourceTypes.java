@@ -78,18 +78,18 @@ public class SFMResourceTypes {
     }
 
     public static int getResourceTypeCount() {
-        return registry().getValuesCollection().size();
+        return registry().values().size();
     }
 
     public static @Nullable ResourceType<?, ?, ?> fastLookup(
             ResourceLocation resourceTypeId
     ) {
-        ResourceTypeContainer container = registry().getValue(resourceTypeId);
+        ResourceTypeContainer container = registry().get(resourceTypeId);
         return container != null ? container.get() : null;
     }
 
-    public static IForgeRegistry<ResourceTypeContainer> registry() {
-        return SFMRegistries.RESOURCE_TYPE_REGISTRY;
+    public static SFMRegistryWrapper<ResourceTypeContainer> registry() {
+        return SFMWellKnownRegistries.RESOURCE_TYPES;
     }
 
 

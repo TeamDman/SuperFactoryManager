@@ -82,7 +82,7 @@ public class BufferBlock extends Block implements ITileEntityProvider {
 
 
         public static ContainedResource from(ResourceType<?, ?, ?> resourceType) {
-            String name = Objects.requireNonNull(SFMResourceTypes.registry().getKey(resourceType.container)).getPath();
+            String name = Objects.requireNonNull(SFMResourceTypes.registry().getId(resourceType.container)).getPath();
             if (name.equals("item")) {
                 return Item;
             } else if (name.equals("fluid")) {

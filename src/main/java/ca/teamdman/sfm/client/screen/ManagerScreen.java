@@ -45,6 +45,7 @@ import java.awt.*;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -540,17 +541,20 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
         }
 
         // Find the maximum tick time for normalization
-        long peakTickTimeNanoseconds = 0;
-        for (int i = 0; i < menu.tickTimeNanos.length; i++) {
-            peakTickTimeNanoseconds = Long.max(peakTickTimeNanoseconds, menu.tickTimeNanos[i]);
+        Duration peakTickTime = Duration.ZERO;
+        for (int i = 0; i < menu.tickTimes.length; i++) {
+            Duration candidate = menu.tickTimes[i];
+            if (candidate != null && candidate.compareTo(peakTickTime) > 0) {
+                peakTickTime = candidate;
+            }
         }
-        long yMax = Long.max(peakTickTimeNanoseconds, 50000000); // Start with max at 50ms but allow it to grow
+        long yMax = Long.max(peakTickTime.toNanos(), 50_000_000); // Start with max at 50 ms but allow it to grow
 
         // Constants for the plot size and position
         final int plotX = titleLabelX + 45;
         final int plotY = 40;
         final int spaceBetweenPoints = 6;
-        final int plotWidth = spaceBetweenPoints * (menu.tickTimeNanos.length - 1);
+        final int plotWidth = spaceBetweenPoints * (menu.tickTimes.length - 1);
         final int plotHeight = 30;
 
 
@@ -584,8 +588,11 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
         buffer = tesselator.getBuffer();
         buffer.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
         int mouseTickTimeIndex = -1;
-        for (int i = 0; i < menu.tickTimeNanos.length; i++) {
-            long y = menu.tickTimeNanos[i];
+        for (int i = 0; i < menu.tickTimes.length; i++) {
+            if (menu.tickTimes[i] == null) {
+                continue;
+            }
+            long y = menu.tickTimes[i].toNanos();
             float normalizedTickTime = y == 0 ? 0 : (float) (Math.log10(y) / Math.log10(yMax));
             int plotPosY = plotY + plotHeight - (int) (normalizedTickTime * plotHeight);
 
@@ -617,7 +624,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
         if (mouseTickTimeIndex != -1) { // We are hovering over the plot
             // Draw the tick time text for the hovered point instead of peak
             {
-                long hoveredTickTimeNanoseconds = menu.tickTimeNanos[mouseTickTimeIndex];
+                long hoveredTickTimeNanoseconds = menu.tickTimes[mouseTickTimeIndex].toNanos();
                 var hoveredTickTimeMilliseconds = hoveredTickTimeNanoseconds / 1_000_000f;
                 String formattedMillis = format.format(hoveredTickTimeMilliseconds);
                 TextFormatting lagColor = getMillisecondColour(hoveredTickTimeMilliseconds);
@@ -654,7 +661,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
             tesselator.draw();
         } else {
             // Draw the tick time text for peak value
-            var peakTickTimeMilliseconds = peakTickTimeNanoseconds / 1_000_000f;
+            var peakTickTimeMilliseconds = peakTickTime.toNanos() / 1_000_000f; // we want decimal precision
             String formattedMillis = format.format(peakTickTimeMilliseconds);
             TextFormatting lagColor = getMillisecondColour(peakTickTimeMilliseconds);
             ITextComponent milliseconds = new TextComponentString(formattedMillis).setStyle(new Style().setColor(lagColor));

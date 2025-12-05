@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.common.logging;
 
+import ca.teamdman.sfm.common.timing.SFMEpochInstant;
 import net.minecraft.util.text.TextComponentTranslation;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Appender;
@@ -10,7 +11,6 @@ import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginBuilderAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
-import org.apache.logging.log4j.core.time.MutableInstant;
 import org.apache.logging.log4j.message.Message;
 
 import java.io.Serializable;
@@ -35,9 +35,6 @@ public class TranslatableAppender extends AbstractAppender {
     @Override
     public void append(LogEvent event) {
         // clone since the event is mutable
-        var instant = new MutableInstant();
-        instant.initFrom(event.getInstant());
-
         Level level = event.getLevel();
 
         Message message = event.getMessage();
@@ -51,7 +48,7 @@ public class TranslatableAppender extends AbstractAppender {
 
         contents.add(new TranslatableLogEvent(
                 level,
-                instant,
+                SFMEpochInstant.now(),
                 content
         ));
     }

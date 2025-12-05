@@ -74,4 +74,16 @@ public class SFMStreamUtils {
                 Consumer<R> results
         );
     }
+
+    /// Helper function since you get "method reference not expected here"
+    /// if you don't manually cast in an enhanced for-loop
+    /// ```java
+    /// Stream<Block> blocks = something;
+    /// for (Block block : blocks::iterator) // errors
+    /// for (Block block : (Iterable<Block>) blocks::iterator) // ugly
+    /// for (Block block : SFMStreamUtils.iterate(blocks)) // not as manual
+    /// ```
+    public static <T> Iterable<T> iterate(Stream<T> stream) {
+        return stream::iterator;
+    }
 }

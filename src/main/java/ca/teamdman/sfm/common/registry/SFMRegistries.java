@@ -31,10 +31,15 @@ public class SFMRegistries {
                 .setType(ResourceTypeContainer.class)
                 .create();
 
+        SFMWellKnownRegistries.RESOURCE_TYPES = new SFMRegistryWrapper<>(RESOURCE_TYPE_REGISTRY);
+
         PROGRAM_LINTER_REGISTRY = new RegistryBuilder<IProgramLinter>()
                 .setName(PROGRAM_LINTER_REGISTRY_NAME)
                 .setType(IProgramLinter.class)
                 .create();
+
+        SFMWellKnownRegistries.PROGRAM_LINTERS = new SFMRegistryWrapper<>(PROGRAM_LINTER_REGISTRY);
+
 
         GLOBAL_BLOCK_CAPABILITY_PROVIDER_REGISTRY = new RegistryBuilder<SFMBlockCapabilityProviderContainer>()
                 .setName(GLOBAL_BLOCK_CAPABILITY_PROVIDER_REGISTRY_NAME)

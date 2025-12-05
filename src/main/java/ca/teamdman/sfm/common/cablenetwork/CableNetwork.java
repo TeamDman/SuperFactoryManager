@@ -31,11 +31,12 @@ import java.util.stream.Stream;
 public class CableNetwork {
     protected final World level;
     protected final LongSet cablePositions = new LongOpenHashSet();
-    protected final SFMBlockCapabilityCacheForLevel levelCapabilityCache = new SFMBlockCapabilityCacheForLevel();
+    protected final SFMBlockCapabilityCacheForLevel levelCapabilityCache;
     protected final LongSet visualManagerPositions = new LongOpenHashSet();
 
     public CableNetwork(World level) {
         this.level = level;
+        this.levelCapabilityCache = new SFMBlockCapabilityCacheForLevel(level);
     }
 
     public SFMBlockCapabilityCacheForLevel getLevelCapabilityCache() {
@@ -170,6 +171,9 @@ public class CableNetwork {
      * @return {@code true} if adjacent to cable in network
      */
     public boolean isAdjacentToCable(@NotStored BlockPos pos) {
+        if (containsCablePosition(pos)) {
+            return true; // allow managers to interact with themselves
+        }
         BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
         for (EnumFacing direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
             target.setPos(pos).move(direction);

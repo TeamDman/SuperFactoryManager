@@ -7,21 +7,20 @@ import com.github.bsideup.jabel.Desugar;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.network.PacketBuffer;
 
 import java.util.Collection;
 
 @Desugar
 public record ClientboundManagerLogsPacket(
         int windowId,
-        PacketBuffer logsBuf
+        FriendlyByteBuf logsBuf
 ) implements SFMPacket<ClientboundManagerLogsPacket> {
 
     public static ClientboundManagerLogsPacket drainToCreate(
             int windowId,
             Collection<TranslatableLogEvent> logs
     ) {
-        var buf = new PacketBuffer(Unpooled.buffer());
+        var buf = new FriendlyByteBuf(Unpooled.buffer());
         TranslatableLogger.encodeAndDrain(logs, buf);
         return new ClientboundManagerLogsPacket(windowId, buf);
     }
@@ -51,7 +50,7 @@ public record ClientboundManagerLogsPacket(
             int size = friendlyByteBuf.readVarInt(); // don't trust readableBytes
             // https://discord.com/channels/313125603924639766/1154167065519861831/1192251649398419506
 
-            PacketBuffer logsBuf = new PacketBuffer(Unpooled.buffer(size));
+            FriendlyByteBuf logsBuf = new FriendlyByteBuf(Unpooled.buffer(size));
             friendlyByteBuf.readBytes(logsBuf, size);
             return new ClientboundManagerLogsPacket(
                     windowId,

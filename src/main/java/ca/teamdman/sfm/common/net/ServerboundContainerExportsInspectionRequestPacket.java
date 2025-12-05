@@ -22,7 +22,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +40,7 @@ public record ServerboundContainerExportsInspectionRequestPacket(
             sb.append("-- ").append(direction).append("\n");
             int len = sb.length();
             //noinspection unchecked,rawtypes
-            SFMResourceTypes.registry().getEntries().stream().map(entry -> buildInspectionResults(
+            SFMResourceTypes.registry().entries().stream().map(entry -> buildInspectionResults(
                             (ResourceLocation) entry.getKey(),
                             entry.getValue().get(),
                             level,
@@ -121,9 +120,7 @@ public record ServerboundContainerExportsInspectionRequestPacket(
                 InputStatement inputStatement = new InputStatement(
                         new LabelAccess(
                                 Arrays.asList(new Label("target")),
-                                new DirectionQualifier(direction == null
-                                                       ? EnumSet.noneOf(EnumFacing.class)
-                                                       : EnumSet.of(direction)),
+                                new SideQualifier(Arrays.asList(Side.fromDirection(direction))),
                                 NumberRangeSet.MAX_RANGE,
                                 RoundRobin.disabled()
                         ),

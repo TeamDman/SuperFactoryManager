@@ -1,7 +1,10 @@
 package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
+
+import java.util.function.Consumer;
 import com.github.bsideup.jabel.Desugar;
+import net.minecraft.util.math.BlockPos;
 
 @Desugar public record BoolDisjunction(
         BoolExpr left, BoolExpr right
@@ -15,4 +18,14 @@ import com.github.bsideup.jabel.Desugar;
     public String toString() {
         return left + " OR " + right;
     }
+
+    @Override
+    public void collectPositions(
+            ProgramContext context,
+            Consumer<BlockPos> posConsumer
+    ) {
+        left.collectPositions(context, posConsumer);
+        right.collectPositions(context, posConsumer);
+    }
+
 }

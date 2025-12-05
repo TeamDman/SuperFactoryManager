@@ -2,18 +2,22 @@ package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.CommonProxy;
-import ca.teamdman.sfm.common.program.linting.FlowProgramLinter;
-import ca.teamdman.sfm.common.program.linting.IProgramLinter;
-import ca.teamdman.sfm.common.program.linting.LabelLinter;
-import ca.teamdman.sfm.common.program.linting.ResourcesProgramLinter;
+import ca.teamdman.sfm.common.program.linting.*;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.registries.IForgeRegistry;
 
 public class SFMLinters {
 
+    public static IForgeRegistry<IProgramLinter> registry;
+
     public static void initialize() {
-       prepareRegister(new LabelLinter(), "labelgun_linter");
-       prepareRegister(new FlowProgramLinter(), "flow_linter");
-       prepareRegister(new ResourcesProgramLinter(), "resources_linter");
+        prepareRegister(new EachInIOWithoutPatternProgramLinter(), "flow");
+        prepareRegister(new ResourcesProgramLinter(), "resources");
+        prepareRegister(new LabelUsedInProgramButNotPresentProgramLinter(), "label_used_in_program_but_not_present");
+        prepareRegister(new LabelPresentButNotUsedProgramLinter(), "label_present_but_not_used");
+        prepareRegister(new LabelNotConnectedProgramLinter(), "label_not_connected");
+        prepareRegister(new RoundRobinProgramLinter(), "round_robin");
+        prepareRegister(new IncompleteIOProgramLinter(), "incomplete_io");
     }
 
     private static <T extends IProgramLinter> T prepareRegister(T linter, String name) {

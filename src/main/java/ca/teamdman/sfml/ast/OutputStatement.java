@@ -220,7 +220,7 @@ public class OutputStatement implements IOStatement {
         // THIS SHOULD NEVER HAPPEN
         // will void items if it does
         if (!resourceType.isEmpty(extractedRemainder)) {
-            ResourceLocation resourceTypeName = SFMResourceTypes.registry().getKey(resourceType.container);
+            ResourceLocation resourceTypeName = SFMResourceTypes.registry().getId(resourceType.container);
             String stackName = resourceType.getItem(extractPotential).toString();
             World level = context.getManager().getWorld();
             assert level != null;
@@ -523,10 +523,15 @@ public class OutputStatement implements IOStatement {
 
     @Override
     public String toString() {
-        return "OUTPUT " + resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_MAX_RETENTION) + " TO " +
-                (emptySlotsOnly ? "EMPTY SLOTS IN " : "") +
-                (each ? "EACH " : "") +
-                labelAccess;
+        StringBuilder rtn = new StringBuilder();
+        rtn.append("OUTPUT ");
+        String limits = resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_MAX_RETENTION);
+        if (!limits.isEmpty()) rtn.append(limits).append(" ");
+        rtn.append("TO");
+        if (emptySlotsOnly) rtn.append(" EMPTY SLOTS IN");
+        if (each) rtn.append(" EACH");
+        rtn.append(" ").append(labelAccess);
+        return rtn.toString();
     }
 
     @Override

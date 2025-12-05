@@ -21,9 +21,9 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
     private long focusedTime = Minecraft.getSystemTime();
     protected MultilineTextField textField;
 
-    public MultiLineEditBox(FontRenderer font, int pX, int pY, int pWidth, int pHeight, String placeholder, String pMessage) {
-        super(pX, pY, pWidth, pHeight, new TextComponentString(pMessage));
-        this.placeholder = new TextComponentString(placeholder);
+    public MultiLineEditBox(FontRenderer font, int pX, int pY, int pWidth, int pHeight, ITextComponent placeholder, ITextComponent pMessage) {
+        super(pX, pY, pWidth, pHeight, pMessage);
+        this.placeholder = placeholder;
         this.font = font;
         this.textField = new MultilineTextField(font, width - this.totalInnerPadding());
         this.textField.setCursorListener(this::scrollToCursor);

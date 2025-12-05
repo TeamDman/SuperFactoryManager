@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.tileentity.TileEntity;
@@ -19,6 +20,7 @@ public class SFMPacketHandlingContext {
     private final MessageContext inner;
 
     public SFMPacketHandlingContext(MessageContext inner) {
+
         this.inner = inner;
     }
 
@@ -26,14 +28,17 @@ public class SFMPacketHandlingContext {
         if (!inner.side.isServer()) {
             throw new IllegalStateException("Attempted to get server player from client side");
         }
+
         return inner.getServerHandler().player;
     }
 
     public EntityPlayerMP sender() {
+
         return this.serverPlayer();
     }
 
     public void enqueueAndFinish(Runnable runnable) {
+
         if (inner.side.isServer()) {
             serverPlayer().getServerWorld().addScheduledTask(runnable);
         } else {
@@ -48,6 +53,7 @@ public class SFMPacketHandlingContext {
             int containerId,
             BiConsumer<MENU, BE> callback
     ) {
+
         handleServerboundContainerPacket(
                 this,
                 menuClass,
@@ -66,6 +72,7 @@ public class SFMPacketHandlingContext {
             int containerId,
             BiConsumer<MENU, BE> callback
     ) {
+
         var sender = ctx.inner.getServerHandler().player;
         if (sender == null) {
             SFM.LOGGER.warn("Invalid packet received: no sender");
@@ -120,8 +127,10 @@ public class SFMPacketHandlingContext {
 
     public void compileAndThen(
             String programString,
+            boolean willMutateProgram,
             ProgramConsumer callback
     ) {
+
         EntityPlayerMP player = this.serverPlayer();
         if (player == null) return;
         ManagerBlockEntity manager;
@@ -139,17 +148,23 @@ public class SFMPacketHandlingContext {
             );
             return;
         }
-        Program.compile(
-                programString,
-                successProgram -> callback.accept(successProgram, player, manager),
-                failure -> {
+        //todo: localize
+
+        new ProgramBuilder(programString)
+                .useCache(!willMutateProgram)
+                .build()
+                .caseSuccess((program, metadata) -> callback.accept(
+                        program,
+                        player,
+                        manager
+                ))
+                .caseFailure(result -> {
                     //todo: localize
                     SFMPackets.sendToPlayer(
                             player,
                             new ClientboundOutputInspectionResultsPacket("failed to compile program")
                     );
-                }
-        );
+                });
     }
 
     @FunctionalInterface
@@ -159,5 +174,7 @@ public class SFMPacketHandlingContext {
                 EntityPlayerMP player,
                 ManagerBlockEntity managerBlockEntity
         );
+
     }
+
 }

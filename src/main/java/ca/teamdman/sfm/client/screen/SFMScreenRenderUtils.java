@@ -6,13 +6,6 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
 
 public class SFMScreenRenderUtils {
-    public static int getX(AbstractWidget widget) {
-        return widget.getX();
-    }
-    public static int getY(AbstractWidget widget) {
-        return widget.getY();
-    }
-
 
     @MCVersionDependentBehaviour
     public static void enableKeyRepeating() {

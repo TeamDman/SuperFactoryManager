@@ -1,34 +1,29 @@
 package ca.teamdman.sfm.common.logging;
 
+import ca.teamdman.sfm.common.net.FriendlyByteBuf;
+import ca.teamdman.sfm.common.timing.SFMEpochInstant;
 import ca.teamdman.sfm.common.util.SFMTranslationUtils;
 import com.github.bsideup.jabel.Desugar;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.core.time.Instant;
-import org.apache.logging.log4j.core.time.MutableInstant;
 
 @Desugar public record TranslatableLogEvent(
         Level level,
-        Instant instant,
+        SFMEpochInstant instant,
         TextComponentTranslation contents
 ) {
-    public void encode(ByteBuf buf) {
+    public void encode(FriendlyByteBuf buf) {
         ByteBufUtils.writeUTF8String(buf, level.name());
-        buf.writeLong(instant.getEpochMillisecond());
-        buf.writeInt(instant.getNanoOfMillisecond());
+        instant.write(buf);
         SFMTranslationUtils.encodeTranslation(contents, buf);
     }
 
-    public static TranslatableLogEvent decode(ByteBuf buf) {
+    public static TranslatableLogEvent decode(FriendlyByteBuf buf) {
         var level = Level.getLevel(ByteBufUtils.readUTF8String(buf));
-        var epochMillisecond = buf.readLong();
-        var epochNano = buf.readInt();
+        SFMEpochInstant instant = SFMEpochInstant.read(buf);
         var contents = SFMTranslationUtils.decodeTranslation(buf);
-
-        var instant = new MutableInstant();
-        instant.initFromEpochMilli(epochMillisecond, epochNano);
 
         return new TranslatableLogEvent(level, instant, contents);
     }

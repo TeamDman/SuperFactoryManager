@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.examples.SFMExampleProgram;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditScreenV1;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
@@ -26,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,6 +51,7 @@ public class SFMScreenChangeHelpers {
     }
 
     public static void popScreen() {
+
         Minecraft mc = Minecraft.getMinecraft();
         GuiScreen currentScreen = mc.currentScreen;
         if (currentScreen instanceof IStackableScreen) {
@@ -65,6 +68,7 @@ public class SFMScreenChangeHelpers {
             ItemStack stack,
             EnumHand hand
     ) {
+
         setOrPushScreen(new LabelGunScreen(stack, hand));
     }
 
@@ -78,12 +82,14 @@ public class SFMScreenChangeHelpers {
     public static void showProgramEditScreen(
             ISFMTextEditScreenOpenContext context
     ) {
+
         showTextEditScreen(createProgramEditScreen(context));
     }
 
     public static void showTextEditScreen(
             ISFMTextEditScreen screen
     ) {
+
         switch (screen.openBehaviour()) {
             case Push -> setOrPushScreen((GuiScreen) screen);
             case Replace -> setScreen((GuiScreen) screen);
@@ -93,12 +99,14 @@ public class SFMScreenChangeHelpers {
     public static void showTomlEditScreen(
             TomlEditScreenOpenContext context
     ) {
+
         SFMTextEditScreenV1 screen = new TomlEditScreen(context);
         setOrPushScreen(screen);
         screen.scrollToTop();
     }
 
     public static void showProgramEditScreen(String initialContent) {
+
         ISFMTextEditScreenOpenContext openContext = new SFMTextEditScreenDiskOpenContext(
                 initialContent,
                 LabelPositionHolder.empty(),
@@ -113,6 +121,7 @@ public class SFMScreenChangeHelpers {
             LabelPositionHolder labelPositionHolder,
             Consumer<String> saveCallback
     ) {
+
 //        setOrPushScreen(new ExamplesScreen((chosenExample, templates) -> {
 //            SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
 //                    chosenExample,
@@ -127,6 +136,7 @@ public class SFMScreenChangeHelpers {
     }
 
     public static void showLogsScreen(ManagerContainerMenu menu) {
+
         LogsScreen screen = new LogsScreen(menu);
         setOrPushScreen(screen);
         screen.scrollToBottom();
@@ -140,6 +150,7 @@ public class SFMScreenChangeHelpers {
     // TODO: copy item id, not just NBT
     // TODO: replace with showing a screen with the data
     public static void showItemInspectorScreen(ItemStack stack) {
+
         NBTTagCompound tag = stack.getTagCompound();
         if (tag != null) {
             String content = tag.toString();
@@ -156,29 +167,12 @@ public class SFMScreenChangeHelpers {
     }
 
     public static void showChangelog() {
-        String changelog = null;
-        var irm = Minecraft.getMinecraft().getResourceManager();
-        try {
-            for (IResource resource : irm.getAllResources(new ResourceLocation(SFM.MOD_ID, "template_programs"))) {
-                if (resource.getResourceLocation().getPath().equals("template_programs/changelog.sfml")) {
-                    try (var reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
-                        changelog = reader.lines().collect(Collectors.joining("\n"));
-                        break;
-                    }
-                }
-            }
-        } catch (java.io.IOException e) {
-            SFM.LOGGER.error("Failed to read changelog", e);
-        }
 
-        if (changelog == null) {
-            SFM.LOGGER.error("Failed to find changelog");
-            return;
-        }
+        SFMExampleProgram changelogExampleProgram = SFMExampleProgram.getChangelog();
         SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
-                changelog,
-                changelog,
-                CollectionUtils.mapOf("changelog.sfml", changelog),
+                changelogExampleProgram.programString(),
+                changelogExampleProgram.programString(),
+                Arrays.asList(changelogExampleProgram),
                 LabelPositionHolder.empty(),
                 newContent -> {
                 }
@@ -188,10 +182,13 @@ public class SFMScreenChangeHelpers {
     }
 
     public static @Nullable GuiScreen getCurrentScreen() {
+
         return Minecraft.getMinecraft().currentScreen;
     }
 
     public static void setScreen(@Nullable GuiScreen screen) {
+
         Minecraft.getMinecraft().displayGuiScreen(screen);
     }
+
 }

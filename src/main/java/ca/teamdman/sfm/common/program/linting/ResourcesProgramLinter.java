@@ -2,14 +2,14 @@ package ca.teamdman.sfm.common.program.linting;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
 import ca.teamdman.sfml.ast.Program;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Optional;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_UNKNOWN_RESOURCE_ID;
@@ -17,13 +17,12 @@ import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNI
 public class ResourcesProgramLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implements IProgramLinter {
 
     @Override
-    public ArrayList<TextComponentTranslation> gatherWarnings(
+    public void gatherWarnings(
             Program program,
             LabelPositionHolder labelPositionHolder,
-            @Nullable ManagerBlockEntity managerBlockEntity
+            @Nullable ManagerBlockEntity managerBlockEntity,
+            ProblemTracker tracker
     ) {
-        ArrayList<TextComponentTranslation> warnings = new ArrayList<>();
-
         // Check all referenced resources to see if they exist
         for (var resource : program.referencedResources()) {
             Optional<?> loc = resource.getLocation();
@@ -32,23 +31,24 @@ public class ResourcesProgramLinter extends IForgeRegistryEntry.Impl<IProgramLin
                 continue;
             }
             // resource.getResourceType() can return null if something's not mapped
-            if (resource.getResourceType() == null) {
+            ResourceTypeContainer. ResourceType<?, ?, ?> resourceType = resource.getResourceType();
+            if (resourceType == null) {
                 continue;
             }
             // If it doesn't exist in the registry, add a warning
-            if (!resource.getResourceType().registryKeyExists((ResourceLocation) loc.get())) {
-                warnings.add(PROGRAM_WARNING_UNKNOWN_RESOURCE_ID.get(resource));
+            if (!resourceType.registryKeyExists((ResourceLocation) loc.get())) {
+                tracker.add(PROGRAM_WARNING_UNKNOWN_RESOURCE_ID.get(resource));
             }
         }
-
-        return warnings;
     }
 
     @Override
     public void fixWarnings(
-            ManagerBlockEntity managerBlockEntity,
-            ItemStack diskStack,
-            Program program
+            Program program,
+            LabelPositionHolder labels,
+            ManagerBlockEntity manager,
+            World level,
+            ItemStack disk
     ) {
         // Resource references typically cannot be “auto-fixed,” so do nothing here.
     }

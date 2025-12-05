@@ -1,6 +1,7 @@
-package ca.teamdman.sfm.client;
+package ca.teamdman.sfm.client.text_styling;
 
 import ca.teamdman.langs.SFMLLexer;
+import ca.teamdman.sfm.client.ProgramTokenContextActions;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
@@ -81,6 +82,10 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.EAST:
             case SFMLLexer.WEST:
             case SFMLLexer.EACH:
+            case SFMLLexer.LEFT:
+            case SFMLLexer.RIGHT:
+            case SFMLLexer.FRONT:
+            case SFMLLexer.BACK:
                 return TextFormatting.DARK_PURPLE;
             case SFMLLexer.LINE_COMMENT:
                 return TextFormatting.GRAY;
@@ -111,6 +116,7 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.SECONDS:
             case SFMLLexer.SECOND:
             case SFMLLexer.SLOTS:
+            case SFMLLexer.SLOT:
             case SFMLLexer.EXCEPT:
             case SFMLLexer.RETAIN:
             case SFMLLexer.LONE:

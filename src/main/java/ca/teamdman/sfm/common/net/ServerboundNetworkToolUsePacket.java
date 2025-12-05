@@ -9,7 +9,7 @@ import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
-import ca.teamdman.sfml.ast.DirectionQualifier;
+import ca.teamdman.sfml.ast.Side;
 
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.block.state.IBlockState;
@@ -22,30 +22,36 @@ import net.minecraft.world.World;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Desugar
 public record ServerboundNetworkToolUsePacket(
         BlockPos blockPosition,
+
         EnumFacing blockFace
 ) implements SFMPacket {
     public static class Daddy implements SFMPacketDaddy<ServerboundNetworkToolUsePacket> {
         @Override
         public PacketDirection getPacketDirection() {
+
             return PacketDirection.SERVERBOUND;
         }
+
         @Override
         public void encode(
                 ServerboundNetworkToolUsePacket msg,
                 FriendlyByteBuf friendlyByteBuf
         ) {
+
             friendlyByteBuf.writeBlockPos(msg.blockPosition);
             friendlyByteBuf.writeEnum(msg.blockFace);
         }
 
         @Override
         public ServerboundNetworkToolUsePacket decode(FriendlyByteBuf friendlyByteBuf) {
+
             return new ServerboundNetworkToolUsePacket(
                     friendlyByteBuf.readBlockPos(),
                     friendlyByteBuf.readEnum(EnumFacing.class)
@@ -57,6 +63,7 @@ public record ServerboundNetworkToolUsePacket(
                 ServerboundNetworkToolUsePacket msg,
                 SFMPacketHandlingContext context
         ) {
+
             {
                 // we don't know if the player has the program edit screen open from a manager or a disk in hand
                 EntityPlayerMP player = context.sender();
@@ -94,13 +101,14 @@ public record ServerboundNetworkToolUsePacket(
                         payload.append(entity).append("\n");
                     }
                 }
-                payload.append("---- capabilityKind directions ----\n");
+                payload.append("---- capabilityKind sides ----\n");
                 for (var cap : (Iterable<SFMBlockCapabilityKind<?>>) SFMWellKnownCapabilities.streamCapabilities()::iterator) {
-                    String directions = DirectionQualifier.EVERY_DIRECTION
-                            .stream()
+                    String directions = Arrays.stream(SFMDirections.DIRECTIONS_WITH_NULL)
                             .filter(dir -> SFMBlockCapabilityDiscovery
-                                    .discoverCapabilityFromLevel(level, cap, pos, dir).isPresent())
-                            .map(dir -> dir == null ? "NULL DIRECTION" : DirectionQualifier.directionToString(dir))
+                                    .discoverCapabilityFromLevel(level, cap, pos, dir)
+                                    .isPresent())
+                            .map(Side::fromDirection)
+                            .map(Side::toString)
                             .collect(Collectors.joining(", ", "[", "]"));
                     if (!directions.equals("[]")) {
                         payload
@@ -130,7 +138,7 @@ public record ServerboundNetworkToolUsePacket(
                     payload.append(messages[i]).append("\n");
                     MutableBoolean foundExports = new MutableBoolean(false);
                     //noinspection unchecked,rawtypes
-                    SFMResourceTypes.registry().getEntries()
+                    SFMResourceTypes.registry().entries()
                             .stream()
                             .map(entry -> ServerboundContainerExportsInspectionRequestPacket.buildInspectionResults(
                                     entry.getKey(),
@@ -158,7 +166,8 @@ public record ServerboundNetworkToolUsePacket(
                 }
 
 
-                SFMPackets.sendToPlayer(player, new ClientboundInputInspectionResultsPacket(
+                SFMPackets.sendToPlayer(
+                        player, new ClientboundInputInspectionResultsPacket(
                         SFMPacketDaddy.truncate(
                                 payload.toString(),
                                 ClientboundInputInspectionResultsPacket.MAX_RESULTS_LENGTH
@@ -168,6 +177,7 @@ public record ServerboundNetworkToolUsePacket(
 
         @Override
         public Class<Packet> getPacketClass() {
+
             return Packet.class;
         }
     }
@@ -180,6 +190,7 @@ public record ServerboundNetworkToolUsePacket(
         SFMPacketDaddy<ServerboundNetworkToolUsePacket> getDaddy() {
             return daddy;
         }
+
     }
 
 

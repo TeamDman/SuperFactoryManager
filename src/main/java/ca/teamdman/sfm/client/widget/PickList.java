@@ -3,12 +3,19 @@ package ca.teamdman.sfm.client.widget;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import ca.teamdman.sfm.common.util.Mth;
+import com.bbscn.AbstractScrollWidget;
+import com.bbscn.ScreenRectangle;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import org.jetbrains.annotations.Nullable;
 import org.simmetrics.ListDistance;
+import ca.teamdman.sfm.client.screen.SFMWidgetUtils;
 import org.simmetrics.StringDistance;
 import org.simmetrics.builders.StringDistanceBuilder;
 import org.simmetrics.metrics.StringDistances;
@@ -261,14 +268,14 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
 
 
         var buffer = Tessellator.getInstance().getBuffer();
-        int lineX = SFMScreenRenderUtils.getX(this) + this.innerPadding();
+        int lineX = SFMWidgetUtils.getX(this) + this.innerPadding();
         ScreenRectangle highlight = null;
 
         // Render only the visible subset of items
         for (int i = startIndex; i < endIndex; i++) {
             PickListItem item = sortedItems.get(i);
             // Calculate the y position based on the item's position in the full list
-            int lineY = SFMScreenRenderUtils.getY(this) + this.innerPadding() + (i * itemHeight);
+            int lineY = SFMWidgetUtils.getY(this) + this.innerPadding() + (i * itemHeight);
 
             SFMFontUtils.drawInBatch(
                     item.getComponent(),

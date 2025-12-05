@@ -379,9 +379,9 @@ public final class LocalizationKeys {
             "program.sfm.reminders.push_labels",
             "Did you remember to push your labels using the label gun?"
     );
-    public static final LocalizationEntry PROGRAM_WARNING_MEKANISM_USED_WITHOUT_DIRECTION = new LocalizationEntry(
+    public static final LocalizationEntry PROGRAM_WARNING_MEKANISM_USED_WITH_NULL_DIRECTION = new LocalizationEntry(
             "program.sfm.warnings.mekanism_used_without_direction",
-            "Mekanism blocks are read-only when no side is specified, check label \"%s\" used in \"%s\""
+            "Mekanism blocks are read-only from the null direction, check label \"%s\" used in \"%s\""
     );
     public static final LocalizationEntry PROGRAM_WARNING_MEKANISM_BAD_SIDE_CONFIG = new LocalizationEntry(
             "program.sfm.warnings.mekanism_bad_side_config",
@@ -753,7 +753,7 @@ public final class LocalizationKeys {
     );
     public static final LocalizationEntry LOGS_GUI_NO_CONTENT = new LocalizationEntry(
             "gui.sfm.logs.no_content",
-            "Ahoy, world!\nChange the log level using the buttons at the top of this screen.\nLoud log levels will be reset after a single program execution.\nLogging can make statements take longer to execute.\nThe scrolling is wacky, I'm working on it.\nOnly a few hundred lines are drawn to reduce lag.\nUse the copy button to view in a better editor for now lol."
+            "Ahoy, world!\nChange the log level using the buttons at the top of this screen.\nTrace, debug, and info log levels will be turned off after a single program execution.\nLogging can make statements take longer to execute.\nUse the copy button to help view in a different editor."
     );
     public static final LocalizationEntry LOGS_MISSING_ADJACENT_CABLE = new LocalizationEntry(
             "gui.sfm.logs.missing_adjacent_cable",

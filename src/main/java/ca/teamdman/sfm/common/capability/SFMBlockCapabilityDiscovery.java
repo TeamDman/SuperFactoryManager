@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.common.capability;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.cablenetwork.SFMBlockCapabilityCacheForLevel;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
@@ -9,18 +10,23 @@ import ca.teamdman.sfm.common.program.LimitedOutputSlot;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.SFMDirections;
-import net.minecraft.util.math.BlockPos;
+import ca.teamdman.sfm.common.util.StringUtil;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
 
 /// When SFM is moving items
 ///
 /// ```
 /// INPUT item::, fluid:: FROM a
 /// OUTPUT item::, fluid:: TO b
-/// ```
+///```
 ///
 /// the {@link ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType} being moved are each tied to a {@link SFMBlockCapabilityKind}.
 /// See {@link ca.teamdman.sfml.ast.OutputStatement#moveTo(ProgramContext, LimitedInputSlot, LimitedOutputSlot)} for details.
@@ -38,6 +44,12 @@ public class SFMBlockCapabilityDiscovery {
             @Nullable EnumFacing direction,
             TranslatableLogger logger
     ) {
+
+        /* #####################
+                CHECK CACHE
+           ##################### */
+
+        // If there is a cache entry, it has already been validated to be adjacent to a cable
         SFMBlockCapabilityCacheForLevel levelCapabilityCache = cableNetwork.getLevelCapabilityCache();
         World world = cableNetwork.getLevel();
 
@@ -52,10 +64,12 @@ public class SFMBlockCapabilityDiscovery {
         );
         if (cached != null && cached.isPresent()) return cached;
 
-        // NEED TO DISCOVER
+        /* #####################
+            DISCOVER FROM LEVEL
+           ##################### */
 
-        // any BlockPos can have labels assigned
-        // we must only proceed here if there is an adjacent cable from this network
+        // Any BlockPos can have labels assigned to it.
+        // We must only proceed here if there is an adjacent cable from this network.
         if (!cableNetwork.isAdjacentToCable(pos)) {
             logger.warn(x -> x.accept(LocalizationKeys.LOGS_MISSING_ADJACENT_CABLE.get(pos)));
             return SFMBlockCapabilityResult.empty();
@@ -87,14 +101,17 @@ public class SFMBlockCapabilityDiscovery {
             World level,
             BlockPos pos
     ) {
-        return SFMWellKnownCapabilities.streamCapabilities().anyMatch(cap -> {
-            for (EnumFacing direction : SFMDirections.DIRECTIONS_WITH_NULL) {
-                if (discoverCapabilityFromLevel(level, cap, pos, direction).isPresent()) {
-                    return true;
-                }
-            }
-            return false;
-        });
+
+        return SFMWellKnownCapabilities.streamCapabilities()
+                .filter(cap -> !cap.equals(SFMWellKnownCapabilities.REDSTONE_HANDLER))
+                .anyMatch(cap -> {
+                    for (EnumFacing direction : SFMDirections.DIRECTIONS_WITH_NULL) {
+                        if (discoverCapabilityFromLevel(level, cap, pos, direction).isPresent()) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
     }
 
     public static <CAP> @NotNull SFMBlockCapabilityResult<CAP> discoverCapabilityFromLevel(
@@ -103,14 +120,54 @@ public class SFMBlockCapabilityDiscovery {
             @NotStored BlockPos pos,
             @Nullable EnumFacing direction
     ) {
-        return SFMBlockCapabilityProviderDiscovery.getCapabilityFromLevel(
-                capKind,
-                level,
-                pos,
-                level.getBlockState(pos),
-                level.getTileEntity(pos),
-                direction
-        );
+
+        IBlockState blockState = level.getBlockState(pos);
+        TileEntity blockEntity = level.getTileEntity(pos);
+
+        try {
+            ArrayList<SFMBlockCapabilityProvider<CAP>> providersForKind = SFMBlockCapabilityProviderDiscovery
+                    .getCapabilityProvidersForKindFast(capKind);
+
+            for (SFMBlockCapabilityProvider<CAP> capabilityProviderMapper : providersForKind) {
+                var capability = capabilityProviderMapper.getCapability(
+                        capKind,
+                        level,
+                        pos,
+                        blockState,
+                        blockEntity,
+                        direction
+                );
+                if (capability.isPresent()) {
+                    return capability;
+                }
+            }
+        } catch (Throwable t) {
+            SFM.LOGGER.error(
+                    StringUtil.indentPonyfill(
+                    """
+                            SFM encountered an exception while querying capabilities. Please report this!
+                            {}
+                            capKind={}
+                            level={}
+                            pos={}
+                            blockState={}
+                            block={}
+                            blockClass={}
+                            blockEntity={}
+                            direction={}
+                            """.trim(), -"                            ".length()),
+                    SFM.ISSUE_TRACKER_URL,
+                    capKind,
+                    level,
+                    pos,
+                    blockState,
+                    blockState.getBlock(),
+                    blockState.getBlock().getClass(),
+                    blockEntity,
+                    direction
+            );
+        }
+        return SFMBlockCapabilityResult.empty();
     }
 
     private static <CAP> @Nullable SFMBlockCapabilityResult<CAP> discoverCapabilityFromCache(
@@ -121,6 +178,7 @@ public class SFMBlockCapabilityDiscovery {
             TranslatableLogger logger,
             SFMBlockCapabilityCacheForLevel levelCapabilityCache
     ) {
+
         var found = levelCapabilityCache.getCapability(world, pos, capKind, direction);
         if (found != null) {
             // CACHE HIT
@@ -146,4 +204,5 @@ public class SFMBlockCapabilityDiscovery {
         }
         return null;
     }
+
 }

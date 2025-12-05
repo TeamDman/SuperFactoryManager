@@ -10,7 +10,6 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,30 +28,24 @@ public class SFMASTUtils {
         potential = resourceType.withCount(potential, toMove);
         STACK stack = potential;
 
-        ResourceLocation resourceTypeResourceKey = SFMResourceTypes.registry().getKey(resourceType.container);
-
-        if (resourceTypeResourceKey == null) {
-            return Optional.empty();
-        }
-
-        var inputStatement = getInputStatementForStack(
-                resourceTypeResourceKey,
-                resourceType,
-                stack,
-                "temp",
-                slot.slot,
-                false,
-                null
-        );
-
-        return Optional.of(new InputStatement(new LabelAccess(
-                labelAccess.labels(),
-                labelAccess.directions(),
-                inputStatement.labelAccess()
-                        .slots(),
-                RoundRobin.disabled()
-        ), inputStatement.resourceLimits(), inputStatement.each()));
-
+       return SFMResourceTypes.registry().getKey(resourceType.container)
+                .map((ResourceLocation resourceTypeResourceKey) -> getInputStatementForStack(
+                        resourceTypeResourceKey,
+                        resourceType,
+                        stack,
+                        "temp",
+                        slot.slot,
+                        false,
+                        null
+                ))
+                // update the labels
+                .map(inputStatement -> new InputStatement(new LabelAccess(
+                        labelAccess.labels(),
+                        labelAccess.sides(),
+                        inputStatement.labelAccess()
+                                .slots(),
+                        RoundRobin.disabled()
+                ), inputStatement.resourceLimits(), inputStatement.each()));
     }
 
     public static <STACK, ITEM, CAP> InputStatement getInputStatementForStack(
@@ -66,10 +59,7 @@ public class SFMASTUtils {
     ) {
         LabelAccess labelAccess = new LabelAccess(
                 Arrays.asList(new Label(label)),
-                new DirectionQualifier(
-                        direction == null
-                                ? EnumSet.noneOf(EnumFacing.class)
-                                : EnumSet.of(direction)),
+                new SideQualifier(Arrays.asList(Side.fromDirection(direction))),
                 new NumberRangeSet(
                         new NumberRange[]{new NumberRange(slot, slot)}
                 ),

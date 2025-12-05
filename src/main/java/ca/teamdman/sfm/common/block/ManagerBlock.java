@@ -11,6 +11,7 @@ import net.minecraft.block.properties.PropertyBool;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.InventoryHelper;
 import net.minecraft.tileentity.TileEntity;
@@ -88,22 +89,13 @@ public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEn
 
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
-        if (!world.isRemote) {
-            TileEntity te = world.getTileEntity(pos);
-            if (te instanceof ManagerBlockEntity manager) {
-                // update warnings on disk as we open the gui
-                var disk = manager.getDisk();
-                if (disk != null) {
-                    var program = manager.getProgram();
-                    if (program != null) {
-                        DiskItem.setWarnings(
-                                disk,
-                                ProgramLinter.gatherWarnings(program, LabelPositionHolder.from(disk), manager)
-                        );
-                    }
-                }
-                player.openGui(SFM.instance, CommonProxy.GuiType.PROVIDER.ordinal(), world, pos.getX(), pos.getY(), pos.getZ());
-            }
+        if (world.getTileEntity(pos) instanceof ManagerBlockEntity manager
+            && player instanceof EntityPlayerMP serverPlayer) {
+
+            // update warnings on disk as we open the gui
+            DiskItem.rebuildWarnings(manager);
+            player.openGui(SFM.instance, CommonProxy.GuiType.PROVIDER.ordinal(), world, pos.getX(), pos.getY(), pos.getZ());
+            manager.sendUpdatePacket();
         }
         return true;
     }

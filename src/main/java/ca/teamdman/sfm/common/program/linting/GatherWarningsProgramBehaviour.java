@@ -5,16 +5,18 @@ import ca.teamdman.sfm.common.program.ProgramBehaviour;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import ca.teamdman.sfm.common.util.Pair;
 import ca.teamdman.sfml.ast.*;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import ca.teamdman.sfm.common.util.Pair;
 import net.minecraft.util.text.TextComponentTranslation;
 
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_OUTPUT_RESOURCE_TYPE_NOT_FOUND_IN_INPUTS;
@@ -23,13 +25,18 @@ import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNI
 @SuppressWarnings("rawtypes")
 public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgramBehaviour {
     private final List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TextComponentTranslation>>>> sharedMultiverseWarningsByPath;
-    private final Consumer<Collection<TextComponentTranslation>> sharedMultiverseWarningDisplay;
+
+    private final ProblemTracker tracker;
+
     private final List<Pair<ExecutionPathElement, TextComponentTranslation>> warnings = new ArrayList<>();
+
     private final Multimap<ResourceType, Label> resourceTypesInputted = HashMultimap.create();
+
     private final Set<ResourceType> resourceTypesOutputted = new HashSet<>();
 
-    public GatherWarningsProgramBehaviour(Consumer<Collection<TextComponentTranslation>> sharedMultiverseWarningDisplay) {
-        this.sharedMultiverseWarningDisplay = sharedMultiverseWarningDisplay;
+    public GatherWarningsProgramBehaviour(ProblemTracker tracker) {
+
+        this.tracker = tracker;
         this.sharedMultiverseWarningsByPath = new ArrayList<>();
     }
 
@@ -37,24 +44,26 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
             List<ExecutionPath> seenPaths,
             ExecutionPath currentPath,
             AtomicReference<BigInteger> triggerPathCount,
-            Consumer<Collection<TextComponentTranslation>> sharedMultiverseWarningDisplay,
+            ProblemTracker tracker,
             List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TextComponentTranslation>>>> sharedMultiverseWarningsByPath,
             List<Pair<ExecutionPathElement, TextComponentTranslation>> warnings
     ) {
+
         super(seenPaths, currentPath, triggerPathCount);
         this.warnings.addAll(warnings);
-        this.sharedMultiverseWarningDisplay = sharedMultiverseWarningDisplay;
+        this.tracker = tracker;
         this.sharedMultiverseWarningsByPath = sharedMultiverseWarningsByPath;
     }
 
 
     @Override
     public ProgramBehaviour fork() {
+
         return new GatherWarningsProgramBehaviour(
                 this.seenPaths,
                 this.currentPath,
                 this.triggerPathCount,
-                this.sharedMultiverseWarningDisplay,
+                this.tracker,
                 this.sharedMultiverseWarningsByPath,
                 this.warnings
         );
@@ -63,7 +72,9 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
     @Override
     public void onInputStatementExecution(
             ProgramContext context,
-            InputStatement inputStatement) {
+            InputStatement inputStatement
+    ) {
+
         super.onInputStatementExecution(context, inputStatement);
         Set<? extends ResourceType<?, ?, ?>> inputtingResourceTypes = inputStatement
                 .getReferencedIOResourceIds()
@@ -81,6 +92,7 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
             ProgramContext context,
             OutputStatement outputStatement
     ) {
+
         super.onOutputStatementExecution(context, outputStatement);
 
 
@@ -115,6 +127,7 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
             InputStatement old,
             InputStatement next
     ) {
+
         super.onInputStatementForgetTransform(context, old, next);
 
         /*
@@ -154,7 +167,9 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
     @Override
     public void onInputStatementDropped(
             ProgramContext context,
-            InputStatement inputStatement) {
+            InputStatement inputStatement
+    ) {
+
         super.onInputStatementDropped(context, inputStatement);
 
         /*
@@ -177,7 +192,9 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
     @Override
     public void onProgramFinished(
             ProgramContext context,
-            Program program) {
+            Program program
+    ) {
+
         super.onProgramFinished(context, program);
         // we need to calculate what warnings were present in ALL paths
 
@@ -215,13 +232,18 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
                 }
             }
         }
-//        for (var path : sharedMultiverseWarningsByPath) {
-//            ExecutionPathElement seeking
-//            toWarn.removeIf(pair -> path.getFirst().stream().noneMatch(element -> element.equals(pair.getFirst())));
-//        }
 
         // return deduplicated warnings
-        sharedMultiverseWarningDisplay.accept(toWarn.stream().map(Pair::getSecond).collect(Collectors.toSet()));
+        for (
+                TextComponentTranslation warning : toWarn
+                .stream()
+                .map(Pair::getSecond)
+                .collect(Collectors.toSet())
+        ) {
+            if (tracker.add(warning).isSaturated()) {
+                break;
+            }
+        }
     }
 
     private void warnUnusedInputLabels(
@@ -230,6 +252,7 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
             Set<Label> removedLabels,
             Set<? extends ResourceType<?, ?, ?>> droppingResourceTypes
     ) {
+
         for (Label label : removedLabels) {
             for (ResourceType resourceType : droppingResourceTypes) {
                 // if the label was never used, warn
@@ -254,6 +277,7 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
             }
         }
     }
+
 }
 
 /*

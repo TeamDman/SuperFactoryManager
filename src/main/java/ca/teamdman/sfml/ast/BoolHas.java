@@ -10,19 +10,27 @@ import net.minecraft.util.math.BlockPos;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 @Desugar public record BoolHas(
         SetOperator setOperator,
+
         LabelAccess labelAccess,
+
         ComparisonOperator comparisonOperator,
+
         long quantity,
+
         ResourceIdSet resourceIdSet,
+
         With with,
+
         ResourceIdSet except
 ) implements BoolExpr {
 
     @Override
     public boolean test(ProgramContext programContext) {
+
         AtomicLong overallCount = new AtomicLong(0);
         List<Boolean> satisfactionResults = new ArrayList<>();
         LabelPositionHolder labelPositionHolder = programContext.getLabelPositionHolder();
@@ -48,6 +56,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
     @Override
     public String toString() {
+
         return setOperator
                + " "
                + labelAccess
@@ -61,6 +70,17 @@ import java.util.concurrent.atomic.AtomicLong;
                + (except.isEmpty() ? "" : " EXCEPT " + except.toStringCondensed());
     }
 
+    @Override
+    public void collectPositions(
+            ProgramContext context,
+            Consumer<BlockPos> posConsumer
+    ) {
+
+        labelAccess
+                .getLabelledPositions(context.getLabelPositionHolder())
+                .forEach(entry -> posConsumer.accept(entry.getSecond()));
+    }
+
     private <STACK, ITEM, CAP> void accumulate(
             ProgramContext programContext,
             BlockPos pos,
@@ -68,9 +88,10 @@ import java.util.concurrent.atomic.AtomicLong;
             AtomicLong invAccumulator,
             ResourceType<STACK, ITEM, CAP> resourceType
     ) {
+
         resourceType.forEachDirectionalCapability(
                 programContext,
-                labelAccess.directions(),
+                labelAccess.sides(),
                 pos,
                 (direction, cap) -> resourceType.getStacksInSlots(cap, labelAccess.slots()).forEach(stack -> {
                     if (this.resourceIdSet.getMatchingFromStack(stack) != null) {
@@ -83,4 +104,5 @@ import java.util.concurrent.atomic.AtomicLong;
                 })
         );
     }
+
 }

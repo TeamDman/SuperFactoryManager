@@ -1,6 +1,9 @@
 package vswe.superfactory;
 
+import ca.teamdman.sfm.common.block.ManagerBlock;
+import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.event.FMLInterModComms;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -22,7 +25,7 @@ public class SuperFactoryManager {
 	public static final CreativeTabs        creativeTab                  = new CreativeTabs("sfm") {
 		@Override
 		public ItemStack createIcon() {
-			return new ItemStack(MANAGER);
+			return new ItemStack(Item.getItemFromBlock(SFMBlocks.MANAGER_BLOCK));
 		}
 	};
 	public static       SuperFactoryManager instance;

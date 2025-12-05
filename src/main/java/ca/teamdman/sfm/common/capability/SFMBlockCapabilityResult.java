@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.common.capability;
 
+import ca.teamdman.sfm.common.util.NonNullConsumer;
 import org.jetbrains.annotations.Nullable;
 
 public class SFMBlockCapabilityResult<CAP> {
@@ -18,7 +19,7 @@ public class SFMBlockCapabilityResult<CAP> {
     }
 
     @Nullable
-    public CAP capability() {
+    public CAP inner() {
         return capability;
     }
 
@@ -31,5 +32,10 @@ public class SFMBlockCapabilityResult<CAP> {
 
     public boolean isPresent() {
         return capability != null;
+    }
+
+    /// If this is not present, the listener is called immediately.
+    public void addInvalidationListener(NonNullConsumer<SFMBlockCapabilityResult<CAP>> listener) {
+        // We don't have capability invalidation in forge 1.12 yet :'(
     }
 }

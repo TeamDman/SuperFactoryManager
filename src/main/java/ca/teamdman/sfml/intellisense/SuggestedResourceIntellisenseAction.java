@@ -24,7 +24,7 @@ public record SuggestedResourceIntellisenseAction<STACK, ITEM, CAP>(
                 item,
                 new TextComponentString(
                         new ResourceIdentifier<>(
-                                Objects.requireNonNull(SFMResourceTypes.registry().getKey(resourceType.container)),
+                                Objects.requireNonNull(SFMResourceTypes.registry().getId(resourceType.container)),
                                 resourceType.getRegistryKeyForItem(item)
                         ).toStringCondensed()
                 )

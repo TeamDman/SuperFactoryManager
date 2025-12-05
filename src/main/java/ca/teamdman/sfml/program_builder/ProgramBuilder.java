@@ -21,13 +21,55 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.WeakHashMap;
 
+/// Helper for building programs and acquiring a {@link ProgramBuildResult}
 public class ProgramBuilder {
-    public static ProgramBuildResult build(
-            @Nullable String programString
-    ) {
+    /// Reduce duplication of effort compiling the same program over and over again
+    private static final WeakHashMap<String, ProgramBuildResult> cache = new WeakHashMap<>();
+
+    /// The Super Factory Manager Language source code
+    private final String programString;
+
+    /// Indicates that the resulting program may be mutated in naughty ways that we don't want interfering with our cache.
+    private boolean useCache = true;
+
+    public ProgramBuilder(@Nullable String programString) {
+
         if (programString == null) {
             programString = "";
+        }
+        this.programString = programString;
+    }
+
+    /// Checks if the program object is stored in the cache.
+    /// If so, mutating the program object is a disallowed behaviour.
+    public static boolean isMutationAllowed(Program program) {
+
+        return cache.values().stream().noneMatch(result -> result.program() == program);
+    }
+
+    /// MUST be set to {@code false} if the resulting {@link Program} will be mutated.
+    public ProgramBuilder useCache(boolean useCache) {
+
+        this.useCache = useCache;
+        return this;
+    }
+
+    public ProgramBuildResult build(
+    ) {
+
+        if (useCache) {
+            @Nullable ProgramBuildResult cached = cache.get(programString);
+            if (cached != null) {
+                if (cached.metadata().errors().isEmpty()) {
+                    return cached;
+                } else {
+                    SFM.LOGGER.warn(
+                            "Program cache hit, but the program build result contained errors. Will rebuild program."
+                    );
+                }
+            }
         }
         SFMLLexer lexer = new SFMLLexer(CharStreams.fromString(programString));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -75,16 +117,6 @@ public class ProgramBuilder {
             }
         }
 
-        // Assert just in case, this should never happen
-        //noinspection ConstantValue
-        if (program == null && errors.isEmpty()) {
-            errors.add(LocalizationKeys.PROGRAM_ERROR_COMPILE_FAILED.get());
-            SFM.LOGGER.error(
-                    "Program was somehow null after a successful compile. I have no idea how this could happen, but it definitely shouldn't.\n```\n{}\n```",
-                    programString
-            );
-        }
-
         ProgramMetadata metadata = new ProgramMetadata(
                 programString,
                 lexer,
@@ -93,7 +125,14 @@ public class ProgramBuilder {
                 builder,
                 errors
         );
-        return new ProgramBuildResult(program, metadata);
+        ProgramBuildResult programBuildResult = new ProgramBuildResult(program, metadata);
+
+        // We don't cache results with errors because the server config can change, and it affects the outcome.
+        if (useCache && buildErrors.isEmpty()) {
+            cache.put(programString, programBuildResult);
+        }
+
+        return programBuildResult;
     }
 
 
@@ -101,6 +140,7 @@ public class ProgramBuilder {
             Program program,
             List<TextComponentTranslation> errors
     ) {
+
         if (!SFMEnvironmentUtils.isGameLoaded()) {
             return;
         }
@@ -114,7 +154,7 @@ public class ProgramBuilder {
                 } else {
                     ResourceLocation resourceTypeId = Objects.requireNonNull(SFMResourceTypes
                                                                                      .registry()
-                                                                                     .getKey(resourceType.container));
+                                                                                     .getId(resourceType.container));
                     if (disallowedResourceTypes.contains(resourceTypeId.toString())) {
                         errors.add(LocalizationKeys.PROGRAM_ERROR_DISALLOWED_RESOURCE_TYPE.get(
                                 referencedResource));
@@ -126,4 +166,5 @@ public class ProgramBuilder {
             }
         }
     }
+
 }

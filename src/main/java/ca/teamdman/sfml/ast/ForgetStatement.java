@@ -1,5 +1,6 @@
 package ca.teamdman.sfml.ast;
 
+import ca.teamdman.sfm.common.program.ExecuteProgramBehaviour;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import com.github.bsideup.jabel.Desugar;
@@ -28,14 +29,19 @@ public record ForgetStatement(
             InputStatement newInputStatement = new InputStatement(
                     new LabelAccess(
                             newLabels,
-                            oldInputStatement.labelAccess().directions(),
+                            oldInputStatement.labelAccess().sides(),
                             oldInputStatement.labelAccess().slots(),
                             oldInputStatement.labelAccess().roundRobin()
                     ),
                     oldInputStatement.resourceLimits(),
                     oldInputStatement.each()
             );
-            context.getProgram().astBuilder().setLocationFromOtherNode(newInputStatement, oldInputStatement);
+            if (!(context.getBehaviour() instanceof ExecuteProgramBehaviour)) {
+                /// This is a waste when running the program.
+                /// Only needed for {@link ca.teamdman.sfm.common.program.linting.GatherWarningsProgramBehaviour}.
+                /// Will allow it for other non-execute behaviours just to avoid trouble.
+                context.getProgram().astBuilder().setLocationFromOtherNode(newInputStatement, oldInputStatement);
+            }
             if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
                 simulation.onInputStatementForgetTransform(context, oldInputStatement, newInputStatement);
             }

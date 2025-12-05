@@ -1,5 +1,10 @@
 package ca.teamdman.sfm.client.handler;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.common.item.LabelGunItem;
+import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
+import ca.teamdman.sfm.common.registry.SFMPackets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.EnumHand;
 import net.minecraftforge.client.event.MouseEvent;

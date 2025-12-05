@@ -208,4 +208,8 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
     public void onDone() {
         onClose();
     }
+
+    public static boolean hasShiftDown() {
+        return Keyboard.isKeyDown(340) || Keyboard.isKeyDown(344);
+    }
 }

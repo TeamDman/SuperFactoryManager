@@ -12,11 +12,14 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
+
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Stream;
+import ca.teamdman.sfm.common.block.BufferBlock;
+import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
+import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
+import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
+import ca.teamdman.sfm.common.util.Mth;
 
 public class FluidResourceType extends ResourceType<Optional<FluidStack>, Optional<Fluid>, IFluidHandler> {
     public FluidResourceType(ResourceTypeContainer container) {
