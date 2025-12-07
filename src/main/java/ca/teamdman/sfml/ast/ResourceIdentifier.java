@@ -201,7 +201,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         boolean isRegexNamespaceMatchAll = resourceNamespace.equals(".*");
         boolean isRegexName = RegexCache.isRegexPattern(resourceName);
         boolean isRegexNameMatchAll = resourceName.equals(".*");
-        boolean isSFMMod = resourceTypeNamespace.equals(SFM.MOD_ID);
+        boolean isSFMMod = resourceTypeNamespace.equals(SFM.RESOURCE_SHORT_ID);
         boolean isItemType = resourceTypeName.equals("item");
         boolean isForgeEnergyType = resourceTypeNamespace.equals("forge") && resourceTypeName.equals("energy") && getLocation()
                 .filter(rl -> rl.equals(SFMResourceLocation.fromNamespaceAndPath("forge", "energy")))

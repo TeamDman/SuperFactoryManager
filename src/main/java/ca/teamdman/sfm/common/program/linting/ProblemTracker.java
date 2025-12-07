@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.program.linting;
 
 import ca.teamdman.sfm.common.config.SFMConfig;
+import ca.teamdman.sfm.common.util.TextComponentTranslationHashable;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.text.TextComponentTranslation;
 
@@ -14,13 +15,12 @@ public record ProblemTracker(HashSet<TextComponentTranslation> problems) {
         this(new HashSet<>());
     }
 
-    public AddProblemResult add(TextComponentTranslation problem) {
-        int size = problems.size();
-        if (size >= SFMConfig.server.maxDiskProblems) {
+    public AddProblemResult add(TextComponentTranslationHashable problem) {
+        if (problems.size() >= SFMConfig.server.maxDiskProblems) {
             return AddProblemResult.TOO_MANY_PROBLEMS;
         }
         problems.add(problem);
-        if (size < SFMConfig.server.maxDiskProblems) {
+        if (problems.size() < SFMConfig.server.maxDiskProblems) {
             return AddProblemResult.SUCCESS;
         }
         // signal to stop collecting problems

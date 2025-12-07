@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.localization;
 
 import ca.teamdman.sfm.common.util.SFMTranslationUtils;
+import ca.teamdman.sfm.common.util.TextComponentTranslationHashable;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.text.ITextComponent;
@@ -21,11 +22,11 @@ import static ca.teamdman.sfm.common.util.SFMTranslationUtils.getTextComponentTr
         this(() -> key, () -> value);
     }
 
-    public TextComponentTranslation get(Object... args) {
+    public TextComponentTranslationHashable get(Object... args) {
         return getTextComponentTranslation(key.get(), args);
     }
 
-    public TextComponentTranslation get() {
+    public TextComponentTranslationHashable get() {
         return getTextComponentTranslation(key.get());
     }
 

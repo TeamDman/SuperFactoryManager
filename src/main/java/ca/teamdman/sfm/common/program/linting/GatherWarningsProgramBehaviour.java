@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.Pair;
+import ca.teamdman.sfm.common.util.TextComponentTranslationHashable;
 import ca.teamdman.sfml.ast.*;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -24,11 +25,11 @@ import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNI
 
 @SuppressWarnings("rawtypes")
 public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgramBehaviour {
-    private final List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TextComponentTranslation>>>> sharedMultiverseWarningsByPath;
+    private final List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TextComponentTranslationHashable>>>> sharedMultiverseWarningsByPath;
 
     private final ProblemTracker tracker;
 
-    private final List<Pair<ExecutionPathElement, TextComponentTranslation>> warnings = new ArrayList<>();
+    private final List<Pair<ExecutionPathElement, TextComponentTranslationHashable>> warnings = new ArrayList<>();
 
     private final Multimap<ResourceType, Label> resourceTypesInputted = HashMultimap.create();
 
@@ -45,8 +46,8 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
             ExecutionPath currentPath,
             AtomicReference<BigInteger> triggerPathCount,
             ProblemTracker tracker,
-            List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TextComponentTranslation>>>> sharedMultiverseWarningsByPath,
-            List<Pair<ExecutionPathElement, TextComponentTranslation>> warnings
+            List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TextComponentTranslationHashable>>>> sharedMultiverseWarningsByPath,
+            List<Pair<ExecutionPathElement, TextComponentTranslationHashable>> warnings
     ) {
 
         super(seenPaths, currentPath, triggerPathCount);
@@ -201,7 +202,7 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
         // for each warning in each path
         // ensure it has occurred in all other paths
 
-        Set<Pair<ExecutionPathElement, TextComponentTranslation>> toWarn = new HashSet<>();
+        Set<Pair<ExecutionPathElement, TextComponentTranslationHashable>> toWarn = new HashSet<>();
 
         // first pass - add all warnings
         for (var path : sharedMultiverseWarningsByPath) {
@@ -235,7 +236,7 @@ public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgr
 
         // return deduplicated warnings
         for (
-                TextComponentTranslation warning : toWarn
+                TextComponentTranslationHashable warning : toWarn
                 .stream()
                 .map(Pair::getSecond)
                 .collect(Collectors.toSet())

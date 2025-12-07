@@ -37,7 +37,9 @@ public class ResourcesProgramLinter extends IForgeRegistryEntry.Impl<IProgramLin
             }
             // If it doesn't exist in the registry, add a warning
             if (!resourceType.registryKeyExists((ResourceLocation) loc.get())) {
-                tracker.add(PROGRAM_WARNING_UNKNOWN_RESOURCE_ID.get(resource));
+                if (tracker.add(PROGRAM_WARNING_UNKNOWN_RESOURCE_ID.get(resource)).isSaturated()) {
+                    break;
+                };
             }
         }
     }

@@ -67,11 +67,11 @@ public class SFMTranslationUtils {
      * Helper method to avoid noisy git merges between versions
      */
     @MCVersionDependentBehaviour
-    public static TextComponentTranslation getTextComponentTranslation(
+    public static TextComponentTranslationHashable getTextComponentTranslation(
             String key,
             Object... args
     ) {
-            return new TextComponentTranslation(key, args);
+            return new TextComponentTranslationHashable(key, args);
 //        Object[] newArgs = new Object[args.length];
 //        for (int i = 0; i < args.length; i++) {
 //            Object arg = args[i];
@@ -98,7 +98,7 @@ public class SFMTranslationUtils {
     /**
      * Helper method to avoid noisy git merges between versions
      */
-    public static TextComponentTranslation getTextComponentTranslation(String key) {
+    public static TextComponentTranslationHashable getTextComponentTranslation(String key) {
         return getTextComponentTranslation(key, new Object[]{});
     }
 }
