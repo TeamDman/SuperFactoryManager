@@ -42,7 +42,6 @@ public class BlockCable extends Block implements ICableBlock {
         if (world instanceof World w) {
             var network = CableNetworkManager.getOrRegisterNetworkFromCablePosition(w, pos);
             network.ifPresent(nw -> {
-                nw.updateVisualManagers();
                 if (neighborPos != null && world.getTileEntity(neighborPos) == null) {
                     nw.bustCapabilityCacheForBlock(neighborPos);
                 }

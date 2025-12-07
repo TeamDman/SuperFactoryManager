@@ -69,6 +69,8 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 	private             List<FlowComponent> zLevelRenderingList;
     private  Map<BlockPos, ConnectionBlock> inventoriesByBlockPos = new HashMap<>();
 
+    private boolean inventoriesInvalidated = false;
+
     private LabelPositionHolder labels = LabelPositionHolder.empty();
 
 	public TileEntityManager() {
@@ -228,6 +230,10 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 	}
 
 	public List<ConnectionBlock> getConnectedInventories() {
+        if (this.inventoriesInvalidated) {
+            this.inventoriesInvalidated = false;
+            updateInventories();
+        }
 		return inventories;
 	}
 	public Map<BlockPos,ConnectionBlock> getConnectedInventoriesMap() {
@@ -292,7 +298,7 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 	public void activateTrigger(FlowComponent component, EnumSet<ConnectionOption> validTriggerOutputs) {
 		updateFirst();
 
-		for (ConnectionBlock inventory : inventories) {
+		for (ConnectionBlock inventory : getConnectedInventories()) {
 			if (inventory.getTileEntity().isInvalid()) {
 				updateInventories();
 				break;
@@ -364,6 +370,10 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
 	public List<FlowComponent> getZLevelRenderingList() {
 		return zLevelRenderingList;
 	}
+
+    public void invalidateInventories() {
+        this.inventoriesInvalidated = true;
+    }
 
 	public void updateInventories() {
 		usingUnlimitedInventories = false;

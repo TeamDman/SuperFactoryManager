@@ -272,7 +272,7 @@ public class CableNetwork {
     public void updateVisualManagers(@Nullable BlockPos cablePos) {
         this.getVisualManagerPositions().forEach((pos) -> {
             if (!pos.equals(cablePos) && this.level.getTileEntity(pos) instanceof TileEntityManager manager) {
-                manager.updateInventories();
+                manager.invalidateInventories();
             }
         });
     }
