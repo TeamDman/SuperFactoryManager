@@ -1,0 +1,72 @@
+# Deployment template from
+# It supports these objectives:
+# - Deploy to Maven (Build Job) [Secrets: MAVEN_USER, MAVEN_PASS]
+# - Deploy to CurseForge (Upload Job) [Secrets: CURSEFORGE_TOKEN]
+# - Deploy to Modrinth (Upload Job) [Secrets: MODRINTH_TOKEN]
+
+name: Publish Project
+
+on:
+  push:
+    tags:
+      - 'backport-release/v[0-9]+.[0-9]+.[0-9]+*'
+
+concurrency:
+  group: publish-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to create GitHub releases
+
+    env:
+      DISABLE_BUILDSCRIPT_UPDATE_CHECK: true
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Build
+        uses: ./.github/actions/build_setup
+
+      # When updating to RFG 2.0, enable Gradle Configuration Cache
+      # https://github.com/gradle/actions/blob/main/docs/setup-gradle.md#saving-configuration-cache-data
+      - name: Build Project
+        run: ./gradlew build --warning-mode all --build-cache
+
+      - name: Publish to GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "build/libs/*.jar"
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      - name: Publish to Maven
+        if: "${{ secrets.MAVEN_USER != '' }}"
+        env:
+          MAVEN_USER: "${{ secrets.MAVEN_USER }}"
+          MAVEN_PASSWORD: "${{ secrets.MAVEN_PASSWORD }}"
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: publish
+
+      - name: Publish to Curseforge
+        if: "${{ secrets.CURSEFORGE_TOKEN != '' }}"
+        env:
+          CURSEFORGE_API_KEY: "${{ secrets.CURSEFORGE_TOKEN }}"
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: curseforge
+
+      - name: Publish to Modrinth
+        if: "${{ secrets.MODRINTH_API_KEY != '' }}"
+        env:
+          MODRINTH_API_KEY: "${{ secrets.MODRINTH_API_KEY }}"
+          MODRINTH_PROJECT_ID: "${{ secrets.MODRINTH_PROJECT_ID }}"
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: modrinth
