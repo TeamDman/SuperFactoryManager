@@ -1,0 +1,36 @@
+# Deployment template from
+# It supports these objectives:
+# - Deploy to Maven (Build Job) [Secrets: MAVEN_USER, MAVEN_PASS]
+# - Deploy to CurseForge (Upload Job) [Secrets: CURSEFORGE_TOKEN]
+# - Deploy to Modrinth (Upload Job) [Secrets: MODRINTH_TOKEN]
+
+name: Deploy
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+(-rc[0-9]+)?'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+          cache: gradle
+
+      - name: Publish
+        uses: gradle/gradle-build-action@v2
+        env:
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_TOKEN }}
+          MAVEN_USER: ${{ secrets.MAVEN_USER }}
+          MAVEN_PASS: ${{ secrets.MAVEN_PASS }}
+          MODRINTH_API_KEY: ${{ secrets.MODRINTH_TOKEN }}
+        with:
+          arguments: publish

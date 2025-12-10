@@ -1,5 +1,3 @@
-# Super Factory Manager [![](http://cf.way2muchnoise.eu/full_super-factory-manager_downloads.svg)](https://minecraft.curseforge.com/projects/super-factory-manager)
+# Super Factory Manager: Unofficial Backport
 
-A 1.12 port of a certain magical factory manager.
-
-Please report any discovered bugs to the issue tracker.
+A 1.12 backport of a 1.19 reimagining of a 1.12 port of a certain magical factory manager. 
