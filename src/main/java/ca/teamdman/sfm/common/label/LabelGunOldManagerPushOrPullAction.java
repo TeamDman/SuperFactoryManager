@@ -25,15 +25,10 @@ import static ca.teamdman.sfm.common.net.ClientboundLabelGunUseResponsePacket.Be
     public void run() {
         if (player instanceof EntityPlayerMP playerMP) {
             if (msg.isPullModifierActive()) {
-                // start with labels from disk
-//                var newLabels = LabelPositionHolder.from(disk).toOwned();
-//                // ensure script-referenced labels are included
-//                manager.getReferencedLabels().forEach(newLabels::addReferencedLabel);
-//                // save to gun
-//                newLabels.save(gunStack);
-//                // give feedback to player
-//                new ClientboundLabelGunUseResponsePacket(Pulled)
-//                        .sendToPlayer(playerMP);
+                var newLabels = LabelPositionHolder.from(manager).toOwned();
+                newLabels.save(gunStack);
+                new ClientboundLabelGunUseResponsePacket(Pulled)
+                        .sendToPlayer(playerMP);
             } else {
                 manager.setLabels(gunLabels);
                 new ClientboundLabelGunUseResponsePacket(Pushed)

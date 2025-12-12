@@ -10,6 +10,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
 import org.jetbrains.annotations.NotNull;
+import vswe.superfactory.tiles.TileEntityManager;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -47,6 +48,10 @@ public record LabelPositionHolder(
             var tag = stack.getTagCompound() != null ? stack.getTagCompound().getCompoundTag("sfm:labels") : new NBTTagCompound();
             return deserialize(tag);
         });
+    }
+
+    public static LabelPositionHolder from(TileEntityManager manager) {
+        return manager.getLabels();
     }
 
     public static LabelPositionHolder fromNBT(NBTTagCompound stack) {
