@@ -180,11 +180,11 @@ public abstract class GuiContainerExtend extends GuiContainer implements IStacka
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        super.keyTyped(typedChar, keyCode);
-
         // 模拟高版本 keyPressed
         boolean b = this.keyPressed(keyCode, -1, 0);
         if (b) return;
+
+        super.keyTyped(typedChar, keyCode);
 
         // 模拟高版本 charTyped，仅在字符有效时调用
         if (typedChar != 0 && Tools.isAllowedChatCharacter(typedChar)) {
@@ -199,7 +199,7 @@ public abstract class GuiContainerExtend extends GuiContainer implements IStacka
         } else if (this.focused != null && this.focused.keyPressed(pKeyCode, mod1, mod2)) {
             return true;
         }
-        return true;
+        return false;
     }
 
     public boolean shouldCloseOnEsc() {

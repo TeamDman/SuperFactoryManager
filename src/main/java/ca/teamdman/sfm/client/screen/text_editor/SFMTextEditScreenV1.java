@@ -183,7 +183,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             return true;
         }
 
-        if ((pKeyCode == Keyboard.KEY_UP || pKeyCode == Keyboard.KEY_DOWN) && !suggestedActions.getItems().isEmpty()) {
+        if ((pKeyCode == Keyboard.KEY_UP || pKeyCode == Keyboard.KEY_DOWN) && !suggestedActions.getSortedItems().isEmpty()) {
             if (pKeyCode == Keyboard.KEY_UP) {
                 suggestedActions.selectPreviousWrapping();
             } else {
