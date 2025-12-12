@@ -128,10 +128,6 @@ public class LabelGunScreen extends GuiScreenExtend {
 
         this.drawDefaultBackground();
 
-        for (Renderable renderable : this.renderables) {
-            renderable.render(mx, my, partialTicks);
-        }
-
         super.drawScreen(mx, my, partialTicks);
     }
 

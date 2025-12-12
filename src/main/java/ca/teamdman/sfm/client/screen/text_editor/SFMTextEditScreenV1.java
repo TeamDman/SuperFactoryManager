@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
+import ca.teamdman.sfm.common.util.SFMComponentUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
@@ -57,26 +58,6 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
         this.openContext = openContext;
     }
 
-
-    public static String substring(
-            ITextComponent component,
-            int start,
-            int end
-    ) {
-        ITextComponent rtn = new TextComponentString("");
-        AtomicInteger seen = new AtomicInteger(0);
-        for (ITextComponent sibling : component.getSiblings()) {
-            String content = sibling.getUnformattedText();
-            int contentStart = Math.max(start - seen.get(), 0);
-            int contentEnd = Math.min(end - seen.get(), content.length());
-
-            if (contentStart < contentEnd) {
-                rtn.appendSibling(new TextComponentString(content.substring(contentStart, contentEnd)).setStyle(sibling.getStyle()));
-            }
-            seen.addAndGet(content.length());
-        }
-        return rtn.getFormattedText();
-    }
 
     public void scrollToTop() {
         this.textarea.scrollToTop();
@@ -278,10 +259,6 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
             this.drawDefaultBackground();
         }
 
-//        this.renderBackground(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
-        for (Renderable renderable : this.renderables) {
-            renderable.render(mx, my, partialTicks);
-        }
 
         super.drawScreen(mx, my, partialTicks);
     }
@@ -666,7 +643,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                     cursorY = lineY;
                     // draw text before cursor
                     cursorX = SFMFontUtils.drawInBatch(
-                            substring(componentColoured, 0, cursorIndex - charCount),
+                            SFMComponentUtils.substring(componentColoured, 0, cursorIndex - charCount),
                             font,
                             lineX,
                             lineY,
@@ -676,7 +653,7 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                     SFMTextEditScreenV1.this.suggestedActions.setXY(cursorX + 10, cursorY);
                     // draw text after cursor
                     SFMFontUtils.drawInBatch(
-                            substring(componentColoured, cursorIndex - charCount, lineLength),
+                            SFMComponentUtils.substring(componentColoured, cursorIndex - charCount, lineLength),
                             font,
                             cursorX,
                             lineY,
@@ -700,8 +677,8 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
                     int lineSelectionStart = Math.max(selectionStart - charCount, 0);
                     int lineSelectionEnd = Math.min(selectionEnd - charCount, lineLength);
 
-                    int highlightStartX = this.font.getStringWidth(substring(componentColoured, 0, lineSelectionStart));
-                    int highlightEndX = this.font.getStringWidth(substring(componentColoured, 0, lineSelectionEnd));
+                    int highlightStartX = this.font.getStringWidth(SFMComponentUtils.substring(componentColoured, 0, lineSelectionStart).getUnformattedText());
+                    int highlightEndX = this.font.getStringWidth(SFMComponentUtils.substring(componentColoured, 0, lineSelectionEnd).getUnformattedText());
 
                     SFMScreenRenderUtils.renderHighlight(
                             lineX + highlightStartX,

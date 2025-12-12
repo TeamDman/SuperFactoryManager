@@ -74,7 +74,7 @@ public class LogsScreen extends GuiScreenExtend {
                 MENU.MANAGER_POSITION,
                 false
         ));
-        super.onClose();
+        super.onGuiClosed();
     }
 
     public void scrollToBottom() {

@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.examples;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
@@ -9,14 +10,20 @@ import com.github.bsideup.jabel.Desugar;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IResource;
 import net.minecraft.util.ResourceLocation;
+import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Desugar
 public record SFMExampleProgram(
@@ -26,36 +33,68 @@ public record SFMExampleProgram(
 ) implements Comparable<SFMExampleProgram> {
 
     public static List<SFMExampleProgram> gatherAll() {
+        FileSystem filesystem = null;
+
+        var resources = Minecraft.getMinecraft()
+                .getResourceManager();
+
+        List<SFMExampleProgram> rtn = new ArrayList<>();
+
+
         try {
-            // Discover the example resources
-            Map<ResourceLocation, IResource> exampleResources = Minecraft.getMinecraft()
-                    .getResourceManager()
-                    .getAllResources(SFMResourceLocation.fromSFMPath("template_programs")).stream().filter((resource) -> SFMExampleProgram.isSFMLProgram(
-                            resource.getResourceLocation())).collect(Collectors.toMap(
-                            IResource::getResourceLocation, x -> x));
+            URL url = SFM.class.getResource("/assets/superfactorymanager/template_programs");
 
-            // Initialize results collection
-            List<SFMExampleProgram> rtn = new ArrayList<>();
+            if (url != null) {
+                URI uri = url.toURI();
+                Path path;
 
-            // Read the resources into the results collection
-            for (Map.Entry<ResourceLocation, IResource> exampleResource : exampleResources.entrySet()) {
-                ResourceLocation path = exampleResource.getKey();
-                IResource resource = exampleResource.getValue();
-                SFMExampleProgram program = fromResource(path, resource);
-                if (program != null) {
-                    rtn.add(program);
+                if ("file".equals(uri.getScheme())) {
+                    path = Paths.get(SFM.class.getResource("/assets/superfactorymanager/template_programs").toURI());
+                } else {
+                    if (!"jar".equals(uri.getScheme())) {
+                        SFM.LOGGER.error("Unsupported scheme " + uri + " trying to list template programs");
+                        return rtn;
+                    }
+
+                    filesystem = FileSystems.newFileSystem(uri, Collections.emptyMap());
+                    path = filesystem.getPath("/assets/superfactorymanager/template_programs");
                 }
+
+                try (
+                        Stream<Path> stream = Files.walk(path)
+                )
+                {
+                    Iterator<Path> iterator = stream.iterator();
+                    while (iterator.hasNext()) {
+                        Path path1 = iterator.next();
+
+                        Path path2 = path.relativize(path1);
+                        String s = path2.toString().replaceAll("\\\\", "/");
+                        ResourceLocation resourcelocation = SFMResourceLocation.fromSFMPath("template_programs/" + s);
+                        if (SFMExampleProgram.isSFMLProgram(resourcelocation)) {
+                            IResource resource = resources.getResource(resourcelocation);
+
+                            SFMExampleProgram program = fromResource(resourcelocation, resource);
+                            if (program != null) {
+                                rtn.add(program);
+                            }
+                        }
+                    }
+                }
+            } else {
+                SFM.LOGGER.error("Couldn't find template programs root");
             }
-
-            // Sort the results before returning
-            rtn.sort(Comparator.naturalOrder());
-
-            // Return
+        } catch (IOException | URISyntaxException urisyntaxexception) {
+            SFM.LOGGER.error("Couldn't get a list of all recipe files", urisyntaxexception);
             return rtn;
-
-        } catch (IOException e) {
-            return Collections.emptyList();
+        } finally {
+            IOUtils.closeQuietly(filesystem);
         }
+        rtn.sort(Comparator.naturalOrder());
+
+
+
+        return rtn;
     }
 
     public static SFMExampleProgram getChangelog() {
