@@ -17,6 +17,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @SuppressWarnings("UnusedReturnValue")
 @Desugar
@@ -236,5 +237,22 @@ public record LabelPositionHolder(
 
     public boolean isEmpty() {
         return labels().isEmpty();
+    }
+
+
+    public Stream<Map.Entry<String, HashSet<BlockPos>>> streamSortedLabels() {
+        return this.labels().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey());
+    }
+
+    public List<HashSet<BlockPos>> getSortedLabelPositions() {
+        return this.streamSortedLabels()
+                .map(Map.Entry::getValue)
+                .collect(Collectors.toList());
+    }
+    public List<String> getSortedLabelNames() {
+        return this.streamSortedLabels()
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
     }
 }

@@ -73,10 +73,7 @@ public class CommandExecutor {
 			}
 		}
 
-        var labels = manager.getLabels().labels().entrySet().stream()
-                .sorted(Comparator.comparing(Map.Entry::getKey))
-                .map(Map.Entry::getValue)
-                .collect(Collectors.toList());
+        var labels = manager.getLabels().getSortedLabelPositions();
 
 		for (int i = 0; i < menuContainer.getSelectedInventories().size(); i++) {
 			int baseIndex = menuContainer.getSelectedInventories().get(i);
