@@ -1,7 +1,11 @@
 package ca.teamdman.sfm.common.block;
 
-import javax.annotation.Nullable;
-
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.CommonProxy;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
+import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
+import ca.teamdman.sfm.common.item.DiskItem;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.ITileEntityProvider;
@@ -19,17 +23,12 @@ import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.CommonProxy;
-import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
-import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
-import ca.teamdman.sfm.common.item.DiskItem;
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.program.linting.ProgramLinter;
 import vswe.superfactory.SuperFactoryManager;
+import vswe.superfactory.blocks.BlockCable;
+
+import javax.annotation.Nullable;
 
 public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEntityProvider {
     public static final PropertyBool TRIGGERED = PropertyBool.create("triggered");
@@ -86,6 +85,13 @@ public class ManagerBlock extends BlockContainer implements ICableBlock, ITileEn
         }
     }
 
+
+    @Override
+    public void onNeighborChange(IBlockAccess world, BlockPos pos, BlockPos neighbor) {
+        super.onNeighborChange(world, pos, neighbor);
+
+        BlockCable.bustCaches(world, pos, neighbor);
+    }
 
     @Override
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
