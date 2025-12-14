@@ -257,10 +257,11 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
             return lineStartIndex;
         }
         int clampedLine = Mth.clamp(lineIndex, 0, Math.max(0, styledTextContentLines.size() - 1));
-        String plainLine = styledTextContentLines.get(clampedLine).toString();
+        String plainLine = styledTextContentLines.get(clampedLine).getUnformattedText();
         int clampedX = (int) Math.max(0, innerX);
-        int cursorOffsetInLine = this.font.sizeStringToWidth(plainLine, clampedX);
-        int widthBeforeCursor = this.font.getStringWidth(plainLine.substring(0, cursorOffsetInLine));
+        String trimmed = this.font.trimStringToWidth(plainLine, clampedX);
+        int cursorOffsetInLine = trimmed.length();
+        int widthBeforeCursor = this.font.getStringWidth(trimmed);
         if (cursorOffsetInLine < plainLine.length()) {
             int nextGlyphWidth = this.font.getStringWidth(plainLine.substring(cursorOffsetInLine, cursorOffsetInLine + 1));
             if ((double) (clampedX - widthBeforeCursor) >= nextGlyphWidth / 2.0D) {
