@@ -46,8 +46,8 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         resourceTypeName = resourceTypeName.toLowerCase(Locale.ROOT);
 
         var check = Arrays.asList("fe", "rf", "energy", "power");
-        if (resourceTypeNamespace.equals("forge") && check.contains(resourceTypeName)) {
-            resourceTypeName = "energy";
+        if (resourceTypeNamespace.equals("sfm") && check.contains(resourceTypeName)) {
+            resourceTypeName = "forge_energy";
         }
         this.resourceTypeNamespace = resourceTypeNamespace;
         this.resourceTypeName = resourceTypeName;
@@ -203,10 +203,15 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         boolean isRegexNameMatchAll = resourceName.equals(".*");
         boolean isSFMMod = resourceTypeNamespace.equals(SFM.RESOURCE_SHORT_ID);
         boolean isItemType = resourceTypeName.equals("item");
-        boolean isForgeEnergyType = resourceTypeNamespace.equals("forge") && resourceTypeName.equals("energy") && getLocation()
+        boolean isForgeEnergyType = resourceTypeNamespace.equals("sfm") && resourceTypeName.equals("forge_energy") && getLocation()
                 .filter(rl -> rl.equals(SFMResourceLocation.fromNamespaceAndPath("forge", "energy")))
                 .isPresent();
         String resourceNamespaceAlias = isForgeEnergyType ? "fe" : resourceNamespace;
+
+        if (isForgeEnergyType) {
+            return "fe::";
+        }
+
         boolean shouldQuoteResult = false;
 
         StringBuilder rtn = new StringBuilder();

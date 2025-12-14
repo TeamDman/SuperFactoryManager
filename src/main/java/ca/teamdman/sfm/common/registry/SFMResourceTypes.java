@@ -22,7 +22,7 @@ public class SFMResourceTypes {
     public static void initialize() {
         ITEM = prepareRegister(ItemResourceType::new, "item");
         FLUID = prepareRegister(FluidResourceType::new, "fluid");
-        FORGE_ENERGY = prepareRegister(ForgeEnergyResourceType::new, new ResourceLocation("forge", "energy"));
+        FORGE_ENERGY = prepareRegister(ForgeEnergyResourceType::new, "forge_energy");
         REDSTONE = prepareRegister(RedstoneResourceType::new, "redstone");
 
         // if (SFMModCompat.isMekanismLoaded()) {
