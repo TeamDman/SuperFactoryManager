@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.client;
 
-import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.CommonProxy;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.common.registry.SFMItems;
@@ -12,7 +12,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoaderRegistry;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -94,6 +93,8 @@ public class ClientProxy extends CommonProxy {
     public void preInit() {
         super.preInit();
         Settings.load();
+        SFMKeyMappings.register();
+
         ModelLoaderRegistry.registerLoader(new ModelLoader());
 
         MinecraftForge.EVENT_BUS.register(this);

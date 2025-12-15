@@ -58,9 +58,6 @@ public class SFM {
 
         devEnvCache = (Boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");
 
-        SFMKeyMappings.register();
-
-
     }
 
     @Mod.EventHandler
