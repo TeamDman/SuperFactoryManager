@@ -6,7 +6,7 @@ import net.minecraft.util.text.TextComponentTranslation;
 
 public class ClientTranslationHelpers {
     public static String resolveTranslation(TextComponentTranslation contents) {
-        return I18n.format(contents.getKey(), contents.getFormatArgs());
+        return contents.getUnformattedComponentText();
     }
 
 //    public static String resolveTranslation(ITextComponent contents) {

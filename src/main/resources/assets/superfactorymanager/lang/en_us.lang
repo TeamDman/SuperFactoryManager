@@ -477,7 +477,7 @@ gui.sfm.logs.button.copy_logs=Copy logs
 gui.sfm.logs.button.copy_logs.tooltip=Shift-click for raw
 gui.sfm.logs.empty_capability=Received an empty capability result for %s %s direction: %s
 gui.sfm.logs.missing_adjacent_cable=No adjacent cable found for %s
-gui.sfm.logs.no_content=Ahoy, world!\nChange the log level using the buttons at the top of this screen.\nLoud log levels will be reset after a single program execution.\nLogging can make statements take longer to execute.\nThe scrolling  wacky, I'm working on it.\nOnly a few hundred lines are drawn to reduce lag.\nUse the copy button to view in a better editor for now lol.",
+gui.sfm.logs.no_content=Ahoy, world!\nChange the log level using the buttons at the top of this screen.\nLoud log levels will be reset after a single program execution.\nLogging can make statements take longer to execute.\nThe scrolling's wacky, I'm working on it.\nOnly a few hundred lines are drawn to reduce lag.\nUse the copy button to view in a better editor for now lol.
 gui.sfm.logs.title=Logs
 gui.sfm.manager.button.copy_to_clipboard=Copy to clipboard
 gui.sfm.manager.button.discord=Discord
@@ -623,7 +623,7 @@ log.sfm.statement.tick.io.gather_slots.resource_types=Gathering for: %s (%s)
 log.sfm.statement.tick.io.gather_slots.should_not_create=Slot %d - skipping - %s
 log.sfm.statement.tick.io.move_to.begin=Begin moving %s into %s
 log.sfm.statement.tick.io.move_to.destination_tracker_reject=Destination tracker rejected the transfer, skipping
-log.sfm.statement.tick.io.move_to.end=Moved %d %s - source=%s, dest: %%s
+log.sfm.statement.tick.io.move_to.end=Moved %d %s - source=%s, dest=%s
 log.sfm.statement.tick.io.move_to.extracted=Extracted %d from slot %d
 log.sfm.statement.tick.io.move_to.retention_obligation=Promised to leave %d in the source slot, still obligated to leave %d
 log.sfm.statement.tick.io.move_to.retention_obligation_no_move=Nothing to move after retention obligations, marking source slot done and skipping
@@ -648,8 +648,8 @@ program.sfm.error.malformed_resource_type=Program has a malformed resource type 
 program.sfm.error.unknown_resource_type=Program references an unknown resource type "%s"
 program.sfm.reminders.push_labels=Did you remember to push your labels using the label gun?
 program.sfm.tick.time=Program tick took %.2f ms
-program.sfm.tick.time_taken.statement=Program statement tick took %.2f ms=```\n%s\n```\n
-program.sfm.tick.time_taken.trigger=Program trigger tick took %.2f ms=```\n%s\n```\n
+program.sfm.tick.time_taken.statement=Program statement tick took %.2f ms:\n```\n%s\n```\n
+program.sfm.tick.time_taken.trigger=Program trigger tick took %.2f ms:\n```\n%s\n```\n
 program.sfm.warnings.adjacent_but_disconnected_label=Label "%s" is assigned in the world at %s and is connected by cables but is not detected as a valid inventory.
 program.sfm.warnings.disconnected_label=Label "%s" is assigned in the world at %s but not connected by cables.
 program.sfm.warnings.each_without_pattern=EACH used without a pattern, statement %s

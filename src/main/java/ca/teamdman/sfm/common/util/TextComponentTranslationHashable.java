@@ -12,4 +12,10 @@ public class TextComponentTranslationHashable extends TextComponentTranslation {
     public int hashCode() {
         return this.getFormattedText().hashCode();
     }
+
+
+    @Override
+    protected void initializeFromFormat(String format) {
+        super.initializeFromFormat(format.replace("\\n", "\n"));
+    }
 }
