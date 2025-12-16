@@ -122,17 +122,17 @@ public class SFMScreenChangeHelpers {
             Consumer<String> saveCallback
     ) {
 
-//        setOrPushScreen(new ExamplesScreen((chosenExample, templates) -> {
-//            SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
-//                    chosenExample,
-//                    diskProgramString,
-//                    templates,
-//                    labelPositionHolder,
-//                    saveCallback
-//            ));
-//            setOrPushScreen(screen);
-//            screen.scrollToTop();
-//        }));
+        setOrPushScreen(new ExamplesScreen((chosenExample, templates) -> {
+            SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
+                    chosenExample,
+                    diskProgramString,
+                    templates,
+                    labelPositionHolder,
+                    saveCallback
+            ));
+            setOrPushScreen(screen);
+            screen.scrollToTop();
+        }));
     }
 
     public static void showLogsScreen(ManagerContainerMenu menu) {

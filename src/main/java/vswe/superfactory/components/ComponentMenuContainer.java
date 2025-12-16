@@ -494,9 +494,7 @@ public abstract class ComponentMenuContainer extends ComponentMenu {
 		}
 
         int i = 1;
-        for (String labelName : manager.getLabels().labels().keySet().stream()
-                .sorted(Comparator.naturalOrder())
-                .collect(Collectors.toList())) {
+        for (String labelName : manager.getLabels().getSortedLabelNames()) {
             LabelSelection label = new LabelSelection(-i, labelName);
             ret.add(label);
             filterLabels.add(label);

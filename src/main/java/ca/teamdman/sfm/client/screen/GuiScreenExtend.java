@@ -29,7 +29,7 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
 
     @Override
     public void setParent(GuiScreen parent) {
-        this.parentScreen=parent;
+        this.parentScreen = parent;
     }
 
     @Nullable
@@ -41,7 +41,7 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
     public void onClose() {
         if (this.getParent() != null) {
             Minecraft.getMinecraft().displayGuiScreen(this.getParent());
-        }else{
+        } else {
             this.mc.displayGuiScreen(null);
         }
     }
@@ -53,6 +53,14 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
     boolean dragging;
     int lastMouseX;
     int lastMouseY;
+
+    @Override
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        for (Renderable renderable : this.renderables) {
+            renderable.render(mouseX, mouseY, partialTicks);
+        }
+        super.drawScreen(mouseX, mouseY, partialTicks);
+    }
 
     protected <T extends GuiEventListener & Renderable> T addRenderableWidget(T pWidget) {
         this.renderables.add(pWidget);
@@ -141,7 +149,12 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
     }
 
     boolean mouseScrolled(int pMouseX, int pMouseY, int pScrollX, int pScrollY) {
-        return this.getChildAt(pMouseX, pMouseY).filter(p_293596_ -> p_293596_.mouseScrolled(pMouseX, pMouseY, pScrollX, pScrollY)).isPresent();
+        return this.getChildAt(pMouseX, pMouseY).filter(p_293596_ -> p_293596_.mouseScrolled(
+                pMouseX,
+                pMouseY,
+                pScrollX,
+                pScrollY
+        )).isPresent();
     }
 
     @Override
@@ -210,6 +223,6 @@ public class GuiScreenExtend extends GuiScreen implements IStackableScreen {
     }
 
     public static boolean hasShiftDown() {
-        return Keyboard.isKeyDown(340) || Keyboard.isKeyDown(344);
+        return Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54);
     }
 }

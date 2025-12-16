@@ -142,7 +142,7 @@ public class MultilineTextField {
 
     public void seekCursorLine(int pOffset) {
         if (pOffset != 0) {
-            int i = this.font.getStringWidth(this.value.substring(this.getCursorLineView().beginIndex, Math.min(this.cursor, this.value.length() - 1))) + 2;
+            int i = this.font.getStringWidth(this.value.substring(Math.min(this.getCursorLineView().beginIndex, this.value.length() - 1), Math.min(this.cursor, this.value.length() - 1))) + 2;
             StringView multilinetextfield$stringview = this.getCursorLineView(pOffset);
             int j = this.font
                     .trimStringToWidth(this.value.substring(multilinetextfield$stringview.beginIndex, multilinetextfield$stringview.endIndex), i)

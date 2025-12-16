@@ -121,6 +121,27 @@ public class ProgramContext {
         );
     }
 
+    public static ProgramContext createSimulationContext(
+            Program program,
+            ManagerBlockEntity manager,
+            CableNetwork network,
+            LabelPositionHolder labelPositionHolder,
+            int redstonePulses,
+            SimulateExploreAllPathsProgramBehaviour behaviour
+    ) {
+        //noinspection DataFlowIssue,ConstantValue // simulation mode must be able to run without world access
+        return new ProgramContext(
+                program,
+                manager,
+                network,
+                manager.getLevel(),
+                redstonePulses,
+                behaviour,
+                labelPositionHolder,
+                new TranslatableLogger("simulated" + Objects.hash(program, labelPositionHolder, behaviour))
+        );
+    }
+
     public LabelPositionHolder getLabelPositionHolder() {
 
         return LABEL_POSITIONS;

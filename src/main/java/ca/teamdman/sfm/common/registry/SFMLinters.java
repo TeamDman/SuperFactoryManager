@@ -18,6 +18,7 @@ public class SFMLinters {
         prepareRegister(new LabelNotConnectedProgramLinter(), "label_not_connected");
         prepareRegister(new RoundRobinProgramLinter(), "round_robin");
         prepareRegister(new IncompleteIOProgramLinter(), "incomplete_io");
+        prepareRegister(new NoSlotStatementProgramLinter(), "no_slot_statement");
     }
 
     private static <T extends IProgramLinter> T prepareRegister(T linter, String name) {

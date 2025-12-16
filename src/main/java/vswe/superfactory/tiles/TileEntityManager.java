@@ -2,7 +2,6 @@ package vswe.superfactory.tiles;
 
 import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfml.ast.Label;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -17,7 +16,10 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import vswe.superfactory.Localization;
 import vswe.superfactory.SuperFactoryManager;
-import vswe.superfactory.blocks.*;
+import vswe.superfactory.blocks.ConnectionBlock;
+import vswe.superfactory.blocks.ConnectionBlockType;
+import vswe.superfactory.blocks.ISystemListener;
+import vswe.superfactory.blocks.ITileEntityInterface;
 import vswe.superfactory.components.*;
 import vswe.superfactory.components.internal.ComponentType;
 import vswe.superfactory.components.internal.ConnectionOption;
@@ -30,6 +32,7 @@ import vswe.superfactory.settings.Settings;
 import vswe.superfactory.util.WorldCoordinate;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TileEntityManager extends TileEntity implements ITileEntityInterface, ITickable {
 	public static final int                 BUTTON_INNER_SIZE_H = 12;
@@ -832,9 +835,43 @@ public class TileEntityManager extends TileEntity implements ITileEntityInterfac
     }
 
     public void setLabels(LabelPositionHolder gunLabels) {
+		var sortedCurrentLabels = this.labels.getSortedLabelNames();
+		var sortedNewLabels = gunLabels.getSortedLabelNames();
+
+		int[] mapping = new int[sortedCurrentLabels.size()];
+		for (int i = 0; i < mapping.length; i++) {
+			mapping[i] = sortedNewLabels.indexOf(sortedCurrentLabels.get(i));
+		}
+
+		if (!world.isRemote) {
+			for (FlowComponent item : items) {
+				for (ComponentMenu menu : item.getMenus()) {
+					if (menu instanceof ComponentMenuContainer) {
+						ComponentMenuContainer menuInventory = (ComponentMenuContainer) menu;
+
+						List<Integer> oldSelection = menuInventory.getSelectedInventories();
+						menuInventory.setSelectedInventories(getNewLabelSelection(mapping, oldSelection));
+					}
+				}
+
+			}
+		} else {
+			for (FlowComponent item : items) {
+				item.setInventoryListDirty(true);
+			}
+		}
+
         this.labels = gunLabels;
         this.markDirty();
     }
+
+	public List<Integer> getNewLabelSelection(int[] mapping, List<Integer> oldSelection) {
+		return oldSelection
+				.stream()
+				.filter(integer -> integer > 0 || mapping[-1 - integer] >= 0)
+				.map(integer -> integer > 0 ? integer : -1 - mapping[-1 - integer])
+				.collect(Collectors.toList());
+	}
 
     public abstract class Button {
 		private Localization mouseOver;

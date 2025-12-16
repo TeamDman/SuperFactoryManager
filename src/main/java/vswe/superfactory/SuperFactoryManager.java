@@ -1,6 +1,5 @@
 package vswe.superfactory;
 
-import ca.teamdman.sfm.common.block.ManagerBlock;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
@@ -35,8 +34,6 @@ public class SuperFactoryManager {
 		packetHandler = NetworkRegistry.INSTANCE.newEventDrivenChannel(CHANNEL);
 
 		FileHelper.setConfigDir(event.getModConfigurationDirectory());
-
-//		SFM.oldProxy.preInit();
 
 		packetHandler.register(new PacketEventHandler());
 

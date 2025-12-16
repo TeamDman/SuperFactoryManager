@@ -35,6 +35,7 @@ public class SFM {
 
     public static final String RESOURCE_SHORT_ID = "sfm";
 
+    @SuppressWarnings("NotNullFieldNotInitialized") // automatically set by Forge
     @Mod.Instance(SFM.MOD_ID)
     public static SFM instance;
 
@@ -51,15 +52,11 @@ public class SFM {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-
+        oldMod.preInit(event);
         proxy.preInit();
 
 
         devEnvCache = (Boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");
-
-        SFMKeyMappings.register();
-
-        oldMod.preInit(event);
 
     }
 

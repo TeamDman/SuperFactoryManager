@@ -634,7 +634,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     }
 
     @Override
-    public ASTNode visitWith(SFMLParser.WithContext ctx) {
+    public ASTNode visitWithExpr(SFMLParser.WithExprContext ctx) {
 
         WithClause clause = (WithClause) visit(ctx.withClause());
         With.WithMode mode = ctx.WITHOUT() != null ? With.WithMode.WITHOUT : With.WithMode.WITH;
@@ -647,6 +647,13 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     public WithTag visitWithTag(SFMLParser.WithTagContext ctx) {
 
         WithTag rtn = new WithTag((TagMatcher) visit(ctx.tagMatcher()));
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public ASTNode visitShortMetaWith(SFMLParser.ShortMetaWithContext ctx) {
+        With rtn = new With(new WithMeta((Number) visit(ctx.number())), With.WithMode.WITH);
         trackNode(rtn, ctx);
         return rtn;
     }

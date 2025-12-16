@@ -1,0 +1,14 @@
+name "Metadata Filtering"
+
+-- metadata filtering
+EVERY 20 TICKS DO
+    INPUT
+        -- use WITH META to select a metadata number
+        minecraft:stone WITH META 2,
+        -- shorthand available
+        minecraft:stone@2,
+        -- select multiple metadata values
+        minecraft:planks WITH @1 OR @2 OR @3
+    FROM a
+    OUTPUT TO b
+END

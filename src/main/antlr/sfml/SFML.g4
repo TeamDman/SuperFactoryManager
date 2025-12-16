@@ -67,15 +67,16 @@ resourceIdList          : resourceId (COMMA resourceId)* COMMA?;
 resourceIdDisjunction   : resourceId (OR resourceId)* OR?;
 
 
-with        : WITH withClause
-            | WITHOUT withClause
+with        : WITH withClause                    # WithExpr
+            | WITHOUT withClause                 # WithExpr
+            | METASYM number                     # ShortMetaWith
             ;
 withClause  : LPAREN withClause RPAREN           # WithParen
             | NOT withClause                     # WithNegation
             | withClause AND withClause          # WithConjunction
             | withClause OR withClause           # WithDisjunction
             | (TAG HASHTAG?|HASHTAG) tagMatcher  # WithTag
-            | META number                        # WithMeta
+            | (META METASYM?|METASYM) number     # WithMeta
             ;
 
 tagMatcher  : identifier COLON identifier (SLASH identifier)*
@@ -214,6 +215,7 @@ WITH    : W I T H ;
 TAG     : T A G ;
 HASHTAG : '#' ;
 META    : M E T A;
+METASYM : AT;
 
 // ROUND ROBIN
 ROUND : R O U N D ;
@@ -264,6 +266,7 @@ SLASH   : '/';
 DASH    : '-';
 LPAREN  : '(';
 RPAREN  : ')';
+AT      : '@';
 
 
 NUMBER_WITH_G_SUFFIX    : [0-9]+[gG] ;

@@ -234,22 +234,22 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                         )
                         .build()
         );
-//        examplesButton = this.addRenderableWidget(
-//                new SFMButtonBuilder()
-//                        .setPosition(
-//                                (this.width - this.xSize) / 2 - buttonWidth,
-//                                (this.height - this.ySize) / 2 + 16 * 2 + 50
-//                        )
-//                        .setSize(buttonWidth, buttonHeight)
-//                        .setText(MANAGER_GUI_VIEW_EXAMPLES_BUTTON)
-//                        .setOnPress(button -> onExamplesButtonClicked())
-//                        .setTooltip(
-//                                this,
-//                                this.fontRenderer,
-//                                MANAGER_GUI_VIEW_EXAMPLES_BUTTON_TOOLTIP
-//                        )
-//                        .build()
-//        );
+        examplesButton = this.addRenderableWidget(
+                new SFMButtonBuilder()
+                        .setPosition(
+                                (this.width - this.xSize) / 2 - buttonWidth,
+                                (this.height - this.ySize) / 2 + 16 * 2 + 50
+                        )
+                        .setSize(buttonWidth, buttonHeight)
+                        .setText(MANAGER_GUI_VIEW_EXAMPLES_BUTTON)
+                        .setOnPress(button -> onExamplesButtonClicked())
+                        .setTooltip(
+                                this,
+                                this.fontRenderer,
+                                MANAGER_GUI_VIEW_EXAMPLES_BUTTON_TOOLTIP
+                        )
+                        .build()
+        );
         discordButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(

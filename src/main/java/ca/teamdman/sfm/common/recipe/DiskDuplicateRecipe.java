@@ -9,33 +9,49 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.world.World;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
-public class DiskResetRecipe extends IForgeRegistryEntry.Impl<IRecipe> implements IRecipe {
+public class DiskDuplicateRecipe extends IForgeRegistryEntry.Impl<IRecipe> implements IRecipe {
     @Override
     public boolean matches(InventoryCrafting inv, World worldIn) {
-        int foundDisks = 0;
+        boolean foundFullDisk = false;
+        int foundEmptyDisks = 0;
         for (int i = 0; i < inv.getSizeInventory(); i++) {
             ItemStack stack = inv.getStackInSlot(i);
             if (stack.getItem() instanceof DiskItem) {
-                foundDisks++;
+                if (DiskItem.getProgramString(stack).isEmpty()) {
+                    foundEmptyDisks++;
+                } else {
+                    if (foundFullDisk) return false;
+                    foundFullDisk = true;
+                }
             } else if (!stack.isEmpty()) {
                 return false;
             }
         }
-        return foundDisks == 1;
+        return foundFullDisk && foundEmptyDisks > 0;
     }
 
     @Override
     public ItemStack getCraftingResult(InventoryCrafting inv) {
-        int foundDisks = 0;
+        int foundEmptyDisks = 0;
+        ItemStack fullDisk = null;
+
         for (int i = 0; i < inv.getSizeInventory(); i++) {
             ItemStack stack = inv.getStackInSlot(i);
             if (stack.getItem() instanceof DiskItem) {
-                foundDisks++;
+                if (DiskItem.getProgramString(stack).isEmpty()) {
+                    foundEmptyDisks++;
+                } else {
+                    fullDisk = stack.copy();
+                }
             } else if (!stack.isEmpty()) {
                 return ItemStack.EMPTY;
             }
         }
-        return foundDisks > 0 ? new ItemStack(SFMItems.DISK_ITEM, foundDisks) : ItemStack.EMPTY;
+        if (fullDisk != null) {
+            fullDisk.setCount(foundEmptyDisks + 1);
+            return fullDisk;
+        }
+        return ItemStack.EMPTY;
     }
 
     @Override

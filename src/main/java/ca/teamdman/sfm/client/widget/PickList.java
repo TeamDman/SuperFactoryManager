@@ -53,6 +53,10 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
         return items;
     }
 
+    public List<T> getSortedItems() {
+        return sortedItems;
+    }
+
     public void setItems(List<T> items) {
         this.items = items;
         sortItems();
@@ -102,6 +106,9 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
     }
 
     public void selectPreviousWrapping() {
+        if (this.sortedItems.isEmpty()) {
+            return;
+        }
         if (this.selectionIndex == -1) {
             this.selectionIndex = this.sortedItems.size() - 1;
             return;

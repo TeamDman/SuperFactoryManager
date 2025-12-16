@@ -15,7 +15,9 @@ import com.bbscn.Renderable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
+import org.lwjgl.input.Keyboard;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -102,7 +104,14 @@ public class LabelGunScreen extends GuiScreenExtend {
         onTextUpdated("");
     }
 
-
+    @Override
+    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        if (typedChar == '\r' && (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL))) {
+            onDone();
+            return;
+        }
+        super.keyTyped(typedChar, keyCode);
+    }
 
     @Override
     public void onResize(Minecraft mc, int x, int y) {
@@ -127,10 +136,6 @@ public class LabelGunScreen extends GuiScreenExtend {
         }
 
         this.drawDefaultBackground();
-
-        for (Renderable renderable : this.renderables) {
-            renderable.render(mx, my, partialTicks);
-        }
 
         super.drawScreen(mx, my, partialTicks);
     }

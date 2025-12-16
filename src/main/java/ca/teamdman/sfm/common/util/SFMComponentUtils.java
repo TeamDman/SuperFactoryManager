@@ -15,10 +15,23 @@ public class SFMComponentUtils {
     ) {
         ITextComponent rtn = new TextComponentString("");
         AtomicInteger seen = new AtomicInteger(0);
+
+        String content = component.getUnformattedComponentText();
+        int contentStart = Math.max(start - seen.get(), 0);
+        int contentEnd = Math.min(end - seen.get(), content.length());
+
+        if (contentStart < contentEnd) {
+            rtn.appendSibling(new TextComponentString(content.substring(
+                    contentStart,
+                    contentEnd
+            )).setStyle(component.getStyle()));
+        }
+        seen.addAndGet(content.length());
+
         for (ITextComponent sibling : component.getSiblings()) {
-            String content = sibling.getUnformattedText();
-            int contentStart = Math.max(start - seen.get(), 0);
-            int contentEnd = Math.min(end - seen.get(), content.length());
+            content = sibling.getUnformattedText();
+            contentStart = Math.max(start - seen.get(), 0);
+            contentEnd = Math.min(end - seen.get(), content.length());
 
             if (contentStart < contentEnd) {
                 rtn.appendSibling(new TextComponentString(content.substring(
@@ -30,6 +43,9 @@ public class SFMComponentUtils {
         }
         return rtn;
     }
+
+
+
 //    public static ITextComponent substring(
 //            ITextComponent component,
 //            int start,
@@ -58,8 +74,9 @@ public class SFMComponentUtils {
             ITextComponent component
     ) {
 
-        AtomicInteger seen = new AtomicInteger(0);
-        for (ITextComponent sibling : component.getSiblings()) {
+        AtomicInteger seen = new AtomicInteger(component.getUnformattedComponentText().length());
+
+        for (ITextComponent sibling : component) {
             String content = sibling.getUnformattedText();
 
             seen.addAndGet(content.length());

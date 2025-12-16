@@ -1,0 +1,6 @@
+name "Slots and sides"
+
+every 20 ticks do
+    input from a top, west side slots 0,1,3-4,7-9,21
+    output to a bottom side slots 2
+end
