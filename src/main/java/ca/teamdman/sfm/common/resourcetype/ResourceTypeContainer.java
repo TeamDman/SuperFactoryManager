@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.common.resourcetype;
 
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -17,7 +16,6 @@ import org.jetbrains.annotations.Nullable;
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.CapabilityConsumer;
 import ca.teamdman.sfm.common.program.ProgramContext;
@@ -99,6 +97,9 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
                 long amount,
                 boolean simulate
         );
+        public boolean canExtract(CAP capability, int slot) {
+            return true;
+        }
 
         public abstract int getSlots(CAP handler);
 
@@ -118,6 +119,10 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
                 STACK stack,
                 boolean simulate
         );
+
+        public boolean canInsert(CAP capability, int slot) {
+            return true;
+        }
 
         public abstract boolean isEmpty(STACK stack);
 

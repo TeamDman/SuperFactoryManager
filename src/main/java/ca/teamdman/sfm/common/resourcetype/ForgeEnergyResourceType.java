@@ -28,6 +28,11 @@ public class ForgeEnergyResourceType extends IntegerResourceType<IEnergyStorage>
     }
 
     @Override
+    public boolean canExtract(IEnergyStorage capability, int slot) {
+        return capability.canExtract();
+    }
+
+    @Override
     public int getSlots(IEnergyStorage handler) {
         return 1;
     }
@@ -41,6 +46,11 @@ public class ForgeEnergyResourceType extends IntegerResourceType<IEnergyStorage>
     ) {
         int accepted = iEnergyStorage.receiveEnergy(stack, simulate);
         return stack - accepted;
+    }
+
+    @Override
+    public boolean canInsert(IEnergyStorage capability, int slot) {
+        return capability.canReceive();
     }
 
     @Override

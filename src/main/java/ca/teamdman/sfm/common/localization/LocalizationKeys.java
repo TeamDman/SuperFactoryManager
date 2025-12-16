@@ -363,6 +363,18 @@ public final class LocalizationKeys {
             "program.sfm.warnings.output_label_not_found_in_inputs",
             "Statement \"%s\" at %s uses resource type \"%s\" which has no matching input statement."
     );
+    public static final LocalizationEntry PROGRAM_WARNING_NO_VIABLE_INPUT_SLOTS = new LocalizationEntry(
+            "program.sfm.warnings.no_viable_input_slots",
+            "No slots support extraction: statement \"%s\" at %s"
+    );
+    public static final LocalizationEntry PROGRAM_WARNING_NO_VIABLE_OUTPUT_SLOTS = new LocalizationEntry(
+            "program.sfm.warnings.no_viable_output_slots",
+            "No slots support insertion: statement \"%s\" at %s"
+    );
+    public static final LocalizationEntry PROGRAM_WARNING_NO_SLOTS = new LocalizationEntry(
+            "program.sfm.warnings.no_slots",
+            "Statement matches no slots: statement \"%s\" at %s"
+    );
     public static final LocalizationEntry PROGRAM_WARNING_UNUSED_INPUT_LABEL = new LocalizationEntry(
             "program.sfm.warnings.unused_input_label",
             "Statement \"%s\" at %s inputs \"%s\" from \"%s\" but no future output statement consume \"%s\"."
