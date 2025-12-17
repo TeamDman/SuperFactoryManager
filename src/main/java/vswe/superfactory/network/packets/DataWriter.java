@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import static vswe.superfactory.SuperFactoryManager.CHANNEL;
-import static vswe.superfactory.SuperFactoryManager.packetHandler;
+import static ca.teamdman.sfm.common.registry.SFMPackets.VISUAL_MANAGER_EVENT_CHANNEL;
 
 public class DataWriter {
 	private int          bitCountBuffer;
@@ -43,7 +43,7 @@ public class DataWriter {
 	}
 
 	void sendPlayerPackets(double x, double y, double z, double r, int dimension) {
-		packetHandler.sendToAllAround(createPacket(), new TargetPoint(dimension, x, y, z, r));
+		VISUAL_MANAGER_EVENT_CHANNEL.sendToAllAround(createPacket(), new TargetPoint(dimension, x, y, z, r));
 	}
 
 	private FMLProxyPacket createPacket() {
@@ -63,18 +63,18 @@ public class DataWriter {
 	}
 
 	void sendPlayerPacket(EntityPlayerMP player) {
-		packetHandler.sendTo(createPacket(), player);
+		VISUAL_MANAGER_EVENT_CHANNEL.sendTo(createPacket(), player);
 	}
 
 	void sendServerPacket() {
-		packetHandler.sendToServer(createPacket());
+		VISUAL_MANAGER_EVENT_CHANNEL.sendToServer(createPacket());
 	}
 
 	void sendPlayerPackets(ContainerBase container) {
 		for (IContainerListener crafting : container.getCrafters()) {
 			if (crafting instanceof EntityPlayer) {
 				EntityPlayerMP player = (EntityPlayerMP) crafting;
-				packetHandler.sendTo(createPacket(), player);
+				VISUAL_MANAGER_EVENT_CHANNEL.sendTo(createPacket(), player);
 			}
 		}
 	}

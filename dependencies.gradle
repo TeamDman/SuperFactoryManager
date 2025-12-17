@@ -62,6 +62,9 @@ dependencies {
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:nae2-884359:5380800"))
 
 
+    compileOnly('mezz.jei:jei_1.12.2:4.16.1.302')
+    runtimeOnlyNonPublishable rfg.deobf('curse.maven:top-245211:2667280') // TOP 1.4.28
+
 
     // For testing with Thermal Expansion (and its dependencies)
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:thermal-expansion-69163:2926431"))
@@ -70,6 +73,10 @@ dependencies {
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:codechicken-lib-1-8-242818:2779848"))
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:redstone-flux-270789:2920436"))
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:cofh-world-271384:2920434"))
+
+    // EnderIO doesn't work in deobf for some reason, uncomment and run obfuscated client
+    //    implementation(("maven.modrinth:enderio:ozde4Meh"))
+    //    implementation(("maven.modrinth:endercore:ObLYMdMS"))
 
     compileOnly(rfg.deobf("curse.maven:storage-drawers-223852:5981297")) { transitive = false }
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:storage-drawers-223852:5981297")) { transitive = false }

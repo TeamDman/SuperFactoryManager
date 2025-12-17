@@ -7,6 +7,7 @@ import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.tileentity.TileEntity;
@@ -42,7 +43,7 @@ public class SFMPacketHandlingContext {
         if (inner.side.isServer()) {
             serverPlayer().getServerWorld().addScheduledTask(runnable);
         } else {
-            runnable.run();
+            Minecraft.getMinecraft().addScheduledTask(runnable);
         }
     }
 

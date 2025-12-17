@@ -1,25 +1,28 @@
 package ca.teamdman.sfm.common.registry;
 
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraftforge.fml.common.network.FMLEventChannel;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
-import net.minecraftforge.fml.relauncher.Side;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.net.*;
-
-import java.lang.reflect.InvocationTargetException;
+import vswe.superfactory.SuperFactoryManager;
+import vswe.superfactory.network.packets.PacketEventHandler;
 
 public class SFMPackets {
 
-    public static final SimpleNetworkWrapper SFM_CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel(SFM.MOD_ID);
+    public static SimpleNetworkWrapper SFM_CHANNEL;
+    public static FMLEventChannel VISUAL_MANAGER_EVENT_CHANNEL;
 
     private static int registrationIndex = 0;
 
-    public static <T> void registerPacket(SFMPacketDaddy<T> daddy) {
+    public static void registerChannels() {
+        SFM_CHANNEL = NetworkRegistry.INSTANCE.newSimpleChannel(SFM.MOD_ID);
+        VISUAL_MANAGER_EVENT_CHANNEL = NetworkRegistry.INSTANCE.newEventDrivenChannel(SuperFactoryManager.CHANNEL);
 
-        SFM_CHANNEL.registerMessage(daddy, daddy.getPacketClass(), registrationIndex++, daddy.getPacketDirection().toSide());
 
+        VISUAL_MANAGER_EVENT_CHANNEL.register(new PacketEventHandler());
     }
 
     public static void register() {
@@ -56,6 +59,17 @@ public class SFMPackets {
         registerPacket(ServerboundNetworkToolToggleOverlayPacket.daddy);
         registerPacket(ServerboundNetworkToolUsePacket.daddy);
         registerPacket(ServerboundOutputInspectionRequestPacket.daddy);
+    }
+
+    public static <T> void registerPacket(SFMPacketDaddy<T> daddy) {
+
+        SFM_CHANNEL.registerMessage(
+                daddy,
+                daddy.getPacketClass(),
+                registrationIndex++,
+                daddy.getPacketDirection().toSide()
+        );
+
     }
 
     public static void sendToPlayer(EntityPlayerMP player, SFMPacket<?> packet) {

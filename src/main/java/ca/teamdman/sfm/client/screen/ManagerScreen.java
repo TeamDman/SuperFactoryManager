@@ -36,6 +36,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraftforge.fml.common.Optional;
 import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
@@ -53,6 +54,7 @@ import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
 
 
 @SuppressWarnings({"FieldCanBeLocal", "unused", "NotNullFieldNotInitialized"})
+@Optional.Interface(modid="jei",iface="mezz.jei.api.gui.IAdvancedGuiHandler")
 public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHandler<ManagerScreen> {
     private static final ResourceLocation BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
             "textures/gui/container/manager.png"

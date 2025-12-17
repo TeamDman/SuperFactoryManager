@@ -15,7 +15,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.CLIENT)
-
 public class NetworkToolKeyMappingHandler {
     private static ToggleKeyState toggleKeyState = ToggleKeyState.Idle;
 

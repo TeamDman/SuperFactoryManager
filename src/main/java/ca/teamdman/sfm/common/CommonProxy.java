@@ -18,7 +18,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.network.IGuiHandler;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
-import vswe.superfactory.tiles.TileEntityManager;
 
 
 import javax.annotation.Nullable;
@@ -42,11 +41,14 @@ public class CommonProxy implements IGuiHandler {
             }
         };
 
+        SFMPackets.registerChannels();
+        SFMPackets.register();
+//        MessageHandler.init();
+
         NetworkRegistry.INSTANCE.registerGuiHandler(SFM.MOD_ID, this);
 
         SFMCapabilities.register();
         SFMBlockEntities.initialize();
-        SFMPackets.register();
     }
 
     public void init() {

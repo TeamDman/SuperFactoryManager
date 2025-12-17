@@ -37,6 +37,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.Level;
 
 import javax.annotation.Nullable;
@@ -92,6 +94,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                '}';
     }
 
+    @SideOnly(Side.CLIENT)
     @Override
     public ManagerScreen getGui(int id, InventoryPlayer inv) {
         return new ManagerScreen(this.getContainer(id, inv));
