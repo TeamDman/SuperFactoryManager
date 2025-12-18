@@ -15,9 +15,7 @@ public class IndexItemsOnLogin {
 
     @SubscribeEvent
     public static void onPlayerLogin(FMLNetworkEvent.ClientConnectedToServerEvent event) {
-        SFM.LOGGER.error("Player login");
        	if ((Launch.blackboard.get("fml.deobfuscatedEnvironment") != null || SearchUtil.getCache().isEmpty())) {
-            SFM.LOGGER.error("Cache");
             SearchUtil.buildCache();
 		}
     }
