@@ -12,6 +12,16 @@ public final class WithAlwaysTrue implements WithClause {
     }
 
     @Override
+    public boolean hasShorthand() {
+        return true;
+    }
+
+    @Override
+    public String toStringCondensed() {
+        return "";
+    }
+
+    @Override
     public String toString() {
         return "(ALWAYS => TRUE)";
     }

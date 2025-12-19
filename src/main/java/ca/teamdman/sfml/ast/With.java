@@ -13,6 +13,10 @@ import com.github.bsideup.jabel.Desugar;
             WithMode.WITH
     );
 
+    public static With meta(long metadata) {
+        return new With(new WithMeta(new Number(metadata)), WithMode.WITH);
+    }
+
     @Override
     public <STACK> boolean matchesStack(
             ResourceType<STACK, ?, ?> resourceType,
@@ -22,6 +26,14 @@ import com.github.bsideup.jabel.Desugar;
         return switch (mode) {
             case WITH -> matches;
             case WITHOUT -> !matches;
+        };
+    }
+
+    public String toStringCondensed() {
+        if (mode == WithMode.WITH && condition.hasShorthand()) return condition.toStringCondensed();
+        return switch (mode) {
+            case WITH -> " WITH " + condition.toStringPretty();
+            case WITHOUT -> " WITHOUT " + condition.toStringPretty();
         };
     }
 

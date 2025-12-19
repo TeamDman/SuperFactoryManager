@@ -83,11 +83,7 @@ import static ca.teamdman.sfml.ast.With.ALWAYS_TRUE;
 
     public String toStringCondensed(Limit defaults) {
         return (
-                limit.toStringCondensed(defaults) + " " + resourceIds.toStringCondensed() + (
-                        with == ALWAYS_TRUE
-                        ? ""
-                        : " WITH " + with
-                )
+                limit.toStringCondensed(defaults) + " " + resourceIds.toStringCondensed() + with.toStringCondensed()
         ).trim();
     }
 }

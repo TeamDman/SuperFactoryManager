@@ -34,6 +34,10 @@ public final class ResourceLimits implements ASTNode, ToStringPretty {
         this.exclusions = exclusions;
     }
 
+    public static ResourceLimits of(ResourceLimit resourceLimitForStack) {
+        return new ResourceLimits(Arrays.asList(resourceLimitForStack), ResourceIdSet.EMPTY);
+    }
+
     public List<IInputResourceTracker> createInputTrackers() {
         List<IInputResourceTracker> rtn = new ObjectArrayList<>(resourceLimitList.size());
         for (ResourceLimit rl : resourceLimitList) {

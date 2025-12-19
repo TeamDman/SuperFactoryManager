@@ -63,6 +63,8 @@ dependencies {
 
 
     compileOnly('mezz.jei:jei_1.12.2:4.16.1.302')
+    compileOnly(rfg.deobf('curse.maven:packagedauto-308380:7222356'))
+    runtimeOnlyNonPublishable(rfg.deobf('curse.maven:packagedauto-308380:7222356'))
     runtimeOnlyNonPublishable rfg.deobf('curse.maven:top-245211:2667280') // TOP 1.4.28
 
 

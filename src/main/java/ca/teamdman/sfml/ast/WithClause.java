@@ -7,4 +7,12 @@ public interface WithClause extends ASTNode, ToStringPretty {
             ResourceType<STACK, ?, ?> resourceType,
             STACK stack
     );
+
+    default boolean hasShorthand() {
+        return false;
+    }
+
+    default String toStringCondensed() {
+        return this.toString();
+    }
 }

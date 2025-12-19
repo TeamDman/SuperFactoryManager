@@ -75,26 +75,70 @@ public class SFMASTUtils {
                         ResourceQuantity.IdExpansionBehaviour.NO_EXPAND
                 )
         );
+       ResourceLimits resourceLimits = ResourceLimits.of(getResourceLimitForStack(
+                resourceTypeResourceKey,
+                resourceType,
+                stack,
+                limit
+        ));
+
+        return new InputStatement(
+                labelAccess,
+                resourceLimits,
+                each
+        );
+    }
+
+    public static <STACK, ITEM, CAP> OutputStatement getOutputStatementForStack(
+            ResourceLocation resourceTypeResourceKey,
+            ResourceType<STACK, ITEM, CAP> resourceType,
+            STACK stack,
+            String label,
+            int slot,
+            boolean each,
+            @Nullable EnumFacing direction
+    ) {
+        LabelAccess labelAccess = new LabelAccess(
+                Arrays.asList(new Label(label)),
+                new SideQualifier(Arrays.asList(Side.fromDirection(direction))),
+                new NumberRangeSet(
+                        new NumberRange[]{new NumberRange(slot, slot)}
+                ),
+                RoundRobin.disabled()
+        );
+
+        ResourceLimits resourceLimits = ResourceLimits.of(getResourceLimitForStack(
+                resourceTypeResourceKey,
+                resourceType,
+                stack,
+                Limit.MAX_QUANTITY_MAX_RETENTION
+        ));
+
+        return new OutputStatement(
+                labelAccess,
+                resourceLimits,
+                each,
+                false
+        );
+    }
+
+    public static <STACK, ITEM, CAP> ResourceLimit getResourceLimitForStack(
+            ResourceLocation resourceTypeResourceKey,
+            ResourceType<STACK, ITEM, CAP> resourceType,
+            STACK stack,
+            Limit limit
+    ) {
         ResourceLocation stackId = resourceType.getRegistryKeyForStack(stack);
         ResourceIdentifier<STACK, ITEM, CAP> resourceIdentifier = new ResourceIdentifier<>(
                 resourceTypeResourceKey,
                 stackId
         );
-        ResourceLimit resourceLimit = new ResourceLimit(
+
+        var meta = resourceType.getMetaForStack(stack);
+        return new ResourceLimit(
                 new ResourceIdSet(Arrays.asList(resourceIdentifier)),
                 limit,
-                With.ALWAYS_TRUE
-        );
-        ResourceLimits resourceLimits = new ResourceLimits(
-                Arrays.asList(resourceLimit),
-                ResourceIdSet.EMPTY
-        );
-
-        // todo: add WITH logic here to also build code to match any item/block tags present
-        return new InputStatement(
-                labelAccess,
-                resourceLimits,
-                each
+                meta.isPresent() && meta.get() != 0 ? With.meta(meta.get()) : With.ALWAYS_TRUE
         );
     }
 }
