@@ -348,7 +348,7 @@ public class MultilineTextField {
         this.cursorListener.run();
     }
 
-    private void reflowDisplayLines() {
+    protected void reflowDisplayLines() {
         this.displayLines.clear();
         if (this.value.isEmpty()) {
             this.displayLines.add(StringView.EMPTY);

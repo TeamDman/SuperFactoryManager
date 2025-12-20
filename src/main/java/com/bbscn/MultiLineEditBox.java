@@ -225,7 +225,7 @@ public class MultiLineEditBox extends AbstractScrollWidget implements GuiEventLi
         drawRect(pMinX, pMinY, pMaxX, pMaxY, -16776961);
     }
 
-    private void scrollToCursor() {
+    protected void scrollToCursor() {
         double d0 = this.scrollAmount;
         MultilineTextField.StringView multilinetextfield$stringview = this.textField.getLineView((int) (d0 / 9.0));
         if (this.textField.cursor() <= multilinetextfield$stringview.beginIndex) {

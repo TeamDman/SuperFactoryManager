@@ -23,6 +23,7 @@ import org.simmetrics.simplifiers.Simplifiers;
 
 import java.util.Comparator;
 import java.util.List;
+
 import ca.teamdman.sfm.common.util.Pair;
 import org.simmetrics.tokenizers.Tokenizers;
 
@@ -31,7 +32,8 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
     protected List<T> items;
     protected List<T> sortedItems;
     protected int selectionIndex = -1;
-    protected ITextComponent query = new TextComponentString("");
+    protected String query = "";
+    protected boolean dirty = true;
 
     public PickList(
             FontRenderer font,
@@ -77,12 +79,29 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
         return sortedItems.get(selectionIndex);
     }
 
-    public void setQuery(ITextComponent query) {
-        this.query = query;
+    public void setQuery(String query) {
+        if (!query.equals(this.query)) {
+            this.query = query;
+            this.dirty = true;
+        }
+    }
+
+    public void updateList() {
+        dirty = false;
         sortItems();
         selectionIndex = 0;
         clampOrUnsetSelectionIndex();
         scrollSelectedIntoView();
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+        if (active) {
+            sortItems();
+            selectionIndex = 0;
+            clampOrUnsetSelectionIndex();
+            scrollSelectedIntoView();
+        }
     }
 
     @MCVersionDependentBehaviour
@@ -102,6 +121,10 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
             float pPartialTick
     ) {
         if (sortedItems.isEmpty()) return;
+        if (!active) return;
+        if (this.dirty) {
+            updateList();
+        }
         super.renderWidget(pMouseX, pMouseY, pPartialTick);
     }
 
@@ -196,7 +219,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
                 .build();
 
 
-        String queryString = query.getUnformattedText();
+        String queryString = query;
         if (queryString.trim().isEmpty()) {
             var preferredOrder = new String[]{
                     "TICKS",
@@ -217,7 +240,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
             }));
         } else {
 //            SFM.LOGGER.debug("Sorting by distance using query: {}", queryString);
-            var bestOptionsHeap = new PriorityQueue<>(20, Comparator.comparing(Pair<Float,T>::getFirst).reversed());
+            var bestOptionsHeap = new PriorityQueue<>(20, Comparator.comparing(Pair<Float, T>::getFirst).reversed());
             for (T item : items) {
                 float d = distance.distance(item.getComponent().getUnformattedComponentText(), queryString);
                 if (bestOptionsHeap.size() < 20) {
