@@ -82,6 +82,14 @@ public class PackageRecipeTransferHandler implements IRecipeTransferHandler<Mana
                 packager++;
                 sb.append("\n");
             }
+
+            for (int i = 0; i < packager; i++) {
+                sb.append("FORGET\n\n");
+                sb.append("INPUT FROM packager"  + i + "\n");
+                sb.append("OUTPUT TO unpackager SLOTS "  + i + "\n");
+            }
+
+
             SFMScreenChangeHelpers.showProgramEditScreen(sb.toString());
         }
         return null;
