@@ -32,6 +32,8 @@ import org.lwjgl.opengl.GL11;
 import java.awt.*;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @SideOnly(Side.CLIENT)
 @Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.CLIENT)
@@ -45,6 +47,7 @@ public class ItemWorldRenderer {
     private static final int capabilityColor = Tools.toARGB(64, 100, 0, 255);
     private static final int capabilityColorLimitedView = Tools.toARGB(64, 100, 255, 255);
     private static final int cableColor = Tools.toARGB(64, 100, 255, 0);
+    private static final int noNetworkErrorColor = Tools.toARGB(200, 255, 50, 50);
     private static final HighlightRenderListCache renderCache = new HighlightRenderListCache();
 
     @SubscribeEvent
@@ -105,10 +108,19 @@ public class ItemWorldRenderer {
         Set<BlockPos> cablePositions = NetworkToolItem.getCablePositions(networkTool);
         Set<BlockPos> capabilityPositions = NetworkToolItem.getCapabilityProviderPositions(networkTool);
 
-
-        drawHighlights(VBOKind.NETWORK_TOOL_CABLES, cablePositions, cableColor, player, 1);
-        drawHighlights(VBOKind.NETWORK_TOOL_CAPABILITIES, capabilityPositions, capabilityColor, player, 0.9F);
-
+        var selectedPos = NetworkToolItem.getSelectedNetworkBlockPos(networkTool);
+        if (cablePositions.isEmpty() && selectedPos != null) {
+            drawHighlights(
+                    VBOKind.NETWORK_TOOL_CABLES,
+                    Stream.of(selectedPos).collect(Collectors.toCollection(HashSet::new)),
+                    noNetworkErrorColor,
+                    player,
+                    1
+            );
+        } else {
+            drawHighlights(VBOKind.NETWORK_TOOL_CABLES, cablePositions, cableColor, player, 1);
+            drawHighlights(VBOKind.NETWORK_TOOL_CAPABILITIES, capabilityPositions, capabilityColor, player, 0.9F);
+        }
     }
 
 
