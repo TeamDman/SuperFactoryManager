@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.common.program;
 
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimit;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
@@ -54,7 +53,7 @@ public class SharedQuantityExpandedRetentionInputResourceTracker implements IInp
     public <STACK, ITEM, CAP> long getRetentionObligationForSlot(
             ResourceType<STACK, ITEM, CAP> resourceType,
             STACK key,
-            @NotStored BlockPos pos,
+            BlockPos pos,
             int slot
     ) {
         var posEntry = retention_obligations_by_pos_by_slot_by_item.get(pos.toLong());
@@ -94,7 +93,7 @@ public class SharedQuantityExpandedRetentionInputResourceTracker implements IInp
             ResourceType<STACK, ITEM, CAP> resourceType,
             STACK key,
             int slot,
-            @NotStored BlockPos pos,
+            BlockPos pos,
             long dedicatingToObligation
     ) {
         ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);

@@ -8,7 +8,6 @@ import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfm.common.program.LimitedInputSlot;
 import ca.teamdman.sfm.common.program.LimitedOutputSlot;
 import ca.teamdman.sfm.common.program.ProgramContext;
-import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.StringUtil;
 import net.minecraft.block.state.IBlockState;
@@ -40,7 +39,7 @@ public class SFMBlockCapabilityDiscovery {
     public static <CAP> @NotNull SFMBlockCapabilityResult<CAP> discoverCapabilityFromNetwork(
             CableNetwork cableNetwork,
             SFMBlockCapabilityKind<CAP> capKind,
-            @NotStored BlockPos pos,
+            BlockPos pos,
             @Nullable EnumFacing direction,
             TranslatableLogger logger
     ) {
@@ -117,7 +116,7 @@ public class SFMBlockCapabilityDiscovery {
     public static <CAP> @NotNull SFMBlockCapabilityResult<CAP> discoverCapabilityFromLevel(
             World level,
             SFMBlockCapabilityKind<CAP> capKind,
-            @NotStored BlockPos pos,
+            BlockPos pos,
             @Nullable EnumFacing direction
     ) {
 
@@ -173,7 +172,7 @@ public class SFMBlockCapabilityDiscovery {
     private static <CAP> @Nullable SFMBlockCapabilityResult<CAP> discoverCapabilityFromCache(
             World world,
             SFMBlockCapabilityKind<CAP> capKind,
-            @NotStored BlockPos pos,
+            BlockPos pos,
             @Nullable EnumFacing direction,
             TranslatableLogger logger,
             SFMBlockCapabilityCacheForLevel levelCapabilityCache

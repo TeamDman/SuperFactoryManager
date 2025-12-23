@@ -97,3 +97,9 @@ After running `gradlew clean` and removing the `run` dir, the game will say "0 t
 Running `gradlew runGameTestServer` seems to fix the problem, where after doing so the `runClient teamy` task will then successfully find the tests again.
 
 Yikes.
+
+## Problem 3 - Weird results when using BlockPos
+
+BlockPos has a subclass, BlockPos.Mutable, which if you are receiving as a parameter and later are storing it, you may have had your stored object mutated without you expecting it to have changed.
+
+You can use the `.immutable()` method to ensure that you have a reference to an immutable BlockPos.

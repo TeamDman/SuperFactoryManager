@@ -2,7 +2,6 @@ package ca.teamdman.sfm.common.cablenetwork;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -83,7 +82,7 @@ public class CableNetworkManager {
                 .stream();
     }
 
-    public static Stream<CableNetwork> getNetworksInRange(World level, @NotStored BlockPos pos, double maxDistance) {
+    public static Stream<CableNetwork> getNetworksInRange(World level, BlockPos pos, double maxDistance) {
         if (level.isRemote) return Stream.empty();
         return getNetworksForLevel(level)
                 .filter(net -> net
@@ -95,13 +94,13 @@ public class CableNetworkManager {
         removeNetwork(network);
     }
 
-    public static void onCablePlaced(World level, @NotStored BlockPos pos) {
+    public static void onCablePlaced(World level, BlockPos pos) {
         if (level.isRemote) return;
         var networkMaybe = getOrRegisterNetworkFromCablePosition(level, pos);
         networkMaybe.ifPresent(CableNetwork::updateVisualManagers);
     }
 
-    public static void onCableRemoved(World level, @NotStored BlockPos cablePos) {
+    public static void onCableRemoved(World level, BlockPos cablePos) {
         getNetworkFromCablePosition(level, cablePos).ifPresent(network -> {
             network.updateVisualManagers(cablePos);
             // Invalidate the original network
@@ -129,12 +128,12 @@ public class CableNetworkManager {
      * <p>
      * Networks should only exist on the server side.
      */
-    public static Optional<CableNetwork> getOrRegisterNetworkFromCablePosition(World level, @NotStored BlockPos pos) {
+    public static Optional<CableNetwork> getOrRegisterNetworkFromCablePosition(World level, BlockPos pos) {
         return getOrRegisterNetworkFromCablePosition(level, pos, false);
     }
 
 
-    public static Optional<CableNetwork> getOrRegisterNetworkFromCablePosition(World level, @NotStored BlockPos pos, boolean isVisualManager) {
+    public static Optional<CableNetwork> getOrRegisterNetworkFromCablePosition(World level, BlockPos pos, boolean isVisualManager) {
         if (level.isRemote) return Optional.empty();
 
         // discover existing network for this position
@@ -239,7 +238,7 @@ public class CableNetworkManager {
     }
 
     @NotNull
-    private static Optional<CableNetwork> getNetworkFromCablePosition(World level, @NotStored BlockPos pos) {
+    private static Optional<CableNetwork> getNetworkFromCablePosition(World level, BlockPos pos) {
         return Optional.ofNullable(NETWORKS_BY_CABLE_POSITION
                 .computeIfAbsent(level, k -> new Long2ObjectOpenHashMap<>())
                 .get(pos.toLong()));

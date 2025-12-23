@@ -3,7 +3,6 @@ package ca.teamdman.sfm.common.program;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.SFMPerformanceTweaks;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.Label;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -30,7 +29,7 @@ public class LimitedInputSlotObjectPool {
      */
     public static <STACK, ITEM, CAP> LimitedInputSlot<STACK, ITEM, CAP> acquire(
             Label label,
-            @Stored BlockPos pos,
+            BlockPos pos,
             EnumFacing direction,
             int slot,
             CAP handler,

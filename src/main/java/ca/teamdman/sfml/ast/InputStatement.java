@@ -3,7 +3,6 @@ package ca.teamdman.sfml.ast;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.program.*;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import ca.teamdman.sfm.common.util.Stored;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.EnumFacing;
 import org.jetbrains.annotations.Nullable;
@@ -243,7 +242,7 @@ public final class InputStatement implements IOStatement {
             ProgramContext context,
             ResourceType<STACK, ITEM, CAP> type,
             Label label,
-            @Stored BlockPos pos,
+            BlockPos pos,
             EnumFacing direction,
             CAP capability,
             List<IInputResourceTracker> trackers,

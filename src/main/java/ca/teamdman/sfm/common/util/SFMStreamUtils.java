@@ -50,7 +50,7 @@ public class SFMStreamUtils {
         return builder.build();
     }
 
-    public static Stream<BlockPos> get3DNeighboursIncludingKittyCorner(@NotStored BlockPos pos) {
+    public static Stream<BlockPos> get3DNeighboursIncludingKittyCorner(BlockPos pos) {
         Stream.Builder<BlockPos> builder = Stream.builder();
         for (int x = -1; x <= 1; x++) {
             for (int y = -1; y <= 1; y++) {
@@ -63,7 +63,7 @@ public class SFMStreamUtils {
         return builder.build();
     }
 
-    public static Stream<BlockPos> get3DNeighbours(@Stored BlockPos pos) {
+    public static Stream<BlockPos> get3DNeighbours(BlockPos pos) {
         return Arrays.stream(SFMDirections.DIRECTIONS_WITHOUT_NULL).map(pos::offset);
     }
 

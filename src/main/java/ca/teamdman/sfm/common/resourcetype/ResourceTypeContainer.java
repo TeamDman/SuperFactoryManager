@@ -21,7 +21,6 @@ import ca.teamdman.sfm.common.program.CapabilityConsumer;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.util.Pair;
-import ca.teamdman.sfm.common.util.Stored;
 import ca.teamdman.sfml.ast.*;
 
 public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<ResourceTypeContainer> {
@@ -175,7 +174,7 @@ public abstract class ResourceTypeContainer extends IForgeRegistryEntry.Impl<Res
         public void forEachDirectionalCapability(
                 ProgramContext programContext,
                 SideQualifier sides,
-                @Stored BlockPos pos,
+                BlockPos pos,
                 BiConsumer<EnumFacing, CAP> consumer
         ) {
 

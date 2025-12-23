@@ -6,7 +6,6 @@ import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import ca.teamdman.sfm.common.util.NotStored;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
 import ca.teamdman.sfml.ast.Block;
@@ -52,7 +51,7 @@ public class CableNetwork {
      */
     public static boolean isCable(
             @Nullable World world,
-            @NotStored BlockPos cablePos
+            BlockPos cablePos
     ) {
         if (world == null) return false;
         return world
@@ -62,20 +61,20 @@ public class CableNetwork {
 
     public static boolean isVisualManager(
             @Nullable World world,
-            @NotStored BlockPos cablePos
+            BlockPos cablePos
     ) {
         if (world == null) return false;
         return world.getBlockState(cablePos).getBlock() instanceof BlockManager;
     }
 
-    public void rebuildNetwork(@NotStored BlockPos start) {
+    public void rebuildNetwork(BlockPos start) {
         cablePositions.clear();
         levelCapabilityCache.clear();
         discoverCables(getLevel(), start).forEach(this::addCableOrVisualManager);
     }
 
     public void rebuildNetworkFromCache(
-            @NotStored BlockPos start,
+            BlockPos start,
             CableNetwork other
     ) {
         cablePositions.clear();
@@ -122,7 +121,7 @@ public class CableNetwork {
     /// This assumes that the start position is a cable block
     public static Stream<BlockPos> discoverCables(
             World level,
-            @NotStored BlockPos startPos
+            BlockPos startPos
     ) {
         return SFMStreamUtils.getRecursiveStream(
                 (current, next, results) -> {
@@ -138,11 +137,11 @@ public class CableNetwork {
         );
     }
 
-    public void addCable(@NotStored BlockPos pos) {
+    public void addCable(BlockPos pos) {
         cablePositions.add(pos.toLong());
     }
 
-    public void addCableOrVisualManager(@NotStored BlockPos pos) {
+    public void addCableOrVisualManager(BlockPos pos) {
         cablePositions.add(pos.toLong());
         if (isVisualManager(level, pos)) {
             visualManagerPositions.add(pos.toLong());
@@ -170,7 +169,7 @@ public class CableNetwork {
      * @param pos Candidate cable position
      * @return {@code true} if adjacent to cable in network
      */
-    public boolean isAdjacentToCable(@NotStored BlockPos pos) {
+    public boolean isAdjacentToCable(BlockPos pos) {
         if (containsCablePosition(pos)) {
             return true; // allow managers to interact with themselves
         }
@@ -184,14 +183,14 @@ public class CableNetwork {
         return false;
     }
 
-    public boolean containsCablePosition(@NotStored BlockPos pos) {
+    public boolean containsCablePosition(BlockPos pos) {
         return cablePositions.contains(pos.toLong());
     }
 
     @MCVersionDependentBehaviour
     public <CAP> @NotNull SFMBlockCapabilityResult<CAP> getCapability(
             SFMBlockCapabilityKind<CAP> capKind,
-            @NotStored BlockPos pos,
+            BlockPos pos,
             @Nullable EnumFacing direction,
             TranslatableLogger logger
     ) {
@@ -249,7 +248,7 @@ public class CableNetwork {
      * @param cablePos cable position to be removed
      * @return resulting networks to replace this network
      */
-    protected List<CableNetwork> withoutCable(@NotStored BlockPos cablePos) {
+    protected List<CableNetwork> withoutCable(BlockPos cablePos) {
         cablePositions.remove(cablePos.toLong());
         List<CableNetwork> branches = new ArrayList<>();
         BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
