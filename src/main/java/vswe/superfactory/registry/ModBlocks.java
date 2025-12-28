@@ -39,6 +39,7 @@ public final class ModBlocks {
 
 	public static void addRecipes() {
 //		GameData.register_impl(new ClusterUpgradeRecipe()); // TODO: fix
+		SFMBlocks.registerClusters();
 		GameData.register_impl(new ClusterRecipe(new ResourceLocation(SuperFactoryManager.UNLOCALIZED_START + "clusterrecipe")));
 	}
 

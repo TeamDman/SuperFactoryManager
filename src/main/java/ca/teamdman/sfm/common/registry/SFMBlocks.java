@@ -45,7 +45,7 @@ public class SFMBlocks {
         CABLE_CAMOUFLAGE = prepareRegister(new BlockCableCamouflages(), "cable_camouflage");
         CABLE_SIGN = prepareRegister(new BlockCableSign(), "cable_sign");
 
-        registerClusters();
+
     }
 
     private static <T extends Block> T prepareRegister(T block, String name) {
