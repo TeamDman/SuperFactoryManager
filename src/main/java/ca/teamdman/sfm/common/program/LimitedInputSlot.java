@@ -78,8 +78,8 @@ public class LimitedInputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, IT
         if (extractSimulateCache == null) {
             // We use getStackInSlot because it can return values greater than max-stack-size
             // For example, a dank storage dock can have 256 items in a slot but if we queried extraction it would say 64
-            extractSimulateCache = type.getStackInSlot(handler, slot);
-//            extractSimulateCache = type.extract(handler, slot, Long.MAX_VALUE, true);
+//            extractSimulateCache = type.getStackInSlot(handler, slot);
+            extractSimulateCache = type.extract(handler, slot, Long.MAX_VALUE, true);
         }
         return extractSimulateCache;
     }

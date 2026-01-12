@@ -115,6 +115,30 @@ public final class LocalizationKeys {
             "gui.sfm.exit_without_saving_confirm.no_button",
             "Continue editing"
     );
+    public static final LocalizationEntry FACADE_CONFIRM_CLEAR_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.facade_confirm_clear.title",
+            "Are you sure you want to clear these facades?"
+    );
+    public static final LocalizationEntry FACADE_CONFIRM_CLEAR_SCREEN_MESSAGE = new LocalizationEntry(
+            "gui.sfm.facade_confirm_clear.message",
+            "%d different facade states across %d blocks will be wiped from the world."
+    );
+    public static final LocalizationEntry FACADE_CONFIRM_CHANGE_WORLD_BLOCK_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.facade_confirm_change_world_block.title",
+            "Are you sure you want to change the facade world block?"
+    );
+    public static final LocalizationEntry FACADE_CONFIRM_CHANGE_WORLD_BLOCK_SCREEN_MESSAGE = new LocalizationEntry(
+            "gui.sfm.facade_confirm_change_world_block.message",
+            "%d blocks will change shape, their facades will be persisted."
+    );
+    public static final LocalizationEntry FACADE_CONFIRM_APPLY_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.facade_confirm_apply.title",
+            "Are you sure you want to update the facade appearance?"
+    );
+    public static final LocalizationEntry FACADE_CONFIRM_APPLY_SCREEN_MESSAGE = new LocalizationEntry(
+            "gui.sfm.facade_confirm_apply.message",
+            "%d different facade states across %d blocks that will be overwritten."
+    );
     public static final LocalizationEntry CONFIRM_FUNNY_YES_1 = new LocalizationEntry(
             "gui.sfm.confirm.funny.yes.1",
             "Yeah, sure, why not."
@@ -217,6 +241,22 @@ public final class LocalizationKeys {
     public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_3 = new LocalizationEntry(
             () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.3",
             () -> "You might not need this, don't forget you can press %s in an inventory to toggle the inspector."
+    );
+     public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_4 = new LocalizationEntry(
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.4",
+            () -> "Place in off-hand with block in main hand and right-click cable to set facade."
+    );
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_5 = new LocalizationEntry(
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.5",
+            () -> "Ctrl-click to facade contiguously."
+    );
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_6 = new LocalizationEntry(
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.6",
+            () -> "Alt-click to facade matching block across the network."
+    );
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_7 = new LocalizationEntry(
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.7",
+            () -> "Ctrl-alt-click to facade entire network."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER = new LocalizationEntry(
             () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.toggle_label_reminder",

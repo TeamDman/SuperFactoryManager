@@ -1,7 +1,10 @@
 package ca.teamdman.sfm.common.net;
 
 import io.netty.buffer.ByteBuf;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
+
+import java.io.IOException;
 
 public class FriendlyByteBuf extends PacketBuffer {
     public FriendlyByteBuf(ByteBuf wrapped) {
@@ -26,4 +29,16 @@ public class FriendlyByteBuf extends PacketBuffer {
         return this;
     }
 
+    public FriendlyByteBuf writeItem(ItemStack stack) {
+         this.writeItemStack(stack);
+         return this;
+    }
+
+    public ItemStack readItem()  {
+        try {
+            return this.readItemStack();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

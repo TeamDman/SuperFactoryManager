@@ -31,7 +31,7 @@ public class BlockManager extends BlockContainer implements ICableBlock {
 	public BlockManager() {
 		super(Material.IRON);
 
-setSoundType(SoundType.METAL);
+		setSoundType(SoundType.METAL);
         setCreativeTab(SuperFactoryManager.creativeTab);
         setHardness(2F);
     }

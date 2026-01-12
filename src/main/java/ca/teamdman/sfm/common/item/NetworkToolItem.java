@@ -72,6 +72,11 @@ public class NetworkToolItem extends Item {
                         .getComponent(SFMKeyMappings.CONTAINER_INSPECTOR_KEY.getDisplayName())
                         .setStyle(new Style().setColor(TextFormatting.AQUA)).getFormattedText()
         );
+        var purple = new Style().setColor(TextFormatting.LIGHT_PURPLE);
+        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_4.getComponent().setStyle(purple).getFormattedText());
+        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_5.getComponent().setStyle(purple).getFormattedText());
+        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_6.getComponent().setStyle(purple).getFormattedText());
+        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_7.getComponent().setStyle(purple).getFormattedText());
     }
 
 

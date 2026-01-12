@@ -59,6 +59,7 @@ public class SFMPackets {
         registerPacket(ServerboundNetworkToolToggleOverlayPacket.daddy);
         registerPacket(ServerboundNetworkToolUsePacket.daddy);
         registerPacket(ServerboundOutputInspectionRequestPacket.daddy);
+        registerPacket(ServerboundFacadePacket.daddy);
     }
 
     public static <T> void registerPacket(SFMPacketDaddy<T> daddy) {

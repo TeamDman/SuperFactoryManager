@@ -15,10 +15,10 @@ import vswe.superfactory.tiles.*;
 
 public class SFMBlocks {
 
-    public static Block CABLE;
+    public static BlockCable CABLE;
     public static Block CABLE_BREAKER;
     public static Block CABLE_BUD;
-    public static Block CABLE_CAMOUFLAGE;
+    public static BlockCableCamouflages CABLE_CAMOUFLAGE;
     public static Block CABLE_CLUSTER;
     public static Block CABLE_INPUT;
     public static Block CABLE_INTAKE;
