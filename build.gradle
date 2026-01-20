@@ -267,6 +267,19 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
     antlr 'org.antlr:antlr4:4.13.1'
+
+    // JMESPath for NBT filtering - bundled via JarJar for distribution
+    jarJar(implementation('io.burt:jmespath-core:0.6.0')) {
+        version {
+            strictly '[0.6.0,0.7.0)'
+        }
+    }
+    jarJar(implementation('io.burt:jmespath-gson:0.6.0')) {
+        version {
+            strictly '[0.6.0,0.7.0)'
+        }
+    }
+
     testImplementation 'com.github.javaparser:javaparser-symbol-solver-core:3.26.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
@@ -348,6 +361,9 @@ jar {
         ])
     }
 }
+
+// Enable jarJar for bundling JMESPath library
+jarJar.enable()
 
 // Example configuration to allow publishing using the maven-publish plugin
 publishing {
