@@ -75,6 +75,7 @@ withClause  : LPAREN withClause RPAREN           # WithParen
             | withClause AND withClause          # WithConjunction
             | withClause OR withClause           # WithDisjunction
             | (TAG HASHTAG?|HASHTAG) tagMatcher  # WithTag
+            | NBT string                         # WithNbt
             ;
 
 tagMatcher  : identifier COLON identifier (SLASH identifier)*
@@ -211,6 +212,7 @@ IN      : I N ;
 WITHOUT : W I T H O U T;
 WITH    : W I T H ;
 TAG     : T A G ;
+NBT     : N B T ;
 HASHTAG : '#' ;
 
 // ROUND ROBIN
