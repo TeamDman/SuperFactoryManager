@@ -690,6 +690,15 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     }
 
     @Override
+    public WithNbt visitWithNbt(SFMLParser.WithNbtContext ctx) {
+
+        String expression = visitString(ctx.string()).value();
+        WithNbt rtn = WithNbt.create(expression);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
     public TagMatcher visitTagMatcher(SFMLParser.TagMatcherContext ctx) {
 
         ArrayDeque<String> identifiers = ctx
