@@ -167,11 +167,11 @@ public class NbtJmesPathEvaluator {
         }
 
         if (result.isJsonArray()) {
-            return !result.getAsJsonArray().isEmpty();
+            return result.getAsJsonArray().size() > 0;
         }
 
         if (result.isJsonObject()) {
-            return !result.getAsJsonObject().isEmpty();
+            return result.getAsJsonObject().size() > 0;
         }
 
         return true;
