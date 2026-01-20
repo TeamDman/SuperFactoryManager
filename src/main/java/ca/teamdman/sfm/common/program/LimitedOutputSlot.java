@@ -7,19 +7,20 @@ import net.minecraft.util.EnumFacing;
 import org.jetbrains.annotations.Nullable;
 
 public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, ITEM, CAP> {
-    @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
     public ResourceType<STACK, ITEM, CAP> type;
-    @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
+
     public CAP handler;
-    @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
+
     public BlockPos pos;
-    @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
+
     public Label label;
+
     public int slot;
+
     public boolean freed;
-    @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
+
     public IOutputResourceTracker tracker;
-    @SuppressWarnings("NotNullFieldNotInitialized") // done in init method in constructor
+
     public EnumFacing direction;
     private @Nullable STACK stackInSlotCache = null;
 
@@ -33,13 +34,15 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
             STACK stackCache,
             ResourceType<STACK, ITEM, CAP> type
     ) {
+
         this.init(handler, label, pos, direction, slot, tracker, stackCache, type);
     }
 
     @SuppressWarnings("RedundantIfStatement")
     public boolean isDone() {
+
         if (slot > type.getSlots(handler) - 1) {
-            // composter block changes how many slots it has between insertions
+            // The composter block can change how many slots it has between insertions
             return true;
         }
         STACK stack = getStackInSlot();
@@ -57,6 +60,7 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
     }
 
     public STACK getStackInSlot() {
+
         if (stackInSlotCache == null) {
             stackInSlotCache = type.getStackInSlot(handler, slot);
         }
@@ -67,6 +71,7 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
             STACK stack,
             boolean simulate
     ) {
+
         if (!simulate) stackInSlotCache = null;
         return type.insert(handler, slot, stack, simulate);
     }
@@ -82,6 +87,7 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
             STACK stackCache,
             ResourceType<STACK, ITEM, CAP> type
     ) {
+
         this.stackInSlotCache = stackCache;
         this.handler = handler;
         this.tracker = tracker;
@@ -95,6 +101,7 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
 
     @Override
     public String toString() {
+
         return "LimitedOutputSlot{"
                + "label=" + label
                + ", pos=" + pos
@@ -107,21 +114,25 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
 
     @Override
     public ResourceType<STACK, ITEM, CAP> getType() {
+
         return type;
     }
 
     @Override
     public CAP getHandler() {
+
         return handler;
     }
 
     @Override
     public BlockPos getPos() {
+
         return pos;
     }
 
     @Override
     public Label getLabel() {
+
         return label;
     }
 
@@ -132,6 +143,8 @@ public class LimitedOutputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, I
 
     @Override
     public int getSlot() {
+
         return slot;
     }
+
 }

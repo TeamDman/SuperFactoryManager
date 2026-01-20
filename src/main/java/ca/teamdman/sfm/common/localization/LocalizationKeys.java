@@ -631,6 +631,10 @@ public final class LocalizationKeys {
             "log.sfm.statement.tick.io.move_to.zero_to_move",
             "toMove=0, skipping"
     );
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED_NOTHING = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.extracted_nothing",
+            "extracted nothing, marking this input slot as done"
+    );
     public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED = new LocalizationEntry(
             "log.sfm.statement.tick.io.move_to.extracted",
             "Extracted %d from slot %d"

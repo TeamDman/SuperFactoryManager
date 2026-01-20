@@ -18,7 +18,7 @@ public class SFMASTUtils {
             LimitedInputSlot<STACK, ITEM, CAP> slot,
             LabelAccess labelAccess
     ) {
-        STACK potential = slot.peekExtractPotential();
+        STACK potential = slot.peekStackInSlot();
         ResourceType<STACK, ITEM, CAP> resourceType = slot.type;
         if (resourceType.isEmpty(potential)) return Optional.empty();
         long toMove = resourceType.getAmount(potential);

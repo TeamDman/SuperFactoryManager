@@ -8,6 +8,7 @@ import ca.teamdman.sfm.common.registry.SFMResourceTypes;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
@@ -62,22 +63,28 @@ public class OutputStatement implements IOStatement {
             LimitedOutputSlot<STACK, ITEM, CAP> destination
     ) {
         context.getLogger().trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_BEGIN.get(source, destination)));
-        // always ensure types match
-        // items and fluids are incompatible, etc
+
+        // Always ensure the resource types match.
+        // e.g., items and fluids are incompatible
         if (!source.type.equals(destination.type)) {
             context.getLogger().trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_TYPE_MISMATCH.get()));
             return;
         }
         ResourceType<STACK, ITEM, CAP> resourceType = source.type;
 
+        /// Note we intentionally use {@link LimitedInputSlot#peekStackInSlot()} instead of {@link LimitedInputSlot#peekMaxExtractPotential()}
+        /// because this stack is used when computing retention obligations.
+        STACK sourceStack = source.peekStackInSlot();
 
-        // find out what we can pull out
-        // should never be empty by the time we get here
-        STACK extractPotential = source.peekExtractPotential();
-        long extractPotentialAmount = resourceType.getAmount(extractPotential);
+        // It should never be empty by the time we get here.
+        if (SFMEnvironmentUtils.isInIDE()) {
+            if (resourceType.isEmpty(sourceStack)) {
+                throw new IllegalStateException("Extracted stack was empty! This should never happen.");
+            }
+        }
 
         // ensure the output slot allows this item
-        if (!destination.tracker.matchesStack(extractPotential)) {
+        if (!destination.tracker.matchesStack(sourceStack)) {
             context
                     .getLogger()
                     .trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_DESTINATION_TRACKER_REJECT.get()));
@@ -85,19 +92,19 @@ public class OutputStatement implements IOStatement {
         }
 
         // begin counting how much we can move
-        long amountAvailableToMove = extractPotentialAmount;
+        long amountAvailableToMove = resourceType.getAmount(sourceStack);
 
         // how many have we promised to RETAIN in this slot
         long promised_to_leave_in_this_slot = source.tracker.getRetentionObligationForSlot(
                 resourceType,
-                extractPotential,
+                sourceStack,
                 source.pos,
                 source.slot
         );
         amountAvailableToMove -= promised_to_leave_in_this_slot;
 
         // how much remains until our RETAIN is satisfied
-        long remainingObligation = source.tracker.getRemainingRetentionObligation(resourceType, extractPotential);
+        long remainingObligation = source.tracker.getRemainingRetentionObligation(resourceType, sourceStack);
 
         // how much can we allocate towards satisfying the obligation
         long dedicatingToObligation = Math.min(remainingObligation, amountAvailableToMove);
@@ -107,7 +114,7 @@ public class OutputStatement implements IOStatement {
         if (dedicatingToObligation > 0) {
             source.tracker.trackRetentionObligation(
                     resourceType,
-                    extractPotential,
+                    sourceStack,
                     source.slot,
                     source.pos,
                     dedicatingToObligation
@@ -133,13 +140,13 @@ public class OutputStatement implements IOStatement {
         }
 
         // how many can we move before accounting for limits
-        STACK potentialRemainder = destination.insert(extractPotential, true);
-        long amountThatFitsInDestination = resourceType.getAmountDifference(extractPotential, potentialRemainder);
+        STACK potentialRemainder = destination.insert(sourceStack, true);
+        long amountThatFitsInDestination = resourceType.getAmountDifference(sourceStack, potentialRemainder);
         if (amountThatFitsInDestination < 0) {
             throw new IllegalStateException(
                     "Potential insertion remainder amount exceeded the insertion amount! This should never happen. "
                     + "Tried inserting "
-                    + extractPotential
+                    + sourceStack
                     + " into "
                     + destination
                     + " but got "
@@ -154,7 +161,7 @@ public class OutputStatement implements IOStatement {
                     .getLogger()
                     .trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_ZERO_SIMULATED_MOVEMENT.get(
                             potentialRemainder,
-                            extractPotential
+                            sourceStack
                     )));
             return;
         }
@@ -163,15 +170,16 @@ public class OutputStatement implements IOStatement {
         amountAvailableToMove = Math.min(amountThatFitsInDestination, amountAvailableToMove);
 
         // apply output constraints
-        long destinationAmountLimit = destination.tracker.getMaxTransferable(resourceType, extractPotential);
+        long destinationAmountLimit = destination.tracker.getMaxTransferable(resourceType, sourceStack);
         amountAvailableToMove = Math.min(amountAvailableToMove, destinationAmountLimit);
 
         // apply input constraints
-        long sourceAmountLimit = source.tracker.getMaxTransferable(resourceType, extractPotential);
+        long sourceAmountLimit = source.tracker.getMaxTransferable(resourceType, sourceStack);
         amountAvailableToMove = Math.min(amountAvailableToMove, sourceAmountLimit);
 
         // apply stack size constraints
-        long maxStackSize = resourceType.getMaxStackSize(extractPotential); // this is cap-agnostic, so source/dest doesn't matter
+        // This is uninfluenced by the capability; it doesn't matter if we compute using the source stack or the destination stack.
+        long maxStackSize = resourceType.getMaxStackSize(sourceStack);
         amountAvailableToMove = Math.min(amountAvailableToMove, maxStackSize);
         {
             long logToMove = amountAvailableToMove;
@@ -197,6 +205,13 @@ public class OutputStatement implements IOStatement {
                 .getLogger()
                 .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED.get(extracted, source)));
 
+        if (resourceType.isEmpty(extracted)) {
+            // this slot is insert-only; it reports a stack in the slot but refuses extraction
+            context.getLogger().trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED_NOTHING.get()));
+            source.setDone();
+            return;
+        }
+
         // insert item for real
         STACK extractedRemainder = destination.insert(extracted, false);
 
@@ -215,12 +230,12 @@ public class OutputStatement implements IOStatement {
                         destination
                 )));
 
-        // If remainder exists, someone lied.
+        // If the remainder is not empty, someone lied.
         // THIS SHOULD NEVER HAPPEN
         // will void items if it does
         if (!resourceType.isEmpty(extractedRemainder)) {
             ResourceLocation resourceTypeName = SFMResourceTypes.registry().getId(resourceType.container);
-            String stackName = resourceType.getItem(extractPotential).toString();
+            String stackName = resourceType.getItem(sourceStack).toString();
             World level = context.getManager().getWorld();
             assert level != null;
             StringBuilder report = new StringBuilder();
@@ -232,14 +247,14 @@ public class OutputStatement implements IOStatement {
             report
                     .append(String.format("%" + width + "s", "Simulated extraction"))
                     .append(": ")
-                    .append(extractPotential)
+                    .append(sourceStack)
                     .append("\n");
             report
                     .append(String.format("%" + width + "s", "Simulated insertion remainder"))
                     .append(": ")
                     .append(potentialRemainder)
                     .append(" (moved=")
-                    .append(resourceType.getAmountDifference(extractPotential, potentialRemainder))
+                    .append(resourceType.getAmountDifference(sourceStack, potentialRemainder))
                     .append(")")
                     .append(" <-- the output block lied here\n");
             report

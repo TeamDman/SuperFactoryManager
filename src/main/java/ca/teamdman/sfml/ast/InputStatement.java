@@ -60,7 +60,6 @@ public final class InputStatement implements IOStatement {
             for (var slot : limitedInputSlotsCache) {
                 slotConsumer.accept(slot);
             }
-            limitedInputSlotsCache.forEach(slotConsumer);
             return;
         }
 

@@ -33,26 +33,30 @@ public enum Side implements ASTNode {
     }
 
     public @Nullable EnumFacing resolve(IBlockState blockState) {
-
-        return switch (this) {
-            case TOP -> EnumFacing.UP;
-            case BOTTOM -> EnumFacing.DOWN;
-            case NORTH -> EnumFacing.NORTH;
-            case SOUTH -> EnumFacing.SOUTH;
-            case EAST -> EnumFacing.EAST;
-            case WEST -> EnumFacing.WEST;
+        try {
+            return switch (this) {
+                case TOP -> EnumFacing.UP;
+                case BOTTOM -> EnumFacing.DOWN;
+                case NORTH -> EnumFacing.NORTH;
+                case SOUTH -> EnumFacing.SOUTH;
+                case EAST -> EnumFacing.EAST;
+                case WEST -> EnumFacing.WEST;
             case LEFT ->
-                    blockState.getProperties().containsKey(BlockDirectional.FACING) ? getClockWise(blockState.getValue(
+                        blockState.getProperties().containsKey(BlockDirectional.FACING) ? getClockWise(blockState.getValue(
                             BlockDirectional.FACING)) : null;
             case RIGHT ->
-                    blockState.getProperties().containsKey(BlockDirectional.FACING) ? getCounterClockWise(blockState.getValue(
+                        blockState.getProperties().containsKey(BlockDirectional.FACING) ? getCounterClockWise(blockState.getValue(
                             BlockDirectional.FACING)) : null;
-            case FRONT -> blockState.getProperties().containsKey(BlockDirectional.FACING) ? blockState.getValue(
-                    BlockDirectional.FACING) : null;
-            case BACK -> blockState.getProperties().containsKey(BlockDirectional.FACING) ? blockState.getValue(
-                    BlockDirectional.FACING).getOpposite() : null;
-            case NULL -> null;
-        };
+                case FRONT -> blockState.getProperties().containsKey(BlockDirectional.FACING) ? blockState.getValue(
+                        BlockDirectional.FACING) : null;
+                case BACK -> blockState.getProperties().containsKey(BlockDirectional.FACING) ? blockState.getValue(
+                        BlockDirectional.FACING).getOpposite() : null;
+                case NULL -> null;
+            };
+        } catch (Exception e) {
+            // Fix #445 where UP and DOWN directions cannot be rotated to determine relative left/right faces.
+            return null;
+        }
     }
 
     @Nullable

@@ -1,0 +1,61 @@
+{
+    // Java configuration
+    "java.gradle.buildServer.openBuildOutput": "openOnBuildStart",
+    // "java.gradle.buildServer.enabled": "on",
+    "java.gradle.buildServer.enabled": "off",
+    "java.configuration.updateBuildConfiguration": "automatic",
+    // "java.compile.nullAnalysis.mode": "automatic",
+    "java.import.gradle.enabled": true,
+    "java.import.gradle.wrapper.enabled": true,
+    "java.import.gradle.offline.enabled": false,
+    
+    // Use Java 17 for Gradle (Gradle 7.5 doesn't support Java 21)
+    "java.import.gradle.java.home": "C:\\Program Files\\Java\\jbrsdk_jcef-17.0.6-x64-b469",
+    
+    // Source paths for ForgeGradle
+    "java.project.sourcePaths": [
+        "src/main/java",
+        "src/test/java",
+        "src/gametest/java",
+        "src/datagen/java",
+        "build/generated-src/antlr/main"
+    ],
+    
+    // Exclude build artifacts from search/problems
+    "files.exclude": {
+        // "**/build": false,
+        "**/bin": true,
+        "**/.gradle": true
+    },
+    
+    "search.exclude": {
+        "**/build": true,
+        // un-exclude a specific version; https://github.com/microsoft/vscode/issues/869#issuecomment-161205895
+        "!build/tmp/expandedArchives/forge-1.19.2-43.4.0_mapped_parchment_2022.11.27-1.19.2-sources.jar_50e0a883e562228deabdb46a1ce4d20a": true,
+
+        "**/bin": true,
+        "**/.gradle": true,
+        "**/runData": true,
+        "**/runServer": true,
+        "**/runGameTest": true,
+        "**/run": true
+    },
+    
+    // File associations
+    "files.associations": {
+        "*.g4": "antlr4"
+    },
+    
+    // Gradle configuration
+    // "gradle.nestedProjects": true,
+    "gradle.javaDebug.cleanOutput": false,
+    
+    // Editor settings for Java
+    "editor.formatOnSave": false,
+    "java.compile.nullAnalysis.mode": "disabled",
+    "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx8G -Xms100m -Xlog:disable",
+    // "[java]": {
+    //     "editor.formatOnSave": true,
+    //     "editor.defaultFormatter": "redhat.java"
+    // }
+}
