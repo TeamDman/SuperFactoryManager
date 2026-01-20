@@ -36,7 +36,7 @@ public class NbtFilterCombinedWithTagGameTest extends SFMGameTestDefinition {
         test.setProgram("""
             EVERY 20 TICKS DO
                 -- Only move damaged items that are also swords (have the sword tag)
-                INPUT WITH NBT "Damage > `0`" AND #minecraft:swords FROM left
+                INPUT WITH NBT "damage > `0`" AND #minecraft:swords FROM left
                 OUTPUT TO right
             END
         """);

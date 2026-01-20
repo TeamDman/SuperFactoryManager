@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.gametest.tests.nbt_filtering;
 
+import ca.teamdman.sfm.common.enchantment.SFMEnchantmentCollection;
+import ca.teamdman.sfm.common.enchantment.SFMEnchantmentCollectionKind;
 import ca.teamdman.sfm.gametest.LeftRightManagerTest;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
@@ -26,15 +28,17 @@ public class NbtFilterEnchantedItemsGameTest extends SFMGameTestDefinition {
 
         // Create an enchanted sword
         ItemStack enchantedSword = new ItemStack(Items.DIAMOND_SWORD);
-        enchantedSword.enchant(Enchantments.SHARPNESS, 5);
+        SFMEnchantmentCollection enchantments = new SFMEnchantmentCollection();
+        enchantments.add(helper.createEnchantmentEntry(Enchantments.SHARPNESS, 5));
+        enchantments.write(enchantedSword, SFMEnchantmentCollectionKind.EnchantedLikeATool);
 
         // Create a plain sword (no enchantments)
         ItemStack plainSword = new ItemStack(Items.DIAMOND_SWORD);
 
         test.setProgram("""
             EVERY 20 TICKS DO
-                -- Only move items with enchantments (Enchantments array is non-empty)
-                INPUT WITH NBT "Enchantments[0]" FROM left
+                -- Only move items with enchantments (enchantments array is non-empty)
+                INPUT WITH NBT "enchantments[0]" FROM left
                 OUTPUT TO right
             END
         """);

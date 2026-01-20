@@ -4,9 +4,12 @@ import com.google.gson.*;
 import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.gson.GsonRuntime;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -34,25 +37,177 @@ public class NbtJmesPathEvaluator {
     }
 
     /**
-     * Evaluates the JMESPath expression against an ItemStack's NBT.
+     * Evaluates the JMESPath expression against an ItemStack's components.
+     * In 1.21+, this builds a JSON object from DataComponents (Damage, Enchantments, CustomData, etc.).
      *
      * @param stack The ItemStack to query
      * @return true if the result is truthy (non-null, non-empty, non-false, non-zero)
      */
     public boolean matchesItemStack(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
-        return matchesNbt(tag);
+        JsonElement json = itemStackToJson(stack);
+        JsonElement result = expression.search(json);
+        return isTruthy(result);
     }
 
     /**
-     * Evaluates the JMESPath expression against a FluidStack's NBT.
+     * Converts an ItemStack to a JSON object by serializing all its DataComponents.
+     * The components are flattened into a user-friendly structure for querying.
+     *
+     * @param stack The ItemStack to convert
+     * @return A JsonElement representing the item in a query-friendly format
+     */
+    public static JsonElement itemStackToJson(ItemStack stack) {
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) {
+            return JsonNull.INSTANCE;
+        }
+        return itemStackToJson(stack, server.registryAccess());
+    }
+
+    /**
+     * Converts an ItemStack to a JSON object using the provided registry access.
+     * The result is transformed into a user-friendly structure:
+     * - "id": the item id
+     * - "count": the stack count
+     * - Each component is flattened with its namespace prefix stripped (e.g., "damage" not "minecraft:damage")
+     * - Enchantments are transformed into an array format for easy querying
+     *
+     * @param stack The ItemStack to convert
+     * @param registries The registry access for serialization
+     * @return A JsonElement representing the item in a query-friendly format
+     */
+    public static JsonElement itemStackToJson(ItemStack stack, HolderLookup.Provider registries) {
+        if (stack.isEmpty()) {
+            return new JsonObject();
+        }
+        Tag nbt = stack.save(registries);
+        JsonElement raw = nbtToJson(nbt);
+
+        if (!raw.isJsonObject()) {
+            return raw;
+        }
+
+        JsonObject rawObj = raw.getAsJsonObject();
+        JsonObject result = new JsonObject();
+
+        // Copy id and count
+        if (rawObj.has("id")) {
+            result.add("id", rawObj.get("id"));
+        }
+        if (rawObj.has("count")) {
+            result.add("count", rawObj.get("count"));
+        }
+
+        // Flatten components
+        if (rawObj.has("components") && rawObj.get("components").isJsonObject()) {
+            JsonObject components = rawObj.getAsJsonObject("components");
+            for (var entry : components.entrySet()) {
+                String key = entry.getKey();
+                // Strip "minecraft:" prefix for convenience
+                if (key.startsWith("minecraft:")) {
+                    key = key.substring("minecraft:".length());
+                }
+                // Special handling for enchantments - transform to array format
+                if (key.equals("enchantments") && entry.getValue().isJsonObject()) {
+                    result.add("enchantments", transformEnchantments(entry.getValue().getAsJsonObject()));
+                } else {
+                    result.add(key, entry.getValue());
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Transforms enchantments from the Minecraft format to an array format.
+     * Input: {"levels": {"minecraft:sharpness": 5}}
+     * Output: [{"id": "minecraft:sharpness", "lvl": 5}]
+     */
+    private static JsonArray transformEnchantments(JsonObject enchObj) {
+        JsonArray arr = new JsonArray();
+        if (enchObj.has("levels") && enchObj.get("levels").isJsonObject()) {
+            JsonObject levels = enchObj.getAsJsonObject("levels");
+            for (var entry : levels.entrySet()) {
+                JsonObject ench = new JsonObject();
+                ench.addProperty("id", entry.getKey());
+                ench.add("lvl", entry.getValue());
+                arr.add(ench);
+            }
+        }
+        return arr;
+    }
+
+    /**
+     * Evaluates the JMESPath expression against a FluidStack's components.
      *
      * @param stack The FluidStack to query
      * @return true if the result is truthy (non-null, non-empty, non-false, non-zero)
      */
     public boolean matchesFluidStack(FluidStack stack) {
-        CompoundTag tag = stack.getTag();
-        return matchesNbt(tag);
+        JsonElement json = fluidStackToJson(stack);
+        JsonElement result = expression.search(json);
+        return isTruthy(result);
+    }
+
+    /**
+     * Converts a FluidStack to a JSON object by serializing all its DataComponents.
+     *
+     * @param stack The FluidStack to convert
+     * @return A JsonElement representing the fluid in a query-friendly format
+     */
+    public static JsonElement fluidStackToJson(FluidStack stack) {
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) {
+            return JsonNull.INSTANCE;
+        }
+        return fluidStackToJson(stack, server.registryAccess());
+    }
+
+    /**
+     * Converts a FluidStack to a JSON object using the provided registry access.
+     * Components are flattened with namespace prefixes stripped for convenience.
+     *
+     * @param stack The FluidStack to convert
+     * @param registries The registry access for serialization
+     * @return A JsonElement representing the fluid in a query-friendly format
+     */
+    public static JsonElement fluidStackToJson(FluidStack stack, HolderLookup.Provider registries) {
+        if (stack.isEmpty()) {
+            return new JsonObject();
+        }
+        Tag nbt = stack.save(registries);
+        JsonElement raw = nbtToJson(nbt);
+
+        if (!raw.isJsonObject()) {
+            return raw;
+        }
+
+        JsonObject rawObj = raw.getAsJsonObject();
+        JsonObject result = new JsonObject();
+
+        // Copy id and amount
+        if (rawObj.has("id")) {
+            result.add("id", rawObj.get("id"));
+        }
+        if (rawObj.has("amount")) {
+            result.add("amount", rawObj.get("amount"));
+        }
+
+        // Flatten components
+        if (rawObj.has("components") && rawObj.get("components").isJsonObject()) {
+            JsonObject components = rawObj.getAsJsonObject("components");
+            for (var entry : components.entrySet()) {
+                String key = entry.getKey();
+                // Strip "minecraft:" prefix for convenience
+                if (key.startsWith("minecraft:")) {
+                    key = key.substring("minecraft:".length());
+                }
+                result.add(key, entry.getValue());
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -65,6 +220,16 @@ public class NbtJmesPathEvaluator {
         JsonElement json = nbtToJson(tag);
         JsonElement result = expression.search(json);
         return isTruthy(result);
+    }
+
+    /**
+     * Searches the given JSON element using the compiled JMESPath expression.
+     *
+     * @param json The JSON element to search
+     * @return The result of the JMESPath query
+     */
+    public JsonElement search(JsonElement json) {
+        return expression.search(json);
     }
 
     /**
