@@ -51,10 +51,10 @@ public class NbtFilterCombinedWithTagGameTest extends SFMGameTestDefinition {
         // The damaged pickaxe stays because it doesn't have the sword tag
         test.postContents("left", Arrays.asList(
                 ItemStack.EMPTY,
-                damagedPickaxe
+                damagedPickaxe.copy()
         ));
         test.postContents("right", Arrays.asList(
-                damagedSword
+                damagedSword.copy()
         ));
 
         test.run();

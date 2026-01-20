@@ -49,10 +49,10 @@ public class NbtFilterDamagedItemsGameTest extends SFMGameTestDefinition {
         // The undamaged sword stays in the left
         test.postContents("left", Arrays.asList(
                 ItemStack.EMPTY,
-                undamagedSword
+                undamagedSword.copy()
         ));
         test.postContents("right", Arrays.asList(
-                damagedSword
+                damagedSword.copy()
         ));
 
         test.run();

@@ -51,11 +51,11 @@ public class NbtFilterWithoutEnchantmentsGameTest extends SFMGameTestDefinition 
 
         // Only the plain sword should move to the right
         test.postContents("left", Arrays.asList(
-                enchantedSword,
+                enchantedSword.copy(),
                 ItemStack.EMPTY
         ));
         test.postContents("right", Arrays.asList(
-                plainSword
+                plainSword.copy()
         ));
 
         test.run();
