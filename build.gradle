@@ -303,6 +303,22 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
     antlr 'org.antlr:antlr4:4.9.1'
+
+    // JMESPath for NBT filtering - bundled via JarJar for distribution
+    jarJar('io.burt:jmespath-core:0.6.0') {
+        version {
+            strictly '[0.6.0,0.7.0)'
+        }
+    }
+    jarJar('io.burt:jmespath-gson:0.6.0') {
+        version {
+            strictly '[0.6.0,0.7.0)'
+        }
+    }
+    // Add to minecraftLibrary for development runtime (runClient, etc.)
+    minecraftLibrary 'io.burt:jmespath-core:0.6.0'
+    minecraftLibrary 'io.burt:jmespath-gson:0.6.0'
+
     testImplementation 'com.github.javaparser:javaparser-symbol-solver-core:3.26.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
@@ -502,6 +518,9 @@ jar {
 jar.finalizedBy('reobfJar')
 // However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
 // publish.dependsOn('reobfJar')
+
+// Enable jarJar for bundling JMESPath library
+jarJar.enable()
 
 publishing {
     publications {
