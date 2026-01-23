@@ -233,6 +233,21 @@ public class NbtJmesPathEvaluator {
     }
 
     /**
+     * Converts a stack to a JSON representation for JMESPath querying.
+     *
+     * @param stack The stack to convert
+     * @return A JsonElement representing the stack's full serialized form
+     */
+    public static JsonElement getJsonFromStack(Object stack) {
+        if (stack instanceof ItemStack itemStack) {
+            return itemStackToJson(itemStack);
+        } else if (stack instanceof FluidStack fluidStack) {
+            return fluidStackToJson(fluidStack);
+        }
+        return nbtToJson(null);
+    }
+
+    /**
      * Converts a Minecraft NBT Tag to a Gson JsonElement.
      *
      * @param tag The NBT tag (may be null)

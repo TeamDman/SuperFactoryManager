@@ -2,9 +2,6 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.NbtJmesPathEvaluator;
-import com.google.gson.JsonElement;
-import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.fluids.FluidStack;
 
 /**
  * AST node for NBT filtering using JMESPath expressions.
@@ -32,23 +29,7 @@ public record WithNbt(
             ResourceType<STACK, ?, ?> resourceType,
             STACK stack
     ) {
-        JsonElement json = getJsonFromStack(stack);
-        return NbtJmesPathEvaluator.isTruthy(evaluator.search(json));
-    }
-
-    /**
-     * Converts a stack to a JSON representation for JMESPath querying.
-     *
-     * @param stack The stack to convert
-     * @return A JsonElement representing the stack's full serialized form
-     */
-    private static JsonElement getJsonFromStack(Object stack) {
-        if (stack instanceof ItemStack itemStack) {
-            return NbtJmesPathEvaluator.itemStackToJson(itemStack);
-        } else if (stack instanceof FluidStack fluidStack) {
-            return NbtJmesPathEvaluator.fluidStackToJson(fluidStack);
-        }
-        return NbtJmesPathEvaluator.nbtToJson(null);
+        return NbtJmesPathEvaluator.isTruthy(evaluator.search(NbtJmesPathEvaluator.getJsonFromStack(stack)));
     }
 
     @Override
