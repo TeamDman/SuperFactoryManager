@@ -75,7 +75,46 @@ withClause  : LPAREN withClause RPAREN           # WithParen
             | withClause AND withClause          # WithConjunction
             | withClause OR withClause           # WithDisjunction
             | (TAG HASHTAG?|HASHTAG) tagMatcher  # WithTag
-            | NBT string                         # WithNbt
+            | NBT string                         # WithNbtRaw
+            | NBT nbtExpr                        # WithNbtExpr
+            ;
+
+// NBT expression with optional comparison
+nbtExpr     : nbtPath (comparisonOp nbtValue)?
+            ;
+
+// Path starting with component, optional array index, then field/array access
+nbtPath     : nbtComponent (LBRACKET arrayIndex RBRACKET)? (DOT nbtPathElement)*
+            ;
+
+// Component: namespace:name or just name
+nbtComponent: identifier (COLON identifier)?
+            ;
+
+// Path elements: field, field[n], or [n]
+nbtPathElement : identifier (LBRACKET arrayIndex RBRACKET)?
+               | LBRACKET arrayIndex RBRACKET
+               ;
+
+// Array index: number, *, or ?filter
+arrayIndex  : NUMBER                             # ArrayIndexNumber
+            | STAR                               # ArrayIndexStar
+            | QUESTION nbtFilterExpr             # ArrayIndexFilter
+            ;
+
+// Filter inside [?...]
+nbtFilterExpr : nbtFilterPath (comparisonOp nbtValue)?
+              ;
+
+nbtFilterPath : AT? (DOT? identifier)+
+              ;
+
+// Values for comparison
+nbtValue    : NUMBER                             # NbtValueNumber
+            | DASH NUMBER                        # NbtValueNegativeNumber
+            | string                             # NbtValueString
+            | TRUE                               # NbtValueTrue
+            | FALSE                              # NbtValueFalse
             ;
 
 tagMatcher  : identifier COLON identifier (SLASH identifier)*
@@ -151,7 +190,7 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK) ;
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | STAR | NAME) ;
 
 // GENERAL
 string: STRING ;
@@ -258,17 +297,23 @@ NAME            : N A M E ;
 // used by triggers and as a set operator
 EVERY           : E V E R Y ;
 
-COMMA   : ',';
-COLON   : ':';
-SLASH   : '/';
-DASH    : '-';
-LPAREN  : '(';
-RPAREN  : ')';
+COMMA    : ',';
+COLON    : ':';
+SLASH    : '/';
+DASH     : '-';
+LPAREN   : '(';
+RPAREN   : ')';
+LBRACKET : '[';
+RBRACKET : ']';
+DOT      : '.';
+AT       : '@';
+QUESTION : '?';
+STAR     : '*';
 
 
 NUMBER_WITH_G_SUFFIX    : [0-9]+[gG] ;
 NUMBER                  : [0-9]+ ;
-IDENTIFIER              : [a-zA-Z_*][a-zA-Z0-9_*]* | '*'; // Note that the * in the square brackets is a literl
+IDENTIFIER              : [a-zA-Z_][a-zA-Z0-9_]*;
 
 STRING : '"' (~'"'|'\\"')* '"' ;
 
