@@ -690,10 +690,173 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     }
 
     @Override
-    public WithNbt visitWithNbt(SFMLParser.WithNbtContext ctx) {
+    public WithNbt visitWithNbtRaw(SFMLParser.WithNbtRawContext ctx) {
 
         String expression = visitString(ctx.string()).value();
         WithNbt rtn = WithNbt.create(expression);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public WithNbtExpr visitWithNbtExpr(SFMLParser.WithNbtExprContext ctx) {
+
+        NbtExpr expr = visitNbtExpr(ctx.nbtExpr());
+        WithNbtExpr rtn = WithNbtExpr.create(expr);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtExpr visitNbtExpr(SFMLParser.NbtExprContext ctx) {
+
+        NbtPath path = visitNbtPath(ctx.nbtPath());
+        ComparisonOperator op = null;
+        NbtValue value = null;
+        if (ctx.comparisonOp() != null && ctx.nbtValue() != null) {
+            op = visitComparisonOp(ctx.comparisonOp());
+            value = (NbtValue) visit(ctx.nbtValue());
+        }
+        NbtExpr rtn = new NbtExpr(path, op, value);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtPath visitNbtPath(SFMLParser.NbtPathContext ctx) {
+
+        NbtComponent component = visitNbtComponent(ctx.nbtComponent());
+        ArrayIndex componentArrayIndex = ctx.arrayIndex() != null ? (ArrayIndex) visit(ctx.arrayIndex()) : null;
+        List<NbtPathElement> elements = ctx.nbtPathElement()
+                .stream()
+                .map(this::visitNbtPathElement)
+                .collect(Collectors.toList());
+        NbtPath rtn = new NbtPath(component, componentArrayIndex, elements);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtComponent visitNbtComponent(SFMLParser.NbtComponentContext ctx) {
+
+        List<SFMLParser.IdentifierContext> identifiers = ctx.identifier();
+        NbtComponent rtn;
+        if (identifiers.size() == 2) {
+            // namespace:name
+            String namespace = identifiers.get(0).getText();
+            String name = identifiers.get(1).getText();
+            rtn = NbtComponent.namespaced(namespace, name);
+        } else {
+            // just name
+            rtn = NbtComponent.simple(identifiers.get(0).getText());
+        }
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtPathElement visitNbtPathElement(SFMLParser.NbtPathElementContext ctx) {
+
+        String field = ctx.identifier() != null ? ctx.identifier().getText() : null;
+        ArrayIndex index = ctx.arrayIndex() != null ? (ArrayIndex) visit(ctx.arrayIndex()) : null;
+        NbtPathElement rtn = new NbtPathElement(field, index);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public ArrayIndex visitArrayIndexNumber(SFMLParser.ArrayIndexNumberContext ctx) {
+
+        long value = Long.parseLong(ctx.NUMBER().getText());
+        ArrayIndex rtn = new ArrayIndex.NumberIndex(value);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public ArrayIndex visitArrayIndexStar(SFMLParser.ArrayIndexStarContext ctx) {
+
+        ArrayIndex rtn = new ArrayIndex.StarIndex();
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public ArrayIndex visitArrayIndexFilter(SFMLParser.ArrayIndexFilterContext ctx) {
+
+        NbtFilterExpr filter = visitNbtFilterExpr(ctx.nbtFilterExpr());
+        ArrayIndex rtn = new ArrayIndex.FilterIndex(filter);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtFilterExpr visitNbtFilterExpr(SFMLParser.NbtFilterExprContext ctx) {
+
+        NbtFilterPath path = visitNbtFilterPath(ctx.nbtFilterPath());
+        ComparisonOperator op = null;
+        NbtValue value = null;
+        if (ctx.comparisonOp() != null && ctx.nbtValue() != null) {
+            op = visitComparisonOp(ctx.comparisonOp());
+            value = (NbtValue) visit(ctx.nbtValue());
+        }
+        NbtFilterExpr rtn = new NbtFilterExpr(path, op, value);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtFilterPath visitNbtFilterPath(SFMLParser.NbtFilterPathContext ctx) {
+
+        boolean hasAt = ctx.AT() != null;
+        List<String> identifiers = ctx.identifier()
+                .stream()
+                .map(ParseTree::getText)
+                .collect(Collectors.toList());
+        NbtFilterPath rtn = new NbtFilterPath(hasAt, identifiers);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtValue visitNbtValueNumber(SFMLParser.NbtValueNumberContext ctx) {
+
+        long value = Long.parseLong(ctx.NUMBER().getText());
+        NbtValue rtn = new NbtValue.NbtNumber(value);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtValue visitNbtValueNegativeNumber(SFMLParser.NbtValueNegativeNumberContext ctx) {
+
+        long value = -Long.parseLong(ctx.NUMBER().getText());
+        NbtValue rtn = new NbtValue.NbtNumber(value);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtValue visitNbtValueString(SFMLParser.NbtValueStringContext ctx) {
+
+        String value = visitString(ctx.string()).value();
+        NbtValue rtn = new NbtValue.NbtString(value);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtValue visitNbtValueTrue(SFMLParser.NbtValueTrueContext ctx) {
+
+        NbtValue rtn = new NbtValue.NbtBoolean(true);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtValue visitNbtValueFalse(SFMLParser.NbtValueFalseContext ctx) {
+
+        NbtValue rtn = new NbtValue.NbtBoolean(false);
         trackNode(rtn, ctx);
         return rtn;
     }
