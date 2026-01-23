@@ -2,9 +2,6 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.NbtJmesPathEvaluator;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
 
 /**
  * AST node for NBT filtering using JMESPath expressions.
@@ -32,24 +29,7 @@ public record WithNbt(
             ResourceType<STACK, ?, ?> resourceType,
             STACK stack
     ) {
-        CompoundTag tag = getNbtFromStack(stack);
-        return evaluator.matchesNbt(tag);
-    }
-
-    /**
-     * Extracts the NBT CompoundTag from a stack.
-     * Supports ItemStack and FluidStack.
-     *
-     * @param stack The stack to extract NBT from
-     * @return The CompoundTag, or null if the stack type is not supported or has no NBT
-     */
-    private static CompoundTag getNbtFromStack(Object stack) {
-        if (stack instanceof ItemStack itemStack) {
-            return itemStack.getTag();
-        } else if (stack instanceof FluidStack fluidStack) {
-            return fluidStack.getTag();
-        }
-        return null;
+        return evaluator.matchesNbt(NbtJmesPathEvaluator.getNbtFromStack(stack));
     }
 
     @Override

@@ -68,6 +68,22 @@ public class NbtJmesPathEvaluator {
     }
 
     /**
+     * Extracts the NBT CompoundTag from a stack.
+     * Supports ItemStack and FluidStack.
+     *
+     * @param stack The stack to extract NBT from
+     * @return The CompoundTag, or null if the stack type is not supported or has no NBT
+     */
+    public static @Nullable CompoundTag getNbtFromStack(Object stack) {
+        if (stack instanceof ItemStack itemStack) {
+            return itemStack.getTag();
+        } else if (stack instanceof FluidStack fluidStack) {
+            return fluidStack.getTag();
+        }
+        return null;
+    }
+
+    /**
      * Converts a Minecraft NBT Tag to a Gson JsonElement.
      *
      * @param tag The NBT tag (may be null)
