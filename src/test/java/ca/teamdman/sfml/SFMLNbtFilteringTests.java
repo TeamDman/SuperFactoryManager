@@ -1,12 +1,15 @@
 package ca.teamdman.sfml;
 
 import ca.teamdman.sfm.common.util.NbtJmesPathEvaluator;
+import ca.teamdman.sfml.ast.*;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonPrimitive;
 import io.burt.jmespath.parser.ParseException;
 import net.minecraft.nbt.*;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static ca.teamdman.sfml.SFMLTestHelpers.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -452,5 +455,301 @@ public class SFMLNbtFilteringTests {
         assertThrows(ParseException.class, () -> {
             NbtJmesPathEvaluator.compile("[?unclosed bracket");
         });
+    }
+
+    // ==================== Grammar-based NBT Expression Tests ====================
+
+    @Test
+    public void nbtExprSimpleField() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Damage FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprFieldComparison() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Damage > 10 FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprFieldEquality() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Damage = 0 FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprFieldLessOrEqual() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Damage <= 100 FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprNamespacedComponent() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT minecraft:custom_data FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprNamespacedComponentWithComparison() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT productivebees:gene_group.purity = 100 FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprNestedField() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT display.Name FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprArrayAccess() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Enchantments[0] FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprArrayAccessWithField() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Enchantments[0].id FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprArrayWildcard() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Enchantments[*].lvl FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprArrayFilter() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Enchantments[?id = "minecraft:sharpness"] FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprArrayFilterWithComparison() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Enchantments[?lvl > 3] FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprArrayFilterWithAt() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Enchantments[?@.id = "minecraft:sharpness"] FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprNegativeNumber() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT temperature > -10 FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprBooleanValue() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT active = true FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprCombinedWithTag() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Damage > 0 AND TAG minecraft:swords FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprOldSyntaxStillWorks() {
+        // Verify the old string-based syntax still works
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH NBT "Enchantments[*].lvl | max(@) > `3`" FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprWithWithout() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITHOUT NBT Damage FROM a
+                OUTPUT TO b
+            END
+        """);
+    }
+
+    @Test
+    public void nbtExprInBooleanHas() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT FROM a
+                IF a HAS > 0 diamond_sword WITH NBT Damage > 10 THEN
+                    OUTPUT TO b
+                END
+            END
+        """);
+    }
+
+    // ==================== JMESPath Compilation Tests ====================
+
+    @Test
+    public void nbtExprCompilesToSimplePath() {
+        NbtComponent component = NbtComponent.simple("Damage");
+        NbtPath path = new NbtPath(component, null, List.of());
+        NbtExpr expr = NbtExpr.pathOnly(path);
+
+        assertEquals("Damage", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtExprCompilesToNamespacedPath() {
+        NbtComponent component = NbtComponent.namespaced("minecraft", "custom_data");
+        NbtPath path = new NbtPath(component, null, List.of());
+        NbtExpr expr = NbtExpr.pathOnly(path);
+
+        assertEquals("\"minecraft:custom_data\"", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtExprCompilesToNestedPath() {
+        NbtComponent component = NbtComponent.simple("display");
+        NbtPathElement element = NbtPathElement.field("Name");
+        NbtPath path = new NbtPath(component, null, List.of(element));
+        NbtExpr expr = NbtExpr.pathOnly(path);
+
+        assertEquals("display.Name", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtExprCompilesToArrayPath() {
+        NbtComponent component = NbtComponent.simple("Enchantments");
+        ArrayIndex.NumberIndex arrayIndex = new ArrayIndex.NumberIndex(0);
+        NbtPath path = new NbtPath(component, arrayIndex, List.of());
+        NbtExpr expr = NbtExpr.pathOnly(path);
+
+        assertEquals("Enchantments[0]", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtExprCompilesToComparison() {
+        NbtComponent component = NbtComponent.simple("Damage");
+        NbtPath path = new NbtPath(component, null, List.of());
+        NbtExpr expr = new NbtExpr(path, ComparisonOperator.GREATER, new NbtValue.NbtNumber(10));
+
+        assertEquals("Damage > `10`", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtExprCompilesToStringComparison() {
+        NbtFilterPath filterPath = new NbtFilterPath(false, List.of("id"));
+        NbtFilterExpr filterExpr = new NbtFilterExpr(
+                filterPath,
+                ComparisonOperator.EQUALS,
+                new NbtValue.NbtString("minecraft:sharpness")
+        );
+        ArrayIndex.FilterIndex filterIndex = new ArrayIndex.FilterIndex(filterExpr);
+        NbtComponent component = NbtComponent.simple("Enchantments");
+        NbtPath path = new NbtPath(component, filterIndex, List.of());
+        NbtExpr expr = NbtExpr.pathOnly(path);
+
+        assertEquals("Enchantments[?id == 'minecraft:sharpness']", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtExprCompilesNamespacedWithNestedField() {
+        NbtComponent component = NbtComponent.namespaced("productivebees", "gene_group");
+        NbtPathElement element = NbtPathElement.field("purity");
+        NbtPath path = new NbtPath(component, null, List.of(element));
+        NbtExpr expr = new NbtExpr(path, ComparisonOperator.EQUALS, new NbtValue.NbtNumber(100));
+
+        assertEquals("\"productivebees:gene_group\".purity == `100`", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtValueNegativeNumber() {
+        NbtValue value = new NbtValue.NbtNumber(-42);
+        assertEquals("`-42`", value.toJmesPath());
+    }
+
+    @Test
+    public void nbtValueBoolean() {
+        NbtValue trueVal = new NbtValue.NbtBoolean(true);
+        NbtValue falseVal = new NbtValue.NbtBoolean(false);
+        assertEquals("`true`", trueVal.toJmesPath());
+        assertEquals("`false`", falseVal.toJmesPath());
+    }
+
+    @Test
+    public void nbtFilterPathWithAt() {
+        NbtFilterPath path = new NbtFilterPath(true, List.of("id"));
+        assertEquals("@.id", path.toJmesPath());
+    }
+
+    @Test
+    public void nbtFilterPathWithoutAt() {
+        NbtFilterPath path = new NbtFilterPath(false, List.of("nested", "field"));
+        assertEquals("nested.field", path.toJmesPath());
     }
 }
