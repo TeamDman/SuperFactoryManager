@@ -701,23 +701,46 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     @Override
     public WithNbtExpr visitWithNbtExpr(SFMLParser.WithNbtExprContext ctx) {
 
-        NbtExpr expr = visitNbtExpr(ctx.nbtExpr());
+        NbtExpr expr = (NbtExpr) visit(ctx.nbtExpr());
         WithNbtExpr rtn = WithNbtExpr.create(expr);
         trackNode(rtn, ctx);
         return rtn;
     }
 
     @Override
-    public NbtExpr visitNbtExpr(SFMLParser.NbtExprContext ctx) {
+    public NbtExpr visitNbtComparison(SFMLParser.NbtComparisonContext ctx) {
 
         NbtPath path = visitNbtPath(ctx.nbtPath());
-        ComparisonOperator op = null;
-        NbtValue value = null;
+        NbtExpr rtn;
         if (ctx.comparisonOp() != null && ctx.nbtValue() != null) {
-            op = visitComparisonOp(ctx.comparisonOp());
-            value = (NbtValue) visit(ctx.nbtValue());
+            ComparisonOperator op = visitComparisonOp(ctx.comparisonOp());
+            NbtValue value = (NbtValue) visit(ctx.nbtValue());
+            rtn = NbtExpr.comparison(path, op, value);
+        } else {
+            rtn = NbtExpr.pathOnly(path);
         }
-        NbtExpr rtn = new NbtExpr(path, op, value);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtExpr visitNbtInArray(SFMLParser.NbtInArrayContext ctx) {
+
+        NbtPath path = visitNbtPath(ctx.nbtPath());
+        NbtArrayLiteral array = visitNbtArray(ctx.nbtArray());
+        NbtExpr rtn = NbtExpr.inArray(path, array);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
+    public NbtArrayLiteral visitNbtArray(SFMLParser.NbtArrayContext ctx) {
+
+        List<NbtValue> values = ctx.nbtValue()
+                .stream()
+                .map(v -> (NbtValue) visit(v))
+                .collect(Collectors.toList());
+        NbtArrayLiteral rtn = new NbtArrayLiteral(values);
         trackNode(rtn, ctx);
         return rtn;
     }
