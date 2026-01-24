@@ -1,0 +1,224 @@
+NAME "NBT Matching"
+
+-- ============================================
+-- SECTION 1: Basic NBT Existence Checks
+-- ============================================
+-- Check if items have NBT data
+
+EVERY 20 TICKS DO
+    -- items with any damage value
+    INPUT WITH NBT damage FROM tools
+    OUTPUT TO damaged_items
+END
+
+EVERY 20 TICKS DO
+    -- items with custom name
+    INPUT WITH NBT custom_name FROM chest
+    OUTPUT TO named_items
+END
+
+EVERY 20 TICKS DO
+    -- unbreakable items
+    INPUT WITH NBT unbreakable FROM chest
+    OUTPUT TO unbreakable_items
+END
+
+-- ============================================
+-- SECTION 2: Comparison Operators
+-- ============================================
+-- Filter by numeric data component values
+EVERY 20 TICKS DO
+    -- damaged items (damage > 0)
+    INPUT WITH NBT damage > 0 FROM tools
+    OUTPUT TO repair_chest
+END
+
+EVERY 20 TICKS DO
+    -- over-repaired items (high anvil cost)
+    INPUT WITH NBT repair_cost > 10 FROM tools
+    OUTPUT TO too_expensive
+END
+
+EVERY 20 TICKS DO
+    -- pristine items only (no damage)
+    INPUT WITH NBT damage = 0 FROM tools
+    OUTPUT TO storage
+END
+
+-- ============================================
+-- SECTION 3: Wildcard String Matching
+-- ============================================
+-- Match string values with wildcards
+-- Uses: prefix*, *suffix, *contains*, *
+
+EVERY 20 TICKS DO
+    -- prefix match: items from a specific mod
+    INPUT WITH NBT id = "mekanism:*" FROM chest
+    OUTPUT TO mekanism_storage
+END
+
+EVERY 20 TICKS DO
+    -- suffix match: all ore-related items
+    INPUT WITH NBT id = "*_ore" FROM chest
+    OUTPUT TO ore_processing
+END
+
+EVERY 20 TICKS DO
+    -- contains match: anything with "diamond"
+    INPUT WITH NBT id = "*diamond*" FROM chest
+    OUTPUT TO valuables
+END
+
+EVERY 20 TICKS DO
+    -- existence check with wildcard (any value in custom_data.mymod)
+    INPUT WITH NBT custom_data.mymod = "*" FROM chest
+    OUTPUT TO has_mod_data
+END
+
+-- ============================================
+-- SECTION 4: IN Operator
+-- ============================================
+-- Check if value is one of several options
+
+EVERY 20 TICKS DO
+    -- filter basic/water potions
+    INPUT potion WITH NBT potion_contents.potion IN [
+        "minecraft:water",
+        "minecraft:mundane",
+        "minecraft:thick",
+        "minecraft:awkward"
+    ] FROM potions
+    OUTPUT TO basic_potions
+END
+
+EVERY 20 TICKS DO
+    -- filter healing/regeneration potions
+    INPUT potion WITH NBT potion_contents.potion IN [
+        "minecraft:healing",
+        "minecraft:strong_healing",
+        "minecraft:regeneration",
+        "minecraft:strong_regeneration"
+    ] FROM potions
+    OUTPUT TO medical_potions
+END
+
+-- ============================================
+-- SECTION 5: Array Operations
+-- ============================================
+-- Work with enchantments array (auto-transformed from levels map)
+
+EVERY 20 TICKS DO
+    -- items with any enchantment
+    INPUT WITH NBT enchantments[0] FROM chest
+    OUTPUT TO enchanted
+END
+
+EVERY 20 TICKS DO
+    -- enchanted books with mending (stored_enchantments for books)
+    INPUT WITH NBT stored_enchantments[?id = "minecraft:mending"] FROM chest
+    OUTPUT TO mending_books
+END
+
+EVERY 20 TICKS DO
+    -- high-level enchantments only (level 4+)
+    INPUT WITH NBT enchantments[?lvl >= 4] FROM chest
+    OUTPUT TO high_level
+END
+
+EVERY 20 TICKS DO
+    -- specific enchantment at specific level (quoted JMESPath for compound filters)
+    INPUT WITH NBT "enchantments[?id == 'minecraft:fortune' && lvl == `3`]" FROM chest
+    OUTPUT TO fortune3
+END
+
+-- ============================================
+-- SECTION 6: Combining with Tags
+-- ============================================
+-- Mix NBT matching with tag matching (NeoForge uses c: common tags)
+
+EVERY 20 TICKS DO
+    -- damaged swords only
+    INPUT WITH NBT damage > 0 AND TAG c:tools/swords FROM tools
+    OUTPUT TO sword_repair
+END
+
+EVERY 20 TICKS DO
+    -- enchanted pickaxes
+    INPUT WITH NBT enchantments[0] AND TAG c:tools/pickaxes FROM tools
+    OUTPUT TO enchanted_picks
+END
+
+EVERY 20 TICKS DO
+    -- tools that are either damaged OR enchanted
+    INPUT WITH TAG c:tools AND (NBT damage > 0 OR NBT enchantments[0]) FROM chest
+    OUTPUT TO special_tools
+END
+
+-- ============================================
+-- SECTION 7: Real-World Use Cases
+-- ============================================
+
+-- TOOL SORTING: Sort tools by condition
+EVERY 20 TICKS DO
+    -- pristine tools to main storage
+    INPUT WITH NBT damage = 0 AND TAG c:tools FROM unsorted
+    OUTPUT TO pristine_tools
+END
+
+EVERY 20 TICKS DO
+    -- damaged tools to repair station
+    INPUT WITH NBT damage > 0 AND TAG c:tools FROM unsorted
+    OUTPUT TO repair_station
+END
+
+-- ENCHANTMENT SORTING: Group by enchantment type
+EVERY 20 TICKS DO
+    -- silk touch items
+    INPUT WITH NBT enchantments[?id = "minecraft:silk_touch"] FROM unsorted
+    OUTPUT TO silk_touch_tools
+END
+
+EVERY 20 TICKS DO
+    -- fortune items
+    INPUT WITH NBT enchantments[?id = "minecraft:fortune"] FROM unsorted
+    OUTPUT TO fortune_tools
+END
+
+-- MOD INTEGRATION: Custom data component
+EVERY 20 TICKS DO
+    -- access mod data stored in custom_data component
+    INPUT WITH NBT custom_data.mymod.quality >= 90 FROM storage
+    OUTPUT TO high_quality
+END
+
+-- MOD INTEGRATION: Filter enchantments by mod
+EVERY 20 TICKS DO
+    -- apotheosis enchantments (prefix match)
+    INPUT WITH NBT enchantments[?id = "apotheosis:*"] FROM chest
+    OUTPUT TO apotheosis_items
+END
+
+EVERY 20 TICKS DO
+    -- armor with trims
+    INPUT WITH NBT trim FROM armor_chest
+    OUTPUT TO trimmed_armor
+END
+
+-- MOD INTEGRATION: Sort items by source mod
+EVERY 20 TICKS DO
+    -- separate Applied Energistics items
+    INPUT WITH NBT id = "ae2:*" FROM mixed_storage
+    OUTPUT TO ae2_storage
+END
+
+EVERY 20 TICKS DO
+    -- separate Refined Storage items
+    INPUT WITH NBT id = "refinedstorage:*" FROM mixed_storage
+    OUTPUT TO rs_storage
+END
+
+EVERY 20 TICKS DO
+    -- keep only vanilla items
+    INPUT WITH NBT id = "minecraft:*" FROM mixed_storage
+    OUTPUT TO vanilla_storage
+END
