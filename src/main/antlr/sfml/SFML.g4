@@ -79,8 +79,9 @@ withClause  : LPAREN withClause RPAREN           # WithParen
             | NBT nbtExpr                        # WithNbtExpr
             ;
 
-// NBT expression with optional comparison
-nbtExpr     : nbtPath (comparisonOp nbtValue)?
+// NBT expression with optional comparison or IN check
+nbtExpr     : nbtPath (comparisonOp nbtValue)?      # NbtComparison
+            | nbtPath IN nbtArray                   # NbtInArray
             ;
 
 // Path starting with component, optional array index, then field/array access
@@ -115,6 +116,10 @@ nbtValue    : NUMBER                             # NbtValueNumber
             | string                             # NbtValueString
             | TRUE                               # NbtValueTrue
             | FALSE                              # NbtValueFalse
+            ;
+
+// Array literal for IN expressions
+nbtArray    : LBRACKET (nbtValue (COMMA nbtValue)*)? RBRACKET
             ;
 
 tagMatcher  : tagPatternElement COLON tagPatternElement (SLASH tagPatternElement)*

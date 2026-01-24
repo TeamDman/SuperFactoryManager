@@ -696,7 +696,7 @@ public class SFMLNbtFilteringTests {
     public void nbtExprCompilesToComparison() {
         NbtComponent component = NbtComponent.simple("damage");
         NbtPath path = new NbtPath(component, null, List.of());
-        NbtExpr expr = new NbtExpr(path, ComparisonOperator.GREATER, new NbtValue.NbtNumber(10));
+        NbtExpr expr = NbtExpr.comparison(path, ComparisonOperator.GREATER, new NbtValue.NbtNumber(10));
 
         assertEquals("damage > `10`", expr.toJmesPath());
     }
@@ -722,7 +722,7 @@ public class SFMLNbtFilteringTests {
         NbtComponent component = NbtComponent.namespaced("productivebees", "gene_group");
         NbtPathElement element = NbtPathElement.field("purity");
         NbtPath path = new NbtPath(component, null, List.of(element));
-        NbtExpr expr = new NbtExpr(path, ComparisonOperator.EQUALS, new NbtValue.NbtNumber(100));
+        NbtExpr expr = NbtExpr.comparison(path, ComparisonOperator.EQUALS, new NbtValue.NbtNumber(100));
 
         assertEquals("\"productivebees:gene_group\".purity == `100`", expr.toJmesPath());
     }
@@ -751,5 +751,28 @@ public class SFMLNbtFilteringTests {
     public void nbtFilterPathWithoutAt() {
         NbtFilterPath path = new NbtFilterPath(false, List.of("nested", "field"));
         assertEquals("nested.field", path.toJmesPath());
+    }
+
+    @Test
+    public void nbtInExpressionCompilesToContains() {
+        NbtComponent component = NbtComponent.namespaced("potion_contents", "potion");
+        NbtPath path = new NbtPath(component, null, List.of());
+        NbtArrayLiteral array = new NbtArrayLiteral(List.of(
+                new NbtValue.NbtString("minecraft:water"),
+                new NbtValue.NbtString("minecraft:mundane")
+        ));
+        NbtExpr expr = NbtExpr.inArray(path, array);
+
+        assertEquals("contains(['minecraft:water', 'minecraft:mundane'], \"potion_contents:potion\")", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtInExpressionParsesCorrectly() {
+        String input = """
+            EVERY 20 TICKS DO
+                INPUT potion WITH NBT potion_contents.potion IN ["minecraft:water", "minecraft:mundane"] FROM chest
+            END
+        """;
+        assertNoCompileErrors(input);
     }
 }
