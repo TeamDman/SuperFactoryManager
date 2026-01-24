@@ -156,6 +156,22 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.BLOCK:
             case SFMLLexer.LABEL:
                 return ChatFormatting.YELLOW;
+            // Protocol, macro, and library keywords
+            case SFMLLexer.PROTOCOL:
+            case SFMLLexer.STRUCT:
+            case SFMLLexer.LET:
+            case SFMLLexer.USING:
+            case SFMLLexer.MACRO:
+            case SFMLLexer.EXPAND:
+            case SFMLLexer.IMPORT:
+            case SFMLLexer.USE:
+            case SFMLLexer.LIBRARY:
+                return ChatFormatting.BLUE;
+            case SFMLLexer.SIDEQUALIFIER:
+            case SFMLLexer.SLOTQUALIFIER:
+            case SFMLLexer.RESOURCE:
+            case SFMLLexer.NUMBERTYPE:
+                return ChatFormatting.DARK_PURPLE;
             default:
                 return ChatFormatting.WHITE;
         }

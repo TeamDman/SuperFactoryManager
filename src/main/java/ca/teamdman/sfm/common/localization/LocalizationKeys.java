@@ -484,6 +484,23 @@ public final class LocalizationKeys {
             "program.sfm.warnings.unused_struct_instance",
             "Struct instance \"%s\" is defined but never used in a USING clause."
     );
+    public static final LocalizationEntry PROGRAM_WARNING_UNUSED_PROTOCOL = new LocalizationEntry(
+            "program.sfm.warnings.unused_protocol",
+            "Protocol \"%s\" is defined but never used."
+    );
+    public static final LocalizationEntry PROGRAM_WARNING_UNUSED_MACRO = new LocalizationEntry(
+            "program.sfm.warnings.unused_macro",
+            "Macro \"%s\" is defined but never expanded."
+    );
+    public static final LocalizationEntry LIBRARY_CONTAINER = new LocalizationEntry(
+            "container.sfm.library",
+            "SFML Library"
+    );
+    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+    public static final LocalizationEntry LIBRARY_BLOCK = new LocalizationEntry(
+            "block.sfm.library",
+            "SFML Library Block"
+    );
     public static final LocalizationEntry PROGRAM_ERROR_COMPILE_FAILED = new LocalizationEntry(
             "program.sfm.error.compile_failed",
             "Failed to compile."
