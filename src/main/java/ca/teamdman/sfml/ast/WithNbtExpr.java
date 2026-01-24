@@ -1,5 +1,6 @@
 package ca.teamdman.sfml.ast;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.NbtJmesPathEvaluator;
 
@@ -24,6 +25,7 @@ public record WithNbtExpr(
      */
     public static WithNbtExpr create(NbtExpr expression) {
         String jmesPath = expression.toJmesPath();
+        SFM.LOGGER.debug("NBT expression \"{}\" compiled to JMESPath \"{}\"", expression, jmesPath);
         NbtJmesPathEvaluator evaluator = NbtJmesPathEvaluator.compile(jmesPath);
         return new WithNbtExpr(expression, jmesPath, evaluator);
     }
@@ -38,6 +40,6 @@ public record WithNbtExpr(
 
     @Override
     public String toString() {
-        return "NBT " + expression;
+        return "NBT " + expression + " (JMESPath: " + jmesPathExpression + ")";
     }
 }
