@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.block.*;
+import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -96,6 +97,14 @@ public class SFMBlocks {
                                     .sound(SoundType.METAL)
                     )
             );
+
+    public static SFMRegistryObject<Block, LibraryBlock> LIBRARY_BLOCK = null;
+
+    static {
+        if (SFMEnvironmentUtils.isInIDE()) {
+            LIBRARY_BLOCK = REGISTERER.register("library", LibraryBlock::new);
+        }
+    }
 
     public static void register(IEventBus bus) {
 

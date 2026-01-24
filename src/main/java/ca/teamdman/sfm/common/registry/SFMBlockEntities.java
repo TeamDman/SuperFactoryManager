@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.*;
+import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.eventbus.api.IEventBus;
 
@@ -91,5 +92,19 @@ public final class SFMBlockEntities {
                     .of(TestBarrelTankBlockEntity::new, SFMBlocks.TEST_BARREL_BLOCK.get())
                     .build(null)
     );
+
+    public static SFMRegistryObject<BlockEntityType<?>, BlockEntityType<LibraryBlockEntity>>
+            LIBRARY_BLOCK_ENTITY = null;
+
+    static {
+        if (SFMEnvironmentUtils.isInIDE() && SFMBlocks.LIBRARY_BLOCK != null) {
+            LIBRARY_BLOCK_ENTITY = REGISTERER.register(
+                    "library",
+                    () -> BlockEntityType.Builder
+                            .of(LibraryBlockEntity::new, SFMBlocks.LIBRARY_BLOCK.get())
+                            .build(null)
+            );
+        }
+    }
 
 }

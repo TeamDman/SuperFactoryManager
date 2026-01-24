@@ -79,10 +79,14 @@ public class SFMItems {
     );
 
     public static SFMRegistryObject<Item, BlockItem> BUFFER_ITEM = null;
+    public static SFMRegistryObject<Item, BlockItem> LIBRARY_ITEM = null;
 
     static {
         if (SFMEnvironmentUtils.isInIDE()) {
             BUFFER_ITEM = register("buffer", SFMBlocks.BUFFER_BLOCK);
+            if (SFMBlocks.LIBRARY_BLOCK != null) {
+                LIBRARY_ITEM = register("library", SFMBlocks.LIBRARY_BLOCK);
+            }
         }
     }
 
