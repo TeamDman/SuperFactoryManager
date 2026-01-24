@@ -476,6 +476,14 @@ public final class LocalizationKeys {
             "program.sfm.warnings.round_robin_smelly_count",
             "Round robin by label should be used with more than one label, statement %s"
     );
+    public static final LocalizationEntry PROGRAM_WARNING_UNUSED_STRUCT = new LocalizationEntry(
+            "program.sfm.warnings.unused_struct",
+            "Struct \"%s\" is defined but never instantiated."
+    );
+    public static final LocalizationEntry PROGRAM_WARNING_UNUSED_STRUCT_INSTANCE = new LocalizationEntry(
+            "program.sfm.warnings.unused_struct_instance",
+            "Struct instance \"%s\" is defined but never used in a USING clause."
+    );
     public static final LocalizationEntry PROGRAM_ERROR_COMPILE_FAILED = new LocalizationEntry(
             "program.sfm.error.compile_failed",
             "Failed to compile."

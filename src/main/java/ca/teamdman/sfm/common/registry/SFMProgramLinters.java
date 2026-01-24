@@ -69,6 +69,18 @@ public class SFMProgramLinters {
             NoSlotStatementProgramLinter::new
     );
 
+    public static final SFMRegistryObject<IProgramLinter, StructDefinitionLinter>
+            STRUCT_DEFINITION_LINTER = REGISTERER.register(
+            "struct_definition",
+            StructDefinitionLinter::new
+    );
+
+    public static final SFMRegistryObject<IProgramLinter, StructUsageLinter>
+            STRUCT_USAGE_LINTER = REGISTERER.register(
+            "struct_usage",
+            StructUsageLinter::new
+    );
+
     static {
         if (SFMModCompat.isMekanismLoaded()) {
             SFMMekanismCompat.registerProgramLinters(REGISTERER);

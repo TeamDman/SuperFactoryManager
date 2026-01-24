@@ -1,0 +1,55 @@
+package ca.teamdman.sfm.common.program.linting;
+
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfml.ast.LetStatement;
+import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.ast.StructDefinition;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_UNUSED_STRUCT;
+
+/**
+ * Linter that validates struct definitions are actually used.
+ */
+public class StructDefinitionLinter implements IProgramLinter {
+    @Override
+    public void gatherWarnings(
+            Program program,
+            LabelPositionHolder labelPositionHolder,
+            @Nullable ManagerBlockEntity managerBlockEntity,
+            ProblemTracker tracker
+    ) {
+        // Collect all struct names that are instantiated
+        Set<String> usedStructs = new HashSet<>();
+        for (LetStatement letStatement : program.letStatements()) {
+            usedStructs.add(letStatement.instance().definition().name());
+        }
+
+        // Check for unused struct definitions
+        for (StructDefinition structDef : program.structDefinitions()) {
+            if (!usedStructs.contains(structDef.name())) {
+                if (tracker.add(PROGRAM_WARNING_UNUSED_STRUCT.get(structDef.name())).isSaturated()) {
+                    return;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void fixWarnings(
+            Program program,
+            LabelPositionHolder labels,
+            ManagerBlockEntity manager,
+            Level level,
+            ItemStack disk
+    ) {
+        // We can't auto-fix this - removing unused struct definitions would require
+        // modifying the program source code
+    }
+}
