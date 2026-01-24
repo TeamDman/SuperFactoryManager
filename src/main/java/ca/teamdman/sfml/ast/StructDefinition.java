@@ -6,7 +6,7 @@ import java.util.Optional;
 /**
  * Represents a struct definition in the program.
  * Example:
- * struct Furnace
+ * struct Furnace : Smeltable
  *     input: TOP SIDE SLOTS 0
  *     fuel: BOTTOM SIDE SLOTS 1
  *     output: BOTTOM SIDE SLOTS 2
@@ -14,8 +14,16 @@ import java.util.Optional;
  */
 public record StructDefinition(
         String name,
+        List<String> implementedProtocols,
         List<StructField> fields
 ) implements ASTNode {
+
+    /**
+     * Constructs a StructDefinition without protocols for backwards compatibility.
+     */
+    public StructDefinition(String name, List<StructField> fields) {
+        this(name, List.of(), fields);
+    }
 
     /**
      * Gets a field by name from this struct definition.
@@ -26,10 +34,21 @@ public record StructDefinition(
                 .findFirst();
     }
 
+    /**
+     * Checks if this struct implements the given protocol.
+     */
+    public boolean implementsProtocol(String protocolName) {
+        return implementedProtocols.contains(protocolName);
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("struct ").append(name).append("\n");
+        sb.append("struct ").append(name);
+        if (!implementedProtocols.isEmpty()) {
+            sb.append(" : ").append(String.join(", ", implementedProtocols));
+        }
+        sb.append("\n");
         for (StructField field : fields) {
             sb.append("    ").append(field).append("\n");
         }

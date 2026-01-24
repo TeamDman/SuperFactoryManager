@@ -30,6 +30,12 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     /// Struct instances indexed by variable name, populated during AST building
     private final Map<String, StructInstance> STRUCT_INSTANCES = new HashMap<>();
 
+    /// Protocol definitions indexed by name, populated during AST building
+    private final Map<String, ProtocolDefinition> PROTOCOL_DEFINITIONS = new HashMap<>();
+
+    /// Macro definitions indexed by name, populated during AST building
+    private final Map<String, MacroDefinition> MACRO_DEFINITIONS = new HashMap<>();
+
     /// @return hierarchy of nodes; e.g., Program > Trigger > Block > IOStatement > LabelAccess > Label
     public List<Pair<ASTNode, ParserRuleContext>> getNodesUnderCursor(int cursorPos) {
 
@@ -57,8 +63,14 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
             ASTNode node,
             ASTNode otherNode
     ) {
-
-        trackNode(node, AST_NODE_CONTEXTS.get(getIndexForNode(otherNode)).getSecond());
+        int index = getIndexForNode(otherNode);
+        if (index < 0) {
+            // Node not found in AST_NODE_CONTEXTS - this can happen for macro-expanded statements
+            // In this case, we track the node without a context
+            trackNode(node, null);
+            return;
+        }
+        trackNode(node, AST_NODE_CONTEXTS.get(index).getSecond());
     }
 
     /// Used for client-server collaboration to make context menu actions work.
@@ -182,11 +194,39 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         }
         var name = visitName(ctx.name());
 
-        // Process struct definitions first
+        // Process imports
+        var imports = ctx
+                .import_()
+                .stream()
+                .map(this::visitImport_)
+                .collect(Collectors.toList());
+
+        // Process library references
+        var libraries = ctx
+                .library()
+                .stream()
+                .map(this::visitLibrary)
+                .collect(Collectors.toList());
+
+        // Process protocol definitions
+        var protocolDefinitions = ctx
+                .protocolDefinition()
+                .stream()
+                .map(this::visitProtocolDefinition)
+                .collect(Collectors.toList());
+
+        // Process struct definitions (they can implement protocols)
         var structDefinitions = ctx
                 .structDefinition()
                 .stream()
                 .map(this::visitStructDefinition)
+                .collect(Collectors.toList());
+
+        // Process macro definitions (they can reference protocols)
+        var macroDefinitions = ctx
+                .macroDefinition()
+                .stream()
+                .map(this::visitMacroDefinition)
                 .collect(Collectors.toList());
 
         // Process let statements next (they reference struct definitions)
@@ -196,7 +236,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .map(this::visitLetStatement)
                 .collect(Collectors.toList());
 
-        // Process triggers last (they can reference struct instances)
+        // Process triggers last (they can reference struct instances and macros)
         var triggers = ctx
                 .trigger()
                 .stream()
@@ -208,19 +248,118 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .stream()
                 .map(Label::name)
                 .collect(Collectors.toSet());
-        Program program = new Program(this, name.value(), structDefinitions, letStatements, triggers, labels, USED_RESOURCES);
+        Program program = new Program(
+                this,
+                name.value(),
+                imports,
+                libraries,
+                protocolDefinitions,
+                structDefinitions,
+                macroDefinitions,
+                letStatements,
+                triggers,
+                labels,
+                USED_RESOURCES
+        );
         trackNode(program, ctx);
         return program;
+    }
+
+    // ===== IMPORTS AND LIBRARIES =====
+
+    public ImportStatement visitImport_(SFMLParser.Import_Context ctx) {
+        String path = visitString(ctx.string()).value();
+        ImportStatement importStmt = new ImportStatement(path);
+        trackNode(importStmt, ctx);
+        return importStmt;
+    }
+
+    public LibraryStatement visitLibrary(SFMLParser.LibraryContext ctx) {
+        String blockLabel = visitString(ctx.string()).value();
+        LibraryStatement libraryStmt = new LibraryStatement(blockLabel);
+        trackNode(libraryStmt, ctx);
+        return libraryStmt;
+    }
+
+    // ===== PROTOCOL DEFINITIONS =====
+
+    public ProtocolDefinition visitProtocolDefinition(SFMLParser.ProtocolDefinitionContext ctx) {
+        String name = ctx.identifier().getText();
+
+        // Check for duplicate protocol names
+        if (PROTOCOL_DEFINITIONS.containsKey(name)) {
+            throw new IllegalArgumentException("Duplicate protocol definition: " + name);
+        }
+
+        List<ProtocolField> fields = new ArrayList<>();
+        Set<String> fieldNames = new HashSet<>();
+
+        for (SFMLParser.ProtocolFieldContext fieldCtx : ctx.protocolBody().protocolField()) {
+            ProtocolField field = visitProtocolField(fieldCtx);
+
+            // Check for duplicate field names
+            if (!fieldNames.add(field.name())) {
+                throw new IllegalArgumentException(
+                        "Duplicate field name '" + field.name() + "' in protocol " + name
+                );
+            }
+
+            fields.add(field);
+        }
+
+        ProtocolDefinition protocolDef = new ProtocolDefinition(name, fields);
+        PROTOCOL_DEFINITIONS.put(name, protocolDef);
+        trackNode(protocolDef, ctx);
+        return protocolDef;
+    }
+
+    public ProtocolField visitProtocolField(SFMLParser.ProtocolFieldContext ctx) {
+        String fieldName = ctx.identifier().getText();
+        ProtocolFieldType type = visitProtocolFieldType(ctx.protocolFieldType());
+        ProtocolField field = new ProtocolField(fieldName, type);
+        trackNode(field, ctx);
+        return field;
+    }
+
+    public ProtocolFieldType visitProtocolFieldType(SFMLParser.ProtocolFieldTypeContext ctx) {
+        ProtocolFieldType type;
+        if (ctx instanceof SFMLParser.SideAndSlotTypeContext) {
+            type = ProtocolFieldType.SIDE_AND_SLOT;
+        } else if (ctx instanceof SFMLParser.SideTypeContext) {
+            type = ProtocolFieldType.SIDE_QUALIFIER;
+        } else if (ctx instanceof SFMLParser.SlotTypeContext) {
+            type = ProtocolFieldType.SLOT_QUALIFIER;
+        } else if (ctx instanceof SFMLParser.LabelTypeContext) {
+            type = ProtocolFieldType.LABEL;
+        } else if (ctx instanceof SFMLParser.ResourceTypeContext) {
+            type = ProtocolFieldType.RESOURCE;
+        } else if (ctx instanceof SFMLParser.NumberTypeContext) {
+            type = ProtocolFieldType.NUMBER;
+        } else {
+            throw new IllegalStateException("Unknown protocol field type");
+        }
+        trackNode(type, ctx);
+        return type;
     }
 
     // ===== STRUCT DEFINITIONS =====
 
     public StructDefinition visitStructDefinition(SFMLParser.StructDefinitionContext ctx) {
-        String name = ctx.identifier().getText();
+        String name = ctx.identifier(0).getText();
 
         // Check for duplicate struct names
         if (STRUCT_DEFINITIONS.containsKey(name)) {
             throw new IllegalArgumentException("Duplicate struct definition: " + name);
+        }
+
+        // Collect implemented protocols
+        List<String> implementedProtocols = new ArrayList<>();
+        for (int i = 1; i < ctx.identifier().size(); i++) {
+            String protocolName = ctx.identifier(i).getText();
+            if (!PROTOCOL_DEFINITIONS.containsKey(protocolName)) {
+                throw new IllegalArgumentException("Unknown protocol: " + protocolName);
+            }
+            implementedProtocols.add(protocolName);
         }
 
         List<StructField> fields = new ArrayList<>();
@@ -239,10 +378,40 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
             fields.add(field);
         }
 
-        StructDefinition structDef = new StructDefinition(name, fields);
+        StructDefinition structDef = new StructDefinition(name, implementedProtocols, fields);
+
+        // Validate protocol conformance
+        for (String protocolName : implementedProtocols) {
+            validateProtocolConformance(structDef, PROTOCOL_DEFINITIONS.get(protocolName));
+        }
+
         STRUCT_DEFINITIONS.put(name, structDef);
         trackNode(structDef, ctx);
         return structDef;
+    }
+
+    /**
+     * Validates that a struct properly implements all fields required by a protocol.
+     */
+    private void validateProtocolConformance(StructDefinition struct, ProtocolDefinition protocol) {
+        for (ProtocolField protoField : protocol.fields()) {
+            Optional<StructField> structField = struct.getField(protoField.name());
+
+            if (structField.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Struct '" + struct.name() + "' is missing required field '"
+                        + protoField.name() + "' from protocol '" + protocol.name() + "'"
+                );
+            }
+
+            if (!protoField.type().matches(structField.get().value())) {
+                throw new IllegalArgumentException(
+                        "Struct '" + struct.name() + "' field '" + protoField.name()
+                        + "' has wrong type. Expected " + protoField.type()
+                        + " but got " + structField.get().value().getClass().getSimpleName()
+                );
+            }
+        }
     }
 
     public StructField visitStructField(SFMLParser.StructFieldContext ctx) {
@@ -358,6 +527,379 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     }
 
     // ===== END STRUCT DEFINITIONS =====
+
+    // ===== MACRO DEFINITIONS =====
+
+    public MacroDefinition visitMacroDefinition(SFMLParser.MacroDefinitionContext ctx) {
+        String name = ctx.identifier().getText();
+
+        // Check for duplicate macro names
+        if (MACRO_DEFINITIONS.containsKey(name)) {
+            throw new IllegalArgumentException("Duplicate macro definition: " + name);
+        }
+
+        // Parse parameters
+        List<MacroParameter> parameters = new ArrayList<>();
+        if (ctx.macroParamList() != null) {
+            for (SFMLParser.MacroParamContext paramCtx : ctx.macroParamList().macroParam()) {
+                MacroParameter param = visitMacroParam(paramCtx);
+                parameters.add(param);
+            }
+        }
+
+        // Parse body
+        List<MacroStatement> body = visitMacroBodyStatements(ctx.macroBody());
+
+        MacroDefinition macroDef = new MacroDefinition(name, parameters, body);
+        MACRO_DEFINITIONS.put(name, macroDef);
+        trackNode(macroDef, ctx);
+        return macroDef;
+    }
+
+    public MacroParameter visitMacroParam(SFMLParser.MacroParamContext ctx) {
+        String name = ctx.identifier(0).getText();
+        String protocolConstraint = null;
+        if (ctx.identifier().size() > 1) {
+            protocolConstraint = ctx.identifier(1).getText();
+            // Validate that the protocol exists
+            if (!PROTOCOL_DEFINITIONS.containsKey(protocolConstraint)) {
+                throw new IllegalArgumentException("Unknown protocol constraint: " + protocolConstraint);
+            }
+        }
+        MacroParameter param = new MacroParameter(name, protocolConstraint);
+        trackNode(param, ctx);
+        return param;
+    }
+
+    private List<MacroStatement> visitMacroBodyStatements(SFMLParser.MacroBodyContext ctx) {
+        List<MacroStatement> statements = new ArrayList<>();
+        for (SFMLParser.MacroStatementContext stmtCtx : ctx.macroStatement()) {
+            statements.add(visitMacroStatement(stmtCtx));
+        }
+        return statements;
+    }
+
+    public MacroStatement visitMacroStatement(SFMLParser.MacroStatementContext ctx) {
+        if (ctx.macroInputStatement() != null) {
+            return visitMacroInputStatement(ctx.macroInputStatement());
+        } else if (ctx.macroOutputStatement() != null) {
+            return visitMacroOutputStatement(ctx.macroOutputStatement());
+        } else if (ctx.macroIfStatement() != null) {
+            return visitMacroIfStatement(ctx.macroIfStatement());
+        } else if (ctx.macroForgetStatement() != null) {
+            return visitMacroForgetStatement(ctx.macroForgetStatement());
+        }
+        throw new IllegalStateException("Unknown macro statement type");
+    }
+
+    public MacroInputStatement visitMacroInputStatement(SFMLParser.MacroInputStatementContext ctx) {
+        MacroLabelAccess labelAccess = visitMacroLabelAccess(ctx.macroLabelAccess());
+        ResourceLimits resourceLimits = null;
+        if (ctx.macroResourceLimits() != null) {
+            resourceLimits = visitResourceLimitList(ctx.macroResourceLimits().resourceLimitList())
+                    .withDefaultLimit(Limit.MAX_QUANTITY_NO_RETENTION);
+        }
+        boolean each = ctx.EACH() != null;
+        MacroInputStatement stmt = new MacroInputStatement(labelAccess, resourceLimits, each);
+        trackNode(stmt, ctx);
+        return stmt;
+    }
+
+    public MacroOutputStatement visitMacroOutputStatement(SFMLParser.MacroOutputStatementContext ctx) {
+        MacroLabelAccess labelAccess = visitMacroLabelAccess(ctx.macroLabelAccess());
+        ResourceLimits resourceLimits = null;
+        if (ctx.macroResourceLimits() != null) {
+            resourceLimits = visitResourceLimitList(ctx.macroResourceLimits().resourceLimitList())
+                    .withDefaultLimit(Limit.MAX_QUANTITY_MAX_RETENTION);
+        }
+        boolean each = ctx.EACH() != null;
+        MacroOutputStatement stmt = new MacroOutputStatement(labelAccess, resourceLimits, each);
+        trackNode(stmt, ctx);
+        return stmt;
+    }
+
+    public MacroIfStatement visitMacroIfStatement(SFMLParser.MacroIfStatementContext ctx) {
+        BoolExpr condition = (BoolExpr) visit(ctx.boolexpr());
+        List<MacroStatement> thenBody = visitMacroBodyStatements(ctx.macroBody(0));
+        List<MacroStatement> elseBody = ctx.macroBody().size() > 1
+                ? visitMacroBodyStatements(ctx.macroBody(1))
+                : List.of();
+        MacroIfStatement stmt = new MacroIfStatement(condition, thenBody, elseBody);
+        trackNode(stmt, ctx);
+        return stmt;
+    }
+
+    public MacroForgetStatement visitMacroForgetStatement(SFMLParser.MacroForgetStatementContext ctx) {
+        MacroForgetStatement stmt = new MacroForgetStatement();
+        trackNode(stmt, ctx);
+        return stmt;
+    }
+
+    public MacroLabelAccess visitMacroLabelAccess(SFMLParser.MacroLabelAccessContext ctx) {
+        if (ctx instanceof SFMLParser.MacroParamLabelAccessContext paramCtx) {
+            String paramName = paramCtx.identifier().getText();
+            MacroLabelAccess access = MacroLabelAccess.parameter(paramName);
+            trackNode(access, ctx);
+            return access;
+        } else if (ctx instanceof SFMLParser.MacroStructLabelAccessContext structCtx) {
+            String paramName = structCtx.identifier(0).getText();
+            String fieldName = structCtx.identifier(1).getText();
+            SideQualifier sideOverride = structCtx.sidequalifier() != null
+                    ? (SideQualifier) visit(structCtx.sidequalifier())
+                    : null;
+            NumberRangeSet slotOverride = structCtx.slotqualifier() != null
+                    ? visitSlotqualifier(structCtx.slotqualifier())
+                    : null;
+            MacroLabelAccess access = MacroLabelAccess.structAccess(paramName, fieldName, sideOverride, slotOverride);
+            trackNode(access, ctx);
+            return access;
+        }
+        throw new IllegalStateException("Unknown macro label access type");
+    }
+
+    // ===== EXPAND STATEMENTS =====
+
+    @Override
+    public ExpandStatement visitExpandStatement(SFMLParser.ExpandStatementContext ctx) {
+        String macroName = ctx.identifier().getText();
+
+        // Look up the macro
+        MacroDefinition macro = MACRO_DEFINITIONS.get(macroName);
+        if (macro == null) {
+            throw new IllegalArgumentException("Unknown macro: " + macroName);
+        }
+
+        // Parse arguments
+        List<ExpandArgument> arguments = new ArrayList<>();
+        if (ctx.expandArgList() != null) {
+            for (SFMLParser.ExpandArgContext argCtx : ctx.expandArgList().expandArg()) {
+                ExpandArgument arg = visitExpandArg(argCtx);
+                arguments.add(arg);
+            }
+        }
+
+        // Validate argument count
+        if (arguments.size() != macro.parameters().size()) {
+            throw new IllegalArgumentException(
+                    "Macro '" + macroName + "' expects " + macro.parameters().size()
+                    + " arguments but got " + arguments.size()
+            );
+        }
+
+        // Validate protocol constraints
+        for (int i = 0; i < arguments.size(); i++) {
+            MacroParameter param = macro.parameters().get(i);
+            ExpandArgument arg = arguments.get(i);
+
+            if (param.protocolConstraint() != null) {
+                // Argument must be a struct variable that implements the protocol
+                if (arg.isStringLiteral()) {
+                    throw new IllegalArgumentException(
+                            "Macro parameter '" + param.name() + "' requires a struct implementing protocol '"
+                            + param.protocolConstraint() + "', but got a string literal"
+                    );
+                }
+
+                StructInstance instance = STRUCT_INSTANCES.get(arg.value());
+                if (instance == null) {
+                    throw new IllegalArgumentException(
+                            "Macro parameter '" + param.name() + "' requires a struct implementing protocol '"
+                            + param.protocolConstraint() + "', but '" + arg.value() + "' is not a struct variable"
+                    );
+                }
+
+                if (!instance.definition().implementsProtocol(param.protocolConstraint())) {
+                    throw new IllegalArgumentException(
+                            "Struct '" + instance.definition().name() + "' does not implement protocol '"
+                            + param.protocolConstraint() + "' required by macro parameter '" + param.name() + "'"
+                    );
+                }
+            }
+        }
+
+        // Expand the macro
+        List<Statement> expandedStatements = expandMacro(macro, arguments);
+
+        ExpandStatement expandStmt = new ExpandStatement(macroName, arguments, expandedStatements);
+        trackNode(expandStmt, ctx);
+        return expandStmt;
+    }
+
+    public ExpandArgument visitExpandArg(SFMLParser.ExpandArgContext ctx) {
+        if (ctx.identifier() != null) {
+            return ExpandArgument.identifier(ctx.identifier().getText());
+        } else if (ctx.string() != null) {
+            return ExpandArgument.stringLiteral(visitString(ctx.string()).value());
+        }
+        throw new IllegalStateException("Unknown expand argument type");
+    }
+
+    /**
+     * Expands a macro with the given arguments, producing a list of statements.
+     */
+    private List<Statement> expandMacro(MacroDefinition macro, List<ExpandArgument> arguments) {
+        List<Statement> result = new ArrayList<>();
+
+        // Build argument map
+        Map<String, ExpandArgument> argMap = new HashMap<>();
+        for (int i = 0; i < macro.parameters().size(); i++) {
+            argMap.put(macro.parameters().get(i).name(), arguments.get(i));
+        }
+
+        // Expand each macro statement
+        for (MacroStatement macroStmt : macro.body()) {
+            result.addAll(expandMacroStatement(macroStmt, argMap));
+        }
+
+        return result;
+    }
+
+    /**
+     * Expands a single macro statement into regular statements.
+     */
+    private List<Statement> expandMacroStatement(MacroStatement macroStmt, Map<String, ExpandArgument> argMap) {
+        if (macroStmt instanceof MacroInputStatement input) {
+            return List.of(expandMacroInput(input, argMap));
+        } else if (macroStmt instanceof MacroOutputStatement output) {
+            return List.of(expandMacroOutput(output, argMap));
+        } else if (macroStmt instanceof MacroForgetStatement) {
+            return List.of(new ForgetStatement(USED_LABELS));
+        } else if (macroStmt instanceof MacroIfStatement macroIf) {
+            List<Statement> thenStatements = new ArrayList<>();
+            for (MacroStatement s : macroIf.thenBody()) {
+                thenStatements.addAll(expandMacroStatement(s, argMap));
+            }
+            List<Statement> elseStatements = new ArrayList<>();
+            for (MacroStatement s : macroIf.elseBody()) {
+                elseStatements.addAll(expandMacroStatement(s, argMap));
+            }
+            return List.of(new IfStatement(
+                    macroIf.condition(),
+                    new Block(thenStatements),
+                    new Block(elseStatements)
+            ));
+        }
+        throw new IllegalStateException("Unknown macro statement type: " + macroStmt.getClass());
+    }
+
+    /**
+     * Expands a macro input statement.
+     */
+    private InputStatement expandMacroInput(MacroInputStatement macroInput, Map<String, ExpandArgument> argMap) {
+        LabelAccess labelAccess = resolveMacroLabelAccess(macroInput.labelAccess(), argMap);
+        ResourceLimits limits = macroInput.resourceLimits() != null
+                ? macroInput.resourceLimits()
+                : new ResourceLimits(List.of(ResourceLimit.TAKE_ALL_LEAVE_NONE), ResourceIdSet.EMPTY);
+        return new InputStatement(labelAccess, limits, macroInput.each());
+    }
+
+    /**
+     * Expands a macro output statement.
+     */
+    private OutputStatement expandMacroOutput(MacroOutputStatement macroOutput, Map<String, ExpandArgument> argMap) {
+        LabelAccess labelAccess = resolveMacroLabelAccess(macroOutput.labelAccess(), argMap);
+        ResourceLimits limits = macroOutput.resourceLimits() != null
+                ? macroOutput.resourceLimits()
+                : new ResourceLimits(List.of(ResourceLimit.ACCEPT_ALL_WITHOUT_RESTRAINT), ResourceIdSet.EMPTY);
+        return new OutputStatement(labelAccess, limits, macroOutput.each(), false);
+    }
+
+    /**
+     * Resolves a macro label access to a concrete LabelAccess.
+     */
+    private LabelAccess resolveMacroLabelAccess(MacroLabelAccess macroAccess, Map<String, ExpandArgument> argMap) {
+        ExpandArgument arg = argMap.get(macroAccess.parameterOrVariable());
+
+        if (macroAccess.isStructAccess()) {
+            // This is a struct field access: param using field
+            if (arg == null || arg.isStringLiteral()) {
+                throw new IllegalStateException(
+                        "Macro struct access requires a struct variable, got: " + macroAccess.parameterOrVariable()
+                );
+            }
+
+            StructInstance instance = STRUCT_INSTANCES.get(arg.value());
+            if (instance == null) {
+                throw new IllegalStateException("Unknown struct variable in macro expansion: " + arg.value());
+            }
+
+            Label label = instance.getLabel().orElseThrow(() ->
+                    new IllegalStateException("Struct instance " + arg.value() + " has no label")
+            );
+
+            // Resolve sides and slots from the field
+            String fieldName = macroAccess.fieldName();
+            Optional<StructFieldValue> fieldValue = instance.resolveField(fieldName);
+            if (fieldValue.isEmpty()) {
+                throw new IllegalStateException(
+                        "Unknown field '" + fieldName + "' in struct " + instance.definition().name()
+                );
+            }
+
+            SideQualifier sides = SideQualifier.NULL;
+            NumberRangeSet slots = NumberRangeSet.MAX_RANGE;
+
+            StructFieldValue resolved = fieldValue.get();
+            if (resolved instanceof CompositeFieldValue composite) {
+                sides = composite.sides();
+                slots = composite.slots();
+            } else if (resolved instanceof SideQualifier sq) {
+                sides = sq;
+            } else if (resolved instanceof NumberRangeSet nrs) {
+                slots = nrs;
+            }
+
+            // Apply overrides
+            if (macroAccess.sideOverride() != null) {
+                sides = macroAccess.sideOverride();
+            }
+            if (macroAccess.slotOverride() != null) {
+                slots = macroAccess.slotOverride();
+            }
+
+            return new LabelAccess(
+                    List.of(label),
+                    sides,
+                    slots,
+                    RoundRobin.disabled(),
+                    new StructAccess(arg.value(), fieldName)
+            );
+        } else {
+            // This is a simple parameter reference
+            if (arg == null) {
+                throw new IllegalStateException("Unknown macro parameter: " + macroAccess.parameterOrVariable());
+            }
+
+            Label label;
+            if (arg.isStringLiteral()) {
+                // String literal becomes a label directly
+                label = new Label(arg.value());
+                USED_LABELS.add(label);
+            } else {
+                // Check if it's a struct variable or a plain label
+                StructInstance instance = STRUCT_INSTANCES.get(arg.value());
+                if (instance != null) {
+                    label = instance.getLabel().orElseThrow(() ->
+                            new IllegalStateException("Struct instance " + arg.value() + " has no label")
+                    );
+                } else {
+                    // Treat as a label name
+                    label = new Label(arg.value());
+                    USED_LABELS.add(label);
+                }
+            }
+
+            return new LabelAccess(
+                    List.of(label),
+                    SideQualifier.NULL,
+                    NumberRangeSet.MAX_RANGE,
+                    RoundRobin.disabled(),
+                    null
+            );
+        }
+    }
+
+    // ===== END MACRO DEFINITIONS =====
 
     @Override
     public ASTNode visitTimerTrigger(SFMLParser.TimerTriggerContext ctx) {

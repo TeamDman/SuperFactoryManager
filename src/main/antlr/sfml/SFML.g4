@@ -6,7 +6,29 @@ package ca.teamdman.langs;
     public boolean INCLUDE_UNUSED = false; // we want syntax highlighting to not break on unexpected tokens
 }
 
-program : name? structDefinition* letStatement* trigger* EOF;
+program : name? import_* library* protocolDefinition* structDefinition* macroDefinition* letStatement* trigger* EOF;
+
+//
+// IMPORTS AND LIBRARIES
+//
+
+import_ : IMPORT string ;
+library : USE LIBRARY string ;
+
+//
+// PROTOCOL DEFINITIONS
+//
+
+protocolDefinition : PROTOCOL identifier protocolBody END ;
+protocolBody : protocolField* ;
+protocolField : identifier COLON protocolFieldType ;
+protocolFieldType : SIDEQUALIFIER SLOTQUALIFIER    #SideAndSlotType
+                  | SIDEQUALIFIER                  #SideType
+                  | SLOTQUALIFIER                  #SlotType
+                  | LABEL                          #LabelType
+                  | RESOURCE                       #ResourceType
+                  | NUMBERTYPE                     #NumberType
+                  ;
 
 name: NAME string ;
 
@@ -14,7 +36,7 @@ name: NAME string ;
 // STRUCT DEFINITIONS
 //
 
-structDefinition : STRUCT identifier structBody END ;
+structDefinition : STRUCT identifier (COLON identifier (COMMA identifier)*)? structBody END ;
 structBody : structField* ;
 structField : identifier COLON structFieldValue ;
 structFieldValue : sidequalifier slotqualifier?   // composite: TOP SIDE SLOTS 0
@@ -22,6 +44,28 @@ structFieldValue : sidequalifier slotqualifier?   // composite: TOP SIDE SLOTS 0
                  | label                          // label must come before resourceIdDisjunction to match strings correctly
                  | resourceIdDisjunction
                  | number
+                 ;
+
+//
+// MACRO DEFINITIONS
+//
+
+macroDefinition : MACRO identifier LPAREN macroParamList? RPAREN macroBody END ;
+macroParamList : macroParam (COMMA macroParam)* ;
+macroParam : identifier (COLON identifier)? ;
+macroBody : macroStatement* ;
+macroStatement : macroInputStatement
+               | macroOutputStatement
+               | macroIfStatement
+               | macroForgetStatement
+               ;
+macroInputStatement : INPUT macroResourceLimits? FROM EACH? macroLabelAccess ;
+macroOutputStatement : OUTPUT macroResourceLimits? TO EACH? macroLabelAccess ;
+macroIfStatement : IF boolexpr THEN macroBody (ELSE macroBody)? END ;
+macroForgetStatement : FORGET ;
+macroResourceLimits : resourceLimitList ;
+macroLabelAccess : identifier                                               #MacroParamLabelAccess
+                 | identifier USING identifier sidequalifier? slotqualifier? #MacroStructLabelAccess
                  ;
 
 letStatement : LET identifier EQ_SYMBOL structInstantiation ;
@@ -48,7 +92,12 @@ statement       : inputStatement
                 | outputStatement
                 | ifStatement
                 | forgetStatement
+                | expandStatement
                 ;
+
+expandStatement : EXPAND identifier LPAREN expandArgList? RPAREN ;
+expandArgList : expandArg (COMMA expandArg)* ;
+expandArg : identifier | string ;
 
 // IO STATEMENT
 forgetStatement : FORGET label? (COMMA label)* COMMA?;
@@ -170,7 +219,7 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | INPUT | OUTPUT | LABEL | STRUCT | LET | USING | SLOT | SLOTS | SIDE | BLOCK) ;
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | INPUT | OUTPUT | LABEL | STRUCT | LET | USING | SLOT | SLOTS | SIDE | BLOCK | PROTOCOL | MACRO | EXPAND | IMPORT | USE | LIBRARY | RESOURCE | SIDEQUALIFIER | SLOTQUALIFIER | NUMBERTYPE) ;
 
 // GENERAL
 string: STRING ;
@@ -278,6 +327,22 @@ LET             : L E T ;
 USING           : U S I N G ;
 LBRACE          : '{' ;
 RBRACE          : '}' ;
+
+// PROTOCOL SYMBOLS
+PROTOCOL        : P R O T O C O L ;
+SIDEQUALIFIER   : S I D E Q U A L I F I E R ;
+SLOTQUALIFIER   : S L O T Q U A L I F I E R ;
+RESOURCE        : R E S O U R C E ;
+NUMBERTYPE      : N U M B E R ;
+
+// MACRO SYMBOLS
+MACRO           : M A C R O ;
+EXPAND          : E X P A N D ;
+
+// IMPORT SYMBOLS
+IMPORT          : I M P O R T ;
+USE             : U S E ;
+LIBRARY         : L I B R A R Y ;
 
 // GENERAL SYMBOLS
 // used by triggers and as a set operator

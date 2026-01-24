@@ -34,7 +34,15 @@ public record Program(
 
         String name,
 
+        List<ImportStatement> imports,
+
+        List<LibraryStatement> libraries,
+
+        List<ProtocolDefinition> protocolDefinitions,
+
         List<StructDefinition> structDefinitions,
+
+        List<MacroDefinition> macroDefinitions,
 
         List<LetStatement> letStatements,
 
@@ -44,6 +52,33 @@ public record Program(
 
         Set<ResourceIdentifier<?, ?, ?>> referencedResources
 ) implements Statement {
+
+    /**
+     * Backward-compatible constructor for programs without protocols, macros, imports, or libraries.
+     */
+    public Program(
+            ASTBuilder astBuilder,
+            String name,
+            List<StructDefinition> structDefinitions,
+            List<LetStatement> letStatements,
+            List<Trigger> triggers,
+            Set<String> referencedLabels,
+            Set<ResourceIdentifier<?, ?, ?>> referencedResources
+    ) {
+        this(
+                astBuilder,
+                name,
+                List.of(),
+                List.of(),
+                List.of(),
+                structDefinitions,
+                List.of(),
+                letStatements,
+                triggers,
+                referencedLabels,
+                referencedResources
+        );
+    }
     /**
      * This comes from {@link java.io.DataOutputStream#writeUTF(String, DataOutput)}
      * and {@link NetworkHooks#openScreen(ServerPlayer, MenuProvider, Consumer)}
@@ -173,11 +208,29 @@ public record Program(
     }
 
     /**
+     * Gets a protocol definition by name.
+     */
+    public Optional<ProtocolDefinition> getProtocolDefinition(String name) {
+        return protocolDefinitions.stream()
+                .filter(p -> p.name().equals(name))
+                .findFirst();
+    }
+
+    /**
      * Gets a struct definition by name.
      */
     public Optional<StructDefinition> getStructDefinition(String name) {
         return structDefinitions.stream()
                 .filter(s -> s.name().equals(name))
+                .findFirst();
+    }
+
+    /**
+     * Gets a macro definition by name.
+     */
+    public Optional<MacroDefinition> getMacroDefinition(String name) {
+        return macroDefinitions.stream()
+                .filter(m -> m.name().equals(name))
                 .findFirst();
     }
 
@@ -196,8 +249,20 @@ public record Program(
 
         var rtn = new StringBuilder();
         rtn.append("NAME \"").append(name).append("\"\n");
+        for (ImportStatement importStmt : imports) {
+            rtn.append(importStmt).append("\n");
+        }
+        for (LibraryStatement libraryStmt : libraries) {
+            rtn.append(libraryStmt).append("\n");
+        }
+        for (ProtocolDefinition protocolDef : protocolDefinitions) {
+            rtn.append(protocolDef).append("\n");
+        }
         for (StructDefinition structDef : structDefinitions) {
             rtn.append(structDef).append("\n");
+        }
+        for (MacroDefinition macroDef : macroDefinitions) {
+            rtn.append(macroDef).append("\n");
         }
         for (LetStatement letStmt : letStatements) {
             rtn.append(letStmt).append("\n");
