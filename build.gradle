@@ -522,6 +522,14 @@ jar.finalizedBy('reobfJar')
 // Enable jarJar for bundling JMESPath library
 jarJar.enable()
 
+// Use jarJar as the main output (remove -all suffix)
+tasks.named('jarJar') {
+    archiveClassifier = ''
+}
+tasks.named('jar') {
+    archiveClassifier = 'slim'
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
