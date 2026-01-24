@@ -1,5 +1,6 @@
 package ca.teamdman.sfml.ast;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.NbtJmesPathEvaluator;
 
@@ -20,6 +21,7 @@ public record WithNbt(
      * @throws io.burt.jmespath.parser.ParseException if the expression is invalid
      */
     public static WithNbt create(String jmesPathExpression) {
+        SFM.LOGGER.debug("NBT quoted JMESPath expression \"{}\"", jmesPathExpression);
         NbtJmesPathEvaluator evaluator = NbtJmesPathEvaluator.compile(jmesPathExpression);
         return new WithNbt(jmesPathExpression, evaluator);
     }
