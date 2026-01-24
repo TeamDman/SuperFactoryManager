@@ -6,9 +6,27 @@ package ca.teamdman.langs;
     public boolean INCLUDE_UNUSED = false; // we want syntax highlighting to not break on unexpected tokens
 }
 
-program : name? trigger* EOF;
+program : name? structDefinition* letStatement* trigger* EOF;
 
 name: NAME string ;
+
+//
+// STRUCT DEFINITIONS
+//
+
+structDefinition : STRUCT identifier structBody END ;
+structBody : structField* ;
+structField : identifier COLON structFieldValue ;
+structFieldValue : sidequalifier slotqualifier?   // composite: TOP SIDE SLOTS 0
+                 | slotqualifier
+                 | label                          // label must come before resourceIdDisjunction to match strings correctly
+                 | resourceIdDisjunction
+                 | number
+                 ;
+
+letStatement : LET identifier EQ_SYMBOL structInstantiation ;
+structInstantiation : identifier LBRACE structFieldAssignment (COMMA structFieldAssignment)* COMMA? RBRACE ;
+structFieldAssignment : identifier COLON structFieldValue ;
 
 //
 // TRIGGERS
@@ -141,7 +159,9 @@ setOp           : OVERALL
 //
 // IO HELPERS
 //
-labelAccess     : label (COMMA label)* roundrobin? sidequalifier? slotqualifier?;
+labelAccess     : label (COMMA label)* roundrobin? sidequalifier? slotqualifier?     #DirectLabelAccess
+                | identifier USING identifier sidequalifier? slotqualifier?        #StructLabelAccess
+                ;
 roundrobin      : ROUND ROBIN BY (LABEL | BLOCK);
 
 label           : (identifier)  #RawLabel
@@ -150,7 +170,7 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK) ;
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | INPUT | OUTPUT | LABEL | STRUCT | LET | USING | SLOT | SLOTS | SIDE | BLOCK) ;
 
 // GENERAL
 string: STRING ;
@@ -251,6 +271,13 @@ PULSE           : P U L S E;
 DO              : D O ;
 END             : E N D ;
 NAME            : N A M E ;
+
+// STRUCT SYMBOLS
+STRUCT          : S T R U C T ;
+LET             : L E T ;
+USING           : U S I N G ;
+LBRACE          : '{' ;
+RBRACE          : '}' ;
 
 // GENERAL SYMBOLS
 // used by triggers and as a set operator
