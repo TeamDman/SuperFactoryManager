@@ -58,9 +58,50 @@ public record NbtExpr(
             return "contains(" + array.toJmesPath() + ", " + path.toJmesPath() + ")";
         }
         if (hasComparison()) {
+            // Check for wildcard pattern in string equality comparisons
+            if (operator == ComparisonOperator.EQUALS && value instanceof NbtValue.NbtString strVal) {
+                String pattern = strVal.value();
+                if (pattern.contains("*")) {
+                    return wildcardToJmesPath(path.toJmesPath(), pattern);
+                }
+            }
             return path.toJmesPath() + " " + toJmesPathOperator(operator) + " " + value.toJmesPath();
         }
         return path.toJmesPath();
+    }
+
+    /**
+     * Convert a wildcard pattern to JMESPath function call.
+     * - "prefix*" -> starts_with(path, 'prefix')
+     * - "*suffix" -> ends_with(path, 'suffix')
+     * - "*contains*" -> contains(path, 'contains')
+     * - "*" -> path (existence check)
+     */
+    private String wildcardToJmesPath(String pathExpr, String pattern) {
+        boolean startsWithStar = pattern.startsWith("*");
+        boolean endsWithStar = pattern.endsWith("*");
+        String content = pattern.replace("*", "");
+        String escaped = content.replace("'", "\\'");
+
+        if (content.isEmpty()) {
+            // Just "*" means match anything (existence check)
+            return pathExpr;
+        }
+
+        if (startsWithStar && endsWithStar) {
+            // *contains* -> contains(path, 'contains')
+            return "contains(" + pathExpr + ", '" + escaped + "')";
+        } else if (startsWithStar) {
+            // *suffix -> ends_with(path, 'suffix')
+            return "ends_with(" + pathExpr + ", '" + escaped + "')";
+        } else if (endsWithStar) {
+            // prefix* -> starts_with(path, 'prefix')
+            return "starts_with(" + pathExpr + ", '" + escaped + "')";
+        } else {
+            // No wildcards at edges but contains * in middle - treat as contains
+            // e.g., "mine*craft" - just check contains for simplicity
+            return "contains(" + pathExpr + ", '" + escaped + "')";
+        }
     }
 
     /**
