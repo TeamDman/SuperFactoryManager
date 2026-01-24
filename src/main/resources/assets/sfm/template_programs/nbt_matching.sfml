@@ -1,0 +1,206 @@
+NAME "NBT Matching"
+
+-- ============================================
+-- SECTION 1: Basic NBT Existence Checks
+-- ============================================
+-- NBT tags only exist when items have relevant data
+-- For example, Enchantments tag only exists on enchanted items
+
+EVERY 20 TICKS DO
+    -- items that have enchantments (tag exists)
+    INPUT WITH NBT Enchantments FROM chest
+    OUTPUT TO enchanted
+END
+
+EVERY 20 TICKS DO
+    -- items without enchantments (tag doesn't exist)
+    INPUT WITHOUT NBT Enchantments FROM chest
+    OUTPUT TO plain_items
+END
+
+-- ============================================
+-- SECTION 2: Comparison Operators
+-- ============================================
+-- Filter by numeric NBT values
+EVERY 20 TICKS DO
+    -- damaged items (Damage > 0)
+    INPUT WITH NBT Damage > 0 FROM tools
+    OUTPUT TO repair_chest
+END
+
+EVERY 20 TICKS DO
+    -- nearly broken items (high damage)
+    INPUT WITH NBT Damage >= 200 FROM tools
+    OUTPUT TO urgent_repair
+END
+
+EVERY 20 TICKS DO
+    -- pristine items only (no damage)
+    INPUT WITH NBT Damage = 0 FROM tools
+    OUTPUT TO storage
+END
+
+-- ============================================
+-- SECTION 3: Wildcard String Matching
+-- ============================================
+-- Match NBT string values with wildcards
+-- Uses: prefix*, *suffix, *contains*, *
+
+EVERY 20 TICKS DO
+    -- prefix match: enchantments from a mod
+    INPUT WITH NBT Enchantments[?id = "minecraft:*"] FROM chest
+    OUTPUT TO vanilla_enchants
+END
+
+EVERY 20 TICKS DO
+    -- suffix match: protection enchantments
+    INPUT WITH NBT Enchantments[?id = "*protection"] FROM chest
+    OUTPUT TO protection_gear
+END
+
+EVERY 20 TICKS DO
+    -- contains match: anything "fire" related
+    INPUT WITH NBT Enchantments[?id = "*fire*"] FROM chest
+    OUTPUT TO fire_items
+END
+
+EVERY 20 TICKS DO
+    -- existence check: has any id field
+    INPUT WITH NBT Enchantments[?id = "*"] FROM chest
+    OUTPUT TO has_enchant_id
+END
+
+EVERY 20 TICKS DO
+    -- filter speed potions
+    INPUT potion WITH NBT Potion = "*strong*" FROM potions
+    OUTPUT TO strong_potions
+END
+
+-- ============================================
+-- SECTION 4: IN Operator
+-- ============================================
+-- Check if value is one of several options
+
+EVERY 20 TICKS DO
+    -- filter basic/water potions (1.19.2 uses Potion tag)
+    INPUT potion WITH NBT Potion IN [
+        "minecraft:water",
+        "minecraft:mundane",
+        "minecraft:thick",
+        "minecraft:awkward"
+    ] FROM potions
+    OUTPUT TO basic_potions
+END
+
+EVERY 20 TICKS DO
+    -- filter healing/regeneration potions
+    INPUT potion WITH NBT Potion IN [
+        "minecraft:healing",
+        "minecraft:strong_healing",
+        "minecraft:regeneration",
+        "minecraft:strong_regeneration"
+    ] FROM potions
+    OUTPUT TO medical_potions
+END
+
+-- ============================================
+-- SECTION 5: Array Operations
+-- ============================================
+-- Work with NBT arrays like enchantments
+
+EVERY 20 TICKS DO
+    -- items with any enchantment
+    INPUT WITH NBT Enchantments[0] FROM chest
+    OUTPUT TO enchanted
+END
+
+EVERY 20 TICKS DO
+    -- items with specific enchantment
+    INPUT WITH NBT Enchantments[?id = "minecraft:sharpness"] FROM chest
+    OUTPUT TO sharpness_items
+END
+
+EVERY 20 TICKS DO
+    -- high-level enchantments only (level 4+)
+    INPUT WITH NBT Enchantments[?lvl >= 4] FROM chest
+    OUTPUT TO high_level
+END
+
+EVERY 20 TICKS DO
+    -- specific enchantment at specific level (use quoted JMESPath for compound filters)
+    INPUT WITH NBT "Enchantments[?id == 'minecraft:fortune' && lvl == `3`]" FROM chest
+    OUTPUT TO fortune3
+END
+
+-- ============================================
+-- SECTION 6: Combining with Tags
+-- ============================================
+-- Mix NBT matching with tag matching
+
+EVERY 20 TICKS DO
+    -- damaged swords only
+    INPUT WITH NBT Damage > 0 AND TAG forge:tools/swords FROM tools
+    OUTPUT TO sword_repair
+END
+
+EVERY 20 TICKS DO
+    -- enchanted pickaxes
+    INPUT WITH NBT Enchantments[0] AND TAG forge:tools/pickaxes FROM tools
+    OUTPUT TO enchanted_picks
+END
+
+EVERY 20 TICKS DO
+    -- tools that are either damaged OR enchanted
+    INPUT WITH TAG forge:tools AND (NBT Damage > 0 OR NBT Enchantments[0]) FROM chest
+    OUTPUT TO special_tools
+END
+
+-- ============================================
+-- SECTION 7: Real-World Use Cases
+-- ============================================
+
+-- TOOL SORTING: Sort tools by condition
+EVERY 20 TICKS DO
+    -- pristine tools to main storage
+    INPUT WITH NBT Damage = 0 AND TAG forge:tools FROM unsorted
+    OUTPUT TO pristine_tools
+END
+
+EVERY 20 TICKS DO
+    -- damaged tools to repair station
+    INPUT WITH NBT Damage > 0 AND TAG forge:tools FROM unsorted
+    OUTPUT TO repair_station
+END
+
+-- ENCHANTMENT SORTING: Group by enchantment type
+EVERY 20 TICKS DO
+    -- silk touch items
+    INPUT WITH NBT Enchantments[?id = "minecraft:silk_touch"] FROM unsorted
+    OUTPUT TO silk_touch_tools
+END
+
+EVERY 20 TICKS DO
+    -- fortune items
+    INPUT WITH NBT Enchantments[?id = "minecraft:fortune"] FROM unsorted
+    OUTPUT TO fortune_tools
+END
+
+-- MOD INTEGRATION: ProductiveBees example
+EVERY 20 TICKS DO
+    -- filter bees by purity level
+    INPUT WITH NBT productivebees:gene_group.purity >= 90 FROM hives
+    OUTPUT TO high_purity_bees
+END
+
+-- MOD INTEGRATION: Filter enchantments by mod
+EVERY 20 TICKS DO
+    -- apotheosis enchantments (prefix match)
+    INPUT WITH NBT Enchantments[?id = "apotheosis:*"] FROM chest
+    OUTPUT TO apotheosis_items
+END
+
+EVERY 20 TICKS DO
+    -- ensorcellation enchantments
+    INPUT WITH NBT Enchantments[?id = "ensorcellation:*"] FROM chest
+    OUTPUT TO ensorcellation_items
+END
