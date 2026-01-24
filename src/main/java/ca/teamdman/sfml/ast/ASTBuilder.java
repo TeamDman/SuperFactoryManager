@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.stream.Collectors;
 
 public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
@@ -22,6 +23,12 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
     /// Used for program editor context actions; ctrl+space on a token
     private final List<Pair<WeakReference<ASTNode>, ParserRuleContext>> AST_NODE_CONTEXTS = new LinkedList<>();
+
+    /// Struct definitions indexed by name, populated during AST building
+    private final Map<String, StructDefinition> STRUCT_DEFINITIONS = new HashMap<>();
+
+    /// Struct instances indexed by variable name, populated during AST building
+    private final Map<String, StructInstance> STRUCT_INSTANCES = new HashMap<>();
 
     /// @return hierarchy of nodes; e.g., Program > Trigger > Block > IOStatement > LabelAccess > Label
     public List<Pair<ASTNode, ParserRuleContext>> getNodesUnderCursor(int cursorPos) {
@@ -174,20 +181,183 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
             throw new AssertionError("Program execution is disabled via config");
         }
         var name = visitName(ctx.name());
+
+        // Process struct definitions first
+        var structDefinitions = ctx
+                .structDefinition()
+                .stream()
+                .map(this::visitStructDefinition)
+                .collect(Collectors.toList());
+
+        // Process let statements next (they reference struct definitions)
+        var letStatements = ctx
+                .letStatement()
+                .stream()
+                .map(this::visitLetStatement)
+                .collect(Collectors.toList());
+
+        // Process triggers last (they can reference struct instances)
         var triggers = ctx
                 .trigger()
                 .stream()
                 .map(this::visit)
                 .map(Trigger.class::cast)
                 .collect(Collectors.toList());
+
         var labels = USED_LABELS
                 .stream()
                 .map(Label::name)
                 .collect(Collectors.toSet());
-        Program program = new Program(this, name.value(), triggers, labels, USED_RESOURCES);
+        Program program = new Program(this, name.value(), structDefinitions, letStatements, triggers, labels, USED_RESOURCES);
         trackNode(program, ctx);
         return program;
     }
+
+    // ===== STRUCT DEFINITIONS =====
+
+    public StructDefinition visitStructDefinition(SFMLParser.StructDefinitionContext ctx) {
+        String name = ctx.identifier().getText();
+
+        // Check for duplicate struct names
+        if (STRUCT_DEFINITIONS.containsKey(name)) {
+            throw new IllegalArgumentException("Duplicate struct definition: " + name);
+        }
+
+        List<StructField> fields = new ArrayList<>();
+        Set<String> fieldNames = new HashSet<>();
+
+        for (SFMLParser.StructFieldContext fieldCtx : ctx.structBody().structField()) {
+            StructField field = visitStructField(fieldCtx);
+
+            // Check for duplicate field names
+            if (!fieldNames.add(field.name())) {
+                throw new IllegalArgumentException(
+                        "Duplicate field name '" + field.name() + "' in struct " + name
+                );
+            }
+
+            fields.add(field);
+        }
+
+        StructDefinition structDef = new StructDefinition(name, fields);
+        STRUCT_DEFINITIONS.put(name, structDef);
+        trackNode(structDef, ctx);
+        return structDef;
+    }
+
+    public StructField visitStructField(SFMLParser.StructFieldContext ctx) {
+        String fieldName = ctx.identifier().getText();
+        StructFieldValue value = visitStructFieldValue(ctx.structFieldValue());
+        StructField field = new StructField(fieldName, value);
+        trackNode(field, ctx);
+        return field;
+    }
+
+    public StructFieldValue visitStructFieldValue(SFMLParser.StructFieldValueContext ctx) {
+        // composite: sidequalifier slotqualifier?
+        if (ctx.sidequalifier() != null) {
+            SideQualifier sides = (SideQualifier) visit(ctx.sidequalifier());
+            NumberRangeSet slots = visitSlotqualifier(ctx.slotqualifier());
+            if (!slots.equals(NumberRangeSet.MAX_RANGE)) {
+                // Has both sides and slots - composite value
+                CompositeFieldValue composite = new CompositeFieldValue(sides, slots);
+                trackNode(composite, ctx);
+                return composite;
+            }
+            // Just sides
+            return sides;
+        }
+
+        // slotqualifier only
+        if (ctx.slotqualifier() != null) {
+            return visitSlotqualifier(ctx.slotqualifier());
+        }
+
+        // resourceIdDisjunction
+        if (ctx.resourceIdDisjunction() != null) {
+            return visitResourceIdDisjunction(ctx.resourceIdDisjunction());
+        }
+
+        // label
+        if (ctx.label() != null) {
+            return (Label) visit(ctx.label());
+        }
+
+        // number
+        if (ctx.number() != null) {
+            return visitNumber(ctx.number());
+        }
+
+        throw new IllegalStateException("Unknown struct field value type");
+    }
+
+    public LetStatement visitLetStatement(SFMLParser.LetStatementContext ctx) {
+        String variableName = ctx.identifier().getText();
+
+        // Check for duplicate variable names
+        if (STRUCT_INSTANCES.containsKey(variableName)) {
+            throw new IllegalArgumentException("Duplicate variable name: " + variableName);
+        }
+
+        StructInstance instance = visitStructInstantiation(ctx.structInstantiation(), variableName);
+        LetStatement letStatement = new LetStatement(variableName, instance);
+
+        STRUCT_INSTANCES.put(variableName, instance);
+        trackNode(letStatement, ctx);
+        return letStatement;
+    }
+
+    public StructInstance visitStructInstantiation(SFMLParser.StructInstantiationContext ctx, String variableName) {
+        String structName = ctx.identifier().getText();
+
+        // Look up the struct definition
+        StructDefinition definition = STRUCT_DEFINITIONS.get(structName);
+        if (definition == null) {
+            throw new IllegalArgumentException("Unknown struct: " + structName);
+        }
+
+        // Process field assignments
+        Map<String, StructFieldValue> overrides = new LinkedHashMap<>();
+        for (SFMLParser.StructFieldAssignmentContext assignCtx : ctx.structFieldAssignment()) {
+            Map.Entry<String, StructFieldValue> entry = parseStructFieldAssignment(assignCtx);
+
+            // Check that the field exists in the struct definition
+            // "label" is a special required field that doesn't need to be defined in the struct
+            if (!entry.getKey().equals("label") && definition.getField(entry.getKey()).isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Unknown field '" + entry.getKey() + "' in struct " + structName
+                );
+            }
+
+            // Check for duplicate assignments
+            if (overrides.containsKey(entry.getKey())) {
+                throw new IllegalArgumentException(
+                        "Duplicate field assignment '" + entry.getKey() + "' in struct instantiation"
+                );
+            }
+
+            overrides.put(entry.getKey(), entry.getValue());
+        }
+
+        // Validate that label override is present
+        if (!overrides.containsKey("label")) {
+            throw new IllegalArgumentException(
+                    "Struct instantiation must include a 'label' override to bind to actual blocks"
+            );
+        }
+
+        StructInstance instance = new StructInstance(variableName, definition, overrides);
+        trackNode(instance, ctx);
+        return instance;
+    }
+
+    private Map.Entry<String, StructFieldValue> parseStructFieldAssignment(SFMLParser.StructFieldAssignmentContext ctx) {
+        String fieldName = ctx.identifier().getText();
+        StructFieldValue value = visitStructFieldValue(ctx.structFieldValue());
+        return new SimpleEntry<>(fieldName, value);
+    }
+
+    // ===== END STRUCT DEFINITIONS =====
 
     @Override
     public ASTNode visitTimerTrigger(SFMLParser.TimerTriggerContext ctx) {
@@ -333,9 +503,13 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         return outputStatement;
     }
 
-    @Override
     public LabelAccess visitLabelAccess(SFMLParser.LabelAccessContext ctx) {
+        // Delegate to the appropriate alternative visitor
+        return (LabelAccess) visit(ctx);
+    }
 
+    @Override
+    public LabelAccess visitDirectLabelAccess(SFMLParser.DirectLabelAccessContext ctx) {
         var directionQualifierCtx = ctx.sidequalifier();
         SideQualifier sideQualifier;
         if (directionQualifierCtx == null) {
@@ -347,7 +521,68 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 ctx.label().stream().map(this::visit).map(Label.class::cast).collect(Collectors.toList()),
                 sideQualifier,
                 visitSlotqualifier(ctx.slotqualifier()),
-                visitRoundrobin(ctx.roundrobin())
+                visitRoundrobin(ctx.roundrobin()),
+                null // No struct access for direct label access
+        );
+        trackNode(labelAccess, ctx);
+        return labelAccess;
+    }
+
+    @Override
+    public LabelAccess visitStructLabelAccess(SFMLParser.StructLabelAccessContext ctx) {
+        String variableName = ctx.identifier(0).getText();
+        String fieldName = ctx.identifier(1).getText();
+
+        // Validate that the variable exists
+        StructInstance instance = STRUCT_INSTANCES.get(variableName);
+        if (instance == null) {
+            throw new IllegalArgumentException("Unknown struct variable: " + variableName);
+        }
+
+        // Validate that the field exists
+        Optional<StructFieldValue> fieldValue = instance.resolveField(fieldName);
+        if (fieldValue.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Unknown field '" + fieldName + "' in struct variable " + variableName
+            );
+        }
+
+        // Get the label from the struct instance
+        Label label = instance.getLabel().orElseThrow(() ->
+                new IllegalStateException("Struct instance " + variableName + " has no label")
+        );
+
+        // Resolve sides and slots from the field value
+        SideQualifier sides = SideQualifier.NULL;
+        NumberRangeSet slots = NumberRangeSet.MAX_RANGE;
+
+        StructFieldValue resolvedField = fieldValue.get();
+        if (resolvedField instanceof CompositeFieldValue composite) {
+            sides = composite.sides();
+            slots = composite.slots();
+        } else if (resolvedField instanceof SideQualifier sq) {
+            sides = sq;
+        } else if (resolvedField instanceof NumberRangeSet nrs) {
+            slots = nrs;
+        }
+
+        // Allow explicit side/slot overrides in the USING clause
+        if (ctx.sidequalifier() != null) {
+            sides = (SideQualifier) visit(ctx.sidequalifier());
+        }
+        if (ctx.slotqualifier() != null) {
+            slots = visitSlotqualifier(ctx.slotqualifier());
+        }
+
+        StructAccess structAccess = new StructAccess(variableName, fieldName);
+        trackNode(structAccess, ctx);
+
+        LabelAccess labelAccess = new LabelAccess(
+                List.of(label),
+                sides,
+                slots,
+                RoundRobin.disabled(),
+                structAccess
         );
         trackNode(labelAccess, ctx);
         return labelAccess;
