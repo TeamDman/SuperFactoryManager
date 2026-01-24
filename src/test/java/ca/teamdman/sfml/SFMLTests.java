@@ -1014,4 +1014,506 @@ public class SFMLTests {
                         """
         );
     }
+
+    // ===== PROTOCOL TESTS =====
+
+    @Test
+    public void protocolBasicDefinition() {
+        assertNoCompileErrors(
+                """
+                        NAME "Protocol Test"
+
+                        protocol Smeltable
+                            input: sidequalifier slotqualifier
+                            fuel: sidequalifier slotqualifier
+                            output: sidequalifier slotqualifier
+                        end
+
+                        struct Furnace : Smeltable
+                            input: TOP SIDE SLOTS 0
+                            fuel: BOTTOM SIDE SLOTS 1
+                            output: BOTTOM SIDE SLOTS 2
+                        end
+
+                        let smelter = Furnace { label: "furnaces" }
+
+                        every 20 ticks do
+                            input from chest
+                            output to smelter using input
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void protocolMultipleImplementation() {
+        assertNoCompileErrors(
+                """
+                        NAME "Multiple Protocol Test"
+
+                        protocol HasInput
+                            input: sidequalifier slotqualifier
+                        end
+
+                        protocol HasOutput
+                            output: sidequalifier slotqualifier
+                        end
+
+                        struct Machine : HasInput, HasOutput
+                            input: TOP SIDE SLOTS 0
+                            output: BOTTOM SIDE SLOTS 1
+                        end
+
+                        let machine = Machine { label: "machines" }
+
+                        every 20 ticks do
+                            input from chest
+                            output to machine using input
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void protocolUnknownProtocol() {
+        var input = """
+                NAME "Unknown Protocol Test"
+
+                struct Furnace : UnknownProtocol
+                    input: TOP SIDE SLOTS 0
+                end
+
+                let smelter = Furnace { label: "test" }
+
+                every 20 ticks do
+                    input from chest
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void protocolMissingField() {
+        var input = """
+                NAME "Missing Protocol Field Test"
+
+                protocol Smeltable
+                    input: sidequalifier slotqualifier
+                    output: sidequalifier slotqualifier
+                end
+
+                struct Furnace : Smeltable
+                    input: TOP SIDE SLOTS 0
+                end
+
+                let smelter = Furnace { label: "test" }
+
+                every 20 ticks do
+                    input from chest
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void protocolFieldTypeMismatch() {
+        var input = """
+                NAME "Protocol Field Type Mismatch Test"
+
+                protocol Smeltable
+                    input: sidequalifier slotqualifier
+                end
+
+                struct Furnace : Smeltable
+                    input: 42
+                end
+
+                let smelter = Furnace { label: "test" }
+
+                every 20 ticks do
+                    input from chest
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void protocolDuplicateDefinition() {
+        var input = """
+                NAME "Duplicate Protocol Test"
+
+                protocol Smeltable
+                    input: sidequalifier
+                end
+
+                protocol Smeltable
+                    output: sidequalifier
+                end
+
+                every 20 ticks do
+                    input from chest
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    // ===== MACRO TESTS =====
+
+    @Test
+    public void macroBasicDefinition() {
+        assertNoCompileErrors(
+                """
+                        NAME "Macro Test"
+
+                        macro transfer(source, dest)
+                            input from source
+                            output to dest
+                        end
+
+                        every 20 ticks do
+                            expand transfer(chest_a, chest_b)
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void macroWithProtocolConstraint() {
+        assertNoCompileErrors(
+                """
+                        NAME "Macro with Protocol Test"
+
+                        protocol Smeltable
+                            input: sidequalifier slotqualifier
+                            output: sidequalifier slotqualifier
+                        end
+
+                        struct Furnace : Smeltable
+                            input: TOP SIDE SLOTS 0
+                            output: BOTTOM SIDE SLOTS 1
+                        end
+
+                        macro smelt(machine: Smeltable, source, dest)
+                            input from source
+                            output to machine using input
+                            forget
+                            input from machine using output
+                            output to dest
+                        end
+
+                        let furnace = Furnace { label: "furnaces" }
+
+                        every 20 ticks do
+                            expand smelt(furnace, ore_chest, ingot_chest)
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void macroUnknownMacro() {
+        var input = """
+                NAME "Unknown Macro Test"
+
+                every 20 ticks do
+                    expand unknown_macro(chest_a, chest_b)
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void macroWrongArgCount() {
+        var input = """
+                NAME "Wrong Arg Count Test"
+
+                macro transfer(source, dest)
+                    input from source
+                    output to dest
+                end
+
+                every 20 ticks do
+                    expand transfer(chest_a)
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void macroProtocolConstraintNotMet() {
+        var input = """
+                NAME "Protocol Constraint Not Met Test"
+
+                protocol Smeltable
+                    input: sidequalifier slotqualifier
+                end
+
+                struct NonSmeltable
+                    other: TOP SIDE
+                end
+
+                macro smelt(machine: Smeltable)
+                    input from machine using input
+                end
+
+                let device = NonSmeltable { label: "devices" }
+
+                every 20 ticks do
+                    expand smelt(device)
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void macroDuplicateDefinition() {
+        var input = """
+                NAME "Duplicate Macro Test"
+
+                macro transfer(a, b)
+                    input from a
+                end
+
+                macro transfer(x, y)
+                    output to x
+                end
+
+                every 20 ticks do
+                    expand transfer(chest_a, chest_b)
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void macroWithForget() {
+        assertNoCompileErrors(
+                """
+                        NAME "Macro with Forget Test"
+
+                        macro process(source, dest)
+                            input from source
+                            output to dest
+                            forget
+                        end
+
+                        every 20 ticks do
+                            expand process(chest_a, chest_b)
+                            expand process(chest_c, chest_d)
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void macroWithResourceLimits() {
+        assertNoCompileErrors(
+                """
+                        NAME "Macro with Resource Limits Test"
+
+                        macro limited_transfer(source, dest)
+                            input 64 iron from source
+                            output 64 iron to dest
+                        end
+
+                        every 20 ticks do
+                            expand limited_transfer(chest_a, chest_b)
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void macroWithRetain() {
+        assertNoCompileErrors(
+                """
+                        NAME "Macro with Retain Test"
+
+                        protocol Smeltable
+                            input: sidequalifier slotqualifier
+                            fuel: sidequalifier slotqualifier
+                            output: sidequalifier slotqualifier
+                        end
+
+                        struct Furnace : Smeltable
+                            input: TOP SIDE SLOTS 0
+                            fuel: BOTTOM SIDE SLOTS 1
+                            output: BOTTOM SIDE SLOTS 0
+                        end
+
+                        macro smelt(machine: Smeltable, ore_source, fuel_source, dest)
+                            input from ore_source
+                            output retain 2 to each machine using input
+
+                            input from fuel_source
+                            output retain 2 to each machine using fuel
+
+                            forget
+
+                            input from machine using output
+                            output to dest
+                        end
+
+                        let furnace = Furnace { label: "furnaces" }
+
+                        every 20 ticks do
+                            expand smelt(furnace, ore_chest, fuel_chest, result_chest)
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void macroExpansionVerification() {
+        var input = """
+                NAME "Macro Expansion Verification Test"
+
+                macro transfer(source, dest)
+                    input from source
+                    output to dest
+                end
+
+                every 20 ticks do
+                    expand transfer(chest_a, chest_b)
+                end
+                """;
+        assertNoCompileErrors(input);
+        var program = compile(input);
+
+        // Verify structure
+        assertEquals(1, program.triggers().size());
+        var trigger = program.triggers().get(0);
+        var block = trigger.getBlock();
+        var statements = block.getStatements();
+
+        // Should have 1 expand statement
+        assertEquals(1, statements.size());
+        assertTrue(statements.get(0) instanceof ca.teamdman.sfml.ast.ExpandStatement);
+
+        // Verify the expand statement has 2 expanded statements (input + output)
+        var expandStmt = (ca.teamdman.sfml.ast.ExpandStatement) statements.get(0);
+        assertEquals(2, expandStmt.expandedStatements().size());
+        assertTrue(expandStmt.expandedStatements().get(0) instanceof ca.teamdman.sfml.ast.InputStatement);
+        assertTrue(expandStmt.expandedStatements().get(1) instanceof ca.teamdman.sfml.ast.OutputStatement);
+    }
+
+    // ===== IMPORT AND LIBRARY TESTS =====
+
+    @Test
+    public void importStatement() {
+        // Import statements parse correctly (resolution happens at build time)
+        assertNoCompileErrors(
+                """
+                        NAME "Import Test"
+
+                        import "machines.sfml"
+
+                        every 20 ticks do
+                            input from chest
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void libraryStatement() {
+        // Library statements parse correctly (resolution happens at build time)
+        assertNoCompileErrors(
+                """
+                        NAME "Library Test"
+
+                        use library "factory_config"
+
+                        every 20 ticks do
+                            input from chest
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void multipleImportsAndLibraries() {
+        assertNoCompileErrors(
+                """
+                        NAME "Multiple Imports Test"
+
+                        import "machines.sfml"
+                        import "protocols.sfml"
+                        use library "factory_config"
+                        use library "shared_macros"
+
+                        every 20 ticks do
+                            input from chest
+                        end
+                        """
+        );
+    }
+
+    // ===== COMBINED FEATURE TESTS =====
+
+    @Test
+    public void fullAutomationExample() {
+        assertNoCompileErrors(
+                """
+                        NAME "Full Automation"
+
+                        protocol Smeltable
+                            input: sidequalifier slotqualifier
+                            fuel: sidequalifier slotqualifier
+                            output: sidequalifier slotqualifier
+                        end
+
+                        struct Furnace : Smeltable
+                            input: TOP SIDE SLOTS 0
+                            fuel: BOTTOM SIDE SLOTS 1
+                            output: BOTTOM SIDE SLOTS 2
+                        end
+
+                        macro smelt(machine: Smeltable, source, dest)
+                            input from source
+                            output to machine using input
+                            forget
+                            input from machine using output
+                            output to dest
+                        end
+
+                        let furnace = Furnace { label: "furnaces" }
+
+                        every 20 ticks do
+                            expand smelt(furnace, ore_chest, ingot_chest)
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void protocolWithAllFieldTypes() {
+        assertNoCompileErrors(
+                """
+                        NAME "All Field Types Test"
+
+                        protocol AllTypes
+                            sides: sidequalifier
+                            slots: slotqualifier
+                            both: sidequalifier slotqualifier
+                            lbl: label
+                            num: number
+                        end
+
+                        struct Implementation : AllTypes
+                            sides: TOP, BOTTOM SIDE
+                            slots: SLOTS 0-5
+                            both: EACH SIDE SLOTS 0
+                            lbl: "my_label"
+                            num: 42
+                        end
+
+                        let impl = Implementation { label: "test" }
+
+                        every 20 ticks do
+                            input from chest
+                        end
+                        """
+        );
+    }
 }

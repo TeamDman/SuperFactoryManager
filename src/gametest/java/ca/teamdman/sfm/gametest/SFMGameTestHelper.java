@@ -178,7 +178,7 @@ public class SFMGameTestHelper extends GameTestHelper {
 
         BoolExpr expr = BoolExpr.from(exprString);
         ProgramContext programContext = new ProgramContext(
-                new Program(new ASTBuilder(), "temp lol", List.of(), Set.of(), Set.of()),
+                new Program(new ASTBuilder(), "temp lol", List.of(), List.of(), List.of(), Set.of(), Set.of()),
                 manager,
                 ExecuteProgramBehaviour::new
         );
