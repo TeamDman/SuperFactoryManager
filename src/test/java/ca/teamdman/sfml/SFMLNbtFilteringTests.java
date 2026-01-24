@@ -775,4 +775,73 @@ public class SFMLNbtFilteringTests {
         """;
         assertNoCompileErrors(input);
     }
+
+    // ==================== Wildcard Pattern Tests ====================
+
+    @Test
+    public void nbtWildcardStartsWith() {
+        NbtComponent component = NbtComponent.simple("id");
+        NbtPath path = new NbtPath(component, null, List.of());
+        NbtExpr expr = NbtExpr.comparison(path, ComparisonOperator.EQUALS, new NbtValue.NbtString("mekanism:*"));
+
+        assertEquals("starts_with(id, 'mekanism:')", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtWildcardEndsWith() {
+        NbtComponent component = NbtComponent.simple("id");
+        NbtPath path = new NbtPath(component, null, List.of());
+        NbtExpr expr = NbtExpr.comparison(path, ComparisonOperator.EQUALS, new NbtValue.NbtString("*_ore"));
+
+        assertEquals("ends_with(id, '_ore')", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtWildcardContains() {
+        NbtComponent component = NbtComponent.simple("id");
+        NbtPath path = new NbtPath(component, null, List.of());
+        NbtExpr expr = NbtExpr.comparison(path, ComparisonOperator.EQUALS, new NbtValue.NbtString("*diamond*"));
+
+        assertEquals("contains(id, 'diamond')", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtWildcardAny() {
+        NbtComponent component = NbtComponent.simple("id");
+        NbtPath path = new NbtPath(component, null, List.of());
+        NbtExpr expr = NbtExpr.comparison(path, ComparisonOperator.EQUALS, new NbtValue.NbtString("*"));
+
+        // Just "*" means existence check
+        assertEquals("id", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtWildcardParsesCorrectly() {
+        String input = """
+            EVERY 20 TICKS DO
+                INPUT WITH NBT id = "mekanism:*" FROM chest
+            END
+        """;
+        assertNoCompileErrors(input);
+    }
+
+    @Test
+    public void nbtWildcardEndsWithParsesCorrectly() {
+        String input = """
+            EVERY 20 TICKS DO
+                INPUT WITH NBT id = "*_ore" FROM chest
+            END
+        """;
+        assertNoCompileErrors(input);
+    }
+
+    @Test
+    public void nbtWildcardContainsParsesCorrectly() {
+        String input = """
+            EVERY 20 TICKS DO
+                INPUT WITH NBT id = "*diamond*" FROM chest
+            END
+        """;
+        assertNoCompileErrors(input);
+    }
 }
