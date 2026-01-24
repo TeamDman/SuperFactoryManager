@@ -80,6 +80,8 @@ public class CodegenTests {
         var program = new Program(
                 new ASTBuilder(),
                 "hello world",
+                List.of(), // structDefinitions
+                List.of(), // letStatements
                 List.of(new TimerTrigger(
                         new Interval(20, Interval.IntervalAlignment.LOCAL, 0),
                         new Block(List.of(new IfStatement(

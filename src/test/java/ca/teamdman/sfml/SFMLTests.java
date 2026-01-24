@@ -811,4 +811,207 @@ public class SFMLTests {
         assertEquals("sfm:fluid:minecraft:.*", ident.toString());
         assertEquals("fluid:minecraft:", ident.toStringCondensed());
     }
+
+    // ===== STRUCT TESTS =====
+
+    @Test
+    public void structBasicDefinition() {
+        assertNoCompileErrors(
+                """
+                        NAME "Struct Test"
+
+                        struct Furnace
+                            input: TOP SIDE SLOTS 0
+                            fuel: BOTTOM SIDE SLOTS 1
+                            output: BOTTOM SIDE SLOTS 2
+                        end
+
+                        let smelter = Furnace { label: "my_furnaces" }
+
+                        every 20 ticks do
+                            input from ore_chest
+                            output to smelter using input
+                        end
+                        """
+        );
+    }
+
+    @Test
+    public void structWithUsingClause() {
+        var input = """
+                NAME "Struct Using Test"
+
+                struct Furnace
+                    input: TOP SIDE SLOTS 0
+                    output: BOTTOM SIDE SLOTS 2
+                end
+
+                let smelter = Furnace { label: "furnaces" }
+
+                every 20 ticks do
+                    input from chest
+                    output to smelter using input
+
+                    forget
+
+                    input from smelter using output
+                    output to storage
+                end
+                """;
+        assertNoCompileErrors(input);
+        var program = compile(input);
+        assertEquals(1, program.structDefinitions().size());
+        assertEquals(1, program.letStatements().size());
+        assertEquals("Furnace", program.structDefinitions().get(0).name());
+        assertEquals("smelter", program.letStatements().get(0).variableName());
+    }
+
+    @Test
+    public void structMissingLabel() {
+        var input = """
+                NAME "Missing Label Test"
+
+                struct Furnace
+                    input: TOP SIDE
+                end
+
+                let smelter = Furnace { input: TOP SIDE }
+
+                every 20 ticks do
+                    input from chest
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void structUnknownStruct() {
+        var input = """
+                NAME "Unknown Struct Test"
+
+                let smelter = UnknownStruct { label: "test" }
+
+                every 20 ticks do
+                    input from chest
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void structUnknownVariable() {
+        var input = """
+                NAME "Unknown Variable Test"
+
+                struct Furnace
+                    input: TOP SIDE
+                end
+
+                let smelter = Furnace { label: "test" }
+
+                every 20 ticks do
+                    input from unknown_var using input
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void structUnknownField() {
+        var input = """
+                NAME "Unknown Field Test"
+
+                struct Furnace
+                    input: TOP SIDE
+                end
+
+                let smelter = Furnace { label: "test" }
+
+                every 20 ticks do
+                    input from smelter using unknown_field
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void structDuplicateDefinition() {
+        var input = """
+                NAME "Duplicate Struct Test"
+
+                struct Furnace
+                    input: TOP SIDE
+                end
+
+                struct Furnace
+                    output: BOTTOM SIDE
+                end
+
+                let smelter = Furnace { label: "test" }
+
+                every 20 ticks do
+                    input from chest
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void structDuplicateField() {
+        var input = """
+                NAME "Duplicate Field Test"
+
+                struct Furnace
+                    input: TOP SIDE
+                    input: BOTTOM SIDE
+                end
+
+                let smelter = Furnace { label: "test" }
+
+                every 20 ticks do
+                    input from chest
+                end
+                """;
+        assertCompileErrorsPresent(input);
+    }
+
+    @Test
+    public void structSideOverride() {
+        var input = """
+                NAME "Side Override Test"
+
+                struct Furnace
+                    input: TOP SIDE SLOTS 0
+                end
+
+                let smelter = Furnace { label: "furnaces" }
+
+                every 20 ticks do
+                    input from chest
+                    output to smelter using input BOTTOM SIDE
+                end
+                """;
+        assertNoCompileErrors(input);
+    }
+
+    @Test
+    public void structSlotOnlyField() {
+        assertNoCompileErrors(
+                """
+                        NAME "Slot Only Field Test"
+
+                        struct Storage
+                            main: SLOTS 0-26
+                            hotbar: SLOTS 27-35
+                        end
+
+                        let inv = Storage { label: "inventory" }
+
+                        every 20 ticks do
+                            input from inv using main
+                            output to inv using hotbar
+                        end
+                        """
+        );
+    }
 }
