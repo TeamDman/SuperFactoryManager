@@ -81,6 +81,18 @@ public class SFMProgramLinters {
             StructUsageLinter::new
     );
 
+    public static final SFMRegistryObject<IProgramLinter, ProtocolUsageLinter>
+            PROTOCOL_USAGE_LINTER = REGISTERER.register(
+            "protocol_usage",
+            ProtocolUsageLinter::new
+    );
+
+    public static final SFMRegistryObject<IProgramLinter, MacroUsageLinter>
+            MACRO_USAGE_LINTER = REGISTERER.register(
+            "macro_usage",
+            MacroUsageLinter::new
+    );
+
     static {
         if (SFMModCompat.isMekanismLoaded()) {
             SFMMekanismCompat.registerProgramLinters(REGISTERER);
