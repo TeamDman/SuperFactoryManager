@@ -3,7 +3,7 @@ package ca.teamdman.sfml.ast;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-public record NumberRangeSet(NumberRange[] ranges) implements ASTNode {
+public record NumberRangeSet(NumberRange[] ranges) implements StructFieldValue {
     public static final NumberRangeSet MAX_RANGE = new NumberRangeSet(new NumberRange[]{NumberRange.MAX_RANGE});
     public boolean contains(int value) {
         for (NumberRange range : ranges) {

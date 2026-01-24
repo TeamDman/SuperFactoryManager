@@ -1,6 +1,6 @@
 package ca.teamdman.sfml.ast;
 
-public record Number(long value) implements ASTNode {
+public record Number(long value) implements StructFieldValue {
     @Override
     public String toString() {
         return String.valueOf(value);

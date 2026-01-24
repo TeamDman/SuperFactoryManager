@@ -14,7 +14,7 @@ import java.util.stream.Stream;
  * A read-only set of {@link ResourceIdentifier} objects.
  * Do NOT modify this after creation since the {@link this#referencedResourceTypes} will become inaccurate.
  */
-public final class ResourceIdSet implements ASTNode {
+public final class ResourceIdSet implements StructFieldValue {
     public static final ResourceIdSet EMPTY = new ResourceIdSet(List.of());
     public static final ResourceIdSet MATCH_ALL = new ResourceIdSet(List.of(ResourceIdentifier.MATCH_ALL));
     private final ResourceIdentifier<?, ?, ?>[] resourceIds;

@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public record SideQualifier(List<Side> sides) implements ASTNode {
+public record SideQualifier(List<Side> sides) implements StructFieldValue {
     public static final SideQualifier NULL = new SideQualifier(List.of(Side.NULL));
 
     public static final SideQualifier ALL = new SideQualifier(List.of(
