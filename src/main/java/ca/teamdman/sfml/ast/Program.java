@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -32,6 +33,10 @@ public record Program(
         ASTBuilder astBuilder,
 
         String name,
+
+        List<StructDefinition> structDefinitions,
+
+        List<LetStatement> letStatements,
 
         List<Trigger> triggers,
 
@@ -167,11 +172,36 @@ public record Program(
         return -1;
     }
 
+    /**
+     * Gets a struct definition by name.
+     */
+    public Optional<StructDefinition> getStructDefinition(String name) {
+        return structDefinitions.stream()
+                .filter(s -> s.name().equals(name))
+                .findFirst();
+    }
+
+    /**
+     * Gets a struct instance by variable name.
+     */
+    public Optional<StructInstance> getStructInstance(String variableName) {
+        return letStatements.stream()
+                .filter(let -> let.variableName().equals(variableName))
+                .map(LetStatement::instance)
+                .findFirst();
+    }
+
     @Override
     public String toString() {
 
         var rtn = new StringBuilder();
         rtn.append("NAME \"").append(name).append("\"\n");
+        for (StructDefinition structDef : structDefinitions) {
+            rtn.append(structDef).append("\n");
+        }
+        for (LetStatement letStmt : letStatements) {
+            rtn.append(letStmt).append("\n");
+        }
         for (Trigger trigger : triggers) {
             rtn.append(trigger).append("\n");
         }
