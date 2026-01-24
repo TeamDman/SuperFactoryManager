@@ -59,7 +59,7 @@ retention       : RETAIN number EACH?;
 
 resourceExclusion       : EXCEPT resourceIdList;
 
-resourceId      : (identifier) (COLON (identifier)? (COLON (identifier)? (COLON (identifier)?)?)?)? # Resource
+resourceId      : (identifierPattern) (COLON (identifierPattern)? (COLON (identifierPattern)? (COLON (identifierPattern)?)?)?)? # Resource
                 | string                                                                            # StringResource
                 ;
 
@@ -117,9 +117,14 @@ nbtValue    : NUMBER                             # NbtValueNumber
             | FALSE                              # NbtValueFalse
             ;
 
-tagMatcher  : identifier COLON identifier (SLASH identifier)*
-            | identifier (SLASH identifier)*
+tagMatcher  : tagPatternElement COLON tagPatternElement (SLASH tagPatternElement)*
+            | tagPatternElement (SLASH tagPatternElement)*
             ;
+
+// Tag pattern element - supports wildcards like *, *_matter, foo*, and ** for multi-segment
+tagPatternElement : STAR STAR                    // ** for multi-segment wildcard
+                  | identifierPattern
+                  ;
 
 
 sidequalifier   : EACH SIDE                  #EachSide
@@ -190,7 +195,22 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | STAR | NAME) ;
+// Pattern for resource identifiers - supports wildcards like *seed*, *seed, seed*, *
+identifierPattern : STAR? identifierBase STAR?
+                  | STAR
+                  ;
+
+// Base identifiers (keywords that can be used as identifiers, without STAR)
+// This includes all keywords that could appear in resource names (e.g., *block*, *iron*, etc.)
+identifierBase : IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | NAME
+               | BLOCK | LABEL | SLOT | SLOTS | EMPTY | TAG | SIDE | NULL | TICK | TICKS | PULSE | ROUND | ROBIN
+               | NORTH | EAST | SOUTH | WEST | IF | THEN | ELSE | DO | END | TRUE | FALSE | NOT | AND | OR
+               | WITH | WITHOUT | NBT | BY | IN | FROM | TO | WHERE | RETAIN | EACH | EXCEPT | FORGET | HAS
+               | OVERALL | SOME | ONE | LONE | INPUT | OUTPUT | EVERY
+               ;
+
+// Full identifier including STAR (for labels, NBT paths, etc.)
+identifier : identifierBase | STAR ;
 
 // GENERAL
 string: STRING ;

@@ -865,7 +865,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     public TagMatcher visitTagMatcher(SFMLParser.TagMatcherContext ctx) {
 
         ArrayDeque<String> identifiers = ctx
-                .identifier()
+                .tagPatternElement()
                 .stream()
                 .map(ParseTree::getText)
                 .map(s -> s.replaceAll("\\*", ".*")) // convert * to .*
