@@ -844,4 +844,47 @@ public class SFMLNbtFilteringTests {
         """;
         assertNoCompileErrors(input);
     }
+
+    @Test
+    public void nbtWildcardInArrayFilter() {
+        String input = """
+            EVERY 20 TICKS DO
+                INPUT WITH NBT Enchantments[?id = "minecraft:*"] FROM chest
+            END
+        """;
+        assertNoCompileErrors(input);
+    }
+
+    @Test
+    public void nbtWildcardInArrayFilterConvertsCorrectly() {
+        NbtFilterPath path = new NbtFilterPath(false, List.of("id"));
+        NbtFilterExpr expr = new NbtFilterExpr(path, ComparisonOperator.EQUALS, new NbtValue.NbtString("minecraft:*"));
+
+        assertEquals("starts_with(id, 'minecraft:')", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtWildcardEndsWithInArrayFilter() {
+        NbtFilterPath path = new NbtFilterPath(false, List.of("id"));
+        NbtFilterExpr expr = new NbtFilterExpr(path, ComparisonOperator.EQUALS, new NbtValue.NbtString("*_protection"));
+
+        assertEquals("ends_with(id, '_protection')", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtWildcardContainsInArrayFilter() {
+        NbtFilterPath path = new NbtFilterPath(false, List.of("id"));
+        NbtFilterExpr expr = new NbtFilterExpr(path, ComparisonOperator.EQUALS, new NbtValue.NbtString("*fire*"));
+
+        assertEquals("contains(id, 'fire')", expr.toJmesPath());
+    }
+
+    @Test
+    public void nbtWildcardAnyInArrayFilter() {
+        NbtFilterPath path = new NbtFilterPath(false, List.of("id"));
+        NbtFilterExpr expr = new NbtFilterExpr(path, ComparisonOperator.EQUALS, new NbtValue.NbtString("*"));
+
+        // Just "*" means existence check
+        assertEquals("id", expr.toJmesPath());
+    }
 }
