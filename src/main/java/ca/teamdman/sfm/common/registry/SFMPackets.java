@@ -60,6 +60,7 @@ public class SFMPackets {
         registerPacket(new ServerboundLabelGunSetActiveLabelPacket.Daddy());
         registerPacket(new ServerboundLabelGunUsePacket.Daddy());
         registerPacket(new ServerboundLabelInspectionRequestPacket.Daddy());
+        registerPacket(new ServerboundLibraryDiskSetProgramPacket.Daddy());
         registerPacket(new ServerboundManagerClearLogsPacket.Daddy());
         registerPacket(new ServerboundManagerFixPacket.Daddy());
         registerPacket(new ServerboundManagerLogDesireUpdatePacket.Daddy());

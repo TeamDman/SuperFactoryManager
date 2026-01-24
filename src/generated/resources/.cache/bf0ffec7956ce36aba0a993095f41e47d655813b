@@ -1,9 +1,10 @@
-// 1.19.2	2025-10-15T14:33:21.7675717	Block States: sfm
+// 1.19.2	2026-01-25T00:08:43.9119934	Block States: sfm
 6a4e3ee4c0c8d070519225c335fe0857b0b627fd assets/sfm/blockstates/buffer.json
 f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable.json
 f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable_facade.json
 0a672c9322f8bb4628d2c78d1f2d4edf3099aa31 assets/sfm/blockstates/fancy_cable.json
 0a672c9322f8bb4628d2c78d1f2d4edf3099aa31 assets/sfm/blockstates/fancy_cable_facade.json
+735956f079981e4f5ccb931bd90f54a6b2b75fd2 assets/sfm/blockstates/library.json
 01e9d7d54169b7f6bbd287f4b896629f66f25305 assets/sfm/blockstates/manager.json
 a351025a2054b6ce2ddc21dc14734cc8b5b635bc assets/sfm/blockstates/printing_press.json
 9be344941a18ad0d8dccbcd6536d52bf7295c1c8 assets/sfm/blockstates/test_barrel.json
@@ -19,6 +20,7 @@ f3c25839c6554e631061f91277bc687aebc38fd7 assets/sfm/blockstates/water_tank.json
 a76567fd4e65d191d69cf166b98776786d47a8e2 assets/sfm/models/block/cable.json
 7b8c954b87699a007b3d7aa3558bf7892b838975 assets/sfm/models/block/fancy_cable_connection.json
 7ba1003f6a1c077779c8e51166e1d134874844a8 assets/sfm/models/block/fancy_cable_core.json
+bacc43d799e70733161cc879b677d223120ce0d0 assets/sfm/models/block/library.json
 953313d31931040aa2bd9a8742d4a54a2c632b8d assets/sfm/models/block/manager.json
 369e3217e52fc9f71d3e4a83b9175bb4e36dbac0 assets/sfm/models/block/test_barrel_tank.json
 fbd4f97091c4dadead5a68954d148efb4ecb5ff6 assets/sfm/models/block/tunnelled_manager.json

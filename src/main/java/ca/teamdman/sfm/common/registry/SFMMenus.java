@@ -3,8 +3,10 @@ package ca.teamdman.sfm.common.registry;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.ClientRayCastHelpers;
+import ca.teamdman.sfm.common.blockentity.LibraryBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.blockentity.TestBarrelTankBlockEntity;
+import ca.teamdman.sfm.common.containermenu.LibraryContainerMenu;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.containermenu.TestBarrelTankContainerMenu;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
@@ -93,6 +95,44 @@ public class SFMMenus {
                                     return IContainerFactory.super.create(windowId, inv);
                                 }
                                 return new TestBarrelTankContainerMenu(windowId, inv, blockEntity);
+                            } else {
+                                return IContainerFactory.super.create(
+                                        windowId,
+                                        inv
+                                );
+                            }
+                        }
+                    })
+    );
+
+    public static final SFMRegistryObject<MenuType<?>, MenuType<LibraryContainerMenu>> LIBRARY_MENU = MENU_TYPES.register(
+            "library",
+            () -> IForgeMenuType.create(
+                    new IContainerFactory<>() {
+                        @Override
+                        public LibraryContainerMenu create(
+                                int windowId,
+                                Inventory inv,
+                                FriendlyByteBuf data
+                        ) {
+                            return new LibraryContainerMenu(
+                                    windowId,
+                                    inv,
+                                    data
+                            );
+                        }
+
+                        @Override
+                        public LibraryContainerMenu create(
+                                int windowId,
+                                Inventory inv
+                        ) {
+                            if (SFMEnvironmentUtils.isClient()) {
+                                BlockEntity be = ClientRayCastHelpers.getLookBlockEntity();
+                                if (!(be instanceof LibraryBlockEntity blockEntity)) {
+                                    return IContainerFactory.super.create(windowId, inv);
+                                }
+                                return new LibraryContainerMenu(windowId, inv, blockEntity);
                             } else {
                                 return IContainerFactory.super.create(
                                         windowId,

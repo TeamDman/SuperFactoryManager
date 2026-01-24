@@ -30,6 +30,11 @@ public class MacroUsageLinter implements IProgramLinter {
             @Nullable ManagerBlockEntity managerBlockEntity,
             ProblemTracker tracker
     ) {
+        // Skip for library disks (no triggers = definitions are meant to be exported)
+        if (program.triggers().isEmpty()) {
+            return;
+        }
+
         // Collect all macro names that are used in expand statements
         Set<String> usedMacros = new HashSet<>();
         collectUsedMacros(program, usedMacros);

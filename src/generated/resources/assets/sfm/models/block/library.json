@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "sfm:block/library_bot",
+    "east": "sfm:block/library_side",
+    "north": "sfm:block/library_front",
+    "particle": "sfm:block/library_top",
+    "south": "sfm:block/library_back",
+    "up": "sfm:block/library_top",
+    "west": "sfm:block/library_side"
+  }
+}

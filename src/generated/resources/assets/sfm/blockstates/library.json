@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "sfm:block/library",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "sfm:block/library"
+    },
+    "facing=south": {
+      "model": "sfm:block/library",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "sfm:block/library",
+      "y": 270
+    }
+  }
+}

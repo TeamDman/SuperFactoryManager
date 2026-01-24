@@ -1,9 +1,10 @@
-// 1.19.2	2025-09-22T22:24:00.9129422	LootTables
+// 1.19.2	2026-01-24T23:53:42.6110462	LootTables
 530958bfa0a0340b5c16ed70d416bfe5fb8776de data/sfm/loot_tables/blocks/buffer.json
 5286db740244722d7db672fc22de815fdd8ab330 data/sfm/loot_tables/blocks/cable.json
 5286db740244722d7db672fc22de815fdd8ab330 data/sfm/loot_tables/blocks/cable_facade.json
 9362833df3c9ef338cf4648460e7e1185154e2d7 data/sfm/loot_tables/blocks/fancy_cable.json
 9362833df3c9ef338cf4648460e7e1185154e2d7 data/sfm/loot_tables/blocks/fancy_cable_facade.json
+d5c24c23a8c72dc72bbb491ec361f96c38825f07 data/sfm/loot_tables/blocks/library.json
 ef4bb95208a13cbe51de891c102654406caee78e data/sfm/loot_tables/blocks/manager.json
 c0a6bdf7e2d285eb10d05e1515ffede8d52f6c0f data/sfm/loot_tables/blocks/printing_press.json
 e92e583664aee9b10bfcfe8b3d01f2c71e7017f7 data/sfm/loot_tables/blocks/tunnelled_manager.json

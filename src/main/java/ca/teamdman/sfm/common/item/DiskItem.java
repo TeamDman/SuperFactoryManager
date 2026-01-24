@@ -15,6 +15,7 @@ import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfm.common.util.SFMItemUtils;
 import ca.teamdman.sfm.common.util.SFMTranslationUtils;
 import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.program_builder.LibraryResolver;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
@@ -73,13 +74,24 @@ public class DiskItem extends Item {
             @Nullable ManagerBlockEntity manager,
             boolean updateWarnings
     ) {
+        return compileAndUpdateErrorsAndWarnings(stack, manager, updateWarnings, LibraryResolver.NONE);
+    }
+
+    public static @Nullable Program compileAndUpdateErrorsAndWarnings(
+            ItemStack stack,
+            @Nullable ManagerBlockEntity manager,
+            boolean updateWarnings,
+            LibraryResolver libraryResolver
+    ) {
         if (manager != null) {
             manager.logger.info(x -> x.accept(LocalizationKeys.PROGRAM_COMPILE_FROM_DISK_BEGIN.get()));
         }
         AtomicReference<Program> rtn = new AtomicReference<>(null);
         String programString = getProgramString(stack);
 
-        new ProgramBuilder(programString).build()
+        new ProgramBuilder(programString)
+                .withLibraryResolver(libraryResolver)
+                .build()
                 .caseSuccess((successProgram, metadata) -> {
                     if (updateWarnings) {
                         Collection<TranslatableContents> warnings = ProgramLinter.gatherWarnings(

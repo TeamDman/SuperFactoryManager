@@ -35,12 +35,25 @@ public class ProgramBuilder {
     /// Indicates that the resulting program may be mutated in naughty ways that we don't want interfering with our cache.
     private boolean useCache = true;
 
+    /// Library resolver for resolving "use library" statements
+    private LibraryResolver libraryResolver = LibraryResolver.NONE;
+
     public ProgramBuilder(@Nullable String programString) {
 
         if (programString == null) {
             programString = "";
         }
         this.programString = programString;
+    }
+
+    /// Sets the library resolver used to resolve "use library" statements.
+    public ProgramBuilder withLibraryResolver(LibraryResolver resolver) {
+        this.libraryResolver = resolver != null ? resolver : LibraryResolver.NONE;
+        // Using a library resolver requires disabling cache since different resolvers may give different results
+        if (resolver != LibraryResolver.NONE) {
+            this.useCache = false;
+        }
+        return this;
     }
 
     /// Checks if the program object is stored in the cache.
@@ -76,6 +89,7 @@ public class ProgramBuilder {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         SFMLParser parser = new SFMLParser(tokens);
         ASTBuilder builder = new ASTBuilder();
+        builder.setLibraryResolver(libraryResolver);
 
         // set up error capturing
         lexer.removeErrorListeners();

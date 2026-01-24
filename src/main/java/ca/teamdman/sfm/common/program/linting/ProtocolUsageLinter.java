@@ -30,6 +30,11 @@ public class ProtocolUsageLinter implements IProgramLinter {
             @Nullable ManagerBlockEntity managerBlockEntity,
             ProblemTracker tracker
     ) {
+        // Skip for library disks (no triggers = definitions are meant to be exported)
+        if (program.triggers().isEmpty()) {
+            return;
+        }
+
         // Collect all protocols that are referenced
         Set<String> usedProtocols = new HashSet<>();
 

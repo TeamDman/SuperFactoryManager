@@ -30,6 +30,9 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
         justParent(SFMItems.PRINTING_PRESS_ITEM, SFMBlocks.PRINTING_PRESS_BLOCK);
         justParent(SFMItems.WATER_TANK_ITEM, SFMBlocks.WATER_TANK_BLOCK, "_active");
         justParent(SFMItems.BUFFER_ITEM, SFMBlocks.BUFFER_BLOCK, "_item");
+        if (SFMItems.LIBRARY_ITEM != null) {
+            justParent(SFMItems.LIBRARY_ITEM, SFMBlocks.LIBRARY_BLOCK);
+        }
         basicItem(SFMItems.DISK_ITEM);
         basicItem(SFMItems.LABEL_GUN_ITEM);
         basicItem(SFMItems.EXPERIENCE_GOOP_ITEM);

@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.registry;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.render.LibraryBlockEntityRenderer;
 import ca.teamdman.sfm.client.render.PrintingPressBlockEntityRenderer;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import net.minecraftforge.api.distmarker.Dist;
@@ -16,5 +17,11 @@ public class SFMBlockEntityRenderers {
                 SFMBlockEntities.PRINTING_PRESS_BLOCK_ENTITY.get(),
                 PrintingPressBlockEntityRenderer::new
         );
+        if (SFMBlockEntities.LIBRARY_BLOCK_ENTITY != null) {
+            event.registerBlockEntityRenderer(
+                    SFMBlockEntities.LIBRARY_BLOCK_ENTITY.get(),
+                    LibraryBlockEntityRenderer::new
+            );
+        }
     }
 }

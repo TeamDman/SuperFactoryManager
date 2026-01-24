@@ -25,6 +25,11 @@ public class StructDefinitionLinter implements IProgramLinter {
             @Nullable ManagerBlockEntity managerBlockEntity,
             ProblemTracker tracker
     ) {
+        // Skip for library disks (no triggers = definitions are meant to be exported)
+        if (program.triggers().isEmpty()) {
+            return;
+        }
+
         // Collect all struct names that are instantiated
         Set<String> usedStructs = new HashSet<>();
         for (LetStatement letStatement : program.letStatements()) {

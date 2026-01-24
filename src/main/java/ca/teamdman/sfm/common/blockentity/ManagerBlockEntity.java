@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
+import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.config.SFMConfigTracker;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
@@ -21,6 +23,8 @@ import ca.teamdman.sfm.common.timing.SFMEpochInstant;
 import ca.teamdman.sfm.common.timing.SFMInstant;
 import ca.teamdman.sfm.common.util.SFMContainerUtil;
 import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.program_builder.LibraryDefinitions;
+import ca.teamdman.sfml.program_builder.LibraryResolver;
 import com.google.common.base.Joiner;
 import net.minecraft.ChatFormatting;
 import net.minecraft.CrashReportCategory;
@@ -44,6 +48,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public class ManagerBlockEntity extends BaseContainerBlockEntity {
@@ -354,14 +359,69 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
             this.program = null;
         } else {
             this.incrementRebuildWarningsCooldown();
+            LibraryResolver resolver = createLibraryResolver();
             this.program = DiskItem.compileAndUpdateErrorsAndWarnings(
                     disk,
                     this,
-                    this.shouldRebuildWarnings()
+                    this.shouldRebuildWarnings(),
+                    resolver
             );
         }
         this.configRevision = SFMConfig.SERVER_CONFIG.getRevision();
         sendUpdatePacket();
+    }
+
+    /**
+     * Creates a library resolver that scans the cable network for library blocks
+     * containing disks with a matching NAME statement.
+     * The resolver:
+     * 1. Gets all cable positions in the network
+     * 2. For each cable, checks adjacent blocks for LibraryBlockEntity
+     * 3. Extracts the NAME from each disk and compares with the requested library name
+     * 4. Returns the parsed definitions from the first matching disk
+     */
+    public LibraryResolver createLibraryResolver() {
+        return libraryName -> {
+            if (level == null) {
+                return Optional.empty();
+            }
+
+            // Get the cable network for this manager
+            Optional<CableNetwork> networkOpt = CableNetworkManager.getOrRegisterNetworkFromManagerPosition(this);
+            if (networkOpt.isEmpty()) {
+                return Optional.empty();
+            }
+            CableNetwork network = networkOpt.get();
+
+            // Track visited positions to avoid checking the same library block multiple times
+            Set<BlockPos> visited = new java.util.HashSet<>();
+
+            // Scan all positions adjacent to cables for library blocks
+            BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
+            for (BlockPos cablePos : network.getCablePositions().toList()) {
+                for (net.minecraft.core.Direction direction : net.minecraft.core.Direction.values()) {
+                    target.set(cablePos).move(direction);
+                    BlockPos immutableTarget = target.immutable();
+
+                    // Skip if already visited
+                    if (!visited.add(immutableTarget)) {
+                        continue;
+                    }
+
+                    if (!(level.getBlockEntity(immutableTarget) instanceof LibraryBlockEntity library)) {
+                        continue;
+                    }
+
+                    // Check each disk slot in the library block
+                    LibraryDefinitions defs = library.getDefinitionsForLibrary(libraryName);
+                    if (defs != null) {
+                        return Optional.of(defs);
+                    }
+                }
+            }
+
+            return Optional.empty();
+        };
     }
 
     @Override

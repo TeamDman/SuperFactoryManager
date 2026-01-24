@@ -33,6 +33,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         registerWaterTank();
         registerTestBarrel();
         registerBuffer();
+        registerLibrary();
     }
 
     private void registerTestBarrel() {
@@ -243,5 +244,37 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                     return ConfiguredModel.builder().modelFile(modelFile).build();
                 });
 
+    }
+
+    private void registerLibrary() {
+        if (SFMBlocks.LIBRARY_BLOCK == null) return;
+
+        // Create a model with different textures for front, back, and sides
+        ModelFile libraryModel = models().cube(
+                SFMBlocks.LIBRARY_BLOCK.getPath(),
+                modLoc("block/library_bot"),    // down
+                modLoc("block/library_top"),    // up
+                modLoc("block/library_front"),  // north (front)
+                modLoc("block/library_back"),   // south (back)
+                modLoc("block/library_side"),   // west
+                modLoc("block/library_side")    // east
+        ).texture("particle", modLoc("block/library_top"));
+
+        // Create variants for each horizontal facing direction
+        getVariantBuilder(SFMBlocks.LIBRARY_BLOCK.get())
+                .forAllStates(state -> {
+                    Direction facing = state.getValue(ca.teamdman.sfm.common.block.LibraryBlock.FACING);
+                    int yRot = switch (facing) {
+                        case NORTH -> 0;
+                        case EAST -> 90;
+                        case SOUTH -> 180;
+                        case WEST -> 270;
+                        default -> 0;
+                    };
+                    return ConfiguredModel.builder()
+                            .modelFile(libraryModel)
+                            .rotationY(yRot)
+                            .build();
+                });
     }
 }

@@ -3,6 +3,8 @@ package ca.teamdman.sfml.ast;
 import ca.teamdman.langs.SFMLBaseVisitor;
 import ca.teamdman.langs.SFMLParser;
 import ca.teamdman.sfm.common.config.SFMConfig;
+import ca.teamdman.sfml.program_builder.LibraryDefinitions;
+import ca.teamdman.sfml.program_builder.LibraryResolver;
 import com.mojang.datafixers.util.Pair;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -35,6 +37,16 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
     /// Macro definitions indexed by name, populated during AST building
     private final Map<String, MacroDefinition> MACRO_DEFINITIONS = new HashMap<>();
+
+    /// Library resolver for resolving "use library" statements
+    private LibraryResolver libraryResolver = LibraryResolver.NONE;
+
+    /**
+     * Sets the library resolver used to resolve "use library" statements.
+     */
+    public void setLibraryResolver(LibraryResolver resolver) {
+        this.libraryResolver = resolver != null ? resolver : LibraryResolver.NONE;
+    }
 
     /// @return hierarchy of nodes; e.g., Program > Trigger > Block > IOStatement > LabelAccess > Label
     public List<Pair<ASTNode, ParserRuleContext>> getNodesUnderCursor(int cursorPos) {
@@ -208,7 +220,40 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .map(this::visitLibrary)
                 .collect(Collectors.toList());
 
-        // Process protocol definitions
+        // Resolve library definitions and import them before processing local definitions
+        for (LibraryStatement libraryStmt : libraries) {
+            Optional<LibraryDefinitions> resolved = libraryResolver.resolve(libraryStmt.blockLabel());
+            if (resolved.isEmpty()) {
+                throw new IllegalArgumentException("Library '" + libraryStmt.blockLabel() + "' not found in cable network");
+            }
+            LibraryDefinitions libDefs = resolved.get();
+
+            // Import protocols from library
+            for (ProtocolDefinition proto : libDefs.protocols()) {
+                if (PROTOCOL_DEFINITIONS.containsKey(proto.name())) {
+                    throw new IllegalArgumentException("Duplicate protocol definition: " + proto.name() + " (imported from library '" + libraryStmt.blockLabel() + "')");
+                }
+                PROTOCOL_DEFINITIONS.put(proto.name(), proto);
+            }
+
+            // Import structs from library
+            for (StructDefinition struct : libDefs.structs()) {
+                if (STRUCT_DEFINITIONS.containsKey(struct.name())) {
+                    throw new IllegalArgumentException("Duplicate struct definition: " + struct.name() + " (imported from library '" + libraryStmt.blockLabel() + "')");
+                }
+                STRUCT_DEFINITIONS.put(struct.name(), struct);
+            }
+
+            // Import macros from library
+            for (MacroDefinition macro : libDefs.macros()) {
+                if (MACRO_DEFINITIONS.containsKey(macro.name())) {
+                    throw new IllegalArgumentException("Duplicate macro definition: " + macro.name() + " (imported from library '" + libraryStmt.blockLabel() + "')");
+                }
+                MACRO_DEFINITIONS.put(macro.name(), macro);
+            }
+        }
+
+        // Process protocol definitions (local definitions can override or extend library ones)
         var protocolDefinitions = ctx
                 .protocolDefinition()
                 .stream()

@@ -492,6 +492,18 @@ public final class LocalizationKeys {
             "program.sfm.warnings.unused_macro",
             "Macro \"%s\" is defined but never expanded."
     );
+    public static final LocalizationEntry PROGRAM_WARNING_UNUSED_LIBRARY = new LocalizationEntry(
+            "program.sfm.warnings.unused_library",
+            "Library \"%s\" is imported but none of its definitions are used."
+    );
+    public static final LocalizationEntry PROGRAM_ERROR_LIBRARY_NOT_FOUND = new LocalizationEntry(
+            "program.sfm.error.library_not_found",
+            "Library \"%s\" not found in cable network."
+    );
+    public static final LocalizationEntry PROGRAM_ERROR_LIBRARY_HAS_ERRORS = new LocalizationEntry(
+            "program.sfm.error.library_has_errors",
+            "Library \"%s\" has compilation errors."
+    );
     public static final LocalizationEntry LIBRARY_CONTAINER = new LocalizationEntry(
             "container.sfm.library",
             "SFML Library"
