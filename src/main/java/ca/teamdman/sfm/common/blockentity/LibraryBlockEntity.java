@@ -292,6 +292,8 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     // Client-side cache of disk mask for rendering
     private int clientDiskMask = 0;
+    private int clientErrorMask = 0;
+    private int clientWarningMask = 0;
 
     @Override
     public void setChanged() {
@@ -338,6 +340,8 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
     public CompoundTag getUpdateTag() {
         CompoundTag tag = super.getUpdateTag();
         tag.putInt("DiskMask", computeDiskMask());
+        tag.putInt("ErrorMask", computeErrorMask());
+        tag.putInt("WarningMask", computeWarningMask());
         return tag;
     }
 
@@ -345,6 +349,8 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
     public void handleUpdateTag(CompoundTag tag) {
         super.handleUpdateTag(tag);
         clientDiskMask = tag.getInt("DiskMask");
+        clientErrorMask = tag.getInt("ErrorMask");
+        clientWarningMask = tag.getInt("WarningMask");
     }
 
     @Override
@@ -357,6 +363,8 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
         CompoundTag tag = pkt.getTag();
         if (tag != null) {
             clientDiskMask = tag.getInt("DiskMask");
+            clientErrorMask = tag.getInt("ErrorMask");
+            clientWarningMask = tag.getInt("WarningMask");
         }
     }
 
@@ -374,6 +382,34 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
     }
 
     /**
+     * Computes a bitmask indicating which slots have disks with errors (server-side).
+     */
+    private int computeErrorMask() {
+        int mask = 0;
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack disk = items.get(i);
+            if (DiskItem.isValidDisk(disk) && !DiskItem.getErrors(disk).isEmpty()) {
+                mask |= (1 << i);
+            }
+        }
+        return mask;
+    }
+
+    /**
+     * Computes a bitmask indicating which slots have disks with warnings (server-side).
+     */
+    private int computeWarningMask() {
+        int mask = 0;
+        for (int i = 0; i < items.size(); i++) {
+            ItemStack disk = items.get(i);
+            if (DiskItem.isValidDisk(disk) && !DiskItem.getWarnings(disk).isEmpty()) {
+                mask |= (1 << i);
+            }
+        }
+        return mask;
+    }
+
+    /**
      * Returns a bitmask indicating which slots have disks.
      * Bit 0 = slot 0, bit 1 = slot 1, etc.
      * Used by the BlockEntityRenderer to show disk indicators.
@@ -383,5 +419,29 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
             return clientDiskMask;
         }
         return computeDiskMask();
+    }
+
+    /**
+     * Returns a bitmask indicating which slots have disks with errors.
+     * Bit 0 = slot 0, bit 1 = slot 1, etc.
+     * Used by the BlockEntityRenderer to show error indicators.
+     */
+    public int getErrorSlotMask() {
+        if (level != null && level.isClientSide()) {
+            return clientErrorMask;
+        }
+        return computeErrorMask();
+    }
+
+    /**
+     * Returns a bitmask indicating which slots have disks with warnings.
+     * Bit 0 = slot 0, bit 1 = slot 1, etc.
+     * Used by the BlockEntityRenderer to show warning indicators.
+     */
+    public int getWarningSlotMask() {
+        if (level != null && level.isClientSide()) {
+            return clientWarningMask;
+        }
+        return computeWarningMask();
     }
 }

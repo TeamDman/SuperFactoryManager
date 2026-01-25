@@ -11,29 +11,76 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.Level;
 
 /**
  * Renders disk slot indicators on the front face of the library block.
- * Shows amber lights for occupied slots, matching their physical positions.
+ * Shows colored lights for occupied slots: green (normal), yellow (warnings), red (errors).
+ * Indicators pulse with speed/intensity based on status.
  */
 public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBlockEntity> {
 
-    // Amber phosphor color (matching the UI palette)
-    private static final float AMBER_R = 204f / 255f;
-    private static final float AMBER_G = 150f / 255f;
-    private static final float AMBER_B = 64f / 255f;
+    // Indicator light colors
+    // Normal state: Green
+    private static final float NORMAL_R = 64f / 255f;
+    private static final float NORMAL_G = 204f / 255f;
+    private static final float NORMAL_B = 64f / 255f;
 
-    // Slot layout constants (in block units, 0-1 range)
-    private static final float SLOT_SIZE = 1.0f / 16.0f;  // 1 pixel
-    private static final float SLOT_SPACING = 2.0f / 16.0f;  // 2 pixels between slots
+    // Error state: Red
+    private static final float ERROR_R = 204f / 255f;
+    private static final float ERROR_G = 64f / 255f;
+    private static final float ERROR_B = 64f / 255f;
 
-    // Starting position for the slot grid
-    private static final float GRID_START_X = 3.0f / 16.0f;
-    private static final float ROW1_Y = 9.0f / 16.0f;
-    private static final float ROW2_Y = 12.0f / 16.0f;
+    // Warning state: Yellow
+    private static final float WARNING_R = 204f / 255f;
+    private static final float WARNING_G = 204f / 255f;
+    private static final float WARNING_B = 64f / 255f;
+
+    // Disk edge color (matching disk texture - dark red/burgundy)
+    private static final float DISK_R = 139f / 255f;
+    private static final float DISK_G = 35f / 255f;
+    private static final float DISK_B = 35f / 255f;
+
+    // Pulse parameters for each status
+    private static final float NORMAL_PULSE_SPEED = 0.1f;
+    private static final float NORMAL_PULSE_AMPLITUDE = 0.15f;
+    private static final float WARNING_PULSE_SPEED = 0.2f;
+    private static final float WARNING_PULSE_AMPLITUDE = 0.25f;
+    private static final float ERROR_PULSE_SPEED = 0.4f;
+    private static final float ERROR_PULSE_AMPLITUDE = 0.35f;
+
+    // Base brightness for indicators
+    private static final float BASE_BRIGHTNESS = 0.7f;
+
+    // Layout constants based on 128x128 texture
+    // Texture generator uses: GRID_START_X=4, ROW1_Y=48, ROW2_Y=72, COL_SPACING=25
+    // SLOT_WIDTH=16, SLOT_HEIGHT=6, LIGHT_SIZE=4
+    private static final float TEX = 128.0f;
+
+    // Disk slot dimensions
+    private static final float SLOT_WIDTH = 16.0f / TEX;
+    private static final float SLOT_HEIGHT = 6.0f / TEX;
+    private static final float COL_SPACING = 25.0f / TEX;
+    private static final float GRID_START_X = 4.0f / TEX;
+    private static final float ROW1_Y = 48.0f / TEX;
+    private static final float ROW2_Y = 72.0f / TEX;
+
+    // Indicator light position (right side of slot)
+    private static final float LIGHT_OFFSET_X = SLOT_WIDTH + 2.5f / TEX;
+    private static final float LIGHT_SIZE = 3.0f / TEX;
+    private static final float LIGHT_OFFSET_Y = (SLOT_HEIGHT - LIGHT_SIZE) / 2.0f;
+
+    // Disk line dimensions (thin red line inside slot)
+    private static final float DISK_LINE_INSET = 1.0f / TEX;
+    private static final float DISK_LINE_HEIGHT = 2.0f / TEX;
 
     // Z offset to prevent z-fighting
     private static final float Z_OFFSET = -0.001f;
+    private static final float Z_GLOW_OFFSET = -0.002f;
+
+    // Glow effect
+    private static final float GLOW_SIZE_MULTIPLIER = 1.5f;
+    private static final float GLOW_ALPHA = 0.5f;
 
     public LibraryBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -50,7 +97,14 @@ public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBl
         int diskMask = blockEntity.getDiskSlotMask();
         if (diskMask == 0) return;
 
+        int errorMask = blockEntity.getErrorSlotMask();
+        int warningMask = blockEntity.getWarningSlotMask();
+
         Direction facing = blockEntity.getBlockState().getValue(LibraryBlock.FACING);
+
+        // Calculate time for pulsing animation
+        Level level = blockEntity.getLevel();
+        float gameTime = level != null ? level.getGameTime() + partialTick : 0;
 
         poseStack.pushPose();
 
@@ -72,46 +126,179 @@ public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBl
         // Move back from center
         poseStack.translate(-0.5, -0.5, -0.5);
 
-        // Set up rendering for colored quads
+        Matrix4f matrix = poseStack.last().pose();
+
+        // Set up rendering for colored quads with blending for glow
         RenderSystem.enableDepthTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
 
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder buffer = tesselator.getBuilder();
 
-        Matrix4f matrix = poseStack.last().pose();
-
+        // First pass: render disk lines (thin red line in each occupied slot)
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 
-        // Render indicators for each occupied slot
         for (int slot = 0; slot < LibraryBlockEntity.DISK_SLOT_COUNT; slot++) {
             if ((diskMask & (1 << slot)) != 0) {
-                renderSlotIndicator(buffer, matrix, slot);
+                renderDiskLine(buffer, matrix, slot);
             }
         }
 
         tesselator.end();
 
+        // Second pass: render glow effects (larger, semi-transparent)
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+
+        for (int slot = 0; slot < LibraryBlockEntity.DISK_SLOT_COUNT; slot++) {
+            if ((diskMask & (1 << slot)) != 0) {
+                int slotBit = 1 << slot;
+                float r, g, b, pulseSpeed, pulseAmplitude;
+
+                // Priority: error (red) > warning (yellow) > normal (green)
+                if ((errorMask & slotBit) != 0) {
+                    r = ERROR_R;
+                    g = ERROR_G;
+                    b = ERROR_B;
+                    pulseSpeed = ERROR_PULSE_SPEED;
+                    pulseAmplitude = ERROR_PULSE_AMPLITUDE;
+                } else if ((warningMask & slotBit) != 0) {
+                    r = WARNING_R;
+                    g = WARNING_G;
+                    b = WARNING_B;
+                    pulseSpeed = WARNING_PULSE_SPEED;
+                    pulseAmplitude = WARNING_PULSE_AMPLITUDE;
+                } else {
+                    r = NORMAL_R;
+                    g = NORMAL_G;
+                    b = NORMAL_B;
+                    pulseSpeed = NORMAL_PULSE_SPEED;
+                    pulseAmplitude = NORMAL_PULSE_AMPLITUDE;
+                }
+
+                // Calculate pulse with slot-based phase offset for visual variety
+                float phaseOffset = slot * 0.5f;
+                float pulse = (float) (Math.sin((gameTime + phaseOffset) * pulseSpeed) * 0.5 + 0.5);
+                float intensity = BASE_BRIGHTNESS + pulse * pulseAmplitude;
+
+                // Render glow (larger, semi-transparent)
+                renderGlow(buffer, matrix, slot, r * intensity, g * intensity, b * intensity);
+            }
+        }
+
+        tesselator.end();
+
+        // Third pass: render main indicator lights
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+
+        for (int slot = 0; slot < LibraryBlockEntity.DISK_SLOT_COUNT; slot++) {
+            if ((diskMask & (1 << slot)) != 0) {
+                int slotBit = 1 << slot;
+                float r, g, b, pulseSpeed, pulseAmplitude;
+
+                if ((errorMask & slotBit) != 0) {
+                    r = ERROR_R;
+                    g = ERROR_G;
+                    b = ERROR_B;
+                    pulseSpeed = ERROR_PULSE_SPEED;
+                    pulseAmplitude = ERROR_PULSE_AMPLITUDE;
+                } else if ((warningMask & slotBit) != 0) {
+                    r = WARNING_R;
+                    g = WARNING_G;
+                    b = WARNING_B;
+                    pulseSpeed = WARNING_PULSE_SPEED;
+                    pulseAmplitude = WARNING_PULSE_AMPLITUDE;
+                } else {
+                    r = NORMAL_R;
+                    g = NORMAL_G;
+                    b = NORMAL_B;
+                    pulseSpeed = NORMAL_PULSE_SPEED;
+                    pulseAmplitude = NORMAL_PULSE_AMPLITUDE;
+                }
+
+                float phaseOffset = slot * 0.5f;
+                float pulse = (float) (Math.sin((gameTime + phaseOffset) * pulseSpeed) * 0.5 + 0.5);
+                float intensity = BASE_BRIGHTNESS + pulse * pulseAmplitude;
+
+                renderSlotIndicator(buffer, matrix, slot, r * intensity, g * intensity, b * intensity);
+            }
+        }
+
+        tesselator.end();
+
+        RenderSystem.disableBlend();
         poseStack.popPose();
     }
 
-    private void renderSlotIndicator(BufferBuilder buffer, Matrix4f matrix, int slot) {
+    private void renderDiskLine(BufferBuilder buffer, Matrix4f matrix, int slot) {
         int row = slot / 5;
         int col = 4 - (slot % 5);  // Mirror column to match GUI layout
 
-        float x = GRID_START_X + col * SLOT_SPACING;
-        float y = (row == 0) ? ROW1_Y : ROW2_Y;
+        float slotX = GRID_START_X + col * COL_SPACING;
+        float slotY = (row == 0) ? ROW1_Y : ROW2_Y;
 
-        float x1 = x;
-        float x2 = x + SLOT_SIZE;
-        float y1 = 1.0f - y - SLOT_SIZE;
-        float y2 = 1.0f - y;
+        // Thin red line inside the slot (representing disk edge)
+        // Mirror X coordinate (1.0f - x) to match texture orientation on north face
+        float x1 = 1.0f - slotX - SLOT_WIDTH + DISK_LINE_INSET;
+        float x2 = 1.0f - slotX - DISK_LINE_INSET;
+        float y1 = 1.0f - slotY - SLOT_HEIGHT / 2.0f - DISK_LINE_HEIGHT / 2.0f;
+        float y2 = 1.0f - slotY - SLOT_HEIGHT / 2.0f + DISK_LINE_HEIGHT / 2.0f;
+        float z = Z_OFFSET;
+
+        buffer.vertex(matrix, x1, y1, z).color(DISK_R, DISK_G, DISK_B, 1.0f).endVertex();
+        buffer.vertex(matrix, x1, y2, z).color(DISK_R, DISK_G, DISK_B, 1.0f).endVertex();
+        buffer.vertex(matrix, x2, y2, z).color(DISK_R, DISK_G, DISK_B, 1.0f).endVertex();
+        buffer.vertex(matrix, x2, y1, z).color(DISK_R, DISK_G, DISK_B, 1.0f).endVertex();
+    }
+
+    private void renderSlotIndicator(BufferBuilder buffer, Matrix4f matrix, int slot, float r, float g, float b) {
+        int row = slot / 5;
+        int col = 4 - (slot % 5);  // Mirror column to match GUI layout
+
+        float slotX = GRID_START_X + col * COL_SPACING;
+        float slotY = (row == 0) ? ROW1_Y : ROW2_Y;
+
+        // Light position is to the right of the disk slot in texture space
+        // Mirror X coordinate (1.0f - x) to match texture orientation on north face
+        float x1 = 1.0f - slotX - LIGHT_OFFSET_X - LIGHT_SIZE;
+        float x2 = 1.0f - slotX - LIGHT_OFFSET_X;
+        float y1 = 1.0f - slotY - LIGHT_OFFSET_Y - LIGHT_SIZE;
+        float y2 = 1.0f - slotY - LIGHT_OFFSET_Y;
         float z = Z_OFFSET;
 
         // Quad on the north face (z=0)
-        buffer.vertex(matrix, x1, y1, z).color(AMBER_R, AMBER_G, AMBER_B, 1.0f).endVertex();
-        buffer.vertex(matrix, x1, y2, z).color(AMBER_R, AMBER_G, AMBER_B, 1.0f).endVertex();
-        buffer.vertex(matrix, x2, y2, z).color(AMBER_R, AMBER_G, AMBER_B, 1.0f).endVertex();
-        buffer.vertex(matrix, x2, y1, z).color(AMBER_R, AMBER_G, AMBER_B, 1.0f).endVertex();
+        buffer.vertex(matrix, x1, y1, z).color(r, g, b, 1.0f).endVertex();
+        buffer.vertex(matrix, x1, y2, z).color(r, g, b, 1.0f).endVertex();
+        buffer.vertex(matrix, x2, y2, z).color(r, g, b, 1.0f).endVertex();
+        buffer.vertex(matrix, x2, y1, z).color(r, g, b, 1.0f).endVertex();
+    }
+
+    private void renderGlow(BufferBuilder buffer, Matrix4f matrix, int slot, float r, float g, float b) {
+        int row = slot / 5;
+        int col = 4 - (slot % 5);  // Mirror column to match GUI layout
+
+        float slotX = GRID_START_X + col * COL_SPACING;
+        float slotY = (row == 0) ? ROW1_Y : ROW2_Y;
+
+        // Glow centered on the light position
+        // Mirror X coordinate (1.0f - x) to match texture orientation on north face
+        float lightX = 1.0f - slotX - LIGHT_OFFSET_X - LIGHT_SIZE / 2.0f;
+        float lightY = slotY + LIGHT_OFFSET_Y + LIGHT_SIZE / 2.0f;
+
+        float glowSize = LIGHT_SIZE * GLOW_SIZE_MULTIPLIER;
+        float halfGlow = glowSize / 2.0f;
+
+        float x1 = lightX - halfGlow;
+        float x2 = lightX + halfGlow;
+        float y1 = 1.0f - lightY - halfGlow;
+        float y2 = 1.0f - lightY + halfGlow;
+        float z = Z_GLOW_OFFSET;
+
+        // Semi-transparent glow quad
+        buffer.vertex(matrix, x1, y1, z).color(r, g, b, GLOW_ALPHA).endVertex();
+        buffer.vertex(matrix, x1, y2, z).color(r, g, b, GLOW_ALPHA).endVertex();
+        buffer.vertex(matrix, x2, y2, z).color(r, g, b, GLOW_ALPHA).endVertex();
+        buffer.vertex(matrix, x2, y1, z).color(r, g, b, GLOW_ALPHA).endVertex();
     }
 }
