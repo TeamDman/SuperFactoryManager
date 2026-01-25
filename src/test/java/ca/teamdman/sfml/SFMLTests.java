@@ -1171,7 +1171,7 @@ public class SFMLTests {
                         end
 
                         every 20 ticks do
-                            expand transfer(chest_a, chest_b)
+                            DO transfer(chest_a, chest_b)
                         end
                         """
         );
@@ -1204,7 +1204,7 @@ public class SFMLTests {
                         let furnace = Furnace { label: "furnaces" }
 
                         every 20 ticks do
-                            expand smelt(furnace, ore_chest, ingot_chest)
+                            DO smelt(furnace, ore_chest, ingot_chest)
                         end
                         """
         );
@@ -1216,7 +1216,7 @@ public class SFMLTests {
                 NAME "Unknown Macro Test"
 
                 every 20 ticks do
-                    expand unknown_macro(chest_a, chest_b)
+                    DO unknown_macro(chest_a, chest_b)
                 end
                 """;
         assertCompileErrorsPresent(input);
@@ -1233,7 +1233,7 @@ public class SFMLTests {
                 end
 
                 every 20 ticks do
-                    expand transfer(chest_a)
+                    DO transfer(chest_a)
                 end
                 """;
         assertCompileErrorsPresent(input);
@@ -1259,7 +1259,7 @@ public class SFMLTests {
                 let device = NonSmeltable { label: "devices" }
 
                 every 20 ticks do
-                    expand smelt(device)
+                    DO smelt(device)
                 end
                 """;
         assertCompileErrorsPresent(input);
@@ -1279,7 +1279,7 @@ public class SFMLTests {
                 end
 
                 every 20 ticks do
-                    expand transfer(chest_a, chest_b)
+                    DO transfer(chest_a, chest_b)
                 end
                 """;
         assertCompileErrorsPresent(input);
@@ -1298,8 +1298,8 @@ public class SFMLTests {
                         end
 
                         every 20 ticks do
-                            expand process(chest_a, chest_b)
-                            expand process(chest_c, chest_d)
+                            @process(chest_a, chest_b)
+                            @process(chest_c, chest_d)
                         end
                         """
         );
@@ -1317,7 +1317,7 @@ public class SFMLTests {
                         end
 
                         every 20 ticks do
-                            expand limited_transfer(chest_a, chest_b)
+                            DO limited_transfer(chest_a, chest_b)
                         end
                         """
         );
@@ -1357,7 +1357,7 @@ public class SFMLTests {
                         let furnace = Furnace { label: "furnaces" }
 
                         every 20 ticks do
-                            expand smelt(furnace, ore_chest, fuel_chest, result_chest)
+                            DO smelt(furnace, ore_chest, fuel_chest, result_chest)
                         end
                         """
         );
@@ -1374,7 +1374,7 @@ public class SFMLTests {
                 end
 
                 every 20 ticks do
-                    expand transfer(chest_a, chest_b)
+                    DO transfer(chest_a, chest_b)
                 end
                 """;
         assertNoCompileErrors(input);
@@ -1465,7 +1465,7 @@ public class SFMLTests {
                         let furnace = Furnace { label: "furnaces" }
 
                         every 20 ticks do
-                            expand smelt(furnace, ore_chest, ingot_chest)
+                            DO smelt(furnace, ore_chest, ingot_chest)
                         end
                         """
         );

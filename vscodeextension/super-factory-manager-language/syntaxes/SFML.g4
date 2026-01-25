@@ -7,9 +7,70 @@ grammar SFML;
     public boolean INCLUDE_UNUSED = false; // we want syntax highlighting to not break on unexpected tokens
 }
 
-program : name? trigger* EOF;
+program : name? library* protocolDefinition* structDefinition* macroDefinition* letStatement* trigger* EOF;
 
 name: NAME string ;
+
+//
+// LIBRARIES
+//
+
+library : USE LIBRARY string ;
+
+//
+// PROTOCOL DEFINITIONS
+//
+
+protocolDefinition : PROTOCOL identifier protocolBody END ;
+protocolBody : protocolField* ;
+protocolField : identifier COLON protocolFieldType ;
+protocolFieldType : SIDEQUALIFIER SLOTQUALIFIER    #SideAndSlotType
+                  | SIDEQUALIFIER                  #SideType
+                  | SLOTQUALIFIER                  #SlotType
+                  | LABEL                          #LabelType
+                  | RESOURCE                       #ResourceType
+                  | NUMBERTYPE                     #NumberType
+                  ;
+
+//
+// STRUCT DEFINITIONS
+//
+
+structDefinition : STRUCT identifier (COLON identifier (COMMA identifier)*)? structBody END ;
+structBody : structField* ;
+structField : identifier COLON structFieldValue ;
+structFieldValue : sidequalifier slotqualifier?
+                 | slotqualifier
+                 | label
+                 | resourceIdDisjunction
+                 | number
+                 ;
+
+//
+// MACRO DEFINITIONS
+//
+
+macroDefinition : MACRO identifier LPAREN macroParamList? RPAREN macroBody END ;
+macroParamList : macroParam (COMMA macroParam)* ;
+macroParam : identifier (COLON identifier)? ;
+macroBody : macroStatement* ;
+macroStatement : macroInputStatement
+               | macroOutputStatement
+               | macroIfStatement
+               | macroForgetStatement
+               ;
+macroInputStatement : INPUT macroResourceLimits? FROM EACH? macroLabelAccess ;
+macroOutputStatement : OUTPUT macroResourceLimits? TO EACH? macroLabelAccess ;
+macroIfStatement : IF boolexpr THEN macroBody (ELSE macroBody)? END ;
+macroForgetStatement : FORGET ;
+macroResourceLimits : resourceLimitList ;
+macroLabelAccess : identifier                                               #MacroParamLabelAccess
+                 | identifier USING identifier sidequalifier? slotqualifier? #MacroStructLabelAccess
+                 ;
+
+letStatement : LET identifier EQ_SYMBOL structInstantiation ;
+structInstantiation : identifier LBRACE structFieldAssignment (COMMA structFieldAssignment)* COMMA? RBRACE ;
+structFieldAssignment : identifier COLON structFieldValue ;
 
 //
 // TRIGGERS
@@ -31,7 +92,12 @@ statement       : inputStatement
                 | outputStatement
                 | ifStatement
                 | forgetStatement
+                | expandStatement
                 ;
+
+expandStatement : (DO | AT) identifier LPAREN expandArgList? RPAREN ;
+expandArgList : expandArg (COMMA expandArg)* ;
+expandArg : identifier | string ;
 
 // IO STATEMENT
 forgetStatement : FORGET label? (COMMA label)* COMMA?;
@@ -142,7 +208,9 @@ setOp           : OVERALL
 //
 // IO HELPERS
 //
-labelAccess     : label (COMMA label)* roundrobin? sidequalifier? slotqualifier?;
+labelAccess     : label (COMMA label)* roundrobin? sidequalifier? slotqualifier?     #DirectLabelAccess
+                | identifier USING identifier sidequalifier? slotqualifier?        #StructLabelAccess
+                ;
 roundrobin      : ROUND ROBIN BY (LABEL | BLOCK);
 
 label           : (identifier)  #RawLabel
@@ -151,7 +219,7 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK) ;
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | INPUT | OUTPUT | LABEL | STRUCT | LET | USING | SLOT | SLOTS | SIDE | BLOCK | PROTOCOL | MACRO | DO | USE | LIBRARY | RESOURCE | SIDEQUALIFIER | SLOTQUALIFIER | NUMBERTYPE) ;
 
 // GENERAL
 string: STRING ;
@@ -252,6 +320,28 @@ PULSE           : P U L S E;
 DO              : D O ;
 END             : E N D ;
 NAME            : N A M E ;
+
+// STRUCT SYMBOLS
+STRUCT          : S T R U C T ;
+LET             : L E T ;
+USING           : U S I N G ;
+LBRACE          : '{' ;
+RBRACE          : '}' ;
+
+// PROTOCOL SYMBOLS
+PROTOCOL        : P R O T O C O L ;
+SIDEQUALIFIER   : S I D E Q U A L I F I E R ;
+SLOTQUALIFIER   : S L O T Q U A L I F I E R ;
+RESOURCE        : R E S O U R C E ;
+NUMBERTYPE      : N U M B E R ;
+
+// MACRO SYMBOLS
+MACRO           : M A C R O ;
+AT              : '@' ;
+
+// LIBRARY SYMBOLS
+USE             : U S E ;
+LIBRARY         : L I B R A R Y ;
 
 // GENERAL SYMBOLS
 // used by triggers and as a set operator

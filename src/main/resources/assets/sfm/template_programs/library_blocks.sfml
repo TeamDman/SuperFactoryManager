@@ -27,7 +27,7 @@ NAME "Library Blocks"
 
 -- let f = Furnace { label: "my_furnace" }
 -- every 20 ticks do
---     expand smelt(f, ores, ingots)
+--     DO smelt(f, ores, ingots)
 -- end
 
 -- Note: Library blocks need to exist in-world with a disk containing definitions

@@ -35,8 +35,8 @@ end
 let furnace = Furnace { label: "furnaces" }
 let blast = BlastFurnace { label: "blast_furnaces" }
 
--- Use "expand" to invoke macros
+-- Use "DO" or "@" to invoke macros
 every 20 ticks do
-    expand smelt(furnace, ore_chest, ingot_chest)
-    expand smelt(blast, iron_ore, iron_ingots)
+    DO smelt(furnace, ore_chest, ingot_chest)
+    @smelt(blast, iron_ore, iron_ingots)
 end

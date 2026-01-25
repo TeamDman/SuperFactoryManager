@@ -94,7 +94,7 @@ statement       : inputStatement
                 | expandStatement
                 ;
 
-expandStatement : EXPAND identifier LPAREN expandArgList? RPAREN ;
+expandStatement : (DO | AT) identifier LPAREN expandArgList? RPAREN ;
 expandArgList : expandArg (COMMA expandArg)* ;
 expandArg : identifier | string ;
 
@@ -218,7 +218,7 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | INPUT | OUTPUT | LABEL | STRUCT | LET | USING | SLOT | SLOTS | SIDE | BLOCK | PROTOCOL | MACRO | EXPAND | USE | LIBRARY | RESOURCE | SIDEQUALIFIER | SLOTQUALIFIER | NUMBERTYPE) ;
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | INPUT | OUTPUT | LABEL | STRUCT | LET | USING | SLOT | SLOTS | SIDE | BLOCK | PROTOCOL | MACRO | DO | USE | LIBRARY | RESOURCE | SIDEQUALIFIER | SLOTQUALIFIER | NUMBERTYPE) ;
 
 // GENERAL
 string: STRING ;
@@ -336,7 +336,7 @@ NUMBERTYPE      : N U M B E R ;
 
 // MACRO SYMBOLS
 MACRO           : M A C R O ;
-EXPAND          : E X P A N D ;
+AT              : '@' ;
 
 // LIBRARY SYMBOLS
 USE             : U S E ;

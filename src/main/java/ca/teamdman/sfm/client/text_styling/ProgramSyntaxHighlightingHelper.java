@@ -162,7 +162,7 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.LET:
             case SFMLLexer.USING:
             case SFMLLexer.MACRO:
-            case SFMLLexer.EXPAND:
+            case SFMLLexer.AT:
             case SFMLLexer.USE:
             case SFMLLexer.LIBRARY:
                 return ChatFormatting.BLUE;
