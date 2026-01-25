@@ -157,10 +157,11 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
             return createLocalLibraryResolver(new HashSet<>());
         }
 
-        // Find the cable network this library is adjacent to
-        Optional<CableNetwork> networkOpt = CableNetworkManager.getNetworksForLevel(level)
-                .filter(network -> network.isAdjacentToCable(worldPosition))
-                .findFirst();
+        // Get or register the cable network at this position
+        // LibraryBlock implements ICableBlock, so it IS a cable
+        // This ensures network discovery happens even after world reload
+        Optional<CableNetwork> networkOpt = CableNetworkManager
+                .getOrRegisterNetworkFromCablePosition(level, worldPosition);
 
         if (networkOpt.isEmpty()) {
             // Not connected to network: only resolve from this library block's disks
@@ -314,16 +315,18 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
     private void notifyNetworkLibraryChanged() {
         if (level == null || level.isClientSide()) return;
 
-        // Find networks adjacent to this library block and notify them
-        boolean onNetwork = CableNetworkManager.getNetworksForLevel(level)
-                .filter(network -> network.isAdjacentToCable(worldPosition))
-                .peek(CableNetwork::invalidateAutoLabelsAndNotifyDependents)
-                .findAny()
-                .isPresent();
+        // Get or register the cable network at this position
+        // LibraryBlock implements ICableBlock, so it IS a cable
+        // This ensures network discovery happens even after world reload
+        Optional<CableNetwork> networkOpt = CableNetworkManager
+                .getOrRegisterNetworkFromCablePosition(level, worldPosition);
 
-        // If not on a network, recompile local disks to update errors
-        // (e.g., resolved circular dependencies)
-        if (!onNetwork) {
+        if (networkOpt.isPresent()) {
+            // On a network: notify dependents to recompile
+            networkOpt.get().invalidateAutoLabelsAndNotifyDependents();
+        } else {
+            // Not on a network: recompile local disks to update errors
+            // (e.g., resolved circular dependencies)
             recompileAllDisks();
         }
     }

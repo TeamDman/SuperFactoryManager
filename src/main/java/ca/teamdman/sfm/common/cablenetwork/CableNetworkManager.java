@@ -13,12 +13,14 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,6 +46,7 @@ import java.util.stream.Stream;
 public class CableNetworkManager {
     private static final Map<Level, Long2ObjectMap<CableNetwork>> NETWORKS_BY_CABLE_POSITION = new Object2ObjectOpenHashMap<>();
     private static final Map<Level, List<CableNetwork>> NETWORKS_BY_LEVEL = new Object2ObjectOpenHashMap<>();
+    private static final Set<CableNetwork> NETWORKS_WITH_PENDING_NOTIFICATIONS = ConcurrentHashMap.newKeySet();
 
     /**
      * For diagnostics, called when a lookup map has changed
@@ -99,6 +102,7 @@ public class CableNetworkManager {
         if (level.isClientSide()) return;
         getOrRegisterNetworkFromCablePosition(level, pos).ifPresent(network -> {
             // Invalidate and rebuild auto labels to discover newly connected blocks
+            // Uses delayed notification to batch rapid changes
             network.invalidateAutoLabelsAndNotifyDependents();
         });
     }
@@ -118,6 +122,7 @@ public class CableNetworkManager {
 
             // Notify all remaining networks to recompile their dependents
             // (network topology changed, libraries may have become inaccessible)
+            // Uses delayed notification to batch rapid changes
             for (CableNetwork remainingNetwork : remainingNetworks) {
                 remainingNetwork.invalidateAutoLabelsAndNotifyDependents();
             }
@@ -311,6 +316,45 @@ public class CableNetworkManager {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         NETWORKS_BY_LEVEL.remove(level);
         NETWORKS_BY_CABLE_POSITION.remove(level);
+        // Remove any pending notifications for this level
+        NETWORKS_WITH_PENDING_NOTIFICATIONS.removeIf(net -> net.getLevel() == level);
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        processPendingNotifications();
+    }
+
+    /**
+     * Registers a network for delayed notification processing.
+     * Called by CableNetwork when a notification is scheduled.
+     */
+    public static void schedulePendingNotification(CableNetwork network) {
+        NETWORKS_WITH_PENDING_NOTIFICATIONS.add(network);
+    }
+
+    /**
+     * Processes all networks with pending notifications that are ready to fire.
+     */
+    private static void processPendingNotifications() {
+        if (NETWORKS_WITH_PENDING_NOTIFICATIONS.isEmpty()) return;
+
+        Iterator<CableNetwork> iterator = NETWORKS_WITH_PENDING_NOTIFICATIONS.iterator();
+        while (iterator.hasNext()) {
+            CableNetwork network = iterator.next();
+            long pendingTick = network.getPendingNotificationTick();
+            if (pendingTick < 0) {
+                // No longer pending
+                iterator.remove();
+                continue;
+            }
+            long currentTick = network.getLevel().getGameTime();
+            if (currentTick >= pendingTick) {
+                network.processPendingNotification();
+                iterator.remove();
+            }
+        }
     }
 
     public static void purgeChunkFromCableNetworks(ServerLevel level, ChunkAccess chunkAccess) {

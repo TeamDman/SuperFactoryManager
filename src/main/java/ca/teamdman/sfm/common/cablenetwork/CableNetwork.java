@@ -42,15 +42,15 @@ public class CableNetwork {
     private @Nullable LabelPositionHolder autoLabelCache = null;
 
     /**
-     * Tracks the last game tick when manager notifications were sent.
-     * Used for debouncing rapid library changes.
+     * Tracks the tick when a delayed notification should fire.
+     * Set to -1 when no notification is pending.
      */
-    private long lastNotificationTick = -1;
+    private long pendingNotificationTick = -1;
 
     /**
-     * Minimum ticks between manager notifications to prevent excessive rebuilds.
+     * Delay in ticks before a batched notification fires.
      */
-    private static final int NOTIFICATION_DEBOUNCE_TICKS = 5;
+    private static final int NOTIFICATION_DELAY_TICKS = 5;
 
     public CableNetwork(Level level) {
         this.level = level;
@@ -293,60 +293,41 @@ public class CableNetwork {
     }
 
     /**
-     * Invalidates the auto-label cache and notifies all managers on this network
-     * to re-validate their programs. Call this when library blocks are added/removed.
-     *
-     * Notifications are debounced to prevent excessive program rebuilds when
-     * multiple library changes occur in quick succession (e.g., inserting multiple disks).
+     * Invalidates the auto-label cache and schedules a delayed notification to all
+     * managers and library blocks on this network. Multiple rapid calls will reset
+     * the delay, ensuring only the final state is processed.
      */
-    public void invalidateAutoLabelsAndNotifyManagers() {
-        // Get manager positions BEFORE invalidating the cache
-        Set<BlockPos> managerPositions = getOrRebuildAutoLabels()
-                .getPositions(ManagerBlockEntity.MANAGER_LABEL);
-
-        // Now invalidate the cache
+    public void invalidateAutoLabelsAndNotifyDependents() {
+        // Invalidate the cache immediately
         autoLabelCache = null;
 
-        // Check debounce - skip notification if within debounce window
+        // Schedule notification after delay (resets if called again)
         long currentTick = level.getGameTime();
-        if (lastNotificationTick >= 0 && currentTick - lastNotificationTick < NOTIFICATION_DEBOUNCE_TICKS) {
-            // Cache is already invalidated, managers will get fresh data on next tick
-            return;
-        }
-        lastNotificationTick = currentTick;
+        pendingNotificationTick = currentTick + NOTIFICATION_DELAY_TICKS;
 
-        // Notify all managers to re-validate their programs
-        for (BlockPos pos : managerPositions) {
-            if (level.getBlockEntity(pos) instanceof ManagerBlockEntity manager) {
-                manager.rebuildProgramAndUpdateDisk();
-            }
-        }
+        // Register this network for delayed processing
+        CableNetworkManager.schedulePendingNotification(this);
     }
 
     /**
-     * Invalidates the auto-label cache and notifies all managers and library blocks
-     * on this network to recompile. Call this when library disk contents change.
-     *
-     * Notifications are debounced to prevent excessive program rebuilds when
-     * multiple library changes occur in quick succession.
+     * Called by CableNetworkManager when the pending notification delay has elapsed.
+     * Sends notifications to all managers and libraries on the network.
      */
-    public void invalidateAutoLabelsAndNotifyDependents() {
-        // Get positions BEFORE invalidating the cache
+    public void processPendingNotification() {
+        long currentTick = level.getGameTime();
+        if (pendingNotificationTick < 0 || currentTick < pendingNotificationTick) {
+            // Not yet time, or no pending notification
+            return;
+        }
+
+        // Clear pending state
+        pendingNotificationTick = -1;
+
+        // Get current positions (cache was already invalidated)
         Set<BlockPos> managerPositions = getOrRebuildAutoLabels()
                 .getPositions(ManagerBlockEntity.MANAGER_LABEL);
         Set<BlockPos> libraryPositions = getOrRebuildAutoLabels()
                 .getPositions(LibraryBlockEntity.LIBRARY_LABEL);
-
-        // Now invalidate the cache
-        autoLabelCache = null;
-
-        // Check debounce - skip notification if within debounce window
-        long currentTick = level.getGameTime();
-        if (lastNotificationTick >= 0 && currentTick - lastNotificationTick < NOTIFICATION_DEBOUNCE_TICKS) {
-            // Cache is already invalidated, dependents will get fresh data on next tick
-            return;
-        }
-        lastNotificationTick = currentTick;
 
         // Notify all managers to re-validate their programs
         for (BlockPos pos : managerPositions) {
@@ -361,6 +342,20 @@ public class CableNetwork {
                 library.recompileAllDisks();
             }
         }
+    }
+
+    /**
+     * @return true if this network has a pending notification scheduled
+     */
+    public boolean hasPendingNotification() {
+        return pendingNotificationTick >= 0;
+    }
+
+    /**
+     * @return the tick when the pending notification should fire, or -1 if none
+     */
+    public long getPendingNotificationTick() {
+        return pendingNotificationTick;
     }
 
     /**

@@ -109,7 +109,7 @@ public class LibraryBlock extends BaseEntityBlock implements EntityBlock, ICable
         if (!level.isClientSide()) {
             CableNetworkManager.getNetworksForLevel(level)
                     .filter(network -> network.isAdjacentToCable(pos))
-                    .forEach(CableNetwork::invalidateAutoLabelsAndNotifyManagers);
+                    .forEach(CableNetwork::invalidateAutoLabelsAndNotifyDependents);
         }
     }
 
