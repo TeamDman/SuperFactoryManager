@@ -2,6 +2,8 @@ package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.langs.SFMLParser;
+import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
+import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.containermenu.LibraryContainerMenu;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
@@ -83,7 +85,7 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     /**
      * Gets library entries with their slot indices from inserted disks.
-     * Only returns entries from disks that have a valid NAME statement.
+     * Disks without a NAME statement are shown with a placeholder name.
      */
     public List<LibraryContainerMenu.LibraryEntry> getLibraryEntries() {
         List<LibraryContainerMenu.LibraryEntry> entries = new ArrayList<>();
@@ -93,9 +95,10 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
             String source = DiskItem.getProgramString(disk);
             String name = extractName(source);
-            if (name != null && !name.isEmpty()) {
-                entries.add(new LibraryContainerMenu.LibraryEntry(name, i));
+            if (name == null || name.isEmpty()) {
+                name = "(unnamed)";
             }
+            entries.add(new LibraryContainerMenu.LibraryEntry(name, i));
         }
         return entries;
     }
@@ -269,7 +272,22 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
         // Sync to client for renderer updates
         if (level != null && !level.isClientSide()) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+            // Notify cable networks that library configuration may have changed
+            notifyNetworkLibraryChanged();
         }
+    }
+
+    /**
+     * Notifies any cable networks adjacent to this library block that the library
+     * configuration has changed, causing managers to re-validate their programs.
+     */
+    private void notifyNetworkLibraryChanged() {
+        if (level == null || level.isClientSide()) return;
+
+        // Find networks adjacent to this library block and notify them
+        CableNetworkManager.getNetworksForLevel(level)
+                .filter(network -> network.isAdjacentToCable(worldPosition))
+                .forEach(CableNetwork::invalidateAutoLabelsAndNotifyManagers);
     }
 
     // Client sync methods for BlockEntityRenderer

@@ -21,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /// When a {@link ManagerBlockEntity} is ticking many times in a row, there is worldly context that changes infrequently.
@@ -217,8 +218,9 @@ public class CableNetwork {
 
     /**
      * Gets or rebuilds the auto-discovered label cache.
-     * This cache contains positions of special blocks adjacent to cables,
-     * such as library blocks which are auto-labeled with {@link LibraryBlockEntity#LIBRARY_LABEL}.
+     * This cache contains positions of special blocks on the network:
+     * - Manager blocks (cables): labeled with {@link ManagerBlockEntity#MANAGER_LABEL}
+     * - Library blocks (adjacent to cables): labeled with {@link LibraryBlockEntity#LIBRARY_LABEL}
      *
      * @return the auto-discovered label position holder
      */
@@ -229,18 +231,25 @@ public class CableNetwork {
 
         autoLabelCache = LabelPositionHolder.empty();
 
-        // Discover library blocks adjacent to cables
-        LongSet visited = new LongOpenHashSet();
+        // Discover managers (which are cables) and library blocks (adjacent to cables)
+        LongSet visitedAdjacent = new LongOpenHashSet();
         BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
 
         for (long cablePosLong : cablePositions) {
             BlockPos cablePos = BlockPos.of(cablePosLong);
+
+            // Check if the cable itself is a manager
+            if (level.getBlockEntity(cablePos) instanceof ManagerBlockEntity) {
+                autoLabelCache.add(ManagerBlockEntity.MANAGER_LABEL, cablePos);
+            }
+
+            // Check adjacent positions for library blocks
             for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
                 target.set(cablePos).move(direction);
                 long targetLong = target.asLong();
 
                 // Skip if already visited
-                if (!visited.add(targetLong)) {
+                if (!visitedAdjacent.add(targetLong)) {
                     continue;
                 }
 
@@ -256,6 +265,37 @@ public class CableNetwork {
 
     public void bustCacheForChunk(ChunkAccess chunkAccess) {
         levelCapabilityCache.bustCacheForChunk(chunkAccess);
+        autoLabelCache = null;
+    }
+
+    /**
+     * Invalidates the auto-label cache without notifying managers.
+     * Use this when you need to capture manager positions before a change,
+     * then notify them manually after the change is complete.
+     */
+    public void invalidateAutoLabelCache() {
+        autoLabelCache = null;
+    }
+
+    /**
+     * Invalidates the auto-label cache and notifies all managers on this network
+     * to re-validate their programs. Call this when library blocks are added/removed
+     * or when their contents change.
+     */
+    public void invalidateAutoLabelsAndNotifyManagers() {
+        // Get manager positions BEFORE invalidating the cache
+        Set<BlockPos> managerPositions = getOrRebuildAutoLabels()
+                .getPositions(ManagerBlockEntity.MANAGER_LABEL);
+
+        // Now invalidate the cache
+        autoLabelCache = null;
+
+        // Notify all managers to re-validate their programs
+        for (BlockPos pos : managerPositions) {
+            if (level.getBlockEntity(pos) instanceof ManagerBlockEntity manager) {
+                manager.rebuildProgramAndUpdateDisk();
+            }
+        }
     }
 
     /**

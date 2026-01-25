@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.blockentity.LibraryBlockEntity;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
 import ca.teamdman.sfm.common.containermenu.LibraryContainerMenu;
@@ -28,6 +30,9 @@ import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A block that stores SFML library definitions (protocols, structs, macros).
@@ -94,12 +99,18 @@ public class LibraryBlock extends BaseEntityBlock implements EntityBlock, ICable
     @SuppressWarnings("deprecation")
     public void onPlace(
             BlockState state,
-            Level world,
+            Level level,
             BlockPos pos,
             BlockState oldState,
             boolean isMoving
     ) {
-        CableNetworkManager.onCablePlaced(world, pos);
+        CableNetworkManager.onCablePlaced(level, pos);
+        // Notify managers that a library block was added
+        if (!level.isClientSide()) {
+            CableNetworkManager.getNetworksForLevel(level)
+                    .filter(network -> network.isAdjacentToCable(pos))
+                    .forEach(CableNetwork::invalidateAutoLabelsAndNotifyManagers);
+        }
     }
 
     @Override
@@ -112,12 +123,31 @@ public class LibraryBlock extends BaseEntityBlock implements EntityBlock, ICable
             boolean isMoving
     ) {
         if (!state.is(newState.getBlock())) {
+            // Capture managers to notify BEFORE removal (while library still exists in cache)
+            Set<BlockPos> managersToNotify = new HashSet<>();
+            if (!level.isClientSide()) {
+                CableNetworkManager.getNetworksForLevel(level)
+                        .filter(network -> network.isAdjacentToCable(pos))
+                        .forEach(network -> {
+                            managersToNotify.addAll(network.getOrRebuildAutoLabels()
+                                    .getPositions(ManagerBlockEntity.MANAGER_LABEL));
+                            network.invalidateAutoLabelCache();
+                        });
+            }
+
             // Drop all disks when block is broken
             if (level.getBlockEntity(pos) instanceof LibraryBlockEntity library) {
                 Containers.dropContents(level, pos, library);
             }
             CableNetworkManager.onCableRemoved(level, pos);
             super.onRemove(state, level, pos, newState, isMoving);
+
+            // NOW notify managers (after library is fully removed)
+            for (BlockPos managerPos : managersToNotify) {
+                if (level.getBlockEntity(managerPos) instanceof ManagerBlockEntity manager) {
+                    manager.rebuildProgramAndUpdateDisk();
+                }
+            }
         }
     }
 }

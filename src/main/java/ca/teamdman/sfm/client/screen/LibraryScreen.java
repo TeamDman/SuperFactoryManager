@@ -80,9 +80,10 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
 
             String source = DiskItem.getProgramString(disk);
             String name = LibraryBlockEntity.extractName(source);
-            if (name != null && !name.isEmpty()) {
-                entries.add(new LibraryEntry(name, i));
+            if (name == null || name.isEmpty()) {
+                name = "(unnamed)";
             }
+            entries.add(new LibraryEntry(name, i));
         }
         menu.libraryEntries = entries;
     }

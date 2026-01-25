@@ -52,6 +52,12 @@ import java.util.Optional;
 import java.util.Set;
 
 public class ManagerBlockEntity extends BaseContainerBlockEntity {
+    /**
+     * Reserved label used to identify manager blocks in the cable network.
+     * This label is auto-registered when the network discovers manager blocks.
+     */
+    public static final String MANAGER_LABEL = "sfm:manager";
+
     public static final int TICK_TIME_HISTORY_SIZE = 20;
 
     public final TranslatableLogger logger;
