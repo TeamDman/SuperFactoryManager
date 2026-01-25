@@ -34,7 +34,7 @@ public class NbtFilterEnchantedItemsGameTest extends SFMGameTestDefinition {
         test.setProgram("""
             EVERY 20 TICKS DO
                 -- Only move items with enchantments (Enchantments array is non-empty)
-                INPUT WITH NBT "Enchantments[0]" FROM left
+                INPUT WITH NBT Enchantments[0] FROM left
                 OUTPUT TO right
             END
         """);
@@ -48,10 +48,10 @@ public class NbtFilterEnchantedItemsGameTest extends SFMGameTestDefinition {
         // Only the enchanted sword should move to the right
         test.postContents("left", Arrays.asList(
                 ItemStack.EMPTY,
-                plainSword
+                plainSword.copy()
         ));
         test.postContents("right", Arrays.asList(
-                enchantedSword
+                enchantedSword.copy()
         ));
 
         test.run();

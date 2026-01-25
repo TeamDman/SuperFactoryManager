@@ -36,7 +36,7 @@ public class NbtFilterCombinedWithTagGameTest extends SFMGameTestDefinition {
         test.setProgram("""
             EVERY 20 TICKS DO
                 -- Only move damaged items that are also swords (have the sword tag)
-                INPUT WITH NBT "Damage > `0`" AND #minecraft:swords FROM left
+                INPUT WITH NBT Damage > 0 AND TAG forge:tools/swords FROM left
                 OUTPUT TO right
             END
         """);
@@ -51,10 +51,10 @@ public class NbtFilterCombinedWithTagGameTest extends SFMGameTestDefinition {
         // The damaged pickaxe stays because it doesn't have the sword tag
         test.postContents("left", Arrays.asList(
                 ItemStack.EMPTY,
-                damagedPickaxe
+                damagedPickaxe.copy()
         ));
         test.postContents("right", Arrays.asList(
-                damagedSword
+                damagedSword.copy()
         ));
 
         test.run();

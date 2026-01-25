@@ -34,7 +34,7 @@ public class NbtFilterDamagedItemsGameTest extends SFMGameTestDefinition {
         test.setProgram("""
             EVERY 20 TICKS DO
                 -- Only move items with Damage > 0
-                INPUT WITH NBT "Damage > `0`" FROM left
+                INPUT WITH NBT Damage > 0 FROM left
                 OUTPUT TO right
             END
         """);
@@ -49,10 +49,10 @@ public class NbtFilterDamagedItemsGameTest extends SFMGameTestDefinition {
         // The undamaged sword stays in the left
         test.postContents("left", Arrays.asList(
                 ItemStack.EMPTY,
-                undamagedSword
+                undamagedSword.copy()
         ));
         test.postContents("right", Arrays.asList(
-                damagedSword
+                damagedSword.copy()
         ));
 
         test.run();
