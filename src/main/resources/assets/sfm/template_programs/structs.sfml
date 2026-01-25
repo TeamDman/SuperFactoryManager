@@ -12,6 +12,9 @@ end
 -- Create an instance - the variable name becomes the label
 let furnaces = Furnace
 
+-- Override default fields with the WITH clause
+let side_loaders = Furnace WITH input: NORTH SIDE SLOTS 0-2
+
 -- Use the "using" keyword to access struct fields
 every 20 ticks do
     input from ore_chest
