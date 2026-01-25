@@ -45,8 +45,8 @@ inputResourceLimits   : resourceLimitList; // separate for different defaults
 outputResourceLimits  : resourceLimitList; // separate for different defaults
 
 resourceLimitList  : resourceLimit (COMMA resourceLimit)* COMMA?;
-resourceLimit   : limit? resourceIdDisjunction with?
-                | limit with?
+resourceLimit   : limit with?
+                | limit? resourceIdDisjunction with?
                 | with
                 ;
 limit           : quantity retention    #QuantityRetentionLimit
