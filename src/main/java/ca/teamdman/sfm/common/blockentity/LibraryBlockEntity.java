@@ -44,6 +44,12 @@ import java.util.regex.Pattern;
  */
 public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
+    /**
+     * Reserved label used to identify library blocks in the cable network.
+     * This label is auto-registered when the network discovers adjacent library blocks.
+     */
+    public static final String LIBRARY_LABEL = "sfm:library";
+
     public static final int DISK_SLOT_COUNT = 10;
 
     /**

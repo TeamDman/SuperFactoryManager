@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.cablenetwork;
 
+import ca.teamdman.sfm.common.blockentity.LibraryBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
@@ -28,6 +30,12 @@ public class CableNetwork {
     protected final LongSet cablePositions = new LongOpenHashSet();
     protected final SFMBlockCapabilityCacheForLevel levelCapabilityCache;
 
+    /**
+     * Cached label positions for auto-discovered blocks (e.g., library blocks).
+     * This is populated lazily and cleared when the network is rebuilt.
+     */
+    private @Nullable LabelPositionHolder autoLabelCache = null;
+
     public CableNetwork(Level level) {
         this.level = level;
         this.levelCapabilityCache = new SFMBlockCapabilityCacheForLevel(level);
@@ -53,6 +61,7 @@ public class CableNetwork {
     public void rebuildNetwork(BlockPos start) {
         cablePositions.clear();
         levelCapabilityCache.clear();
+        autoLabelCache = null;
         discoverCables(getLevel(), start).forEach(this::addCable);
     }
 
@@ -62,6 +71,7 @@ public class CableNetwork {
     ) {
         cablePositions.clear();
         levelCapabilityCache.clear();
+        autoLabelCache = null;
 
         // discover connected cables
         var cables = SFMStreamUtils.<BlockPos, BlockPos>getRecursiveStream(
@@ -203,6 +213,45 @@ public class CableNetwork {
 
     public Stream<BlockPos> getCapabilityProviderPositions() {
         return levelCapabilityCache.getPositions();
+    }
+
+    /**
+     * Gets or rebuilds the auto-discovered label cache.
+     * This cache contains positions of special blocks adjacent to cables,
+     * such as library blocks which are auto-labeled with {@link LibraryBlockEntity#LIBRARY_LABEL}.
+     *
+     * @return the auto-discovered label position holder
+     */
+    public LabelPositionHolder getOrRebuildAutoLabels() {
+        if (autoLabelCache != null) {
+            return autoLabelCache;
+        }
+
+        autoLabelCache = LabelPositionHolder.empty();
+
+        // Discover library blocks adjacent to cables
+        LongSet visited = new LongOpenHashSet();
+        BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
+
+        for (long cablePosLong : cablePositions) {
+            BlockPos cablePos = BlockPos.of(cablePosLong);
+            for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+                target.set(cablePos).move(direction);
+                long targetLong = target.asLong();
+
+                // Skip if already visited
+                if (!visited.add(targetLong)) {
+                    continue;
+                }
+
+                // Check if this is a library block
+                if (level.getBlockEntity(target) instanceof LibraryBlockEntity) {
+                    autoLabelCache.add(LibraryBlockEntity.LIBRARY_LABEL, target.immutable());
+                }
+            }
+        }
+
+        return autoLabelCache;
     }
 
     public void bustCacheForChunk(ChunkAccess chunkAccess) {

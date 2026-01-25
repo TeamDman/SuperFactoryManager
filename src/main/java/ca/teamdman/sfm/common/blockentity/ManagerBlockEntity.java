@@ -372,12 +372,12 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
     }
 
     /**
-     * Creates a library resolver that scans the cable network for library blocks
-     * containing disks with a matching NAME statement.
+     * Creates a library resolver that finds definitions from library blocks on the cable network.
+     * Uses the auto-discovered label cache for O(1) library block lookup.
      * The resolver:
-     * 1. Gets all cable positions in the network
-     * 2. For each cable, checks adjacent blocks for LibraryBlockEntity
-     * 3. Extracts the NAME from each disk and compares with the requested library name
+     * 1. Gets the cable network connected to this manager
+     * 2. Uses the auto-label cache to get all library block positions
+     * 3. For each library block, checks disk slots for a matching NAME
      * 4. Returns the parsed definitions from the first matching disk
      */
     public LibraryResolver createLibraryResolver() {
@@ -393,30 +393,19 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
             }
             CableNetwork network = networkOpt.get();
 
-            // Track visited positions to avoid checking the same library block multiple times
-            Set<BlockPos> visited = new java.util.HashSet<>();
+            // O(1) lookup for all library positions via auto-discovered labels
+            Set<BlockPos> libraryPositions = network.getOrRebuildAutoLabels()
+                    .getPositions(LibraryBlockEntity.LIBRARY_LABEL);
 
-            // Scan all positions adjacent to cables for library blocks
-            BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
-            for (BlockPos cablePos : network.getCablePositions().toList()) {
-                for (net.minecraft.core.Direction direction : net.minecraft.core.Direction.values()) {
-                    target.set(cablePos).move(direction);
-                    BlockPos immutableTarget = target.immutable();
+            // O(N) scan of libraries where N is the number of library blocks (typically small)
+            for (BlockPos pos : libraryPositions) {
+                if (!(level.getBlockEntity(pos) instanceof LibraryBlockEntity library)) {
+                    continue;
+                }
 
-                    // Skip if already visited
-                    if (!visited.add(immutableTarget)) {
-                        continue;
-                    }
-
-                    if (!(level.getBlockEntity(immutableTarget) instanceof LibraryBlockEntity library)) {
-                        continue;
-                    }
-
-                    // Check each disk slot in the library block
-                    LibraryDefinitions defs = library.getDefinitionsForLibrary(libraryName);
-                    if (defs != null) {
-                        return Optional.of(defs);
-                    }
+                LibraryDefinitions defs = library.getDefinitionsForLibrary(libraryName);
+                if (defs != null) {
+                    return Optional.of(defs);
                 }
             }
 
