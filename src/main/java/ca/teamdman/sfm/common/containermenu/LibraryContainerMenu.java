@@ -21,10 +21,45 @@ import java.util.List;
  */
 public class LibraryContainerMenu extends AbstractContainerMenu {
 
+    // Disk slot layout constants
+    private static final int DISK_SLOT_START_X = 44;
+    private static final int DISK_SLOT_START_Y = 20;
+    private static final int SLOT_SPACING = 18;
+    private static final int DISK_SLOTS_PER_ROW = 5;
+
+    // Player inventory layout constants
+    private static final int PLAYER_INV_START_X = 8;
+    private static final int PLAYER_INV_START_Y = 84;
+    private static final int PLAYER_HOTBAR_Y = 142;
+
     /**
      * Record to track library name and its slot index.
      */
     public record LibraryEntry(String name, int slotIndex) {}
+
+    /**
+     * Extracts library entries from a container's disk slots.
+     * Used by both server-side (LibraryBlockEntity) and client-side (refreshing from synced container).
+     *
+     * @param container The container to extract entries from
+     * @param slotCount The number of disk slots to check
+     * @return List of library entries with their names and slot indices
+     */
+    public static List<LibraryEntry> extractLibraryEntries(Container container, int slotCount) {
+        List<LibraryEntry> entries = new ArrayList<>();
+        for (int i = 0; i < slotCount; i++) {
+            ItemStack disk = container.getItem(i);
+            if (!DiskItem.isValidDisk(disk)) continue;
+
+            String source = DiskItem.getProgramString(disk);
+            String name = DiskItem.extractName(source);
+            if (name == null || name.isEmpty()) {
+                name = "(unnamed)";
+            }
+            entries.add(new LibraryEntry(name, i));
+        }
+        return entries;
+    }
 
     public final Inventory PLAYER_INVENTORY;
     public final BlockPos LIBRARY_POSITION;
@@ -46,8 +81,8 @@ public class LibraryContainerMenu extends AbstractContainerMenu {
 
         // Add disk slots (2 rows of 5)
         for (int i = 0; i < LibraryBlockEntity.DISK_SLOT_COUNT; i++) {
-            int x = 44 + (i % 5) * 18;
-            int y = 20 + (i / 5) * 18;
+            int x = DISK_SLOT_START_X + (i % DISK_SLOTS_PER_ROW) * SLOT_SPACING;
+            int y = DISK_SLOT_START_Y + (i / DISK_SLOTS_PER_ROW) * SLOT_SPACING;
             this.addSlot(new Slot(container, i, x, y) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
@@ -59,13 +94,15 @@ public class LibraryContainerMenu extends AbstractContainerMenu {
         // Add player inventory slots
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 9; ++j) {
-                this.addSlot(new Slot(inv, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
+                this.addSlot(new Slot(inv, j + i * 9 + 9,
+                        PLAYER_INV_START_X + j * SLOT_SPACING,
+                        PLAYER_INV_START_Y + i * SLOT_SPACING));
             }
         }
 
         // Add player hotbar slots
         for (int k = 0; k < 9; ++k) {
-            this.addSlot(new Slot(inv, k, 8 + k * 18, 142));
+            this.addSlot(new Slot(inv, k, PLAYER_INV_START_X + k * SLOT_SPACING, PLAYER_HOTBAR_Y));
         }
     }
 

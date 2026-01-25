@@ -36,8 +36,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Block entity for library blocks that store disks containing SFML definitions.
@@ -54,14 +52,6 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     public static final int DISK_SLOT_COUNT = 10;
 
-    /**
-     * Pattern to extract NAME from source code.
-     * Matches: NAME "some_name" (case-insensitive)
-     * Supports escaped quotes in the name.
-     */
-    private static final Pattern NAME_PATTERN = Pattern.compile(
-            "(?i)\\bNAME\\s+\"([^\"\\\\]*(\\\\.[^\"\\\\]*)*)\"");
-
     private final NonNullList<ItemStack> ITEMS = NonNullList.withSize(DISK_SLOT_COUNT, ItemStack.EMPTY);
 
     public LibraryBlockEntity(BlockPos pos, BlockState state) {
@@ -69,38 +59,11 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
     }
 
     /**
-     * Extracts the NAME from SFML source code using regex (fast, avoids full ANTLR parsing).
-     *
-     * @param source The SFML source code
-     * @return The extracted name, or null if not found
-     */
-    public static @Nullable String extractName(String source) {
-        if (source == null || source.isEmpty()) return null;
-        Matcher matcher = NAME_PATTERN.matcher(source);
-        if (matcher.find()) {
-            return matcher.group(1).replace("\\\"", "\"");
-        }
-        return null;
-    }
-
-    /**
      * Gets library entries with their slot indices from inserted disks.
      * Disks without a NAME statement are shown with a placeholder name.
      */
     public List<LibraryContainerMenu.LibraryEntry> getLibraryEntries() {
-        List<LibraryContainerMenu.LibraryEntry> entries = new ArrayList<>();
-        for (int i = 0; i < DISK_SLOT_COUNT; i++) {
-            ItemStack disk = getItem(i);
-            if (disk.isEmpty() || !(disk.getItem() instanceof DiskItem)) continue;
-
-            String source = DiskItem.getProgramString(disk);
-            String name = extractName(source);
-            if (name == null || name.isEmpty()) {
-                name = "(unnamed)";
-            }
-            entries.add(new LibraryContainerMenu.LibraryEntry(name, i));
-        }
-        return entries;
+        return LibraryContainerMenu.extractLibraryEntries(this, DISK_SLOT_COUNT);
     }
 
     /**
@@ -112,10 +75,10 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
     public @Nullable LibraryDefinitions getDefinitionsForLibrary(String libraryName) {
         for (int i = 0; i < DISK_SLOT_COUNT; i++) {
             ItemStack disk = getItem(i);
-            if (disk.isEmpty() || !(disk.getItem() instanceof DiskItem)) continue;
+            if (!DiskItem.isValidDisk(disk)) continue;
 
             String source = DiskItem.getProgramString(disk);
-            String name = extractName(source);
+            String name = DiskItem.extractName(source);
 
             if (libraryName.equals(name)) {
                 return parseLibraryDefinitions(source);
@@ -323,7 +286,7 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
     private int computeDiskMask() {
         int mask = 0;
         for (int i = 0; i < ITEMS.size(); i++) {
-            if (!ITEMS.get(i).isEmpty() && ITEMS.get(i).getItem() instanceof DiskItem) {
+            if (DiskItem.isValidDisk(ITEMS.get(i))) {
                 mask |= (1 << i);
             }
         }

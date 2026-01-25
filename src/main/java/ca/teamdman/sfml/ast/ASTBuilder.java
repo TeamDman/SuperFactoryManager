@@ -48,6 +48,42 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         this.libraryResolver = resolver != null ? resolver : LibraryResolver.NONE;
     }
 
+    /**
+     * Registers a definition in a map, throwing if a duplicate name is detected.
+     *
+     * @param definitions The map to register in
+     * @param name The name to register
+     * @param value The value to associate with the name
+     * @param typeName The type name for error messages (e.g., "protocol", "struct", "macro")
+     * @param <T> The type of definition
+     */
+    private <T> void registerDefinition(Map<String, T> definitions, String name, T value, String typeName) {
+        if (definitions.containsKey(name)) {
+            throw new IllegalArgumentException("Duplicate " + typeName + " definition: " + name);
+        }
+        definitions.put(name, value);
+    }
+
+    /**
+     * Builds a ResourceIdSet from a list of resource ID contexts.
+     *
+     * @param resourceIds The list of resource ID contexts to process
+     * @param trackCtx The parser context to track (may be null)
+     * @return A ResourceIdSet containing the parsed resource identifiers
+     */
+    private ResourceIdSet buildResourceIdSet(List<SFMLParser.ResourceIdContext> resourceIds, @Nullable ParserRuleContext trackCtx) {
+        HashSet<ResourceIdentifier<?, ?, ?>> ids = resourceIds
+                .stream()
+                .map(this::visit)
+                .map(ResourceIdentifier.class::cast)
+                .collect(HashSet::new, HashSet::add, HashSet::addAll);
+        ResourceIdSet resourceIdSet = new ResourceIdSet(ids);
+        if (trackCtx != null) {
+            trackNode(resourceIdSet, trackCtx);
+        }
+        return resourceIdSet;
+    }
+
     /// @return hierarchy of nodes; e.g., Program > Trigger > Block > IOStatement > LabelAccess > Label
     public List<Pair<ASTNode, ParserRuleContext>> getNodesUnderCursor(int cursorPos) {
 
@@ -316,11 +352,6 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     public ProtocolDefinition visitProtocolDefinition(SFMLParser.ProtocolDefinitionContext ctx) {
         String name = ctx.identifier().getText();
 
-        // Check for duplicate protocol names
-        if (PROTOCOL_DEFINITIONS.containsKey(name)) {
-            throw new IllegalArgumentException("Duplicate protocol definition: " + name);
-        }
-
         List<ProtocolField> fields = new ArrayList<>();
         Set<String> fieldNames = new HashSet<>();
 
@@ -338,7 +369,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         }
 
         ProtocolDefinition protocolDef = new ProtocolDefinition(name, fields);
-        PROTOCOL_DEFINITIONS.put(name, protocolDef);
+        registerDefinition(PROTOCOL_DEFINITIONS, name, protocolDef, "protocol");
         trackNode(protocolDef, ctx);
         return protocolDef;
     }
@@ -377,11 +408,6 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     public StructDefinition visitStructDefinition(SFMLParser.StructDefinitionContext ctx) {
         String name = ctx.identifier(0).getText();
 
-        // Check for duplicate struct names
-        if (STRUCT_DEFINITIONS.containsKey(name)) {
-            throw new IllegalArgumentException("Duplicate struct definition: " + name);
-        }
-
         // Collect implemented protocols
         List<String> implementedProtocols = new ArrayList<>();
         for (int i = 1; i < ctx.identifier().size(); i++) {
@@ -415,7 +441,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
             validateProtocolConformance(structDef, PROTOCOL_DEFINITIONS.get(protocolName));
         }
 
-        STRUCT_DEFINITIONS.put(name, structDef);
+        registerDefinition(STRUCT_DEFINITIONS, name, structDef, "struct");
         trackNode(structDef, ctx);
         return structDef;
     }
@@ -563,11 +589,6 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     public MacroDefinition visitMacroDefinition(SFMLParser.MacroDefinitionContext ctx) {
         String name = ctx.identifier().getText();
 
-        // Check for duplicate macro names
-        if (MACRO_DEFINITIONS.containsKey(name)) {
-            throw new IllegalArgumentException("Duplicate macro definition: " + name);
-        }
-
         // Parse parameters
         List<MacroParameter> parameters = new ArrayList<>();
         if (ctx.macroParamList() != null) {
@@ -581,7 +602,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         List<MacroStatement> body = visitMacroBodyStatements(ctx.macroBody());
 
         MacroDefinition macroDef = new MacroDefinition(name, parameters, body);
-        MACRO_DEFINITIONS.put(name, macroDef);
+        registerDefinition(MACRO_DEFINITIONS, name, macroDef, "macro");
         trackNode(macroDef, ctx);
         return macroDef;
     }
@@ -1342,37 +1363,17 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     }
 
     /// This one uses COMMA instead of OR to separate items
-    @SuppressWarnings("DuplicatedCode")
     @Override
     public ResourceIdSet visitResourceIdList(@Nullable SFMLParser.ResourceIdListContext ctx) {
-
         if (ctx == null) return ResourceIdSet.EMPTY;
-        HashSet<ResourceIdentifier<?, ?, ?>> ids = ctx
-                .resourceId()
-                .stream()
-                .map(this::visit)
-                .map(ResourceIdentifier.class::cast)
-                .collect(HashSet::new, HashSet::add, HashSet::addAll);
-        ResourceIdSet resourceIdSet = new ResourceIdSet(ids);
-        trackNode(resourceIdSet, ctx);
-        return resourceIdSet;
+        return buildResourceIdSet(ctx.resourceId(), ctx);
     }
 
     /// This one uses OR instead of COMMA to separate items
-    @SuppressWarnings("DuplicatedCode")
     @Override
     public ResourceIdSet visitResourceIdDisjunction(@Nullable SFMLParser.ResourceIdDisjunctionContext ctx) {
-
         if (ctx == null) return ResourceIdSet.EMPTY;
-        HashSet<ResourceIdentifier<?, ?, ?>> ids = ctx
-                .resourceId()
-                .stream()
-                .map(this::visit)
-                .map(ResourceIdentifier.class::cast)
-                .collect(HashSet::new, HashSet::add, HashSet::addAll);
-        ResourceIdSet resourceIdSet = new ResourceIdSet(ids);
-        trackNode(resourceIdSet, ctx);
-        return resourceIdSet;
+        return buildResourceIdSet(ctx.resourceId(), ctx);
     }
 
     @Override

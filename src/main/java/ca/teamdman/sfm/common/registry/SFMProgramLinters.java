@@ -75,22 +75,10 @@ public class SFMProgramLinters {
             StructDefinitionLinter::new
     );
 
-    public static final SFMRegistryObject<IProgramLinter, StructUsageLinter>
-            STRUCT_USAGE_LINTER = REGISTERER.register(
-            "struct_usage",
-            StructUsageLinter::new
-    );
-
-    public static final SFMRegistryObject<IProgramLinter, ProtocolUsageLinter>
-            PROTOCOL_USAGE_LINTER = REGISTERER.register(
-            "protocol_usage",
-            ProtocolUsageLinter::new
-    );
-
-    public static final SFMRegistryObject<IProgramLinter, MacroUsageLinter>
-            MACRO_USAGE_LINTER = REGISTERER.register(
-            "macro_usage",
-            MacroUsageLinter::new
+    public static final SFMRegistryObject<IProgramLinter, UnusedDefinitionLinter>
+            UNUSED_DEFINITION_LINTER = REGISTERER.register(
+            "unused_definition",
+            UnusedDefinitionLinter::new
     );
 
     static {

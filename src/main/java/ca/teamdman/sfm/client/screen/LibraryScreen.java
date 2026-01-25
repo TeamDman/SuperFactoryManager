@@ -17,9 +17,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Client-side screen for the library block.
  * Shows disk slots and displays available library names from inserted disks
@@ -73,24 +70,13 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
     }
 
     private void refreshLibraryEntries() {
-        List<LibraryEntry> entries = new ArrayList<>();
-        for (int i = 0; i < LibraryBlockEntity.DISK_SLOT_COUNT; i++) {
-            ItemStack disk = menu.CONTAINER.getItem(i);
-            if (disk.isEmpty() || !(disk.getItem() instanceof DiskItem)) continue;
-
-            String source = DiskItem.getProgramString(disk);
-            String name = LibraryBlockEntity.extractName(source);
-            if (name == null || name.isEmpty()) {
-                name = "(unnamed)";
-            }
-            entries.add(new LibraryEntry(name, i));
-        }
-        menu.libraryEntries = entries;
+        menu.libraryEntries = LibraryContainerMenu.extractLibraryEntries(
+                menu.CONTAINER, LibraryBlockEntity.DISK_SLOT_COUNT);
     }
 
     private void openEditorForSlot(int slotIndex) {
         ItemStack disk = menu.CONTAINER.getItem(slotIndex);
-        if (disk.isEmpty() || !(disk.getItem() instanceof DiskItem)) return;
+        if (!DiskItem.isValidDisk(disk)) return;
 
         String source = DiskItem.getProgramString(disk);
         SFMScreenChangeHelpers.showProgramEditScreen(new SFMTextEditScreenLibraryDiskOpenContext(

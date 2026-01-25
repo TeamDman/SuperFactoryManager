@@ -75,7 +75,7 @@ public record ServerboundLibraryDiskSetProgramPacket(
 
             // Get the disk in the slot
             ItemStack disk = library.getItem(msg.slotIndex);
-            if (disk.isEmpty() || !(disk.getItem() instanceof DiskItem)) {
+            if (!DiskItem.isValidDisk(disk)) {
                 return;
             }
 

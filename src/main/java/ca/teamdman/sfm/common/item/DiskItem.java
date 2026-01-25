@@ -38,11 +38,46 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class DiskItem extends Item {
+    /**
+     * Pattern to extract NAME from source code.
+     * Matches: NAME "some_name" (case-insensitive)
+     * Supports escaped quotes in the name.
+     */
+    private static final Pattern NAME_PATTERN = Pattern.compile(
+            "(?i)\\bNAME\\s+\"([^\"\\\\]*(\\\\.[^\"\\\\]*)*)\"");
+
     public DiskItem() {
         super(new Item.Properties().tab(SFMCreativeTabs.TAB));
+    }
+
+    /**
+     * Checks if an ItemStack is a valid disk item.
+     *
+     * @param stack The ItemStack to check
+     * @return true if the stack is non-empty and contains a DiskItem
+     */
+    public static boolean isValidDisk(ItemStack stack) {
+        return !stack.isEmpty() && stack.getItem() instanceof DiskItem;
+    }
+
+    /**
+     * Extracts the NAME from SFML source code using regex (fast, avoids full ANTLR parsing).
+     *
+     * @param source The SFML source code
+     * @return The extracted name, or null if not found
+     */
+    public static @Nullable String extractName(String source) {
+        if (source == null || source.isEmpty()) return null;
+        Matcher matcher = NAME_PATTERN.matcher(source);
+        if (matcher.find()) {
+            return matcher.group(1).replace("\\\"", "\"");
+        }
+        return null;
     }
 
     public static String getProgramString(ItemStack stack) {
