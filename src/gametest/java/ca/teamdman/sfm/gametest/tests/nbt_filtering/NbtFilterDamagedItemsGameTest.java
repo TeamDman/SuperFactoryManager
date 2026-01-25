@@ -34,7 +34,7 @@ public class NbtFilterDamagedItemsGameTest extends SFMGameTestDefinition {
         test.setProgram("""
             EVERY 20 TICKS DO
                 -- Only move items with damage > 0
-                INPUT WITH NBT "damage > `0`" FROM left
+                INPUT WITH NBT damage > 0 FROM left
                 OUTPUT TO right
             END
         """);
