@@ -32,11 +32,12 @@ macro smelt(machine: Smeltable, source, dest)
     output to dest
 end
 
-let furnace = Furnace { label: "furnaces" }
-let blast = BlastFurnace { label: "blast_furnaces" }
+-- Variable names become labels automatically
+let furnaces = Furnace
+let blast_furnaces = BlastFurnace
 
 -- Use "DO" or "@" to invoke macros
 every 20 ticks do
-    DO smelt(furnace, ore_chest, ingot_chest)
-    @smelt(blast, iron_ore, iron_ingots)
+    DO smelt(furnaces, ore_chest, ingot_chest)
+    @smelt(blast_furnaces, iron_ore, iron_ingots)
 end

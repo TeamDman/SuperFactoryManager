@@ -117,7 +117,7 @@ public class LibraryWithTransferMacroGameTest extends SFMGameTestDefinition {
 
                 use library "transfer_lib"
 
-                let processor = Processor { label: "processor" }
+                let processor = Processor
 
                 every 20 ticks do
                     DO transfer_through(processor, processor, input_chest, output_chest)

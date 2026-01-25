@@ -69,8 +69,8 @@ macroLabelAccess : identifier                                               #Mac
                  ;
 
 letStatement : LET identifier EQ_SYMBOL structInstantiation ;
-structInstantiation : identifier LBRACE structFieldAssignment (COMMA structFieldAssignment)* COMMA? RBRACE ;
-structFieldAssignment : identifier COLON structFieldValue ;
+structInstantiation : identifier (WITH structFieldOverride (COMMA structFieldOverride)*)? ;
+structFieldOverride : identifier COLON structFieldValue ;
 
 //
 // TRIGGERS
@@ -325,8 +325,6 @@ NAME            : N A M E ;
 STRUCT          : S T R U C T ;
 LET             : L E T ;
 USING           : U S I N G ;
-LBRACE          : '{' ;
-RBRACE          : '}' ;
 
 // PROTOCOL SYMBOLS
 PROTOCOL        : P R O T O C O L ;

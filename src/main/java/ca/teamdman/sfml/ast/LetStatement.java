@@ -2,7 +2,9 @@ package ca.teamdman.sfml.ast;
 
 /**
  * Represents a let statement that binds a struct instance to a variable name.
- * Example: let smelter = Furnace { label: "my furnaces" }
+ * The variable name automatically becomes the label for the struct instance.
+ * Example: let furnaces = Furnace
+ * Example with overrides: let furnaces = Furnace WITH input: NORTH SIDE
  */
 public record LetStatement(
         String variableName,

@@ -114,7 +114,7 @@ public class LibraryWithCombinedIOProtocolGameTest extends SFMGameTestDefinition
 
                 use library "combined_lib"
 
-                let machine = Machine { label: "machine" }
+                let machine = Machine
 
                 every 20 ticks do
                     DO process(machine, source, dest)

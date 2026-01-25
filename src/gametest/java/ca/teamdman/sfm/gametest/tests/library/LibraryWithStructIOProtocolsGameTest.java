@@ -109,7 +109,7 @@ public class LibraryWithStructIOProtocolsGameTest extends SFMGameTestDefinition 
 
                 use library "io_lib"
 
-                let device = IODevice { label: "device" }
+                let device = IODevice
 
                 every 20 ticks do
                     -- Move items from source to device's input slots

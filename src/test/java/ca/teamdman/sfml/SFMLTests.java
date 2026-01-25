@@ -827,8 +827,7 @@ public class SFMLTests {
                             output: BOTTOM SIDE SLOTS 2
                         end
 
-                        let smelter = Furnace { label: "my_furnaces" }
-
+                        let smelter = Furnace
                         every 20 ticks do
                             input from ore_chest
                             output to smelter using input
@@ -847,8 +846,7 @@ public class SFMLTests {
                     output: BOTTOM SIDE SLOTS 2
                 end
 
-                let smelter = Furnace { label: "furnaces" }
-
+                let smelter = Furnace
                 every 20 ticks do
                     input from chest
                     output to smelter using input
@@ -868,21 +866,22 @@ public class SFMLTests {
     }
 
     @Test
-    public void structMissingLabel() {
+    public void structWithFieldOverride() {
         var input = """
-                NAME "Missing Label Test"
+                NAME "Field Override Test"
 
                 struct Furnace
-                    input: TOP SIDE
+                    input: TOP SIDE SLOTS 0
                 end
 
-                let smelter = Furnace { input: TOP SIDE }
+                let smelter = Furnace WITH input: NORTH SIDE SLOTS 1-2
 
                 every 20 ticks do
                     input from chest
+                    output to smelter using input
                 end
                 """;
-        assertCompileErrorsPresent(input);
+        assertNoCompileErrors(input);
     }
 
     @Test
@@ -890,8 +889,7 @@ public class SFMLTests {
         var input = """
                 NAME "Unknown Struct Test"
 
-                let smelter = UnknownStruct { label: "test" }
-
+                let smelter = UnknownStruct
                 every 20 ticks do
                     input from chest
                 end
@@ -908,8 +906,7 @@ public class SFMLTests {
                     input: TOP SIDE
                 end
 
-                let smelter = Furnace { label: "test" }
-
+                let smelter = Furnace
                 every 20 ticks do
                     input from unknown_var using input
                 end
@@ -926,8 +923,7 @@ public class SFMLTests {
                     input: TOP SIDE
                 end
 
-                let smelter = Furnace { label: "test" }
-
+                let smelter = Furnace
                 every 20 ticks do
                     input from smelter using unknown_field
                 end
@@ -948,8 +944,7 @@ public class SFMLTests {
                     output: BOTTOM SIDE
                 end
 
-                let smelter = Furnace { label: "test" }
-
+                let smelter = Furnace
                 every 20 ticks do
                     input from chest
                 end
@@ -967,8 +962,7 @@ public class SFMLTests {
                     input: BOTTOM SIDE
                 end
 
-                let smelter = Furnace { label: "test" }
-
+                let smelter = Furnace
                 every 20 ticks do
                     input from chest
                 end
@@ -985,8 +979,7 @@ public class SFMLTests {
                     input: TOP SIDE SLOTS 0
                 end
 
-                let smelter = Furnace { label: "furnaces" }
-
+                let smelter = Furnace
                 every 20 ticks do
                     input from chest
                     output to smelter using input BOTTOM SIDE
@@ -1006,8 +999,7 @@ public class SFMLTests {
                             hotbar: SLOTS 27-35
                         end
 
-                        let inv = Storage { label: "inventory" }
-
+                        let inv = Storage
                         every 20 ticks do
                             input from inv using main
                             output to inv using hotbar
@@ -1036,8 +1028,7 @@ public class SFMLTests {
                             output: BOTTOM SIDE SLOTS 2
                         end
 
-                        let smelter = Furnace { label: "furnaces" }
-
+                        let smelter = Furnace
                         every 20 ticks do
                             input from chest
                             output to smelter using input
@@ -1065,8 +1056,7 @@ public class SFMLTests {
                             output: BOTTOM SIDE SLOTS 1
                         end
 
-                        let machine = Machine { label: "machines" }
-
+                        let machine = Machine
                         every 20 ticks do
                             input from chest
                             output to machine using input
@@ -1084,8 +1074,7 @@ public class SFMLTests {
                     input: TOP SIDE SLOTS 0
                 end
 
-                let smelter = Furnace { label: "test" }
-
+                let smelter = Furnace
                 every 20 ticks do
                     input from chest
                 end
@@ -1107,8 +1096,7 @@ public class SFMLTests {
                     input: TOP SIDE SLOTS 0
                 end
 
-                let smelter = Furnace { label: "test" }
-
+                let smelter = Furnace
                 every 20 ticks do
                     input from chest
                 end
@@ -1129,8 +1117,7 @@ public class SFMLTests {
                     input: 42
                 end
 
-                let smelter = Furnace { label: "test" }
-
+                let smelter = Furnace
                 every 20 ticks do
                     input from chest
                 end
@@ -1202,8 +1189,7 @@ public class SFMLTests {
                             output to dest
                         end
 
-                        let furnace = Furnace { label: "furnaces" }
-
+                        let furnace = Furnace
                         every 20 ticks do
                             DO smelt(furnace, ore_chest, ingot_chest)
                         end
@@ -1257,8 +1243,7 @@ public class SFMLTests {
                     input from machine using input
                 end
 
-                let device = NonSmeltable { label: "devices" }
-
+                let device = NonSmeltable
                 every 20 ticks do
                     DO smelt(device)
                 end
@@ -1355,8 +1340,7 @@ public class SFMLTests {
                             output to dest
                         end
 
-                        let furnace = Furnace { label: "furnaces" }
-
+                        let furnace = Furnace
                         every 20 ticks do
                             DO smelt(furnace, ore_chest, fuel_chest, result_chest)
                         end
@@ -1461,8 +1445,7 @@ public class SFMLTests {
 
             use library "io_lib"
 
-            let device = IODevice { label: "devices" }
-
+            let device = IODevice
             every 20 ticks do
                 input from source_chest
                 output to device using input
@@ -1509,8 +1492,7 @@ public class SFMLTests {
 
             use library "transfer_lib"
 
-            let processor = Processor { label: "processors" }
-
+            let processor = Processor
             every 20 ticks do
                 DO transfer_through(processor, processor, input_chest, output_chest)
             end
@@ -1562,8 +1544,7 @@ public class SFMLTests {
 
             use library "combined_lib"
 
-            let machine = Machine { label: "machines" }
-
+            let machine = Machine
             every 20 ticks do
                 DO process(machine, source, dest)
             end
@@ -1619,7 +1600,8 @@ public class SFMLTests {
             NAME "Valid Usage"
             use library "constrained_lib"
 
-            let device = ValidDevice { label: "devices" }
+            let device = ValidDevice
+
             every 20 ticks do
                 DO transfer(device, a, b)
             end
@@ -1631,7 +1613,8 @@ public class SFMLTests {
             NAME "Invalid Usage"
             use library "constrained_lib"
 
-            let device = InvalidDevice { label: "devices" }
+            let device = InvalidDevice
+
             every 20 ticks do
                 DO transfer(device, a, b)
             end
@@ -1697,7 +1680,8 @@ public class SFMLTests {
             use library "struct_lib"
             use library "macro_lib"
 
-            let furnace = Furnace { label: "furnaces" }
+            let furnace = Furnace
+
             every 20 ticks do
                 DO smelt(furnace, furnace, ore_chest, ingot_chest)
             end
@@ -1746,8 +1730,7 @@ public class SFMLTests {
                             output to dest
                         end
 
-                        let furnace = Furnace { label: "furnaces" }
-
+                        let furnace = Furnace
                         every 20 ticks do
                             DO smelt(furnace, ore_chest, ingot_chest)
                         end
@@ -1777,8 +1760,7 @@ public class SFMLTests {
                             num: 42
                         end
 
-                        let impl = Implementation { label: "test" }
-
+                        let impl = Implementation
                         every 20 ticks do
                             input from chest
                         end

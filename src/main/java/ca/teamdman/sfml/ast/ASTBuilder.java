@@ -558,45 +558,32 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
             throw new IllegalArgumentException("Unknown struct: " + structName);
         }
 
-        // Process field assignments
+        // Use the variable name as the label automatically
+        Label label = new Label(variableName);
+        USED_LABELS.add(label);
+
+        // Create overrides map with the label
         Map<String, StructFieldValue> overrides = new LinkedHashMap<>();
-        for (SFMLParser.StructFieldAssignmentContext assignCtx : ctx.structFieldAssignment()) {
-            Map.Entry<String, StructFieldValue> entry = parseStructFieldAssignment(assignCtx);
+        overrides.put("label", label);
 
-            // Check that the field exists in the struct definition
-            // "label" is a special required field that doesn't need to be defined in the struct
-            if (!entry.getKey().equals("label") && definition.getField(entry.getKey()).isEmpty()) {
+        // Process optional WITH clause field overrides
+        for (SFMLParser.StructFieldOverrideContext overrideCtx : ctx.structFieldOverride()) {
+            String fieldName = overrideCtx.identifier().getText();
+
+            // Validate that the field exists in the struct definition
+            if (definition.getField(fieldName).isEmpty()) {
                 throw new IllegalArgumentException(
-                        "Unknown field '" + entry.getKey() + "' in struct " + structName
+                        "Unknown field '" + fieldName + "' in struct " + structName
                 );
             }
 
-            // Check for duplicate assignments
-            if (overrides.containsKey(entry.getKey())) {
-                throw new IllegalArgumentException(
-                        "Duplicate field assignment '" + entry.getKey() + "' in struct instantiation"
-                );
-            }
-
-            overrides.put(entry.getKey(), entry.getValue());
-        }
-
-        // Validate that label override is present
-        if (!overrides.containsKey("label")) {
-            throw new IllegalArgumentException(
-                    "Struct instantiation must include a 'label' override to bind to actual blocks"
-            );
+            StructFieldValue value = visitStructFieldValue(overrideCtx.structFieldValue());
+            overrides.put(fieldName, value);
         }
 
         StructInstance instance = new StructInstance(variableName, definition, overrides);
         trackNode(instance, ctx);
         return instance;
-    }
-
-    private Map.Entry<String, StructFieldValue> parseStructFieldAssignment(SFMLParser.StructFieldAssignmentContext ctx) {
-        String fieldName = ctx.identifier().getText();
-        StructFieldValue value = visitStructFieldValue(ctx.structFieldValue());
-        return new SimpleEntry<>(fieldName, value);
     }
 
     // ===== END STRUCT DEFINITIONS =====

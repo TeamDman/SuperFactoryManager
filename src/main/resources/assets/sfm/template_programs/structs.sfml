@@ -9,21 +9,21 @@ struct Furnace
     output: BOTTOM SIDE SLOTS 2
 end
 
--- Create an instance bound to blocks labelled "furnaces"
-let smelter = Furnace { label: "furnaces" }
+-- Create an instance - the variable name becomes the label
+let furnaces = Furnace
 
 -- Use the "using" keyword to access struct fields
 every 20 ticks do
     input from ore_chest
-    output to smelter using input
+    output to furnaces using input
 
     forget
 
     input from fuel_chest
-    output retain 1 to each smelter using fuel
+    output retain 1 to each furnaces using fuel
 
     forget
 
-    input from smelter using output
+    input from furnaces using output
     output to results
 end

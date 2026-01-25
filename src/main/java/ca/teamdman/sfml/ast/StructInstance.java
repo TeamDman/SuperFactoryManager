@@ -4,8 +4,10 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Represents an instantiation of a struct with overrides.
- * Example: Furnace { label: "my furnaces" }
+ * Represents an instantiation of a struct with optional field overrides.
+ * The variable name from the let statement becomes the label automatically.
+ * Example: Furnace
+ * Example with overrides: Furnace WITH input: NORTH SIDE
  */
 public record StructInstance(
         String variableName,
@@ -40,14 +42,20 @@ public record StructInstance(
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(definition.name()).append(" { ");
-        boolean first = true;
-        for (Map.Entry<String, StructFieldValue> entry : overrides.entrySet()) {
-            if (!first) sb.append(", ");
-            sb.append(entry.getKey()).append(": ").append(entry.getValue());
-            first = false;
+        sb.append(definition.name());
+        // Only show non-label overrides (label comes from variable name)
+        boolean hasOverrides = overrides.entrySet().stream()
+                .anyMatch(e -> !e.getKey().equals("label"));
+        if (hasOverrides) {
+            sb.append(" WITH ");
+            boolean first = true;
+            for (Map.Entry<String, StructFieldValue> entry : overrides.entrySet()) {
+                if (entry.getKey().equals("label")) continue;
+                if (!first) sb.append(", ");
+                sb.append(entry.getKey()).append(": ").append(entry.getValue());
+                first = false;
+            }
         }
-        sb.append(" }");
         return sb.toString();
     }
 }

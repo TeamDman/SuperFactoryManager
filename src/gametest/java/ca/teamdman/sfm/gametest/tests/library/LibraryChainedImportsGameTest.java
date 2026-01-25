@@ -147,7 +147,8 @@ public class LibraryChainedImportsGameTest extends SFMGameTestDefinition {
                 use library "struct_lib"
                 use library "macro_lib"
 
-                let furnace = Furnace { label: "furnace" }
+                let furnace = Furnace
+
                 every 20 ticks do
                     DO smelt(furnace, furnace, ore_chest, ingot_chest)
                 end

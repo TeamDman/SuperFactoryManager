@@ -44,10 +44,10 @@ public class MacroWithStructAccessGameTest extends SFMGameTestDefinition {
                     output to dest
                 end
 
-                let storage = Chest { label: "left" }
+                let left = Chest
 
                 every 20 ticks do
-                    do process(storage, left, right)
+                    do process(left, left, right)
                 end
                 """);
         test.preContents("left", Arrays.asList(

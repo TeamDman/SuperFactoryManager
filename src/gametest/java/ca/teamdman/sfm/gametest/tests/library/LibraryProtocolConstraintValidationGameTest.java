@@ -109,7 +109,8 @@ public class LibraryProtocolConstraintValidationGameTest extends SFMGameTestDefi
                     NAME "Valid Usage"
                     use library "constrained_lib"
 
-                    let device = ValidDevice { label: "devices" }
+                    let device = ValidDevice
+
                     every 20 ticks do
                         DO transfer(device, a, b)
                     end
@@ -126,7 +127,8 @@ public class LibraryProtocolConstraintValidationGameTest extends SFMGameTestDefi
                         NAME "Invalid Usage"
                         use library "constrained_lib"
 
-                        let device = InvalidDevice { label: "devices" }
+                        let device = InvalidDevice
+
                         every 20 ticks do
                             DO transfer(device, a, b)
                         end

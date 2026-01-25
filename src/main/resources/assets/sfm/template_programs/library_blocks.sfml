@@ -25,9 +25,9 @@ NAME "Library Blocks"
 -- Now you can use Smeltable, Furnace, and smelt macro
 -- as if they were defined in this file!
 
--- let f = Furnace { label: "my_furnace" }
+-- let my_furnace = Furnace
 -- every 20 ticks do
---     DO smelt(f, ores, ingots)
+--     DO smelt(my_furnace, ores, ingots)
 -- end
 
 -- Note: Library blocks need to exist in-world with a disk containing definitions
