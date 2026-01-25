@@ -45,6 +45,12 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
     private static final int TEXT_HOVER = 0xFFFFD080;
     private static final int TEXT_DIM = 0xFF806020;
 
+    // Error/Warning colors (red phosphor style)
+    private static final int TEXT_ERROR = 0xFFFF4040;
+    private static final int TEXT_ERROR_DIM = 0xFFCC3030;
+    private static final int ERROR_GLOW = 0x40FF2020;
+    private static final int TEXT_WARNING = 0xFFFFCC40;
+
     // Effects
     private static final int CURSOR_GLOW = 0x30FFB84D;
 
@@ -155,21 +161,50 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
                 boolean hovered = mx >= screenX + 3 && mx <= screenRight - 3
                         && my >= contentY - 1 && my <= contentY + font.lineHeight + 1;
 
+                // Determine colors based on error/warning status
+                int bgGlow;
+                int textColor;
+                int statusColor;
+                String statusIndicator = "";
+
+                if (entry.hasErrors()) {
+                    // Error state - red phosphor effect
+                    bgGlow = hovered ? ERROR_GLOW : 0x20FF2020;
+                    textColor = hovered ? TEXT_ERROR : TEXT_ERROR_DIM;
+                    statusColor = TEXT_ERROR;
+                    statusIndicator = "!";
+                } else if (entry.hasWarnings()) {
+                    // Warning state - yellow/amber
+                    bgGlow = hovered ? CURSOR_GLOW : 0x20FFCC40;
+                    textColor = hovered ? TEXT_WARNING : TEXT_NORMAL;
+                    statusColor = TEXT_WARNING;
+                    statusIndicator = "?";
+                } else {
+                    // Normal state
+                    bgGlow = CURSOR_GLOW;
+                    textColor = hovered ? TEXT_HOVER : TEXT_NORMAL;
+                    statusColor = TEXT_DIM;
+                    statusIndicator = "";
+                }
+
                 if (hovered) {
                     hoveredLibraryEntry = i;
                     // Draw hover glow background
-                    fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, CURSOR_GLOW);
+                    fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, bgGlow);
+                } else if (entry.hasErrors()) {
+                    // Always show subtle error background glow
+                    fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, bgGlow);
                 }
 
                 // Cursor indicator and library name
                 String cursor = hovered ? "> " : "  ";
-                int color = hovered ? TEXT_HOVER : TEXT_NORMAL;
-                font.drawShadow(poseStack, cursor + entry.name(), textX, contentY, color);
+                font.drawShadow(poseStack, cursor + entry.name(), textX, contentY, textColor);
 
-                // Slot number right-aligned
-                String slotText = "[" + (entry.slotIndex()) + "]";
+                // Status indicator (! for error, ? for warning) and slot number right-aligned
+                String slotText = statusIndicator + "[" + (entry.slotIndex()) + "]";
                 int slotWidth = font.width(slotText);
-                font.drawShadow(poseStack, slotText, screenRight - 6 - slotWidth, contentY, TEXT_DIM);
+                font.drawShadow(poseStack, slotText, screenRight - 6 - slotWidth, contentY,
+                        statusIndicator.isEmpty() ? TEXT_DIM : statusColor);
 
                 contentY += font.lineHeight + 3;
 

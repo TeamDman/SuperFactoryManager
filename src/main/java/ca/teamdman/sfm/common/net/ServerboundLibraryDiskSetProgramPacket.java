@@ -81,7 +81,10 @@ public record ServerboundLibraryDiskSetProgramPacket(
 
             // Update the disk's program
             DiskItem.setProgram(disk, msg.programString);
-            DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true);
+
+            // Create a library resolver so USE statements can resolve other libraries on the network
+            var libraryResolver = library.createLibraryResolver();
+            DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true, libraryResolver);
             DiskItem.pruneIfDefault(disk);
             library.setChanged();
 

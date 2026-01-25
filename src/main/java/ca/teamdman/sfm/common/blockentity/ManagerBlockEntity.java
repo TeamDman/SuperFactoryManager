@@ -23,7 +23,6 @@ import ca.teamdman.sfm.common.timing.SFMEpochInstant;
 import ca.teamdman.sfm.common.timing.SFMInstant;
 import ca.teamdman.sfm.common.util.SFMContainerUtil;
 import ca.teamdman.sfml.ast.Program;
-import ca.teamdman.sfml.program_builder.LibraryDefinitions;
 import ca.teamdman.sfml.program_builder.LibraryResolver;
 import com.google.common.base.Joiner;
 import net.minecraft.ChatFormatting;
@@ -379,44 +378,20 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
 
     /**
      * Creates a library resolver that finds definitions from library blocks on the cable network.
-     * Uses the auto-discovered label cache for O(1) library block lookup.
-     * The resolver:
-     * 1. Gets the cable network connected to this manager
-     * 2. Uses the auto-label cache to get all library block positions
-     * 3. For each library block, checks disk slots for a matching NAME
-     * 4. Returns the parsed definitions from the first matching disk
+     * Delegates to the network's resolver implementation.
      */
     public LibraryResolver createLibraryResolver() {
-        return libraryName -> {
-            if (level == null) {
-                return Optional.empty();
-            }
+        if (level == null) {
+            return LibraryResolver.NONE;
+        }
 
-            // Get the cable network for this manager
-            Optional<CableNetwork> networkOpt = CableNetworkManager.getOrRegisterNetworkFromManagerPosition(this);
-            if (networkOpt.isEmpty()) {
-                return Optional.empty();
-            }
-            CableNetwork network = networkOpt.get();
+        // Get the cable network for this manager
+        Optional<CableNetwork> networkOpt = CableNetworkManager.getOrRegisterNetworkFromManagerPosition(this);
+        if (networkOpt.isEmpty()) {
+            return LibraryResolver.NONE;
+        }
 
-            // O(1) lookup for all library positions via auto-discovered labels
-            Set<BlockPos> libraryPositions = network.getOrRebuildAutoLabels()
-                    .getPositions(LibraryBlockEntity.LIBRARY_LABEL);
-
-            // O(N) scan of libraries where N is the number of library blocks (typically small)
-            for (BlockPos pos : libraryPositions) {
-                if (!(level.getBlockEntity(pos) instanceof LibraryBlockEntity library)) {
-                    continue;
-                }
-
-                LibraryDefinitions defs = library.getDefinitionsForLibrary(libraryName);
-                if (defs != null) {
-                    return Optional.of(defs);
-                }
-            }
-
-            return Optional.empty();
-        };
+        return networkOpt.get().createLibraryResolver();
     }
 
     @Override

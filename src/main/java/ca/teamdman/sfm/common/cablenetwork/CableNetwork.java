@@ -3,6 +3,8 @@ package ca.teamdman.sfm.common.cablenetwork;
 import ca.teamdman.sfm.common.blockentity.LibraryBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfml.program_builder.LibraryDefinitions;
+import ca.teamdman.sfml.program_builder.LibraryResolver;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
@@ -20,7 +22,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -290,8 +294,7 @@ public class CableNetwork {
 
     /**
      * Invalidates the auto-label cache and notifies all managers on this network
-     * to re-validate their programs. Call this when library blocks are added/removed
-     * or when their contents change.
+     * to re-validate their programs. Call this when library blocks are added/removed.
      *
      * Notifications are debounced to prevent excessive program rebuilds when
      * multiple library changes occur in quick succession (e.g., inserting multiple disks).
@@ -321,6 +324,46 @@ public class CableNetwork {
     }
 
     /**
+     * Invalidates the auto-label cache and notifies all managers and library blocks
+     * on this network to recompile. Call this when library disk contents change.
+     *
+     * Notifications are debounced to prevent excessive program rebuilds when
+     * multiple library changes occur in quick succession.
+     */
+    public void invalidateAutoLabelsAndNotifyDependents() {
+        // Get positions BEFORE invalidating the cache
+        Set<BlockPos> managerPositions = getOrRebuildAutoLabels()
+                .getPositions(ManagerBlockEntity.MANAGER_LABEL);
+        Set<BlockPos> libraryPositions = getOrRebuildAutoLabels()
+                .getPositions(LibraryBlockEntity.LIBRARY_LABEL);
+
+        // Now invalidate the cache
+        autoLabelCache = null;
+
+        // Check debounce - skip notification if within debounce window
+        long currentTick = level.getGameTime();
+        if (lastNotificationTick >= 0 && currentTick - lastNotificationTick < NOTIFICATION_DEBOUNCE_TICKS) {
+            // Cache is already invalidated, dependents will get fresh data on next tick
+            return;
+        }
+        lastNotificationTick = currentTick;
+
+        // Notify all managers to re-validate their programs
+        for (BlockPos pos : managerPositions) {
+            if (level.getBlockEntity(pos) instanceof ManagerBlockEntity manager) {
+                manager.rebuildProgramAndUpdateDisk();
+            }
+        }
+
+        // Notify all library blocks to recompile their disks
+        for (BlockPos pos : libraryPositions) {
+            if (level.getBlockEntity(pos) instanceof LibraryBlockEntity library) {
+                library.recompileAllDisks();
+            }
+        }
+    }
+
+    /**
      * Discover what networks would exist if this network did not have a cable at {@code cablePos}.
      *
      * @param cablePos cable position to be removed
@@ -340,5 +383,58 @@ public class CableNetwork {
             branches.add(branchNetwork);
         }
         return branches;
+    }
+
+    /**
+     * Creates a library resolver that finds definitions from library blocks on this cable network.
+     * Uses the auto-discovered label cache for O(1) library block lookup.
+     *
+     * @return A library resolver for this network
+     */
+    public LibraryResolver createLibraryResolver() {
+        return createLibraryResolver(new HashSet<>());
+    }
+
+    /**
+     * Creates a library resolver that finds definitions from library blocks on this cable network.
+     * Uses the auto-discovered label cache for O(1) library block lookup.
+     * Supports tracking circular dependencies across nested library resolutions.
+     *
+     * @param librariesBeingResolved Shared set for tracking circular dependencies across resolution calls
+     * @return A library resolver for this network
+     */
+    public LibraryResolver createLibraryResolver(Set<String> librariesBeingResolved) {
+        return libraryName -> {
+            // Check for circular dependency before resolving
+            if (librariesBeingResolved.contains(libraryName)) {
+                throw new IllegalArgumentException("Circular library dependency detected: " + libraryName);
+            }
+
+            // O(1) lookup for all library positions via auto-discovered labels
+            Set<BlockPos> libraryPositions = getOrRebuildAutoLabels()
+                    .getPositions(LibraryBlockEntity.LIBRARY_LABEL);
+
+            // Track this library to detect circular dependencies
+            librariesBeingResolved.add(libraryName);
+            try {
+                // O(N) scan of libraries where N is the number of library blocks (typically small)
+                for (BlockPos pos : libraryPositions) {
+                    if (!(level.getBlockEntity(pos) instanceof LibraryBlockEntity library)) {
+                        continue;
+                    }
+
+                    // Create a nested resolver that shares the circular dependency tracking
+                    LibraryResolver nestedResolver = createLibraryResolver(librariesBeingResolved);
+                    LibraryDefinitions defs = library.getDefinitionsForLibrary(libraryName, nestedResolver);
+                    if (defs != null) {
+                        return Optional.of(defs);
+                    }
+                }
+            } finally {
+                librariesBeingResolved.remove(libraryName);
+            }
+
+            return Optional.empty();
+        };
     }
 }

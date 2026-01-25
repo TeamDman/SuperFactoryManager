@@ -33,9 +33,9 @@ public class LibraryContainerMenu extends AbstractContainerMenu {
     private static final int PLAYER_HOTBAR_Y = 142;
 
     /**
-     * Record to track library name and its slot index.
+     * Record to track library name, slot index, and error/warning status.
      */
-    public record LibraryEntry(String name, int slotIndex) {}
+    public record LibraryEntry(String name, int slotIndex, boolean hasErrors, boolean hasWarnings) {}
 
     /**
      * Extracts library entries from a container's disk slots.
@@ -56,7 +56,9 @@ public class LibraryContainerMenu extends AbstractContainerMenu {
             if (name == null || name.isEmpty()) {
                 name = "(unnamed)";
             }
-            entries.add(new LibraryEntry(name, i));
+            boolean hasErrors = !DiskItem.getErrors(disk).isEmpty();
+            boolean hasWarnings = !DiskItem.getWarnings(disk).isEmpty();
+            entries.add(new LibraryEntry(name, i, hasErrors, hasWarnings));
         }
         return entries;
     }
@@ -146,7 +148,11 @@ public class LibraryContainerMenu extends AbstractContainerMenu {
         int count = buf.readVarInt();
         List<LibraryEntry> entries = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            entries.add(new LibraryEntry(buf.readUtf(256), buf.readVarInt()));
+            String name = buf.readUtf(256);
+            int slotIndex = buf.readVarInt();
+            boolean hasErrors = buf.readBoolean();
+            boolean hasWarnings = buf.readBoolean();
+            entries.add(new LibraryEntry(name, slotIndex, hasErrors, hasWarnings));
         }
         return entries;
     }
@@ -156,6 +162,8 @@ public class LibraryContainerMenu extends AbstractContainerMenu {
         for (LibraryEntry entry : entries) {
             buf.writeUtf(entry.name(), 256);
             buf.writeVarInt(entry.slotIndex());
+            buf.writeBoolean(entry.hasErrors());
+            buf.writeBoolean(entry.hasWarnings());
         }
     }
 

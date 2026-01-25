@@ -1,7 +1,5 @@
 package ca.teamdman.sfm.common.blockentity;
 
-import ca.teamdman.langs.SFMLLexer;
-import ca.teamdman.langs.SFMLParser;
 import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.containermenu.LibraryContainerMenu;
@@ -10,32 +8,30 @@ import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.util.SFMContainerUtil;
-import ca.teamdman.sfml.ast.ASTBuilder;
-import ca.teamdman.sfml.ast.MacroDefinition;
 import ca.teamdman.sfml.ast.Program;
-import ca.teamdman.sfml.ast.ProtocolDefinition;
-import ca.teamdman.sfml.ast.StructDefinition;
 import ca.teamdman.sfml.program_builder.LibraryDefinitions;
+import ca.teamdman.sfml.program_builder.LibraryResolver;
+import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Block entity for library blocks that store disks containing SFML definitions.
@@ -68,11 +64,27 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     /**
      * Gets library definitions from a disk with a matching NAME.
+     * This overload uses no library resolver (for backward compatibility).
      *
      * @param libraryName The name to search for
      * @return The parsed definitions, or null if not found
      */
     public @Nullable LibraryDefinitions getDefinitionsForLibrary(String libraryName) {
+        return getDefinitionsForLibrary(libraryName, LibraryResolver.NONE);
+    }
+
+    /**
+     * Gets library definitions from a disk with a matching NAME.
+     * Supports resolving USE statements within the library disk.
+     *
+     * @param libraryName The name to search for
+     * @param resolver The library resolver for resolving USE statements (handles circular dependency tracking)
+     * @return The parsed definitions, or null if not found
+     */
+    public @Nullable LibraryDefinitions getDefinitionsForLibrary(
+            String libraryName,
+            LibraryResolver resolver
+    ) {
         for (int i = 0; i < DISK_SLOT_COUNT; i++) {
             ItemStack disk = getItem(i);
             if (!DiskItem.isValidDisk(disk)) continue;
@@ -81,7 +93,7 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
             String name = DiskItem.extractName(source);
 
             if (libraryName.equals(name)) {
-                return parseLibraryDefinitions(source);
+                return parseLibraryDefinitions(source, resolver);
             }
         }
         return null;
@@ -89,48 +101,100 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     /**
      * Parses library definitions from source code.
-     * Extracts only protocols, structs, and macros (ignores triggers/let statements).
+     * Extracts protocols, structs, and macros, including those imported via USE statements.
+     *
+     * @param source The source code to parse
+     * @param resolver The library resolver for resolving USE statements (handles circular dependency tracking)
+     * @return The parsed library definitions
      */
-    public LibraryDefinitions parseLibraryDefinitions(String source) {
-        SFMLLexer lexer = new SFMLLexer(CharStreams.fromString(source));
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        SFMLParser parser = new SFMLParser(tokens);
+    public LibraryDefinitions parseLibraryDefinitions(
+            String source,
+            LibraryResolver resolver
+    ) {
+        // Use ProgramBuilder to parse the full program, including USE statements
+        var buildResult = new ProgramBuilder(source)
+                .withLibraryResolver(resolver)
+                .useCache(false)
+                .build();
 
-        // Set up error capturing
-        List<String> errors = new ArrayList<>();
-        lexer.removeErrorListeners();
-        parser.removeErrorListeners();
-        Program.ListErrorListener listener = new Program.ListErrorListener(errors);
-        lexer.addErrorListener(listener);
-        parser.addErrorListener(listener);
-
-        SFMLParser.ProgramContext context = parser.program();
-        if (!errors.isEmpty()) {
-            throw new IllegalArgumentException(String.join(", ", errors));
+        // Check for errors
+        if (!buildResult.metadata().errors().isEmpty()) {
+            String errorMsg = buildResult.metadata().errors().stream()
+                    .map(e -> {
+                        Object[] args = e.getArgs();
+                        if (args.length > 0) {
+                            return String.valueOf(args[0]);
+                        }
+                        return e.getKey();
+                    })
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("Unknown error");
+            throw new IllegalArgumentException(errorMsg);
         }
 
-        // Use ASTBuilder to parse definitions
-        ASTBuilder builder = new ASTBuilder();
-
-        // Parse protocol definitions
-        List<ProtocolDefinition> protocols = new ArrayList<>();
-        for (SFMLParser.ProtocolDefinitionContext protoCtx : context.protocolDefinition()) {
-            protocols.add(builder.visitProtocolDefinition(protoCtx));
+        Program program = buildResult.program();
+        if (program == null) {
+            throw new IllegalArgumentException("Failed to parse library definitions");
         }
 
-        // Parse struct definitions
-        List<StructDefinition> structs = new ArrayList<>();
-        for (SFMLParser.StructDefinitionContext structCtx : context.structDefinition()) {
-            structs.add(builder.visitStructDefinition(structCtx));
+        // Extract definitions from the parsed program (includes imported definitions)
+        return new LibraryDefinitions(
+                program.protocolDefinitions(),
+                program.structDefinitions(),
+                program.macroDefinitions()
+        );
+    }
+
+    /**
+     * Creates a library resolver for use when compiling disks in this library block.
+     * First checks disks in this library block, then checks other libraries on the network.
+     *
+     * @return A library resolver that can find libraries in this block and on the network
+     */
+    public LibraryResolver createLibraryResolver() {
+        if (level == null) {
+            // Fallback: only resolve from this library block's disks
+            return createLocalLibraryResolver(new HashSet<>());
         }
 
-        // Parse macro definitions
-        List<MacroDefinition> macros = new ArrayList<>();
-        for (SFMLParser.MacroDefinitionContext macroCtx : context.macroDefinition()) {
-            macros.add(builder.visitMacroDefinition(macroCtx));
+        // Find the cable network this library is adjacent to
+        Optional<CableNetwork> networkOpt = CableNetworkManager.getNetworksForLevel(level)
+                .filter(network -> network.isAdjacentToCable(worldPosition))
+                .findFirst();
+
+        if (networkOpt.isEmpty()) {
+            // Not connected to network: only resolve from this library block's disks
+            return createLocalLibraryResolver(new HashSet<>());
         }
 
-        return new LibraryDefinitions(protocols, structs, macros);
+        // Connected to network: use the network's resolver (which includes all library blocks)
+        return networkOpt.get().createLibraryResolver();
+    }
+
+    /**
+     * Creates a library resolver that only resolves from this library block's disks.
+     * Used when not connected to a cable network.
+     *
+     * @param librariesBeingResolved Shared set for tracking circular dependencies
+     * @return A library resolver for this block only
+     */
+    private LibraryResolver createLocalLibraryResolver(Set<String> librariesBeingResolved) {
+        return libraryName -> {
+            // Check for circular dependency
+            if (librariesBeingResolved.contains(libraryName)) {
+                throw new IllegalArgumentException("Circular library dependency detected: " + libraryName);
+            }
+
+            librariesBeingResolved.add(libraryName);
+            try {
+                // Create a nested resolver for any USE statements in the resolved library
+                LibraryResolver nestedResolver = createLocalLibraryResolver(librariesBeingResolved);
+                LibraryDefinitions defs = getDefinitionsForLibrary(libraryName, nestedResolver);
+                return Optional.ofNullable(defs);
+            } finally {
+                librariesBeingResolved.remove(libraryName);
+            }
+        };
     }
 
     @Override
@@ -242,7 +306,7 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     /**
      * Notifies any cable networks adjacent to this library block that the library
-     * configuration has changed, causing managers to re-validate their programs.
+     * configuration has changed, causing managers and other library disks to recompile.
      */
     private void notifyNetworkLibraryChanged() {
         if (level == null || level.isClientSide()) return;
@@ -250,7 +314,23 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
         // Find networks adjacent to this library block and notify them
         CableNetworkManager.getNetworksForLevel(level)
                 .filter(network -> network.isAdjacentToCable(worldPosition))
-                .forEach(CableNetwork::invalidateAutoLabelsAndNotifyManagers);
+                .forEach(CableNetwork::invalidateAutoLabelsAndNotifyDependents);
+    }
+
+    /**
+     * Recompiles all disks in this library block.
+     * Called when a library on the network changes to update circular dependency errors.
+     */
+    public void recompileAllDisks() {
+        if (level == null || level.isClientSide()) return;
+
+        var resolver = createLibraryResolver();
+        for (int i = 0; i < DISK_SLOT_COUNT; i++) {
+            ItemStack disk = getItem(i);
+            if (!DiskItem.isValidDisk(disk)) continue;
+
+            DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true, resolver);
+        }
     }
 
     // Client sync methods for BlockEntityRenderer
