@@ -309,14 +309,23 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
     /**
      * Notifies any cable networks adjacent to this library block that the library
      * configuration has changed, causing managers and other library disks to recompile.
+     * If not connected to any network, recompiles local disks directly.
      */
     private void notifyNetworkLibraryChanged() {
         if (level == null || level.isClientSide()) return;
 
         // Find networks adjacent to this library block and notify them
-        CableNetworkManager.getNetworksForLevel(level)
+        boolean onNetwork = CableNetworkManager.getNetworksForLevel(level)
                 .filter(network -> network.isAdjacentToCable(worldPosition))
-                .forEach(CableNetwork::invalidateAutoLabelsAndNotifyDependents);
+                .peek(CableNetwork::invalidateAutoLabelsAndNotifyDependents)
+                .findAny()
+                .isPresent();
+
+        // If not on a network, recompile local disks to update errors
+        // (e.g., resolved circular dependencies)
+        if (!onNetwork) {
+            recompileAllDisks();
+        }
     }
 
     /**
@@ -333,6 +342,9 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
             DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true, resolver);
         }
+
+        // Sync to client for renderer updates (without triggering network notification)
+        level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
 
     // Client sync methods for BlockEntityRenderer

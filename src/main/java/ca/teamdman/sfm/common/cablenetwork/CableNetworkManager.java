@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.cablenetwork;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.blockentity.LibraryBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
@@ -96,18 +97,57 @@ public class CableNetworkManager {
 
     public static void onCablePlaced(Level level, BlockPos pos) {
         if (level.isClientSide()) return;
-        getOrRegisterNetworkFromCablePosition(level, pos);
+        getOrRegisterNetworkFromCablePosition(level, pos).ifPresent(network -> {
+            // Invalidate and rebuild auto labels to discover newly connected blocks
+            network.invalidateAutoLabelsAndNotifyDependents();
+        });
     }
 
     public static void onCableRemoved(Level level, BlockPos cablePos) {
         getNetworkFromCablePosition(level, cablePos).ifPresent(network -> {
+            // Capture library and manager positions before invalidating the network
+            Set<BlockPos> libraryPositions = network.getOrRebuildAutoLabels()
+                    .getPositions(LibraryBlockEntity.LIBRARY_LABEL);
+            Set<BlockPos> managerPositions = network.getOrRebuildAutoLabels()
+                    .getPositions(ManagerBlockEntity.MANAGER_LABEL);
+
             // Invalidate the original network
             removeNetwork(network);
+
             // Only rebuild cache if fairly small network
+            List<CableNetwork> remainingNetworks = List.of();
             if (network.getCableCount() <= 256) {
                 // Register networks that result from the removal of the cable, if any
-                var remainingNetworks = network.withoutCable(cablePos);
+                remainingNetworks = network.withoutCable(cablePos);
                 remainingNetworks.forEach(CableNetworkManager::addNetwork);
+            }
+
+            // Notify all remaining networks to recompile their dependents
+            // (network topology changed, libraries may have become inaccessible)
+            for (CableNetwork remainingNetwork : remainingNetworks) {
+                remainingNetwork.invalidateAutoLabelsAndNotifyDependents();
+            }
+
+            // Notify library blocks that became completely disconnected from any network
+            for (BlockPos pos : libraryPositions) {
+                if (level.getBlockEntity(pos) instanceof LibraryBlockEntity library) {
+                    boolean stillOnNetwork = getNetworksForLevel(level)
+                            .anyMatch(net -> net.isAdjacentToCable(pos));
+                    if (!stillOnNetwork) {
+                        library.recompileAllDisks();
+                    }
+                }
+            }
+
+            // Notify managers that became completely disconnected from any network
+            for (BlockPos pos : managerPositions) {
+                if (level.getBlockEntity(pos) instanceof ManagerBlockEntity manager) {
+                    boolean stillOnNetwork = getNetworksForLevel(level)
+                            .anyMatch(net -> net.isAdjacentToCable(pos));
+                    if (!stillOnNetwork) {
+                        manager.rebuildProgramAndUpdateDisk();
+                    }
+                }
             }
         });
     }
