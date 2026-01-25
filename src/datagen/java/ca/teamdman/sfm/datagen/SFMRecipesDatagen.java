@@ -5,6 +5,7 @@ import ca.teamdman.sfm.common.recipe.PrintingPressFinishedRecipe;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.registry.SFMRecipeSerializers;
+import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import ca.teamdman.sfm.datagen.version_plumbing.MCVersionAgnosticRecipeDataGen;
 import net.minecraft.data.recipes.FinishedRecipe;
@@ -153,6 +154,18 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("sas")
                 .pattern("gxg")
                 .save(writer);
+
+        if (SFMEnvironmentUtils.isInIDE() && SFMBlocks.LIBRARY_BLOCK != null) {
+            beginShaped(SFMBlocks.LIBRARY_BLOCK.get(), 1)
+                    .define('M', SFMBlocks.MANAGER_BLOCK.get())
+                    .define('B', Blocks.BOOKSHELF)
+                    .define('L', Blocks.LECTERN)
+                    .unlockedBy("has_manager", RecipeProvider.has(SFMBlocks.MANAGER_BLOCK.get()))
+                    .pattern("MBM")
+                    .pattern("BLB")
+                    .pattern("MBM")
+                    .save(writer);
+        }
 
         addPrintingPressRecipe(
                 writer,

@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "B": {
+      "item": "minecraft:bookshelf"
+    },
+    "L": {
+      "item": "minecraft:lectern"
+    },
+    "M": {
+      "item": "sfm:manager"
+    }
+  },
+  "pattern": [
+    "MBM",
+    "BLB",
+    "MBM"
+  ],
+  "result": {
+    "item": "sfm:library"
+  }
+}
