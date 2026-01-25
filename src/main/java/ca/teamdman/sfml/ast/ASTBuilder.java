@@ -38,6 +38,9 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     /// Macro definitions indexed by name, populated during AST building
     private final Map<String, MacroDefinition> MACRO_DEFINITIONS = new HashMap<>();
 
+    /// Tracks libraries currently being resolved to detect circular dependencies
+    private final Set<String> librariesBeingResolved = new HashSet<>();
+
     /// Library resolver for resolving "use library" statements
     private LibraryResolver libraryResolver = LibraryResolver.NONE;
 
@@ -251,9 +254,23 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
         // Resolve library definitions and import them before processing local definitions
         for (LibraryStatement libraryStmt : libraries) {
-            Optional<LibraryDefinitions> resolved = libraryResolver.resolve(libraryStmt.blockLabel());
+            String libraryName = libraryStmt.blockLabel();
+
+            // Check for circular dependency
+            if (librariesBeingResolved.contains(libraryName)) {
+                throw new IllegalArgumentException("Circular library dependency detected: " + libraryName);
+            }
+
+            librariesBeingResolved.add(libraryName);
+            Optional<LibraryDefinitions> resolved;
+            try {
+                resolved = libraryResolver.resolve(libraryName);
+            } finally {
+                librariesBeingResolved.remove(libraryName);
+            }
+
             if (resolved.isEmpty()) {
-                throw new IllegalArgumentException("Library '" + libraryStmt.blockLabel() + "' not found in cable network");
+                throw new IllegalArgumentException("Library '" + libraryName + "' not found in cable network");
             }
             LibraryDefinitions libDefs = resolved.get();
 
@@ -861,9 +878,14 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     private LabelAccess resolveMacroLabelAccess(MacroLabelAccess macroAccess, Map<String, ExpandArgument> argMap) {
         ExpandArgument arg = argMap.get(macroAccess.parameterOrVariable());
 
+        // Early null check with clear error message
+        if (arg == null) {
+            throw new IllegalStateException("Unknown macro parameter: " + macroAccess.parameterOrVariable());
+        }
+
         if (macroAccess.isStructAccess()) {
             // This is a struct field access: param using field
-            if (arg == null || arg.isStringLiteral()) {
+            if (arg.isStringLiteral()) {
                 throw new IllegalStateException(
                         "Macro struct access requires a struct variable, got: " + macroAccess.parameterOrVariable()
                 );
@@ -917,10 +939,6 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
             );
         } else {
             // This is a simple parameter reference
-            if (arg == null) {
-                throw new IllegalStateException("Unknown macro parameter: " + macroAccess.parameterOrVariable());
-            }
-
             Label label;
             if (arg.isStringLiteral()) {
                 // String literal becomes a label directly

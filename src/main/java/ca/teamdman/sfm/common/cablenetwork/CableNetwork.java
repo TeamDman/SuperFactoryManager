@@ -37,6 +37,17 @@ public class CableNetwork {
      */
     private @Nullable LabelPositionHolder autoLabelCache = null;
 
+    /**
+     * Tracks the last game tick when manager notifications were sent.
+     * Used for debouncing rapid library changes.
+     */
+    private long lastNotificationTick = -1;
+
+    /**
+     * Minimum ticks between manager notifications to prevent excessive rebuilds.
+     */
+    private static final int NOTIFICATION_DEBOUNCE_TICKS = 5;
+
     public CableNetwork(Level level) {
         this.level = level;
         this.levelCapabilityCache = new SFMBlockCapabilityCacheForLevel(level);
@@ -281,6 +292,9 @@ public class CableNetwork {
      * Invalidates the auto-label cache and notifies all managers on this network
      * to re-validate their programs. Call this when library blocks are added/removed
      * or when their contents change.
+     *
+     * Notifications are debounced to prevent excessive program rebuilds when
+     * multiple library changes occur in quick succession (e.g., inserting multiple disks).
      */
     public void invalidateAutoLabelsAndNotifyManagers() {
         // Get manager positions BEFORE invalidating the cache
@@ -289,6 +303,14 @@ public class CableNetwork {
 
         // Now invalidate the cache
         autoLabelCache = null;
+
+        // Check debounce - skip notification if within debounce window
+        long currentTick = level.getGameTime();
+        if (lastNotificationTick >= 0 && currentTick - lastNotificationTick < NOTIFICATION_DEBOUNCE_TICKS) {
+            // Cache is already invalidated, managers will get fresh data on next tick
+            return;
+        }
+        lastNotificationTick = currentTick;
 
         // Notify all managers to re-validate their programs
         for (BlockPos pos : managerPositions) {
