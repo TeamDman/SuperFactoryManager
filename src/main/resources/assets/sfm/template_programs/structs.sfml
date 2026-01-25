@@ -1,0 +1,29 @@
+NAME "Structs"
+
+-- Structs let you define reusable configurations for blocks
+-- Each struct field can hold sides, slots, labels, numbers, or resources
+
+struct Furnace
+    input: TOP SIDE SLOTS 0
+    fuel: BOTTOM SIDE SLOTS 1
+    output: BOTTOM SIDE SLOTS 2
+end
+
+-- Create an instance bound to blocks labelled "furnaces"
+let smelter = Furnace { label: "furnaces" }
+
+-- Use the "using" keyword to access struct fields
+every 20 ticks do
+    input from ore_chest
+    output to smelter using input
+
+    forget
+
+    input from fuel_chest
+    output retain 1 to each smelter using fuel
+
+    forget
+
+    input from smelter using output
+    output to results
+end

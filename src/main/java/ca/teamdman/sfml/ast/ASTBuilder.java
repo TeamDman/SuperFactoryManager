@@ -206,13 +206,6 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         }
         var name = visitName(ctx.name());
 
-        // Process imports
-        var imports = ctx
-                .import_()
-                .stream()
-                .map(this::visitImport_)
-                .collect(Collectors.toList());
-
         // Process library references
         var libraries = ctx
                 .library()
@@ -296,7 +289,6 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         Program program = new Program(
                 this,
                 name.value(),
-                imports,
                 libraries,
                 protocolDefinitions,
                 structDefinitions,
@@ -310,14 +302,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         return program;
     }
 
-    // ===== IMPORTS AND LIBRARIES =====
-
-    public ImportStatement visitImport_(SFMLParser.Import_Context ctx) {
-        String path = visitString(ctx.string()).value();
-        ImportStatement importStmt = new ImportStatement(path);
-        trackNode(importStmt, ctx);
-        return importStmt;
-    }
+    // ===== LIBRARIES =====
 
     public LibraryStatement visitLibrary(SFMLParser.LibraryContext ctx) {
         String blockLabel = visitString(ctx.string()).value();

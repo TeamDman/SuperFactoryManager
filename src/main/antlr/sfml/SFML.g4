@@ -6,13 +6,12 @@ package ca.teamdman.langs;
     public boolean INCLUDE_UNUSED = false; // we want syntax highlighting to not break on unexpected tokens
 }
 
-program : name? import_* library* protocolDefinition* structDefinition* macroDefinition* letStatement* trigger* EOF;
+program : name? library* protocolDefinition* structDefinition* macroDefinition* letStatement* trigger* EOF;
 
 //
-// IMPORTS AND LIBRARIES
+// LIBRARIES
 //
 
-import_ : IMPORT string ;
 library : USE LIBRARY string ;
 
 //
@@ -219,7 +218,7 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | INPUT | OUTPUT | LABEL | STRUCT | LET | USING | SLOT | SLOTS | SIDE | BLOCK | PROTOCOL | MACRO | EXPAND | IMPORT | USE | LIBRARY | RESOURCE | SIDEQUALIFIER | SLOTQUALIFIER | NUMBERTYPE) ;
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | INPUT | OUTPUT | LABEL | STRUCT | LET | USING | SLOT | SLOTS | SIDE | BLOCK | PROTOCOL | MACRO | EXPAND | USE | LIBRARY | RESOURCE | SIDEQUALIFIER | SLOTQUALIFIER | NUMBERTYPE) ;
 
 // GENERAL
 string: STRING ;
@@ -339,8 +338,7 @@ NUMBERTYPE      : N U M B E R ;
 MACRO           : M A C R O ;
 EXPAND          : E X P A N D ;
 
-// IMPORT SYMBOLS
-IMPORT          : I M P O R T ;
+// LIBRARY SYMBOLS
 USE             : U S E ;
 LIBRARY         : L I B R A R Y ;
 

@@ -1,0 +1,42 @@
+NAME "Protocols and Macros"
+
+-- Protocols define interfaces that structs can implement
+-- This ensures consistent field names and types
+
+protocol Smeltable
+    input: sidequalifier slotqualifier
+    fuel: sidequalifier slotqualifier
+    output: sidequalifier slotqualifier
+end
+
+-- Structs implement protocols using ":"
+struct Furnace : Smeltable
+    input: TOP SIDE SLOTS 0
+    fuel: BOTTOM SIDE SLOTS 1
+    output: BOTTOM SIDE SLOTS 2
+end
+
+struct BlastFurnace : Smeltable
+    input: TOP SIDE SLOTS 0
+    fuel: BOTTOM SIDE SLOTS 1
+    output: BOTTOM SIDE SLOTS 2
+end
+
+-- Macros are reusable code templates
+-- Parameters can be constrained to protocols
+macro smelt(machine: Smeltable, source, dest)
+    input from source
+    output to machine using input
+    forget
+    input from machine using output
+    output to dest
+end
+
+let furnace = Furnace { label: "furnaces" }
+let blast = BlastFurnace { label: "blast_furnaces" }
+
+-- Use "expand" to invoke macros
+every 20 ticks do
+    expand smelt(furnace, ore_chest, ingot_chest)
+    expand smelt(blast, iron_ore, iron_ingots)
+end

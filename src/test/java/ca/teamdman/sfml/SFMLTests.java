@@ -1397,28 +1397,12 @@ public class SFMLTests {
         assertTrue(expandStmt.expandedStatements().get(1) instanceof ca.teamdman.sfml.ast.OutputStatement);
     }
 
-    // ===== IMPORT AND LIBRARY TESTS =====
-
-    @Test
-    public void importStatement() {
-        // Import statements parse correctly (resolution happens at build time)
-        assertNoCompileErrors(
-                """
-                        NAME "Import Test"
-
-                        import "machines.sfml"
-
-                        every 20 ticks do
-                            input from chest
-                        end
-                        """
-        );
-    }
+    // ===== LIBRARY TESTS =====
 
     @Test
     public void libraryStatement() {
-        // Library statements parse correctly (resolution happens at build time)
-        assertNoCompileErrors(
+        // Library statements parse correctly but resolution fails without in-game library blocks
+        assertCompileErrorsPresent(
                 """
                         NAME "Library Test"
 
@@ -1427,25 +1411,26 @@ public class SFMLTests {
                         every 20 ticks do
                             input from chest
                         end
-                        """
+                        """,
+                new IllegalArgumentException("Library 'factory_config' not found in cable network")
         );
     }
 
     @Test
-    public void multipleImportsAndLibraries() {
-        assertNoCompileErrors(
+    public void multipleLibraries() {
+        // Library statements parse correctly but resolution fails without in-game library blocks
+        assertCompileErrorsPresent(
                 """
-                        NAME "Multiple Imports Test"
+                        NAME "Multiple Libraries Test"
 
-                        import "machines.sfml"
-                        import "protocols.sfml"
                         use library "factory_config"
                         use library "shared_macros"
 
                         every 20 ticks do
                             input from chest
                         end
-                        """
+                        """,
+                new IllegalArgumentException("Library 'factory_config' not found in cable network")
         );
     }
 

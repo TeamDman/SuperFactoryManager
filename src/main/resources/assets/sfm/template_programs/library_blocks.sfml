@@ -1,0 +1,33 @@
+NAME "Library Blocks"
+
+-- Library blocks let you share definitions across programs
+-- Place a Library block, insert a disk with definitions, and label it
+
+-- A library disk might contain:
+--   protocol Smeltable
+--       input: sidequalifier slotqualifier
+--       output: sidequalifier slotqualifier
+--   end
+--
+--   struct Furnace : Smeltable
+--       input: TOP SIDE SLOTS 0
+--       output: BOTTOM SIDE SLOTS 2
+--   end
+--
+--   macro smelt(m: Smeltable, src, dst)
+--       input from src
+--       output to m using input
+--   end
+
+-- Then in your program, use:
+-- use library "factory_defs"
+
+-- Now you can use Smeltable, Furnace, and smelt macro
+-- as if they were defined in this file!
+
+-- let f = Furnace { label: "my_furnace" }
+-- every 20 ticks do
+--     expand smelt(f, ores, ingots)
+-- end
+
+-- Note: Library blocks need to exist in-world with a disk containing definitions

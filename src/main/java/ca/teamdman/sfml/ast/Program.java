@@ -34,8 +34,6 @@ public record Program(
 
         String name,
 
-        List<ImportStatement> imports,
-
         List<LibraryStatement> libraries,
 
         List<ProtocolDefinition> protocolDefinitions,
@@ -54,7 +52,7 @@ public record Program(
 ) implements Statement {
 
     /**
-     * Backward-compatible constructor for programs without protocols, macros, imports, or libraries.
+     * Backward-compatible constructor for programs without protocols, macros, or libraries.
      */
     public Program(
             ASTBuilder astBuilder,
@@ -68,7 +66,6 @@ public record Program(
         this(
                 astBuilder,
                 name,
-                List.of(),
                 List.of(),
                 List.of(),
                 structDefinitions,
@@ -249,9 +246,6 @@ public record Program(
 
         var rtn = new StringBuilder();
         rtn.append("NAME \"").append(name).append("\"\n");
-        for (ImportStatement importStmt : imports) {
-            rtn.append(importStmt).append("\n");
-        }
         for (LibraryStatement libraryStmt : libraries) {
             rtn.append(libraryStmt).append("\n");
         }
