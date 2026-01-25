@@ -54,23 +54,28 @@ public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBl
 
     // Layout constants based on 128x128 texture
     // Texture generator uses: GRID_START_X=4, ROW1_Y=48, ROW2_Y=72, COL_SPACING=25
-    // SLOT_WIDTH=16, SLOT_HEIGHT=6, LIGHT_SIZE=4
+    // Slot layout: [LED 4px][divider 1px][disk area 15px] = 20px total
     private static final float TEX = 128.0f;
 
     // Disk slot dimensions
-    private static final float SLOT_WIDTH = 16.0f / TEX;
+    private static final float LIGHT_SIZE_PX = 4.0f;
+    private static final float DISK_WIDTH_PX = 15.0f;
+    private static final float SLOT_WIDTH = (LIGHT_SIZE_PX + 1 + DISK_WIDTH_PX) / TEX;  // 20px total
     private static final float SLOT_HEIGHT = 6.0f / TEX;
     private static final float COL_SPACING = 25.0f / TEX;
     private static final float GRID_START_X = 4.0f / TEX;
     private static final float ROW1_Y = 48.0f / TEX;
     private static final float ROW2_Y = 72.0f / TEX;
 
-    // Indicator light position (right side of slot)
-    private static final float LIGHT_OFFSET_X = SLOT_WIDTH + 2.5f / TEX;
-    private static final float LIGHT_SIZE = 3.0f / TEX;
+    // Indicator light position (left side of slot, integrated)
+    private static final float LIGHT_SIZE = 4.0f / TEX;
     private static final float LIGHT_OFFSET_Y = (SLOT_HEIGHT - LIGHT_SIZE) / 2.0f;
 
-    // Disk line dimensions (thin red line inside slot)
+    // Disk area position (right side of slot, after LED + divider)
+    private static final float DISK_AREA_OFFSET_X = (LIGHT_SIZE_PX + 1) / TEX;
+    private static final float DISK_WIDTH = DISK_WIDTH_PX / TEX;
+
+    // Disk line dimensions (thin red line inside disk area)
     private static final float DISK_LINE_INSET = 1.0f / TEX;
     private static final float DISK_LINE_HEIGHT = 2.0f / TEX;
 
@@ -238,10 +243,13 @@ public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBl
         float slotX = GRID_START_X + col * COL_SPACING;
         float slotY = (row == 0) ? ROW1_Y : ROW2_Y;
 
-        // Thin red line inside the slot (representing disk edge)
+        // Disk area is on the right side of slot (after LED + divider)
+        float diskAreaX = slotX + DISK_AREA_OFFSET_X;
+
+        // Thin red line inside the disk area (representing disk edge)
         // Mirror X coordinate (1.0f - x) to match texture orientation on north face
-        float x1 = 1.0f - slotX - SLOT_WIDTH + DISK_LINE_INSET;
-        float x2 = 1.0f - slotX - DISK_LINE_INSET;
+        float x1 = 1.0f - diskAreaX - DISK_WIDTH + DISK_LINE_INSET;
+        float x2 = 1.0f - diskAreaX - DISK_LINE_INSET;
         float y1 = 1.0f - slotY - SLOT_HEIGHT / 2.0f - DISK_LINE_HEIGHT / 2.0f;
         float y2 = 1.0f - slotY - SLOT_HEIGHT / 2.0f + DISK_LINE_HEIGHT / 2.0f;
         float z = Z_OFFSET;
@@ -259,10 +267,10 @@ public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBl
         float slotX = GRID_START_X + col * COL_SPACING;
         float slotY = (row == 0) ? ROW1_Y : ROW2_Y;
 
-        // Light position is to the right of the disk slot in texture space
+        // LED is on the left side of slot (integrated)
         // Mirror X coordinate (1.0f - x) to match texture orientation on north face
-        float x1 = 1.0f - slotX - LIGHT_OFFSET_X - LIGHT_SIZE;
-        float x2 = 1.0f - slotX - LIGHT_OFFSET_X;
+        float x1 = 1.0f - slotX - LIGHT_SIZE;
+        float x2 = 1.0f - slotX;
         float y1 = 1.0f - slotY - LIGHT_OFFSET_Y - LIGHT_SIZE;
         float y2 = 1.0f - slotY - LIGHT_OFFSET_Y;
         float z = Z_OFFSET;
@@ -281,18 +289,18 @@ public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBl
         float slotX = GRID_START_X + col * COL_SPACING;
         float slotY = (row == 0) ? ROW1_Y : ROW2_Y;
 
-        // Glow centered on the light position
+        // Glow centered on the LED (left side of slot)
         // Mirror X coordinate (1.0f - x) to match texture orientation on north face
-        float lightX = 1.0f - slotX - LIGHT_OFFSET_X - LIGHT_SIZE / 2.0f;
-        float lightY = slotY + LIGHT_OFFSET_Y + LIGHT_SIZE / 2.0f;
+        float lightCenterX = 1.0f - slotX - LIGHT_SIZE / 2.0f;
+        float lightCenterY = slotY + LIGHT_OFFSET_Y + LIGHT_SIZE / 2.0f;
 
         float glowSize = LIGHT_SIZE * GLOW_SIZE_MULTIPLIER;
         float halfGlow = glowSize / 2.0f;
 
-        float x1 = lightX - halfGlow;
-        float x2 = lightX + halfGlow;
-        float y1 = 1.0f - lightY - halfGlow;
-        float y2 = 1.0f - lightY + halfGlow;
+        float x1 = lightCenterX - halfGlow;
+        float x2 = lightCenterX + halfGlow;
+        float y1 = 1.0f - lightCenterY - halfGlow;
+        float y2 = 1.0f - lightCenterY + halfGlow;
         float z = Z_GLOW_OFFSET;
 
         // Semi-transparent glow quad
