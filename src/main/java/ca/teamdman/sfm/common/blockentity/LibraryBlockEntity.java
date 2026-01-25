@@ -52,7 +52,7 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     public static final int DISK_SLOT_COUNT = 10;
 
-    private final NonNullList<ItemStack> ITEMS = NonNullList.withSize(DISK_SLOT_COUNT, ItemStack.EMPTY);
+    private final NonNullList<ItemStack> items = NonNullList.withSize(DISK_SLOT_COUNT, ItemStack.EMPTY);
 
     public LibraryBlockEntity(BlockPos pos, BlockState state) {
         super(SFMBlockEntities.LIBRARY_BLOCK_ENTITY.get(), pos, state);
@@ -63,7 +63,7 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
      * Disks without a NAME statement are shown with a placeholder name.
      */
     public List<LibraryContainerMenu.LibraryEntry> getLibraryEntries() {
-        return LibraryContainerMenu.extractLibraryEntries(this, DISK_SLOT_COUNT);
+        return LibraryContainerMenu.extractLibraryEntries(this, items.size());
     }
 
     /**
@@ -136,7 +136,7 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        ContainerHelper.saveAllItems(tag, ITEMS);
+        ContainerHelper.saveAllItems(tag, items);
     }
 
     @Override
@@ -149,10 +149,10 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
             if (!legacySource.isEmpty()) {
                 ItemStack disk = new ItemStack(SFMItems.DISK_ITEM.get());
                 DiskItem.setProgram(disk, legacySource);
-                ITEMS.set(0, disk);
+                items.set(0, disk);
             }
         } else {
-            ContainerHelper.loadAllItems(tag, ITEMS);
+            ContainerHelper.loadAllItems(tag, items);
         }
     }
 
@@ -168,12 +168,12 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     public int getContainerSize() {
-        return ITEMS.size();
+        return items.size();
     }
 
     @Override
     public boolean isEmpty() {
-        for (ItemStack item : ITEMS) {
+        for (ItemStack item : items) {
             if (!item.isEmpty()) return false;
         }
         return true;
@@ -181,28 +181,28 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     public ItemStack getItem(int slot) {
-        if (slot < 0 || slot >= ITEMS.size()) return ItemStack.EMPTY;
-        return ITEMS.get(slot);
+        if (slot < 0 || slot >= items.size()) return ItemStack.EMPTY;
+        return items.get(slot);
     }
 
     @Override
     public ItemStack removeItem(int slot, int amount) {
-        ItemStack result = ContainerHelper.removeItem(ITEMS, slot, amount);
+        ItemStack result = ContainerHelper.removeItem(items, slot, amount);
         setChanged();
         return result;
     }
 
     @Override
     public ItemStack removeItemNoUpdate(int slot) {
-        ItemStack result = ContainerHelper.takeItem(ITEMS, slot);
+        ItemStack result = ContainerHelper.takeItem(items, slot);
         setChanged();
         return result;
     }
 
     @Override
     public void setItem(int slot, ItemStack stack) {
-        if (slot < 0 || slot >= ITEMS.size()) return;
-        ITEMS.set(slot, stack);
+        if (slot < 0 || slot >= items.size()) return;
+        items.set(slot, stack);
         setChanged();
     }
 
@@ -223,7 +223,7 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     public void clearContent() {
-        ITEMS.clear();
+        items.clear();
     }
 
     // Client-side cache of disk mask for rendering
@@ -285,8 +285,8 @@ public class LibraryBlockEntity extends BaseContainerBlockEntity {
      */
     private int computeDiskMask() {
         int mask = 0;
-        for (int i = 0; i < ITEMS.size(); i++) {
-            if (DiskItem.isValidDisk(ITEMS.get(i))) {
+        for (int i = 0; i < items.size(); i++) {
+            if (DiskItem.isValidDisk(items.get(i))) {
                 mask |= (1 << i);
             }
         }
