@@ -30,29 +30,25 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
     private static final int PANEL_WIDTH = 120;
     private static final int PANEL_GAP = 4;
 
-    // Bezel/Frame colors (warm dark grays like old monitor plastic)
-    private static final int BEZEL_OUTER = 0xFF2D2A26;
-    private static final int BEZEL_INNER = 0xFF1A1816;
-    private static final int BEZEL_HIGHLIGHT = 0xFF3D3A36;
+    // Industrial server rack color palette (matching block textures)
+    private static final int PANEL_BG = 0xFF1A1A1A;        // Darkest background
+    private static final int PANEL_FRAME = 0xFF2D2D2D;    // Mid panel
+    private static final int PANEL_HIGHLIGHT = 0xFF4A4A4A; // Edge highlights
+    private static final int PANEL_SHADOW = 0xFF0F0F0F;   // Deep shadows
+    private static final int PANEL_LIGHT = 0xFF3D3D3D;    // Light metal accents
 
-    // Screen colors
-    private static final int SCREEN_BG = 0xFF0D0C0A;
-    private static final int SCREEN_EDGE = 0xFF050504;
-
-    // Amber phosphor text colors
-    private static final int TEXT_HEADER = 0xFFFFB84D;
-    private static final int TEXT_NORMAL = 0xFFCC9640;
-    private static final int TEXT_HOVER = 0xFFFFD080;
-    private static final int TEXT_DIM = 0xFF806020;
-
-    // Error/Warning colors (red phosphor style)
-    private static final int TEXT_ERROR = 0xFFFF4040;
-    private static final int TEXT_ERROR_DIM = 0xFFCC3030;
-    private static final int ERROR_GLOW = 0x40FF2020;
-    private static final int TEXT_WARNING = 0xFFFFCC40;
+    // Text colors (cool industrial)
+    private static final int TEXT_HEADER = 0xFF60C0C0;    // Cyan accent
+    private static final int TEXT_PRIMARY = 0xFFE0E0E0;   // Light gray
+    private static final int TEXT_SECONDARY = 0xFF707070; // Dim gray
+    private static final int TEXT_HOVER = 0xFFFFFFFF;     // White on hover
+    private static final int TEXT_ERROR = 0xFFFF6060;     // Error text
+    private static final int TEXT_WARNING = 0xFFE0E040;   // Warning text
 
     // Effects
-    private static final int CURSOR_GLOW = 0x30FFB84D;
+    private static final int HOVER_BAR = 0x40FFFFFF;      // Subtle highlight bar
+    private static final int ERROR_BAR = 0x30FF4040;      // Error highlight
+    private static final int WARNING_BAR = 0x30FFFF40;    // Warning highlight
 
     private int hoveredLibraryEntry = -1;
 
@@ -124,22 +120,24 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
         int screenY = this.topPos + 5;
         int screenRight = panelX + PANEL_WIDTH - 5;
 
-        // Header area with subtle background
+        // Header area with recessed metal panel effect
         int headerY = screenY + 2;
-        fill(poseStack, screenX + 3, headerY - 1, screenRight - 3, headerY + font.lineHeight + 2, 0x20FFB84D);
+        fill(poseStack, screenX + 3, headerY - 2, screenRight - 3, headerY + font.lineHeight + 3, PANEL_SHADOW);
+        fill(poseStack, screenX + 4, headerY - 1, screenRight - 4, headerY + font.lineHeight + 2, PANEL_BG);
 
-        // Header text - centered
+        // Header text - centered with cyan accent
         String header = "LIBRARY INDEX";
         int headerWidth = font.width(header);
         int headerX = screenX + (PANEL_WIDTH - 10 - headerWidth) / 2;
         font.drawShadow(poseStack, header, headerX, headerY, TEXT_HEADER);
 
-        // Divider line
-        int dividerY = headerY + font.lineHeight + 4;
-        fill(poseStack, screenX + 8, dividerY, screenRight - 8, dividerY + 1, TEXT_DIM);
+        // Horizontal divider lines (ventilation slit style)
+        int dividerY = headerY + font.lineHeight + 6;
+        fill(poseStack, screenX + 6, dividerY, screenRight - 6, dividerY + 1, PANEL_SHADOW);
+        fill(poseStack, screenX + 6, dividerY + 2, screenRight - 6, dividerY + 3, PANEL_HIGHLIGHT);
 
         // Content area starts below divider
-        int contentY = dividerY + 6;
+        int contentY = dividerY + 8;
         int textX = screenX + 6;
 
         // Reset hover state
@@ -147,13 +145,13 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
 
         if (menu.libraryEntries.isEmpty()) {
             // Show hint when no libraries are available
-            font.drawShadow(poseStack, "No libraries found", textX, contentY, TEXT_DIM);
+            font.drawShadow(poseStack, "No libraries found", textX, contentY, TEXT_SECONDARY);
             contentY += font.lineHeight + 2;
-            font.drawShadow(poseStack, "Insert disks with", textX, contentY, TEXT_DIM);
+            font.drawShadow(poseStack, "Insert disks with", textX, contentY, TEXT_SECONDARY);
             contentY += font.lineHeight;
-            font.drawShadow(poseStack, "NAME statements", textX, contentY, TEXT_DIM);
+            font.drawShadow(poseStack, "NAME statements", textX, contentY, TEXT_SECONDARY);
         } else {
-            // Draw library entries with slot numbers right-aligned
+            // Draw library entries with cursor indicator
             for (int i = 0; i < menu.libraryEntries.size(); i++) {
                 LibraryEntry entry = menu.libraryEntries.get(i);
 
@@ -161,50 +159,39 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
                 boolean hovered = mx >= screenX + 3 && mx <= screenRight - 3
                         && my >= contentY - 1 && my <= contentY + font.lineHeight + 1;
 
-                // Determine colors based on error/warning status
-                int bgGlow;
+                // Determine text color based on status
                 int textColor;
-                int statusColor;
-                String statusIndicator = "";
+                int barColor;
 
                 if (entry.hasErrors()) {
-                    // Error state - red phosphor effect
-                    bgGlow = hovered ? ERROR_GLOW : 0x20FF2020;
-                    textColor = hovered ? TEXT_ERROR : TEXT_ERROR_DIM;
-                    statusColor = TEXT_ERROR;
-                    statusIndicator = "!";
+                    textColor = hovered ? TEXT_ERROR : TEXT_PRIMARY;
+                    barColor = ERROR_BAR;
                 } else if (entry.hasWarnings()) {
-                    // Warning state - yellow/amber
-                    bgGlow = hovered ? CURSOR_GLOW : 0x20FFCC40;
-                    textColor = hovered ? TEXT_WARNING : TEXT_NORMAL;
-                    statusColor = TEXT_WARNING;
-                    statusIndicator = "?";
+                    textColor = hovered ? TEXT_WARNING : TEXT_PRIMARY;
+                    barColor = WARNING_BAR;
                 } else {
-                    // Normal state
-                    bgGlow = CURSOR_GLOW;
-                    textColor = hovered ? TEXT_HOVER : TEXT_NORMAL;
-                    statusColor = TEXT_DIM;
-                    statusIndicator = "";
+                    textColor = hovered ? TEXT_HOVER : TEXT_PRIMARY;
+                    barColor = HOVER_BAR;
                 }
 
+                // Draw hover highlight bar or status bar
                 if (hovered) {
                     hoveredLibraryEntry = i;
-                    // Draw hover glow background
-                    fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, bgGlow);
+                    fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, barColor);
                 } else if (entry.hasErrors()) {
-                    // Always show subtle error background glow
-                    fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, bgGlow);
+                    fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, ERROR_BAR);
+                } else if (entry.hasWarnings()) {
+                    fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, WARNING_BAR);
                 }
 
                 // Cursor indicator and library name
                 String cursor = hovered ? "> " : "  ";
                 font.drawShadow(poseStack, cursor + entry.name(), textX, contentY, textColor);
 
-                // Status indicator (! for error, ? for warning) and slot number right-aligned
-                String slotText = statusIndicator + "[" + (entry.slotIndex()) + "]";
+                // Slot number right-aligned
+                String slotText = "[" + entry.slotIndex() + "]";
                 int slotWidth = font.width(slotText);
-                font.drawShadow(poseStack, slotText, screenRight - 6 - slotWidth, contentY,
-                        statusIndicator.isEmpty() ? TEXT_DIM : statusColor);
+                font.drawShadow(poseStack, slotText, screenRight - 6 - slotWidth, contentY, TEXT_SECONDARY);
 
                 contentY += font.lineHeight + 3;
 
@@ -220,9 +207,9 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
             int mx,
             int my
     ) {
-        // Draw title centered in the container area
-        this.font.draw(poseStack, this.title, (float) this.titleLabelX, (float) this.titleLabelY, 4210752);
-        this.font.draw(poseStack, this.playerInventoryTitle, (float) this.inventoryLabelX, (float) this.inventoryLabelY, 4210752);
+        // Draw title and inventory label with light text for readability on dark background
+        this.font.draw(poseStack, this.title, (float) this.titleLabelX, (float) this.titleLabelY, TEXT_PRIMARY);
+        this.font.draw(poseStack, this.playerInventoryTitle, (float) this.inventoryLabelX, (float) this.inventoryLabelY, TEXT_PRIMARY);
     }
 
     @Override
@@ -232,40 +219,35 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
             int mx,
             int my
     ) {
-        // Render the computer panel with CRT monitor bezel effect
+        // Render the industrial metal panel frame
         int panelX = this.leftPos - PANEL_WIDTH - PANEL_GAP;
         int panelY = this.topPos;
         int panelRight = panelX + PANEL_WIDTH;
         int panelBottom = panelY + imageHeight;
 
-        // Outer bezel (3px frame)
-        fill(matrixStack, panelX, panelY, panelRight, panelBottom, BEZEL_OUTER);
+        // Main panel background
+        fill(matrixStack, panelX, panelY, panelRight, panelBottom, PANEL_FRAME);
 
-        // Bezel highlight (top and left edges, 1px)
-        fill(matrixStack, panelX, panelY, panelRight, panelY + 1, BEZEL_HIGHLIGHT);
-        fill(matrixStack, panelX, panelY, panelX + 1, panelBottom, BEZEL_HIGHLIGHT);
+        // Clean outer border - dark edge
+        fill(matrixStack, panelX, panelY, panelRight, panelY + 1, PANEL_SHADOW);
+        fill(matrixStack, panelX, panelY, panelX + 1, panelBottom, PANEL_SHADOW);
+        fill(matrixStack, panelX, panelBottom - 1, panelRight, panelBottom, PANEL_SHADOW);
+        fill(matrixStack, panelRight - 1, panelY, panelRight, panelBottom, PANEL_SHADOW);
 
-        // Inner bezel shadow (bottom and right, 1px)
-        fill(matrixStack, panelX, panelBottom - 1, panelRight, panelBottom, SCREEN_EDGE);
-        fill(matrixStack, panelRight - 1, panelY, panelRight, panelBottom, SCREEN_EDGE);
+        // Inner lighter border for depth
+        fill(matrixStack, panelX + 1, panelY + 1, panelRight - 1, panelY + 2, PANEL_LIGHT);
+        fill(matrixStack, panelX + 1, panelY + 1, panelX + 2, panelBottom - 1, PANEL_LIGHT);
+        fill(matrixStack, panelX + 1, panelBottom - 2, panelRight - 1, panelBottom - 1, PANEL_LIGHT);
+        fill(matrixStack, panelRight - 2, panelY + 1, panelRight - 1, panelBottom - 1, PANEL_LIGHT);
 
-        // Inner frame (2px inset)
+        // Inner recessed area
         int innerX = panelX + 3;
         int innerY = panelY + 3;
         int innerRight = panelRight - 3;
         int innerBottom = panelBottom - 3;
-        fill(matrixStack, innerX, innerY, innerRight, innerBottom, BEZEL_INNER);
 
-        // Screen area (the "CRT glass")
-        int screenX = innerX + 2;
-        int screenY = innerY + 2;
-        int screenRight = innerRight - 2;
-        int screenBottom = innerBottom - 2;
-        fill(matrixStack, screenX, screenY, screenRight, screenBottom, SCREEN_BG);
-
-        // Screen edge darkening (vignette effect - 1px darker border inside screen)
-        fill(matrixStack, screenX, screenY, screenRight, screenY + 1, SCREEN_EDGE);
-        fill(matrixStack, screenX, screenY, screenX + 1, screenBottom, SCREEN_EDGE);
+        // Main display area (dark background)
+        fill(matrixStack, innerX, innerY, innerRight, innerBottom, PANEL_BG);
 
         // Render the main container background
         RenderSystem.setShader(GameRenderer::getPositionTexShader);

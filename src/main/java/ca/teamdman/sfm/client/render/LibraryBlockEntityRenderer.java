@@ -233,7 +233,7 @@ public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBl
 
     private void renderDiskLine(BufferBuilder buffer, Matrix4f matrix, int slot) {
         int row = slot / 5;
-        int col = 4 - (slot % 5);  // Mirror column to match GUI layout
+        int col = slot % 5;
 
         float slotX = GRID_START_X + col * COL_SPACING;
         float slotY = (row == 0) ? ROW1_Y : ROW2_Y;
@@ -254,7 +254,7 @@ public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBl
 
     private void renderSlotIndicator(BufferBuilder buffer, Matrix4f matrix, int slot, float r, float g, float b) {
         int row = slot / 5;
-        int col = 4 - (slot % 5);  // Mirror column to match GUI layout
+        int col = slot % 5;
 
         float slotX = GRID_START_X + col * COL_SPACING;
         float slotY = (row == 0) ? ROW1_Y : ROW2_Y;
@@ -276,7 +276,7 @@ public class LibraryBlockEntityRenderer implements BlockEntityRenderer<LibraryBl
 
     private void renderGlow(BufferBuilder buffer, Matrix4f matrix, int slot, float r, float g, float b) {
         int row = slot / 5;
-        int col = 4 - (slot % 5);  // Mirror column to match GUI layout
+        int col = slot % 5;
 
         float slotX = GRID_START_X + col * COL_SPACING;
         float slotY = (row == 0) ? ROW1_Y : ROW2_Y;
