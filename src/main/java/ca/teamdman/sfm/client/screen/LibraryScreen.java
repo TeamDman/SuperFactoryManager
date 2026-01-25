@@ -51,6 +51,10 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
     private static final int WARNING_BAR = 0x30FFFF40;    // Warning highlight
 
     private int hoveredLibraryEntry = -1;
+    private int lastHoveredLibraryEntry = -1;
+    private long hoverStartTime = 0;
+    private static final long SCROLL_DELAY_MS = 500;      // Wait before scrolling starts
+    private static final float SCROLL_SPEED = 30f;        // Pixels per second
 
     public LibraryScreen(
             LibraryContainerMenu menu,
@@ -177,6 +181,10 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
                 // Draw hover highlight bar or status bar
                 if (hovered) {
                     hoveredLibraryEntry = i;
+                    if (lastHoveredLibraryEntry != i) {
+                        hoverStartTime = System.currentTimeMillis();
+                        lastHoveredLibraryEntry = i;
+                    }
                     fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, barColor);
                 } else if (entry.hasErrors()) {
                     fill(poseStack, screenX + 3, contentY - 1, screenRight - 3, contentY + font.lineHeight + 1, ERROR_BAR);
@@ -186,18 +194,71 @@ public class LibraryScreen extends AbstractContainerScreen<LibraryContainerMenu>
 
                 // Cursor indicator and library name
                 String cursor = hovered ? "> " : "  ";
-                font.drawShadow(poseStack, cursor + entry.name(), textX, contentY, textColor);
+                int cursorWidth = font.width(cursor);
 
                 // Slot number right-aligned
                 String slotText = "[" + entry.slotIndex() + "]";
                 int slotWidth = font.width(slotText);
-                font.drawShadow(poseStack, slotText, screenRight - 6 - slotWidth, contentY, TEXT_SECONDARY);
+                int slotX = screenRight - 6 - slotWidth;
+
+                // Calculate available width for library name (between cursor and slot number)
+                int nameStartX = textX + cursorWidth;
+                int maxNameWidth = slotX - nameStartX - 4; // 4px padding before slot
+
+                String name = entry.name();
+                int nameWidth = font.width(name);
+
+                // Draw cursor
+                font.drawShadow(poseStack, cursor, textX, contentY, textColor);
+
+                // Draw library name with truncation or scrolling
+                if (nameWidth <= maxNameWidth) {
+                    // Name fits - draw normally
+                    font.drawShadow(poseStack, name, nameStartX, contentY, textColor);
+                } else if (hovered) {
+                    // Hovered and too long - scroll the text
+                    long currentTime = System.currentTimeMillis();
+                    long hoverDuration = currentTime - hoverStartTime;
+
+                    if (hoverDuration > SCROLL_DELAY_MS) {
+                        // Calculate scroll offset - infinite scroll with pause at start
+                        float scrollTime = (hoverDuration - SCROLL_DELAY_MS) / 1000f;
+                        int scrollDistance = nameWidth + 20; // Full width plus gap before repeat
+                        float scrollOffset = (scrollTime * SCROLL_SPEED) % scrollDistance;
+
+                        // Enable scissor to clip text
+                        enableScissor(nameStartX, contentY - 1, slotX - 4, contentY + font.lineHeight + 1);
+                        font.drawShadow(poseStack, name, nameStartX - (int) scrollOffset, contentY, textColor);
+                        // Draw second copy for seamless loop
+                        font.drawShadow(poseStack, name, nameStartX - (int) scrollOffset + scrollDistance, contentY, textColor);
+                        disableScissor();
+                    } else {
+                        // Still in delay period - show truncated with ellipsis
+                        enableScissor(nameStartX, contentY - 1, slotX - 4, contentY + font.lineHeight + 1);
+                        font.drawShadow(poseStack, name, nameStartX, contentY, textColor);
+                        disableScissor();
+                    }
+                } else {
+                    // Not hovered and too long - truncate with ellipsis
+                    String ellipsis = "...";
+                    int ellipsisWidth = font.width(ellipsis);
+                    String truncated = font.plainSubstrByWidth(name, maxNameWidth - ellipsisWidth) + ellipsis;
+                    font.drawShadow(poseStack, truncated, nameStartX, contentY, textColor);
+                }
+
+                // Draw slot number
+                font.drawShadow(poseStack, slotText, slotX, contentY, TEXT_SECONDARY);
 
                 contentY += font.lineHeight + 3;
 
                 // Don't overflow past the panel
                 if (contentY > this.topPos + this.imageHeight - font.lineHeight - 10) break;
             }
+        }
+
+        // Reset scroll state when no longer hovering any entry
+        if (hoveredLibraryEntry == -1) {
+            lastHoveredLibraryEntry = -1;
         }
     }
 
