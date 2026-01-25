@@ -4,16 +4,19 @@ import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.langs.SFMLParser;
 import ca.teamdman.sfml.ast.ASTBuilder;
 import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.program_builder.LibraryDefinitions;
+import ca.teamdman.sfml.program_builder.LibraryResolver;
+import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
+
+
 
 public class SFMLTestHelpers {
     public static CompileErrors getCompileErrors(String input) {
@@ -89,6 +92,87 @@ public class SFMLTestHelpers {
         var builder = new ASTBuilder();
         var context = parser.program();
         return builder.visitProgram(context);
+    }
+
+    /**
+     * Creates a mock LibraryResolver from a map of library names to source code.
+     */
+    public static LibraryResolver createMockLibraryResolver(Map<String, String> libraries) {
+        return createMockLibraryResolver(libraries, new HashSet<>());
+    }
+
+    private static LibraryResolver createMockLibraryResolver(
+            Map<String, String> libraries,
+            Set<String> beingResolved
+    ) {
+        return libraryName -> {
+            String source = libraries.get(libraryName);
+            if (source == null) return Optional.empty();
+
+            if (beingResolved.contains(libraryName)) {
+                throw new IllegalArgumentException("Circular library dependency detected: " + libraryName);
+            }
+
+            beingResolved.add(libraryName);
+            try {
+                LibraryResolver nestedResolver = createMockLibraryResolver(libraries, beingResolved);
+                return Optional.of(parseLibraryDefinitions(source, nestedResolver));
+            } finally {
+                beingResolved.remove(libraryName);
+            }
+        };
+    }
+
+    /**
+     * Parses library definitions from source code.
+     */
+    public static LibraryDefinitions parseLibraryDefinitions(String source, LibraryResolver resolver) {
+        var buildResult = new ProgramBuilder(source)
+                .withLibraryResolver(resolver)
+                .useCache(false)
+                .build();
+
+        if (!buildResult.metadata().errors().isEmpty()) {
+            throw new IllegalArgumentException("Library has compile errors: " + buildResult.metadata().errors());
+        }
+
+        Program program = buildResult.program();
+        return new LibraryDefinitions(
+                program.protocolDefinitions(),
+                program.structDefinitions(),
+                program.macroDefinitions()
+        );
+    }
+
+    /**
+     * Asserts no compile errors with library resolution.
+     */
+    public static void assertNoCompileErrorsWithLibraries(String program, Map<String, String> libraries) {
+        LibraryResolver resolver = createMockLibraryResolver(libraries);
+        var buildResult = new ProgramBuilder(program)
+                .withLibraryResolver(resolver)
+                .useCache(false)
+                .build();
+
+        if (!buildResult.metadata().errors().isEmpty()) {
+            fail("Expected no compile errors but got: " + buildResult.metadata().errors());
+        }
+    }
+
+    /**
+     * Compiles a program with library resolution.
+     */
+    public static Program compileWithLibraries(String input, Map<String, String> libraries) {
+        LibraryResolver resolver = createMockLibraryResolver(libraries);
+        var buildResult = new ProgramBuilder(input)
+                .withLibraryResolver(resolver)
+                .useCache(false)
+                .build();
+
+        if (!buildResult.metadata().errors().isEmpty()) {
+            throw new RuntimeException("Compilation failed: " + buildResult.metadata().errors());
+        }
+        return buildResult.program();
     }
 
     public record CompileErrors(

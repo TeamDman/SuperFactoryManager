@@ -21,6 +21,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static ca.teamdman.sfml.SFMLTestHelpers.*;
@@ -1432,6 +1433,289 @@ public class SFMLTests {
                         """,
                 new IllegalArgumentException("Library 'factory_config' not found in cable network")
         );
+    }
+
+    @Test
+    public void libraryWithInputOutputProtocolStruct() {
+        String librarySource = """
+            NAME "io_lib"
+
+            protocol HasInput
+                input: sidequalifier slotqualifier
+            end
+
+            protocol HasOutput
+                output: sidequalifier slotqualifier
+            end
+
+            struct IODevice : HasInput, HasOutput
+                input: TOP SIDE SLOTS 0
+                output: BOTTOM SIDE SLOTS 1
+            end
+            """;
+
+        Map<String, String> libraries = Map.of("io_lib", librarySource);
+
+        String managerProgram = """
+            NAME "IO Manager"
+
+            use library "io_lib"
+
+            let device = IODevice { label: "devices" }
+
+            every 20 ticks do
+                input from source_chest
+                output to device using input
+                forget
+                input from device using output
+                output to dest_chest
+            end
+            """;
+
+        assertNoCompileErrorsWithLibraries(managerProgram, libraries);
+    }
+
+    @Test
+    public void libraryWithTransferMacro() {
+        String librarySource = """
+            NAME "transfer_lib"
+
+            protocol HasInput
+                input: sidequalifier slotqualifier
+            end
+
+            protocol HasOutput
+                output: sidequalifier slotqualifier
+            end
+
+            struct Processor : HasInput, HasOutput
+                input: TOP SIDE SLOTS 0
+                output: BOTTOM SIDE SLOTS 1
+            end
+
+            macro transfer_through(machine: HasInput, machine2: HasOutput, src, dst)
+                input from src
+                output to machine using input
+                forget
+                input from machine2 using output
+                output to dst
+            end
+            """;
+
+        Map<String, String> libraries = Map.of("transfer_lib", librarySource);
+
+        String managerProgram = """
+            NAME "Transfer Manager"
+
+            use library "transfer_lib"
+
+            let processor = Processor { label: "processors" }
+
+            every 20 ticks do
+                DO transfer_through(processor, processor, input_chest, output_chest)
+            end
+            """;
+
+        assertNoCompileErrorsWithLibraries(managerProgram, libraries);
+
+        var program = compileWithLibraries(managerProgram, libraries);
+
+        // Verify the program structure
+        assertEquals(1, program.triggers().size());
+        assertEquals(1, program.letStatements().size());
+
+        // Verify macro expansion
+        var trigger = program.triggers().get(0);
+        var statements = trigger.getBlock().getStatements();
+        assertEquals(1, statements.size());
+        assertTrue(statements.get(0) instanceof ca.teamdman.sfml.ast.ExpandStatement);
+    }
+
+    @Test
+    public void libraryWithCombinedIOProtocolAndMacro() {
+        String librarySource = """
+            NAME "combined_lib"
+
+            protocol Processable
+                input: sidequalifier slotqualifier
+                output: sidequalifier slotqualifier
+            end
+
+            struct Machine : Processable
+                input: TOP SIDE SLOTS 0
+                output: BOTTOM SIDE SLOTS 1
+            end
+
+            macro process(device: Processable, src, dst)
+                input from src
+                output to device using input
+                forget
+                input from device using output
+                output to dst
+            end
+            """;
+
+        Map<String, String> libraries = Map.of("combined_lib", librarySource);
+
+        String managerProgram = """
+            NAME "Combined Manager"
+
+            use library "combined_lib"
+
+            let machine = Machine { label: "machines" }
+
+            every 20 ticks do
+                DO process(machine, source, dest)
+            end
+            """;
+
+        assertNoCompileErrorsWithLibraries(managerProgram, libraries);
+
+        var program = compileWithLibraries(managerProgram, libraries);
+
+        // Verify the program structure - library definitions are used for validation
+        // but only local definitions appear in the program's lists
+        assertEquals(1, program.triggers().size());
+        assertEquals(1, program.letStatements().size());
+
+        // Verify the let statement references the imported struct correctly
+        assertEquals("machine", program.letStatements().get(0).variableName());
+        assertEquals("Machine", program.letStatements().get(0).instance().definition().name());
+
+        // Verify the struct implements the protocol (from the struct definition)
+        var struct = program.letStatements().get(0).instance().definition();
+        assertTrue(struct.implementsProtocol("Processable"));
+    }
+
+    @Test
+    public void libraryMacroProtocolConstraintValidation() {
+        String librarySource = """
+            NAME "constrained_lib"
+
+            protocol IOCapable
+                input: sidequalifier slotqualifier
+                output: sidequalifier slotqualifier
+            end
+
+            struct ValidDevice : IOCapable
+                input: TOP SIDE SLOTS 0
+                output: BOTTOM SIDE SLOTS 1
+            end
+
+            struct InvalidDevice
+                storage: SLOTS 0-26
+            end
+
+            macro transfer(device: IOCapable, src, dst)
+                input from src
+                output to device using input
+            end
+            """;
+
+        Map<String, String> libraries = Map.of("constrained_lib", librarySource);
+
+        // Valid usage
+        String validProgram = """
+            NAME "Valid Usage"
+            use library "constrained_lib"
+
+            let device = ValidDevice { label: "devices" }
+            every 20 ticks do
+                DO transfer(device, a, b)
+            end
+            """;
+        assertNoCompileErrorsWithLibraries(validProgram, libraries);
+
+        // Invalid usage - struct doesn't implement required protocol
+        String invalidProgram = """
+            NAME "Invalid Usage"
+            use library "constrained_lib"
+
+            let device = InvalidDevice { label: "devices" }
+            every 20 ticks do
+                DO transfer(device, a, b)
+            end
+            """;
+
+        assertThrows(RuntimeException.class, () -> {
+            compileWithLibraries(invalidProgram, libraries);
+        });
+    }
+
+    @Test
+    public void chainedLibraryImports() {
+        // Libraries must explicitly import their dependencies - transitive imports
+        // make definitions available for validation but don't re-export them.
+        String baseLib = """
+            NAME "base_protocols"
+
+            protocol HasInput
+                input: sidequalifier slotqualifier
+            end
+
+            protocol HasOutput
+                output: sidequalifier slotqualifier
+            end
+            """;
+
+        String structLib = """
+            NAME "struct_lib"
+            use library "base_protocols"
+
+            struct Furnace : HasInput, HasOutput
+                input: TOP SIDE SLOTS 0
+                output: BOTTOM SIDE SLOTS 2
+            end
+            """;
+
+        // macro_lib needs to import both base_protocols (for protocol constraints)
+        // and struct_lib (for the Furnace struct)
+        String macroLib = """
+            NAME "macro_lib"
+            use library "base_protocols"
+            use library "struct_lib"
+
+            macro smelt(machine: HasInput, machine2: HasOutput, src, dst)
+                input from src
+                output to machine using input
+                forget
+                input from machine2 using output
+                output to dst
+            end
+            """;
+
+        Map<String, String> libraries = Map.of(
+            "base_protocols", baseLib,
+            "struct_lib", structLib,
+            "macro_lib", macroLib
+        );
+
+        // The manager also needs to import all required definitions
+        String managerProgram = """
+            NAME "Chained Manager"
+            use library "base_protocols"
+            use library "struct_lib"
+            use library "macro_lib"
+
+            let furnace = Furnace { label: "furnaces" }
+            every 20 ticks do
+                DO smelt(furnace, furnace, ore_chest, ingot_chest)
+            end
+            """;
+
+        assertNoCompileErrorsWithLibraries(managerProgram, libraries);
+
+        var program = compileWithLibraries(managerProgram, libraries);
+
+        // Verify the program structure
+        assertEquals(1, program.triggers().size());
+        assertEquals(1, program.letStatements().size());
+
+        // Verify the struct from the library chain is accessible
+        var instance = program.letStatements().get(0).instance();
+        assertEquals("Furnace", instance.definition().name());
+        assertTrue(instance.definition().implementsProtocol("HasInput"));
+        assertTrue(instance.definition().implementsProtocol("HasOutput"));
     }
 
     // ===== COMBINED FEATURE TESTS =====
