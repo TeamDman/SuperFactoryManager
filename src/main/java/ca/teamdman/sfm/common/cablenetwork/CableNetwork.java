@@ -246,7 +246,7 @@ public class CableNetwork {
 
         autoLabelCache = LabelPositionHolder.empty();
 
-        // Discover managers (which are cables) and library blocks (adjacent to cables)
+        // Discover managers and libraries (which can be cables themselves) and adjacent blocks
         LongSet visitedAdjacent = new LongOpenHashSet();
         BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
 
@@ -256,6 +256,11 @@ public class CableNetwork {
             // Check if the cable itself is a manager
             if (level.getBlockEntity(cablePos) instanceof ManagerBlockEntity) {
                 autoLabelCache.add(ManagerBlockEntity.MANAGER_LABEL, cablePos);
+            }
+
+            // Check if the cable itself is a library (LibraryBlock implements ICableBlock)
+            if (level.getBlockEntity(cablePos) instanceof LibraryBlockEntity) {
+                autoLabelCache.add(LibraryBlockEntity.LIBRARY_LABEL, cablePos);
             }
 
             // Check adjacent positions for library blocks

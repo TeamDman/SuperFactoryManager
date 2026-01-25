@@ -141,19 +141,25 @@ public class CableNetworkManager {
         BlockPos.MutableBlockPos adjacentPos = new BlockPos.MutableBlockPos();
         for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
             adjacentPos.set(cablePos).move(direction);
-            if (level.getBlockEntity(adjacentPos) instanceof LibraryBlockEntity library) {
-                // Check if this library is still connected to any network
-                boolean stillOnNetwork = getNetworksForLevel(level)
-                        .anyMatch(net -> net.isAdjacentToCable(adjacentPos));
-                if (!stillOnNetwork) {
-                    library.recompileAllDisks();
+            if (level.getBlockEntity(adjacentPos) instanceof LibraryBlockEntity) {
+                // Check if this library is still connected to a meaningful network
+                // (one with other cables besides just the library itself)
+                boolean stillOnMeaningfulNetwork = getNetworksForLevel(level)
+                        .anyMatch(net -> net.containsCablePosition(adjacentPos) && net.getCableCount() > 1);
+                if (!stillOnMeaningfulNetwork) {
+                    // Library is isolated - notify via its own network (batched) to recompile
+                    getOrRegisterNetworkFromCablePosition(level, adjacentPos.immutable())
+                            .ifPresent(CableNetwork::invalidateAutoLabelsAndNotifyDependents);
                 }
-            } else if (level.getBlockEntity(adjacentPos) instanceof ManagerBlockEntity manager) {
-                // Check if this manager is still connected to any network
-                boolean stillOnNetwork = getNetworksForLevel(level)
-                        .anyMatch(net -> net.isAdjacentToCable(adjacentPos));
-                if (!stillOnNetwork) {
-                    manager.rebuildProgramAndUpdateDisk();
+            } else if (level.getBlockEntity(adjacentPos) instanceof ManagerBlockEntity) {
+                // Check if this manager is still connected to a meaningful network
+                // (one with other cables besides just the manager itself)
+                boolean stillOnMeaningfulNetwork = getNetworksForLevel(level)
+                        .anyMatch(net -> net.containsCablePosition(adjacentPos) && net.getCableCount() > 1);
+                if (!stillOnMeaningfulNetwork) {
+                    // Manager is isolated - notify via its own network (batched) to rebuild
+                    getOrRegisterNetworkFromCablePosition(level, adjacentPos.immutable())
+                            .ifPresent(CableNetwork::invalidateAutoLabelsAndNotifyDependents);
                 }
             }
         }

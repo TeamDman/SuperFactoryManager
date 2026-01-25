@@ -47,7 +47,7 @@ public class MacroWithStructAccessGameTest extends SFMGameTestDefinition {
                 let storage = Chest { label: "left" }
 
                 every 20 ticks do
-                    expand process(storage, left, right)
+                    do process(storage, left, right)
                 end
                 """);
         test.preContents("left", Arrays.asList(

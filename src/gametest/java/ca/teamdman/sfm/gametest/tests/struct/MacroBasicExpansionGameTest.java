@@ -34,7 +34,7 @@ public class MacroBasicExpansionGameTest extends SFMGameTestDefinition {
                 end
 
                 every 20 ticks do
-                    expand transfer(left, right)
+                    do transfer(left, right)
                 end
                 """);
         test.preContents("left", Arrays.asList(
