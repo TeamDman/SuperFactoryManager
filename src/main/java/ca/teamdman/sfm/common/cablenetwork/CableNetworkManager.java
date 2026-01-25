@@ -105,12 +105,6 @@ public class CableNetworkManager {
 
     public static void onCableRemoved(Level level, BlockPos cablePos) {
         getNetworkFromCablePosition(level, cablePos).ifPresent(network -> {
-            // Capture library and manager positions before invalidating the network
-            Set<BlockPos> libraryPositions = network.getOrRebuildAutoLabels()
-                    .getPositions(LibraryBlockEntity.LIBRARY_LABEL);
-            Set<BlockPos> managerPositions = network.getOrRebuildAutoLabels()
-                    .getPositions(ManagerBlockEntity.MANAGER_LABEL);
-
             // Invalidate the original network
             removeNetwork(network);
 
@@ -127,29 +121,37 @@ public class CableNetworkManager {
             for (CableNetwork remainingNetwork : remainingNetworks) {
                 remainingNetwork.invalidateAutoLabelsAndNotifyDependents();
             }
-
-            // Notify library blocks that became completely disconnected from any network
-            for (BlockPos pos : libraryPositions) {
-                if (level.getBlockEntity(pos) instanceof LibraryBlockEntity library) {
-                    boolean stillOnNetwork = getNetworksForLevel(level)
-                            .anyMatch(net -> net.isAdjacentToCable(pos));
-                    if (!stillOnNetwork) {
-                        library.recompileAllDisks();
-                    }
-                }
-            }
-
-            // Notify managers that became completely disconnected from any network
-            for (BlockPos pos : managerPositions) {
-                if (level.getBlockEntity(pos) instanceof ManagerBlockEntity manager) {
-                    boolean stillOnNetwork = getNetworksForLevel(level)
-                            .anyMatch(net -> net.isAdjacentToCable(pos));
-                    if (!stillOnNetwork) {
-                        manager.rebuildProgramAndUpdateDisk();
-                    }
-                }
-            }
         });
+
+        // Always notify blocks adjacent to the removed cable, after network changes are complete
+        // This handles both networked and standalone cables
+        notifyBlocksAdjacentToRemovedCable(level, cablePos);
+    }
+
+    /**
+     * Notifies libraries and managers directly adjacent to a removed cable.
+     * Called regardless of whether a network existed, to handle standalone cables.
+     */
+    private static void notifyBlocksAdjacentToRemovedCable(Level level, BlockPos cablePos) {
+        BlockPos.MutableBlockPos adjacentPos = new BlockPos.MutableBlockPos();
+        for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+            adjacentPos.set(cablePos).move(direction);
+            if (level.getBlockEntity(adjacentPos) instanceof LibraryBlockEntity library) {
+                // Check if this library is still connected to any network
+                boolean stillOnNetwork = getNetworksForLevel(level)
+                        .anyMatch(net -> net.isAdjacentToCable(adjacentPos));
+                if (!stillOnNetwork) {
+                    library.recompileAllDisks();
+                }
+            } else if (level.getBlockEntity(adjacentPos) instanceof ManagerBlockEntity manager) {
+                // Check if this manager is still connected to any network
+                boolean stillOnNetwork = getNetworksForLevel(level)
+                        .anyMatch(net -> net.isAdjacentToCable(adjacentPos));
+                if (!stillOnNetwork) {
+                    manager.rebuildProgramAndUpdateDisk();
+                }
+            }
+        }
     }
 
     public static void purgeCableNetworkForManager(ManagerBlockEntity manager) {
