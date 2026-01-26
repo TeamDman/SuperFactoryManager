@@ -1,4 +1,4 @@
-// 1.19.2	2025-10-15T14:33:21.7675717	Block States: sfm
+// 1.19.2	2026-01-17T15:43:25.5471015	Block States: sfm
 6a4e3ee4c0c8d070519225c335fe0857b0b627fd assets/sfm/blockstates/buffer.json
 f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable.json
 f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable_facade.json
@@ -8,6 +8,14 @@ f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable_facade.jso
 a351025a2054b6ce2ddc21dc14734cc8b5b635bc assets/sfm/blockstates/printing_press.json
 9be344941a18ad0d8dccbcd6536d52bf7295c1c8 assets/sfm/blockstates/test_barrel.json
 f629d3d23ca3e52dc1dcd0d8f94fb9081b9c315c assets/sfm/blockstates/test_barrel_tank.json
+0a2d7a5e600ea533d6165c69680920c1c6167809 assets/sfm/blockstates/tough_cable.json
+0a2d7a5e600ea533d6165c69680920c1c6167809 assets/sfm/blockstates/tough_cable_facade.json
+518dd63d4de9c3a2bd458af9e483679927c9c7a2 assets/sfm/blockstates/tough_fancy_cable.json
+518dd63d4de9c3a2bd458af9e483679927c9c7a2 assets/sfm/blockstates/tough_fancy_cable_facade.json
+c0605157686ad6b1c044bb6e8d4e51e3a744fd3f assets/sfm/blockstates/tunnelled_cable.json
+c0605157686ad6b1c044bb6e8d4e51e3a744fd3f assets/sfm/blockstates/tunnelled_cable_facade.json
+7a6efeec7499a6c81d4f72b2c36ba233f2be379d assets/sfm/blockstates/tunnelled_fancy_cable.json
+7a6efeec7499a6c81d4f72b2c36ba233f2be379d assets/sfm/blockstates/tunnelled_fancy_cable_facade.json
 a2c988cb29424fb083db288f1d4379bdf80e48f9 assets/sfm/blockstates/tunnelled_manager.json
 f3c25839c6554e631061f91277bc687aebc38fd7 assets/sfm/blockstates/water_tank.json
 7bdfac5c4908a054cd1db2c13b98fc4eb38551c2 assets/sfm/models/block/buffer_chemical.json
@@ -21,6 +29,12 @@ a76567fd4e65d191d69cf166b98776786d47a8e2 assets/sfm/models/block/cable.json
 7ba1003f6a1c077779c8e51166e1d134874844a8 assets/sfm/models/block/fancy_cable_core.json
 953313d31931040aa2bd9a8742d4a54a2c632b8d assets/sfm/models/block/manager.json
 369e3217e52fc9f71d3e4a83b9175bb4e36dbac0 assets/sfm/models/block/test_barrel_tank.json
+0c2ab96c6a619b233e9434e6f3b30645fdee3101 assets/sfm/models/block/tough_cable.json
+1fd24759910aa18ca9cf5fefc8a94f46dd94596c assets/sfm/models/block/tough_fancy_cable_connection.json
+d7818b3c3d38b92f5e69e9dba30a81623221f2a0 assets/sfm/models/block/tough_fancy_cable_core.json
+2a22984ed0ecf564c614cf5c9a282a6a792c9f2a assets/sfm/models/block/tunnelled_cable.json
+4cf847e63bc91b07aff2bd7d8919ce0de877108e assets/sfm/models/block/tunnelled_fancy_cable_connection.json
+c2c6106f968817ac143d3286d97a1cf76d8567a5 assets/sfm/models/block/tunnelled_fancy_cable_core.json
 fbd4f97091c4dadead5a68954d148efb4ecb5ff6 assets/sfm/models/block/tunnelled_manager.json
 220cea2f958589873eff05d62905d9e088c08951 assets/sfm/models/block/water_tank_active.json
 5c39779ee6f051e682c82c8534c2fae85779747d assets/sfm/models/block/water_tank_inactive.json

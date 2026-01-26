@@ -97,6 +97,96 @@ public class SFMBlocks {
                     )
             );
 
+    // Tough variants
+    public static final SFMRegistryObject<Block, ToughCableBlock> TOUGH_CABLE_BLOCK =
+            REGISTERER.register(
+                    "tough_cable",
+                    () -> new ToughCableBlock(
+                            BlockBehaviour.Properties
+                                    .of(Material.METAL)
+                                    .destroyTime(1f)
+                                    .sound(SoundType.METAL)
+                    )
+            );
+
+    public static final SFMRegistryObject<Block, ToughCableFacadeBlock> TOUGH_CABLE_FACADE_BLOCK =
+            REGISTERER.register(
+                    "tough_cable_facade",
+                    () -> new ToughCableFacadeBlock(
+                            BlockBehaviour.Properties
+                                    .of(Material.METAL)
+                                    .destroyTime(1f)
+                                    .sound(SoundType.METAL)
+                    )
+            );
+
+    public static final SFMRegistryObject<Block, ToughFancyCableBlock> TOUGH_FANCY_CABLE_BLOCK =
+            REGISTERER.register(
+                    "tough_fancy_cable",
+                    () -> new ToughFancyCableBlock(
+                            BlockBehaviour.Properties
+                                    .of(Material.METAL)
+                                    .destroyTime(1f)
+                                    .sound(SoundType.METAL)
+                    )
+            );
+
+    public static final SFMRegistryObject<Block, ToughFancyCableFacadeBlock> TOUGH_FANCY_CABLE_FACADE_BLOCK =
+            REGISTERER.register(
+                    "tough_fancy_cable_facade",
+                    () -> new ToughFancyCableFacadeBlock(
+                            BlockBehaviour.Properties
+                                    .of(Material.METAL)
+                                    .destroyTime(1f)
+                                    .sound(SoundType.METAL)
+                    )
+            );
+
+    // Tunnelled variants
+    public static final SFMRegistryObject<Block, TunnelledCableBlock> TUNNELLED_CABLE_BLOCK =
+            REGISTERER.register(
+                    "tunnelled_cable",
+                    () -> new TunnelledCableBlock(
+                            BlockBehaviour.Properties
+                                    .of(Material.METAL)
+                                    .destroyTime(1f)
+                                    .sound(SoundType.METAL)
+                    )
+            );
+
+    public static final SFMRegistryObject<Block, TunnelledCableFacadeBlock> TUNNELLED_CABLE_FACADE_BLOCK =
+            REGISTERER.register(
+                    "tunnelled_cable_facade",
+                    () -> new TunnelledCableFacadeBlock(
+                            BlockBehaviour.Properties
+                                    .of(Material.METAL)
+                                    .destroyTime(1f)
+                                    .sound(SoundType.METAL)
+                    )
+            );
+
+    public static final SFMRegistryObject<Block, TunnelledFancyCableBlock> TUNNELLED_FANCY_CABLE_BLOCK =
+            REGISTERER.register(
+                    "tunnelled_fancy_cable",
+                    () -> new TunnelledFancyCableBlock(
+                            BlockBehaviour.Properties
+                                    .of(Material.METAL)
+                                    .destroyTime(1f)
+                                    .sound(SoundType.METAL)
+                    )
+            );
+
+    public static final SFMRegistryObject<Block, TunnelledFancyCableFacadeBlock> TUNNELLED_FANCY_CABLE_FACADE_BLOCK =
+            REGISTERER.register(
+                    "tunnelled_fancy_cable_facade",
+                    () -> new TunnelledFancyCableFacadeBlock(
+                            BlockBehaviour.Properties
+                                    .of(Material.METAL)
+                                    .destroyTime(1f)
+                                    .sound(SoundType.METAL)
+                    )
+            );
+
     public static void register(IEventBus bus) {
 
         REGISTERER.register(bus);

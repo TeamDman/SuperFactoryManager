@@ -2,9 +2,7 @@ package ca.teamdman.sfm.common.event_bus;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
-import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
+import ca.teamdman.sfm.common.util.SFMDist;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Method;
@@ -19,14 +17,13 @@ public class SFMAutomaticEventSubscriber {
         SFMAnnotationUtils.discoverAnnotations(SFMSubscribeEvent.class)
                 .filter(annotationData -> {
                     // Only proceed when the physical side matches
-                    EnumSet<Dist> sides = annotationData.getEnumSet("value", Dist.class);
+                    EnumSet<SFMDist> sides = annotationData.getEnumSet("value", SFMDist.class);
                     if (sides.isEmpty()) {
-                        sides.add(SFMEnvironmentUtils.CLIENT_DIST);
-                        sides.add(SFMEnvironmentUtils.SERVER_DIST);
+                        sides.add(SFMDist.CLIENT);
+                        sides.add(SFMDist.DEDICATED_SERVER);
                     }
 
-                    Dist currentDist = FMLEnvironment.dist;
-                    return sides.contains(currentDist);
+                    return sides.contains(SFMDist.current());
                 })
                 .forEach(SFMAutomaticEventSubscriber::tryRegisterAnnotatedMethod);
     }

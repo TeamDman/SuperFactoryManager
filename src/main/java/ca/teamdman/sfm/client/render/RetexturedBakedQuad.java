@@ -6,8 +6,6 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.FaceBakery;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.Arrays;
 
@@ -23,7 +21,6 @@ import java.util.Arrays;
 // The license can be found at:
 // https://github.com/CoFH/CoFHCore/blob/dcd7bd6703418ee2e8eb2185957de83925fa89fe/README.md
 // Their don't-be-a-jerk license is compatible as far as I can tell, thanks CoFH <3
-@OnlyIn(Dist.CLIENT)
 public class RetexturedBakedQuad extends BakedQuad {
 
     private final TextureAtlasSprite texture;

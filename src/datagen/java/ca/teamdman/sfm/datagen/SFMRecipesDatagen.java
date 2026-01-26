@@ -53,6 +53,48 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .unlockedBy("has_chest", RecipeProvider.has(Tags.Items.CHESTS))
                 .save(writer, SFMResourceLocation.fromSFMPath("fancy_to_cable"));
 
+        // Tough cable recipes (shapeless conversions)
+        beginShapeless(SFMBlocks.TOUGH_CABLE_BLOCK.get(), 1)
+                .requires(SFMBlocks.CABLE_BLOCK.get(), 1)
+                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .save(writer);
+
+        beginShapeless(SFMBlocks.TOUGH_FANCY_CABLE_BLOCK.get(), 1)
+                .requires(SFMBlocks.FANCY_CABLE_BLOCK.get(), 1)
+                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .save(writer);
+
+        beginShapeless(SFMBlocks.CABLE_BLOCK.get(), 1)
+                .requires(SFMBlocks.TOUGH_CABLE_BLOCK.get(), 1)
+                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .save(writer, SFMResourceLocation.fromSFMPath("tough_to_cable"));
+
+        beginShapeless(SFMBlocks.FANCY_CABLE_BLOCK.get(), 1)
+                .requires(SFMBlocks.TOUGH_FANCY_CABLE_BLOCK.get(), 1)
+                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .save(writer, SFMResourceLocation.fromSFMPath("tough_fancy_to_fancy"));
+
+        // Tunnelled cable recipes (shapeless conversions)
+        beginShapeless(SFMBlocks.TUNNELLED_CABLE_BLOCK.get(), 1)
+                .requires(SFMBlocks.CABLE_BLOCK.get(), 1)
+                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .save(writer);
+
+        beginShapeless(SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK.get(), 1)
+                .requires(SFMBlocks.FANCY_CABLE_BLOCK.get(), 1)
+                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .save(writer);
+
+        beginShapeless(SFMBlocks.CABLE_BLOCK.get(), 1)
+                .requires(SFMBlocks.TUNNELLED_CABLE_BLOCK.get(), 1)
+                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .save(writer, SFMResourceLocation.fromSFMPath("tunnelled_to_cable"));
+
+        beginShapeless(SFMBlocks.FANCY_CABLE_BLOCK.get(), 1)
+                .requires(SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK.get(), 1)
+                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .save(writer, SFMResourceLocation.fromSFMPath("tunnelled_fancy_to_fancy"));
+
         beginShaped(SFMBlocks.MANAGER_BLOCK.get(), 1)
                 .define('A', Tags.Items.CHESTS)
                 .define('B', SFMBlocks.CABLE_BLOCK.get())

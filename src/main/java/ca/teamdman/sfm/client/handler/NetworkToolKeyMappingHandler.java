@@ -1,20 +1,17 @@
 package ca.teamdman.sfm.client.handler;
 
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.net.ServerboundNetworkToolToggleOverlayPacket;
 import ca.teamdman.sfm.common.registry.SFMItems;
 import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 
 public class NetworkToolKeyMappingHandler {
     private static ToggleKeyState toggleKeyState = ToggleKeyState.Idle;
@@ -24,7 +21,7 @@ public class NetworkToolKeyMappingHandler {
     }
 
     @SuppressWarnings("DuplicatedCode")
-    @SubscribeEvent
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft minecraft = Minecraft.getInstance();

@@ -23,6 +23,19 @@ public class SFMLootTablesDatagen extends MCVersionAgnosticLootTablesDataGen {
         writer.dropSelf(SFMBlocks.CABLE_BLOCK);
         writer.dropSelf(SFMBlocks.BUFFER_BLOCK);
         writer.dropOther(SFMBlocks.CABLE_FACADE_BLOCK, SFMBlocks.CABLE_BLOCK);
+
+        // Tough cables
+        writer.dropSelf(SFMBlocks.TOUGH_CABLE_BLOCK);
+        writer.dropOther(SFMBlocks.TOUGH_CABLE_FACADE_BLOCK, SFMBlocks.TOUGH_CABLE_BLOCK);
+        writer.dropSelf(SFMBlocks.TOUGH_FANCY_CABLE_BLOCK);
+        writer.dropOther(SFMBlocks.TOUGH_FANCY_CABLE_FACADE_BLOCK, SFMBlocks.TOUGH_FANCY_CABLE_BLOCK);
+
+        // Tunnelled cables
+        writer.dropSelf(SFMBlocks.TUNNELLED_CABLE_BLOCK);
+        writer.dropOther(SFMBlocks.TUNNELLED_CABLE_FACADE_BLOCK, SFMBlocks.TUNNELLED_CABLE_BLOCK);
+        writer.dropSelf(SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK);
+        writer.dropOther(SFMBlocks.TUNNELLED_FANCY_CABLE_FACADE_BLOCK, SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK);
+
         writer.dropSelf(SFMBlocks.FANCY_CABLE_BLOCK);
         writer.dropOther(SFMBlocks.FANCY_CABLE_FACADE_BLOCK, SFMBlocks.FANCY_CABLE_BLOCK);
         writer.dropSelf(SFMBlocks.PRINTING_PRESS_BLOCK);

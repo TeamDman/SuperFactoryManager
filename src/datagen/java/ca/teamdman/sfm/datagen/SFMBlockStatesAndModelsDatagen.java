@@ -5,30 +5,50 @@ import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.block.FancyCableBlock;
 import ca.teamdman.sfm.common.block.WaterTankBlock;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
+import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.datagen.version_plumbing.MCVersionAgnosticBlockStatesAndModelsDataGen;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraftforge.client.model.generators.ConfiguredModel;
 import net.minecraftforge.client.model.generators.ModelBuilder;
 import net.minecraftforge.client.model.generators.ModelFile;
 import net.minecraftforge.data.event.GatherDataEvent;
 
-@SuppressWarnings("DataFlowIssue")
 public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStatesAndModelsDataGen {
     public SFMBlockStatesAndModelsDatagen(GatherDataEvent event) {
+
         super(event, SFM.MOD_ID);
     }
 
-    @SuppressWarnings("DataFlowIssue")
     @Override
     protected void registerStatesAndModels() {
+
         registerManager();
         registerTunnelledManager();
         registerTestBarrelTank();
-        registerCable();
-        registerCableFacade();
-        registerFancyCable();
+        registerCableVariants(
+                SFMBlocks.CABLE_BLOCK,
+                SFMBlocks.CABLE_FACADE_BLOCK,
+                SFMBlocks.FANCY_CABLE_BLOCK,
+                SFMBlocks.FANCY_CABLE_FACADE_BLOCK
+
+        );
+        registerCableVariants(
+                SFMBlocks.TUNNELLED_CABLE_BLOCK,
+                SFMBlocks.TUNNELLED_CABLE_FACADE_BLOCK,
+                SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK,
+                SFMBlocks.TUNNELLED_FANCY_CABLE_FACADE_BLOCK
+
+        );
+        registerCableVariants(
+                SFMBlocks.TOUGH_CABLE_BLOCK,
+                SFMBlocks.TOUGH_CABLE_FACADE_BLOCK,
+                SFMBlocks.TOUGH_FANCY_CABLE_BLOCK,
+                SFMBlocks.TOUGH_FANCY_CABLE_FACADE_BLOCK
+
+        );
         registerPrintingPress();
         registerWaterTank();
         registerTestBarrel();
@@ -36,6 +56,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     }
 
     private void registerTestBarrel() {
+
         ModelFile barrelModel = models().getExistingFile(mcLoc("block/barrel"));
         ModelFile barrelOpenModel = models().getExistingFile(mcLoc("block/barrel_open"));
 
@@ -82,18 +103,12 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     }
 
     private void registerPrintingPress() {
+
         simpleBlock(SFMBlocks.PRINTING_PRESS_BLOCK.get(), models().getExistingFile(modLoc("block/printing_press")));
     }
 
-    private void registerCableFacade() {
-        simpleBlock(SFMBlocks.CABLE_FACADE_BLOCK.get(), cubeAll(SFMBlocks.CABLE_BLOCK.get()));
-    }
-
-    private void registerCable() {
-        simpleBlock(SFMBlocks.CABLE_BLOCK.get());
-    }
-
     private void registerTestBarrelTank() {
+
         simpleBlock(
                 SFMBlocks.TEST_BARREL_TANK_BLOCK.get(), models().cubeAll(
                         SFMBlocks.TEST_BARREL_TANK_BLOCK.getPath(),
@@ -103,6 +118,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     }
 
     private void registerTunnelledManager() {
+
         simpleBlock(
                 SFMBlocks.TUNNELLED_MANAGER_BLOCK.get(), models().cubeBottomTop(
                         SFMBlocks.TUNNELLED_MANAGER_BLOCK.getPath(),
@@ -114,6 +130,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     }
 
     private void registerManager() {
+
         simpleBlock(
                 SFMBlocks.MANAGER_BLOCK.get(), models().cubeBottomTop(
                         SFMBlocks.MANAGER_BLOCK.getPath(),
@@ -125,6 +142,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     }
 
     private void registerWaterTank() {
+
         ModelFile waterIntakeModelActive = models()
                 .cubeAll(
                         SFMBlocks.WATER_TANK_BLOCK.getPath() + "_active",
@@ -146,18 +164,39 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                         .build());
     }
 
-    private void registerFancyCable() {
-        var coreModel = models().withExistingParent(modLoc("block/fancy_cable_core").getPath(), "block/block")
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    private void registerCableVariants(
+            SFMRegistryObject<Block, ?> cableBlock,
+            SFMRegistryObject<Block, ?> cableFacadeBlock,
+            SFMRegistryObject<Block, ?> fancyCableBlock,
+            SFMRegistryObject<Block, ?> fancyCableFacadeBlock
+    ) {
+
+        SFM.LOGGER.info("Registering cable variants for \"{}\"", cableBlock.getId().get());
+        simpleBlock(cableBlock.get());
+        SFM.LOGGER.info("Registering cable facade variants for \"{}\"", cableFacadeBlock.getId().get());
+        simpleBlock(cableFacadeBlock.get(), cubeAll(cableBlock.get()));
+        SFM.LOGGER.info("Registering fancy cable variants for \"{}\"", fancyCableBlock.getId().get());
+        registerFancyCableVariant(fancyCableBlock, fancyCableFacadeBlock);
+    }
+
+    private void registerFancyCableVariant(
+            SFMRegistryObject<Block, ?> fancyCableBlock,
+            SFMRegistryObject<Block, ?> fancyCableFacadeBlock
+    ) {
+
+        String fancy_cable_name = fancyCableBlock.getPath();
+        var coreModel = models().withExistingParent("block/" + fancy_cable_name + "_core", "block/block")
                 .element()
                 .from(4, 4, 4)
                 .to(12, 12, 12)
                 .shade(false)
                 .allFaces((direction, faceBuilder) -> faceBuilder.uvs(8, 0, 16, 8).texture("#cable"))
                 .end()
-                .texture("cable", modLoc("block/fancy_cable"))
-                .texture("particle", modLoc("block/fancy_cable"));
+                .texture("cable", modLoc("block/" + fancy_cable_name))
+                .texture("particle", modLoc("block/" + fancy_cable_name));
         var connectionModel = models()
-                .withExistingParent(modLoc("block/fancy_cable_connection").getPath(), "block/block")
+                .withExistingParent("block/" + fancy_cable_name + "_connection", "block/block")
                 .element()
                 .from(5, 5, 0)
                 .to(11, 11, 5)
@@ -185,10 +224,10 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                     faceBuilder.texture("#cable");
                 })
                 .end()
-                .texture("cable", modLoc("block/fancy_cable"));
+                .texture("cable", modLoc("block/" + fancy_cable_name));
 
-        var multipartBuilder1 = getMultipartBuilder(SFMBlocks.FANCY_CABLE_BLOCK.get());
-        var multipartBuilder2 = getMultipartBuilder(SFMBlocks.FANCY_CABLE_FACADE_BLOCK.get());
+        var multipartBuilder1 = getMultipartBuilder(fancyCableBlock.get());
+        var multipartBuilder2 = getMultipartBuilder(fancyCableFacadeBlock.get());
 
         // Core
         multipartBuilder1.part()

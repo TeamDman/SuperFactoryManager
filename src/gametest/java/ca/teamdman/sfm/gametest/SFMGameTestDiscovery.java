@@ -7,13 +7,12 @@ import net.minecraft.gametest.framework.GameTestRegistry;
 import net.minecraft.gametest.framework.TestFunction;
 import net.minecraftforge.event.RegisterGameTestsEvent;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Stream;
 
-//@EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
 public class SFMGameTestDiscovery {
-
-//    @SubscribeEvent
     @SFMSubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
         // Discover our tests
@@ -32,13 +31,35 @@ public class SFMGameTestDiscovery {
 
     public static Stream<SFMGameTestDefinition> gatherTests() {
 
-        return SFMAnnotationUtils.discoverAnnotations(SFMGameTest.class)
+        Stream<SFMGameTestDefinition> annotatedTests = SFMAnnotationUtils.discoverAnnotations(SFMGameTest.class)
                 .map(SFMAnnotationUtils::tryLoadAnnotatedClass)
                 .map(clazz -> SFMAnnotationUtils.tryConstruct(clazz, SFMGameTestDefinition.class))
                 .peek(sfmGameTestDefinition -> SFM.LOGGER.info(
                         "Discovered SFM game test: {}",
                         sfmGameTestDefinition.testName()
                 ));
+
+        Stream<SFMGameTestDefinition> generatedTests = gatherGeneratedTests();
+
+        return Stream.concat(annotatedTests, generatedTests);
+    }
+
+    public static Stream<SFMGameTestDefinition> gatherGeneratedTests() {
+
+        List<SFMGameTestDefinition> generatedTests = new ArrayList<>();
+
+        SFMAnnotationUtils.discoverAnnotations(SFMGameTestGenerator.class)
+                .map(SFMAnnotationUtils::tryLoadAnnotatedClass)
+                .map(clazz -> SFMAnnotationUtils.tryConstruct(clazz, SFMGameTestGeneratorBase.class))
+                .forEach(generator -> {
+                    SFM.LOGGER.info("Invoking SFM game test generator: {}", generator.getClass().getSimpleName());
+                    generator.generateTests(test -> {
+                        SFM.LOGGER.info("Generated SFM game test: {}", test.testName());
+                        generatedTests.add(test);
+                    });
+                });
+
+        return generatedTests.stream();
     }
 
 }

@@ -1,15 +1,14 @@
 package ca.teamdman.sfm.client.registry;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import ca.teamdman.sfm.common.util.SFMDist;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.AddPackFindersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.resource.PathPackResources;
 
 import java.nio.file.Files;
@@ -18,14 +17,13 @@ import java.nio.file.Path;
 /**
  * Registers SFM's optional built-in resource packs, so they appear in the Resource Packs screen.
  */
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD, modid = SFM.MOD_ID, value = Dist.CLIENT)
 public class SFMPackFinders {
 
     private static final String CLASSIC_PACK_PATH = "pack/classic"; // root contains pack.mcmeta & optional pack.png
     private static final String CLASSIC_PACK_ID = SFM.MOD_ID + ":classic"; // must be unique in repository
     private static final String CLASSIC_PACK_DISPLAY_NAME = "SFM Classic"; // shown in logs; UI uses pack.mcmeta description
 
-    @SubscribeEvent
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onRegisterPackFinders(AddPackFindersEvent event) {
         if (event.getPackType() != PackType.CLIENT_RESOURCES) return;
 

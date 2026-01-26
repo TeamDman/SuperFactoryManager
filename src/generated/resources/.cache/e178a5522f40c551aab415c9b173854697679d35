@@ -1,5 +1,5 @@
-// 1.19.2	2026-01-17T14:31:43.7453296	sfm Block Tags
+// 1.19.2	2026-01-17T15:43:25.5481014	sfm Block Tags
 22c0d1933af00895b3b1fad66a738923e2f3b362 data/minecraft/tags/blocks/mineable/axe.json
-c5c6ac503622de81dd8ab220ed9191959f097558 data/minecraft/tags/blocks/mineable/pickaxe.json
+d70f2ad0e3ccdbb39322d7ae76772762891ad216 data/minecraft/tags/blocks/mineable/pickaxe.json
 858b4736f63a64046a40e9dbd025c709c79d7cb2 data/sfm/tags/blocks/anvil_disenchanting.json
 6b57449363a85b1df1b3dec7aac87fdd3dea4129 data/sfm/tags/blocks/anvil_printing_press_forming.json

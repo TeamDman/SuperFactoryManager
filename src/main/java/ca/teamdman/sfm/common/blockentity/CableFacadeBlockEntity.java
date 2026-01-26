@@ -10,13 +10,18 @@ public class CableFacadeBlockEntity extends CommonFacadeBlockEntity {
             BlockPos pos,
             BlockState state
     ) {
+
         super(SFMBlockEntities.CABLE_FACADE_BLOCK_ENTITY.get(), pos, state);
     }
 
     @Override
     public ModelData getModelData() {
+
         if (getFacadeData() != null) {
-            return ModelData.builder().with(FACADE_BLOCK_STATE_MODEL_PROPERTY, getFacadeData().facadeBlockState()).build();
+            return ModelData
+                    .builder()
+                    .with(FACADE_BLOCK_STATE_MODEL_PROPERTY, getFacadeData().facadeBlockState())
+                    .build();
         }
         return ModelData.EMPTY;
     }

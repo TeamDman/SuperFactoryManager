@@ -1,8 +1,9 @@
 package ca.teamdman.sfm.common.util;
 
-import net.minecraft.core.BlockPos;
-
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -50,21 +51,12 @@ public class SFMStreamUtils {
         return builder.build();
     }
 
-    public static Stream<BlockPos> get3DNeighboursIncludingKittyCorner(BlockPos pos) {
-        Stream.Builder<BlockPos> builder = Stream.builder();
-        for (int x = -1; x <= 1; x++) {
-            for (int y = -1; y <= 1; y++) {
-                for (int z = -1; z <= 1; z++) {
-                    if (x == 0 && y == 0 && z == 0) continue;
-                    builder.accept(pos.offset(x, y, z).immutable());
-                }
-            }
-        }
-        return builder.build();
-    }
-
-    public static Stream<BlockPos> get3DNeighbours(BlockPos pos) {
-        return Arrays.stream(SFMDirections.DIRECTIONS_WITHOUT_NULL).map(d -> pos.offset(d.getNormal()));
+    public static <T, R> Stream<R> getRecursiveStream(
+            RecursiveBuilder<T, R> operator,
+            Deque<T> toVisit
+    ) {
+        Set<T> visitDebounce = new HashSet<>();
+        return getRecursiveStream(operator, visitDebounce, toVisit);
     }
 
     public interface RecursiveBuilder<T, R> {

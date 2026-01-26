@@ -1,4 +1,4 @@
-package ca.teamdman.sfm.common.cablenetwork;
+package ca.teamdman.sfm.common.block_network;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;

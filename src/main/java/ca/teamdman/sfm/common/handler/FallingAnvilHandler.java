@@ -1,11 +1,11 @@
 package ca.teamdman.sfm.common.handler;
 
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.config.SFMServerConfig;
 import ca.teamdman.sfm.common.enchantment.SFMEnchantmentCollection;
 import ca.teamdman.sfm.common.enchantment.SFMEnchantmentCollectionKind;
 import ca.teamdman.sfm.common.enchantment.SFMEnchantmentEntry;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.item.FormItem;
 import ca.teamdman.sfm.common.recipe.PrintingPressRecipe;
 import ca.teamdman.sfm.common.registry.SFMBlockTags;
@@ -22,17 +22,14 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class FallingAnvilHandler {
 
     @SuppressWarnings("ConstantValue")
-    @SubscribeEvent
+    @SFMSubscribeEvent
     public static void onLeave(EntityLeaveLevelEvent event) {
 
         // Get the level

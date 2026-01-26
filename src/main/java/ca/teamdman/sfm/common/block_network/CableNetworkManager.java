@@ -1,11 +1,12 @@
-package ca.teamdman.sfm.common.cablenetwork;
+package ca.teamdman.sfm.common.block_network;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
+import ca.teamdman.sfm.common.util.BlockPosMap;
 import ca.teamdman.sfm.common.util.SFMDirections;
+import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -14,8 +15,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,34 +38,35 @@ import java.util.stream.Stream;
  * - Remove the network if it was the only member
  * - Cause a network to split into other networks if it was a "bridge" block
  */
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE, modid = SFM.MOD_ID)
 public class CableNetworkManager {
-    private static final Map<Level, Long2ObjectMap<CableNetwork>> NETWORKS_BY_CABLE_POSITION = new Object2ObjectOpenHashMap<>();
-    private static final Map<Level, List<CableNetwork>> NETWORKS_BY_LEVEL = new Object2ObjectOpenHashMap<>();
+    private static final Map<Level, BlockPosMap<CableNetwork>> levelToBlockPosToCableNetworkMap = new Object2ObjectOpenHashMap<>();
+    private static final Map<Level, List<CableNetwork>> levelToCableNetworkMap = new Object2ObjectOpenHashMap<>();
 
     /**
      * For diagnostics, called when a lookup map has changed
      */
     private static void onNetworkLookupChanged() {
-//        if (!SFMEnvironment.isInIDE()) return;
-//        SFM.LOGGER.info("Network lookup changed");
-//        SFM.LOGGER.info("NETWORKS_BY_LEVEL:");
-//        for (Map.Entry<Level, List<CableNetwork>> entry : NETWORKS_BY_LEVEL.entrySet()) {
-//            Level level = entry.getKey();
-//            List<CableNetwork> networks = entry.getValue();
-//            SFM.LOGGER.debug("Level {} has {} networks", level, networks.size());
-//            StringBuilder builder = new StringBuilder();
-//            for (CableNetwork network : networks) {
-//                builder.append(network.getCableCount()).append(" cables; ");
-//            }
-//            SFM.LOGGER.debug(builder.toString());
-//        }
-//        SFM.LOGGER.info("NETWORKS_BY_CABLE_POSITION:");
-//        for (Map.Entry<Level, Long2ObjectMap<CableNetwork>> entry : NETWORKS_BY_CABLE_POSITION.entrySet()) {
-//            Level level = entry.getKey();
-//            Long2ObjectMap<CableNetwork> networksByCablePosition = entry.getValue();
-//            SFM.LOGGER.debug("Level {} has {} cables", level, networksByCablePosition.size());
-//        }
+        boolean logNetworkChanges = false;
+        if (!logNetworkChanges) return;
+        if (!SFMEnvironmentUtils.isInIDE()) return;
+        SFM.LOGGER.info("Network lookup changed");
+        SFM.LOGGER.info("NETWORKS_BY_LEVEL:");
+        for (Map.Entry<Level, List<CableNetwork>> entry : levelToCableNetworkMap.entrySet()) {
+            Level level = entry.getKey();
+            List<CableNetwork> networks = entry.getValue();
+            SFM.LOGGER.debug("Level {} has {} networks", level, networks.size());
+            StringBuilder builder = new StringBuilder();
+            for (CableNetwork network : networks) {
+                builder.append(network.getCableCount()).append(" cables; ");
+            }
+            SFM.LOGGER.debug(builder.toString());
+        }
+        SFM.LOGGER.info("NETWORKS_BY_CABLE_POSITION:");
+        for (Map.Entry<Level, BlockPosMap<CableNetwork>> entry : levelToBlockPosToCableNetworkMap.entrySet()) {
+            Level level = entry.getKey();
+            BlockPosMap<CableNetwork> networksByCablePosition = entry.getValue();
+            SFM.LOGGER.debug("Level {} has {} cables", level, networksByCablePosition.size());
+        }
     }
 
     public static Optional<CableNetwork> getOrRegisterNetworkFromManagerPosition(ManagerBlockEntity tile) {
@@ -75,16 +75,16 @@ public class CableNetworkManager {
         return getOrRegisterNetworkFromCablePosition(level, tile.getBlockPos());
     }
 
-    public static Stream<CableNetwork> getNetworksForLevel(Level level) {
-        if (level.isClientSide()) return Stream.empty();
-        return NETWORKS_BY_LEVEL
-                .getOrDefault(level, Collections.emptyList())
-                .stream();
+    public static BlockPosMap<CableNetwork> getNetworksForLevel(Level level) {
+        if (level.isClientSide()) return new BlockPosMap<>();
+        return levelToBlockPosToCableNetworkMap.getOrDefault(level, new BlockPosMap<>());
     }
 
     public static Stream<CableNetwork> getNetworksInRange(Level level, BlockPos pos, double maxDistance) {
         if (level.isClientSide()) return Stream.empty();
-        return getNetworksForLevel(level)
+        List<CableNetwork> networkForLevel = levelToCableNetworkMap.get(level);
+        if (networkForLevel == null) return Stream.empty();
+        return networkForLevel.stream()
                 .filter(net -> net
                         .getCablePositions()
                         .anyMatch(cablePos -> cablePos.distSqr(pos) < maxDistance * maxDistance));
@@ -120,12 +120,10 @@ public class CableNetworkManager {
         ).ifPresent(CableNetworkManager::removeNetwork);
     }
 
-    /**
-     * Gets the cable network object. If none exists and one should, it will create and populate
-     * one.
-     * <p>
-     * Networks should only exist on the server side.
-     */
+    /// Gets the cable network object. If none exists and one should, it will create and populate
+    /// one.
+    ///
+    /// Networks should only exist on the server side.
     public static Optional<CableNetwork> getOrRegisterNetworkFromCablePosition(Level level, BlockPos pos) {
         if (level.isClientSide()) return Optional.empty();
 
@@ -167,8 +165,8 @@ public class CableNetworkManager {
 
         // candidates exist, the new cable will result in a single merged network
 
-        List<CableNetwork> networksByLevel = NETWORKS_BY_LEVEL.get(level);
-        Long2ObjectMap<CableNetwork> networksByPosition = NETWORKS_BY_CABLE_POSITION.get(level);
+        List<CableNetwork> networksByLevel = levelToCableNetworkMap.get(level);
+        BlockPosMap<CableNetwork> networksByPosition = levelToBlockPosToCableNetworkMap.get(level);
         CableNetwork rtn;
         if (neighbouringNetworks.size() == 1) {
             // exactly one candidate exists
@@ -190,7 +188,6 @@ public class CableNetworkManager {
         networksByPosition.put(pos.asLong(), rtn);
 
         // add any dangling cables to the result network
-        Set<BlockPos> visitDebounce = new HashSet<>();
         Set<BlockPos> allDanglingCables = SFMStreamUtils.<BlockPos, BlockPos>getRecursiveStream(
                 (current, next, results) -> {
                     results.accept(current);
@@ -202,7 +199,6 @@ public class CableNetworkManager {
                         }
                     }
                 },
-                visitDebounce,
                 danglingCables
         ).collect(Collectors.toSet());
         for (BlockPos danglingCable : allDanglingCables) {
@@ -216,47 +212,48 @@ public class CableNetworkManager {
 
     public static List<BlockPos> getBadCableCachePositions(Level level) {
         return getNetworksForLevel(level)
+                .values()
+                .stream()
                 .flatMap(CableNetwork::getCablePositions)
                 .filter(pos -> !(level.getBlockState(pos).getBlock() instanceof ICableBlock))
                 .collect(Collectors.toList());
     }
 
     public static void clear() {
-        NETWORKS_BY_LEVEL.clear();
-        NETWORKS_BY_CABLE_POSITION.clear();
+        levelToCableNetworkMap.clear();
+        levelToBlockPosToCableNetworkMap.clear();
         onNetworkLookupChanged();
     }
 
     private static Optional<CableNetwork> getNetworkFromCablePosition(Level level, BlockPos pos) {
-        return Optional.ofNullable(NETWORKS_BY_CABLE_POSITION
-                                           .computeIfAbsent(level, k -> new Long2ObjectOpenHashMap<>())
-                                           .get(pos.asLong()));
+        CableNetwork network = getNetworksForLevel(level).get(pos);
+        return Optional.ofNullable(network);
     }
 
     private static void removeNetwork(CableNetwork network) {
         // Unregister network from level lookup
-        NETWORKS_BY_LEVEL.getOrDefault(network.getLevel(), Collections.emptyList()).remove(network);
+        levelToCableNetworkMap.getOrDefault(network.getLevel(), Collections.emptyList()).remove(network);
 
         // Unregister network from cable position lookup
-        Long2ObjectMap<CableNetwork> posMap = NETWORKS_BY_CABLE_POSITION
-                .computeIfAbsent(network.getLevel(), k -> new Long2ObjectOpenHashMap<>());
-        network.getCablePositionsRaw().forEach(posMap::remove);
+        BlockPosMap<CableNetwork> memberBlockPosMap = levelToBlockPosToCableNetworkMap
+                .computeIfAbsent(network.getLevel(), k -> new BlockPosMap<>());
+        network.getCablePositionsRaw().forEach(memberBlockPosMap::remove);
         onNetworkLookupChanged();
     }
 
     private static void addNetwork(CableNetwork network) {
-        // Register network to level lookup
-        NETWORKS_BY_LEVEL.computeIfAbsent(network.getLevel(), k -> new ArrayList<>()).add(network);
+        // Register the network to the level lookup
+        levelToCableNetworkMap.computeIfAbsent(network.getLevel(), k -> new ArrayList<>()).add(network);
 
-        // Register network to cable position lookup
-        Long2ObjectMap<CableNetwork> posMap = NETWORKS_BY_CABLE_POSITION
-                .computeIfAbsent(network.getLevel(), k -> new Long2ObjectOpenHashMap<>());
+        // Register the network to the cable position lookup
+        BlockPosMap<CableNetwork> posMap = levelToBlockPosToCableNetworkMap
+                .computeIfAbsent(network.getLevel(), k -> new BlockPosMap<>());
         network.getCablePositionsRaw().forEach(cablePos -> posMap.put(cablePos, network));
         onNetworkLookupChanged();
     }
 
 
-    @SubscribeEvent
+    @SFMSubscribeEvent
     public static void onChunkUnload(ChunkEvent.Unload event) {
         if (event.getLevel().isClientSide()) return;
         if (!(event.getLevel() instanceof ServerLevel level)) return;
@@ -264,14 +261,14 @@ public class CableNetworkManager {
         purgeChunkFromCableNetworks(level, chunk);
     }
 
-    @SubscribeEvent
+    @SFMSubscribeEvent
     public static void onLevelUnload(LevelEvent.Unload event) {
         if (!(event.getLevel() instanceof ServerLevel level)) return;
-        NETWORKS_BY_LEVEL.remove(level);
-        NETWORKS_BY_CABLE_POSITION.remove(level);
+        levelToCableNetworkMap.remove(level);
+        levelToBlockPosToCableNetworkMap.remove(level);
     }
 
     public static void purgeChunkFromCableNetworks(ServerLevel level, ChunkAccess chunkAccess) {
-        getNetworksForLevel(level).forEach(network -> network.bustCacheForChunk(chunkAccess));
+        getNetworksForLevel(level).values().forEach(network -> network.bustCacheForChunk(chunkAccess));
     }
 }

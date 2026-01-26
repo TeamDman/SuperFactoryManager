@@ -92,4 +92,51 @@ public final class SFMBlockEntities {
                     .build(null)
     );
 
+    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<TunnelledCableBlockEntity>>
+            TUNNELLED_CABLE_BLOCK_ENTITY = REGISTERER.register(
+            "tunnelled_cable",
+            () -> BlockEntityType.Builder
+                    .of(TunnelledCableBlockEntity::new, SFMBlocks.TUNNELLED_CABLE_BLOCK.get())
+                    .build(null)
+    );
+
+    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<TunnelledCableFacadeBlockEntity>>
+            TUNNELLED_CABLE_FACADE_BLOCK_ENTITY = REGISTERER.register(
+            "tunnelled_cable_facade",
+            () -> BlockEntityType.Builder
+                    .of(TunnelledCableFacadeBlockEntity::new, SFMBlocks.TUNNELLED_CABLE_FACADE_BLOCK.get())
+                    .build(null)
+    );
+
+    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<TunnelledFancyCableBlockEntity>>
+            TUNNELLED_FANCY_CABLE_BLOCK_ENTITY = REGISTERER.register(
+            "tunnelled_fancy_cable",
+            () -> BlockEntityType.Builder
+                    .of(TunnelledFancyCableBlockEntity::new, SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK.get())
+                    .build(null)
+    );
+
+    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<TunnelledFancyCableFacadeBlockEntity>>
+            TUNNELLED_FANCY_CABLE_FACADE_BLOCK_ENTITY = REGISTERER.register(
+            "tunnelled_fancy_cable_facade",
+            () -> BlockEntityType.Builder
+                    .of(TunnelledFancyCableFacadeBlockEntity::new, SFMBlocks.TUNNELLED_FANCY_CABLE_FACADE_BLOCK.get())
+                    .build(null)
+    );
+
+    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<ToughCableFacadeBlockEntity>>
+            TOUGH_CABLE_FACADE_BLOCK_ENTITY = REGISTERER.register(
+            "tough_cable_facade",
+            () -> BlockEntityType.Builder
+                    .of(ToughCableFacadeBlockEntity::new, SFMBlocks.TOUGH_CABLE_FACADE_BLOCK.get())
+                    .build(null)
+    );
+
+    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<ToughFancyCableFacadeBlockEntity>>
+            TOUGH_FANCY_CABLE_FACADE_BLOCK_ENTITY = REGISTERER.register(
+            "tough_fancy_cable_facade",
+            () -> BlockEntityType.Builder
+                    .of(ToughFancyCableFacadeBlockEntity::new, SFMBlocks.TOUGH_FANCY_CABLE_FACADE_BLOCK.get())
+                    .build(null)
+    );
 }

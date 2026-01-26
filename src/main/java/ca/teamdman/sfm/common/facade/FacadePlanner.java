@@ -1,11 +1,12 @@
 package ca.teamdman.sfm.common.facade;
 
 import ca.teamdman.sfm.common.block.IFacadableBlock;
+import ca.teamdman.sfm.common.block_network.CableNetwork;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.net.ServerboundFacadePacket;
 import ca.teamdman.sfm.common.util.InPlaceBlockPlaceContext;
+import ca.teamdman.sfm.common.util.SFMBlockPosUtils;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -15,7 +16,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
@@ -97,7 +97,7 @@ public class FacadePlanner {
         );
     }
 
-    private static @NotNull Set<BlockPos> getPositions(
+    private static Set<BlockPos> getPositions(
             Level level,
             ServerboundFacadePacket msg,
             BlockPos hitPos,
@@ -150,7 +150,7 @@ public class FacadePlanner {
                     yield SFMStreamUtils.<BlockPos, BlockPos>getRecursiveStream(
                             (current, next, results) -> {
                                 results.accept(current);
-                                SFMStreamUtils.get3DNeighboursIncludingKittyCorner(current)
+                                SFMBlockPosUtils.get3DNeighboursIncludingKittyCorner(current)
                                         .filter(neighbour -> {
                                             if (!cablePositions.contains(neighbour)) {
                                                 return false;
@@ -174,7 +174,7 @@ public class FacadePlanner {
                     yield SFMStreamUtils.<BlockPos, BlockPos>getRecursiveStream(
                             (current, next, results) -> {
                                 results.accept(current);
-                                SFMStreamUtils.get3DNeighboursIncludingKittyCorner(current)
+                                SFMBlockPosUtils.get3DNeighboursIncludingKittyCorner(current)
                                         .filter(neighbour -> {
                                             if (!cablePositions.contains(neighbour)) {
                                                 return false;

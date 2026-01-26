@@ -1,14 +1,15 @@
 package ca.teamdman.sfm.client.handler;
 
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.ClientRayCastHelpers;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundContainerExportsInspectionRequestPacket;
 import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.util.SFMDist;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
@@ -22,13 +23,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ScreenEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.Nullable;
 
-@Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class ContainerScreenInspectorHandler {
     private static boolean visible = false;
     private static @Nullable AbstractContainerScreen<?> lastScreen = null;
@@ -47,7 +44,7 @@ public class ContainerScreenInspectorHandler {
             })
             .build();
 
-    @SubscribeEvent
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onMouseClick(ScreenEvent.KeyPressed.MouseButtonPressed.Pre event) {
         boolean shouldCapture = Minecraft.getInstance().screen instanceof AbstractContainerScreen<?>;
         if (shouldCapture && visible && exportInspectorButton.clicked(event.getMouseX(), event.getMouseY())) {
@@ -57,7 +54,7 @@ public class ContainerScreenInspectorHandler {
         }
     }
 
-    @SubscribeEvent
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onGuiRender(ScreenEvent.Render.Post event) {
         if (!visible) return;
         if (event.getScreen() instanceof AbstractContainerScreen<?> screen) {
@@ -160,7 +157,7 @@ public class ContainerScreenInspectorHandler {
         }
     }
 
-    @SubscribeEvent
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onKeyDown(ScreenEvent.KeyPressed.Pre event) {
         // Handle Ctrl+I hotkey to toggle overlay
         var toggleKey = SFMKeyMappings.CONTAINER_INSPECTOR_KEY.get();

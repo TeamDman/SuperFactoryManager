@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.gametest.tests.migrated;
 
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;

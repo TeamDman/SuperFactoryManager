@@ -2,13 +2,12 @@ package ca.teamdman.sfm.common.program;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.SFMPerformanceTweaks;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfml.ast.Label;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,7 +17,6 @@ import java.util.IdentityHashMap;
  * A pool of {@link LimitedInputSlot} objects to avoid the garbage collector
  */
 @SuppressWarnings("DuplicatedCode")
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE, modid = SFM.MOD_ID)
 public class LimitedInputSlotObjectPool {
     public static final IdentityHashMap<LimitedInputSlot<?, ?, ?>, Boolean> LEASED = new IdentityHashMap<>();
     @SuppressWarnings("rawtypes")
@@ -121,7 +119,7 @@ public class LimitedInputSlotObjectPool {
         }
     }
 
-    @SubscribeEvent
+    @SFMSubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         pool = new LimitedInputSlot[27];
         index = -1;

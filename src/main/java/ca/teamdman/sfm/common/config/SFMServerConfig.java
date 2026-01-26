@@ -1,14 +1,12 @@
 package ca.teamdman.sfm.common.config;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 import java.util.List;
 
-@Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class SFMServerConfig {
     public final ForgeConfigSpec.BooleanValue disableProgramExecution;
     public final ForgeConfigSpec.BooleanValue logResourceLossToConsole;
@@ -76,7 +74,7 @@ public class SFMServerConfig {
         return revision;
     }
 
-    @SubscribeEvent
+    @SFMSubscribeEvent
     public static void onConfigLoaded(ModConfigEvent.Loading event) {
         if (event.getConfig().getSpec() == SFMConfig.SERVER_CONFIG_SPEC) {
             SFMConfig.SERVER_CONFIG.revision++;
@@ -84,7 +82,7 @@ public class SFMServerConfig {
         }
     }
 
-    @SubscribeEvent
+    @SFMSubscribeEvent
     public static void onConfigReloaded(ModConfigEvent.Reloading event) {
         if (event.getConfig().getSpec() == SFMConfig.SERVER_CONFIG_SPEC) {
             SFMConfig.SERVER_CONFIG.revision++;

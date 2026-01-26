@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.block.shape.ShapeCache;
-import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
+import ca.teamdman.sfm.common.block_network.ICableBlock;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import com.google.common.collect.ImmutableMap;
