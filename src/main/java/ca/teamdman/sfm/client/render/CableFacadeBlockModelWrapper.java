@@ -13,7 +13,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.ChunkRenderTypeSet;
 import net.minecraftforge.client.model.BakedModelWrapper;
 import net.minecraftforge.client.model.data.ModelData;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -28,11 +27,11 @@ public class CableFacadeBlockModelWrapper extends BakedModelWrapper<BakedModel> 
     }
 
     @Override
-    public @NotNull List<BakedQuad> getQuads(
+    public List<BakedQuad> getQuads(
             @Nullable BlockState state,
             @Nullable Direction side,
-            @NotNull RandomSource rand,
-            @NotNull ModelData extraData,
+            RandomSource rand,
+            ModelData extraData,
             @Nullable RenderType renderType
     ) {
         Minecraft minecraft = Minecraft.getInstance();
@@ -53,10 +52,10 @@ public class CableFacadeBlockModelWrapper extends BakedModelWrapper<BakedModel> 
 
     @SuppressWarnings("DuplicatedCode")
     @Override
-    public @NotNull ChunkRenderTypeSet getRenderTypes(
-            @NotNull BlockState cableBlockState,
-            @NotNull RandomSource rand,
-            @NotNull ModelData data
+    public ChunkRenderTypeSet getRenderTypes(
+            BlockState cableBlockState,
+            RandomSource rand,
+            ModelData data
     ) {
         BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
         BlockState paintBlockState = data.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);

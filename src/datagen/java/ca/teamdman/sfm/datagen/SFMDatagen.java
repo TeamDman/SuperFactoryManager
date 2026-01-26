@@ -1,14 +1,11 @@
 package ca.teamdman.sfm.datagen;
 
-import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.data.loading.DatagenModLoader;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class SFMDatagen {
-    @SubscribeEvent
+    @SFMSubscribeEvent
     public static void onGather(GatherDataEvent event) {
         if (!DatagenModLoader.isRunningDataGen()) return;
         if (event.includeServer()) {

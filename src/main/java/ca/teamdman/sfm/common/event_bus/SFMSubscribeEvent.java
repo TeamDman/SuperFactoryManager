@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.event_bus;
 
 import ca.teamdman.sfm.SFM;
-import net.minecraftforge.api.distmarker.Dist;
+import ca.teamdman.sfm.common.util.SFMDist;
 import net.minecraftforge.eventbus.api.EventPriority;
 
 import java.lang.annotation.Retention;
@@ -16,13 +16,15 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(value = METHOD)
 public @interface SFMSubscribeEvent {
 
-    Dist[] value() default {Dist.CLIENT, Dist.DEDICATED_SERVER};
+    SFMDist[] value() default {SFMDist.CLIENT, SFMDist.DEDICATED_SERVER};
 
     EventPriority priority() default EventPriority.NORMAL;
 
     boolean receiveCanceled() default false;
 
-    @SuppressWarnings("SpellCheckingInspection")
+    // This is unused and idk what the modid param in the built-in event bus subscriber does so I'll leave until
+    // I understand enough to safely remove it.
+    @SuppressWarnings({"unused", "SpellCheckingInspection"})
     String modid() default SFM.MOD_ID;
 
 }

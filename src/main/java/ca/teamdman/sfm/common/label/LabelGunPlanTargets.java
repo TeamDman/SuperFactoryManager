@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.label;
 
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
 import net.minecraft.core.BlockPos;
@@ -14,8 +14,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static ca.teamdman.sfm.common.util.SFMStreamUtils.get3DNeighbours;
-import static ca.teamdman.sfm.common.util.SFMStreamUtils.get3DNeighboursIncludingKittyCorner;
+import static ca.teamdman.sfm.common.util.SFMBlockPosUtils.get3DNeighbours;
+import static ca.teamdman.sfm.common.util.SFMBlockPosUtils.get3DNeighboursIncludingKittyCorner;
 
 public record LabelGunPlanTargets(
         Set<BlockPos> positions,

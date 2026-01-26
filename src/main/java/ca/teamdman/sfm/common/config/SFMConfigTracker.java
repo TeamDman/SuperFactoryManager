@@ -1,14 +1,13 @@
 package ca.teamdman.sfm.common.config;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.electronwill.nightconfig.core.Config;
 import com.electronwill.nightconfig.core.file.FileConfig;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ConfigTracker;
 import net.minecraftforge.fml.config.IConfigSpec;
 import net.minecraftforge.fml.config.ModConfig;
@@ -55,20 +54,19 @@ public class SFMConfigTracker {
         return null;
     }
 
-    @Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static class ModConfigEventListeners {
+        public static class ModConfigEventListeners {
         /**
          * Tracks when configs are loaded
          * <p>
          * See {@link ConfigTracker#openConfig(ModConfig, Path)}
          */
         @SuppressWarnings("JavadocReference")
-        @SubscribeEvent
+        @SFMSubscribeEvent
         public static void onConfigLoaded(ModConfigEvent.Loading event) {
             handleConfigEvent(event);
         }
 
-        @SubscribeEvent
+        @SFMSubscribeEvent
         public static void onConfigReloaded(ModConfigEvent.Reloading event) {
             handleConfigEvent(event);
         }
@@ -117,15 +115,14 @@ public class SFMConfigTracker {
         }
     }
 
-    @Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
-    public static class GameConfigEventListeners {
+        public static class GameConfigEventListeners {
         /**
          * Tracks when configs are unloaded
          * <p>
          * See {@link ConfigTracker#unloadConfigs(ModConfig.Type, Path)}
          * which is called by {@link ServerLifecycleHooks#handleServerStopped(MinecraftServer)}
          */
-        @SubscribeEvent
+        @SFMSubscribeEvent
         public static void onServerStopped(ServerStoppedEvent event) {
             configPaths.entrySet().removeIf(entry -> entry.getKey() == SFMConfig.SERVER_CONFIG_SPEC);
         }

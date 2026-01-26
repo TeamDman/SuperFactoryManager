@@ -1,9 +1,10 @@
 package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.common.block.WaterTankBlock;
+import ca.teamdman.sfm.common.block_network.BlockNetwork;
+import ca.teamdman.sfm.common.block_network.WaterNetworkManager;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
-import ca.teamdman.sfm.common.watertanknetwork.WaterNetworkManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -14,60 +15,101 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.templates.FluidTank;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class WaterTankBlockEntity extends BlockEntity {
-    // can't fill, only extract
-    public final FluidTank TANK = new FluidTank(1000, fluidStack -> false) {
+
+    public final FluidTank TANK = new FluidTank(
+            1000,
+            fluidStack -> false // The tank cannot be filled, only drained.
+    ) {
         @Override
-        public @NotNull FluidStack drain(
+        public FluidStack drain(
                 int maxDrain,
                 FluidAction action
         ) {
-            if (getFluidAmount() == 0) return FluidStack.EMPTY; // Return empty if inactive
+
+            // Return empty if inactive
+            if (getFluidAmount() == 0) return FluidStack.EMPTY;
+
+            // Return fluid stack without draining the tank
             int drained = Math.min(maxDrain, getFluidAmount());
             FluidStack copy = getFluid().copy();
             copy.setAmount(drained);
             return copy;
         }
     };
-    public final LazyOptional<IFluidHandler> TANK_CAPABILITY = LazyOptional.of(() -> TANK);
+
+    public final LazyOptional<IFluidHandler> tankCapability = LazyOptional.of(() -> TANK);
+
     private boolean active = false;
 
     public WaterTankBlockEntity(
             BlockPos pos,
             BlockState state
     ) {
+
         super(SFMBlockEntities.WATER_TANK_BLOCK_ENTITY.get(), pos, state);
-        setActive(state.getOptionalValue(WaterTankBlock.IN_WATER).orElse(false));
     }
 
-    public void setConnectedCount(int connectedCount) {
-        int newCapacity = (int) Math.pow(2, connectedCount-1) * 1000;
+    public void updateActiveFromBlockState() {
+
+        updateActiveFromBlockState(getBlockState());
+    }
+
+    public void updateActiveFromBlockState(BlockState blockState) {
+
+        this.active = isActiveFromBlockState(blockState);
+    }
+
+    public boolean isActiveFromBlockState(BlockState blockState) {
+
+        return blockState.getOptionalValue(WaterTankBlock.IN_WATER).orElse(false);
+    }
+
+    /// The capacity of the tank is determined by the count of members in the [BlockNetwork]
+    public void updateTankCapacity(int activeMemberCount) {
+
+        int newCapacity;
+        if (activeMemberCount == 0) {
+            // Make the tank empty
+            newCapacity = 0;
+        } else {
+            // Update the capacity using $ 2^(n-1) $
+            newCapacity = (int) Math.pow(2, activeMemberCount - 1) * 1000;
+        }
+
+        // Handle integer overflows
         if (newCapacity < 0) newCapacity = Integer.MAX_VALUE;
+
+        // Update the tank capacity
         TANK.setCapacity(newCapacity);
-        updateTank();
+
+        // Update the tank contents
+        updateTankContents();
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
-        updateTank();
+    /// The [WaterTankBlock] handles updating the block state according to neighbouring water sources.
+    public boolean isActive() {
+
+        return active;
     }
 
     @Override
     public void onLoad() {
+
         super.onLoad();
         WaterNetworkManager.onLoad(this);
     }
 
     @Override
-    public @NotNull <T> LazyOptional<T> getCapability(
-            @NotNull Capability<T> cap,
+    public <T> LazyOptional<T> getCapability(
+            Capability<T> cap,
             @Nullable Direction side
     ) {
+
         if (cap == SFMWellKnownCapabilities.FLUID_HANDLER.capabilityKind()) {
-            return TANK_CAPABILITY.cast();
+            return tankCapability.cast();
         } else {
             return super.getCapability(cap, side);
         }
@@ -75,15 +117,18 @@ public class WaterTankBlockEntity extends BlockEntity {
 
     @Override
     public void invalidateCaps() {
-        TANK_CAPABILITY.invalidate();
+
+        tankCapability.invalidate();
         super.invalidateCaps();
     }
 
-    private void updateTank() {
-        if (active) {
+    private void updateTankContents() {
+
+        if (isActive()) {
             TANK.setFluid(new FluidStack(Fluids.WATER, TANK.getCapacity()));
         } else {
             TANK.setFluid(FluidStack.EMPTY);
         }
     }
+
 }

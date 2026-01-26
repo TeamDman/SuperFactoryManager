@@ -1,8 +1,9 @@
 
+
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 @FieldsAreNonnullByDefault
-package ca.teamdman.sfm.common.cablenetwork;
+package ca.teamdman.sfm;
 
 import net.minecraft.FieldsAreNonnullByDefault;
 import net.minecraft.MethodsReturnNonnullByDefault;

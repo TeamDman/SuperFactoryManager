@@ -128,6 +128,14 @@ public final class LocalizationKeys {
             "gui.sfm.facade_confirm_apply.message",
             "%d different facade states across %d blocks that will be overwritten."
     );
+    public static final LocalizationEntry COMMAND_BUST_WATER_NETWORK_CACHE_SUCCESS = new LocalizationEntry(
+            "sfm.command.bust_water_network_cache.success",
+            "Successfully busted water network cache."
+    );
+    public static final LocalizationEntry COMMAND_BUST_CABLE_NETWORK_CACHE_SUCCESS = new LocalizationEntry(
+            "sfm.command.bust_cable_network_cache.success",
+            "Successfully busted cable network cache."
+    );
     public static final LocalizationEntry CONFIRM_FUNNY_YES_1 = new LocalizationEntry(
             "gui.sfm.confirm.funny.yes.1",
             "Yeah, sure, why not."
@@ -1003,6 +1011,46 @@ public final class LocalizationKeys {
     public static final LocalizationEntry FANCY_CABLE_FACADE_BLOCK = new LocalizationEntry(
             () -> SFMBlocks.FANCY_CABLE_FACADE_BLOCK.get().getDescriptionId(),
             () -> "Fancy Inventory Cable Facade"
+    );
+    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+    public static final LocalizationEntry TOUGH_CABLE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TOUGH_CABLE_BLOCK.get().getDescriptionId(),
+            () -> "Tough Inventory Cable"
+    );
+    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+    public static final LocalizationEntry TOUGH_CABLE_FACADE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TOUGH_CABLE_FACADE_BLOCK.get().getDescriptionId(),
+            () -> "Tough Inventory Cable Facade"
+    );
+    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+    public static final LocalizationEntry TOUGH_FANCY_CABLE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TOUGH_FANCY_CABLE_BLOCK.get().getDescriptionId(),
+            () -> "Tough Fancy Inventory Cable"
+    );
+    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+    public static final LocalizationEntry TOUGH_FANCY_CABLE_FACADE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TOUGH_FANCY_CABLE_FACADE_BLOCK.get().getDescriptionId(),
+            () -> "Tough Fancy Inventory Cable Facade"
+    );
+    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+    public static final LocalizationEntry TUNNELLED_CABLE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TUNNELLED_CABLE_BLOCK.get().getDescriptionId(),
+            () -> "Tunnelled Inventory Cable"
+    );
+    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+    public static final LocalizationEntry TUNNELLED_CABLE_FACADE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TUNNELLED_CABLE_FACADE_BLOCK.get().getDescriptionId(),
+            () -> "Tunnelled Inventory Cable Facade"
+    );
+    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+    public static final LocalizationEntry TUNNELLED_FANCY_CABLE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK.get().getDescriptionId(),
+            () -> "Tunnelled Fancy Inventory Cable"
+    );
+    @SuppressWarnings("unused") // used by minecraft without us having to directly reference
+    public static final LocalizationEntry TUNNELLED_FANCY_CABLE_FACADE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TUNNELLED_FANCY_CABLE_FACADE_BLOCK.get().getDescriptionId(),
+            () -> "Tunnelled Fancy Inventory Cable Facade"
     );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry TUNNELLED_MANAGER_BLOCK = new LocalizationEntry(

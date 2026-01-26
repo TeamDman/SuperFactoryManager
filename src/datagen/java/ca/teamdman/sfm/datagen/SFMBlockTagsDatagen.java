@@ -15,11 +15,20 @@ public class SFMBlockTagsDatagen extends MCVersionAgnosticBlockTagsDataGen {
 
     @Override
     protected void addBlockTags() {
+        // TODO: add assertion requiring all blocks to have at least one preferred tool tag
         tag(BlockTags.MINEABLE_WITH_PICKAXE)
                 .add(SFMBlocks.CABLE_BLOCK.get())
                 .add(SFMBlocks.CABLE_FACADE_BLOCK.get())
                 .add(SFMBlocks.FANCY_CABLE_BLOCK.get())
                 .add(SFMBlocks.FANCY_CABLE_FACADE_BLOCK.get())
+                .add(SFMBlocks.TOUGH_CABLE_BLOCK.get())
+                .add(SFMBlocks.TOUGH_CABLE_FACADE_BLOCK.get())
+                .add(SFMBlocks.TOUGH_FANCY_CABLE_BLOCK.get())
+                .add(SFMBlocks.TOUGH_FANCY_CABLE_FACADE_BLOCK.get())
+                .add(SFMBlocks.TUNNELLED_CABLE_BLOCK.get())
+                .add(SFMBlocks.TUNNELLED_CABLE_FACADE_BLOCK.get())
+                .add(SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK.get())
+                .add(SFMBlocks.TUNNELLED_FANCY_CABLE_FACADE_BLOCK.get())
                 .add(SFMBlocks.MANAGER_BLOCK.get())
                 .add(SFMBlocks.TUNNELLED_MANAGER_BLOCK.get())
                 .add(SFMBlocks.PRINTING_PRESS_BLOCK.get());

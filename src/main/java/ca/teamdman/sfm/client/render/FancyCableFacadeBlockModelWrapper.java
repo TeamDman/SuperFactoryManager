@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.client.render;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.FancyCableFacadeBlockEntity;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
 import ca.teamdman.sfm.common.facade.FacadeTransparency;
+import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -16,7 +18,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.ChunkRenderTypeSet;
 import net.minecraftforge.client.model.BakedModelWrapper;
 import net.minecraftforge.client.model.data.ModelData;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -32,16 +33,22 @@ public class FancyCableFacadeBlockModelWrapper extends BakedModelWrapper<BakedMo
     }
 
     @Override
-    public @NotNull List<BakedQuad> getQuads(
+    public List<BakedQuad> getQuads(
             @Nullable BlockState state,
             @Nullable Direction side,
-            @NotNull RandomSource rand,
-            @NotNull ModelData extraData,
+            RandomSource rand,
+            ModelData extraData,
             @Nullable RenderType renderType
     ) {
         Minecraft minecraft = Minecraft.getInstance();
         BlockState mimicState = extraData.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);
         Direction mimicDirection = extraData.get(FancyCableFacadeBlockEntity.FACADE_DIRECTION);
+
+        if (SFMEnvironmentUtils.isInIDE()) {
+            if (mimicDirection == null) {
+                SFM.LOGGER.warn("Facade direction is null for block state {} mimicking {}", state, mimicState);
+            }
+        }
 
         // get all quads for the original model on the null-direction pass
         if (mimicState != null && side == null && mimicDirection != null) {
@@ -84,10 +91,10 @@ public class FancyCableFacadeBlockModelWrapper extends BakedModelWrapper<BakedMo
 
     @SuppressWarnings("DuplicatedCode")
     @Override
-    public @NotNull ChunkRenderTypeSet getRenderTypes(
-            @NotNull BlockState cableBlockState,
-            @NotNull RandomSource rand,
-            @NotNull ModelData data
+    public ChunkRenderTypeSet getRenderTypes(
+            BlockState cableBlockState,
+            RandomSource rand,
+            ModelData data
     ) {
         BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
         BlockState paintBlockState = data.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);

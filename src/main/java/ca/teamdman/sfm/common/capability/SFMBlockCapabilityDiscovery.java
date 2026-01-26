@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.SFMBlockCapabilityCacheForLevel;
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.SFMBlockCapabilityCacheForLevel;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfm.common.program.LimitedInputSlot;

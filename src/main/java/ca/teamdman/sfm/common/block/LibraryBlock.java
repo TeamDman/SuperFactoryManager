@@ -2,9 +2,9 @@ package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.blockentity.LibraryBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
-import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
+import ca.teamdman.sfm.common.block_network.ICableBlock;
 import ca.teamdman.sfm.common.containermenu.LibraryContainerMenu;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -108,6 +108,7 @@ public class LibraryBlock extends BaseEntityBlock implements EntityBlock, ICable
         // Notify managers that a library block was added
         if (!level.isClientSide()) {
             CableNetworkManager.getNetworksForLevel(level)
+                    .values().stream()
                     .filter(network -> network.isAdjacentToCable(pos))
                     .forEach(CableNetwork::invalidateAutoLabelsAndNotifyDependents);
         }
@@ -127,6 +128,7 @@ public class LibraryBlock extends BaseEntityBlock implements EntityBlock, ICable
             Set<BlockPos> managersToNotify = new HashSet<>();
             if (!level.isClientSide()) {
                 CableNetworkManager.getNetworksForLevel(level)
+                        .values().stream()
                         .filter(network -> network.isAdjacentToCable(pos))
                         .forEach(network -> {
                             managersToNotify.addAll(network.getOrRebuildAutoLabels()

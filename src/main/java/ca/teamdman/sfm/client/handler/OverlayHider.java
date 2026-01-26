@@ -1,16 +1,13 @@
 package ca.teamdman.sfm.client.handler;
 
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditScreenV2;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
+import ca.teamdman.sfm.common.util.SFMDist;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class OverlayHider {
-    @SubscribeEvent
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onTryOverlay(RenderGuiEvent.Pre event) {
         if (Minecraft.getInstance().screen instanceof SFMTextEditScreenV2) {
             event.setCanceled(true);

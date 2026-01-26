@@ -14,11 +14,13 @@ public class FancyCableFacadeBlockEntity extends CommonFacadeBlockEntity {
             BlockPos pos,
             BlockState state
     ) {
+
         super(SFMBlockEntities.FANCY_CABLE_FACADE_BLOCK_ENTITY.get(), pos, state);
     }
 
     @Override
     public ModelData getModelData() {
+
         if (getFacadeData() != null) {
             return ModelData.builder()
                     .with(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY, getFacadeData().facadeBlockState())
@@ -27,4 +29,5 @@ public class FancyCableFacadeBlockEntity extends CommonFacadeBlockEntity {
         }
         return ModelData.EMPTY;
     }
+
 }

@@ -27,6 +27,15 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
         justParent(SFMItems.TUNNELLED_MANAGER_ITEM, SFMBlocks.TUNNELLED_MANAGER_BLOCK);
         justParent(SFMItems.CABLE_ITEM, SFMBlocks.CABLE_BLOCK);
         justParent(SFMItems.FANCY_CABLE_ITEM, SFMBlocks.FANCY_CABLE_BLOCK, "_core");
+
+        // Tough cable models
+        justParent(SFMItems.TOUGH_CABLE_ITEM, SFMBlocks.TOUGH_CABLE_BLOCK);
+        justParent(SFMItems.TOUGH_FANCY_CABLE_ITEM, SFMBlocks.TOUGH_FANCY_CABLE_BLOCK, "_core");
+
+        // Tunnelled cable models
+        justParent(SFMItems.TUNNELLED_CABLE_ITEM, SFMBlocks.TUNNELLED_CABLE_BLOCK);
+        justParent(SFMItems.TUNNELLED_FANCY_CABLE_ITEM, SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK, "_core");
+
         justParent(SFMItems.PRINTING_PRESS_ITEM, SFMBlocks.PRINTING_PRESS_BLOCK);
         justParent(SFMItems.WATER_TANK_ITEM, SFMBlocks.WATER_TANK_BLOCK, "_active");
         justParent(SFMItems.BUFFER_ITEM, SFMBlocks.BUFFER_BLOCK, "_item");

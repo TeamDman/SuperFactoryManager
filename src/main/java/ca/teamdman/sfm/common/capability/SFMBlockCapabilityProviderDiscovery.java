@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.common.capability;
 
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.SFMBlockCapabilityCacheForLevel;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.SFMBlockCapabilityCacheForLevel;
 import ca.teamdman.sfm.common.registry.SFMGlobalBlockCapabilityProviders;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 

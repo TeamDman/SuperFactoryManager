@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.common.block;
 
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
+import ca.teamdman.sfm.common.block_network.ICableBlock;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
-import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.registry.SFMBlockEntities;

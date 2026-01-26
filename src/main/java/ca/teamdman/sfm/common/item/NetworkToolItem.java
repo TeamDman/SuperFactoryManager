@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.common.item;
 
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundNetworkToolUsePacket;
 import ca.teamdman.sfm.common.registry.SFMCreativeTabs;

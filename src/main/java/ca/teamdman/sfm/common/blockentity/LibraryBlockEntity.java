@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.blockentity;
 
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.containermenu.LibraryContainerMenu;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;

@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.common.program.linting;
 
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfml.ast.Program;

@@ -32,6 +32,26 @@ public class SFMItems {
             SFMBlocks.FANCY_CABLE_BLOCK
     );
 
+    public static final SFMRegistryObject<Item, BlockItem> TOUGH_CABLE_ITEM = register(
+            "tough_cable",
+            SFMBlocks.TOUGH_CABLE_BLOCK
+    );
+
+    public static final SFMRegistryObject<Item, BlockItem> TOUGH_FANCY_CABLE_ITEM = register(
+            "tough_fancy_cable",
+            SFMBlocks.TOUGH_FANCY_CABLE_BLOCK
+    );
+
+    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_CABLE_ITEM = register(
+            "tunnelled_cable",
+            SFMBlocks.TUNNELLED_CABLE_BLOCK
+    );
+
+    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_FANCY_CABLE_ITEM = register(
+            "tunnelled_fancy_cable",
+            SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK
+    );
+
     public static final SFMRegistryObject<Item, PrintingPressBlockItem> PRINTING_PRESS_ITEM
             = REGISTRY.register(
             "printing_press",
