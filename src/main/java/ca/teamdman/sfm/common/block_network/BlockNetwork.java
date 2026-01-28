@@ -12,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 /// A block network is a contiguous chain of blocks touching in the world.
@@ -27,17 +26,28 @@ public class BlockNetwork<LEVEL, T> {
 
     private final ChunkPosMap<BlockPosSet> memberBlockPositionsByChunk;
 
-    private final BiFunction<LEVEL, BlockPos, T> memberFactory;
+    private final BlockNetworkMemberFilterMapper<LEVEL, T> memberFilterMapper;
+
+    private final BlockNetworkConstructor<LEVEL, T, ? extends BlockNetwork<LEVEL, T>> networkConstructor;
 
     public BlockNetwork(
             LEVEL level,
-            BiFunction<LEVEL, BlockPos, @Nullable T> memberFactory
+            BlockNetworkMemberFilterMapper<LEVEL, T> memberFilterMapper
+    ) {
+        this(level, memberFilterMapper, BlockNetwork::new);
+    }
+
+    public BlockNetwork(
+            LEVEL level,
+            BlockNetworkMemberFilterMapper<LEVEL, T> memberFilterMapper,
+            BlockNetworkConstructor<LEVEL, T, ? extends BlockNetwork<LEVEL, T>> networkConstructor
     ) {
 
         this.level = level;
         this.membersByBlockPosition = new BlockPosMap<>();
         this.memberBlockPositionsByChunk = new ChunkPosMap<>();
-        this.memberFactory = memberFactory;
+        this.memberFilterMapper = memberFilterMapper;
+        this.networkConstructor = networkConstructor;
     }
 
     public LEVEL level() {
@@ -87,7 +97,7 @@ public class BlockNetwork<LEVEL, T> {
 
     @Nullable T getCandidate(BlockPos pos) {
 
-        return this.memberFactory.apply(level, pos);
+        return this.memberFilterMapper.getNetworkMember(level, pos);
     }
 
     Stream<Pair<BlockPos, T>> discoverCandidatesFromLevel(
@@ -230,8 +240,8 @@ public class BlockNetwork<LEVEL, T> {
             }
             if (alreadySeen) continue;
 
-            // Create the new water network to hold the branch
-            BlockNetwork<LEVEL, T> branch = new BlockNetwork<>(level, memberFactory);
+            // Create the new network to hold the branch
+            BlockNetwork<LEVEL, T> branch = networkConstructor.create(level, memberFilterMapper);
 
             // Populate the branch from this network
             branch.populateFromPosition(this, neighbourPos);

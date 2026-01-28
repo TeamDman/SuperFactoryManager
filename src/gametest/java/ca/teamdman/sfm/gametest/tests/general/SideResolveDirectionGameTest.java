@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.gametest.tests.general;
 
+import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
@@ -33,13 +34,13 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
 
-        return Direction.values().length + "x1x1";
+        return SFMDirections.DIRECTIONS_WITHOUT_NULL.length + "x1x1";
     }
 
     @Override
     public void run(SFMGameTestHelper helper) {
         // Place observers facing each of the 6 directions
-        Direction[] directions = Direction.values();
+        Direction[] directions = SFMDirections.DIRECTIONS_WITHOUT_NULL;
         for (int i = 0; i < directions.length; i++) {
             Direction dir = directions[i];
             BlockPos pos = new BlockPos(i, 1, 0);

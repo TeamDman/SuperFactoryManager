@@ -2,7 +2,6 @@ package ca.teamdman.sfm.common.block_network;
 
 import ca.teamdman.sfm.common.blockentity.WaterTankBlockEntity;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
-import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -14,15 +13,21 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class WaterNetworkManager {
-    private static final BlockNetworkManager<Level, WaterTankBlockEntity> NETWORK_MANAGER = new BlockNetworkManager<>(
-            (level, blockPos) -> {
-                BlockEntity blockEntity = level.getBlockEntity(blockPos);
-                if (blockEntity instanceof WaterTankBlockEntity waterTankBlockEntity) {
-                    return waterTankBlockEntity;
-                } else {
-                    return null;
-                }
-            }
+    private static final BlockNetworkMemberFilterMapper<Level, WaterTankBlockEntity> WATER_TANK_MEMBER_FILTER = (level, blockPos) -> {
+        BlockEntity blockEntity = level.getBlockEntity(blockPos);
+        if (blockEntity instanceof WaterTankBlockEntity waterTankBlockEntity) {
+            return waterTankBlockEntity;
+        } else {
+            return null;
+        }
+    };
+
+    private static final BlockNetworkConstructor<Level, WaterTankBlockEntity, BlockNetwork<Level, WaterTankBlockEntity>> WATER_TANK_NETWORK_CONSTRUCTOR =
+            BlockNetwork::new;
+
+    private static final BlockNetworkManager<Level, WaterTankBlockEntity, BlockNetwork<Level, WaterTankBlockEntity>> NETWORK_MANAGER = new BlockNetworkManager<>(
+            WATER_TANK_MEMBER_FILTER,
+            WATER_TANK_NETWORK_CONSTRUCTOR
     );
 
     public static void onLoad(WaterTankBlockEntity blockEntity) {
@@ -47,10 +52,6 @@ public class WaterNetworkManager {
 
         // Update water tank capacities on the network
         updateWaterTankCapacitiesForNetworkOfMember(level, blockPos);
-
-        if (SFMEnvironmentUtils.isInIDE()) {
-            printNetworks();
-        }
     }
 
     public static void onWaterTankBlockRemoved(
@@ -71,19 +72,6 @@ public class WaterNetworkManager {
         for (BlockNetwork<Level, WaterTankBlockEntity> network : newNetworks) {
             updateWaterTankCapacitiesForNetwork(network);
         }
-
-
-        if (SFMEnvironmentUtils.isInIDE()) {
-            printNetworks();
-        }
-    }
-
-    public static void printNetworks() {
-
-        boolean enabled = false;
-        if (!enabled) return;
-
-        NETWORK_MANAGER.printDebugInfo();
     }
 
     /// Get the network for the given block position and update the capacities

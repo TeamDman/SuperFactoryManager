@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.block_network;
 
 import ca.teamdman.sfm.common.block_network.BlockNetwork;
+import ca.teamdman.sfm.common.block_network.BlockNetworkConstructor;
 import ca.teamdman.sfm.common.block_network.BlockNetworkManager;
+import ca.teamdman.sfm.common.block_network.BlockNetworkMemberFilterMapper;
 import ca.teamdman.sfm.common.util.SFMBlockPosUtils;
 import net.minecraft.core.BlockPos;
 import org.junit.jupiter.api.Test;
@@ -16,14 +18,20 @@ public class SFMBlockNetworkGrowTests {
         SFMTestLevel<String> testLevel = new SFMTestLevel<>("overworld");
 
         // Create a block network manager
-        BlockNetworkManager<SFMTestLevel<String>, String> blockNetworkManager = new BlockNetworkManager<>((level, pos) -> {
+        BlockNetworkMemberFilterMapper<SFMTestLevel<String>, String> memberFilterMapper = (level, pos) -> {
             String blockString = level.blocks().get(pos);
             if (blockString == null) {
                 return null;
             } else {
                 return "member entity: " + blockString;
             }
-        });
+        };
+        BlockNetworkConstructor<SFMTestLevel<String>, String, BlockNetwork<SFMTestLevel<String>, String>> networkConstructor =
+                BlockNetwork::new;
+        BlockNetworkManager<SFMTestLevel<String>, String, BlockNetwork<SFMTestLevel<String>, String>> blockNetworkManager = new BlockNetworkManager<>(
+                memberFilterMapper,
+                networkConstructor
+        );
 
         // The default block network manager must be empty
         assertTrue(blockNetworkManager.isEmpty());

@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.tests.tunnelled_manager;
 
 import ca.teamdman.sfm.common.registry.SFMBlocks;
+import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.gametest.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -56,7 +57,7 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
     public void generateTests(Consumer<SFMGameTestDefinition> testConsumer) {
 
         for (TunnelledBlockVariant variant : TUNNELLED_BLOCKS) {
-            for (Direction direction : Direction.values()) {
+            for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
                 testConsumer.accept(new TunnelledBlockCapabilityTest(variant, direction));
             }
         }
