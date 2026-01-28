@@ -187,8 +187,11 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     public void bustCacheForChunk(ChunkAccess chunkAccess) {
+        bustCacheForChunk(chunkAccess.getPos());
+    }
 
-        ChunkPos chunkPos = chunkAccess.getPos();
+    public void bustCacheForChunk(ChunkPos chunkPos) {
+
         BlockPosSet blockPositions = chunkPosToBlockPosMap.get(chunkPos);
         if (blockPositions != null) {
             blockPosToCapKindToDirectionToCapResultMap.removeBlockPositions(blockPositions);
