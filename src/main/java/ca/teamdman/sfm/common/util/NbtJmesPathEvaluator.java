@@ -80,7 +80,13 @@ public class NbtJmesPathEvaluator {
         if (stack.isEmpty()) {
             return new JsonObject();
         }
-        Tag nbt = stack.save(registries);
+
+        // ItemStack.save() throws IllegalStateException for counts > 99
+        // Workaround: save a copy with count=1, then use the actual count
+        int actualCount = stack.getCount();
+        ItemStack copyForSave = stack.copyWithCount(1);
+
+        Tag nbt = copyForSave.save(registries);
         JsonElement raw = nbtToJson(nbt);
 
         if (!raw.isJsonObject()) {
@@ -90,13 +96,12 @@ public class NbtJmesPathEvaluator {
         JsonObject rawObj = raw.getAsJsonObject();
         JsonObject result = new JsonObject();
 
-        // Copy id and count
+        // Copy id from NBT
         if (rawObj.has("id")) {
             result.add("id", rawObj.get("id"));
         }
-        if (rawObj.has("count")) {
-            result.add("count", rawObj.get("count"));
-        }
+        // Use the actual count from the original stack
+        result.addProperty("count", actualCount);
 
         // Flatten components
         if (rawObj.has("components") && rawObj.get("components").isJsonObject()) {
