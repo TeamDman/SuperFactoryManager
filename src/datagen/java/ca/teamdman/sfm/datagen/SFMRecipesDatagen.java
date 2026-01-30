@@ -54,47 +54,95 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .unlockedBy("has_chest", RecipeProvider.has(Tags.Items.CHESTS))
                 .save(writer, SFMResourceLocation.fromSFMPath("fancy_to_cable"));
 
-        // Tough cable recipes (shapeless conversions)
-        beginShapeless(SFMBlocks.TOUGH_CABLE_BLOCK.get(), 1)
-                .requires(SFMBlocks.CABLE_BLOCK.get(), 1)
-                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+        beginShaped(SFMBlocks.TOUGH_CABLE_BLOCK.get(), 1)
+                .define('A', Blocks.OBSIDIAN)
+                .define('B', SFMBlocks.CABLE_BLOCK.get())
+                .unlockedBy("has_obsidian", RecipeProvider.has(Items.OBSIDIAN))
+                .unlockedBy("has_cable", RecipeProvider.has(SFMItems.CABLE_ITEM.get()))
+                .pattern("A A")
+                .pattern("ABA")
+                .pattern("A A")
                 .save(writer);
 
-        beginShapeless(SFMBlocks.TOUGH_FANCY_CABLE_BLOCK.get(), 1)
-                .requires(SFMBlocks.FANCY_CABLE_BLOCK.get(), 1)
-                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
-                .save(writer);
+        beginShaped(SFMBlocks.TOUGH_CABLE_BLOCK.get(), 1)
+                .define('A', Blocks.OBSIDIAN)
+                .define('B', SFMBlocks.CABLE_BLOCK.get())
+                .unlockedBy("has_obsidian", RecipeProvider.has(Items.OBSIDIAN))
+                .unlockedBy("has_cable", RecipeProvider.has(SFMItems.CABLE_ITEM.get()))
+                .pattern("AAA")
+                .pattern(" B ")
+                .pattern("AAA")
+                .save(writer, "tough_cable_horizontal");
+
+        beginShaped(SFMBlocks.TOUGH_FANCY_CABLE_BLOCK.get(), 1)
+                .define('A', Blocks.OBSIDIAN)
+                .define('B', SFMBlocks.FANCY_CABLE_BLOCK.get())
+                .unlockedBy("has_obsidian", RecipeProvider.has(Items.OBSIDIAN))
+                .unlockedBy("has_fancy_cable", RecipeProvider.has(SFMItems.FANCY_CABLE_ITEM.get()))
+                .pattern("A A")
+                .pattern("ABA")
+                .pattern("A A")
+                .save(writer, "tough_cable_vertical");
+
+        beginShaped(SFMBlocks.TOUGH_FANCY_CABLE_BLOCK.get(), 1)
+                .define('A', Blocks.OBSIDIAN)
+                .define('B', SFMBlocks.FANCY_CABLE_BLOCK.get())
+                .unlockedBy("has_obsidian", RecipeProvider.has(Items.OBSIDIAN))
+                .unlockedBy("has_fancy_cable", RecipeProvider.has(SFMItems.FANCY_CABLE_ITEM.get()))
+                .pattern("AAA")
+                .pattern(" B ")
+                .pattern("AAA")
+                .save(writer, "tough_fancy_cable_horizontal");
 
         beginShapeless(SFMBlocks.CABLE_BLOCK.get(), 1)
                 .requires(SFMBlocks.TOUGH_CABLE_BLOCK.get(), 1)
-                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .unlockedBy("has_tough_cable", RecipeProvider.has(SFMItems.TOUGH_CABLE_ITEM.get()))
                 .save(writer, SFMResourceLocation.fromSFMPath("tough_to_cable"));
 
         beginShapeless(SFMBlocks.FANCY_CABLE_BLOCK.get(), 1)
                 .requires(SFMBlocks.TOUGH_FANCY_CABLE_BLOCK.get(), 1)
-                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
+                .unlockedBy("has_tough_fancy_cable", RecipeProvider.has(SFMItems.TOUGH_FANCY_CABLE_ITEM.get()))
                 .save(writer, SFMResourceLocation.fromSFMPath("tough_fancy_to_fancy"));
 
-        // Tunnelled cable recipes (shapeless conversions)
-        beginShapeless(SFMBlocks.TUNNELLED_CABLE_BLOCK.get(), 1)
-                .requires(SFMBlocks.CABLE_BLOCK.get(), 1)
-                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
-                .save(writer);
+        beginShaped(SFMBlocks.TUNNELLED_CABLE_BLOCK.get(), 1)
+                .define('A', Tags.Items.FENCES)
+                .define('B', SFMBlocks.CABLE_BLOCK.get())
+                .unlockedBy("has_fence", RecipeProvider.has(Tags.Items.FENCES))
+                .unlockedBy("has_cable", RecipeProvider.has(SFMItems.CABLE_ITEM.get()))
+                .pattern("A A")
+                .pattern("ABA")
+                .pattern("A A")
+                .save(writer, "tunnelled_cable_vertical");
 
-        beginShapeless(SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK.get(), 1)
-                .requires(SFMBlocks.FANCY_CABLE_BLOCK.get(), 1)
-                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
-                .save(writer);
+        beginShaped(SFMBlocks.TUNNELLED_CABLE_BLOCK.get(), 1)
+                .define('A', Tags.Items.FENCES)
+                .define('B', SFMBlocks.CABLE_BLOCK.get())
+                .unlockedBy("has_fence", RecipeProvider.has(Tags.Items.FENCES))
+                .unlockedBy("has_cable", RecipeProvider.has(SFMItems.CABLE_ITEM.get()))
+                .pattern("AAA")
+                .pattern(" B ")
+                .pattern("AAA")
+                .save(writer, "tunnelled_cable_horizontal");
 
-        beginShapeless(SFMBlocks.CABLE_BLOCK.get(), 1)
-                .requires(SFMBlocks.TUNNELLED_CABLE_BLOCK.get(), 1)
-                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
-                .save(writer, SFMResourceLocation.fromSFMPath("tunnelled_to_cable"));
+        beginShaped(SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK.get(), 1)
+                .define('A', Tags.Items.FENCES)
+                .define('B', SFMBlocks.FANCY_CABLE_BLOCK.get())
+                .unlockedBy("has_fence", RecipeProvider.has(Tags.Items.FENCES))
+                .unlockedBy("has_fancy_cable", RecipeProvider.has(SFMItems.FANCY_CABLE_ITEM.get()))
+                .pattern("A A")
+                .pattern("ABA")
+                .pattern("A A")
+                .save(writer, "tunnelled_fancy_cable_vertical");
 
-        beginShapeless(SFMBlocks.FANCY_CABLE_BLOCK.get(), 1)
-                .requires(SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK.get(), 1)
-                .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
-                .save(writer, SFMResourceLocation.fromSFMPath("tunnelled_fancy_to_fancy"));
+        beginShaped(SFMBlocks.TUNNELLED_FANCY_CABLE_BLOCK.get(), 1)
+                .define('A', Tags.Items.FENCES)
+                .define('B', SFMBlocks.FANCY_CABLE_BLOCK.get())
+                .unlockedBy("has_fence", RecipeProvider.has(Tags.Items.FENCES))
+                .unlockedBy("has_fancy_cable", RecipeProvider.has(SFMItems.FANCY_CABLE_ITEM.get()))
+                .pattern("AAA")
+                .pattern(" B ")
+                .pattern("AAA")
+                .save(writer, "tunnelled_fancy_cable_horizontal");
 
         beginShaped(SFMBlocks.MANAGER_BLOCK.get(), 1)
                 .define('A', Tags.Items.CHESTS)

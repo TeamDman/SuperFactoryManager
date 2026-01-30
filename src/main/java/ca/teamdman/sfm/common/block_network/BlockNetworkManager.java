@@ -5,7 +5,6 @@ import ca.teamdman.sfm.common.util.*;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -61,7 +60,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
 
         BlockPosMap<NETWORK> blockPosMap = networksByLevelBlockPos.get(level);
         if (blockPosMap == null) return null;
-        return blockPosMap.get(blockPos);
+        return blockPosMap.getFromPosition(blockPos);
     }
 
     public BlockPosMap<NETWORK> getNetworksForLevel(LEVEL level) {
@@ -221,7 +220,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
     }
 
 
-    public void assertNetworkForgotten(BlockNetwork<LEVEL, T> network) {
+    public void assertNetworkForgotten(NETWORK network) {
 
         LEVEL level = network.level();
 
@@ -240,7 +239,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
         }
 
         // Check the block position lookup
-        if (networksByLevelBlockPos.getOrDefault(level, new BlockPosMap<>()).values().contains(network)) {
+        if (networksByLevelBlockPos.getOrDefault(level, new BlockPosMap<>()).containsValue(network)) {
             throw new IllegalStateException("Network still tracked in block position lookup");
         }
     }
@@ -257,7 +256,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
                 Set<NETWORK> networksForLevel = entry.getValue();
                 BlockPosSet seen = new BlockPosSet();
                 for (NETWORK network : networksForLevel) {
-                    for (BlockPos blockPos : network.members().keysAsBlockPosSet()) {
+                    for (BlockPos blockPos : network.members().positions()) {
                         // Assert that no position belongs to multiple networks in this level
                         boolean modified = seen.add(blockPos);
                         if (!modified) {
@@ -268,7 +267,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
                         }
 
                         // Assert that the position is present in the lookup map
-                        NETWORK foundNetwork = networksByPositionLookup.get(blockPos);
+                        NETWORK foundNetwork = networksByPositionLookup.getFromPosition(blockPos);
                         if (foundNetwork == null) {
                             throw new IllegalStateException("Position "
                                                             + blockPos
@@ -381,7 +380,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
                         network.members().size()
                 );
                 int iMember = 0;
-                for (BlockPos blockPos : network.members().keysAsBlockPosSet()) {
+                for (BlockPos blockPos : network.members().positions()) {
                     SFM.LOGGER.info("      Member {}: {}", iMember, blockPos);
                 }
                 i++;
@@ -459,7 +458,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
         // Remove all position lookups for this network
         BlockPosMap<NETWORK> networksByBlockPos = networksByLevelBlockPos.get(level);
         if (networksByBlockPos != null) {
-            networksByBlockPos.removeBlockPositions(network.members().keysAsLongSet());
+            networksByBlockPos.keySet().removeAll(network.members().keySet());
             if (networksByBlockPos.isEmpty()) {
                 networksByLevelBlockPos.remove(level);
             }
@@ -563,10 +562,9 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
                 level,
                 k -> new BlockPosMap<>()
         );
-        LongSet newNetworkMemberBlockPositions = newNetwork.members().keysAsLongSet();
-        LongIterator newNetworkMemberBlockPositionIterator = newNetworkMemberBlockPositions.longIterator();
-        while (newNetworkMemberBlockPositionIterator.hasNext()) {
-            long newNetworkMemberBlockPos = newNetworkMemberBlockPositionIterator.nextLong();
+        LongIterator newNetworkMemberBlockPosIterator = newNetwork.members().keySet().iterator();
+        while (newNetworkMemberBlockPosIterator.hasNext()) {
+            long newNetworkMemberBlockPos = newNetworkMemberBlockPosIterator.nextLong();
             // Clobber the old entries
             networksByLevelBlockPosition.put(newNetworkMemberBlockPos, newNetwork);
         }
@@ -631,7 +629,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
         // Remove the block pos from the position lookup
         BlockPosMap<NETWORK> networksByBlockPos = networksByLevelBlockPos.get(level);
         if (networksByBlockPos != null) {
-            networksByBlockPos.remove(memberBlockPos);
+            networksByBlockPos.remove(memberBlockPos.asLong());
             if (networksByBlockPos.isEmpty()) {
                 networksByLevelBlockPos.remove(level);
             }

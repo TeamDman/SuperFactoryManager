@@ -31,7 +31,7 @@
     "search.exclude": {
         "**/build": true,
         // un-exclude a specific version; https://github.com/microsoft/vscode/issues/869#issuecomment-161205895
-        "!build/tmp/expandedArchives/forge-1.19.2-43.4.0_mapped_parchment_2022.11.27-1.19.2-sources.jar_50e0a883e562228deabdb46a1ce4d20a": true,
+        "!build/tmp/expandedArchives/forge-1.19.2-43.4.0_mapped_parchment_2022.11.27-1.19.2-sources.jar_7a246725064b23502ff38450a20deb2e": true,
 
         "**/bin": true,
         "**/.gradle": true,

@@ -1,4 +1,4 @@
-package ca.teamdman.sfm.gametest.tests.tunnelled_manager;
+package ca.teamdman.sfm.gametest.tests.cable.tunnelled;
 
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.gametest.SFMGameTest;
@@ -15,12 +15,12 @@ import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
 
 @SuppressWarnings({"DataFlowIssue", "RedundantSuppression"})
 @SFMGameTest
-public class TunnelledManagerHopperGameTest extends SFMGameTestDefinition {
+public class TunnelledManagerHopperLongGameTest extends SFMGameTestDefinition {
     private final int OPERATION_ASSESSMENT_COUNT = 5;
     @Override
     public String template() {
 
-        return "3x2x1";
+        return "8x2x1";
     }
 
     @Override
@@ -32,14 +32,15 @@ public class TunnelledManagerHopperGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // declare positions
-        BlockPos managerPos = new BlockPos(1, 2, 0);
         BlockPos invPos = new BlockPos(0, 2, 0);
-        BlockPos hopperPos = new BlockPos(2, 2, 0);
+        BlockPos hopperPos = new BlockPos(7, 2, 0);
 
         // set blocks
-        helper.setBlock(managerPos, SFMBlocks.TUNNELLED_MANAGER_BLOCK.get());
         helper.setBlock(invPos, SFMBlocks.TEST_BARREL_BLOCK.get());
         helper.setBlock(hopperPos, Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.WEST));
+        for (int x = 1; x <= 6; x++) {
+            helper.setBlock(new BlockPos(x, 2, 0), SFMBlocks.TUNNELLED_MANAGER_BLOCK.get());
+        }
 
         // get handlers
         var inv = helper.getItemHandler(invPos);

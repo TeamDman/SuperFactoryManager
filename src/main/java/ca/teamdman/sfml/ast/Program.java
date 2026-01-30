@@ -14,7 +14,6 @@ import net.minecraftforge.network.NetworkHooks;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.DataOutput;
 import java.time.Duration;
@@ -131,7 +130,7 @@ public record Program(
                 continue;
             }
 
-            // Set flag and log on first trigger
+            // Set the flag and log on the first trigger
             if (!context.didSomething()) {
                 context.setDidSomething(true);
                 context.getLogger().trace(getTraceLogWriter(context));
@@ -292,7 +291,7 @@ public record Program(
         }
     }
 
-    private static @NotNull Consumer<Consumer<TranslatableContents>> getTraceLogWriter(ProgramContext context) {
+    private static Consumer<Consumer<TranslatableContents>> getTraceLogWriter(ProgramContext context) {
 
         return trace -> {
             trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_HEADER_1.get());
@@ -303,7 +302,9 @@ public record Program(
             //noinspection DataFlowIssue
             context
                     .getNetwork()
-                    .getCablePositions()
+                    .members()
+                    .positions()
+                    .stream()
                     .map(pos -> "- "
                                 + pos.toString()
                                 + " "
@@ -313,14 +314,14 @@ public record Program(
                     .forEach(body -> trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_BODY.get(
                             body)));
             trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_HEADER_3.get());
-            //noinspection DataFlowIssue
             context
                     .getNetwork()
                     .getCapabilityProviderPositions()
-                    .map(pos -> "- " + pos.toString() + " " + level
-                            .getBlockState(pos))
-                    .forEach(body -> trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_BODY.get(
-                            body)));
+                    .forEach(blockPos -> {
+                        assert level != null;
+                        String content = "- " + blockPos.toString() + " " + level.getBlockState(blockPos);
+                        trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_BODY.get(content));
+                    });
             trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_FOOTER.get());
 
             trace.accept(LocalizationKeys.LOG_LABEL_POSITION_HOLDER_DETAILS_HEADER.get());
@@ -329,20 +330,12 @@ public record Program(
                     .getLabelPositionHolder()
                     .labels()
                     .forEach((label, positions) -> positions
+                            .blockPosIterator()
                             .stream()
-                            .map(
-                                    pos -> "- "
-                                           + label
-                                           + ": "
-                                           + pos.toString()
-                                           + " "
-                                           + level
-                                                   .getBlockState(
-                                                           pos)
-
-                            )
-                            .forEach(body -> trace.accept(LocalizationKeys.LOG_LABEL_POSITION_HOLDER_DETAILS_BODY.get(
-                                    body))));
+                            .map(pos -> "- " + label + ": " + pos.toString() + " " + level.getBlockState(pos))
+                            .forEach(body -> trace.accept(
+                                    LocalizationKeys.LOG_LABEL_POSITION_HOLDER_DETAILS_BODY.get(body)
+                            )));
             trace.accept(LocalizationKeys.LOG_LABEL_POSITION_HOLDER_DETAILS_FOOTER.get());
             trace.accept(LocalizationKeys.LOG_PROGRAM_CONTEXT.get(context.toString()));
         };

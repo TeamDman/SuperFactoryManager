@@ -5,7 +5,7 @@
       "item": "minecraft:obsidian"
     },
     "B": {
-      "item": "sfm:cable"
+      "item": "sfm:fancy_cable"
     }
   },
   "pattern": [
@@ -14,6 +14,6 @@
     "A A"
   ],
   "result": {
-    "item": "sfm:tough_cable"
+    "item": "sfm:tough_fancy_cable"
   }
 }

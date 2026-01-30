@@ -1,12 +1,24 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_iron_ingot": {
+    "has_fancy_cable": {
       "conditions": {
         "items": [
           {
             "items": [
-              "minecraft:iron_ingot"
+              "sfm:fancy_cable"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_obsidian": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:obsidian"
             ]
           }
         ]
@@ -15,20 +27,21 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "sfm:tunnelled_cable"
+        "recipe": "minecraft:tough_cable_vertical"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_iron_ingot",
+      "has_obsidian",
+      "has_fancy_cable",
       "has_the_recipe"
     ]
   ],
   "rewards": {
     "recipes": [
-      "sfm:tunnelled_cable"
+      "minecraft:tough_cable_vertical"
     ]
   }
 }

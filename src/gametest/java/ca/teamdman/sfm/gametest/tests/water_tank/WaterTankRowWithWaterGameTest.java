@@ -1,4 +1,4 @@
-package ca.teamdman.sfm.gametest.tests.water_tanks;
+package ca.teamdman.sfm.gametest.tests.water_tank;
 
 import ca.teamdman.sfm.common.blockentity.WaterTankBlockEntity;
 import ca.teamdman.sfm.common.registry.SFMBlocks;

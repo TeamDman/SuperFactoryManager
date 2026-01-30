@@ -1,4 +1,4 @@
-package ca.teamdman.sfm.gametest.tests.tunnelled_manager;
+package ca.teamdman.sfm.gametest.tests.cable.tunnelled;
 
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import ca.teamdman.sfm.gametest.SFMGameTest;

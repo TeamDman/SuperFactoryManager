@@ -12,9 +12,7 @@ NAME "Changelog"
 -- Introduce tunnelled cables
 -- Introduce tough cables
 -- Switch to new @SFMSubscribeEvent annotation to reduce @MCVersionDependentBehaviour
--- TODO: add tooltips to tough and tunnelled cables and tunnelled manager block
--- TODO: update tunnelled cable and tough cable recipes
--- TODO: make tough cables default obsidian blast resistance
+-- Add tooltips to tough and tunnelled cables and tunnelled manager block
 -- Update block network logic used by cable networks and water tanks
 ---- Should fix https://github.com/FTBTeam/FTB-Modpack-Issues/issues/10084
 ---- Should fix https://github.com/TeamDman/SuperFactoryManager/issues/426

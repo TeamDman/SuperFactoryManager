@@ -1,4 +1,4 @@
-package ca.teamdman.sfm.gametest.tests.tunnelled_manager;
+package ca.teamdman.sfm.gametest.tests.cable.tunnelled;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;

@@ -50,11 +50,13 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
             Level level,
             BlockNetworkMemberFilterMapper<Level, Unit> memberFilterMapper
     ) {
+
         super(level, memberFilterMapper, CableNetwork::new);
         this.levelCapabilityCache = new SFMBlockCapabilityCacheForLevel(level);
     }
 
     public SFMBlockCapabilityCacheForLevel getLevelCapabilityCache() {
+
         return levelCapabilityCache;
     }
 
@@ -65,6 +67,7 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
             @Nullable Level world,
             BlockPos cablePos
     ) {
+
         if (world == null) return false;
         return world
                 .getBlockState(cablePos)
@@ -72,7 +75,11 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
     }
 
     /// Member filter mapper for use with BlockNetworkManager
-    public static @Nullable Unit cableMemberFilterMapper(Level level, BlockPos pos) {
+    public static @Nullable Unit cableMemberFilterMapper(
+            Level level,
+            BlockPos pos
+    ) {
+
         return isCable(level, pos) ? Unit.INSTANCE : null;
     }
 
@@ -82,6 +89,7 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
             Level level,
             BlockPos startPos
     ) {
+
         return SFMStreamUtils.getRecursiveStream(
                 (current, next, results) -> {
                     results.accept(current);
@@ -97,11 +105,13 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
     }
 
     public Level getLevel() {
+
         return level();
     }
 
     @Override
     public String toString() {
+
         return "CableNetwork{level="
                + getLevel().dimension().location()
                + ", #cables="
@@ -118,6 +128,7 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
      * @return {@code true} if adjacent to cable in network
      */
     public boolean isAdjacentToCable(BlockPos pos) {
+
         if (containsCablePosition(pos)) {
             return true; // allow managers to interact with themselves
         }
@@ -132,6 +143,7 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
     }
 
     public boolean containsCablePosition(BlockPos pos) {
+
         return members().containsKey(pos);
     }
 
@@ -142,25 +154,29 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
             @Nullable Direction direction,
             TranslatableLogger logger
     ) {
-       return SFMBlockCapabilityDiscovery.discoverCapabilityFromNetwork(
-               this,
-               capKind,
-               pos,
-               direction,
-               logger
-       );
+
+        return SFMBlockCapabilityDiscovery.discoverCapabilityFromNetwork(
+                this,
+                capKind,
+                pos,
+                direction,
+                logger
+        );
     }
 
     public int getCableCount() {
+
         return size();
     }
 
-    public Stream<BlockPos> getCablePositions() {
-        return members().keysAsLongSet().longStream().mapToObj(BlockPos::of);
+    public BlockPosIterator getCapabilityProviderPositions() {
+
+        return levelCapabilityCache.getPositions();
     }
 
-    public Stream<BlockPos> getCapabilityProviderPositions() {
-        return levelCapabilityCache.getPositions();
+    public BlockPosIterator getCablePositions() {
+
+        return members().positions();
     }
 
     /**
@@ -215,6 +231,7 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
 
     @Override
     void purgeChunk(ChunkPos chunkPos) {
+
         levelCapabilityCache.bustCacheForChunk(chunkPos);
         autoLabelCache = null;
         super.purgeChunk(chunkPos);
@@ -299,6 +316,7 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
 
     @Override
     void addAllFromOtherNetwork(BlockNetwork<Level, Unit> other) {
+
         super.addAllFromOtherNetwork(other);
         // Also, merge capability caches if the other network is a CableNetwork
         if (other instanceof CableNetwork otherCable) {
@@ -379,19 +397,25 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
     /// Transfer capability cache entries from this network to a branch network.
     /// Only transfers entries for positions adjacent to cables in the branch network.
     private void transferCapabilityCacheToBranch(CableNetwork branch) {
-        BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
+
         BlockPosSet seenCapabilityPositions = new BlockPosSet();
 
         // For each cable in the branch, check adjacent positions for capability cache entries
-        for (BlockPos cablePos : branch.members().keysAsBlockPosSet()) {
+        BlockPos.MutableBlockPos neighbourPos = new BlockPos.MutableBlockPos();
+        for (BlockPos.MutableBlockPos cablePos : branch.members().positions()) {
             for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
-                target.set(cablePos).move(direction);
+                neighbourPos.set(cablePos);
+                neighbourPos.move(direction);
                 // The same block may be touching multiple cables in the network
-                boolean firstVisit = seenCapabilityPositions.add(target);
+                boolean firstVisit = seenCapabilityPositions.add(neighbourPos); // correctness: consuming function makes immutable
                 if (firstVisit) {
-                    branch.levelCapabilityCache.overwriteFromOther(target, this.levelCapabilityCache);
+                    branch.levelCapabilityCache.overwriteFromOther(
+                            neighbourPos,
+                            this.levelCapabilityCache
+                    ); // correctness: consuming function makes immutable
                 }
             }
         }
     }
+
 }

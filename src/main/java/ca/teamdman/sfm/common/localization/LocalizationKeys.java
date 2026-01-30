@@ -1169,6 +1169,18 @@ public final class LocalizationKeys {
             "gui.sfm.program_editor_config.preferred_editor.v2",
             "V2"
     );
+    public static final LocalizationEntry TOUGH_CABLE_ITEM_TOOLTIP = new LocalizationEntry(
+            () -> SFMBlocks.TOUGH_CABLE_BLOCK.get().getDescriptionId() + ".tooltip",
+            () -> "Resists explosions."
+    );
+    public static final LocalizationEntry TUNNELLED_CABLE_ITEM_TOOLTIP = new LocalizationEntry(
+            () -> SFMBlocks.TUNNELLED_CABLE_BLOCK.get().getDescriptionId() + ".tooltip",
+            () -> "Passes capabilities through to the opposite side."
+    );
+    public static final LocalizationEntry TUNNELLED_MANAGER_ITEM_TOOLTIP = new LocalizationEntry(
+            () -> SFMBlocks.TUNNELLED_MANAGER_BLOCK.get().getDescriptionId() + ".tooltip",
+            () -> "Passes capabilities through to the opposite side."
+    );
 
 
     public static List<LocalizationEntry> getEntries() {

@@ -60,6 +60,7 @@ public class CableNetworkManager {
                 // .distinct()
                 .filter(net -> net
                         .getCablePositions()
+                        .stream()
                         .anyMatch(cablePos -> cablePos.distSqr(pos) < maxDistance * maxDistance));
     }
 
@@ -156,7 +157,7 @@ public class CableNetworkManager {
         return NETWORK_MANAGER.getNetworksForLevel(level)
                 .values()
                 .stream()
-                .flatMap(CableNetwork::getCablePositions)
+                .flatMap(network -> network.getCablePositions().stream())
                 .filter(pos -> !(level.getBlockState(pos).getBlock() instanceof ICableBlock))
                 .collect(Collectors.toList());
     }

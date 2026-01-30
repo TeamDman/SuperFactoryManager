@@ -1,4 +1,4 @@
-package ca.teamdman.sfm.gametest.tests.cables;
+package ca.teamdman.sfm.gametest.tests.cable;
 
 import ca.teamdman.sfm.common.block_network.CableNetwork;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;

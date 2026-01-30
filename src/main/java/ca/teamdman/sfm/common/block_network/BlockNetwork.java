@@ -128,7 +128,7 @@ public class BlockNetwork<LEVEL, T> {
         return SFMStreamUtils.getRecursiveStream(
                 (currentBlockPos, next, results) -> {
                     // Only traverse positions that have a block entity in the cache
-                    T member = membersByBlockPosition.get(currentBlockPos);
+                    T member = membersByBlockPosition.getFromPosition(currentBlockPos);
                     if (member == null) return;
 
                     // Track the return value
@@ -147,7 +147,7 @@ public class BlockNetwork<LEVEL, T> {
 
         BlockPosSet positionsInChunk = memberBlockPositionsByChunk.get(chunkPos);
         if (positionsInChunk != null) {
-            membersByBlockPosition.removeBlockPositions(positionsInChunk);
+            membersByBlockPosition.removeAllPositions(positionsInChunk);
             memberBlockPositionsByChunk.remove(chunkPos);
         }
     }
@@ -174,7 +174,7 @@ public class BlockNetwork<LEVEL, T> {
 
     void removeMember(BlockPos blockPos) {
 
-        boolean wasPresent = membersByBlockPosition.remove(blockPos) != null;
+        boolean wasPresent = membersByBlockPosition.removePosition(blockPos) != null;
         if (wasPresent) {
             BlockPosSet chunkMemberBlockPositions = Objects.requireNonNull(memberBlockPositionsByChunk.get(blockPos));
             chunkMemberBlockPositions.remove(blockPos);

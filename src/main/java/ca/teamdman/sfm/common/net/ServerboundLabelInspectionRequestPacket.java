@@ -66,7 +66,7 @@ public record ServerboundLabelInspectionRequestPacket(
             payload.append("-- Positions for label \"").append(msg.label()).append("\" --\n");
             payload.append(labelPositionHolder.getPositions(msg.label()).size()).append(" assignments\n");
             payload.append("-- Summary --\n");
-            labelPositionHolder.getPositions(msg.label()).forEach(pos -> {
+            labelPositionHolder.getPositions(msg.label()).blockPosIterator().forEach(pos -> {
                 payload
                         .append(pos.getX())
                         .append(",")
@@ -86,7 +86,7 @@ public record ServerboundLabelInspectionRequestPacket(
             });
 
             payload.append("\n\n\n-- Detailed --\n");
-            for (BlockPos pos : labelPositionHolder.getPositions(msg.label())) {
+            for (BlockPos.MutableBlockPos pos : labelPositionHolder.getPositions(msg.label()).blockPosIterator()) {
                 if (payload.length() > 20_000) {
                     payload.append("... (truncated)");
                     break;

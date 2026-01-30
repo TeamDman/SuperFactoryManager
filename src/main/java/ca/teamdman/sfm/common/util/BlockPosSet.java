@@ -1,117 +1,200 @@
 package ca.teamdman.sfm.common.util;
 
-import it.unimi.dsi.fastutil.longs.LongArraySet;
+import it.unimi.dsi.fastutil.longs.LongCollection;
 import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.function.Predicate;
+import java.util.stream.Collector;
 
-public record BlockPosSet(LongSet inner) implements Iterable<BlockPos> {
+public final class BlockPosSet extends LongOpenHashSet {
+    public BlockPosSet(
+            int expected,
+            float f
+    ) {
+
+        super(expected, f);
+    }
+
+    public BlockPosSet(int expected) {
+
+        super(expected);
+    }
+
     public BlockPosSet() {
 
-        this(new LongArraySet());
+    }
+
+    public BlockPosSet(
+            Collection<? extends Long> c,
+            float f
+    ) {
+
+        super(c, f);
+    }
+
+    public BlockPosSet(
+            LongCollection c,
+            float f
+    ) {
+
+        super(c, f);
+    }
+
+    public BlockPosSet(LongCollection c) {
+
+        super(c);
+    }
+
+    public BlockPosSet(
+            LongIterator i,
+            float f
+    ) {
+
+        super(i, f);
+    }
+
+    public BlockPosSet(LongIterator i) {
+
+        super(i);
+    }
+
+    public BlockPosSet(
+            Iterator<?> i,
+            float f
+    ) {
+
+        super(i, f);
+    }
+
+    public BlockPosSet(Iterator<?> i) {
+
+        super(i);
+    }
+
+    public BlockPosSet(
+            long[] a,
+            int offset,
+            int length,
+            float f
+    ) {
+
+        super(a, offset, length, f);
+    }
+
+    public BlockPosSet(
+            long[] a,
+            int offset,
+            int length
+    ) {
+
+        super(a, offset, length);
+    }
+
+    public BlockPosSet(
+            long[] a,
+            float f
+    ) {
+
+        super(a, f);
+    }
+
+    public BlockPosSet(long[] a) {
+
+        super(a);
+    }
+
+    public BlockPosSet(Collection<BlockPos> blockPosCollection) {
+        this(blockPosCollection.size());
+        blockPosCollection.forEach(this::add);
     }
 
     /// @return {@code false} if was already an element of the set, {@code true} otherwise
     public boolean add(BlockPos pos) {
 
-        return inner.add(pos.asLong());
+        return add(pos.asLong());
 
     }
 
-    /// @return {@code true} if the collection was modified
-    public boolean addAll(BlockPosSet otherChunkPositions) {
 
-        return inner.addAll(otherChunkPositions.inner);
+    // can't be called `addAll` because of type erasure
+    public void addAllPositions(Collection<BlockPos> other) {
 
-    }
-
-    public LongIterator longIterator() {
-
-        return inner.longIterator();
-    }
-
-    public boolean remove(long blockPos) {
-
-        return inner.remove(blockPos);
-    }
-
-    public boolean isEmpty() {
-
-        return inner.isEmpty();
-    }
-
-    public int size() {
-
-        return inner.size();
-    }
-
-    public void clear() {
-
-        inner.clear();
+        for (BlockPos blockPos : other) {
+            add(blockPos);
+        }
     }
 
     public boolean remove(BlockPos blockPos) {
 
-        return inner.remove(blockPos.asLong());
+        return remove(blockPos.asLong());
 
     }
 
     public boolean contains(BlockPos pos) {
 
-        return inner.contains(pos.asLong());
+        return contains(pos.asLong());
     }
 
-    @Override
-    public boolean equals(Object o) {
+    public BlockPosIterator blockPosIterator() {
 
-        if (!(o instanceof BlockPosSet that)) return false;
-
-        return inner.equals(that.inner);
+        return new BlockPosIterator(BlockPosSet.this.longIterator());
     }
 
-    @Override
-    public int hashCode() {
+    @SuppressWarnings("UnusedReturnValue")
+    public boolean removeIfPosition(Predicate<BlockPos> blockPosPredicate) {
 
-        return inner.hashCode();
+        boolean removed = false;
+        for (Iterator<BlockPos.MutableBlockPos> iterator = blockPosIterator().iterator(); iterator.hasNext(); ) {
+            BlockPos.MutableBlockPos pos = iterator.next();
+            if (blockPosPredicate.test(pos)) {
+                iterator.remove();
+                removed = true;
+            }
+        }
+        return removed;
     }
 
-    public boolean add(long blockPosLong) {
+    public static Collector<BlockPos, BlockPosSet, BlockPosSet> collector() {
 
-        return inner.add(blockPosLong);
+        return Collector.of(
+                BlockPosSet::new,
+                BlockPosSet::add,
+                (a, b) -> {
+                    a.addAll(b);
+                    return a;
+                }
+        );
     }
 
-    @Override
-    public Iterator<BlockPos> iterator() {
+    public static BlockPosSet of(BlockPos... pos) {
+        BlockPosSet rtn = new BlockPosSet();
+        //noinspection ManualArrayToCollectionCopy // doesn't apply since addAll expects longs
+        for (BlockPos p : pos) {
+            rtn.add(p);
+        }
+        return rtn;
 
-        return new Iterator<BlockPos>() {
-            final LongIterator inner = BlockPosSet.this.longIterator();
+    }
 
-            @Override
-            public boolean hasNext() {
+    public @Nullable BoundingBox boundingBox() {
 
-                return inner.hasNext();
+        BlockPosIterator iterator = blockPosIterator();
+        if (!iterator.hasNext()) {
+            return null;
+        } else {
+            BoundingBox box = new BoundingBox(iterator.next());
+            while (iterator.hasNext()) {
+                //noinspection deprecation
+                box.encapsulate(iterator.next());
             }
-
-            @Override
-            public BlockPos next() {
-
-                return BlockPos.of(inner.nextLong());
-            }
-
-            @Override
-            public void remove() {
-
-                inner.remove();
-            }
-
-            @SuppressWarnings("unused")
-            public int skip(int n) {
-
-                return inner.skip(n);
-            }
-        };
+            return box;
+        }
     }
 
 }

@@ -12,7 +12,7 @@ public class SFMBlockPosUtils {
             for (int y = -1; y <= 1; y++) {
                 for (int z = -1; z <= 1; z++) {
                     if (x == 0 && y == 0 && z == 0) continue;
-                    builder.accept(pos.offset(x, y, z).immutable());
+                    builder.accept(pos.offset(x, y, z));
                 }
             }
         }

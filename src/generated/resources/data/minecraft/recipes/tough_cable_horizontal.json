@@ -9,9 +9,9 @@
     }
   },
   "pattern": [
-    "A A",
-    "ABA",
-    "A A"
+    "AAA",
+    " B ",
+    "AAA"
   ],
   "result": {
     "item": "sfm:tough_cable"

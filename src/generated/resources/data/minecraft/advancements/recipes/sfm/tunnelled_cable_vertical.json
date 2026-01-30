@@ -13,13 +13,11 @@
       },
       "trigger": "minecraft:inventory_changed"
     },
-    "has_obsidian": {
+    "has_fence": {
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:obsidian"
-            ]
+            "tag": "forge:fences"
           }
         ]
       },
@@ -27,21 +25,21 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "sfm:tough_cable"
+        "recipe": "minecraft:tunnelled_cable_vertical"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_obsidian",
+      "has_fence",
       "has_cable",
       "has_the_recipe"
     ]
   ],
   "rewards": {
     "recipes": [
-      "sfm:tough_cable"
+      "minecraft:tunnelled_cable_vertical"
     ]
   }
 }

@@ -2,10 +2,7 @@ package ca.teamdman.sfm.common.block_network;
 
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
-import ca.teamdman.sfm.common.util.BlockPosMap;
-import ca.teamdman.sfm.common.util.BlockPosSet;
-import ca.teamdman.sfm.common.util.ChunkPosMap;
-import ca.teamdman.sfm.common.util.SFMDirections;
+import ca.teamdman.sfm.common.util.*;
 import it.unimi.dsi.fastutil.longs.Long2ObjectFunction;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
@@ -14,8 +11,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.stream.Stream;
 
 public class SFMBlockCapabilityCacheForLevel {
     // Position => Capability => Direction => CapabilityResult/LazyOptional
@@ -55,7 +50,7 @@ public class SFMBlockCapabilityCacheForLevel {
             SFMBlockCapabilityCacheForLevel other
     ) {
 
-        var found = other.blockPosToCapKindToDirectionToCapResultMap.get(pos.asLong());
+        var found = other.blockPosToCapKindToDirectionToCapResultMap.getFromPosition(pos);
         if (found != null) {
             blockPosToCapKindToDirectionToCapResultMap.put(pos.asLong(), new Object2ObjectOpenHashMap<>(found));
         }
@@ -68,7 +63,7 @@ public class SFMBlockCapabilityCacheForLevel {
             @Nullable Direction direction
     ) {
         // Get the (pos, ...) entry
-        var posEntry = blockPosToCapKindToDirectionToCapResultMap.get(pos.asLong());
+        var posEntry = blockPosToCapKindToDirectionToCapResultMap.getFromPosition(pos);
         if (posEntry == null) {
             return null;
         }
@@ -112,9 +107,9 @@ public class SFMBlockCapabilityCacheForLevel {
         }
     }
 
-    public Stream<BlockPos> getPositions() {
+    public BlockPosIterator getPositions() {
 
-        return blockPosToCapKindToDirectionToCapResultMap.keysAsLongSet().longStream().mapToObj(BlockPos::of);
+        return blockPosToCapKindToDirectionToCapResultMap.positions();
     }
 
     public void remove(
@@ -124,7 +119,7 @@ public class SFMBlockCapabilityCacheForLevel {
     ) {
 
         // Get the (pos, ...) entry.
-        var posEntry = blockPosToCapKindToDirectionToCapResultMap.get(memberBlockPos.asLong());
+        var posEntry = blockPosToCapKindToDirectionToCapResultMap.getFromPosition(memberBlockPos);
         if (posEntry == null) {
             return;
         }
@@ -152,7 +147,7 @@ public class SFMBlockCapabilityCacheForLevel {
         }
 
         // pos is now empty, remove it.
-        blockPosToCapKindToDirectionToCapResultMap.remove(memberBlockPos);
+        blockPosToCapKindToDirectionToCapResultMap.removePosition(memberBlockPos);
         removeFromChunkMap(memberBlockPos);
     }
 
@@ -194,7 +189,7 @@ public class SFMBlockCapabilityCacheForLevel {
 
         BlockPosSet blockPositions = chunkPosToBlockPosMap.get(chunkPos);
         if (blockPositions != null) {
-            blockPosToCapKindToDirectionToCapResultMap.removeBlockPositions(blockPositions);
+            blockPosToCapKindToDirectionToCapResultMap.removeAllPositions(blockPositions);
             chunkPosToBlockPosMap.remove(chunkPos);
         }
     }

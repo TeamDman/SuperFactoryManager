@@ -2,18 +2,18 @@
   "type": "minecraft:crafting_shaped",
   "key": {
     "A": {
-      "item": "minecraft:obsidian"
+      "tag": "forge:fences"
     },
     "B": {
       "item": "sfm:cable"
     }
   },
   "pattern": [
-    "A A",
-    "ABA",
-    "A A"
+    "AAA",
+    " B ",
+    "AAA"
   ],
   "result": {
-    "item": "sfm:tough_cable"
+    "item": "sfm:tunnelled_cable"
   }
 }

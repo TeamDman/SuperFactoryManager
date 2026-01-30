@@ -31,14 +31,14 @@ public record SFMTestLevel<T>(
 
     public void setBlock(BlockPos pos, @Nullable T block) {
         if (block == null) {
-            blocks.remove(pos);
+            blocks.removePosition(pos);
         } else {
             blocks.put(pos, block);
         }
     }
 
     public @Nullable T getBlock(BlockPos pos) {
-        return blocks.get(pos);
+        return blocks.getFromPosition(pos);
     }
 
     @Override

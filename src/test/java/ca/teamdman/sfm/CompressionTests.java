@@ -1,16 +1,16 @@
 package ca.teamdman.sfm;
 
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.*;
 import net.minecraft.network.FriendlyByteBuf;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -43,13 +43,14 @@ public class CompressionTests {
 
     @Test
     public void compound_list() {
-        Set<BlockPos> positions = new HashSet<>();
+        BlockPosSet positions = new BlockPosSet();
         BlockPos first = new BlockPos(14, -58, 22);
         BlockPos second = new BlockPos(32, -25, 3);
         BlockPos.betweenClosedStream(first, second).map(BlockPos::immutable).forEach(positions::add);
         System.out.println("There are " + positions.size() + " positions");
 
         ListTag tag = positions
+                .blockPosIterator()
                 .stream()
                 .map(CompressionTests::writeBlockPosVersionAgnostic)
                 .collect(ListTag::new, ListTag::add, ListTag::addAll);
@@ -58,45 +59,42 @@ public class CompressionTests {
 
     @Test
     public void long_list() {
-        Set<BlockPos> positions = new HashSet<>();
+        BlockPosSet positions = new BlockPosSet();
         BlockPos first = new BlockPos(14, -58, 22);
         BlockPos second = new BlockPos(32, -25, 3);
         BlockPos.betweenClosedStream(first, second).map(BlockPos::immutable).forEach(positions::add);
 
         ListTag tag = positions
-                .stream()
-                .map(BlockPos::asLong)
-                .map(LongTag::valueOf)
+                .longStream()
+                .mapToObj(LongTag::valueOf)
                 .collect(ListTag::new, ListTag::add, ListTag::addAll);
         assertTagSizeOkay(tag);
     }
 
     @Test
     public void long_list_big() {
-        Set<BlockPos> positions = new HashSet<>();
+        BlockPosSet positions = new BlockPosSet();
         BlockPos first = new BlockPos(0, 0, 0);
         BlockPos second = new BlockPos(255, 1, 255);
         BlockPos.betweenClosedStream(first, second).map(BlockPos::immutable).forEach(positions::add);
 
         ListTag tag = positions
-                .stream()
-                .map(BlockPos::asLong)
-                .map(LongTag::valueOf)
+                .longStream()
+                .mapToObj(LongTag::valueOf)
                 .collect(ListTag::new, ListTag::add, ListTag::addAll);
         assertThrows(RuntimeException.class, ()-> assertTagSizeOkay(tag));
     }
 
     @Test
     public void long_array() {
-        Set<BlockPos> positions = new HashSet<>();
+        BlockPosSet positions = new BlockPosSet();
         BlockPos first = new BlockPos(14, -58, 22);
         BlockPos second = new BlockPos(32, -25, 3);
         BlockPos.betweenClosedStream(first, second).map(BlockPos::immutable).forEach(positions::add);
 
         LongArrayTag tag = new LongArrayTag(
                 positions
-                        .stream()
-                        .mapToLong(BlockPos::asLong)
+                        .longStream()
                         .toArray()
         );
         assertTagSizeOkay(tag);
@@ -104,15 +102,14 @@ public class CompressionTests {
 
     @Test
     public void long_array_big() {
-        Set<BlockPos> positions = new HashSet<>();
+        BlockPosSet positions = new BlockPosSet();
         BlockPos first = new BlockPos(0, 0, 0);
         BlockPos second = new BlockPos(255, 1, 255);
         BlockPos.betweenClosedStream(first, second).map(BlockPos::immutable).forEach(positions::add);
 
         LongArrayTag tag = new LongArrayTag(
                 positions
-                        .stream()
-                        .mapToLong(BlockPos::asLong)
+                        .longStream()
                         .toArray()
         );
         assertTagSizeOkay(tag);
@@ -124,7 +121,7 @@ public class CompressionTests {
     @Test
     public void gzip_big() {
         try {
-            Set<BlockPos> positions = new HashSet<>();
+            BlockPosSet positions = new BlockPosSet();
             BlockPos first = new BlockPos(0, 0, 0);
             BlockPos second = new BlockPos(255, 1, 255);
             BlockPos.betweenClosedStream(first, second).map(BlockPos::immutable).forEach(positions::add);
@@ -149,7 +146,7 @@ public class CompressionTests {
             byte[] decompressedData = decompressGZIP(readCompressedData);
 
             // Deserialize
-            Set<BlockPos> decompressedPositions = deserializeBlockPosSet(decompressedData);
+            BlockPosSet decompressedPositions = deserializeBlockPosSet(decompressedData);
 
             // Verify integrity
             assertEquals(positions, decompressedPositions, "Decompressed positions do not match original");
@@ -160,7 +157,7 @@ public class CompressionTests {
 
     @Test
     public void custom_big() {
-        HashSet<BlockPos> positions = new HashSet<>();
+        BlockPosSet positions = new BlockPosSet();
         BlockPos first = new BlockPos(0, 0, 0);
         BlockPos second = new BlockPos(255, 1, 255);
         BlockPos.betweenClosedStream(first, second).map(BlockPos::immutable).forEach(positions::add);
@@ -171,14 +168,14 @@ public class CompressionTests {
         assertTagSizeOkay(tag);
 
         CompressedBlockPosSet read = CompressedBlockPosSet.from(tag);
-        Set<BlockPos> check = read.into();
+        BlockPosSet check = read.into();
         assertEquals(positions.size(), check.size());
         assertTrue(check.containsAll(positions));
     }
 
     @Test
     public void custom_massive() {
-        HashSet<BlockPos> positions = new HashSet<>();
+        BlockPosSet positions = new BlockPosSet();
         {
             BlockPos first = new BlockPos(0, 0, 0);
             BlockPos second = new BlockPos(255, 2, 255);
@@ -207,53 +204,54 @@ public class CompressionTests {
         assertTagSizeOkay(tag);
 
         CompressedBlockPosSet read = CompressedBlockPosSet.from(tag);
-        Set<BlockPos> check = read.into();
+        BlockPosSet check = read.into();
         assertEquals(positions.size(), check.size());
         assertTrue(check.containsAll(positions));
     }
 
     @Test
     public void custom_works() {
-        HashSet<BlockPos> positions = new HashSet<>();
+        BlockPosSet positions = new BlockPosSet();
         positions.add(new BlockPos(0, 0, 0));
         positions.add(new BlockPos(0, 0, 1));
         positions.add(new BlockPos(0, 0, 2));
         positions.add(new BlockPos(0, 0, 10));
 
         CompressedBlockPosSet compressedBlockPosSet = CompressedBlockPosSet.from(positions);
-        Set<BlockPos> check = compressedBlockPosSet.into();
+        BlockPosSet check = compressedBlockPosSet.into();
         assertEquals(positions.size(), check.size());
         System.out.println("Positions:");
-        for (BlockPos position : positions) {
+        for (BlockPos position : positions.blockPosIterator()) {
             System.out.println(position);
         }
         System.out.println("Check:");
-        for (BlockPos position : check) {
+        for (BlockPos position : check.blockPosIterator()) {
             System.out.println(position);
         }
-        for (BlockPos position : positions) {
+        for (BlockPos position : positions.blockPosIterator()) {
             assertTrue(check.contains(position), "Check does not contain " + position);
         }
     }
 
     /**
-     * Helper method to serialize Set<BlockPos> to a byte array as longs.
+     * Helper method to serialize BlockPosSet to a byte array as longs.
      */
-    private static byte[] serializeBlockPosSet(Set<BlockPos> blockPositions) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(baos);
-        for (BlockPos pos : blockPositions) {
-            dos.writeLong(pos.asLong());
+    private static byte[] serializeBlockPosSet(BlockPosSet blockPositions) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(output);
+        LongIterator iterator = blockPositions.longIterator();
+        while (iterator.hasNext()) {
+            dos.writeLong(iterator.nextLong());
         }
         dos.close();
-        return baos.toByteArray();
+        return output.toByteArray();
     }
 
     /**
-     * Helper method to deserialize byte array back to Set<BlockPos>.
+     * Helper method to deserialize the byte array back to BlockPosSet.
      */
-    private Set<BlockPos> deserializeBlockPosSet(byte[] data) throws IOException {
-        Set<BlockPos> blockPositions = new HashSet<>();
+    private BlockPosSet deserializeBlockPosSet(byte[] data) throws IOException {
+        BlockPosSet blockPositions = new BlockPosSet();
         ByteArrayInputStream bais = new ByteArrayInputStream(data);
         DataInputStream dis = new DataInputStream(bais);
         while (dis.available() >= 8) { // Each long is 8 bytes

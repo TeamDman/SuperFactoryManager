@@ -5,6 +5,7 @@ import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.item.NetworkToolItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfm.common.util.HelpsWithMinecraftVersionIndependence;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.SFMDist;
@@ -31,7 +32,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.Map;
 
 /*
  * This class uses code from tasgon's "observable" mod, also using MPLv2
@@ -211,7 +214,7 @@ public class ItemWorldRenderer {
 
         // Draw boxes
         RENDER_TYPE.setupRenderState();
-        Set<BlockPos> labelledPositions = labelsByPosition.keySet();
+        BlockPosSet labelledPositions = new BlockPosSet(labelsByPosition.keySet());
         drawVbo(
                 VBOKind.LABEL_GUN_CAPABILITIES,
                 poseStack,
@@ -234,8 +237,8 @@ public class ItemWorldRenderer {
             ItemStack networkTool
     ) {
         if (!NetworkToolItem.getOverlayEnabled(networkTool)) return;
-        Set<BlockPos> cablePositions = NetworkToolItem.getCablePositions(networkTool);
-        Set<BlockPos> capabilityPositions = NetworkToolItem.getCapabilityProviderPositions(networkTool);
+        BlockPosSet cablePositions = NetworkToolItem.getCablePositions(networkTool);
+        BlockPosSet capabilityPositions = NetworkToolItem.getCapabilityProviderPositions(networkTool);
 
         RenderSystem.disableDepthTest();
 
@@ -254,7 +257,7 @@ public class ItemWorldRenderer {
     private static void drawVbo(
             VBOKind vboKind,
             PoseStack poseStack,
-            Set<BlockPos> positions,
+            BlockPosSet positions,
             int color,
             RenderLevelStageEvent event
     ) {
@@ -405,7 +408,7 @@ public class ItemWorldRenderer {
 
         public @Nullable VertexBuffer getVBO(
                 VBOKind kind,
-                Set<BlockPos> positions,
+                BlockPosSet positions,
                 RenderLevelStageEvent event,
                 int r,
                 int g,
@@ -437,7 +440,10 @@ public class ItemWorldRenderer {
                 VertexBuffer vbo = createVBO(positions, r, g, b, a);
 
                 // Cache the new VBO
-                entry = new VBOEntry(new HashSet<>(positions), vbo);
+                entry = new VBOEntry(
+                        new BlockPosSet(positions), // create immutable copy just in case
+                        vbo
+                );
                 cache.put(kind, entry);
             }
 
@@ -460,7 +466,7 @@ public class ItemWorldRenderer {
         }
 
         private VertexBuffer createVBO(
-                Set<BlockPos> positions,
+                BlockPosSet positions,
                 int r,
                 int g,
                 int b,
@@ -473,7 +479,7 @@ public class ItemWorldRenderer {
             BufferBuilder bufferBuilder = createBufferBuilder(positions.size());
 
             // Push vertices
-            for (BlockPos blockPos : positions) {
+            for (BlockPos blockPos : positions.blockPosIterator()) {
                 poseStack.pushPose();
                 poseStack.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
                 Matrix4f matrix4f = poseStack.last().pose();
@@ -495,7 +501,7 @@ public class ItemWorldRenderer {
         }
 
         private record VBOEntry(
-                Set<BlockPos> positions,
+                BlockPosSet positions,
                 VertexBuffer vbo
         ) {
         }

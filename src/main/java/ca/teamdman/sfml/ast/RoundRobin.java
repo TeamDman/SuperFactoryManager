@@ -1,13 +1,12 @@
 package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import com.mojang.datafixers.util.Pair;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class RoundRobin implements ASTNode {
     private final Behaviour behaviour;
@@ -52,10 +51,10 @@ public class RoundRobin implements ASTNode {
             case BY_LABEL -> {
                 int index = next(labels.size());
                 Label label = labels.get(index);
-                Set<BlockPos> labelPositions = labelPositionHolder.getPositions(label.name());
+                BlockPosSet labelPositions = labelPositionHolder.getPositions(label.name());
                 positions.ensureCapacity(labelPositions.size());
-                for (BlockPos pos : labelPositions) {
-                    positions.add(Pair.of(label, pos));
+                for (BlockPos.MutableBlockPos pos : labelPositions.blockPosIterator()) {
+                    positions.add(Pair.of(label, pos.immutable()));
                 }
             }
             case BY_BLOCK -> {
@@ -65,11 +64,12 @@ public class RoundRobin implements ASTNode {
                 // to determine the next index do we not need to know the number of candidates?
                 // might be able to cache inside the object, as long as the object is nuked when labels are modified
                 List<Pair<Label, BlockPos>> candidates = new ArrayList<>();
-                LongOpenHashSet seen = new LongOpenHashSet();
+                BlockPosSet seen = new BlockPosSet();
                 for (Label label : labels) {
-                    for (BlockPos pos : labelPositionHolder.getPositions(label.name())) {
-                        if (!seen.add(pos.asLong())) continue;
-                        candidates.add(Pair.of(label, pos));
+                    BlockPosSet positionsForLabel = labelPositionHolder.getPositions(label.name());
+                    for (BlockPos.MutableBlockPos pos : positionsForLabel.blockPosIterator()) {
+                        if (!seen.add(pos)) continue;
+                        candidates.add(Pair.of(label, pos.immutable()));
                     }
                 }
                 if (!candidates.isEmpty()) {
@@ -80,8 +80,8 @@ public class RoundRobin implements ASTNode {
                 for (Label label : labels) {
                     var labelPositions = labelPositionHolder.getPositions(label.name());
                     positions.ensureCapacity(labelPositions.size());
-                    for (BlockPos pos : labelPositions) {
-                        positions.add(Pair.of(label, pos));
+                    for (BlockPos.MutableBlockPos pos : labelPositions.blockPosIterator()) {
+                        positions.add(Pair.of(label, pos.immutable()));
                     }
                 }
             }

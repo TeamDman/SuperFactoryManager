@@ -1,109 +1,77 @@
 package ca.teamdman.sfm.common.util;
 
-import it.unimi.dsi.fastutil.longs.Long2ObjectFunction;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.objects.ObjectCollection;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.Nullable;
 
-@SuppressWarnings("UnusedReturnValue")
-public record BlockPosMap<T>(
-        Long2ObjectOpenHashMap<T> inner
-) {
+import java.util.Map;
+
+public final class BlockPosMap<T> extends Long2ObjectOpenHashMap<T> {
+    public BlockPosMap(
+            int expected,
+            float f
+    ) {
+
+        super(expected, f);
+    }
+
+    public BlockPosMap(int expected) {
+
+        super(expected);
+    }
+
     public BlockPosMap() {
 
-        this(new Long2ObjectOpenHashMap<>());
     }
 
-    public boolean isEmpty() {
-
-        return inner.isEmpty();
-    }
-
-    public @Nullable T put(
-            long key,
-            T value
+    public BlockPosMap(
+            Map<? extends Long, ? extends T> m,
+            float f
     ) {
 
-        return inner.put(key, value);
+        super(m, f);
     }
 
-    public Long2ObjectMap.FastEntrySet<T> long2ObjectEntrySet() {
+    public BlockPosMap(Map<? extends Long, ? extends T> m) {
 
-        return inner.long2ObjectEntrySet();
+        super(m);
     }
 
-    public T computeIfAbsent(
-            long key,
-            Long2ObjectFunction<? extends T> mappingFunction
+    public BlockPosMap(
+            Long2ObjectMap<T> m,
+            float f
     ) {
 
-        return inner.computeIfAbsent(key, mappingFunction);
+        super(m, f);
     }
 
-    /// Correctness: make sure this is not a {@link net.minecraft.world.level.ChunkPos#asLong}
-    public @Nullable T get(long blockPosLong) {
+    public BlockPosMap(Long2ObjectMap<T> m) {
 
-        return inner.get(blockPosLong);
+        super(m);
     }
 
-    public @Nullable T get(BlockPos blockPos) {
+    public BlockPosMap(
+            long[] k,
+            T[] v,
+            float f
+    ) {
 
-        return inner.get(blockPos.asLong());
+        super(k, v, f);
     }
 
-    /// Correctness: make sure this is not a {@link net.minecraft.world.level.ChunkPos#asLong}
-    public @Nullable T remove(long blockPosLong) {
+    public BlockPosMap(
+            long[] k,
+            T[] v
+    ) {
 
-        return inner.remove(blockPosLong);
+        super(k, v);
     }
 
-    public @Nullable T remove(BlockPos blockPos) {
+    @Override
+    public @Nullable T get(long k) {
 
-        return inner.remove(blockPos.asLong());
-    }
-
-    public LongSet keysAsLongSet() {
-
-        return inner.keySet();
-    }
-
-    public BlockPosSet keysAsBlockPosSet() {
-
-        return new BlockPosSet(inner.keySet());
-    }
-
-    public int size() {
-
-        return inner.size();
-    }
-
-    public boolean containsKey(long key) {
-
-        return inner.containsKey(key);
-    }
-
-    public void clear() {
-
-        inner.clear();
-    }
-
-    public ObjectCollection<T> values() {
-
-        return inner.values();
-    }
-
-    public void putAll(BlockPosMap<T> pos2TankMap) {
-
-        inner.putAll(pos2TankMap.inner);
-
-    }
-
-    public boolean removeBlockPositions(BlockPosSet blockPosSet) {
-
-        return removeBlockPositions(blockPosSet.inner());
+        return super.get(k);
     }
 
     public @Nullable T put(
@@ -111,18 +79,30 @@ public record BlockPosMap<T>(
             T member
     ) {
 
-        return inner.put(blockPos.asLong(), member);
+        return put(blockPos.asLong(), member);
     }
 
     public boolean containsKey(BlockPos blockPos) {
 
-        return inner.containsKey(blockPos.asLong());
+        return containsKey(blockPos.asLong());
     }
 
-    public boolean removeBlockPositions(LongSet blockPosLongSet) {
+    public BlockPosIterator positions() {
 
-        return inner.keySet().removeAll(blockPosLongSet);
-
+        return new BlockPosIterator(keySet().longIterator());
     }
 
+    public void removeAllPositions(BlockPosSet positionsInChunk) {
+        keySet().removeAll(positionsInChunk);
+    }
+
+    public @Nullable T removePosition(BlockPos blockPos) {
+
+        return remove(blockPos.asLong());
+    }
+
+    public @Nullable T getFromPosition(BlockPos blockPos) {
+
+        return get(blockPos.asLong());
+    }
 }

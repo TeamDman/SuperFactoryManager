@@ -1,11 +1,10 @@
 package ca.teamdman.sfm.common.label;
 
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-
-import java.util.HashSet;
 
 public record LabelGunToggleLabelAction(
         Player player,
@@ -22,12 +21,12 @@ public record LabelGunToggleLabelAction(
         if (activeLabel.isEmpty()) {
             return;
         }
-        var existing = new HashSet<>(gunLabels.getPositions(activeLabel));
-        boolean anyMissing = targets.positions().stream().anyMatch(p -> !existing.contains(p));
+        BlockPosSet existing = gunLabels.getPositions(activeLabel);
+        boolean anyMissing = targets.positions().longStream().anyMatch(p -> !existing.contains(p));
 
         // apply or strip label from all positions
         if (anyMissing) {
-            gunLabels.addAll(activeLabel, targets.positions());
+            gunLabels.addAll(activeLabel, targets.positions().blockPosIterator());
         } else {
             targets.positions().forEach(p -> gunLabels.remove(activeLabel, p));
         }

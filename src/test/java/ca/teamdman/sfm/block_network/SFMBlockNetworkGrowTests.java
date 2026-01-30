@@ -19,7 +19,7 @@ public class SFMBlockNetworkGrowTests {
 
         // Create a block network manager
         BlockNetworkMemberFilterMapper<SFMTestLevel<String>, String> memberFilterMapper = (level, pos) -> {
-            String blockString = level.blocks().get(pos);
+            String blockString = level.blocks().getFromPosition(pos);
             if (blockString == null) {
                 return null;
             } else {
