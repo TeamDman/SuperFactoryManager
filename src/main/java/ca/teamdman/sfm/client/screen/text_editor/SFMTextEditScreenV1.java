@@ -87,7 +87,6 @@ public class SFMTextEditScreenV1 extends GuiScreenExtend implements ISFMTextEdit
      */
     public void saveAndClose() {
         openContext.onSaveAndClose(textarea.getValue());
-        SFMScreenChangeHelpers.popScreen();
     }
 
     public void closeWithoutSaving() {
