@@ -251,41 +251,57 @@ public final class InputStatement implements IOStatement {
                 .getLogger()
                 .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_RANGE.get(
                         labelAccess.slots())));
-        for (int slot = 0; slot < type.getSlots(capability); slot++) {
-            int finalSlot = slot;
-            if (labelAccess.slots().contains(slot)) {
-                STACK stack = type.getStackInSlot(capability, slot);
-                if (shouldCreateSlot(type, stack)) {
-                    for (IInputResourceTracker tracker : trackers) {
-                        if (tracker.matchesCapabilityType(capability) && tracker.matchesStack(stack)) {
-                            context
-                                    .getLogger()
-                                    .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_CREATED.get(
-                                            finalSlot,
-                                            stack,
-                                            tracker.toString()
-                                    )));
-                            acceptor.accept(LimitedInputSlotObjectPool.acquire(
-                                    label, pos, direction, slot, capability,
-                                    tracker,
-                                    stack,
-                                    type
-                            ));
-                        }
-                    }
-                } else {
+        if (labelAccess.slots().isContiguous()) {
+            int end = labelAccess.slots().contiguousEnd(type.getSlots(capability));
+            for (int slot = labelAccess.slots().contiguousStart(); slot <= end; slot++) {
+                gatherSingleSlot(context, type, label, pos, direction, capability, trackers, acceptor, slot);
+            }
+        } else {
+            for (int slot = 0; slot < type.getSlots(capability); slot++) {
+                if (labelAccess.slots().contains(slot)) {
+                    gatherSingleSlot(context, type, label, pos, direction, capability, trackers, acceptor, slot);
+                }
+            }
+        }
+    }
+
+    private <ITEM, STACK, CAP> void gatherSingleSlot(
+            ProgramContext context,
+            ResourceType<STACK, ITEM, CAP> type,
+            Label label,
+            BlockPos pos,
+            EnumFacing direction,
+            CAP capability,
+            List<IInputResourceTracker> trackers,
+            Consumer<LimitedInputSlot<?, ?, ?>> acceptor,
+            int slot
+    ) {
+        STACK stack = type.getStackInSlot(capability, slot);
+        if (shouldCreateSlot(type, stack)) {
+            for (IInputResourceTracker tracker : trackers) {
+                if (tracker.matchesCapabilityType(capability) && tracker.matchesStack(stack)) {
                     context
                             .getLogger()
-                            .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_SHOULD_NOT_CREATE.get(
-                                    finalSlot,
-                                    stack
+                            .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_CREATED.get(
+                                    slot,
+                                    stack,
+                                    tracker.toString()
                             )));
+                    acceptor.accept(LimitedInputSlotObjectPool.acquire(
+                            label, pos, direction, slot, capability,
+                            tracker,
+                            stack,
+                            type
+                    ));
                 }
-            } else {
-                context
-                        .getLogger()
-                        .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_NOT_IN_RANGE.get(finalSlot)));
             }
+        } else {
+            context
+                    .getLogger()
+                    .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_SHOULD_NOT_CREATE.get(
+                            slot,
+                            stack
+                    )));
         }
     }
 

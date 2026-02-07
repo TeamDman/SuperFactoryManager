@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 @Desugar
 public record NumberRangeSet(NumberRange[] ranges) implements ASTNode {
     public static final NumberRangeSet MAX_RANGE = new NumberRangeSet(new NumberRange[]{NumberRange.MAX_RANGE});
+
     public boolean contains(int value) {
         for (NumberRange range : ranges) {
             if (range.contains(value)) {
@@ -20,5 +21,19 @@ public record NumberRangeSet(NumberRange[] ranges) implements ASTNode {
     @Override
     public String toString() {
         return "[" + (this.equals(MAX_RANGE) ? "ALL" : Arrays.stream(ranges).map(NumberRange::toString).collect(Collectors.joining(","))) + "]";
+    }
+
+
+    public boolean isContiguous() {
+        return ranges.length == 1;
+    }
+
+
+    public int contiguousEnd(int slotCount) {
+        return Math.min((int)Math.min(Integer.MAX_VALUE, this.ranges[0].end()), slotCount - 1);
+    }
+
+    public int contiguousStart() {
+        return (int) Math.min(Integer.MAX_VALUE, this.ranges[0].start());
     }
 }

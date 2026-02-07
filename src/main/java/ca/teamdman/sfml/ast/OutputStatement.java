@@ -621,53 +621,73 @@ public class OutputStatement implements IOStatement {
         context
                 .getLogger()
                 .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_RANGE.get(labelAccess.slots())));
-        for (int slot = 0; slot < type.getSlots(capability); slot++) {
-            int finalSlot = slot;
-            if (labelAccess.slots().contains(slot)) {
-                STACK stack = type.getStackInSlot(capability, slot);
-                boolean shouldCreateSlot = shouldCreateSlot(type, capability, stack, slot);
-                for (IOutputResourceTracker tracker : trackers) {
-                    if (tracker.matchesCapabilityType(capability)) {
-                        //always update retention observations even if !shouldCreateSlot
-                        tracker.updateRetentionObservation(type, stack);
 
-                        if (shouldCreateSlot) {
-                            context
-                                    .getLogger()
-                                    .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_CREATED.get(
-                                            finalSlot,
-                                            stack,
-                                            tracker.toString()
-                                    )));
-                            acceptor.accept(LimitedOutputSlotObjectPool.acquire(
-                                    label,
-                                    pos,
-                                    direction,
+        if (labelAccess.slots().isContiguous()) {
+            int end = labelAccess.slots().contiguousEnd(type.getSlots(capability));
+            for (int slot = labelAccess.slots().contiguousStart(); slot <= end; slot++) {
+                gatherSingleSlot(context, type, label, pos, direction, capability, trackers, acceptor, slot);
+
+            }
+        } else {
+            for (int slot = 0; slot < type.getSlots(capability); slot++) {
+                if (labelAccess.slots().contains(slot)) {
+                    gatherSingleSlot(context, type, label, pos, direction, capability, trackers, acceptor, slot);
+                }
+            }
+        }
+    }
+
+    private <STACK, ITEM, CAP> void gatherSingleSlot(
+            ProgramContext context,
+            ResourceType<STACK, ITEM, CAP> type,
+            Label label,
+            BlockPos pos,
+            EnumFacing direction,
+            CAP capability,
+            List<IOutputResourceTracker> trackers,
+            Consumer<LimitedOutputSlot<?, ?, ?>> acceptor,
+            int slot
+    ) {
+        STACK stack = type.getStackInSlot(capability, slot);
+        boolean shouldCreateSlot = shouldCreateSlot(type, capability, stack, slot);
+        for (IOutputResourceTracker tracker : trackers) {
+            if (tracker.matchesCapabilityType(capability)) {
+                //always update retention observations even if !shouldCreateSlot
+                tracker.updateRetentionObservation(type, stack);
+
+                if (shouldCreateSlot) {
+                    context
+                            .getLogger()
+                            .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_CREATED.get(
                                     slot,
-                                    capability,
-                                    tracker,
                                     stack,
-                                    type
-                            ));
-                        } else {
-                            context
-                                    .getLogger()
-                                    .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_SHOULD_NOT_CREATE.get(
-                                            finalSlot,
-                                            type.getAmount(stack)
+                                    tracker.toString()
+                            )));
+                    acceptor.accept(LimitedOutputSlotObjectPool.acquire(
+                            label,
+                            pos,
+                            direction,
+                            slot,
+                            capability,
+                            tracker,
+                            stack,
+                            type
+                    ));
+                } else {
+                    context
+                            .getLogger()
+                            .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_SHOULD_NOT_CREATE.get(
+                                    slot,
+                                    type.getAmount(stack)
                                             + " of "
-                                            + Math.min(type.getMaxStackSize(stack), type.getMaxStackSizeForSlot(capability, finalSlot))
+                                            + Math.min(
+                                            type.getMaxStackSize(stack),
+                                            type.getMaxStackSizeForSlot(capability, slot)
+                                    )
                                             + " "
                                             + type.getItem(stack)
-                                    )));
-                        }
-                    }
+                            )));
                 }
-            } else {
-                context
-                        .getLogger()
-                        .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_NOT_IN_RANGE.get(
-                                finalSlot)));
             }
         }
     }
