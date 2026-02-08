@@ -747,6 +747,10 @@ public final class LocalizationKeys {
             "gui.sfm.manager.hovered_tick_time",
             "Hovered tick time: %s ms"
     );
+    public static final LocalizationEntry MANAGER_GUI_EXTERNAL_TICK_TIME_MS = new LocalizationEntry(
+            "gui.sfm.manager.external_tick_time",
+            "External tick time: %s ms"
+    );
     public static final LocalizationEntry MANAGER_GUI_STATE_NO_DISK = new LocalizationEntry(
             "gui.sfm.manager.state.no_disk",
             "missing disk"

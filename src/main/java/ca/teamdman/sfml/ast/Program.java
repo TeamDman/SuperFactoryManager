@@ -56,7 +56,7 @@ public record Program(
      *
      * @return {@code true} if a trigger entered its body
      */
-    public boolean tick(ManagerBlockEntity manager) {
+    public ProgramContext tick(ManagerBlockEntity manager) {
 
         var context = new ProgramContext(this, manager, new ExecuteProgramBehaviour());
 
@@ -72,7 +72,7 @@ public record Program(
 
         manager.clearRedstonePulseQueue();
 
-        return context.didSomething();
+        return context;
     }
 
     @Override

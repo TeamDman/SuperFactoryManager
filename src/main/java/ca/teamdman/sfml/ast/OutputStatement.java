@@ -199,8 +199,11 @@ public class OutputStatement implements IOStatement {
             return;
         }
 
+        context.startTimingExternalIO();
         // extract item for real
         STACK extracted = source.extract(amountAvailableToMove);
+        context.stopTimingExternalIO();
+
         context
                 .getLogger()
                 .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED.get(extracted, source)));
@@ -213,7 +216,9 @@ public class OutputStatement implements IOStatement {
         }
 
         // insert item for real
+        context.startTimingExternalIO();
         STACK extractedRemainder = destination.insert(extracted, false);
+        context.stopTimingExternalIO();
 
         // track transfer amounts
         var moved = resourceType.getAmountDifference(extracted, extractedRemainder);

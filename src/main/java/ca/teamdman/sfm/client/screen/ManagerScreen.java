@@ -542,6 +542,8 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
             );
         }
 
+        boolean isShifted = GuiScreen.isShiftKeyDown();
+
         // Find the maximum tick time for normalization
         Duration peakTickTime = Duration.ZERO;
         for (int i = 0; i < menu.tickTimes.length; i++) {
@@ -550,7 +552,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 peakTickTime = candidate;
             }
         }
-        long yMax = Long.max(peakTickTime.toNanos(), 50_000_000); // Start with max at 50 ms but allow it to grow
+        long yMax = Long.max(peakTickTime.toNanos(), isShifted ? 1_000_000 : 50_000_000); // Start with max at 10 ms but allow it to grow
 
         // Constants for the plot size and position
         final int plotX = titleLabelX + 45;
@@ -586,6 +588,7 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
         buffer.pos(plotX, plotY, 0).color(0, 0, 0, 0.5f).endVertex();
         tesselator.draw();
 
+
         // Draw lines for each data point
         buffer = tesselator.getBuffer();
         buffer.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
@@ -595,14 +598,13 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
                 continue;
             }
             long y = menu.tickTimes[i].toNanos();
-            float normalizedTickTime = y == 0 ? 0 : (float) (Math.log10(y) / Math.log10(yMax));
-            int plotPosY = plotY + plotHeight - (int) (normalizedTickTime * plotHeight);
+            float normalizedTickTime = y == 0 ? 0 : isShifted ? ((float)(y) / (yMax)) : (float) (Math.log10(y) / Math.log10(yMax));
+            int plotPosY = plotY + plotHeight - Math.round(normalizedTickTime * plotHeight);
 
             int plotPosX = plotX + spaceBetweenPoints * i;
 
             // Color the lines based on their tick times (green to red)
             var c = TextFormattingColors.getColorCode(getMillisecondColour(y / 1_000_000f));
-            //noinspection DataFlowIssue
             float red = ((c >> 16) & 0xFF) / 255f;
             float green = ((c >> 8) & 0xFF) / 255f;
             float blue = (c & 0xFF) / 255f;
@@ -621,29 +623,69 @@ public class ManagerScreen extends GuiContainerExtend implements IAdvancedGuiHan
         }
         tesselator.draw();
 
+        buffer.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
+        for (int i = 0; i < menu.externalTickTimes.length; i++) {
+            if (menu.externalTickTimes[i] == null) {
+                continue;
+            }
+            long y = menu.externalTickTimes[i].toNanos();
+            float normalizedTickTime = y == 0 ? 0 : isShifted ? ((float)(y) / (yMax)) : (float) (Math.log10(y) / Math.log10(yMax));
+            int plotPosY = plotY + plotHeight - Math.round(normalizedTickTime * plotHeight);
+
+            int plotPosX = plotX + spaceBetweenPoints * i;
+
+            // Color the lines based on their tick times (green to red)
+            var c = TextFormattingColors.getColorCode(getMillisecondColour(y / 1_000_000f));
+            float red = ((c >> 16) & 0xFF) / 255f;
+            float green = ((c >> 8) & 0xFF) / 255f;
+            float blue = (c & 0xFF) / 255f;
+
+            buffer.pos(plotPosX, plotPosY, getBlitOffsetGood())
+                    .color(red, green, blue, 1.0F)
+                    .endVertex();
+
+        }
+        tesselator.draw();
+
         // Draw the tick time text
         var format = new DecimalFormat("0.000");
         if (mouseTickTimeIndex != -1) { // We are hovering over the plot
             // Draw the tick time text for the hovered point instead of peak
             {
                 long hoveredTickTimeNanoseconds = menu.tickTimes[mouseTickTimeIndex].toNanos();
+                long hoveredExternalTickTimeNanoseconds = menu.externalTickTimes[mouseTickTimeIndex].toNanos();
                 var hoveredTickTimeMilliseconds = hoveredTickTimeNanoseconds / 1_000_000f;
+                var hoveredExternalTickTimeMilliseconds = hoveredExternalTickTimeNanoseconds / 1_000_000f;
                 String formattedMillis = format.format(hoveredTickTimeMilliseconds);
+                String formattedMillisExternal = format.format(hoveredExternalTickTimeMilliseconds);
                 TextFormatting lagColor = getMillisecondColour(hoveredTickTimeMilliseconds);
                 ITextComponent milliseconds = new TextComponentString(formattedMillis).setStyle(new Style().setColor(lagColor));
+                ITextComponent millisecondsExternal = new TextComponentString(formattedMillisExternal).setStyle(new Style().setColor(
+                        lagColor));
 
                 enableTexture();
                 GlStateManager.enableBlend();
                 GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
                         GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-                SFMFontUtils.draw(
-                        this.fontRenderer,
-                        MANAGER_GUI_HOVERED_TICK_TIME_MS.getComponent(milliseconds).getFormattedText(),
-                        titleLabelX,
-                        20 + fontRenderer.FONT_HEIGHT,
-                        0xFFFFFF, //  TextFormattingColors.getColorCode(lagColor),
-                        false
-                );
+                if (isShifted) {
+                    SFMFontUtils.draw(
+                            this.fontRenderer,
+                            MANAGER_GUI_EXTERNAL_TICK_TIME_MS.getComponent(millisecondsExternal).getFormattedText(),
+                            titleLabelX,
+                            20 + fontRenderer.FONT_HEIGHT,
+                            0xFFFFFF, //  TextFormattingColors.getColorCode(lagColor),
+                            false
+                    );
+                } else {
+                    SFMFontUtils.draw(
+                            this.fontRenderer,
+                            MANAGER_GUI_HOVERED_TICK_TIME_MS.getComponent(milliseconds).getFormattedText(),
+                            titleLabelX,
+                            20 + fontRenderer.FONT_HEIGHT,
+                            0xFFFFFF, //  TextFormattingColors.getColorCode(lagColor),
+                            false
+                    );
+                }
             }
 
             // draw a vertical line

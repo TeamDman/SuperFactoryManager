@@ -15,6 +15,7 @@ import ca.teamdman.sfm.common.net.ClientboundManagerGuiUpdatePacket;
 import ca.teamdman.sfm.common.net.ClientboundManagerLogLevelUpdatedPacket;
 import ca.teamdman.sfm.common.net.ClientboundManagerLogsPacket;
 import ca.teamdman.sfm.common.program.IProgramHooks;
+import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.registry.IGuiProvider;
 import ca.teamdman.sfm.common.registry.SFMPackets;
 import ca.teamdman.sfm.common.timing.SFMEpochInstant;
@@ -142,7 +143,8 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
             }
 
             // Tick the program and see if anything happened
-            boolean didSomething = manager.program.tick(manager);
+            ProgramContext context = manager.program.tick(manager);
+            boolean didSomething = context.didSomething();
             if (!didSomething) {
                 return;
             }
@@ -150,6 +152,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
             // Calculate and track the elapsed time
             Duration elapsed = start.elapsed();
             manager.tickTimes[manager.tickIndex] = elapsed;
+            manager.externalTickTimes[manager.tickIndex] = context.getAccumulatedExternalIOTime();
             manager.tickIndex = (manager.tickIndex + 1) % manager.tickTimes.length;
             manager.logger.trace(x -> x.accept(
                     LocalizationKeys.PROGRAM_TICK_TIME_MS.get(elapsed.toNanos() / 1_000_000f)));
@@ -452,6 +455,13 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
         System.arraycopy(tickTimes, 0, result, tickTimes.length - tickIndex, tickIndex);
         return result;
     }
+    public Duration[] getExternalTickTimes() {
+        // tickTimeNanos is used as a cyclical buffer, transform it to have the first index be the most recent tick
+        Duration[] result = new Duration[externalTickTimes.length];
+        System.arraycopy(externalTickTimes, tickIndex, result, 0, externalTickTimes.length - tickIndex);
+        System.arraycopy(externalTickTimes, 0, result, externalTickTimes.length - tickIndex, tickIndex);
+        return result;
+    }
 
     public void sendUpdatePacket() {
         if (world.isRemote) return;
@@ -460,7 +470,8 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
                 -1,
                 getProgramStringOrEmptyIfNull(),
                 getState(),
-                getTickTimes()
+                getTickTimes(),
+                getExternalTickTimes()
         );
 
         OpenContainerTracker.getOpenManagerMenus(getPos())

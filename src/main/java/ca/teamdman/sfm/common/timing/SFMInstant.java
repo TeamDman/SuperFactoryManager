@@ -38,6 +38,10 @@ public record SFMInstant(long nanos) implements Comparable<SFMInstant> {
         return Duration.ofNanos(nanoNow() - nanos);
     }
 
+    public long elapsedNanos() {
+        return nanoNow() - nanos;
+    }
+
 
     @Override
     public String toString() {

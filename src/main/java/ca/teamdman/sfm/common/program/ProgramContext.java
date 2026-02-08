@@ -5,13 +5,17 @@ import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
+import ca.teamdman.sfm.common.timing.SFMInstant;
 import ca.teamdman.sfml.ast.InputStatement;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.world.World;
 
+import javax.annotation.Nullable;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ProgramContext {
     private final Program PROGRAM;
@@ -33,6 +37,11 @@ public class ProgramContext {
 
     private boolean did_something = false;
 
+    @Nullable
+    private SFMInstant startInstant;
+
+    private AtomicLong accumulatedExternalIOTime;
+
     private ProgramContext(
             Program program,
             ManagerBlockEntity manager,
@@ -43,7 +52,7 @@ public class ProgramContext {
             LabelPositionHolder labelPositions,
             TranslatableLogger logger
     ) {
-
+        accumulatedExternalIOTime = new AtomicLong(0);
         this.PROGRAM = program;
         this.MANAGER = manager;
         this.NETWORK = network;
@@ -59,7 +68,7 @@ public class ProgramContext {
             ManagerBlockEntity manager,
             ProgramBehaviour executionBehaviour
     ) {
-
+        accumulatedExternalIOTime = new AtomicLong(0);
         this.PROGRAM = program;
         this.MANAGER = manager;
         //noinspection OptionalGetWithoutIsPresent // program shouldn't be ticking if the network is bad
@@ -74,7 +83,7 @@ public class ProgramContext {
     }
 
     private ProgramContext(ProgramContext other) {
-
+        accumulatedExternalIOTime = other.accumulatedExternalIOTime;
         PROGRAM = other.PROGRAM;
         MANAGER = other.MANAGER;
         NETWORK = other.NETWORK;
@@ -204,6 +213,19 @@ public class ProgramContext {
     public CableNetwork getNetwork() {
 
         return NETWORK;
+    }
+
+    public void startTimingExternalIO() {
+        startInstant = SFMInstant.now();
+    }
+
+    public void stopTimingExternalIO() {
+        if (startInstant == null) return;
+        accumulatedExternalIOTime.getAndAdd(startInstant.elapsedNanos());
+    }
+
+    public Duration getAccumulatedExternalIOTime() {
+        return Duration.ofNanos(accumulatedExternalIOTime.get());
     }
 
     @Override

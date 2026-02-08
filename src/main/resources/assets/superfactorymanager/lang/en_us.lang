@@ -491,6 +491,7 @@ gui.sfm.manager.button.warning.tooltip.read_only=Click to copy code with warning
 gui.sfm.manager.edit_button=Edit
 gui.sfm.manager.edit_button.tooltip=Press %s to edit.
 gui.sfm.manager.hovered_tick_time=Hovered tick time=%s ms
+gui.sfm.manager.external_tick_time=External tick time=%s ms
 gui.sfm.manager.paste_confirm_screen.message=Are you sure you want to overwrite this disk?
 gui.sfm.manager.paste_confirm_screen.no_button=Never mind, make no changes
 gui.sfm.manager.paste_confirm_screen.title=Paste from clipboard?

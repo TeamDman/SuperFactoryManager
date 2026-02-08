@@ -30,6 +30,7 @@ public class ManagerContainerMenu extends Container {
     public String program;
     public ManagerBlockEntity.State state;
     public Duration[] tickTimes;
+    public Duration[] externalTickTimes;
 
 
     public ManagerContainerMenu(
@@ -41,6 +42,7 @@ public class ManagerContainerMenu extends Container {
             String logLevel,
             ManagerBlockEntity.State state,
             Duration[] tickTimes,
+            Duration[] externalTickTimes,
             ArrayDeque<TranslatableLogEvent> logs
     ) {
         this.windowId = windowId;
@@ -53,6 +55,7 @@ public class ManagerContainerMenu extends Container {
         this.program = program;
         this.state = state;
         this.tickTimes = tickTimes;
+        this.externalTickTimes = externalTickTimes;
 
         this.addSlotToContainer(new Slot(container, 0, 15, 47) {
             @Override
@@ -91,6 +94,7 @@ public class ManagerContainerMenu extends Container {
                 buf.readString(ServerboundManagerSetLogLevelPacket.MAX_LOG_LEVEL_NAME_LENGTH),
                 buf.readEnumValue(ManagerBlockEntity.State.class),
                 readDurationArray(buf.readLongArray(null)),
+                readDurationArray(buf.readLongArray(null)),
                 new ArrayDeque<>()
         );
     }
@@ -109,6 +113,7 @@ public class ManagerContainerMenu extends Container {
                 manager.logger.getLogLevel().name(),
                 manager.getState(),
                 manager.getTickTimes(),
+                manager.getExternalTickTimes(),
                 new ArrayDeque<>()
         );
     }

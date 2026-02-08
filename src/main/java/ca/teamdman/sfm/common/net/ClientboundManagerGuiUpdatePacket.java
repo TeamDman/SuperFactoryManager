@@ -15,10 +15,11 @@ public record ClientboundManagerGuiUpdatePacket(
         int windowId,
         String program,
         ManagerBlockEntity.State state,
-        Duration[] tickTimes
+        Duration[] tickTimes,
+        Duration[] externalTickTimes
 ) implements SFMPacket<ClientboundManagerGuiUpdatePacket> {
     public ClientboundManagerGuiUpdatePacket cloneWithWindowId(int windowId) {
-        return new ClientboundManagerGuiUpdatePacket(windowId, program(), state(), tickTimes());
+        return new ClientboundManagerGuiUpdatePacket(windowId, program(), state(), tickTimes(), externalTickTimes());
     }
 
     public static class Daddy implements SFMPacketDaddy<ClientboundManagerGuiUpdatePacket> {
@@ -41,6 +42,7 @@ public record ClientboundManagerGuiUpdatePacket(
             friendlyByteBuf.writeString(SFMPacketDaddy.truncate(msg.program(), Program.MAX_PROGRAM_LENGTH));
             friendlyByteBuf.writeEnumValue(msg.state());
             SFMDurationNetworkUtils.writeDurationArray(msg.tickTimes, friendlyByteBuf);
+            SFMDurationNetworkUtils.writeDurationArray(msg.externalTickTimes, friendlyByteBuf);
         }
 
         @Override
@@ -49,6 +51,7 @@ public record ClientboundManagerGuiUpdatePacket(
                     friendlyByteBuf.readVarInt(),
                     friendlyByteBuf.readString(Program.MAX_PROGRAM_LENGTH),
                     friendlyByteBuf.readEnumValue(ManagerBlockEntity.State.class),
+                    SFMDurationNetworkUtils.readDurationArray(friendlyByteBuf.readLongArray(new long[]{}, ManagerBlockEntity.TICK_TIME_HISTORY_SIZE * 2)),
                     SFMDurationNetworkUtils.readDurationArray(friendlyByteBuf.readLongArray(new long[]{}, ManagerBlockEntity.TICK_TIME_HISTORY_SIZE * 2))
             );
         }
@@ -67,6 +70,7 @@ public record ClientboundManagerGuiUpdatePacket(
                 return;
             }
             menu.tickTimes = msg.tickTimes();
+            menu.externalTickTimes = msg.externalTickTimes();
             menu.state = msg.state();
             menu.program = msg.program();
             return;
