@@ -3,18 +3,6 @@
 
 # Include important folders
 
-# Gradle stuff
-!gradle/
-!gradlew
-!gradlew.bat
-!dependencies.gradle
-!build.gradle
-!buildscript.properties
-!repositories.gradle
-!build.properties
-!gradle.properties
-!settings.gradle
-
 # Other Files.
 !LICENSE.txt
 !README.md
@@ -25,6 +13,6 @@
 !.gitignore
 
 # Include Important Folders
-!src/
+!platform/
 
 !.github/
