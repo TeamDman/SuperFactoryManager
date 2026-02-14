@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.SFMBlockCapabilityCacheForLevel;
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.SFMBlockCapabilityCacheForLevel;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfm.common.program.LimitedInputSlot;
@@ -85,7 +85,7 @@ public class SFMBlockCapabilityDiscovery {
         );
         if (cap.isPresent()) {
             // Track in cache
-            levelCapabilityCache.putCapability(world, pos, capKind, direction, cap);
+            levelCapabilityCache.putCapability(pos, capKind, direction, cap);
         } else {
             logger.warn(x -> x.accept(LocalizationKeys.LOGS_EMPTY_CAPABILITY.get(
                     pos,
@@ -178,7 +178,7 @@ public class SFMBlockCapabilityDiscovery {
             SFMBlockCapabilityCacheForLevel levelCapabilityCache
     ) {
 
-        var found = levelCapabilityCache.getCapability(world, pos, capKind, direction);
+        var found = levelCapabilityCache.getCapability(pos, capKind, direction);
         if (found != null) {
             // CACHE HIT
             if (found.isPresent()) {

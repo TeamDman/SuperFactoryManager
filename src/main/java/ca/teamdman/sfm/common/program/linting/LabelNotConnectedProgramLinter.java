@@ -1,10 +1,11 @@
 package ca.teamdman.sfm.common.program.linting;
 
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
@@ -12,7 +13,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
 import java.util.Map;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
@@ -34,10 +34,10 @@ public class LabelNotConnectedProgramLinter extends IForgeRegistryEntry.Impl<IPr
                 .getOrRegisterNetworkFromManagerPosition(manager)
                 .ifPresent(network -> {
                     outer:
-                    for (Map.Entry<String, HashSet<BlockPos>> entry : labels.labels().entrySet()) {
+                    for (Map.Entry<String, BlockPosSet> entry : labels.labels().entrySet()) {
                         String label = entry.getKey();
-                        HashSet<BlockPos> positions = entry.getValue();
-                        for (BlockPos pos : positions) {
+                        BlockPosSet positions = entry.getValue();
+                        for (BlockPos pos : positions.blockPosIterator()) {
                             if (network.isAdjacentToCable(pos)) {
                                 if (!SFMBlockCapabilityDiscovery.hasAnyCapabilityAnyDirection(level, pos)) {
                                     // a label is properly connected but doesn't support any capabilities

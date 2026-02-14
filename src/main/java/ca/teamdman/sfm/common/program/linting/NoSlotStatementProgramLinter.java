@@ -1,13 +1,16 @@
 package ca.teamdman.sfm.common.program.linting;
 
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
-import ca.teamdman.sfml.ast.*;
+import ca.teamdman.sfml.ast.IOStatement;
+import ca.teamdman.sfml.ast.InputStatement;
+import ca.teamdman.sfml.ast.LabelAccess;
+import ca.teamdman.sfml.ast.Program;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraftforge.registries.IForgeRegistryEntry;
@@ -16,8 +19,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_NO_VIABLE_INPUT_SLOTS;
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_NO_VIABLE_OUTPUT_SLOTS;
 
 public class NoSlotStatementProgramLinter extends IForgeRegistryEntry.Impl<IProgramLinter> implements IProgramLinter {
     // Check for input and output statements that gather no valid slots
@@ -74,8 +75,9 @@ public class NoSlotStatementProgramLinter extends IForgeRegistryEntry.Impl<IProg
                     inputStatement.labelAccess(),
                     (label, pos, direction, cap) -> {
                         anyCapability.set(true);
+                        //noinspection rawtypes,unchecked
                         searchForValidSlots(
-                                (ResourceType<Object, Object, Object>) resourceType,
+                                (ResourceType) resourceType,
                                 inputStatement.labelAccess(),
                                 cap,
                                 ioDirection,

@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.block.IFacadableBlock;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfm.common.util.ConfirmationParams;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.block.Block;
@@ -16,18 +17,17 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 
-import static ca.teamdman.sfm.common.facade.FacadeData.LIGHT_LEVEL;
 import static ca.teamdman.sfm.common.facade.FacadeTransparency.FACADE_TRANSPARENCY_PROPERTY;
 
 @Desugar
 public record ApplyFacadesFacadePlan(
         FacadeData facadeData,
         FacadeTransparency facadeTransparency,
-        Set<BlockPos> positions
+        BlockPosSet positions
 ) implements IFacadePlan {
     @Override
     public void apply(World level) {
-        this.positions().forEach(pos -> {
+        this.positions().blockPosIterator().forEach(pos -> {
             IBlockState blockState = level.getBlockState(pos);
             Block block = blockState.getBlock();
             if (block instanceof IFacadableBlock facadableBlock) {

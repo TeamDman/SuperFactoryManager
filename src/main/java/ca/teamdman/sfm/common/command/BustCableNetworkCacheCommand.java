@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.command;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;

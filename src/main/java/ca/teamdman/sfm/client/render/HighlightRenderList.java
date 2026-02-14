@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.render;
 
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
@@ -12,13 +13,13 @@ import java.util.HashSet;
 
 public class HighlightRenderList {
     private final double size;
-    public final HashSet<BlockPos> positions;
+    public final BlockPosSet positions;
     private int renderList;
 
     private final int r, g, b, a;
 
 
-    public HighlightRenderList(HashSet<BlockPos> blockPos, int r, int g, int b, int a, float highlightFraction) {
+    public HighlightRenderList(BlockPosSet blockPos, int r, int g, int b, int a, float highlightFraction) {
         this.size = highlightFraction;
         this.positions = blockPos;
         this.r = r;
@@ -38,7 +39,7 @@ public class HighlightRenderList {
 
         double start = (1 - size) / 2.0;
 
-        for (BlockPos pos : positions) {
+        for (BlockPos pos : positions.blockPosIterator()) {
             wr.setTranslation(pos.getX() + start, pos.getY() + start, pos.getZ() + start);
 
             boolean north = positions.contains(pos.north());
@@ -103,7 +104,7 @@ public class HighlightRenderList {
                 255
         );
 
-        for (BlockPos pos : positions) {
+        for (BlockPos pos : positions.blockPosIterator()) {
             wr.setTranslation(pos.getX() + start, pos.getY() + start, pos.getZ() + start);
 
             boolean north = positions.contains(pos.north());

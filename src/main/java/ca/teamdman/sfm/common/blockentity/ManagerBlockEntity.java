@@ -57,6 +57,7 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     private final NonNullList<ItemStack> ITEMS = NonNullList.withSize(1, ItemStack.EMPTY);
 
     private final Duration[] tickTimes = new Duration[TICK_TIME_HISTORY_SIZE];
+    private final Duration[] externalTickTimes = new Duration[TICK_TIME_HISTORY_SIZE];
 
     private @Nullable Program program = null;
 
@@ -557,6 +558,10 @@ public class ManagerBlockEntity extends TileEntity implements IInventory, ITicka
     @Override
     public boolean hasCustomName() {
         return false;
+    }
+
+    public BlockPos getBlockPos() {
+        return this.pos;
     }
 
     public enum State {

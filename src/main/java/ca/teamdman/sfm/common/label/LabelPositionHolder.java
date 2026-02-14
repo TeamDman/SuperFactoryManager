@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.label;
 
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.util.BlockPosIterator;
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.item.ItemStack;
@@ -22,17 +24,19 @@ import java.util.stream.Stream;
 @SuppressWarnings("UnusedReturnValue")
 @Desugar
 public record LabelPositionHolder(
-        Map<String, HashSet<BlockPos>> labels
+        Map<String, BlockPosSet> labels
 ) {
     private final static WeakHashMap<ItemStack, LabelPositionHolder> CACHE = new WeakHashMap<>();
 
     private LabelPositionHolder() {
+
         this(new HashMap<>());
     }
 
     private LabelPositionHolder(LabelPositionHolder other) {
+
         this();
-        other.labels().forEach((key, value) -> this.labels().put(key, new HashSet<>(value)));
+        other.labels().forEach((key, value) -> this.labels().put(key, new BlockPosSet(value)));
     }
 
 
@@ -45,10 +49,12 @@ public record LabelPositionHolder(
      */
     public static LabelPositionHolder from(ItemStack stack) {
         // TODO: make this return an immutable copy instead of mutably borrowing the cache entry
-        return CACHE.computeIfAbsent(stack, s -> {
-            var tag = stack.getTagCompound() != null ? stack.getTagCompound().getCompoundTag("sfm:labels") : new NBTTagCompound();
-            return deserialize(tag);
-        });
+        return CACHE.computeIfAbsent(
+                stack, s -> {
+                    var tag = stack.getTagCompound() != null ? stack.getTagCompound().getCompoundTag("sfm:labels") : new NBTTagCompound();
+                    return deserialize(tag);
+                }
+        );
     }
 
     public static LabelPositionHolder from(TileEntityManager manager) {
@@ -61,6 +67,7 @@ public record LabelPositionHolder(
     }
 
     public static LabelPositionHolder empty() {
+
         return new LabelPositionHolder();
     }
 
@@ -71,7 +78,7 @@ public record LabelPositionHolder(
             if (positionsTagType == 7) { // byte_array
                 labels.addAll(
                         label,
-                        CompressedBlockPosSet.from(tag.getByteArray(label)).into()
+                        CompressedBlockPosSet.from(tag.getByteArray(label)).into().blockPosIterator()
                 );
             }
         }
@@ -79,6 +86,7 @@ public record LabelPositionHolder(
     }
 
     public LabelPositionHolder save(ItemStack stack) {
+
         stack.setTagInfo("sfm:labels", serialize());
         CACHE.put(stack, new LabelPositionHolder(this));
         return this;
@@ -90,11 +98,13 @@ public record LabelPositionHolder(
     }
 
     public static void clear(ItemStack stack) {
+
         stack.removeSubCompound("sfm:labels");
         CACHE.remove(stack);
     }
 
     public NBTTagCompound serialize() {
+
         var tag = new NBTTagCompound();
         for (var entry : labels().entrySet()) {
             String label = entry.getKey();
@@ -108,7 +118,8 @@ public record LabelPositionHolder(
             String label,
             BlockPos pos
     ) {
-        HashSet<BlockPos> positionsForLabel = this.labels().get(label);
+
+        BlockPosSet positionsForLabel = this.labels().get(label);
         if (positionsForLabel == null) {
             return false;
         } else {
@@ -116,29 +127,45 @@ public record LabelPositionHolder(
         }
     }
 
-    public Set<BlockPos> getPositions(String label) {
-        return labels().getOrDefault(label, new HashSet<>());
+    public BlockPosSet getPositions(String label) {
+
+        return labels().getOrDefault(label, new BlockPosSet());
     }
 
-    public Set<BlockPos> getPositionsMut(String label) {
-        return labels().computeIfAbsent(label, s -> new HashSet<>());
+    public BlockPosSet getPositionsMut(String label) {
+
+        return labels().computeIfAbsent(label, s -> new BlockPosSet());
     }
 
     public LabelPositionHolder addAll(
             String label,
             Collection<BlockPos> positions
     ) {
+
         if (label.trim().isEmpty()) return this;
-        getPositionsMut(label).addAll(positions);
+        getPositionsMut(label).addAllPositions(positions);
+        return this;
+    }
+
+    public LabelPositionHolder addAll(
+            String label,
+            BlockPosIterator positions
+    ) {
+
+        if (label.isEmpty()) return this;
+        BlockPosSet positionsForLabel = getPositionsMut(label);
+        positions.forEachLong(positionsForLabel::add);
         return this;
     }
 
     public LabelPositionHolder addReferencedLabel(String label) {
+
         getPositionsMut(label);
         return this;
     }
 
     public List<String> asHoverText() {
+
         var rtn = new ArrayList<String>();
         if (labels().isEmpty()) return rtn;
         rtn.add(LocalizationKeys.DISK_ITEM_TOOLTIP_LABEL_HEADER
@@ -156,26 +183,41 @@ public record LabelPositionHolder(
     }
 
     public String toDebugString() {
+
         int total = 0;
         StringBuilder rtn = new StringBuilder();
         for (var entry : labels().entrySet()) {
-            rtn.append("-- * ").append(entry.getKey()).append(" - ").append(entry.getValue().size()).append(" positions\n");
+            rtn
+                    .append("-- * ")
+                    .append(entry.getKey())
+                    .append(" - ")
+                    .append(entry.getValue().size())
+                    .append(" positions\n");
             total += entry.getValue().size();
         }
         return "-- LabelPositionHolder - " + total + " total labels\n" + rtn;
     }
 
-    public LabelPositionHolder removeAll(BlockPos value) {
-        labels().values().forEach(list -> list.remove(value));
+    public LabelPositionHolder removeAll(BlockPos blockPos) {
+
+        labels().values().forEach(list -> list.remove(blockPos));
+        return this;
+    }
+
+    public LabelPositionHolder removeAll(long blockPosLong) {
+
+        labels().values().forEach(list -> list.remove(blockPosLong));
         return this;
     }
 
     public LabelPositionHolder prune() {
+
         labels().entrySet().removeIf(entry -> entry.getValue().isEmpty());
         return this;
     }
 
     public LabelPositionHolder clear() {
+
         labels().clear();
         return this;
     }
@@ -184,6 +226,7 @@ public record LabelPositionHolder(
             String label,
             BlockPos position
     ) {
+
         if (label.trim().isEmpty()) return this;
         getPositionsMut(label).add(position);
         return this;
@@ -193,28 +236,44 @@ public record LabelPositionHolder(
             String label,
             BlockPos pos
     ) {
+
         getPositionsMut(label).remove(pos);
         return this;
     }
 
+    public LabelPositionHolder remove(
+            String label,
+            long blockPosLong
+    ) {
+
+        getPositionsMut(label).remove(blockPosLong);
+        return this;
+    }
+
     public LabelPositionHolder removeIf(BiPredicate<String, BlockPos> predicate) {
-        labels().forEach((key, value) -> value.removeIf(pos -> predicate.test(key, pos)));
+
+        labels().forEach((label, positions) -> positions.removeIfPosition(pos -> predicate.test(label, pos)));
         return this;
     }
 
     public LabelPositionHolder removeIf(Predicate<String> predicate) {
+
         labels().keySet().removeIf(predicate);
         return this;
     }
 
     public LabelPositionHolder forEach(BiConsumer<String, BlockPos> consumer) {
-        labels().forEach((key, value) -> value.forEach(pos -> consumer.accept(key, pos)));
+
+        labels().forEach((label, positions) -> positions
+                .blockPosIterator()
+                .forEach(pos -> consumer.accept(label, pos.toImmutable())));
         return this;
     }
 
     @NotNull
     @Override
     public String toString() {
+
         return "LabelPositionHolder{size=" + labels().values().stream().mapToInt(Set::size).sum() + "; " +
                 labels()
                         .entrySet()
@@ -225,27 +284,38 @@ public record LabelPositionHolder(
     }
 
     public LabelPositionHolder toOwned() {
+
         return new LabelPositionHolder(this);
     }
 
     public Set<String> getLabels(BlockPos pos) {
+
         return labels().entrySet().stream()
                 .filter(entry -> entry.getValue().contains(pos))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
 
+    public Set<String> getLabels(long blockPosLong) {
+
+        return labels().entrySet().stream()
+                .filter(entry -> entry.getValue().contains(blockPosLong))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
     public boolean isEmpty() {
+
         return labels().isEmpty();
     }
 
 
-    public Stream<Map.Entry<String, HashSet<BlockPos>>> streamSortedLabels() {
+    public Stream<Map.Entry<String, BlockPosSet>> streamSortedLabels() {
         return this.labels().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey());
     }
 
-    public List<HashSet<BlockPos>> getSortedLabelPositions() {
+    public List<BlockPosSet> getSortedLabelPositions() {
         return this.streamSortedLabels()
                 .map(Map.Entry::getValue)
                 .collect(Collectors.toList());
@@ -255,4 +325,5 @@ public record LabelPositionHolder(
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
     }
+
 }

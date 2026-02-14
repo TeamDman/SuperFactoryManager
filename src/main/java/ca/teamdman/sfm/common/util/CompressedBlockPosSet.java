@@ -2,16 +2,13 @@ package ca.teamdman.sfm.common.util;
 
 import com.github.bsideup.jabel.Desugar;
 import io.netty.buffer.Unpooled;
-import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import net.minecraft.nbt.NBTTagByteArray;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Compress a set of BlockPos by storing cuboids.
@@ -19,42 +16,80 @@ import java.util.Set;
 public class CompressedBlockPosSet {
     private final ArrayList<Volume> boundingVolumes = new ArrayList<>();
 
-    /**
-     * @param positions owned list of positions, this will be modified.
-     * @return this
-     */
-    public static CompressedBlockPosSet from(Set<BlockPos> positions) {
+    public static CompressedBlockPosSet from(BlockPosSet positions) {
+
+        // Create the return object
         CompressedBlockPosSet rtn = new CompressedBlockPosSet();
-        LongSet remaining = new LongLinkedOpenHashSet(positions.size());
-        for (BlockPos pos : positions) {
-            remaining.add(pos.toLong());
-        }
-        while (!remaining.isEmpty()) {
-            long start = remaining.iterator().nextLong();
-            remaining.remove(start);
-            EnumFacing direction = EnumFacing.NORTH;
+
+        // Track which positions we have encoded
+        BlockPosSet visited = new BlockPosSet(positions.size());
+
+        // When creating the volumes, we want to try vertical directions last
+        EnumFacing[] directions = {
+                EnumFacing.NORTH,
+                EnumFacing.EAST,
+                EnumFacing.SOUTH,
+                EnumFacing.WEST,
+                EnumFacing.DOWN,
+                EnumFacing.UP
+        };
+
+        // Drain the unencoded positions into the return set
+        LongIterator iter = positions.iterator();
+        while (iter.hasNext()) {
+            // Pop the next value to encode
+            long volumeStartBlockPosLong = iter.nextLong();
+
+            // SKIP if this block was already swallowed by a previous volume extension
+            if (visited.contains(volumeStartBlockPosLong)) {
+                continue;
+            }
+
+            // Track as seen
+            visited.add(volumeStartBlockPosLong);
+
+            // Default to extending northwards
+            EnumFacing extendDirection = EnumFacing.NORTH;
+
             int extension = 0;
-            // we want to put down/up last so we don't use .values() here
-            for (var dir : new EnumFacing[]{EnumFacing.NORTH, EnumFacing.EAST, EnumFacing.SOUTH, EnumFacing.WEST, EnumFacing.DOWN, EnumFacing.UP}) {
-                BlockPos offset = BlockPos.fromLong(start).offset(dir);
-                if (remaining.contains(offset.toLong())) {
-                    direction = dir;
-                    while (remaining.contains(offset.toLong())) {
-                        remaining.remove(offset.toLong());
-                        offset = offset.offset(dir);
+            BlockPos.MutableBlockPos pos = BlockPos.PooledMutableBlockPos.retain();
+            // Check each direction for valid extensions
+            for (EnumFacing checkDirection : directions) {
+                SFMBackportHelper.setMutableBlockPos(pos, volumeStartBlockPosLong).move(checkDirection);
+                // Extend in the direction
+                long extensionBlockPosLong = pos.toLong();
+
+                // Ensure the position hasn't already been encoded
+                if (positions.contains(extensionBlockPosLong) && !visited.contains(extensionBlockPosLong)) {
+
+                    // Update the direction of the volume
+                    extendDirection = checkDirection;
+
+                    // Extend as far as possible
+                    while (positions.contains(extensionBlockPosLong) && !visited.contains(extensionBlockPosLong)) {
+                        // Track as seen
+                        visited.add(extensionBlockPosLong);
+
+                        SFMBackportHelper.setMutableBlockPos(pos, extensionBlockPosLong).move(checkDirection);
+                        // Step in the direction
+                        extensionBlockPosLong = pos.toLong();
+
+                        // Increment the extension
                         extension++;
                     }
                     break;
                 }
             }
-            rtn.boundingVolumes.add(new Volume(BlockPos.fromLong(start), direction, extension));
+            rtn.boundingVolumes.add(new Volume(BlockPos.fromLong(volumeStartBlockPosLong), extendDirection, extension));
         }
+
+        // Return the result set
         return rtn;
     }
 
     public void write(PacketBuffer buf) {
         buf.writeVarInt(boundingVolumes.size());
-        for (var volume : boundingVolumes) {
+        for (Volume volume : boundingVolumes) {
             volume.write(buf);
         }
     }
@@ -68,42 +103,68 @@ public class CompressedBlockPosSet {
         return rtn;
     }
 
-    public Set<BlockPos> into() {
+    public BlockPosSet into() {
+
         int capacity = 0;
-        for (var volume : boundingVolumes) {
+        for (Volume volume : boundingVolumes) {
             capacity += volume.extension + 1;
         }
-        HashSet<BlockPos> rtn = new HashSet<>(capacity);
-        for (var volume : boundingVolumes) {
+        BlockPosSet rtn = new BlockPosSet(capacity);
+        for (Volume volume : boundingVolumes) {
             BlockPos start = volume.start;
             BlockPos end = start.offset(volume.direction, volume.extension);
             for (BlockPos blockPos : BlockPos.getAllInBox(start, end)) {
-                rtn.add(blockPos.toImmutable());
+                rtn.add(blockPos); // correctness: BlockPosSet makes it immutable
             }
         }
         return rtn;
     }
 
     public NBTTagByteArray asTag() {
+
         PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
         this.write(buf);
         return new NBTTagByteArray(buf.array());
     }
 
     public static CompressedBlockPosSet from(NBTTagByteArray tag) {
+
         return from(tag.getByteArray());
     }
 
     public static CompressedBlockPosSet from(byte[] data) {
+
         PacketBuffer buf = new PacketBuffer(Unpooled.wrappedBuffer(data));
         return CompressedBlockPosSet.read(buf);
     }
 
-    @Desugar private record Volume(
-        BlockPos start,
+    @Override
+    public int hashCode() {
+
+        return this.boundingVolumes.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+
+        if (obj instanceof CompressedBlockPosSet set) {
+            return set.boundingVolumes.equals(this.boundingVolumes);
+        }
+        return false;
+    }
+
+    @Desugar
+    private record Volume(
+            /// Where the volume begins
+            BlockPos start,
+
+            /// The direction the volume extends
             EnumFacing direction,
+
+            /// How far beyond the initial block the volume extends
             int extension
-) {
+// this would be better as "size" but whatever, can't change now because it's stored in existing nbt
+    ) {
         public void write(PacketBuffer buf) {
             buf.writeBlockPos(start);
             buf.writeInt(direction.ordinal());
@@ -117,18 +178,7 @@ public class CompressedBlockPosSet {
                     buf.readVarInt()
             );
         }
+
     }
 
-    @Override
-    public int hashCode() {
-        return this.boundingVolumes.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof CompressedBlockPosSet set) {
-            return set.boundingVolumes.equals(this.boundingVolumes);
-        }
-        return false;
-    }
 }

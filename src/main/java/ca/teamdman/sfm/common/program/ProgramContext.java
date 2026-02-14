@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.common.program;
 
+import ca.teamdman.sfm.common.block_network.CableNetwork;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfm.common.timing.SFMInstant;
@@ -138,7 +138,7 @@ public class ProgramContext {
             int redstonePulses,
             SimulateExploreAllPathsProgramBehaviour behaviour
     ) {
-        //noinspection DataFlowIssue,ConstantValue // simulation mode must be able to run without world access
+        //noinspection DataFlowIssue // simulation mode must be able to run without world access
         return new ProgramContext(
                 program,
                 manager,

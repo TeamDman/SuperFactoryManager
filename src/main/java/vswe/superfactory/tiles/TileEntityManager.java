@@ -1,6 +1,6 @@
 package vswe.superfactory.tiles;
 
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
+import ca.teamdman.sfm.common.block_network.CableNetwork;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;

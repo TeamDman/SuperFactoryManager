@@ -1,8 +1,8 @@
 package vswe.superfactory.blocks;
 
 import ca.teamdman.sfm.common.block.IFacadableBlock;
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
-import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
+import ca.teamdman.sfm.common.block_network.ICableBlock;
 import ca.teamdman.sfm.common.registry.SFMBlocks;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;

@@ -22,8 +22,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
-import ca.teamdman.sfm.common.cablenetwork.CableNetworkManager;
-import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
+import ca.teamdman.sfm.common.block_network.ICableBlock;
 import org.jetbrains.annotations.NotNull;
 
 public class BlockCable extends Block implements ICableBlock, IFacadableBlock {
@@ -89,6 +89,7 @@ public class BlockCable extends Block implements ICableBlock, IFacadableBlock {
             network.ifPresent(nw -> {
                 if (neighborPos != null && world.getTileEntity(neighborPos) == null) {
                     nw.bustCapabilityCacheForBlock(neighborPos);
+                    nw.updateVisualManagers();
                 }
             });
         }

@@ -5,18 +5,15 @@ import ca.teamdman.sfm.client.render.HighlightRenderList;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.item.NetworkToolItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfm.common.util.HelpsWithMinecraftVersionIndependence;
-import ca.teamdman.sfm.common.util.SFMDirections;
 import com.bbscn.Tools;
-import com.github.bsideup.jabel.Desugar;
 import com.google.common.collect.HashMultimap;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.*;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.renderer.vertex.VertexBuffer;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
@@ -30,8 +27,10 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
-import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -105,14 +104,14 @@ public class ItemWorldRenderer {
             float partialTicks
     ) {
         if (!NetworkToolItem.getOverlayEnabled(networkTool)) return;
-        Set<BlockPos> cablePositions = NetworkToolItem.getCablePositions(networkTool);
-        Set<BlockPos> capabilityPositions = NetworkToolItem.getCapabilityProviderPositions(networkTool);
+        BlockPosSet cablePositions = NetworkToolItem.getCablePositions(networkTool);
+        BlockPosSet capabilityPositions = NetworkToolItem.getCapabilityProviderPositions(networkTool);
 
         var selectedPos = NetworkToolItem.getSelectedNetworkBlockPos(networkTool);
         if (cablePositions.isEmpty() && selectedPos != null) {
             drawHighlights(
                     VBOKind.NETWORK_TOOL_CABLES,
-                    Stream.of(selectedPos).collect(Collectors.toCollection(HashSet::new)),
+                    Stream.of(selectedPos).collect(BlockPosSet.collector()),
                     noNetworkErrorColor,
                     player,
                     1
@@ -126,7 +125,7 @@ public class ItemWorldRenderer {
 
     private static void drawHighlights(
                                        VBOKind vboKind,
-                                       Set<BlockPos> positions,
+                                       BlockPosSet positions,
                                        int color,
                                        EntityPlayerSP player,
                                        float highlightFraction
@@ -206,7 +205,13 @@ public class ItemWorldRenderer {
         }
 
 
-        drawHighlights(VBOKind.LABEL_GUN_CAPABILITIES, labelsByPosition.keySet(), viewMode != LabelGunItem.LabelGunViewMode.SHOW_ALL ? capabilityColorLimitedView : capabilityColor, player, 0.9F);
+        drawHighlights(
+                VBOKind.LABEL_GUN_CAPABILITIES,
+                labelsByPosition.keySet().stream().collect(BlockPosSet.collector()),
+                viewMode != LabelGunItem.LabelGunViewMode.SHOW_ALL ? capabilityColorLimitedView : capabilityColor,
+                player,
+                0.9F
+        );
 
         GlStateManager.pushMatrix();
         GlStateManager.disableCull();
@@ -347,13 +352,13 @@ public class ItemWorldRenderer {
         private int lastCachedTick = -1;
 
         public @Nullable HighlightRenderList getList(
-                                                     VBOKind kind,
-                                                     Set<BlockPos> positions,
-                                                     EntityPlayerSP player,
-                                                     int r,
-                                                     int g,
-                                                     int b,
-                                                     int a
+                VBOKind kind,
+                BlockPosSet positions,
+                EntityPlayerSP player,
+                int r,
+                int g,
+                int b,
+                int a
         ,
                                                      float highlightFraction) {
             if (positions.isEmpty()) {
@@ -376,7 +381,7 @@ public class ItemWorldRenderer {
                     entry.destroy();
                 }
 
-                entry = new HighlightRenderList(new HashSet<>(positions), r, g, b, a, highlightFraction);
+                entry = new HighlightRenderList(new BlockPosSet(positions), r, g, b, a, highlightFraction);
                 cache.put(kind, entry);
             }
             return entry;

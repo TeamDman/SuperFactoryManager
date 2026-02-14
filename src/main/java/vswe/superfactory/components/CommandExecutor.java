@@ -1,5 +1,6 @@
 package vswe.superfactory.components;
 
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.block.BlockPane;
 import net.minecraft.item.ItemStack;
@@ -83,8 +84,8 @@ public class CommandExecutor {
 
 
             if (baseIndex < 0 && labels.size() >= (-baseIndex) ) {
-                Set<BlockPos> positions = labels.get(Math.abs(baseIndex) - 1);
-                for (BlockPos pos : positions) {
+                BlockPosSet positions = labels.get(Math.abs(baseIndex) - 1);
+                for (BlockPos.MutableBlockPos pos : positions.blockPosIterator()) {
                     ConnectionBlock connection;
                     if ((connection = inventoriesMap.getOrDefault(pos, null)) != null) {
                         if (connection.isOfType(type) && !connection.getTileEntity().isInvalid() && !containsTe(ret, connection.getTileEntity())) {

@@ -83,4 +83,10 @@ dependencies {
     compileOnly(rfg.deobf("curse.maven:storage-drawers-223852:5981297")) { transitive = false }
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:storage-drawers-223852:5981297")) { transitive = false }
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:chameleon-230497:2450900")) { transitive = false }
+
+    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    testImplementation 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+    testImplementation 'org.openjdk.jmh:jmh-generator-bytecode:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+
 }

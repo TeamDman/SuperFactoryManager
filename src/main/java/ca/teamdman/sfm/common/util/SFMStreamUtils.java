@@ -3,6 +3,10 @@ package ca.teamdman.sfm.common.util;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -48,6 +52,14 @@ public class SFMStreamUtils {
             );
         }
         return builder.build();
+    }
+
+    public static <T, R> Stream<R> getRecursiveStream(
+            RecursiveBuilder<T, R> operator,
+            Deque<T> toVisit
+    ) {
+        Set<T> visitDebounce = new HashSet<>();
+        return getRecursiveStream(operator, visitDebounce, toVisit);
     }
 
     public static Stream<BlockPos> get3DNeighboursIncludingKittyCorner(BlockPos pos) {

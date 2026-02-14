@@ -1,0 +1,72 @@
+package ca.teamdman.sfm.common.util;
+
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+
+import java.util.Iterator;
+import java.util.function.LongConsumer;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+/// A one-shot iterator over BlockPos objects backed by a LongIterator.
+/// Note that the returned BlockPos objects are mutable and will be modified on each call to {@link #next()}.
+/// Note that mutating the returned BlockPos objects will not mutate the underlying representation, however, calling {@link #remove()} will.
+public class BlockPosIterator implements Iterator<BlockPos.MutableBlockPos>, Iterable<BlockPos.MutableBlockPos> {
+    private final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+
+    private final LongIterator innerIter;
+
+    private static final int NUM_X_BITS = 1 + MathHelper.log2(MathHelper.smallestEncompassingPowerOfTwo(30000000));
+    private static final int NUM_Z_BITS = NUM_X_BITS;
+    private static final int NUM_Y_BITS = 64 - NUM_X_BITS - NUM_Z_BITS;
+    private static final int Y_SHIFT = NUM_Z_BITS;
+    private static final int X_SHIFT = Y_SHIFT + NUM_Y_BITS;
+
+    public BlockPosIterator(LongIterator longIterator) {
+
+        this.innerIter = longIterator;
+    }
+
+    @Override
+    public boolean hasNext() {
+
+        return innerIter.hasNext();
+    }
+
+    @Override
+    public BlockPos.MutableBlockPos next() {
+        return SFMBackportHelper.setMutableBlockPos(pos, innerIter.nextLong());
+    }
+
+    @Override
+    public void remove() {
+
+        innerIter.remove();
+    }
+
+    @SuppressWarnings("unused")
+    public int skip(int n) {
+
+        return innerIter.skip(n);
+    }
+
+    public void forEachLong(LongConsumer consumer) {
+        while (innerIter.hasNext()) {
+            consumer.accept(innerIter.nextLong());
+        }
+    }
+
+    // Allows this to be the right-hand side of an enhanced for-loop
+    @Override
+    public Iterator<BlockPos.MutableBlockPos> iterator() {
+
+        return this;
+    }
+
+    public Stream<BlockPos.MutableBlockPos> stream() {
+
+        return StreamSupport.stream(spliterator(), false);
+    }
+
+}

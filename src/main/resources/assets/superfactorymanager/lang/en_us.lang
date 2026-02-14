@@ -667,3 +667,4 @@ program.sfm.warnings.no_slots=Statement matches no slots: "%s" at %s
 sfm.label_gun.view_mode.show_only_active_and_targeted=Showing blocks with active label. Cycle mode in gui or with %s
 sfm.label_gun.view_mode.show_only_targeted=Showing only targeted block labels. Cycle mode in gui or with %s
 sfm.network_tool.reminder_overlay=Toggle network tool overlay with %s
+sfm.command.bust_cable_network_cache.success=Successfully busted cable network cache.

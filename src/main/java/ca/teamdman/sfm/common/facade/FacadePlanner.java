@@ -1,10 +1,12 @@
 package ca.teamdman.sfm.common.facade;
 
 import ca.teamdman.sfm.common.block.IFacadableBlock;
+import ca.teamdman.sfm.common.block_network.CableNetwork;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.cablenetwork.CableNetwork;
 import ca.teamdman.sfm.common.net.ServerboundFacadePacket;
+import ca.teamdman.sfm.common.util.BlockPosSet;
+import ca.teamdman.sfm.common.util.SFMBlockPosUtils;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -14,13 +16,9 @@ import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * A plan for how to update the blocks in the world and sometimes their facade data.
@@ -91,20 +89,20 @@ public class FacadePlanner {
         );
     }
 
-    private static @NotNull Set<BlockPos> getPositions(
+    private static BlockPosSet getPositions(
             World level,
             ServerboundFacadePacket msg,
             BlockPos hitPos,
             Block hitBlock
     ) {
-        Set<BlockPos> positions = switch (msg.spreadLogic()) {
+        BlockPosSet positions = switch (msg.spreadLogic()) {
             case SINGLE -> {
                 // ensure mutable
-                Set<BlockPos> set = new HashSet<>();
+                BlockPosSet set = new BlockPosSet();
                 set.add(hitPos);
                 yield set;
             }
-            case NETWORK -> CableNetwork.discoverCables(level, hitPos).collect(Collectors.toSet());
+            case NETWORK -> CableNetwork.discoverCables(level, hitPos).collect(BlockPosSet.collector());
             case NETWORK_GLOBAL_SAME_PAINT -> {
                 if (level.getTileEntity(hitPos) instanceof IFacadeBlockEntity startFacadeBlockEntity) {
                     // the start block is a facade
@@ -122,7 +120,7 @@ public class FacadePlanner {
                                 } else {
                                     return false;
                                 }
-                            }).collect(Collectors.toSet());
+                            }).collect(BlockPosSet.collector());
                 } else {
                     // the start block is not a facade
                     yield CableNetwork.discoverCables(level, hitPos)
@@ -130,13 +128,13 @@ public class FacadePlanner {
                             .filter(checkPos -> level.getBlockState(checkPos).getBlock() == hitBlock)
                             // must not have a facade set
                             .filter(checkPos -> !(level.getTileEntity(checkPos) instanceof IFacadeBlockEntity))
-                            .collect(Collectors.toSet());
+                            .collect(BlockPosSet.collector());
                 }
             }
             case NETWORK_CONTIGUOUS_SAME_PAINT -> {
-                Set<BlockPos> cablePositions = CableNetwork
+                BlockPosSet cablePositions = CableNetwork
                         .discoverCables(level, hitPos)
-                        .collect(Collectors.toSet());
+                        .collect(BlockPosSet.collector());
 
                 if (level.getTileEntity(hitPos) instanceof IFacadeBlockEntity startFacadeBlockEntity) {
                     // the start block is a facade
@@ -145,7 +143,7 @@ public class FacadePlanner {
                     yield SFMStreamUtils.<BlockPos, BlockPos>getRecursiveStream(
                             (current, next, results) -> {
                                 results.accept(current);
-                                SFMStreamUtils.get3DNeighboursIncludingKittyCorner(current)
+                                SFMBlockPosUtils.get3DNeighboursIncludingKittyCorner(current)
                                         .filter(neighbour -> {
                                             if (!cablePositions.contains(neighbour)) {
                                                 return false;
@@ -164,13 +162,13 @@ public class FacadePlanner {
                                         .forEach(next);
                             },
                             hitPos
-                    ).collect(Collectors.toSet());
+                    ).collect(BlockPosSet.collector());
                 } else {
                     // the start block is not a facade
                     yield SFMStreamUtils.<BlockPos, BlockPos>getRecursiveStream(
                             (current, next, results) -> {
                                 results.accept(current);
-                                SFMStreamUtils.get3DNeighboursIncludingKittyCorner(current)
+                                SFMBlockPosUtils.get3DNeighboursIncludingKittyCorner(current)
                                         .filter(neighbour -> {
                                             if (!cablePositions.contains(neighbour)) {
                                                 return false;
@@ -183,11 +181,11 @@ public class FacadePlanner {
                                         .forEach(next);
                             },
                             hitPos
-                    ).collect(Collectors.toSet());
+                    ).collect(BlockPosSet.collector());
                 }
             }
         };
-        positions.removeIf(pos -> level.getTileEntity(pos) instanceof ManagerBlockEntity);
+        positions.removeIfPosition(pos -> level.getTileEntity(pos) instanceof ManagerBlockEntity);
         return positions;
     }
 }

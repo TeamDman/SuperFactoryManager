@@ -2,7 +2,7 @@ package vswe.superfactory.blocks;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.CommonProxy;
-import ca.teamdman.sfm.common.cablenetwork.ICableBlock;
+import ca.teamdman.sfm.common.block_network.ICableBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.SoundType;
