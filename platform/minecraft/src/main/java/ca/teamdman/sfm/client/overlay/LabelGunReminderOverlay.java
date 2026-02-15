@@ -5,7 +5,7 @@ import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -66,7 +66,7 @@ public class LabelGunReminderOverlay {
     private static @Nullable LabelGunItem.LabelGunViewMode getViewMode(EntityPlayerSP player) {
         if (player == null) return null;
         if (!SFMConfig.client.showLabelGunReminderOverlay) return null;
-        ItemStack labelGun = SFMHandUtils.getItemInEitherHand(player, SFMItems.LABEL_GUN_ITEM);
+        ItemStack labelGun = SFMHandUtils.getItemInEitherHand(player, SFMItems.LABEL_GUN);
         if (labelGun.isEmpty()) return null;
         return LabelGunItem.getViewMode(labelGun);
     }

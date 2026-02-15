@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.recipe;
 
 import ca.teamdman.sfm.common.item.LabelGunItem;
-import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
@@ -35,7 +35,7 @@ public class LabelGunResetRecipe extends IForgeRegistryEntry.Impl<IRecipe> imple
                 return ItemStack.EMPTY;
             }
         }
-        return foundLabelGuns > 0 ? new ItemStack(SFMItems.LABEL_GUN_ITEM, foundLabelGuns) : ItemStack.EMPTY;
+        return foundLabelGuns > 0 ? new ItemStack(SFMItems.LABEL_GUN, foundLabelGuns) : ItemStack.EMPTY;
     }
 
     @Override
@@ -45,7 +45,7 @@ public class LabelGunResetRecipe extends IForgeRegistryEntry.Impl<IRecipe> imple
 
     @Override
     public ItemStack getRecipeOutput() {
-        return new ItemStack(SFMItems.LABEL_GUN_ITEM);
+        return new ItemStack(SFMItems.LABEL_GUN);
     }
 
     @Override

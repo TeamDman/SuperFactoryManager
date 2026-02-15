@@ -4,6 +4,7 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.common.facade.FacadePlanner;
 import ca.teamdman.sfm.common.facade.FacadeSpreadLogic;
 import ca.teamdman.sfm.common.facade.IFacadePlan;
+import ca.teamdman.sfm.common.util.SFMEntityUtils;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -24,7 +25,8 @@ public record ServerboundFacadePacket(
             ServerboundFacadePacket msg,
             EntityPlayerMP sender
     ) {
-        World level = sender.getServerWorld();
+
+        World level = SFMEntityUtils.getLevel(sender);
         IFacadePlan facadePlan = FacadePlanner.getFacadePlan(sender, level, msg);
         if (facadePlan == null) {
             return;

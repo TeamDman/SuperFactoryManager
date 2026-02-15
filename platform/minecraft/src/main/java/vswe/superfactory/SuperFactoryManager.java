@@ -1,7 +1,6 @@
 package vswe.superfactory;
 
-import ca.teamdman.sfm.common.registry.SFMBlocks;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -10,7 +9,6 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
 import ca.teamdman.sfm.Tags;
 import vswe.superfactory.network.packets.FileHelper;
-import vswe.superfactory.network.packets.PacketEventHandler;
 
 public class SuperFactoryManager {
 	public static final String              CHANNEL                      = "factorymanager";

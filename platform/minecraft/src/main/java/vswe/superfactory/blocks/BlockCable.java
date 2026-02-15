@@ -8,8 +8,8 @@ import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.block.IFacadableBlock;
 import ca.teamdman.sfm.common.facade.FacadeSpreadLogic;
 import ca.teamdman.sfm.common.net.ServerboundFacadePacket;
-import ca.teamdman.sfm.common.registry.SFMBlocks;
-import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
@@ -45,7 +45,7 @@ public class BlockCable extends Block implements ICableBlock, IFacadableBlock {
             float hitY,
             float hitZ
     ) {
-        if (player.getHeldItemOffhand().getItem() == SFMItems.NETWORK_TOOL_ITEM) {
+        if (player.getHeldItemOffhand().getItem() == SFMItems.NETWORK_TOOL) {
             if (world.isRemote) {
                 ServerboundFacadePacket msg = new ServerboundFacadePacket(
                         pos,

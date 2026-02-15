@@ -2,7 +2,7 @@ package ca.teamdman.sfm.client.examples;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import ca.teamdman.sfml.program_builder.ProgramBuildResult;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;

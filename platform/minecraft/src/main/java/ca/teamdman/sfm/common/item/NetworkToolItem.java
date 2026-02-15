@@ -6,7 +6,7 @@ import ca.teamdman.sfm.common.block_network.CableNetwork;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundNetworkToolUsePacket;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
 import net.minecraft.client.util.ITooltipFlag;
@@ -72,6 +72,11 @@ public class NetworkToolItem extends Item {
                         .getComponent(SFMKeyMappings.CONTAINER_INSPECTOR_KEY.getDisplayName())
                         .setStyle(new Style().setColor(TextFormatting.AQUA)).getFormattedText()
         );
+        lines.add(
+            LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_8
+                .getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.TOGGLE_NETWORK_TOOL_OVERLAY_KEY))
+                .setStyle(new Style().setColor(TextFormatting.AQUA)).getFormattedText()
+        );
         var purple = new Style().setColor(TextFormatting.LIGHT_PURPLE);
         lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_4.getComponent().setStyle(purple).getFormattedText());
         lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_5.getComponent().setStyle(purple).getFormattedText());
@@ -88,25 +93,23 @@ public class NetworkToolItem extends Item {
         if (!isInHand) return;
         boolean shouldRefresh = pEntity.ticksExisted % 20 == 0;
         if (!shouldRefresh) return;
-
         regenerateCablePositions(pStack, pLevel, pPlayer);
+
     }
 
     public static void regenerateCablePositions(ItemStack pStack, World pLevel, EntityPlayer pPlayer) {
-
-        // Get the networks in range
-        Stream<CableNetwork> networksInRange = getNetworksForOverlay(pStack, pLevel, pPlayer);
-
-        // Get the positions of the cables and the capability providers from the networks
+        // Initialize with default capacity
+        // We don't know how many *unique* positions we are going to see
         BlockPosSet cablePositions = new BlockPosSet();
         BlockPosSet capabilityProviderPositions = new BlockPosSet();
-        networksInRange
-                .forEach(network -> {
-                    network.getCablePositions().forEach(cablePositions::add);
-                    network.getCapabilityProviderPositions().forEach(capabilityProviderPositions::add);
-                });
 
-        // Update the network tool data
+        // Find the networks and track the positions
+        for (CableNetwork cableNetwork : (Iterable<CableNetwork>) getNetworksForOverlay(pStack, pLevel, pPlayer)::iterator) {
+            cablePositions.addAll(cableNetwork.getCablePositionsRaw());
+            capabilityProviderPositions.addAll(cableNetwork.getCapabilityProviderPositionsRaw());
+        }
+
+        // Update the item data
         setCablePositions(pStack, cablePositions);
         setCapabilityProviderPositions(pStack, capabilityProviderPositions);
     }
@@ -150,23 +153,6 @@ public class NetworkToolItem extends Item {
         return NetworkToolOverlayMode.values()[ordinal];
     }
 
-    /**
-     * Sets the view mode in NBT.
-     */
-    protected static void setOverlayMode(
-            ItemStack stack,
-            NetworkToolOverlayMode mode
-    ) {
-
-        stack.setTagInfo("sfm:network_tool_overlay_mode",new NBTTagInt(mode.ordinal()));
-        assert stack.getTagCompound() != null;
-        if (mode != NetworkToolOverlayMode.SHOW_SELECTED_NETWORK) {
-            stack.getTagCompound().removeTag("sfm:selected_network_block_pos");
-        }
-
-        // remove the data stored by older versions of the mod
-        stack.getTagCompound().removeTag("network_tool_overlay_disabled");
-    }
 
     public static void cycleOverlayMode(ItemStack stack) {
         NetworkToolOverlayMode current = getOverlayMode(stack);
@@ -231,6 +217,24 @@ public class NetworkToolItem extends Item {
         SHOW_ALL,
         SHOW_SELECTED_NETWORK,
         HIDDEN
+    }
+
+    /**
+     * Sets the view mode in NBT.
+     */
+    protected static void setOverlayMode(
+            ItemStack stack,
+            NetworkToolOverlayMode mode
+    ) {
+
+        stack.setTagInfo("sfm:network_tool_overlay_mode",new NBTTagInt(mode.ordinal()));
+        assert stack.getTagCompound() != null;
+        if (mode != NetworkToolOverlayMode.SHOW_SELECTED_NETWORK) {
+            stack.getTagCompound().removeTag("sfm:selected_network_block_pos");
+        }
+
+        // remove the data stored by older versions of the mod
+        stack.getTagCompound().removeTag("network_tool_overlay_disabled");
     }
 
 }

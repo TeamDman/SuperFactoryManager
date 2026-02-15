@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.common.localization;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.registry.SFMBlocks;
-import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 
@@ -215,99 +215,103 @@ public final class LocalizationKeys {
             () -> "Factory Manager"
     );
     public static final LocalizationEntry DISK_ITEM_TOOLTIP_LABEL_HEADER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.DISK_ITEM) + ".tooltip.label_section.header",
+            () -> itemDescriptionId(SFMItems.DISK) + ".tooltip.label_section.header",
             () -> "Labels"
     );
     public static final LocalizationEntry DISK_ITEM_TOOLTIP_LABEL = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.DISK_ITEM) + ".tooltip.label_section.entry",
+            () -> itemDescriptionId(SFMItems.DISK) + ".tooltip.label_section.entry",
             () -> " - %s: %d blocks"
     );
     public static final LocalizationEntry LABEL_GUN_CHAT_PULLED = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".chat.pulled",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".chat.pulled",
             () -> "Pulled labels from the manager. Release the label gun pull modifier key (%s) to push instead."
     );
     public static final LocalizationEntry LABEL_GUN_CHAT_PUSHED = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".chat.pushed",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".chat.pushed",
             () -> "Pushed labels to the manager. Hold the label gun pull modifier key (%s) to pull instead."
     );
     public static final LocalizationEntry LABEL_GUN_CHAT_SKIPPED_BLOCKS = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".chat.skipped_blocks",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".chat.skipped_blocks",
             () -> "Skipped %d blocks not touching cables"
     );
     public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_1 = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.1",
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL) + ".tooltip.1",
             () -> "Shows cables through walls when held."
     );
     public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_2 = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.2",
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL) + ".tooltip.2",
             () -> "Right click a block face to view diagnostic info."
     );
     public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_3 = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.3",
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL) + ".tooltip.3",
             () -> "You might not need this, don't forget you can press %s in an inventory to toggle the inspector."
     );
      public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_4 = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.4",
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL) + ".tooltip.4",
             () -> "Place in off-hand with block in main hand and right-click cable to set facade."
     );
     public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_5 = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.5",
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL) + ".tooltip.5",
             () -> "Ctrl-click to facade contiguously."
     );
     public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_6 = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.6",
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL) + ".tooltip.6",
             () -> "Alt-click to facade matching block across the network."
     );
     public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_7 = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM) + ".tooltip.7",
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL) + ".tooltip.7",
             () -> "Ctrl-alt-click to facade entire network."
     );
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_8 = new LocalizationEntry(
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL) + ".tooltip.8",
+            () -> "Hold %s and right-click a block to attune the tool to that position."
+    );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.toggle_label_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.toggle_label_reminder",
             () -> "%s a block to toggle the active label on it."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_PUSH_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.push_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.push_reminder",
             () -> "%s a Factory Manager to push labels to it."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_PULL_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.pull_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.pull_reminder",
             () -> "%s + %s a Factory Manager to pull labels from it."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_CLEAR_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.clear_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.clear_reminder",
             () -> "%s + %s a block to remove labels from it."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_PICK_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.pick_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.pick_reminder",
             () -> "%s + %s a block to pick the active label from it."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_CONTIGUOUS_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.contiguous_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.contiguous_reminder",
             () -> "Hold %s to perform changes against contiguous blocks touching cables."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_CYCLE_VIEW_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.cycle_view_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.cycle_view_reminder",
             () -> "Press %s to cycle label view."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_NEXT_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.next_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.next_reminder",
             () -> "Press %s to select next label."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_PREVIOUS_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.previous_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.previous_reminder",
             () -> "Press %s to select previous label."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_SCROLL_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.scroll_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.scroll_reminder",
             () -> "%s + mouse wheel to select next/previous label."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_GUI_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.gui_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.gui_reminder",
             () -> "%s the air to open GUI."
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_TARGET_MANAGER_REMINDER = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".tooltip.target_manager_reminder",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".tooltip.target_manager_reminder",
             () -> "%s + %s to label a Factory Manager itself."
     );
     public static final LocalizationEntry LABEL_GUN_VIEW_MODE_SHOW_ONLY_ACTIVE_AND_TARGETED = new LocalizationEntry(
@@ -323,7 +327,7 @@ public final class LocalizationKeys {
             () -> "Toggle network tool overlay with %s"
     );
     public static final LocalizationEntry LABEL_GUN_ITEM_NAME_WITH_LABEL = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM) + ".with_label",
+            () -> itemDescriptionId(SFMItems.LABEL_GUN) + ".with_label",
             () -> "Label Gun: \"%s\""
     );
 
@@ -946,17 +950,17 @@ public final class LocalizationKeys {
 //    );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry DISK_ITEM = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.DISK_ITEM),
+            () -> itemDescriptionId(SFMItems.DISK),
             () -> "Factory Manager Program Disk"
     );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry LABEL_GUN_ITEM = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.LABEL_GUN_ITEM),
+            () -> itemDescriptionId(SFMItems.LABEL_GUN),
             () -> "Label Gun"
     );
     @SuppressWarnings("unused") // used by minecraft without us having to directly reference
     public static final LocalizationEntry NETWORK_TOOL_ITEM = new LocalizationEntry(
-            () -> itemDescriptionId(SFMItems.NETWORK_TOOL_ITEM),
+            () -> itemDescriptionId(SFMItems.NETWORK_TOOL),
             () -> "Network Tool"
     );
 

@@ -2,7 +2,7 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfml.ast.BoolExpr;
 import ca.teamdman.sfml.ast.Program;
 import com.github.bsideup.jabel.Desugar;

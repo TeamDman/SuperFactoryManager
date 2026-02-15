@@ -3,7 +3,7 @@ package ca.teamdman.sfml.ast;
 import java.util.Arrays;
 import java.util.List;
 
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import com.github.bsideup.jabel.Desugar;
 
 import ca.teamdman.sfm.common.program.ProgramContext;

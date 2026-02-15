@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.client.ClientLabelGunResponseChatHelper;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;

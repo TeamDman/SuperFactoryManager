@@ -1,7 +1,7 @@
 package vswe.superfactory.blocks;
 
 import ca.teamdman.sfm.common.block_network.ICableBlock;
-import ca.teamdman.sfm.common.registry.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.block.Block;
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;

@@ -4,8 +4,8 @@ EVERY 20 TICKS DO
     -- you probably don't need round robin
     -- instead, try retain!
 
-    INPUT FROM source
-    OUTPUT RETAIN 1000 fluid::water TO thingy
+    INPUT fluid::water FROM source
+    OUTPUT RETAIN 1000 fluid::water TO EACH thingy
     -- don't put more than 1 bucket of water in each block labelled "thingy"
 
 

@@ -1,6 +1,6 @@
 package vswe.superfactory.blocks;
 
-import ca.teamdman.sfm.common.registry.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;

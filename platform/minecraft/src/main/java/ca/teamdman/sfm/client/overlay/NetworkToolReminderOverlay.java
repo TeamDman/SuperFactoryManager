@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -55,7 +55,7 @@ public class NetworkToolReminderOverlay {
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private static boolean shouldRender(EntityPlayerSP player) {
         if (!SFMConfig.client.showNetworkToolReminderOverlay) return false;
-        ItemStack networkTool = SFMHandUtils.getItemInEitherHand(player, SFMItems.NETWORK_TOOL_ITEM);
+        ItemStack networkTool = SFMHandUtils.getItemInEitherHand(player, SFMItems.NETWORK_TOOL);
 //        return !networkTool.isEmpty() && NetworkToolItem.getOverlayEnabled(networkTool);
         return !networkTool.isEmpty();
     }

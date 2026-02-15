@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.command;
 
 import ca.teamdman.sfm.common.net.ClientboundShowChangelogPacket;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;

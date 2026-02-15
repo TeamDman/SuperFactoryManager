@@ -10,7 +10,7 @@ package ca.teamdman.sfm.common.registry.internal;
 
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityProviderContainer;
 import ca.teamdman.sfm.common.program.linting.IProgramLinter;
-import ca.teamdman.sfm.common.registry.*;
+import ca.teamdman.sfm.common.registry.registration.*;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;

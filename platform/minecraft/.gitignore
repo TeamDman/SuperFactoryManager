@@ -19,6 +19,7 @@
 !LICENSE.txt
 !README.md
 !setup.bat
+!.idea/.name
 
 # Include git important files
 !.gitignore

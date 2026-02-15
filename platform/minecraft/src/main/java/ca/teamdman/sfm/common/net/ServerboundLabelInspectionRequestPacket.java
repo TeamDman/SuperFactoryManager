@@ -3,13 +3,15 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.registry.SFMItems;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
+import ca.teamdman.sfm.common.util.SFMEntityUtils;
 import ca.teamdman.sfm.common.util.StringUtil;
 import ca.teamdman.sfml.ast.Program;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.WorldServer;
 
 @Desugar
 public record ServerboundLabelInspectionRequestPacket(
@@ -51,9 +53,9 @@ public record ServerboundLabelInspectionRequestPacket(
                 SFM.LOGGER.info("Player is using a manager container menu - will append additional info to payload");
                 labelPositionHolder = LabelPositionHolder.from(mcm.getSlot(0).getStack());
             } else {
-                if (player.getHeldItemMainhand().getItem() == SFMItems.DISK_ITEM) {
+                if (player.getHeldItemMainhand().getItem() == SFMItems.DISK) {
                     labelPositionHolder = LabelPositionHolder.from(player.getHeldItemMainhand());
-                } else if (player.getHeldItemOffhand().getItem() == SFMItems.DISK_ITEM) {
+                } else if (player.getHeldItemOffhand().getItem() == SFMItems.DISK) {
                     labelPositionHolder = LabelPositionHolder.from(player.getHeldItemOffhand());
                 } else {
                     labelPositionHolder = null;
@@ -68,6 +70,7 @@ public record ServerboundLabelInspectionRequestPacket(
             payload.append("-- Positions for label \"").append(msg.label()).append("\" --\n");
             payload.append(labelPositionHolder.getPositions(msg.label()).size()).append(" assignments\n");
             payload.append("-- Summary --\n");
+            WorldServer level = SFMEntityUtils.getLevel(player);
             labelPositionHolder.getPositions(msg.label()).blockPosIterator().forEach(pos -> {
                 payload
                         .append(pos.getX())
@@ -75,10 +78,10 @@ public record ServerboundLabelInspectionRequestPacket(
                         .append(pos.getY())
                         .append(",")
                         .append(pos.getZ());
-                if (player.getServerWorld().isBlockLoaded(pos)) {
+                if (level.isBlockLoaded(pos)) {
                     payload
                             .append(" -- ")
-                            .append(player.getServerWorld().getBlockState(pos).getBlock().getLocalizedName());
+                            .append(level.getBlockState(pos).getBlock().getLocalizedName());
                 } else {
                     payload
                             .append(" -- chunk not loaded");
@@ -99,13 +102,13 @@ public record ServerboundLabelInspectionRequestPacket(
                         .append(pos.getY())
                         .append(",")
                         .append(pos.getZ());
-                if (player.getServerWorld().isBlockLoaded(pos)) {
+                if (level.isBlockLoaded(pos)) {
                     payload
                             .append(" -- ")
-                            .append(player.getServerWorld().getBlockState(pos).getBlock().getLocalizedName());
+                            .append(level.getBlockState(pos).getBlock().getLocalizedName());
 
                     payload.append("\n").append(StringUtil.indentPonyfill(ServerboundContainerExportsInspectionRequestPacket
-                                                        .buildInspectionResults(player.getServerWorld(), pos),
+                                                        .buildInspectionResults(level, pos),
                                                         1));
                 } else {
                     payload

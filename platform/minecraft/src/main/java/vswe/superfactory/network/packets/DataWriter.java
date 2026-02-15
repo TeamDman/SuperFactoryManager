@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import static vswe.superfactory.SuperFactoryManager.CHANNEL;
-import static ca.teamdman.sfm.common.registry.SFMPackets.VISUAL_MANAGER_EVENT_CHANNEL;
+import static ca.teamdman.sfm.common.registry.registration.SFMPackets.VISUAL_MANAGER_EVENT_CHANNEL;
 
 public class DataWriter {
 	private int          bitCountBuffer;

@@ -566,6 +566,7 @@ item.sfm.network_tool.tooltip.4=Place in off-hand with block in main hand and ri
 item.sfm.network_tool.tooltip.5=Ctrl-click to facade contiguously.
 item.sfm.network_tool.tooltip.6=Alt-click to facade matching block across the network.
 item.sfm.network_tool.tooltip.7=Ctrl-alt-click to facade entire network.
+item.sfm.network_tool.tooltip.8=Hold %s and right-click a block to attune the tool to that position.
 item.sfm.xp_goop=Experience Goop
 item.sfm.xp_shard=Experience Shard
 item_group.sfm=Super Factory Manager

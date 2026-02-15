@@ -1,6 +1,6 @@
 package vswe.superfactory.tiles;
 
-import ca.teamdman.sfm.common.registry.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;

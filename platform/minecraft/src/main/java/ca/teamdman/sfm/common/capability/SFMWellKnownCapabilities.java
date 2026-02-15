@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.common.capability;
 
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -13,7 +13,6 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
 
-import java.util.Iterator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 

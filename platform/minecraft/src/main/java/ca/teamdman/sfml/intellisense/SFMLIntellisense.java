@@ -2,7 +2,7 @@ package ca.teamdman.sfml.intellisense;
 
 import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.langs.SFMLParser;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.CollectionUtils;

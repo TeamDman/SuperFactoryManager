@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.label;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+import ca.teamdman.sfm.common.util.SFMEntityUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
@@ -16,8 +17,8 @@ public class LabelGunPlanner {
             ServerboundLabelGunUsePacket msg,
             boolean doWarning
     ) {
-        World world = player.getEntityWorld();
         var gunStack = player.getHeldItem(msg.hand());
+        World level = SFMEntityUtils.getLevel(player);
         if (!(gunStack.getItem() instanceof LabelGunItem)) {
             return null;
         }
@@ -26,11 +27,11 @@ public class LabelGunPlanner {
 
         if (
                 !msg.isTargetManagerModifierActive()
-                        && world.getTileEntity(msg.pos()) instanceof ManagerBlockEntity manager
+                        && level.getTileEntity(msg.pos()) instanceof ManagerBlockEntity manager
         ) {
             return new LabelGunManagerPushOrPullAction(
                     player,
-                    world,
+                    level,
                     msg,
                     gunStack,
                     gunLabels,
@@ -41,11 +42,11 @@ public class LabelGunPlanner {
 
         if (
                 !msg.isTargetManagerModifierActive()
-                        && world.getTileEntity(msg.pos()) instanceof TileEntityManager manager
+                        && level.getTileEntity(msg.pos()) instanceof TileEntityManager manager
         ) {
             return new LabelGunOldManagerPushOrPullAction(
                     player,
-                    world,
+                    level,
                     msg,
                     gunStack,
                     gunLabels,
@@ -54,7 +55,7 @@ public class LabelGunPlanner {
         }
 
         var activeLabel = LabelGunItem.getActiveLabel(gunStack);
-        LabelGunPlanTargets targets = LabelGunPlanTargets.getTargets(world, msg);
+        LabelGunPlanTargets targets = LabelGunPlanTargets.getTargets(level, msg);
 
         // Notify user if any blocks were skipped because they aren't touching cables
         // TODO: highlight skipped blocks in the world
@@ -67,7 +68,7 @@ public class LabelGunPlanner {
         if (msg.isClearModifierActive()) {
             return new LabelGunUnsetBlockLabelsAction(
                     player,
-                    world,
+                    level,
                     msg,
                     gunStack,
                     gunLabels,
@@ -78,7 +79,7 @@ public class LabelGunPlanner {
             if (msg.isPickBlockModifierActive()) {
                 return new LabelGunPickLabelAction(
                         player,
-                        world,
+                        level,
                         msg,
                         gunStack,
                         gunLabels,
@@ -88,7 +89,7 @@ public class LabelGunPlanner {
             } else {
                 return new LabelGunToggleLabelAction(
                         player,
-                        world,
+                        level,
                         msg,
                         gunStack,
                         gunLabels,

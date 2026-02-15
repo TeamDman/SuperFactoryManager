@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.util;
 
 import ca.teamdman.sfm.common.program.LimitedInputSlot;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfml.ast.Number;
@@ -10,7 +10,6 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 public class SFMASTUtils {

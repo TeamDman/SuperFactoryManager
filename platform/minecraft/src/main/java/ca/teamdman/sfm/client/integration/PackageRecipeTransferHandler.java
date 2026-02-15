@@ -1,10 +1,9 @@
 package ca.teamdman.sfm.client.integration;
 
 
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.util.SFMASTUtils;
 import ca.teamdman.sfml.ast.*;
 import mezz.jei.api.gui.IRecipeLayout;
@@ -12,16 +11,12 @@ import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandler;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandlerHelper;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.items.IItemHandler;
 import thelm.packagedauto.api.IPackagePattern;
 import thelm.packagedauto.api.IRecipeInfo;
 import thelm.packagedauto.integration.jei.category.PackageRecipeWrapper;
 
 import java.lang.reflect.Field;
-import java.util.Arrays;
 
 public class PackageRecipeTransferHandler implements IRecipeTransferHandler<ManagerContainerMenu> {
     private final IRecipeTransferHandlerHelper transferHelper;

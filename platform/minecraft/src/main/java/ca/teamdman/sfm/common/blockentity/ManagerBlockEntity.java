@@ -17,7 +17,7 @@ import ca.teamdman.sfm.common.net.ClientboundManagerLogsPacket;
 import ca.teamdman.sfm.common.program.IProgramHooks;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.registry.IGuiProvider;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.timing.SFMEpochInstant;
 import ca.teamdman.sfm.common.timing.SFMInstant;
 import ca.teamdman.sfm.common.util.Mth;

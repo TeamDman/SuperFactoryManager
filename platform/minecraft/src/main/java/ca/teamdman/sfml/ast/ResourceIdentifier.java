@@ -2,7 +2,7 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.program.RegexCache;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;

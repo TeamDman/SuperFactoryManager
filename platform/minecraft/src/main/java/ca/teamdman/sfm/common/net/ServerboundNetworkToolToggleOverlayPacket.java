@@ -1,7 +1,8 @@
 package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.common.item.NetworkToolItem;
-import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.util.SFMEntityUtils;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -38,9 +39,9 @@ public record ServerboundNetworkToolToggleOverlayPacket(
             EntityPlayerMP sender = context.sender();
             if (sender == null) return;
             ItemStack networkToolItemStack = sender.getHeldItem(msg.hand);
-            if (networkToolItemStack.getItem() == SFMItems.NETWORK_TOOL_ITEM) {
+            if (networkToolItemStack.getItem() == SFMItems.NETWORK_TOOL) {
                 NetworkToolItem.cycleOverlayMode(networkToolItemStack);
-                NetworkToolItem.regenerateCablePositions(networkToolItemStack, sender.getServerWorld(), sender);
+                NetworkToolItem.regenerateCablePositions(networkToolItemStack, SFMEntityUtils.getLevel(sender), sender);
             }
         }
 

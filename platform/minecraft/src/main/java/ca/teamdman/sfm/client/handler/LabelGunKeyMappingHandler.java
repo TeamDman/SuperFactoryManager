@@ -5,8 +5,8 @@ import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunCycleViewModePacket;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
-import ca.teamdman.sfm.common.registry.SFMItems;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -51,7 +51,7 @@ public class LabelGunKeyMappingHandler {
         if (nextPress || prevPress) {
             // don't do anything if a screen is open
             if (minecraft.currentScreen != null) return;
-            var labelGun = SFMHandUtils.getItemAndHand(player, SFMItems.LABEL_GUN_ITEM);
+            var labelGun = SFMHandUtils.getItemAndHand(player, SFMItems.LABEL_GUN);
             if (labelGun == null) return;
             var nextLabel = LabelGunItem.getNextLabel(labelGun.stack(), prevPress ? -1 : 1);
             SFMPackets.sendToServer(new ServerboundLabelGunSetActiveLabelPacket(nextLabel, labelGun.hand()));
@@ -67,7 +67,7 @@ public class LabelGunKeyMappingHandler {
             if (minecraft.currentScreen != null) return;
             EnumHand hand = SFMHandUtils.getHandHoldingItem(
                     player,
-                    SFMItems.LABEL_GUN_ITEM
+                    SFMItems.LABEL_GUN
             );if (hand == null) return;
             // send packet to server to toggle mode
             SFMPackets.sendToServer(new ServerboundLabelGunCycleViewModePacket(hand));

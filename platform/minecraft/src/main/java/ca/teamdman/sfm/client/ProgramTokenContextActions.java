@@ -5,7 +5,7 @@ import ca.teamdman.langs.SFMLParser;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.common.net.*;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfm.common.util.Pair;
 import org.antlr.v4.runtime.CharStreams;

@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.recipe;
 
 import ca.teamdman.sfm.common.item.DiskItem;
-import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
@@ -61,7 +61,7 @@ public class DiskDuplicateRecipe extends IForgeRegistryEntry.Impl<IRecipe> imple
 
     @Override
     public ItemStack getRecipeOutput() {
-        return new ItemStack(SFMItems.DISK_ITEM);
+        return new ItemStack(SFMItems.DISK);
     }
 
     @Override

@@ -2,8 +2,7 @@ package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntity;
 import ca.teamdman.sfm.common.compat.SFMModCompat;
-import ca.teamdman.sfm.common.registry.SFMBlockEntities;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceTypeContainer.ResourceType;
 import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;

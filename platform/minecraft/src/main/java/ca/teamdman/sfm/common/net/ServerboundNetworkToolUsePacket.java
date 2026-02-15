@@ -6,9 +6,10 @@ import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.item.NetworkToolItem;
-import ca.teamdman.sfm.common.registry.SFMPackets;
-import ca.teamdman.sfm.common.registry.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.util.SFMDirections;
+import ca.teamdman.sfm.common.util.SFMEntityUtils;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfml.ast.Side;
 
@@ -72,7 +73,7 @@ public record ServerboundNetworkToolUsePacket(
 
             EntityPlayerMP player = context.sender();
             if (player == null) return;
-            World level = player.getServerWorld();
+            World level = SFMEntityUtils.getLevel(player);
             BlockPos pos = msg.blockPosition();
             if (!level.isBlockLoaded(pos)) return;
             if (msg.isOverlayToggleModifierActive) {

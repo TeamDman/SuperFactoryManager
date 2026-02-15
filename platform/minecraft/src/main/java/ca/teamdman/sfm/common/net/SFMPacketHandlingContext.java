@@ -3,7 +3,8 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
+import ca.teamdman.sfm.common.util.SFMEntityUtils;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.client.Minecraft;
@@ -12,7 +13,6 @@ import net.minecraft.inventory.Container;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BiConsumer;
 
@@ -99,7 +99,7 @@ public class SFMPacketHandlingContext {
             return;
         }
 
-        var level = sender.getServerWorld();
+        var level = SFMEntityUtils.getLevel(sender);
         //noinspection ConstantValue
         if (level == null) {
             SFM.LOGGER.warn("Invalid packet received from {}: level is null", sender.getName());
@@ -135,7 +135,7 @@ public class SFMPacketHandlingContext {
         if (player == null) return;
         ManagerBlockEntity manager;
         if (player.openContainer instanceof ManagerContainerMenu mcm) {
-            if (player.getServerWorld().getTileEntity(mcm.MANAGER_POSITION) instanceof ManagerBlockEntity mbe) {
+            if (SFMEntityUtils.getLevel(player).getTileEntity(mcm.MANAGER_POSITION) instanceof ManagerBlockEntity mbe) {
                 manager = mbe;
             } else {
                 return;

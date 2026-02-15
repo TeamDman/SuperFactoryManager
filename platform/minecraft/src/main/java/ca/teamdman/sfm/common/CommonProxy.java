@@ -1,12 +1,13 @@
 package ca.teamdman.sfm.common;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.client.screen.ManagerScreen;
-import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.registry.*;
 import ca.teamdman.sfm.common.registry.internal.InternalRegistryPrimer;
 import ca.teamdman.sfm.common.registry.internal.PrimerEventHandler;
+import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMCapabilities;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;

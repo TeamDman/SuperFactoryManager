@@ -8,7 +8,7 @@ import ca.teamdman.sfm.common.logging.TranslatableLogEvent;
 import ca.teamdman.sfm.common.net.ServerboundManagerClearLogsPacket;
 import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
 import ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket;
-import ca.teamdman.sfm.common.registry.SFMPackets;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.timing.SFMEpochInstant;
 import com.bbscn.Button;
 import com.bbscn.CommonComponents;

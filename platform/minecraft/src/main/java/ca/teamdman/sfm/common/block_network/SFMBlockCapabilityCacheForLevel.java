@@ -4,6 +4,7 @@ import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
 import ca.teamdman.sfm.common.util.*;
 import it.unimi.dsi.fastutil.longs.Long2ObjectFunction;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -112,6 +113,10 @@ public class SFMBlockCapabilityCacheForLevel {
     public BlockPosIterator getPositions() {
 
         return blockPosToCapKindToDirectionToCapResultMap.positions();
+    }
+
+    public LongSet getPositionsRaw() {
+        return blockPosToCapKindToDirectionToCapResultMap.keySet();
     }
 
     public void remove(

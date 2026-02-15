@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.recipe;
 
 import ca.teamdman.sfm.common.item.DiskItem;
-import ca.teamdman.sfm.common.registry.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
@@ -35,7 +35,7 @@ public class DiskResetRecipe extends IForgeRegistryEntry.Impl<IRecipe> implement
                 return ItemStack.EMPTY;
             }
         }
-        return foundDisks > 0 ? new ItemStack(SFMItems.DISK_ITEM, foundDisks) : ItemStack.EMPTY;
+        return foundDisks > 0 ? new ItemStack(SFMItems.DISK, foundDisks) : ItemStack.EMPTY;
     }
 
     @Override
@@ -45,7 +45,7 @@ public class DiskResetRecipe extends IForgeRegistryEntry.Impl<IRecipe> implement
 
     @Override
     public ItemStack getRecipeOutput() {
-        return new ItemStack(SFMItems.DISK_ITEM);
+        return new ItemStack(SFMItems.DISK);
     }
 
     @Override

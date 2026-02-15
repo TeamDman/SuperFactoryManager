@@ -1,10 +1,8 @@
 package vswe.superfactory.registry;
 
-import ca.teamdman.sfm.common.registry.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import com.google.common.collect.Lists;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockContainer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -13,7 +11,6 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.registries.GameData;
 import vswe.superfactory.SuperFactoryManager;
 import vswe.superfactory.blocks.*;
-import vswe.superfactory.tiles.*;
 
 import java.util.List;
 
