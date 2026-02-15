@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.tests.cable;
 
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.gametest.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -222,6 +223,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
             );
         }
 
+        @MCVersionDependentBehaviour
         private void triggerWitherDestroyBlocksTickViaHurt(SFMGameTestHelper helper, WitherBoss wither) {
             // Intentionally route through WitherBoss#hurt to trigger:
             //   if (this.destroyBlocksTick <= 0) { this.destroyBlocksTick = 20; }
