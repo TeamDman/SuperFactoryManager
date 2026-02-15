@@ -1,11 +1,11 @@
 package ca.teamdman.sfm.gametest.tests.cable;
 
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.gametest.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
@@ -168,7 +168,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
             wither.setAlternativeTarget(1, sheep.getId());
             wither.setAlternativeTarget(2, sheep.getId());
             helper.getLevel().addFreshEntity(wither);
-            triggerWitherDestroyBlocksTickViaHurt(wither);
+            triggerWitherDestroyBlocksTickViaHurt(helper, wither);
 
             BlockPos sheepCheckPos = getSheepCheckLocalPos();
 
@@ -223,10 +223,11 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
             );
         }
 
-        private void triggerWitherDestroyBlocksTickViaHurt(WitherBoss wither) {
+        @MCVersionDependentBehaviour
+        private void triggerWitherDestroyBlocksTickViaHurt(SFMGameTestHelper helper, WitherBoss wither) {
             // Intentionally route through WitherBoss#hurt to trigger:
             //   if (this.destroyBlocksTick <= 0) { this.destroyBlocksTick = 20; }
-            wither.hurt(DamageSource.OUT_OF_WORLD, 1.0F);
+            wither.hurt(helper.getLevel().damageSources().outOfWorld(), 1.0F);
         }
 
         private boolean isWallBroken(
