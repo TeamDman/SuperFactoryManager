@@ -6,8 +6,11 @@ use figue::{self as args};
 #[derive(Facet, Debug, Default)]
 pub struct MergeCommand {
     /// Automatically abort merges that would result in conflicts. Only aborts merges
-    /// that we start ourselves - will not abort pre-existing merge conflicts to avoid
-    /// losing manual progress.
+    /// that we start ourselves. Without this flag, merge conflicts are an expected
+    /// outcome and the command intentionally leaves the worktree in merge state so
+    /// conflicts can be resolved before resuming.
+    ///
+    /// Will not abort pre-existing merge conflicts to avoid losing manual progress.
     #[facet(args::named)]
     pub auto_abort: bool,
 }
