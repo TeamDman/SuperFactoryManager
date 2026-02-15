@@ -31,8 +31,14 @@ pub struct PropagateOptions {
 /// These are files that are auto-generated and should be regenerated after merge.
 const GENERATED_PATH_PATTERNS: &[&str] = &["src/generated/", "platform/minecraft/src/generated/"];
 
+#[derive(Debug)]
+struct DirtyWorktree {
+    path: PathBuf,
+    changes: Vec<String>,
+}
+
 /// Check if any worktree has uncommitted changes
-fn check_uncommitted_changes(worktrees: &[Worktree]) -> eyre::Result<Vec<&Worktree>> {
+fn check_uncommitted_changes(worktrees: &[Worktree]) -> eyre::Result<Vec<DirtyWorktree>> {
     let mut dirty = Vec::new();
 
     for wt in worktrees {
@@ -51,8 +57,18 @@ fn check_uncommitted_changes(worktrees: &[Worktree]) -> eyre::Result<Vec<&Worktr
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-        if !stdout.trim().is_empty() {
-            dirty.push(wt);
+        let changes: Vec<String> = stdout
+            .lines()
+            .map(str::trim_end)
+            .filter(|line| !line.is_empty())
+            .map(String::from)
+            .collect();
+
+        if !changes.is_empty() {
+            dirty.push(DirtyWorktree {
+                path: wt.path.clone(),
+                changes,
+            });
         }
     }
 
@@ -699,17 +715,33 @@ fn run_idle_state(
         // Filter out any that are in merging state (we handled those above)
         let truly_dirty: Vec<_> = dirty
             .into_iter()
-            .filter(|wt| !is_merging(&wt.path).unwrap_or(false))
+            .filter(|dirty_wt| !is_merging(&dirty_wt.path).unwrap_or(false))
             .collect();
 
         if !truly_dirty.is_empty() {
-            let paths: Vec<_> = truly_dirty
-                .iter()
-                .map(|w| w.path.display().to_string())
-                .collect();
+            let mut details = String::new();
+
+            for (index, dirty_wt) in truly_dirty.iter().enumerate() {
+                if index > 0 {
+                    details.push('\n');
+                }
+
+                let canonical_path = canonicalize_worktree_path(&dirty_wt.path);
+                let _ = write!(details, "  - {canonical_path}");
+
+                for change in dirty_wt.changes.iter().take(3) {
+                    let _ = write!(details, "\n      {change}");
+                }
+
+                let remaining = dirty_wt.changes.len().saturating_sub(3);
+                if remaining > 0 {
+                    let _ = write!(details, "\n      ... and {remaining} more");
+                }
+            }
+
             bail!(
                 "The following worktrees have uncommitted changes:\n  {}\n\nPlease commit or stash changes before propagating.",
-                paths.join("\n  ")
+                details
             );
         }
     }
