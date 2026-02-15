@@ -11,7 +11,8 @@ The following process is designed to catch the most obvious problems that may ar
 06. Manual: Commit bump
 07. Action: `sfm-propagate-changes.exe merge`
 08. Action: `sfm-propagate-changes.exe gradle runData`
-09. Action: `sfm-propagate-changes.exe merge`
+08. Action: `sfm-propagate-changes.exe status` # will observe any changes under src\generated and will prompt you to auto-commit
+09. Action: `sfm-propagate-changes.exe merge` # we want each branch to keep its own src/generated files during the merge; reject incoming
 10. Action: `sfm-propagate-changes.exe gradle runGameTestServer`
 11. Action: `sfm-propagate-changes.exe build`
 12. Action: `sfm-propagate-changes.exe jar clean`
