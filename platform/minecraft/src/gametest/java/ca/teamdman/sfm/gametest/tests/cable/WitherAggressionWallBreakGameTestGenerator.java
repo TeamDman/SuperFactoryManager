@@ -227,7 +227,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
         private void triggerWitherDestroyBlocksTickViaHurt(SFMGameTestHelper helper, WitherBoss wither) {
             // Intentionally route through WitherBoss#hurt to trigger:
             //   if (this.destroyBlocksTick <= 0) { this.destroyBlocksTick = 20; }
-            wither.hurt(helper.getLevel().damageSources().outOfWorld(), 1.0F);
+            wither.hurt(helper.getLevel().damageSources().fellOutOfWorld(), 1.0F);
         }
 
         private boolean isWallBroken(
