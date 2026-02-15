@@ -1,0 +1,28 @@
+--This file is just to make sure the icon on .sfml file is place correctly
+
+name "phytos!!!!!"
+
+every 20 ticks do
+    if redstone eq 15 then
+        input fluid:: from water
+        output fluid:: to phyto
+        forget
+        input * except phytogro from drawer top side
+        output retain 20 to each phyto slots 0
+        forget
+        input phytogro from drawer top side
+        output * retain 4 phytogro to each phyto slots 1
+        forget
+        input * from phyto slots 2-5
+        output * to drawer top side
+    else
+        input * from phyto
+        output * to drawer top side
+    end
+
+end
+
+every 2 ticks do 
+    input fe:: from powah top side
+    output fe:: to phyto top side
+end

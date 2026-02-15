@@ -1,0 +1,15 @@
+name "each"
+
+-- using every inventory labelled "c", move 5 items total
+-- "b" will receive 5 items, or whatever is available if less than 5.
+every 20 ticks do
+    input 5 from c
+    output to b
+end
+
+-- for every inventory labelled "a", 5 items will be moved
+-- "b" will receive |a| * 5 items
+every 20 ticks do
+    input 5 from each a -- note the "each" keyword
+    output to b
+end

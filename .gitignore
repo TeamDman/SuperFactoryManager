@@ -14,5 +14,7 @@
 
 # Include Important Folders
 !platform/
+!examples
+!docs
 
 !.github/

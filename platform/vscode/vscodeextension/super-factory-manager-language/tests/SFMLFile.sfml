@@ -1,0 +1,43 @@
+--This file is just to make sure the icon on .sfml file is place correctly
+
+name "hola"
+
+every 20 ticks do
+    input 20 from interface
+    output * to furnace top side
+    forget
+    input fe:: from interface2
+    output item:minecraft:cobble* to chest2
+    output * to fluid
+    item::
+    item:minecraft:
+    item:industrialforegoing:laser* this doesnt
+    ::cobble*
+    item
+    if boolean_expression then
+        if boolean_expression 
+        then
+        end
+    test> = > < <= >= --First one shouldnt have color, the rest yes
+    end
+    except Except exCEPT
+    IF boolean_expression tHen
+    end
+end
+
+every redstone pulse do
+
+end
+
+EVery Redstone pulse DO
+
+end
+evEry 20 ticks do
+hollaaaaa
+end
+
+every 1 ticks do
+   input fe:: from power_source
+   output fe:: to machine
+   
+end

@@ -1,0 +1,24 @@
+-- Test here anything related to colors related stuff
+-- Should be tested at least with 3 different themes, the default one for vscode
+-- and another 2 that you like and have multiple colors
+
+name "A program" -- color on name and "a program"
+ 
+every 1 ticks do -- every, do using the same color, 1 using another, ticks using the same as fe::, item::, gas::, fluid::
+   input fe:: from power_source1 -- label should have no colors by default, nor the number on power_source1
+   output fe:: to machine
+end
+ 
+every 20 ticks do
+   input from furnace
+   output to furnace
+end
+
+every 20 ticks do
+   if chest has gt 5 then -- gt, lt, eq, .... should have a color
+        --Something
+   end
+   if chest has >= then -- >=, =, >, .... should have a color
+    
+   end
+end

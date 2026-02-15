@@ -1,0 +1,64 @@
+name "condition"
+
+every 20 ticks do
+    INPUT FROM a
+    -- since more than one inventory can have the same label, it might be useful
+    -- to be able to be specific for conditionals.
+
+    -- if every a has gt 10 iron_ingot then -- all inventories must match
+    -- if some a has gt 10 iron_ingot then -- at least one inventory must match
+    -- if one a has gt 10 iron_ingot then -- exactly one inventory must match
+    -- if lone a has gt 10 iron_ingot then -- exactly zero or one inventory must match
+    -- if overall a has gt 10 iron_ingot then -- counting items from all inventories instead of individually, must match
+    if a has gt 10 minecraft:iron_ingot then
+        -- defaults to "overall" if set qualifier not specified
+        -- "minecraft:" namespace prefix is default and can be omitted
+        OUTPUT TO b
+    end
+
+    if not d has gt 20 stone and a has ge 20 stone then
+        output 20 to d
+    end
+
+    -- this will resolve to "true" and will always run
+    if (false and true) or (false or true) or not true then
+        -- "not", "and", and "or" operators all have same precidence
+        -- use parentheses to ensure things work as you expect
+        output to c
+    end
+end
+
+-- if this program were running while "a" had 9*iron_ingot:
+-- "b" would receive 0*iron_ingot
+-- "d" would receive 9*iron_ingot
+
+-- if this program were running while "a" had 30*iron_ingot:
+-- "b" would receive 30*iron_ingot
+-- "d" would receive 0*iron_ingot
+
+-- if this program were running while "a" had 64*stone:
+-- "d" would receive 20*stone
+-- "c" would receive 44*stone
+
+-- if this program were running while "a" had 16*stone:
+-- "d" would receive 0*stone
+-- "c" would receive 16*stone
+
+-- if this program were running while "a" had (2*64)*stone:
+-- "d" would receive 20*stone
+-- "c" would receive (64+44)*stone
+
+
+--------------------
+
+every 20 ticks do
+    if a has ge 32 iron_ingot then
+        input 1 cobblestone from a
+    else if a has ge 16 iron_ingot then
+        input 1 stone from a
+    else
+        input 1 red_sandstone from a
+    end
+
+    output to b
+end

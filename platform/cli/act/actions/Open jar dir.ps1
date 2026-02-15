@@ -1,0 +1,1 @@
+Invoke-Item "..\..\jars"

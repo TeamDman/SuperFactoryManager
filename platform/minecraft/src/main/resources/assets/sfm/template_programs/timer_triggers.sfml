@@ -1,0 +1,24 @@
+NAME "Timer triggers"
+
+-- The manager's internal clock starts at zero when placed
+-- It is also randomly initialized after being unloaded
+EVERY 20 TICKS DO
+END
+
+-- Sometimes you may want more control
+-- Instead of the manager's internal clock, you can use the world clock to choose when to tick
+EVERY 20 GLOBAL TICKS DO END
+
+-- You can also add an offset
+EVERY 20 PLUS 1 TICKS DO END        -- manager clock
+EVERY 20 GLOBAL PLUS 1 TICKS DO END -- global clock
+
+-- There is also a shorthand notation
+-- Don't mistake this for math lol
+EVERY 20+1 TICKS DO END  -- manager clock
+EVERY 20G TICKS DO END   -- global clock
+EVERY 20G+1 TICKS DO END -- global clock
+
+-- You can mix and match
+EVERY 20 G PLUS 1 TICKS DO END
+EVERY 20 GLOBAL + 1 TICKS DO END

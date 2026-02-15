@@ -1,0 +1,51 @@
+--This example comes from the github itself, currently it does 5/7 cases (blame the last forget)
+
+
+EVERY 20 TICKS DO
+    INPUT fluid:mek: FROM tank1
+    OUTPUT TO tank2
+    -- missing fluid output
+
+    FORGET
+
+    INPUT FROM thing1
+    OUTPUT fluid::* TO thing2
+
+    FORGET
+
+    INPUT FROM tank1
+    OUTPUT fluid:: TO tank2
+    -- missing fluid input
+
+    FORGET
+
+    INPUT FROM chest
+    INPUT fluid:: FROM tank1
+    OUTPUT TO chest
+    -- missing fluid output
+
+    FORGET
+
+    IF chest HAS > 0 stone THEN
+        INPUT FROM chest
+        INPUT fluid:: FROM tank
+    END
+    OUTPUT TO chest
+    -- missing fluid input
+END
+EVERY 20 TICKS DO
+    OUTPUT TO chest
+    -- missing input
+
+    FORGET
+
+    INPUT FROM chest
+    -- missing output
+END
+EVERY 20 TICKS DO
+    INPUT 5 FROM a,b,c
+    OUTPUT 1 to z1
+    FORGET b,c
+    OUTPUT TO z2
+    -- no output uses input from b,c
+END

@@ -1,0 +1,21 @@
+NAME "Forget"
+
+EVERY 20 TICKS DO
+    INPUT FROM a
+    OUTPUT 1 to b
+
+    INPUT FROM c
+    OUTPUT TO d -- the "a" input is still active!!!
+END
+
+EVERY 20 TICKS DO
+    INPUT FROM a
+    OUTPUT 1 to b
+
+    FORGET a
+    -- or just
+    FORGET
+
+    INPUT FROM c
+    OUTPUT TO d -- only the "c" input is active :D
+END

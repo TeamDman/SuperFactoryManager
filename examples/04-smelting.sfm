@@ -1,0 +1,20 @@
+name "smelting"
+
+every 20 ticks do
+    input from chest
+    
+    output
+        minecraft:oak_log -- items can be specified
+    to furnace top side
+
+    output
+        coal,               -- namespace defaults to "minecraft:"
+        1 retain 1 oak_log, -- limits are per-item
+        charcoal
+    to furnace bottom side 
+end
+
+every 20 ticks do
+    input from furnace bottom side
+    output to chest
+end

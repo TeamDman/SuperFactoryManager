@@ -1,0 +1,116 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Super Factory Manager Language",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#comments"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [
+			{
+				"name": "variable.parameter.sfml",
+				"match": "(?i)\\b(TICKS|TICK)\\b"
+			},
+			{
+				"name": "variable.parameter.sfml",
+				"match": "(?i)\\b(FLUID|GAS|ITEM|FE)\\b\\s*:\\s*(\\S+)"
+			},
+			{
+				"name": "variable.parameter.sfml",
+				"match": "(?i)(?<=INPUT\\s)(.*?)\\s+(?=FROM|EXCEPT|RETAIN|WITH|WITHOUT)"
+			},
+			{
+				"name": "variable.parameter.sfml",
+				"match": "(?i)(?<=OUTPUT\\s)(.*?)\\s+(?=TO|EXCEPT|RETAIN|WITH|WITHOUT)"
+			},
+
+			{
+				"name": "storage.type.primitive.sfml",
+				"match": "(?i)\\b(FORGET)\\b"
+			},
+			{
+				"name": "storage.type.primitive.sfml",
+				"match": "(?i)\\bROUND(\\s+ROBIN(\\s+BY(\\s+(LABEL|BLOCK))?)?)?\\b"
+			},
+			{
+				"name": "storage.type.primitive.sfml",
+				"match": "(?i)(?<=\\s)(EQ|GT|LT|LE|GE)(?=\\s)"
+			},
+			{
+				"name": "storage.type.primitive.sfml",
+				"match": "(?<=\\s)(=|>|<|<=|>=)(?=\\s)"
+			},
+
+			{
+				"name": "keyword.control.sfml",
+				"match": "(?i)\\b(EXCEPT|MOVE|FROM|TO|INPUT|OUTPUT|WHERE|SLOTS|RETAIN|EACH|TOP|BOTTOM|NORTH|EAST|SOUTH|WEST|SIDE|SELF|SECONDS|EVERY|PULSE|WORLD|PROGRAM|WITH|WITHOUT)\\b"
+			},
+
+			{
+				"name": "storage.type.name.sfml",
+				"match": "(?i)\\b(NAME)\\b"
+			},
+
+			{
+				"name": "keyword.control.flow.sfml",
+				"match": "(?i)\\b(DO|END|IF|ELSE|THEN)\\b"
+			},
+
+			{
+				"name": "invalid",
+				"match": "(?i)(?<=\\bEVERY\\s+)REDSTONE(?=\\s+PULSE\\b)"
+			},
+			{
+				"name": "invalid",
+				"match": "(?i)(?<=\\bIF\\s+)REDSTONE(?=\\s+(EQ|GT|LT|LE|GE)\\b)"
+			}
+		]
+
+		},
+		"comments": {
+			"patterns": [
+				{
+					"begin": "--",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.comment.sfml"
+						}
+					},
+					"end": "\\n",
+					"name": "comment.line.double-dash.sfml"
+				}
+			]
+		},
+		"numbers": {
+			"patterns": [
+				{
+					"name": "constant.numeric.sfml",
+					"match": "\\b\\d+\\b"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.sfml",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.sfml",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.sfml"
+}

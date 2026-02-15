@@ -1,0 +1,7 @@
+name "patterns"
+
+every 20 ticks do
+    -- since we are using quotes, we must use ".*" instead of just "*" if we want to match all mods
+    input ".*:(iron|copper)_ingot" from a
+    output to b
+end

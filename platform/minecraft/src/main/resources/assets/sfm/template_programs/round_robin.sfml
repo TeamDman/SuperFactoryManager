@@ -1,0 +1,39 @@
+NAME "Round Robin"
+
+EVERY 20 TICKS DO
+    -- you probably don't need round robin
+    -- instead, try retain!
+
+    INPUT FROM source
+    OUTPUT RETAIN 1000 fluid::water TO thingy
+    -- don't put more than 1 bucket of water in each block labelled "thingy"
+
+
+    FORGET
+
+    INPUT RETAIN 5 stone FROM first
+    OUTPUT TO second
+    -- don't take the last 5 stone
+END
+
+-- alternatively, there is some round robin support
+-- it will rotate the each time the statement ticks, so it isn't the fastest
+
+EVERY 20 TICKS DO
+    INPUT FROM source
+    OUTPUT 128 dirt TO dest ROUND ROBIN BY BLOCK
+    -- instead of outputting to all blocks labelled "dest"
+    -- when this statement executes it will pick only one block
+    -- the chosen block rotates each time this statement is executed
+
+    FORGET
+
+    INPUT FROM "storage a", "storage b" ROUND ROBIN BY LABEL
+    OUTPUT 8 bone_meal TO EACH dispenser
+    -- instead of outputting to all the labels
+    -- one label will be chosen each time the statement executes
+    -- basically alternating between
+    -- INPUT FROM "storage a"
+    -- and
+    -- INPUT FROM "storage b"
+END

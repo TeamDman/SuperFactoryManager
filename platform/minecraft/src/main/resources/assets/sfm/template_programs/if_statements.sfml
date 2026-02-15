@@ -1,0 +1,28 @@
+name "IF statements"
+-- three inventories, all labelled "a"
+
+--       a              a                 a
+--  | 5 stone |    | 5 stone |    | 10 stone |
+
+-- every a has = 5 stone    - FALSE (not all of them do!)
+-- each a has >= 5 stone    - TRUE (alias for "every")
+-- some a has eq 5 stone    - TRUE
+-- one a has = 5 stone       - FALSE (more than one does!)
+-- lone a has = 5 stone      - FALSE (more than zero or one does!)
+-- overall a has eq 5 stone - FALSE (there are 20 stone in total, not 5)
+-- a has eq 5 stone           - FALSE (default behaviour is 'overall')
+
+every 20 ticks do
+    INPUT FROM source
+
+    if some source has gt 10 minecraft:iron_ingot then
+        OUTPUT TO dest1
+    end
+
+    if
+        not source has > 20 stone
+        and source has ge 20 cobblestone
+    then
+        output 20 to dest2
+    end
+end

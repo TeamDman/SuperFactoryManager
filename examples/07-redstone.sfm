@@ -1,0 +1,11 @@
+every redstone pulse do
+    input from a
+    output to b
+end
+
+every 20 ticks do
+    if redstone ge 2 then
+        input from a
+        output to b
+    end
+end

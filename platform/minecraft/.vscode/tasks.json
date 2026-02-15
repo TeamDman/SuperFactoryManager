@@ -1,0 +1,135 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Gradle: Compile Java",
+            "type": "shell",
+            "command": "./gradlew compileJava",
+            "group": "build",
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Gradle: Build",
+            "type": "shell",
+            "command": "./gradlew build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Gradle: Run Client",
+            "type": "shell",
+            "command": "./gradlew runClient",
+            "group": "none",
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "Gradle: Run Client (TeamDman)",
+            "type": "shell",
+            "command": "./gradlew runClient_teamy",
+            "group": "none",
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "Gradle: Run Server",
+            "type": "shell",
+            "command": "./gradlew runServer",
+            "group": "none",
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "Gradle: Run Data Generation",
+            "type": "shell",
+            "command": "./gradlew runData",
+            "group": "none",
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Gradle: Run Game Tests",
+            "type": "shell",
+            "command": "./gradlew runGameTestServer",
+            "group": "test",
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Gradle: Generate ANTLR Sources",
+            "type": "shell",
+            "command": "./gradlew generateGrammarSource",
+            "group": "build",
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Gradle: Clean",
+            "type": "shell",
+            "command": "./gradlew clean",
+            "group": "build",
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Gradle: Refresh Dependencies",
+            "type": "shell",
+            "command": "./gradlew --refresh-dependencies",
+            "group": "build",
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Gradle: Run Tests",
+            "type": "shell",
+            "command": "./gradlew test",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        }
+    ]
+}

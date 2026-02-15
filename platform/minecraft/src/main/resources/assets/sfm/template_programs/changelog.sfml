@@ -1,0 +1,430 @@
+NAME "Changelog"
+-- SFM Discord:
+-- https://discord.gg/5mbUY3mu6m
+-- SFM Donations:
+-- https://github.com/sponsors/TeamDman
+-- SFM submit new issue:
+-- https://github.com/TeamDman/SuperFactoryManager/issues/new
+
+---- 4.29.0 PRE ---
+-- Fix double-gathering of input slots causing lag and correctness issues, thanks @Mei
+-- Fix #445 where UP and DOWN directions cannot be rotated to determine relative left/right/front/back faces.
+-- Introduce tunnelled cables
+-- Introduce tough cables
+-- Switch to new @SFMSubscribeEvent annotation to reduce @MCVersionDependentBehaviour
+-- Add tooltips to tough and tunnelled cables and tunnelled manager block
+-- Update block network logic used by cable networks and water tanks
+---- Should fix https://github.com/FTBTeam/FTB-Modpack-Issues/issues/10084
+---- Should fix https://github.com/TeamDman/SuperFactoryManager/issues/426
+
+---- 4.28.0 ----
+-- Fix #430 where fancy cable improperly visually connects to blocks it should not
+-- Fixed LabelNotConnectedProgramLinter not working properly because it detected that any block has redstone capability
+
+---- 4.27.0 ----
+-- Published a new video [TeamDman - SFM Bug Hunt](https://www.youtube.com/watch?v=8GtBrKhSWq0)
+-- Fix capabilities not being invalidated properly on 1.20.3+
+-- Add tunnelled manager block from #189, thanks @Qther
+---- When capabilities are queried, will pass through to the opposite side
+---- Hopper -> Manager -> Chest
+-- Add support for "SLOT" for when "SLOTS" isn't appropriate
+every 20 ticks do
+    input from chest slot 5
+    output to chest slot 9
+end
+-- Fix memory leak caused by forget statements, thanks @__stdcall for the report, #405
+EVERY 20 TICKS DO
+  INPUT FROM a,b
+  OUTPUT TO c
+FORGET -- creates new object that wasn't being discarded properly
+  INPUT FROM b,d
+  OUTPUT TO e
+FORGET b -- you can specify labels, though I doubt anyone uses it lol
+  OUTPUT TO f -- this sees `INPUT FROM d`
+END
+-- Update tag_matching.sfml and filtering.sfml examples, thanks @Final and @MikMouk for the motivation
+-- Add relative directions, #380
+EVERY 20 TICKS DO
+  INPUT FROM machine LEFT SIDE -- relative to the facing property of the block state, null side if not applicable
+  OUTPUT TO machine2 RIGHT, FRONT, BACK SIDE
+END
+-- Add a server config for max number of warnings on a disk, fixes #383
+-- Fixed disjoint text selection when using left click to select text in the editor #396
+---- Thank you @Zexylz for the contribution!
+-- Fixed text editor scroll bar inappropriately responding to mouse events
+-- Improved text editor performance on large documents by using virtual scrolling
+-- Click-drag text selection now uses character midpoint for determining if a character is in selection
+-- Allow managers to interact with themselves
+EVERY 20 TICKS DO
+  INPUT FROM manager
+  OUTPUT TO chest slot 0
+FORGET
+  INPUT disk FROM chest slot 1
+  OUTPUT TO manager
+END
+-- Add try-catch to capability discovery, thanks @Sverd for the report! #418
+-- Add missing item capability for manager block on MC 1.20.3+
+-- Add Russian translation, thanks @BazZziliuS, #415
+-- Turned off line numbers by default in the text editor, I see you @joaobmt lol
+-- Implement custom event subscriber logic to reduce entropy in SFM code between MC versions
+---- Not being used by production logic yet
+-- Fix text editor caret blink, previously was solid or blinked too fast before/after MC 1.20.2
+-- Add JEI support for 1.21.0, 1.21.1, thanks @Saereth for the suggestion <3, #401
+-- Updated JEI support to correctly pair enchantments for disenchanting
+
+---- 4.26.0 ----
+-- Add new textures from #343, thanks MHanHanBing
+-- Add optional "Classic" resource pack to restore old textures
+-- Add block tag support for FallingAnvilHandler, fixes #376
+---- See SFMBlockTags.java; sfm:anvil_disenchanting and sfm:anvil_printing_press_forming
+-- AE2 energy acceptor mod compat to fix fe:: not working, fixes #322
+-- Update AE2 inscriber example to use retain since inscribers have a max stack size greater than 1 in 1.21.1
+-- More zh_cn changes improvements, thank you @ZHAY10086, @XYHXH, and others!
+-- Reduce code entropy between Minecraft versions
+---- Fixed mixed localization keys: itemGroup.sfm -> item_group.sfm
+---- Standardized resource location object construction
+---- Standardized capability stuff, before and after 1.20.3 NeoForge rework now much cleaner
+------ SFM can now add capability wrappers for mod compatibility like the #322 fix above
+-- Add missing mod icon for mods screen
+-- Updated to NeoForge v21.1.206 for MC1.21.1
+
+
+---- 4.25.0 ----
+-- Implement `EMPTY SLOTS IN` modifier for OUTPUT to place only into empty destination slots (#365)
+EVERY 20 TICKS DO
+    INPUT FROM mob_loot
+    OUTPUT TO EMPTY SLOTS IN storage
+END
+-- Optional: run an infrequent condensing pass to stack items
+EVERY 300 SECONDS DO
+    INPUT FROM storage
+    OUTPUT TO storage
+END
+-- Fix crash when re-entering a level, fixes #372
+-- Add Ctrl+E hotkey for opening the text editor in the title screen
+-- Add Ctrl+E hotkey for opening the text editor in the select world screen
+-- Fix SFM keymapping logic failing to respect modifier keys, fixes #374
+-- Update label gun push/pull chat reminders to show the pull modifier key instead of saying "shift"
+
+---- 4.24.0 ----
+-- Thanks @Druadi for the support!
+-- Add SFML support to markdown code blocks in VSCode extension, thanks @Titop54!
+-- Fix Turkish locale causing crashes on launch, fixes #362
+-- Fix timer trigger offset in seconds not being multiplied by 20, fixes #354
+EVERY 20+10 SECONDS DO END
+-- Fix printing press form item tooltip not showing details on MC1.21+, fixes #361
+-- Fix label gun tooltip hotkey reminders having bad translation formatting, fixes #311
+-- Add label gun scroll modifier keymapping, letting you change shift+scroll to something else
+-- Add more hotkey reminders to label gun tooltip
+-- Merge #353 with additional PT_BR localization entries, thanks @PrincessStelllar
+
+---- 4.23.0 ----
+-- Added more auto-lowercase rules in regex-like resource identifiers to avoid program-not-working confusion
+-- Add hotkeys for label gun contiguous behaviour (ctrl)
+-- Add hotkeys for label gun clear behaviour (shift)
+-- Add hotkeys for label gun pull behaviour (shift)
+-- Add hotkeys for label gun target manager behaviour (label the manager instead of pushing)
+-- Fix contiguous label assignment not working on world load/when adjacent cables not noticed into network
+-- Add notification in chat when blocks are skipped with ctrl+click because they aren't touching cables
+-- Silence mixin warnings
+---- Thanks @Uncandango for the motivation!
+-- Clean up known_issues.sfml
+-- Add zh_cn Localization (#305), thanks @QiChenSn
+-- Add pt_br Localization (#275, #340), thanks @Jmpp2909, @IzaDellaCruz
+-- Fix printing press item ghosting misbehaviour (#259, #350), thanks @lennyservant!!!
+
+---- 4.22.0 ----
+-- Thank you SpruceMist for the GitHub sponsorship <3
+---- Check out the "Thank you!" example for more names <3
+-- Clear network managers when level unloads, fixes #287
+-- Fix typo in localization key "gui.sfm.comfirm", fixes #274
+-- Fix water tank block entities not being cleaned up, fixes #290
+---- Thanks @Linguardium for the bug report!
+-- Fix `SECOND` keyword (singular) not multiplying by 20, fixes #244
+-- Split game tests to multiple files
+-- Implement custom game test registration logic with dynamic structure generator
+-- Fix peekExtractPotential to return stackInSlot instead of extract(MAX) for more accurate count of oversized inventories
+-- Add facades inheriting light level of the block they are appearing as, closes #309
+---- Thanks @TheVoos for the suggestion!
+-- Fix RETAIN behaving incorrectly, fixes #306, #200, #297, #199, #181
+EVERY 20 TICKS DO
+    INPUT RETAIN 300 FROM dank BOTTOM SIDE -- would refuse to pull, now fixed
+    OUTPUT TO chest
+END
+-- Fix label gun GUI text edit box limiting labels to 32 characters, fixes #147
+-- Increased max label length from 80 to 256
+-- VSCode extension improvements, thanks @Titop54 for the help <3
+-- Fix "/ by zero exception" in program edit screen
+
+---- 4.21.0 ----
+-- Add intellisense, disabled by default - backslash to accept suggestion
+-- Bottom left button in program edit screen now opens editor config
+-- Fix missing focus highlight from tab-navigation of buttons in manager screen
+-- Fix syntax highlighting for "SECOND" keyword
+-- Fix escaped quotes in strings containing the escaping backslash
+-- Add reminder when SFM crashes the game that there's a config to turn off managers
+-- Add hotkey reminder to ctrl+i overlay
+-- Fix disconnect issue when clearing facades from cables
+
+---- 4.20.0 ----
+-- Fix disks having no name when program has no name for 1.21+
+-- VSCode extension updates, thanks @Titop54 for the help <3
+-- Fix max program length ungraceful crash, thanks @Crazy
+---- Set MAX_PROGRAM_LENGTH to ~32,300 because of vanilla constraints
+-- Renamed resource types example to include "fluid" in the title
+-- Add edit-in-hand reminder text to disk when no program present
+-- Add reminder to push labels when warnings present
+-- Optimize EACH limits
+EVERY 20 TICKS DO
+    INPUT FROM chest
+
+    OUTPUT RETAIN 1 EACH *seed* TO phyto
+    -- this no longer lags the more items match lol
+END
+-- Add support for OR
+EVERY 20 TICKS DO
+    INPUT
+        5 stone OR dirt, -- move 5 total (stone|dirt)
+        cobblestone -- move all cobble
+    FROM chest
+END
+-- Fix correctness bug
+---- With multiple 'b' inventories, each one would keep 5 instead of 5 across them total
+EVERY 20 TICKS DO
+    input retain 5 from b
+    output to a
+END
+-- Update round robin example to advocate for using "retain" instead
+-- Add notice to inspector that slot numbers may not correspond with automation slots
+-- Fix syntax highlighting for "without", thanks @AkaiPandaTV
+-- Fix WITHOUT and WITH logic implementation
+EVERY 20 TICKS DO
+    INPUT minecraft: FROM left
+    OUTPUT WITH TAG ingots OR tag chests EXCEPT iron_ingot TO right
+    OUTPUT WITHOUT TAG ingots OR TAG nuggets TO "top"
+END
+-- Add fancy inventory cable, cable with non-full-block model, thanks @kevinrpb
+-- Optimized label gun and network tool rendering, thanks @Burkino <3
+-- Add label gun render-only-selected gui button added, thanks @Burkino
+-- Add label gun gui searching, thanks @Burkino
+-- Add cable facades, thanks @Burkino
+---- Network tool in off-hand will replace cable texture with block in main hand on right click
+-- Add resource type disallowing via config for pack makers, thanks @Burkino
+-- Add warning when using Mekanism blocks in IO statements with no side specified
+-- Add label gun pick-block modifier key for right clicking
+-- Fix label gun with no active label failing to shift-right-click to clear labels on blocks
+-- Remove confirmation dialog when reset is pressed with blank program and no labels
+-- Add confirmation screen when pasting
+-- Optimized water tank logic, thanks @WanderinWolf for the bug report
+---- Capacity scaling has been buffed from n to 2^n
+---- Added `/sfm bust_water_network_cache` in case I screwed up the cache logic lol
+-- Update network tool output; hide capabilities that aren't present, added newline
+-- Update water tank reminder text to mention that other tanks must be active for bonus
+-- Add issue tracker url to mods.toml, shown when SFM is suspected of causing a crash
+-- Add CompressedBlockPosSet data structure to fix packet length issues with network tool and label gun
+-- Invalidate network cache instead of recomputing when removing cables from large networks
+-- Fix network tool not working on dedicated servers, thanks @RacerDelux
+-- Fix only rendering one of label gun and network tool when both held at once
+-- Fix network tool not refreshing render data properly when in off-hand
+-- Fix cables being moved by pistons not updating the cable network
+-- Remove unused keyword tokens: WORLD, PROGRAM, MOVE
+-- Add random initialization of manager internal clock on load from world
+-- Add support for specifying global alignment and offset for timer intervals
+EVERY 20 GLOBAL TICKS DO END
+EVERY 20 GLOBAL PLUS 5 TICKS DO END
+EVERY 20G PLUS 5 TICKS DO END
+EVERY 20G + 5 TICKS DO END
+EVERY 20G+5 TICKS DO END
+-- Add timer_triggers.sfml example
+-- Fix manager asking for confirmation when pasting over empty disks
+-- Fix missing truncation on ctrl+space actions for label and output tokens
+-- Performance improvements by switching to imperative loops, thanks @Qther
+-- Add `/sfm config show` (anyone) and `/sfm config edit` (op) commands
+-- Add "show config" button to manager gui
+-- Improve resource loss logging
+-- Add config variable to disable config loss logging in console
+-- Add "(SFM)" to mod name in mods.toml so it shows up in searches for "SFM"
+-- Add crafting recipe to clear label guns
+-- Fix label gun clear not resetting active label
+-- Add label cleanup support for labels on blocks that are not detected as valid inventories
+-- Fix inspection results missing line endings when multiple resource types present
+-- Add exports for all side to network tool, listing selected side first
+-- Add hotkeys for label gun next/prev for people with no scroll wheel, unbound by default
+-- Add facades to fancy cables, HUGE thanks to CoFH for their RetexturedBakedQuad class <3
+-- Add direction support to fancy cable facades
+-- Add `/sfm changelog` command
+-- Add swapping between fancy and normal cables with network tool
+-- Performance improvements by reducing memory allocations iterating block neighbours
+-- Fix inaccurate scrollbar
+-- Fix industrial foregoing ore meat fluid not moving because SFM mishandling fluid tags
+---- Thanks @luxxiz for the report!
+-- Fix modifying disk label data in ServerboundManagerFixPacket failing due to immutability (#212)
+-- Fix DiskItem calling client method on server when producing tooltip contents (#210)
+-- Fix pasting large program causing packet too large error (#211)
+-- Fix printing press form crash bug (#209)
+-- Add label gun view mode to only show a subset of labels
+
+---- 4.19.1 ----
+-- Fix 1.19.4 build failures due to Gradle hating me
+
+---- 4.19.0 ----
+-- Fix uppercase resource identifiers not being auto-lowercased internally
+-- Add WITH TAG support, check examples for more info
+EVERY 20 TICKS DO
+    INPUT minecraft:* WITH TAG minecraft:mineable/shovel FROM chest
+    OUTPUT TO chest
+END
+-- Add WIP hotkey for copying item NBT to clipboard, doesn't work on JEI hovered items
+-- Fix tooltips for manager screen showing over the program edit screen... again
+-- Add `/sfm export_info` client command to dump item and recipe info
+-- Update SFM 1.21.1 build to fix broken Mekanism compatibility
+---- gas::, infusion::, etc are now aliases for chemical::
+
+---- 4.18.0 ----
+-- Add 1.21.0 build with Mekanism support
+-- Set up a Ko-fi for donations
+---- Thanks to @micrwvae for being first!
+-- Restore Mekanism support for Minecraft 1.20.4
+-- Add syntax highlighting for SECONDS keyword
+-- Improve performance iterating over EXCLUDE resources
+
+---- 4.17.0 ----
+-- fix cache not being invalidated when chunk unloaded
+---- this was caused by other mods not invalidating capabilities
+---- this caused managers to stop working (rejoining a server, etc)
+-- fix label guns sharing internal objects with each other and disks
+---- this caused disks in managers to get updated without pushing
+---- sometimes manager disk didn't have labels you thought you pushed
+-- fix reset button not purging labels
+-- add confirmation screen to reset button
+-- remove confirmation screen when overwriting empty program
+-- add client config for showing line numbers
+---- add toggle button in program edit screen
+-- reduce log spam from syntax errors
+---- build process now properly stops when parsing fails
+
+-- fix partial forgets resetting trackers
+EVERY 20 TICKS DO
+    INPUT 10 FROM a,b
+    OUTPUT 1 to z
+    FORGET b
+    OUTPUT to z -- this used to move 10, should be/is now 9
+END
+
+-- add warnings
+EVERY 20 TICKS DO
+    INPUT fluid:: FROM a -- fluid:: never gets used
+    OUTPUT TO b          -- item:: never get inputted
+END
+
+
+---- 4.16.0 ----
+-- fix crashes using ctrl+space
+---- happened when using on `Gas::` or `fe::` or `bruh::`
+---- Thanks @crystalivel for the report <3
+-- add manager screen button to rebuild network
+---- this will do until I can squash the bug
+---- I'm sorry for the headaches this has caused
+-- add known issues example program
+-- fix INPUT statement limits not being respected
+---- occurred when using 2+ outputs with one input
+---- https://imgur.com/a/sfm-unintended-behaviour-gBkNyae
+---- Thanks @Lewi for the report <3
+-- fix recipes to use item tags for signs and rods
+---- Thanks @pddshk for the suggestion (#127) <3
+---- Thanks Blase for the reminder <3
+-- add mekanism_energy:mekanism:energy resource type
+---- This can move MAX_LONG per operation where supported
+-- make "EVERY TICK DO" valid syntax
+---- this still only allows forge_energy by default
+-- optimize more common regex (*seed, seed*, *seed*)
+-- add line numbers to program edit screen
+---- Thanks @Lewi and @Reko for the suggestion <3
+-- remove admin requirement for /sfm bust_cable_network_cache
+---- logs whoever uses the command
+-- add logging for individual managers
+-- program edit screen no longer pauses the game in single player
+-- more confirmation dialogs when overwriting programs
+---- Thanks @DeeJayh for the report, sorry for ur loss <3
+-- make FORGET keyword blue
+-- make NOT,AND,OR keywords gold
+-- allow `redstone` as a label
+-- fix missing dash in changelog
+-- support `IF chest HAS EQ 0 THEN`
+---- previously only `IF chest HAS EQ 0 item:: THEN`
+-- add ctrl+space action for IfStatement and BoolExpr
+-- add git tag action to release process documentation
+-- add GitHub release to release process documentation
+-- update AE2 example to accommodate case where ingredients are spread between inscribers
+---- Thanks @Kem for the idea <3
+
+---- 4.15.1 ----
+-- Fix crash bug where variable-size inventories (composters) crashed
+-- Fix modloader=forge missing for the mc=1.20.1 CurseForge uploads
+
+---- 4.15.0 ----
+-- alias "each" to "every" when parsing set operators
+---- (e.g., "IF EACH chest HAS GT 1 iron_ingot THEN")
+---- this is an old change but I forgot to mention till now
+-- move disk warning update trigger from tick to manager open
+-- add warnings for smelly round robin usage
+-- add warning for smelly pattern expansion usage
+-- add mod+game info to clipboard diagnostics
+-- add EACH SIDE alias
+---- OUTPUT forge_energy:: TO "flux cell" EACH SIDE
+-- improve error logging when resource voiding detected
+-- fix bug where programs worked without inventory cables
+-- ctrl+labelgun now applies to kitty corner
+-- add config for minimum tick time
+-- allow programs to tick faster if only moving energy
+-- alias forge_energy:: <= fe::, rf::, energy::, power::
+-- fix anvils causing problems when quitting world
+
+---- 4.14.3 ----
+-- add support for 1.20.2
+-- add support for 1.20.3
+-- add support for 1.20.4
+
+---- 4.14.2 ----
+-- fix capability caching to avoid resource voiding and programs not working
+
+---- 4.14.1 ----
+-- fix label gun not working on servers
+
+---- 4.14.0 ----
+-- switch to milliseconds instead of nanoseconds
+-- add FORGET keyword
+---- FORGET a,b,c -- remove these from inputs
+---- FORGET -- remove all inputs
+-- add ROUND ROBIN keyword, works in inputs and outputs
+---- INPUT FROM a,b ROUND ROBIN BY BLOCK
+---- OUTPUT TO a,b,c ROUND ROBIN BY LABEL
+-- fix REDSTONE keyword not being allowed as a resource id
+---- INPUT redstone FROM a -- works now :D
+-- add /sfm op command for diagnosing cable network problems
+-- performance improvements :D
+---- breaking many cables at once now faster
+---- fastutils in cable network makes programs faster too
+---- shifted pattern compilation to build time instead of first inference
+-- improved GitHub README
+-- test suite improvements
+-- fix inv overlay (Ctrl+i) failing with big payloads
+-- double inspection payload max size before truncation to 20480
+-- add ae2 inscriber example program
+-- add network tool item
+
+---- 4.13.0 ----
+-- add ctrl+slash hotkey to toggle comments
+-- add warning when exiting program without saving
+-- add 1.20.1 mekanism support
+-- add emotes to discord server
+-- add role to discord server to be pinged about updates
+
+---- 4.12.0 ----
+-- add changelog to templates
+-- add ctrl+space hotkey for code inspection
+-- add `EACH` modifier on quantities and retentions
+-- add resource exclusion patterns
+-- add missing syntax highlighting
+-- cleaner templates
+-- improved export inspector output (Ctrl+I)

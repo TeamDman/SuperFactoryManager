@@ -1,0 +1,5 @@
+every 20 ticks do
+   input from furnace
+   output to furnace
+end
+

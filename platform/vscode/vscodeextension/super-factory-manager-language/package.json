@@ -1,0 +1,179 @@
+{
+  "name": "super-factory-manager-language",
+  "displayName": "Super Factory Manager Language",
+  "description": "Adds language support for the Super Factory Manager Language.",
+  "repository": "https://github.com/TeamDman/SuperFactoryManager",
+  "publisher": "TeamDman",
+  "author": {
+    "name": "TeamDman"
+  },
+  "contributors": [
+    {
+      "name": "TeamDman"
+    },
+    {
+      "name": "Titop54"
+    }
+  ],
+  "version": "0.0.14",
+  "icon": "media/controller.png",
+  "main": "./out/extension.js",
+  "engines": {
+    "vscode": "^1.0.0",
+    "node": ">=20.0.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:sfm",
+    "onLanguage:markdown"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "sfml",
+        "aliases": [
+          "Super Factory Manager Language",
+          "sfml"
+        ],
+        "extensions": [
+          ".sfm",
+          ".sfml"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "media/disk.png",
+          "dark": "media/disk.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "sfml",
+        "scopeName": "source.sfml",
+        "path": "./syntaxes/sfml.tmLanguage.json"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "examplesSFML",
+          "title": "SFM examples",
+          "icon": "media/label.png",
+          "when": "sfml.isActivated"
+        }
+      ]
+    },
+    "views": {
+      "examplesSFML": [
+        {
+          "id": "examplesGames",
+          "name": "Examples in-game",
+          "when": "sfml.isActivated",
+          "icon": "/media/controller.png"
+        },
+        {
+          "id": "examplegithub",
+          "name": "Examples Github",
+          "when": "sfml.isActivated",
+          "icon": "/media/controller.png"
+        },
+        {
+          "id": "examplesOthers",
+          "name": "External examples",
+          "when": "sfml.isActivated && sfml.thereAreFiles",
+          "icon": "/media/controller.png"
+        }
+      ]
+    },
+    "configuration": [
+      {
+        "title": "Super Factory Manager Language",
+        "properties": {
+          "sfml.filesOrder": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show folders first and then files"
+          },
+          "sfml.enableActivityBar": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable the Activity Bar"
+          },
+          "sfml.enableWarningChecking": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable warning for code. Still on very early"
+          },
+          "sfml.enableErrorChecking": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable error checking for code. Should be the same as in-game"
+          },
+          "sfml.changeFileIconsOnActivityBar": {
+            "type": "string",
+            "description": "Select the icon theme for SFML files on the activity bar",
+            "default": "Experience Goop",
+            "enum": [
+              "Disk",
+              "Controller",
+              "Label Gun",
+              "Experience Goop",
+              "Experience Shard",
+              "Tool Network",
+              "Printing Form"
+            ]
+          },
+          "sfml.changeFolderIconsOnActivityBar": {
+            "type": "string",
+            "description": "Select the icon theme for folders on the activity bar",
+            "default": "Tool Network",
+            "enum": [
+              "Disk",
+              "Controller",
+              "Label Gun",
+              "Experience Goop",
+              "Experience Shard",
+              "Tool Network",
+              "Printing Form"
+            ]
+          },
+          "sfml.externalURLs": {
+            "type": "string",
+            "description": "Useful repositories for SFM files (Only GitHub or local). Each repo / folder must be in between '' and separated via a comma",
+            "default": ""
+          },
+          "sfml.SnippetActivation": {
+            "type": "string",
+            "description": "Prefix for activating snippets completion. For example: @energy or /energy.",
+            "default": ""
+          },
+          "sfml.enableSnippets": {
+            "type": "boolean",
+            "description": "Enable snippets",
+            "default": true
+          }
+        }
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "@types/vscode": "^1.0.0",
+    "typescript": "^5.9.2"
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "antlr": "antlr4ts -o src/generated -listener -visitor ./syntaxes/SFML.g4",
+    "package": "vsce package -o vsce-versions",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "antlr4ts": "^0.5.0-alpha.4",
+    "antlr4ts-cli": "^0.5.0-alpha.4",
+    "axios": "^1.11.0"
+  }
+}

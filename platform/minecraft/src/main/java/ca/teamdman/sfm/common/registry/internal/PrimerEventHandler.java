@@ -69,7 +69,7 @@ public class PrimerEventHandler {
     @SubscribeEvent
     public void registerLinters(RegistryEvent.Register<IProgramLinter> event) {
         registry.wipe(event.getGenericType());
-        SFMLinters.initialize();
+        SFMProgramLinters.initialize();
         fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
     }
 

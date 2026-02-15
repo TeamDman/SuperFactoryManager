@@ -1,0 +1,12 @@
+name "energy"
+EVERY 20 TICKS DO
+    INPUT 1000 sfm:forge_energy:forge:energy from a BOTTOM SIDE
+    OUTPUT sfm:forge_energy:forge:energy to b TOP SIDE
+END
+
+---
+
+every 20 ticks do
+    input from a top side
+    output to b top side
+end
