@@ -168,7 +168,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
             wither.setAlternativeTarget(1, sheep.getId());
             wither.setAlternativeTarget(2, sheep.getId());
             helper.getLevel().addFreshEntity(wither);
-            wither.hurt(DamageSource.OUT_OF_WORLD, 1); // Make it angry so it destroys blocks
+            triggerWitherDestroyBlocksTickViaHurt(wither);
 
             BlockPos sheepCheckPos = getSheepCheckLocalPos();
 
@@ -221,6 +221,12 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                         helper.succeed();
                     }
             );
+        }
+
+        private void triggerWitherDestroyBlocksTickViaHurt(WitherBoss wither) {
+            // Intentionally route through WitherBoss#hurt to trigger:
+            //   if (this.destroyBlocksTick <= 0) { this.destroyBlocksTick = 20; }
+            wither.hurt(DamageSource.OUT_OF_WORLD, 1.0F);
         }
 
         private boolean isWallBroken(
