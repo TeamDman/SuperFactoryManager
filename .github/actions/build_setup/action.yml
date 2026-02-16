@@ -9,7 +9,6 @@ inputs:
 
 runs:
   using: 'composite'
-
   steps:
   - name: Set up JDK 17
     uses: actions/setup-java@v5
@@ -20,6 +19,7 @@ runs:
   - name: Setup Gradle
     uses: gradle/actions/setup-gradle@v5
     with:
+      build-root-directory: platform/build-scripts
       cache-write-only: ${{ inputs.update-cache }}
       gradle-home-cache-includes: |
         caches

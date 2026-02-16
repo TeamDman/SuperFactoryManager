@@ -22,9 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # needed to create GitHub releases
-
     env:
       DISABLE_BUILDSCRIPT_UPDATE_CHECK: true
+
+    defaults:
+      run:
+        working-directory: platform/minecraft
 
     steps:
       - name: Checkout Repository
