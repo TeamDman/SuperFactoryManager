@@ -1,15 +1,15 @@
 [
 {
-  "modid": "${modid}",
-  "name": "${modname}",
-  "description": "Super Factory Manager is a mod which allows you to set up systems that moves and manages items between inventories and machines",
-  "version": "${version}",
-  "mcversion": "${mcversion}",
-  "url": "https://github.com/MasonD/SuperFactoryManager",
+  "modid": "${mod_id}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "version": "${mod_version}",
+  "mcversion": "1.12.2",
+  "url": "${mod_url}",
   "updateUrl": "",
   "authorList": ["Vswe", "TeamDman", "stone_mason"],
   "credits": "",
-  "logoFile": "sfm.png",
+  "logoFile": "${mod_logo_path}",
   "screenshots": [],
   "dependencies": []
 }

@@ -39,19 +39,52 @@
  */
 
 
-tasks.generateGrammarSource.configure {
-    arguments = [ "-visitor", "-Xexact-output-dir" ]
-    outputDirectory = file("${project.buildDir}/generated-src/antlr/main/ca/teamdman/langs")
-}
-
-tasks.compileJava.configure {
-    dependsOn(tasks.generateGrammarSource)
-}
-tasks.sourcesJar.configure {
-    dependsOn(tasks.generateGrammarSource)
+repositories {
+    // Other repositories described by default:
+    // CleanroomMC: https://maven.cleanroommc.com
+    exclusiveContent {
+        forRepository {
+            //noinspection ForeignDelegate
+            maven {
+                name = 'Curse Maven'
+                url = 'https://www.cursemaven.com'
+                // url = 'https://beta.cursemaven.com'
+            }
+        }
+        filter {
+            includeGroup 'curse.maven'
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            //noinspection ForeignDelegate
+            maven {
+                name = 'Modrinth'
+                url = 'https://api.modrinth.com/maven'
+            }
+        }
+        filter {
+            includeGroup 'maven.modrinth'
+        }
+    }
+    maven {
+        name = 'BlameJared Maven'
+        url = 'https://maven.blamejared.com'
+    }
+    maven {
+        name = 'GTNH Maven'
+        url = 'https://nexus.gtnewhorizons.com/repository/public/'
+    }
+    maven {
+        name = 'GTCEu Maven'
+        url = 'https://maven.gtceu.com'
+    }
 }
 
 dependencies {
+    compileOnlyApi 'org.jetbrains:annotations:24.1.0'
+    annotationProcessor 'org.jetbrains:annotations:24.1.0'
+
     antlr("org.antlr:antlr4:4.9.1")
     embed("org.antlr:antlr4-runtime:4.9.1") { transitive = false }
     embed("com.github.mpkorstanje:simmetrics-core:4.1.1")

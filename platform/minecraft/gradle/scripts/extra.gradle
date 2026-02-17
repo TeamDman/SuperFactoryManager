@@ -1,0 +1,11 @@
+tasks.generateGrammarSource.configure {
+    arguments = [ "-visitor", "-Xexact-output-dir" ]
+    outputDirectory = file("${project.buildDir}/generated-src/antlr/main/ca/teamdman/langs")
+}
+
+tasks.compileJava.configure {
+    dependsOn(tasks.generateGrammarSource)
+}
+tasks.sourcesJar.configure {
+    dependsOn(tasks.generateGrammarSource)
+}

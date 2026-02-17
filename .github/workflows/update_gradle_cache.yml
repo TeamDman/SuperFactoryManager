@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - 1.12.2-backport
-    paths: ['gradle/**', '**.gradle', 'gradle.properties', 'gradlew**', 'src/main/resources/*_at.cfg']
+    paths: ['platform/minecraft/gradle/**', 'platform/minecraft/**.gradle', 'platform/minecraft/gradle.properties', 'platform/minecraft/buildscript.properties', 'platform/minecraft/gradlew**', 'platform/minecraft/src/main/resources/*_at.cfg']
   workflow_dispatch:
 
 concurrency:
