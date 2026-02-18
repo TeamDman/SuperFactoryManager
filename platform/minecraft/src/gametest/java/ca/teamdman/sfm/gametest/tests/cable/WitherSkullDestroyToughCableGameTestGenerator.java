@@ -131,7 +131,7 @@ public class WitherSkullDestroyToughCableGameTestGenerator extends SFMGameTestGe
             wither.moveTo(skullSpawn.x, skullSpawn.y - 1.0, skullSpawn.z, 0, 0);
             helper.getLevel().addFreshEntity(wither);
 
-            WitherSkull witherSkull = new WitherSkull(helper.getLevel(), wither, direction.x, direction.y, direction.z);
+            WitherSkull witherSkull = new WitherSkull(helper.getLevel(), wither, direction);
             witherSkull.setDangerous(true);
             witherSkull.moveTo(skullSpawn.x, skullSpawn.y, skullSpawn.z, 0, 0);
             witherSkull.setDeltaMovement(direction.scale(0.9));
