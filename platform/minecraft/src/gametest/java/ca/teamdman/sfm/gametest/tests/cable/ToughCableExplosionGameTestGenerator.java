@@ -217,22 +217,32 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
             );
         }
 
-        private void runTntScenario(SFMGameTestHelper helper) {
+        private BlockPos placeBlock(SFMGameTestHelper helper) {
 
             BlockPos localPos = getPlacementPos();
-            BlockPos absolute = helper.absolutePos(localPos);
-
-            helper.getLevel().setBlock(absolute, scenario.blockSupplier.get().defaultBlockState(), 3);
+            helper.setBlock(localPos, scenario.blockSupplier.get().defaultBlockState());
+            verifyResult(helper, localPos, "Should place successfully", true);
             scenario.facadeState.ifPresent(mimicBlockState -> helper.setFacade(localPos, mimicBlockState));
+            return localPos;
+        }
 
-            Vec3 spawnVec = helper.absoluteVec(new Vec3(localPos.getX() + 0.5, localPos.getY() + 1.5, localPos.getZ() + 0.5));
+        private void runTntScenario(SFMGameTestHelper helper) {
+
+            BlockPos localPos = placeBlock(helper);
+
+            Vec3 spawnVec = helper.absoluteVec(new Vec3(
+                    localPos.getX() + 0.5,
+                    localPos.getY() + 1.5,
+                    localPos.getZ() + 0.5
+            ));
             PrimedTnt primed = new PrimedTnt(helper.getLevel(), spawnVec.x, spawnVec.y, spawnVec.z, null);
             primed.setDeltaMovement(Vec3.ZERO);
             primed.setFuse((short) 20);
             helper.getLevel().addFreshEntity(primed);
 
-            helper.runAfterDelay(40, () -> verifyResult(helper, absolute, "TNT explosion"));
+            helper.runAfterDelay(40, () -> verifyResult(helper, localPos, "TNT explosion", scenario.shouldSurvive));
         }
+
 
         private void runWitherScenario(SFMGameTestHelper helper) {
 
@@ -241,13 +251,13 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
                 return;
             }
 
-            BlockPos localPos = getPlacementPos();
-            BlockPos absolute = helper.absolutePos(localPos);
+            BlockPos localPos = placeBlock(helper);
 
-            helper.getLevel().setBlock(absolute, scenario.blockSupplier.get().defaultBlockState(), 3);
-            scenario.facadeState.ifPresent(mimicBlockState -> helper.setFacade(localPos, mimicBlockState));
-
-            Vec3 spawnVec = helper.absoluteVec(new Vec3(localPos.getX() + 0.5, localPos.getY() + 2.5, localPos.getZ() + 0.5));
+            Vec3 spawnVec = helper.absoluteVec(new Vec3(
+                    localPos.getX() + 0.5,
+                    localPos.getY() + 2.5,
+                    localPos.getZ() + 0.5
+            ));
             WitherBoss wither = EntityType.WITHER.create(helper.getLevel());
             assert wither != null;
             wither.moveTo(spawnVec.x, spawnVec.y, spawnVec.z, 0, 0);
@@ -257,21 +267,22 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
             helper.runAfterDelay(
                     250, () -> {
                         wither.discard();
-                        verifyResult(helper, absolute, "Wither explosion");
+                        verifyResult(helper, localPos, "Wither explosion", scenario.shouldSurvive);
                     }
             );
         }
 
         private void verifyResult(
                 SFMGameTestHelper helper,
-                BlockPos absolute,
-                String explosionDescription
+                BlockPos localBlockPos,
+                String explosionDescription,
+                boolean shouldSurvive
         ) {
 
-            boolean stillExists = helper.getLevel().getBlockState(absolute).is(scenario.blockSupplier.get());
-            if (stillExists != scenario.shouldSurvive) {
+            boolean stillExists = helper.getBlockState(localBlockPos).is(scenario.blockSupplier.get());
+            if (stillExists != shouldSurvive) {
                 helper.fail("Scenario '" + scenario.name + "' had unexpected result after " + explosionDescription
-                            + ": expected survive=" + scenario.shouldSurvive + ", actual survive=" + stillExists);
+                            + ": expected survive=" + shouldSurvive + ", actual survive=" + stillExists);
             } else {
                 helper.succeed();
             }
