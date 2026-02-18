@@ -27,7 +27,7 @@ This phase often partially restarts due to complications and discoveries leading
 3. Run `sfm-propagate-changes.exe status` to ensure all changes under [src/generated](../platform/minecraft/src/generated/) are committed
 4. Run `sfm-propagate-changes.exe merge` to ensure merge stability after committing generated files; each branch must keep its own src/generated files during the merge; reject incoming
 5. Run `sfm-propagate-changes.exe gradle runGameTestServer` to ensure all game tests are passing
-6. Run `sfm-propagate-changes.exe build` to build the jar and ensure all unit tests are passing
+6. Run `sfm-propagate-changes.exe gradle build` to build the jar and ensure all unit tests are passing
 7. Run `sfm-propagate-changes.exe jar clean` to prepare the destination directory
 8. Run `sfm-propagate-changes.exe jar collect` to collect all the built jar files in one location
 
