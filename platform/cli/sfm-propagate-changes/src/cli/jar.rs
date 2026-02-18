@@ -24,8 +24,6 @@ pub enum JarCommand {
         #[facet(args::subcommand)]
         command: JarDirCommand,
     },
-    /// Remove jars from the configured jar directory while keeping the directory
-    Clean,
     /// Collect jars from each MC version based on that version's `mod_version`
     Collect,
     /// List jars in the configured jar directory
@@ -48,6 +46,8 @@ pub enum JarDirCommand {
         #[facet(args::positional)]
         path: PathBuf,
     },
+    /// Remove jars from the configured jar directory while keeping the directory
+    Clean,
     /// Show the current jar directory path
     Show,
     /// Open the jar directory in the file explorer
@@ -61,7 +61,6 @@ impl JarCommand {
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
             JarCommand::Dir { command } => command.invoke(),
-            JarCommand::Clean => clean_jars(),
             JarCommand::Collect => collect_jars(),
             JarCommand::List => list_jars(),
             JarCommand::UpdateClients => update_clients(),
@@ -94,6 +93,7 @@ impl JarDirCommand {
                 info!("Set jar directory to: {}", canonical.display());
                 Ok(())
             }
+            JarDirCommand::Clean => clean_jars(),
             JarDirCommand::Show => {
                 let path = get_jar_dir()?;
                 println!("{}", path.display());
