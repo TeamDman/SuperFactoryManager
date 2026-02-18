@@ -494,6 +494,12 @@ pub struct GradleCommand {
     /// If set, hide stdout of each gradle process while it runs.
     #[facet(rename = "hide-logs", args::named, default = false)]
     pub hide_logs: bool,
+
+    /// If set, continue with later branches after a task failure.
+    ///
+    /// Remaining tasks for the failed branch are marked as skipped.
+    #[facet(rename = "continue-on-error", args::named, default = false)]
+    pub continue_on_error: bool,
 }
 
 impl GradleCommand {
@@ -584,6 +590,7 @@ impl GradleCommand {
         info!(
             tasks = ?self.tasks,
             mc_filter = ?self.mc,
+            continue_on_error = self.continue_on_error,
             worktrees = ?all_worktree_branches,
             worktrees_included = ?included_worktree_branches,
             worktrees_included_count = worktrees_included,
@@ -592,6 +599,8 @@ impl GradleCommand {
             worktrees_excluded_count = worktrees_excluded,
             "Running gradle tasks in strict sequence"
         );
+
+        let mut failures: Vec<String> = Vec::new();
 
         for (branch_idx, wt) in worktrees.iter().enumerate() {
             let minecraft_dir = wt.path.join("platform").join("minecraft");
@@ -664,11 +673,6 @@ impl GradleCommand {
                         for remaining in branches[branch_idx].tasks.iter_mut().skip(task_idx + 1) {
                             remaining.state = TaskState::Skipped;
                         }
-                        for later_branch in branches.iter_mut().skip(branch_idx + 1) {
-                            for task in &mut later_branch.tasks {
-                                task.state = TaskState::Skipped;
-                            }
-                        }
 
                         error!(
                             branch = %wt.branch,
@@ -676,6 +680,13 @@ impl GradleCommand {
                             error = %err.message,
                             "Task failed"
                         );
+
+                        failures.push(format!(
+                            "branch: {}, task: {}, error: {}",
+                            wt.branch,
+                            current_task.as_gradle_arg(),
+                            err.message
+                        ));
 
                         if err.interrupted {
                             println!();
@@ -714,6 +725,16 @@ impl GradleCommand {
                             }
                         }
 
+                        if self.continue_on_error && !err.interrupted {
+                            print_report_to_stderr(&branches, &tasks);
+                            continue;
+                        }
+
+                        for later_branch in branches.iter_mut().skip(branch_idx + 1) {
+                            for task in &mut later_branch.tasks {
+                                task.state = TaskState::Skipped;
+                            }
+                        }
                         print_report_to_stdout(&branches, &tasks);
                         bail!(err.message);
                     }
@@ -722,6 +743,15 @@ impl GradleCommand {
         }
 
         print_report_to_stdout(&branches, &tasks);
+
+        if !failures.is_empty() {
+            let mut summary = String::from("One or more gradle tasks failed:\n");
+            for failure in &failures {
+                let _ = writeln!(summary, "  - {failure}");
+            }
+            bail!(summary);
+        }
+
         Ok(())
     }
 }
