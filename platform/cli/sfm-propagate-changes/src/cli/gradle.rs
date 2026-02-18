@@ -184,6 +184,50 @@ impl TaskState {
     }
 }
 
+fn extract_failed_gametest_names(output: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut in_failed_section = false;
+
+    for line in output.lines() {
+        // Strip the log prefix, e.g. "[HH:MM:SS] [Server thread/INFO] [minecraft/GameTestServer]: "
+        let content = if let Some(idx) = line.rfind("]: ") {
+            &line[idx + 3..]
+        } else {
+            line
+        };
+
+        if content.contains("required tests failed :(") {
+            in_failed_section = true;
+            continue;
+        }
+
+        if in_failed_section {
+            if content.contains("====") {
+                break;
+            }
+            let stripped = content.trim();
+            if let Some(name) = stripped.strip_prefix("- ") {
+                names.push(name.trim().to_string());
+            }
+        }
+    }
+
+    names
+}
+
+fn print_gametest_failures(failures: &[(String, Vec<String>)]) {
+    if failures.is_empty() {
+        return;
+    }
+    println!();
+    println!("{}", "FAILED GAME TESTS".red().bold());
+    for (branch, names) in failures {
+        for name in names {
+            println!("  {}", format!("{branch}: {name}").red());
+        }
+    }
+}
+
 fn has_gametest_success(output: &str) -> bool {
     let prefix = "All ";
     let suffix = " required tests passed :)";
@@ -601,6 +645,7 @@ impl GradleCommand {
         );
 
         let mut failures: Vec<String> = Vec::new();
+        let mut gametest_failures: Vec<(String, Vec<String>)> = Vec::new();
 
         for (branch_idx, wt) in worktrees.iter().enumerate() {
             let minecraft_dir = wt.path.join("platform").join("minecraft");
@@ -674,6 +719,18 @@ impl GradleCommand {
                             remaining.state = TaskState::Skipped;
                         }
 
+                        if matches!(current_task, GradleTask::RunGameTestServer) {
+                            if let Some(ref output) = err.output {
+                                let combined =
+                                    format!("{}
+{}", output.stdout, output.stderr);
+                                let names = extract_failed_gametest_names(&combined);
+                                if !names.is_empty() {
+                                    gametest_failures.push((wt.branch.clone(), names));
+                                }
+                            }
+                        }
+
                         error!(
                             branch = %wt.branch,
                             task = %current_task.as_gradle_arg(),
@@ -735,6 +792,7 @@ impl GradleCommand {
                                 task.state = TaskState::Skipped;
                             }
                         }
+                        print_gametest_failures(&gametest_failures);
                         print_report_to_stdout(&branches, &tasks);
                         bail!(err.message);
                     }
@@ -742,6 +800,7 @@ impl GradleCommand {
             }
         }
 
+        print_gametest_failures(&gametest_failures);
         print_report_to_stdout(&branches, &tasks);
 
         if !failures.is_empty() {
