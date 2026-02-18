@@ -2,6 +2,7 @@ pub mod cache;
 pub mod check;
 mod cli;
 pub mod client;
+pub mod git;
 pub mod gradle;
 pub mod home;
 pub mod jar;
