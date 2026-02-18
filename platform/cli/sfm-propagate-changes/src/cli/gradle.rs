@@ -721,9 +721,11 @@ impl GradleCommand {
 
                         if matches!(current_task, GradleTask::RunGameTestServer) {
                             if let Some(ref output) = err.output {
-                                let combined =
-                                    format!("{}
-{}", output.stdout, output.stderr);
+                                let combined = format!(
+                                    "{}
+{}",
+                                    output.stdout, output.stderr
+                                );
                                 let names = extract_failed_gametest_names(&combined);
                                 if !names.is_empty() {
                                     gametest_failures.push((wt.branch.clone(), names));
