@@ -22,13 +22,13 @@ These steps must be performed at the start of the release process.
 
 This phase often partially restarts due to complications and discoveries leading to additional modifications that must be included in the release.
 
-1. Run `sfm-propagate-changes.exe merge` to ensure all MC versions have all the latest SFM code
+1. Run `sfm-propagate-changes.exe git merge` to ensure all MC versions have all the latest SFM code
 2. Run `sfm-propagate-changes.exe gradle runData` to ensure all generated resources are up to date
-3. Run `sfm-propagate-changes.exe status` to ensure all changes under [src/generated](../platform/minecraft/src/generated/) are committed
-4. Run `sfm-propagate-changes.exe merge` to ensure merge stability after committing generated files; each branch must keep its own src/generated files during the merge; reject incoming
+3. Run `sfm-propagate-changes.exe git status` to ensure all changes under [src/generated](../platform/minecraft/src/generated/) are committed
+4. Run `sfm-propagate-changes.exe git merge` to ensure merge stability after committing generated files; each branch must keep its own src/generated files during the merge; reject incoming
 5. Run `sfm-propagate-changes.exe gradle runGameTestServer` to ensure all game tests are passing
 6. Run `sfm-propagate-changes.exe gradle build` to build the jar and ensure all unit tests are passing
-7. Run `sfm-propagate-changes.exe jar clean` to prepare the destination directory
+7. Run `sfm-propagate-changes.exe jar dir clean` to prepare the destination directory
 8. Run `sfm-propagate-changes.exe jar collect` to collect all the built jar files in one location
 
 ## Phase 3 - Verification Preparation
@@ -95,7 +95,7 @@ These steps finalize the release to make the built jar file available to people 
 (WIP - The rest of this phase is from an older version of this document and needs to be revamped with new `sfm-propagate-changes.exe` commands)
 
 ```pwsh
-26. Action: Tag
+26. Run `sfm-propagate-changes.exe git tag`
 27. Action: Push all
 
 28. For each version:
