@@ -2,7 +2,6 @@
 //! https://support.curseforge.com/support/solutions/articles/9000197321-curseforge-api
 //! https://www.curseforge.com/minecraft/mc-mods/super-factory-manager Project ID - 306935
 
-use tracing::debug;
 use crate::cli::jar::get_jar_dir;
 use crate::cli::repo_root::get_repo_root;
 use crate::mc_version_filter::McVersionFilter;
@@ -16,6 +15,8 @@ use reqwest::blocking::multipart;
 use reqwest::header::HeaderMap;
 use reqwest::header::HeaderValue;
 use reqwest::header::USER_AGENT;
+use sha1::Digest;
+use sha1::Sha1;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -24,6 +25,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::Duration;
+use tracing::debug;
 
 const CURSEFORGE_API_ROOT: &str = "https://minecraft.curseforge.com/api";
 const CURSEFORGE_CORE_API_ROOT: &str = "https://api.curseforge.com/v1";
@@ -108,6 +110,24 @@ pub enum CurseforgeCommand {
 pub enum CurseforgeReleaseCommand {
     /// Verify computed release metadata against historical project uploads
     Check {
+        /// Minecraft version filter expression list, comma-separated (example: "=1.20.1" or ">=1.19.2,<=1.21.1")
+        #[facet(default, args::named)]
+        mc: Option<String>,
+        /// CurseForge project ID (defaults to configured default project)
+        #[facet(default, args::named)]
+        project: Option<u64>,
+        /// CurseForge Core API key; if omitted, CURSEFORGE_CORE_API_KEY is used
+        #[facet(default, args::named, rename = "api-key")]
+        api_key: Option<String>,
+        /// CurseForge API token; if omitted, CURSEFORGE_API_TOKEN is used, then 1Password lookup
+        #[facet(default, args::named)]
+        token: Option<String>,
+        /// 1Password secret reference used when credentials are omitted
+        #[facet(default, args::named, rename = "op-secret")]
+        op_secret: Option<String>,
+    },
+    /// Validate remote downloadable files against local release jars by hash
+    Validate {
         /// Minecraft version filter expression list, comma-separated (example: "=1.20.1" or ">=1.19.2,<=1.21.1")
         #[facet(default, args::named)]
         mc: Option<String>,
@@ -265,6 +285,13 @@ impl CurseforgeReleaseCommand {
                 token,
                 op_secret,
             } => check_minecraft_version_metadata(mc, project, api_key, token, op_secret),
+            Self::Validate {
+                mc,
+                project,
+                api_key,
+                token,
+                op_secret,
+            } => validate_release_hashes(mc, project, api_key, token, op_secret),
             Self::Now {
                 project,
                 token,
@@ -337,6 +364,18 @@ struct CurseforgeProjectFileItem {
     file_status: Option<u32>,
     #[facet(default, rename = "gameVersions")]
     game_versions: Vec<String>,
+    #[facet(default, rename = "downloadUrl")]
+    download_url: Option<String>,
+    #[facet(default)]
+    hashes: Vec<CurseforgeProjectFileHash>,
+}
+
+#[derive(Facet, Debug, Clone)]
+struct CurseforgeProjectFileHash {
+    #[facet(default)]
+    algo: Option<u32>,
+    #[facet(default)]
+    value: Option<String>,
 }
 
 #[derive(Facet, Debug, Clone)]
@@ -508,10 +547,9 @@ fn resolve_core_api_key(
             .map(|value| (value, format!("1Password ({secret_reference})")));
     }
 
-    if let Ok(value) = read_secret_from_1password(
-        DEFAULT_OP_CORE_API_KEY_SECRET_REFERENCE,
-        "Core API key",
-    ) {
+    if let Ok(value) =
+        read_secret_from_1password(DEFAULT_OP_CORE_API_KEY_SECRET_REFERENCE, "Core API key")
+    {
         return Ok((
             value,
             format!("1Password ({DEFAULT_OP_CORE_API_KEY_SECRET_REFERENCE})"),
@@ -519,10 +557,7 @@ fn resolve_core_api_key(
     }
 
     if let Ok(value) = read_secret_from_1password(DEFAULT_OP_SECRET_REFERENCE, "Core API key") {
-        return Ok((
-            value,
-            format!("1Password ({DEFAULT_OP_SECRET_REFERENCE})"),
-        ));
+        return Ok((value, format!("1Password ({DEFAULT_OP_SECRET_REFERENCE})")));
     }
 
     if let Some(value) = token {
@@ -565,7 +600,11 @@ fn build_core_http_client(api_key: &str) -> eyre::Result<Client> {
         .wrap_err("Failed to build Core API HTTP client")
 }
 
-fn list_minecraft_versions(mc_filter_text: &str, token: Option<String>, op_secret: Option<String>) -> eyre::Result<()> {
+fn list_minecraft_versions(
+    mc_filter_text: &str,
+    token: Option<String>,
+    op_secret: Option<String>,
+) -> eyre::Result<()> {
     let token_value = resolve_token(token, op_secret)?;
     let client = build_http_client(&token_value)?;
 
@@ -663,7 +702,9 @@ fn fetch_project_files(
         .wrap_err_with(|| format!("Failed to query project files: {url}"))?;
 
     let status = response.status();
-    let body = response.text().wrap_err("Failed to read project files response")?;
+    let body = response
+        .text()
+        .wrap_err("Failed to read project files response")?;
     debug!(body, url, ?status);
 
     if !status.is_success() {
@@ -675,9 +716,7 @@ fn fetch_project_files(
             );
         }
 
-        eyre::bail!(
-            "CurseForge project files API failed ({status}): {body}",
-        );
+        eyre::bail!("CurseForge project files API failed ({status}): {body}",);
     }
 
     if let Ok(items) = facet_json::from_str::<Vec<CurseforgeProjectFileItem>>(&body) {
@@ -718,7 +757,11 @@ fn release_now(
 
     println!("{} {}", style("Project ID:", ANSI_BOLD_CYAN), project_id);
     println!("{} {}", style("Mod version:", ANSI_BOLD_CYAN), mod_version);
-    println!("{} {}", style("Jar dir:", ANSI_BOLD_CYAN), jar_dir.display());
+    println!(
+        "{} {}",
+        style("Jar dir:", ANSI_BOLD_CYAN),
+        jar_dir.display()
+    );
     if dry_run {
         println!(
             "{} {}",
@@ -811,11 +854,13 @@ fn release_now(
         let plan = upload_plans
             .as_ref()
             .and_then(|plans| plans.iter().find(|plan| plan.jar_path == jar))
-            .ok_or_else(|| eyre::eyre!("internal error: missing upload plan for {}", jar.display()))?;
+            .ok_or_else(|| {
+                eyre::eyre!("internal error: missing upload plan for {}", jar.display())
+            })?;
 
-        let (client, _) = game_version_index
-            .as_ref()
-            .ok_or_else(|| eyre::eyre!("internal error: missing CurseForge client for non-dry-run upload"))?;
+        let (client, _) = game_version_index.as_ref().ok_or_else(|| {
+            eyre::eyre!("internal error: missing CurseForge client for non-dry-run upload")
+        })?;
 
         let uploaded_id = upload_project_file(client, project_id, &jar, &plan.metadata)?;
         println!(
@@ -919,8 +964,13 @@ fn filter_release_jars_by_mc(
     let mut filtered = Vec::new();
     for jar in jars {
         let mc_version = parse_mc_version_from_jar_name(&jar)?;
-        let parsed = parse_version(&mc_version)
-            .ok_or_else(|| eyre::eyre!("Could not parse MC version '{}' from {}", mc_version, jar.display()))?;
+        let parsed = parse_version(&mc_version).ok_or_else(|| {
+            eyre::eyre!(
+                "Could not parse MC version '{}' from {}",
+                mc_version,
+                jar.display()
+            )
+        })?;
         if filter.matches_parsed(parsed) {
             filtered.push(jar);
         }
@@ -1058,7 +1108,11 @@ fn check_minecraft_version_metadata(
                 historical.id,
                 plan.metadata_names.join(", "),
                 historical.game_versions.join(", "),
-                if missing.is_empty() { "<none>".to_string() } else { missing.join(", ") },
+                if missing.is_empty() {
+                    "<none>".to_string()
+                } else {
+                    missing.join(", ")
+                },
                 if unexpected.is_empty() {
                     "<none>".to_string()
                 } else {
@@ -1086,7 +1140,122 @@ fn check_minecraft_version_metadata(
 
     println!(
         "{}",
-        style("Metadata check passed: computed metadata matches historical uploads.", ANSI_BOLD_GREEN)
+        style(
+            "Metadata check passed: computed metadata matches historical uploads.",
+            ANSI_BOLD_GREEN
+        )
+    );
+
+    Ok(())
+}
+
+fn validate_release_hashes(
+    mc: Option<String>,
+    project: Option<u64>,
+    api_key: Option<String>,
+    token: Option<String>,
+    op_secret: Option<String>,
+) -> eyre::Result<()> {
+    let project_id = resolve_project_id(project)?;
+
+    let repo_root = get_repo_root()?;
+    let gradle_properties = repo_root.join("platform/minecraft/gradle.properties");
+    let jar_dir = get_jar_dir()?;
+
+    let mod_version = read_mod_version(&gradle_properties)?;
+    let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
+    let jars = filter_release_jars_by_mc(all_jars, mc.as_deref())?;
+
+    let (core_key, credential_source) = resolve_core_api_key(api_key, token, op_secret)?;
+    let core_client = build_core_http_client(&core_key)?;
+    let project_files = fetch_project_files(&core_client, project_id, &credential_source)?;
+
+    println!("{} {}", style("Project ID:", ANSI_BOLD_CYAN), project_id);
+    println!("{} {}", style("Mod version:", ANSI_BOLD_CYAN), mod_version);
+    println!("{} {}", style("Jars checked:", ANSI_BOLD_CYAN), jars.len());
+
+    for jar in jars {
+        let mc_version = parse_mc_version_from_jar_name(&jar)?;
+        let local_bytes = std::fs::read(&jar)
+            .wrap_err_with(|| format!("Failed to read local jar for hashing: {}", jar.display()))?;
+        let local_sha1 = sha1_hex(&local_bytes);
+
+        let historical = find_latest_historical_file_for_mc(&project_files, &mc_version)?;
+        let historical_version = historical_mod_version(historical).ok_or_else(|| {
+            eyre::eyre!(
+                "Could not parse mod version from latest historical file {} for MC {}",
+                historical.id,
+                mc_version
+            )
+        })?;
+
+        if historical_version != mod_version {
+            eyre::bail!(
+                "Latest historical CurseForge file for MC {} was {}, expected {} (file id {}).",
+                mc_version,
+                historical_version,
+                mod_version,
+                historical.id
+            );
+        }
+
+        let remote_sha1 = find_sha1_hash(&historical.hashes).ok_or_else(|| {
+            eyre::eyre!(
+                "CurseForge file {} did not include a sha1 hash in metadata",
+                historical.id
+            )
+        })?;
+
+        if local_sha1 != remote_sha1 {
+            eyre::bail!(
+                "Hash mismatch (local vs remote metadata) for MC {} (file id {}).\nlocal sha1: {}\nremote sha1: {}",
+                mc_version,
+                historical.id,
+                local_sha1,
+                remote_sha1
+            );
+        }
+
+        let download_url = historical.download_url.as_deref().ok_or_else(|| {
+            eyre::eyre!(
+                "CurseForge file {} did not include a download URL",
+                historical.id
+            )
+        })?;
+
+        let downloaded_sha1 = download_sha1(&core_client, download_url)?;
+        if downloaded_sha1 != local_sha1 {
+            eyre::bail!(
+                "Hash mismatch (local vs downloaded) for MC {} (file id {}).\nlocal sha1: {}\ndownloaded sha1: {}",
+                mc_version,
+                historical.id,
+                local_sha1,
+                downloaded_sha1
+            );
+        }
+
+        let file_label = historical
+            .file_name
+            .as_deref()
+            .unwrap_or("<unknown>")
+            .to_string();
+
+        println!(
+            "{} {} {} {} {}",
+            style("✓", ANSI_BOLD_GREEN),
+            style(&mc_version, ANSI_BOLD_BLUE),
+            style("hash validated", ANSI_DIM),
+            historical.id,
+            style(&format!("({})", file_label), ANSI_DIM)
+        );
+    }
+
+    println!(
+        "{}",
+        style(
+            "Hash validation passed: downloaded CurseForge files match local release jars.",
+            ANSI_BOLD_GREEN
+        )
     );
 
     Ok(())
@@ -1157,7 +1326,10 @@ fn release_amend(
 
     let prompt = format!(
         "{} {}",
-        style("Proceed to amend changelog on these files?", ANSI_BOLD_YELLOW),
+        style(
+            "Proceed to amend changelog on these files?",
+            ANSI_BOLD_YELLOW
+        ),
         style("(y/N)", ANSI_BOLD_YELLOW)
     );
     if !prompt_yes_no(&prompt)? {
@@ -1175,12 +1347,21 @@ fn release_amend(
             style("as", ANSI_DIM),
             jar_name
         );
-        amend_file_changelog(&upload_client, project_id, *file_id, jar_name, &wrapped_changelog)?;
+        amend_file_changelog(
+            &upload_client,
+            project_id,
+            *file_id,
+            jar_name,
+            &wrapped_changelog,
+        )?;
     }
 
     println!(
         "{}",
-        style("CurseForge release changelog amend complete.", ANSI_BOLD_GREEN)
+        style(
+            "CurseForge release changelog amend complete.",
+            ANSI_BOLD_GREEN
+        )
     );
 
     Ok(())
@@ -1223,8 +1404,8 @@ fn amend_file_changelog(
         );
     }
 
-    let _parsed: CurseforgeUploadResponse = facet_json::from_str(&response_body)
-        .wrap_err("Failed to parse amend response JSON")?;
+    let _parsed: CurseforgeUploadResponse =
+        facet_json::from_str(&response_body).wrap_err("Failed to parse amend response JSON")?;
 
     Ok(())
 }
@@ -1235,19 +1416,24 @@ fn upload_project_file(
     jar_path: &Path,
     metadata: &UploadMetadata,
 ) -> eyre::Result<u64> {
-    let metadata_json = facet_json::to_string(metadata).wrap_err("Failed to encode upload metadata JSON")?;
+    let metadata_json =
+        facet_json::to_string(metadata).wrap_err("Failed to encode upload metadata JSON")?;
 
     let form = multipart::Form::new()
         .text("metadata", metadata_json)
         .file("file", jar_path)
-        .wrap_err_with(|| format!("Failed to attach jar file to upload form: {}", jar_path.display()))?;
+        .wrap_err_with(|| {
+            format!(
+                "Failed to attach jar file to upload form: {}",
+                jar_path.display()
+            )
+        })?;
 
     let url = format!("{CURSEFORGE_API_ROOT}/projects/{project_id}/upload-file");
-    let response = client
-        .post(&url)
-        .multipart(form)
-        .send()
-        .wrap_err_with(|| format!("Failed to upload jar to CurseForge: {}", jar_path.display()))?;
+    let response =
+        client.post(&url).multipart(form).send().wrap_err_with(|| {
+            format!("Failed to upload jar to CurseForge: {}", jar_path.display())
+        })?;
 
     let status = response.status();
     let body = response
@@ -1408,7 +1594,9 @@ fn fetch_game_versions(client: &Client) -> eyre::Result<Vec<CurseforgeGameVersio
         .wrap_err_with(|| format!("Failed to query game versions: {url}"))?;
 
     let status = response.status();
-    let body = response.text().wrap_err("Failed to read game versions response")?;
+    let body = response
+        .text()
+        .wrap_err("Failed to read game versions response")?;
 
     debug!(body, url, ?status);
 
@@ -1417,6 +1605,48 @@ fn fetch_game_versions(client: &Client) -> eyre::Result<Vec<CurseforgeGameVersio
     }
 
     facet_json::from_str(&body).wrap_err("Failed to parse game versions response JSON")
+}
+
+fn find_sha1_hash(hashes: &[CurseforgeProjectFileHash]) -> Option<String> {
+    hashes.iter().find_map(|hash| {
+        let is_sha1 = hash.algo == Some(1);
+        if !is_sha1 {
+            return None;
+        }
+
+        hash.value
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_ascii_lowercase())
+    })
+}
+
+fn download_sha1(client: &Client, url: &str) -> eyre::Result<String> {
+    let response = client
+        .get(url)
+        .send()
+        .wrap_err_with(|| format!("Failed to download file from {url}"))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response
+            .text()
+            .unwrap_or_else(|_| "<failed to read response body>".to_string());
+        eyre::bail!("Failed to download file from {} ({status}): {}", url, body);
+    }
+
+    let bytes = response
+        .bytes()
+        .wrap_err_with(|| format!("Failed to read downloaded bytes from {url}"))?;
+    Ok(sha1_hex(bytes.as_ref()))
+}
+
+fn sha1_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha1::new();
+    hasher.update(bytes);
+    let digest = hasher.finalize();
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn build_game_version_index(
@@ -1495,9 +1725,9 @@ fn resolve_minecraft_version_id(
     minecraft_version: &str,
 ) -> eyre::Result<u64> {
     let key = normalize_version_key(minecraft_version);
-    let candidates = game_version_index
-        .get(&key)
-        .ok_or_else(|| eyre::eyre!("Could not find required Minecraft version '{minecraft_version}'"))?;
+    let candidates = game_version_index.get(&key).ok_or_else(|| {
+        eyre::eyre!("Could not find required Minecraft version '{minecraft_version}'")
+    })?;
 
     let matches: Vec<&CurseforgeGameVersion> = candidates
         .iter()
@@ -1564,17 +1794,18 @@ fn resolve_game_version_ids(
 }
 
 fn normalize_version_key(input: &str) -> String {
-    input
-        .trim()
-        .to_ascii_lowercase()
-        .replace([' ', '_'], "-")
+    input.trim().to_ascii_lowercase().replace([' ', '_'], "-")
 }
 
 fn game_version_names_for_release(mc_version: &str) -> eyre::Result<Vec<String>> {
     let parsed = parse_version(mc_version)
         .ok_or_else(|| eyre::eyre!("Could not parse MC version '{mc_version}'"))?;
 
-    let mut names = vec!["Client".to_string(), "Server".to_string(), mc_version.to_string()];
+    let mut names = vec![
+        "Client".to_string(),
+        "Server".to_string(),
+        mc_version.to_string(),
+    ];
     names.extend(loader_names_for(parsed).into_iter().map(str::to_string));
     names.push(java_version_name_for(parsed).to_string());
     Ok(names)
