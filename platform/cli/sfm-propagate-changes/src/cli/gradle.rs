@@ -1,6 +1,6 @@
 use crate::cli::status::assert_worktrees_clean_or_autocommit_generated;
+use crate::mc_version_filter::McVersionFilter;
 use crate::worktree::get_sorted_worktrees;
-use crate::worktree::parse_version;
 use color_eyre::owo_colors::OwoColorize;
 use eyre::Context;
 use eyre::bail;
@@ -63,59 +63,6 @@ struct TaskError {
     message: String,
     output: Option<TaskOutput>,
     interrupted: bool,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum VersionOp {
-    Lt,
-    Lte,
-    Gt,
-    Gte,
-    Eq,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct McVersionFilter {
-    op: VersionOp,
-    version: (u32, u32, u32),
-}
-
-impl McVersionFilter {
-    fn parse(input: &str) -> eyre::Result<Self> {
-        let trimmed = input.trim();
-        let (op, version_text) = if let Some(rest) = trimmed.strip_prefix(">=") {
-            (VersionOp::Gte, rest)
-        } else if let Some(rest) = trimmed.strip_prefix("<=") {
-            (VersionOp::Lte, rest)
-        } else if let Some(rest) = trimmed.strip_prefix("==") {
-            (VersionOp::Eq, rest)
-        } else if let Some(rest) = trimmed.strip_prefix('>') {
-            (VersionOp::Gt, rest)
-        } else if let Some(rest) = trimmed.strip_prefix('<') {
-            (VersionOp::Lt, rest)
-        } else if let Some(rest) = trimmed.strip_prefix('=') {
-            (VersionOp::Eq, rest)
-        } else {
-            (VersionOp::Eq, trimmed)
-        };
-
-        let version_text = version_text.trim();
-        let version = parse_version(version_text)
-            .ok_or_else(|| eyre::eyre!("Invalid mc version expression: '{input}'"))?;
-
-        Ok(Self { op, version })
-    }
-
-    fn matches_branch(&self, branch: &str) -> Option<bool> {
-        let branch_version = parse_version(branch)?;
-        Some(match self.op {
-            VersionOp::Lt => branch_version < self.version,
-            VersionOp::Lte => branch_version <= self.version,
-            VersionOp::Gt => branch_version > self.version,
-            VersionOp::Gte => branch_version >= self.version,
-            VersionOp::Eq => branch_version == self.version,
-        })
-    }
 }
 
 impl GradleTask {
@@ -577,7 +524,7 @@ impl GradleCommand {
         let mut excluded_worktree_branches = Vec::new();
 
         if let Some(filter) = mc_filter {
-            worktrees.retain(|wt| match filter.matches_branch(&wt.branch) {
+            worktrees.retain(|wt| match filter.matches_version_text(&wt.branch) {
                 Some(true) => true,
                 Some(false) => {
                     excluded_worktree_branches.push(wt.branch.clone());
