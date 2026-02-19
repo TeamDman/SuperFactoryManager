@@ -4,6 +4,8 @@ The following is a formalization of the steps involved in publishing a new relea
 
 This process is designed to catch the most obvious problems that may arise, ensuring no step is forgotten.
 
+Some steps may reveal complications leading to additional modifications that must be included in the release and therefore will necessitate jumping back to before already-executed steps, this is normal (albeit undesired).
+
 ## Phase 0 - Make a Change
 
 To make a release, something should have changed about the mod.
@@ -17,21 +19,31 @@ These steps must be performed at the start of the release process.
 4. Ensure heading correctness in [changelog.sfml](../platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml) (remove any indications of this being a pre-release)
 5. Bring [thank_you.sfml](../platform/minecraft/src/main/resources/assets/sfm/template_programs/thank_you.sfml) up to date with the names of any new patrons
 6. Commit changes to git
+7. Run `sfm-propagate-changes.exe git merge` to ensure all MC versions have all the latest SFM code
 
-## Phase 2 - Produce Build
+## Phase 2 - Running Datagen
 
-This phase often partially restarts due to complications and discoveries leading to additional modifications that must be included in the release.
+This phase handles ensuring generated sources are up-to-date.
 
-1. Run `sfm-propagate-changes.exe git merge` to ensure all MC versions have all the latest SFM code
-2. Run `sfm-propagate-changes.exe gradle runData` to ensure all generated resources are up to date
-3. Run `sfm-propagate-changes.exe git status` to ensure all changes under [src/generated](../platform/minecraft/src/generated/) are committed
-4. Run `sfm-propagate-changes.exe git merge` to ensure merge stability after committing generated files; each branch must keep its own src/generated files during the merge; reject incoming
-5. Run `sfm-propagate-changes.exe gradle runGameTestServer` to ensure all game tests are passing
-6. Run `sfm-propagate-changes.exe gradle build` to build the jar and ensure all unit tests are passing
-7. Run `sfm-propagate-changes.exe jar dir clean` to prepare the destination directory
-8. Run `sfm-propagate-changes.exe jar collect` to collect all the built jar files in one location
+1. Run `sfm-propagate-changes.exe gradle runData` to ensure all generated resources are up to date for each MC version
+2. Run `sfm-propagate-changes.exe git status` to ensure all changes under [src/generated](../platform/minecraft/src/generated/) are committed
+3. Run `sfm-propagate-changes.exe git merge` to ensure merge stability after committing generated files; each branch must keep its own src/generated files during the merge; reject incoming
 
-## Phase 3 - Verification Preparation
+## Phase 3 - Running Gametests
+
+This phase ensures that there is no unexpected behaviour in the mod.
+
+1. Run `sfm-propagate-changes.exe gradle runGameTestServer` to ensure all game tests are passing
+
+## Phase 4 - Building Jarfiles
+
+This phase produces the `.jar` files that users will add to their instance's `mods` directory
+
+1. Run `sfm-propagate-changes.exe gradle build` to build the jar and ensure all unit tests are passing for each MC version
+2. Run `sfm-propagate-changes.exe jar dir clean` to prepare the destination directory
+3. Run `sfm-propagate-changes.exe jar collect` to collect all the built jar files in one location
+
+## Phase 5 - Verification Preparation
 
 This phase ensures that the built jar files behave as expected.
 
@@ -42,7 +54,7 @@ Historical anecdotes include builds being successful but with missing textures, 
 3. Run `sfm-propagate-changes.exe client launch` to open PrismMC
 4. Run `sfm-propagate-changes.exe server launch` to run the dedicated servers
 
-## Phase 4 - Verification Actualization
+## Phase 6 - Verification Actualization
 
 The following steps must run for each MC version.
 
@@ -88,35 +100,35 @@ The following steps must run for each MC version.
 7. Quit the game
 8. GOTO Phase 4 step 1 for the next version to be tested, if any
 
-## Phase 5 - Publishing (WIP)
+## Phase 7 - Tagging
 
-These steps finalize the release to make the built jar file available to people for download.
+1. Run `sfm-propagate-changes.exe git merge`
+2. Run `sfm-propagate-changes.exe git tag`
+2. Run `sfm-propagate-changes.exe git push --tags`
 
-(WIP - The rest of this phase is from an older version of this document and needs to be revamped with new `sfm-propagate-changes.exe` commands)
+## Phase 8 - Publishing to GitHub
 
-```pwsh
-26. Run `sfm-propagate-changes.exe git tag`
-27. Action: Push all
+This phase creates a GitHub release with the jar files uploaded as attachments.
 
-28. For each version:
-    29. CurseForge -> Upload file
-"https://authors.curseforge.com/#/projects/306935/files/create"
-    Environment=Server+Client
-    Modloader=match mc version {
-        ..1.20   -> Forge
-        1.20.1   -> Forge+NeoForge
-        1.20.2.. -> NeoForge
-    }
-    Java=match mc version {
-        ..1.20.4 -> Java 17
-        1.21.. -> Java 21
-    }
-    Minecraft=$version
-    Changelog= <<
-        ```
-        $section from changelog.sfml
-        ```
-    >>
+1. Run GitHub release script from repo root
+    ```pwsh
+    pwsh -File ./platform/pwsh/github-release.ps1
+    ```
+
+## Phase 9 - Publishing to CurseForge
+
+This phase makes the new builds available for download on CurseForge.
+
+1. Run CurseForge metadata check command from repo root:
+    ```pwsh
+    sfm-propagate-changes.exe curseforge release check
+    ```
+2. Run CurseForge upload command from repo root:
+    ```pwsh
+    sfm-propagate-changes.exe curseforge release now
+    ```
+
+## Phase 10 - Publishing to Modrinth
 
 30. For each version:
     31. Modrinth -> Versions -> Drag n drop
@@ -125,22 +137,18 @@ These steps finalize the release to make the built jar file available to people 
     Changelog=same as above
 
 
-32. GitHub -> Draft a new release
-"https://github.com/TeamDman/SuperFactoryManager/releases/new"
-Choose a tag=latest
-Target=latest
-Release title=mod version
-Description= <<
-    ```
-        $section from changelog.sfml
-    ```
->>
-Attach=latest jar for each mc version
+## Phase 11 - Milestone Cleanup
 
-33. Close GitHub milestone
-34. Create new vNext milestone
-35. Remove "Fixed awaiting release" label from issues
-```
+This phase manages identifying the GitHub milestone for this release and ensuring that the related issues are closed.
+
+Some issues remain open after being fixed; they are tagged with `implemented awaiting release` so that people who are still having the issue can easily find the issue.
+
+We want to close these issues once the newest release is available.
+
+1. Run milestone cleanup script from repo root
+    ```pwsh
+    pwsh -File ./platform/pwsh/milestone-cleanup.ps1
+    ```
 
 ## Appendix
 
