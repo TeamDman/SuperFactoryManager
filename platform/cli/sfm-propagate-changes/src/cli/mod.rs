@@ -8,6 +8,7 @@ pub mod gradle;
 pub mod home;
 pub mod jar;
 pub mod merge;
+pub mod modrinth;
 pub mod push;
 pub mod repo_root;
 pub mod server;
