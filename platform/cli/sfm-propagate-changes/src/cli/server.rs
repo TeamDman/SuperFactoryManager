@@ -1,3 +1,4 @@
+use crate::mc_version_filter::McVersionFilter;
 use crate::paths::APP_HOME;
 use crate::worktree::parse_version;
 use eyre::Context;
@@ -11,59 +12,6 @@ use tracing::info;
 use tracing::warn;
 
 const SERVER_TARGETS_FILE: &str = "server_targets.tsv";
-
-#[derive(Debug, Clone, Copy)]
-enum VersionOp {
-    Lt,
-    Lte,
-    Gt,
-    Gte,
-    Eq,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct McVersionFilter {
-    op: VersionOp,
-    version: (u32, u32, u32),
-}
-
-impl McVersionFilter {
-    fn parse(input: &str) -> eyre::Result<Self> {
-        let trimmed = input.trim();
-        let (op, version_text) = if let Some(rest) = trimmed.strip_prefix(">=") {
-            (VersionOp::Gte, rest)
-        } else if let Some(rest) = trimmed.strip_prefix("<=") {
-            (VersionOp::Lte, rest)
-        } else if let Some(rest) = trimmed.strip_prefix("==") {
-            (VersionOp::Eq, rest)
-        } else if let Some(rest) = trimmed.strip_prefix('>') {
-            (VersionOp::Gt, rest)
-        } else if let Some(rest) = trimmed.strip_prefix('<') {
-            (VersionOp::Lt, rest)
-        } else if let Some(rest) = trimmed.strip_prefix('=') {
-            (VersionOp::Eq, rest)
-        } else {
-            (VersionOp::Eq, trimmed)
-        };
-
-        let version_text = version_text.trim();
-        let version = parse_version(version_text)
-            .ok_or_else(|| eyre::eyre!("Invalid mc version expression: '{input}'"))?;
-
-        Ok(Self { op, version })
-    }
-
-    fn matches_version(&self, version: &str) -> Option<bool> {
-        let parsed = parse_version(version)?;
-        Some(match self.op {
-            VersionOp::Lt => parsed < self.version,
-            VersionOp::Lte => parsed <= self.version,
-            VersionOp::Gt => parsed > self.version,
-            VersionOp::Gte => parsed >= self.version,
-            VersionOp::Eq => parsed == self.version,
-        })
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct ServerTarget {
@@ -218,7 +166,7 @@ fn launch_servers(mc_filter: Option<&str>) -> eyre::Result<()> {
 
     if let Some(filter) = parsed_filter {
         targets.retain(|target| {
-            if let Some(matches) = filter.matches_version(&target.mc_version) {
+            if let Some(matches) = filter.matches_version_text(&target.mc_version) {
                 matches
             } else {
                 warn!(
