@@ -17,6 +17,7 @@ directories-next = "2.0.0"
 dunce = "1.0.5"
 eyre = "0.6.12"
 facet = { git = "https://github.com/facet-rs/facet", branch = "main", version = "0.43" }
+facet-json = { git = "https://github.com/facet-rs/facet", branch = "main", version = "0.43" }
 facet-styx = { git = "https://github.com/bearcove/styx", version = "1.0.1" }
 # figue = { git = "https://github.com/bearcove/figue", branch = "main" }
 figue = { git = "https://github.com/TeamDman/figue", branch = "teamy-positional-bug" }
@@ -24,6 +25,7 @@ glob = "0.3.3"
 open = { version = "5.3.3", features = ["shellexecute-on-windows"] }
 rand = "0.9.2"
 ratatui = "0.30.0"
+reqwest = { version = "0.12.24", default-features = false, features = ["blocking", "multipart", "rustls-tls"] }
 tokio = { version = "1.49.0", features = ["full"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }

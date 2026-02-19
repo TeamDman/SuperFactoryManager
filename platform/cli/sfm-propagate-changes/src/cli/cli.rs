@@ -113,6 +113,12 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::cache::CacheCommand,
     },
+    /// CurseForge release and file related commands
+    Curseforge {
+        /// CurseForge subcommand
+        #[facet(args::subcommand)]
+        command: super::curseforge::CurseforgeCommand,
+    },
     /// Jar directory and release artifact related commands
     Jar {
         /// Jar subcommand
@@ -140,6 +146,7 @@ impl Command {
             Command::Git { command } => command.invoke(),
             Command::Home { command } => command.invoke(),
             Command::Cache { command } => command.invoke(),
+            Command::Curseforge { command } => command.invoke(),
             Command::Jar { command } => command.invoke(),
             Command::RepoRoot { command } => command.invoke(),
         }

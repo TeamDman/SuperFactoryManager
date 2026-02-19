@@ -2,6 +2,8 @@
 # eclipse
 bin
 logs/
+*.log
+log*.ndjson
 *.launch
 .settings
 .metadata
@@ -39,6 +41,7 @@ runClient
 runData
 runTest
 runGameTest
+ignore/
 
 # Files from Forge MDK
 forge*changelog.txt
