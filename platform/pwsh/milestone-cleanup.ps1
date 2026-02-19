@@ -23,11 +23,15 @@ $milestoneIssues = gh issue list `
 --json number,labels,title,closed,milestone `
 | ConvertFrom-Json
 
-$issuesAwaitingRelease = $milestoneIssues | Where-Object { -not $_.closed -and ($_.labels | Where-Object { $_.name -eq "implemented awaiting release" })}
-Write-Host "Found $($issuesAwaitingRelease.Count) issues awaiting release:"
+$issuesAwaitingRelease = @($milestoneIssues | Where-Object { -not $_.closed -and ($_.labels | Where-Object { $_.name -eq "implemented awaiting release" })})
+Write-Host "Found $($issuesAwaitingRelease.Count) open issues awaiting release:"
 foreach ($issue in $issuesAwaitingRelease) {
     Write-Host " - $($issue.title) (#$($issue.number))"
 }
+
+$closedIssues = @($milestoneIssues | Where-Object { $_.closed })
+Write-Host "Found $($closedIssues.Count) closed issues in milestone"
+
 if ($issuesAwaitingRelease.Count -gt 0) {
     $response = Read-Host "Close these issues? (y/n)"
     if ($response -eq "y") {
@@ -43,7 +47,18 @@ if ($issuesAwaitingRelease.Count -gt 0) {
     }
 }
 
-$unclosedIssues = $milestoneIssues | Where-Object { -not $_.closed }
+$issuesWithAwaitingReleaseLabel = @($milestoneIssues | Where-Object { $_.labels | Where-Object { $_.name -eq "implemented awaiting release" } })
+$closedIssuesWithAwaitingReleaseLabel = @($issuesWithAwaitingReleaseLabel | Where-Object { $_.closed })
+
+if ($closedIssuesWithAwaitingReleaseLabel.Count -gt 0) {
+    Write-Host "Removing label implemented awaiting release from $($closedIssuesWithAwaitingReleaseLabel.Count) closed issues"
+    foreach ($issue in $closedIssuesWithAwaitingReleaseLabel) {
+        gh issue edit $issue.number --repo $repo --remove-label "implemented awaiting release"
+        Write-Host "Removed label implemented awaiting release from closed issue #$($issue.number)"
+    }
+}
+
+$unclosedIssues = @($milestoneIssues | Where-Object { -not $_.closed })
 if ($unclosedIssues.Count -gt 0) {
     Write-Host "The following issues are still open, cannot close milestone:"
     foreach ($issue in $unclosedIssues) {
@@ -54,7 +69,7 @@ if ($unclosedIssues.Count -gt 0) {
 
 $response = Read-Host "Close the milestone? (y/n)"
 if ($response -eq "y") {
-    gh api -X PATCH "repos/$repo/milestones/$milestoneNumber" -f state=closed
+    gh api -X PATCH "repos/$repo/milestones/$($milestone.number)" -f state=closed
     Write-Host "Closed milestone $milestoneTitle"
 } else {
     Write-Host "Milestone not closed"
