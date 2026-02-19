@@ -119,6 +119,12 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::curseforge::CurseforgeCommand,
     },
+    /// Modrinth release related commands
+    Modrinth {
+        /// Modrinth subcommand
+        #[facet(args::subcommand)]
+        command: super::modrinth::ModrinthCommand,
+    },
     /// Jar directory and release artifact related commands
     Jar {
         /// Jar subcommand
@@ -147,6 +153,7 @@ impl Command {
             Command::Home { command } => command.invoke(),
             Command::Cache { command } => command.invoke(),
             Command::Curseforge { command } => command.invoke(),
+            Command::Modrinth { command } => command.invoke(),
             Command::Jar { command } => command.invoke(),
             Command::RepoRoot { command } => command.invoke(),
         }
