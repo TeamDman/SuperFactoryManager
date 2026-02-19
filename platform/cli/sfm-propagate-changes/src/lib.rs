@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod logging;
+pub mod mc_version_filter;
 pub mod paths;
 pub mod propagate;
 pub mod sfm_path;
