@@ -2,13 +2,18 @@ use crate::worktree::get_sorted_worktrees;
 use eyre::Context;
 use eyre::bail;
 use facet::Facet;
+use figue as args;
 use std::process::Command;
 use tracing::info;
 use tracing::warn;
 
 /// Push command - runs `git push` in each worktree
 #[derive(Facet, Debug, Default)]
-pub struct PushCommand;
+pub struct PushCommand {
+    /// If set, include tags when pushing (`git push --tags`).
+    #[facet(args::named, default = false)]
+    pub tags: bool,
+}
 
 impl PushCommand {
     /// # Errors
@@ -27,8 +32,13 @@ impl PushCommand {
         for wt in worktrees {
             info!("Pushing {} (in {})", wt.branch, wt.path.display());
 
+            let mut args = vec!["push"];
+            if self.tags {
+                args.push("--tags");
+            }
+
             let output = Command::new("git")
-                .args(["push"])
+                .args(&args)
                 .current_dir(&wt.path)
                 .output()
                 .wrap_err_with(|| format!("Failed to run git push in {}", wt.path.display()))?;
