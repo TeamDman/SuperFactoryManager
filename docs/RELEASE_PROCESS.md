@@ -130,11 +130,14 @@ This phase makes the new builds available for download on CurseForge.
 
 ## Phase 10 - Publishing to Modrinth
 
-30. For each version:
-    31. Modrinth -> Versions -> Drag n drop
-"https://modrinth.com/mod/super-factory-manager/versions"
-    Adjust populated version numbers
-    Changelog=same as above
+1. Run Modrinth metadata check command from repo root:
+    ```pwsh
+    sfm-propagate-changes.exe modrinth release check
+    ```
+2. Run Modrinth upload command from repo root:
+    ```pwsh
+    sfm-propagate-changes.exe modrinth release now
+    ```
 
 
 ## Phase 11 - Milestone Cleanup
