@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.15]
+
+### Changes on code
+
+- **Activity bar**
+  - Now uses the new icons
+  - Less work if you disable it
+  - Allows Github Gist url
+- **Warnings**
+  - Passes all 7 tests on the test/warning.sfml file
+
+- **Settings**
+  - Allows to disable certain keywords, in case you need to
+
+- **Appareance**
+  - Update to the new textures, keeping the old ones on activity bar for choosing them
+  
+
 ## [0.0.14]
 
 ### Changes on code

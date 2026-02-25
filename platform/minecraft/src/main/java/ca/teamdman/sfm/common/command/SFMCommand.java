@@ -8,15 +8,17 @@ import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ClientboundShowChangelogPacket;
 import ca.teamdman.sfm.common.program.RegexCache;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import com.mojang.brigadier.arguments.StringArgumentType;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.blocks.BlockInput;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
 import net.minecraft.core.BlockPos;
@@ -29,12 +31,15 @@ import net.minecraft.gametest.framework.TestFunction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.server.command.EnumArgument;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -147,7 +152,17 @@ public class SFMCommand {
                                  }
                                  return SINGLE_SUCCESS;
                              }));
-
+        command.then(Commands.literal("kit")
+                             .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                             .executes(ctx -> giveKitToPlayers(
+                                     ctx.getSource(),
+                                     List.of(ctx.getSource().getPlayerOrException())
+                             ))
+                             .then(Commands.argument("targets", EntityArgument.players())
+                                           .executes(ctx -> giveKitToPlayers(
+                                                   ctx.getSource(),
+                                                   EntityArgument.getPlayers(ctx, "targets")
+                                           ))));
         if (SFMEnvironmentUtils.isInIDE()) {
             command.then(Commands.literal("test")
                                  .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
@@ -206,6 +221,34 @@ public class SFMCommand {
         event.getDispatcher().register(command);
     }
 
+        private static int giveKitToPlayers(CommandSourceStack source, Collection<ServerPlayer> targets) {
+                List<ItemStack> kitItems = List.of(
+                                new ItemStack(SFMItems.LABEL_GUN.get()),
+                                new ItemStack(SFMItems.MANAGER.get()),
+                                new ItemStack(SFMItems.DISK.get()),
+                                new ItemStack(SFMItems.NETWORK_TOOL.get()),
+                                new ItemStack(SFMItems.CABLE.get()),
+                                new ItemStack(Items.CHEST)
+                );
+
+                for (ServerPlayer target : targets) {
+                        for (ItemStack kitItem : kitItems) {
+                                ItemStack remaining = kitItem.copy();
+                                boolean addedToInventory = target.getInventory().add(remaining);
+                                if (!addedToInventory || !remaining.isEmpty()) {
+                                        var droppedItem = target.drop(remaining, false);
+                                        if (droppedItem != null) {
+                                                droppedItem.setNoPickUpDelay();
+                                                droppedItem.setOwner(target.getUUID());
+                                        }
+                                }
+                        }
+                }
+
+                sendSuccess(source, () -> Component.literal("Gave SFM kit to " + targets.size() + " player(s)."));
+                return targets.size();
+        }
+
     private static int runTestsByWildcard(CommandSourceStack source, String wildcardPattern) {
         var matcher = RegexCache.buildPredicate(wildcardToRegex(wildcardPattern));
         List<TestFunction> matchingTests = GameTestRegistry
@@ -225,7 +268,7 @@ public class SFMCommand {
         BlockPos startPos = new BlockPos(sourcePos.getX(), surfaceY, sourcePos.getZ() + 3);
 
         GameTestRunner.clearMarkers(level);
-        runTests(source, matchingTests, startPos, level);
+        runTests(matchingTests, startPos, level);
 
         sendSuccess(
                 source,
@@ -235,7 +278,7 @@ public class SFMCommand {
     }
 
     @MCVersionDependentBehaviour
-    private static void runTests(CommandSourceStack source, List<TestFunction> matchingTests, BlockPos startPos, ServerLevel level) {
+    private static void runTests(List<TestFunction> matchingTests, BlockPos startPos, ServerLevel level) {
         var gameTestInfos = matchingTests
                 .stream()
                 .map(testFunction -> new GameTestInfo(testFunction, Rotation.NONE, level, RetryOptions.noRetries()))

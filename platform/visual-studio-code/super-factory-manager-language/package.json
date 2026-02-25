@@ -15,7 +15,7 @@
       "name": "Titop54"
     }
   ],
-  "version": "0.0.14",
+  "version": "0.0.15",
   "icon": "media/controller.png",
   "main": "./out/extension.js",
   "engines": {
@@ -117,12 +117,20 @@
             "default": "Experience Goop",
             "enum": [
               "Disk",
+              "Disk Classic",
               "Controller",
+              "Controller Classic",
+              "Controller Tunneled",
               "Label Gun",
+              "Label Gun Classic",
               "Experience Goop",
+              "Experience Goop Classic",
               "Experience Shard",
+              "Experience Shard Classic",
               "Tool Network",
-              "Printing Form"
+              "Tool Network Classic",
+              "Printing Form",
+              "Printing Form Classic"
             ]
           },
           "sfml.changeFolderIconsOnActivityBar": {
@@ -131,12 +139,20 @@
             "default": "Tool Network",
             "enum": [
               "Disk",
+              "Disk Classic",
               "Controller",
+              "Controller Classic",
+              "Controller Tunneled",
               "Label Gun",
+              "Label Gun Classic",
               "Experience Goop",
+              "Experience Goop Classic",
               "Experience Shard",
+              "Experience Shard Classic",
               "Tool Network",
-              "Printing Form"
+              "Tool Network Classic",
+              "Printing Form",
+              "Printing Form Classic"
             ]
           },
           "sfml.externalURLs": {
@@ -153,15 +169,92 @@
             "type": "boolean",
             "description": "Enable snippets",
             "default": true
+          },
+          "sfml.disabledKeywords": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "if",
+                "then",
+                "else",
+                "has",
+                "overall",
+                "some",
+                "one",
+                "lone",
+                "true",
+                "false",
+                "not",
+                "and",
+                "or",
+                "gt",
+                "lt",
+                "eq",
+                "le",
+                "ge",
+                "from",
+                "to",
+                "input",
+                "output",
+                "where",
+                "slots",
+                "retain",
+                "each",
+                "except",
+                "forget",
+                "without",
+                "with",
+                "tag",
+                "round",
+                "robin",
+                "by",
+                "label",
+                "block",
+                "top",
+                "bottom",
+                "north",
+                "east",
+                "south",
+                "west",
+                "side",
+                "ticks",
+                "tick",
+                "seconds",
+                "second",
+                "global",
+                "plus",
+                "redstone",
+                "pulse",
+                "do",
+                "end",
+                "name",
+                "every",
+                ">",
+                "<",
+                "=",
+                "<=",
+                ">=",
+                ",",
+                ":",
+                "/",
+                "-",
+                "(",
+                ")",
+                "#"
+              ]
+            },
+            "default": [],
+            "description": "List of keywords that you can disable"
           }
         }
       }
     ]
   },
   "devDependencies": {
-    "@types/node": "^22.15.17",
+    "@types/node": "^25.2.2",
     "@types/vscode": "^1.0.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -174,6 +267,7 @@
   "dependencies": {
     "antlr4ts": "^0.5.0-alpha.4",
     "antlr4ts-cli": "^0.5.0-alpha.4",
-    "axios": "^1.11.0"
+    "axios": "^1.13.5",
+    "vsce": "^2.15.0"
   }
 }
