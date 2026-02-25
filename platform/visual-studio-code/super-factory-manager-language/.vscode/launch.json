@@ -11,6 +11,10 @@
             "request": "launch",
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}"
+            ],
+            "preLaunchTask": "Compile Extension",
+            "outFiles": [
+                "${workspaceFolder}/out/**/*.js"
             ]
         },
         {
