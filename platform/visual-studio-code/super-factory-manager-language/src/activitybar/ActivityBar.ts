@@ -24,14 +24,15 @@ const tempFiles: Map<string, string> = new Map();
 export async function activityBar(context: vscode.ExtensionContext) 
 {
     const hasSFMLFiles = await checkSFMLFiles();
-    const treeDataProvider = new SFMLTreeDataProvider(context, 'https://api.github.com/repos/TeamDman/SuperFactoryManager/contents/src/main/resources/assets/sfm/template_programs');
-    const treeDataProvider2 = new SFMLTreeDataProvider(context, 'https://api.github.com/repos/TeamDman/SuperFactoryManager/contents/examples');
-    const treeDataProvider3 = new SFMLTreeDataProvider(context);
     //If we dont have some .sfm or .sfml, we dont want to see the activity bar
     //Only when the extension activates, like some other extensions do (java extension or antlr one)
     //Dont ask why there 2 openFiles
     if(hasSFMLFiles) 
     {
+        const treeDataProvider = new SFMLTreeDataProvider(context, 'https://api.github.com/repos/TeamDman/SuperFactoryManager/contents/platform/minecraft/src/main/resources/assets/sfm/template_programs');
+        const treeDataProvider2 = new SFMLTreeDataProvider(context, 'https://api.github.com/repos/TeamDman/SuperFactoryManager/contents/examples');
+        const treeDataProvider3 = new SFMLTreeDataProvider(context);
+
         const view = vscode.window.createTreeView('examplesGames', {
             treeDataProvider: treeDataProvider
         });
@@ -69,6 +70,17 @@ export async function checkSFMLFiles(): Promise<boolean>
             return true;
         }
     }
+    const openDocs = vscode.workspace.textDocuments;
+    if(openDocs)
+    {
+        openDocs.forEach(doc => {
+            if (doc.languageId === 'sfml' || doc.languageId === 'sfm')
+            {
+                return true;
+            }
+        })
+    }
+
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if(workspaceFolders) //Sometimes we dont have anything on a workspace, so undefined and nothing
     {
@@ -81,15 +93,15 @@ export async function checkSFMLFiles(): Promise<boolean>
 //Call the os to delete the files we downloaded earlier, we dont want them
 export function deleteTempFiles()
 {
-    tempFiles.forEach((filePath) => {
+    tempFiles.forEach(filePath => {
         try 
         {
-            if (fs.existsSync(filePath)) 
+            if(fs.existsSync(filePath)) 
             {
                 fs.unlinkSync(filePath);
             }
         }
-        catch (error) 
+        catch(error) 
         {
             vscode.window.showErrorMessage(`Error deleting temporal files from the temporal directory: ${error}`);
         }
