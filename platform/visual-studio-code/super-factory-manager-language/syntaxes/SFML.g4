@@ -4,7 +4,7 @@ grammar SFML;
 
 //go to SFMLLexer.ts after going antlr command on the package.json and solve the 2 issues
 @lexer::members {
-    public boolean INCLUDE_UNUSED = false; // we want syntax highlighting to not break on unexpected tokens
+    public INCLUDE_UNUSED: boolean = false; // we want syntax highlighting to not break on unexpected tokens
 }
 
 program : name? trigger* EOF;
@@ -279,7 +279,7 @@ WS
         ;
 
 UNUSED
-        :   {INCLUDE_UNUSED}? . -> channel(HIDDEN)
+        :   {this.INCLUDE_UNUSED}? . -> channel(HIDDEN)
         ;
 
 fragment A  :('a' | 'A') ;

@@ -74,61 +74,75 @@ export class SFMLTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
         this._onDidChangeTreeData.fire(undefined);
     }
 
-    private loadURLfromSettings() 
-    {
+    private loadURLfromSettings() {
         const config = vscode.workspace.getConfiguration('sfml');
         this.githubUrls = [];
         this.localPaths = [];
-        
-        // Get the externalURL setting value
+
         const settingValue = config.get<string>('externalURLs', '');
-        
-        // Parse URLs and local paths from the setting value
-        const sources = settingValue.split(',').map(source => source.trim().replace(/^'|'$/g, ''));
-    
-        const transformedUrls = sources.map(source => {
-            if(source.startsWith('https://github.com')) 
+        if(!settingValue.trim())
+        {
+            vscode.commands.executeCommand("setContext", "sfml.thereAreFiles", false);
+            return;
+        }
+
+        const sources = settingValue.split(',')
+            .map(s => s.trim().replace(/^['"]|['"]$/g, ''))
+            .filter(s => s !== '');
+
+        for(const source of sources)
+        {
+            if(source.startsWith('https://github.com/'))
             {
-                try 
+                try
                 {
-                    return getApiUrlFromGithubUrl(source);
+                    const apiUrl = getApiUrlFromGithubUrl(source);
+                    if(apiUrl)
+                    {
+                        this.githubUrls.push(apiUrl);
+                    }
                 }
                 catch(e)
                 {
                     console.error(`Error converting GitHub URL: ${source}`, e);
-                    return null;
                 }
             }
-            return source;
-        }).filter(source => source !== null);
-        
-        // Filter GitHub URLs and local paths
-        this.githubUrls = transformedUrls.filter(source =>
-            source.startsWith('https://api.github.com')
-        );
-    
-        this.localPaths = sources.filter(source => 
-            source !== '' && 
-            !source.startsWith('https://api.github.com') && 
-            !source.startsWith('https://github.com')
-        );
-    
-        if(this.localPaths.length !== 0 || this.githubUrls.length !== 0)
-        {
-            vscode.commands.executeCommand("setContext", "sfml.thereAreFiles", true);
+            else if(source.startsWith('https://gist.github.com/'))
+            {
+                const match = source.match(/gist\.github\.com\/([^\/]+)\/([a-f0-9]+)/);
+                if(match)
+                {
+                    const gistId = match[2];
+                    this.githubUrls.push(`https://api.github.com/gists/${gistId}`);
+                } 
+                else
+                {
+                    console.error(`Invalid Gist URL: ${source}`);
+                }
+            }
+            else
+            {
+                this.localPaths.push(source);
+            }
         }
-        else
-        {
-            vscode.commands.executeCommand("setContext", "sfml.thereAreFiles", false);
-        }
+
+        vscode.commands.executeCommand("setContext", "sfml.thereAreFiles",
+            this.localPaths.length !== 0 || this.githubUrls.length !== 0);
     }
 
     private async loadSources() 
     {
         if(this.repositoryUrl.length !== 0)
         {
-            this.filesData.set(this.repositoryUrl, await this.loadRepoContents(this.repositoryUrl));
-        }
+            if(isGistApiUrl(this.repositoryUrl))
+            {
+                this.filesData.set(this.repositoryUrl, await this.loadGistContents(this.repositoryUrl));
+            } 
+            else
+            {
+                this.filesData.set(this.repositoryUrl, await this.loadRepoContents(this.repositoryUrl));
+            }
+        } 
         else
         {
             this.loadURLfromSettings();
@@ -136,7 +150,14 @@ export class SFMLTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
             {
                 try
                 {
-                    this.filesData.set(url, await this.loadRepoContents(url));
+                    if(isGistApiUrl(url))
+                    {
+                        this.filesData.set(url, await this.loadGistContents(url));
+                    } 
+                    else
+                    {
+                        this.filesData.set(url, await this.loadRepoContents(url));
+                    }
                 }
                 catch(error)
                 {
@@ -189,6 +210,36 @@ export class SFMLTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
     }
 
     /**
+     * Obtiene la lista de archivos de un Gist desde la API de GitHub
+     * @param url API URL del Gist (https://api.github.com/gists/{id})
+     */
+    async loadGistContents(url: string): Promise<any[]> {
+        try
+        {
+            const response = await axios.get(url);
+            const files = response.data.files;
+            const items: any[] = [];
+
+            for(const filename in files)
+            {
+                const file = files[filename];
+                items.push({
+                    name: filename,
+                    type: 'file',
+                    url: file.raw_url
+                });
+            }
+
+            return items;
+        } 
+        catch(error)
+        {
+            vscode.window.showErrorMessage(`Error fetching gist contents: ${error}`);
+            return [];
+        }
+    }
+
+    /**
      * Get the structure of a folder
      * @param path Local path to a folder
      */
@@ -224,12 +275,12 @@ export class SFMLTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
             // Root items
             if(this.repositoryUrl)
             {
-                // Modo GitHub único
+                // Just github, not local files
                 const rootData = this.filesData.get(this.repositoryUrl) || [];
                 return this.processItems(rootData);
             }
             
-            // Modo mixto (GitHub + local)
+            //(GitHub + local)
             return [
                 ...this.githubUrls.map(url => this.createSourceItem(url, 'github')),
                 ...this.localPaths.map(path => this.createSourceItem(path, 'local'))
@@ -242,14 +293,25 @@ export class SFMLTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 
         if(source.startsWith('https://api.github.com'))
         {
-            // GitHub folder
-            if(!this.filesData.has(source))
+            if(source.includes('/gists/'))
             {
-                const contents = await this.loadRepoContents(source);
-                this.filesData.set(source, contents);
+                if(!this.filesData.has(source))
+                {
+                    const contents = await this.loadGistContents(source);
+                    this.filesData.set(source, contents);
+                }
+                items = this.filesData.get(source) || [];
+            } 
+            else
+            {
+                if(!this.filesData.has(source))
+                {
+                    const contents = await this.loadRepoContents(source);
+                    this.filesData.set(source, contents);
+                }
+                items = this.filesData.get(source) || [];
             }
-            items = this.filesData.get(source) || [];
-        }
+        } 
         else
         {
             // Local folder
@@ -262,8 +324,9 @@ export class SFMLTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 
     private createSourceItem(path: string, type: 'github' | 'local'): vscode.TreeItem
     {
+        const label = getDisplayNameForUrl(path, type);
         return this.createTreeItem({
-            name: type === 'github' ? extractGithubUsername(path) : path.split('/').pop() || '',
+            name: label,
             type: 'dir',
             url: path
         });
@@ -337,12 +400,20 @@ export function loadIconPaths(context: vscode.ExtensionContext)
     
     const iconMap: { [key: string]: string } = {
         'Disk': 'disk.png',
+        'Disk Classic': 'disk_classic.png',
         'Controller': 'controller.png',
-        'Label Gun': 'label gun.png',
+        'Controller Classic': 'controller_classic.png',
+        'Controller Tunneled': 'controller_tunneled.png',
+        'Label Gun': 'label.png',
+        'Label Gun Classic': 'label gun_classic.png',
         'Experience Goop': 'experience goop.png',
+        'Experience Goop Classic': 'experience goop_classic.png',
         'Experience Shard': 'experience shard.png',
+        'Experience Shard Classic': 'experience shard_classic.png',
         'Tool Network': 'tool.png',
-        'Printing Form': 'printing press.png'
+        'Tool Network Classic': 'tool_classic.png',
+        'Printing Form': 'printing press.png',
+        'Printing Form Classic': 'printing press_classic.png'
     };
     
     return {
@@ -422,6 +493,30 @@ export function extractGithubUsername(url: string): string
 {
     const match = url.match(/api\.github\.com\/repos\/([^\/]+)\//);
     return match ? match[1] : 'unknown'; // Devuelve 'unknown' si no se encuentra el nombre de usuario
+}
+
+const isGistApiUrl = (url: string) => {
+    return url.includes('/gists/')
+}
+
+function getDisplayNameForUrl(url: string, type: 'github' | 'local'): string
+{
+    if(type === 'github')
+    {
+        if(isGistApiUrl(url))
+        {
+            const match = url.match(/\/gists\/([^\/]+)/);
+            return match ? match[1] : 'gist';
+        } 
+        else
+        {
+            return extractGithubUsername(url) || 'github';
+        }
+    } 
+    else
+    {
+        return url.split('/').pop() || '';
+    }
 }
 
 /**
