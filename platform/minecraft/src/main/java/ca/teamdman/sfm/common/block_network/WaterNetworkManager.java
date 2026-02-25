@@ -112,7 +112,7 @@ public class WaterNetworkManager {
 
         if (event.getLevel().isClientSide()) return;
         if (!(event.getLevel() instanceof ServerLevel level)) return;
-        NETWORK_MANAGER.clearChunk(level, event.getChunk().getPos());
+        NETWORK_MANAGER.purgeChunk(level, event.getChunk().getPos());
     }
 
     @SFMSubscribeEvent
