@@ -28,6 +28,8 @@
   "chat.sfm.config_update_and_sync_result.internal_failure": "Something went wrong while updating the SFM config, I have no idea if changes were made. Check the server logs.",
   "chat.sfm.config_update_and_sync_result.invalid_config": "The provided SFM config was invalid, no changes were made.",
   "chat.sfm.config_update_and_sync_result.success": "Successfully updated SFM config.",
+  "chat.sfm.manager.cable_network_rebuild.failed_fallback": "Failed to rebuild cable network at manager %s; purged all cable networks instead",
+  "chat.sfm.manager.cable_network_rebuild.success": "Rebuilt cable network at manager %s",
   "container.sfm.manager": "Factory Manager",
   "container.sfm.test_barrel_tank": "Test Barrel Tank",
   "gui.jei.category.sfm.falling_anvil": "Falling Anvil",
