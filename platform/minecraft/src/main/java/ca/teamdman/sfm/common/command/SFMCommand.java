@@ -7,6 +7,7 @@ import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ClientboundShowChangelogPacket;
 import ca.teamdman.sfm.common.program.RegexCache;
+import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -181,17 +182,17 @@ public class SFMCommand {
                                 new ItemStack(Items.CHEST)
                 );
 
+                CommandSourceStack giveSource = source.withPermission(Commands.LEVEL_GAMEMASTERS);
                 for (ServerPlayer target : targets) {
                         for (ItemStack kitItem : kitItems) {
-                                ItemStack remaining = kitItem.copy();
-                                boolean addedToInventory = target.getInventory().add(remaining);
-                                if (!addedToInventory || !remaining.isEmpty()) {
-                                        var droppedItem = target.drop(remaining, false);
-                                        if (droppedItem != null) {
-                                                droppedItem.setNoPickUpDelay();
-                                                droppedItem.setOwner(target.getUUID());
-                                        }
+                                var itemId = SFMWellKnownRegistries.ITEMS.getId(kitItem.getItem());
+                                if (itemId == null) {
+                                        SFM.LOGGER.warn("Skipping kit item without registry id: {}", kitItem);
+                                        continue;
                                 }
+
+                                String command = "give " + target.getScoreboardName() + " " + itemId + " " + kitItem.getCount();
+                                source.getServer().getCommands().performPrefixedCommand(giveSource, command);
                         }
                 }
 
