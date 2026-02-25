@@ -1,7 +1,54 @@
 import * as vscode from 'vscode';
 import { CharStreams, Token } from 'antlr4ts';
 import { SFMLLexer } from '../generated/SFMLLexer';
-import { extractSFMLCodeBlocks } from '../antlrg4/Error';
+import { checkForErrors, extractSFMLCodeBlocks } from '../antlrg4/Error';
+import { keywordToTokenType } from './map';
+
+export function activateTokens(context: vscode.ExtensionContext)
+{
+    context.subscriptions.push(
+        vscode.commands.registerCommand('sfml.selectDisabledKeywords', async () => {
+            const config = vscode.workspace.getConfiguration('sfml');
+            const currentDisabled = config.get<string[]>('disabledKeywords', []);
+            const allKeywords = Object.keys(keywordToTokenType);
+            
+            const quickPick = vscode.window.createQuickPick();
+            quickPick.canSelectMany = true;
+            quickPick.items = allKeywords.map(keyword => ({
+                label: keyword,
+                picked: currentDisabled.includes(keyword)
+            }));
+            quickPick.title = 'Select keywords to disable';
+            quickPick.placeholder = 'Write to filter...';
+            
+            quickPick.onDidAccept(() => {
+                const selected = quickPick.selectedItems.map(item => item.label);
+                config.update('disabledKeywords', selected, vscode.ConfigurationTarget.Global);
+                quickPick.hide();
+            });
+            
+            quickPick.show();
+        })
+    );
+
+    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarItem.command = 'sfml.selectDisabledKeywords';
+    statusBarItem.text = "$(settings) Keywords disabled";
+    statusBarItem.tooltip = "Click here to select keyword to be treated as errors";
+    statusBarItem.show();
+    context.subscriptions.push(statusBarItem);
+
+    vscode.workspace.onDidChangeConfiguration(e => {
+        if(e.affectsConfiguration('sfml.disabledKeywords'))
+        {
+            const editor = vscode.window.activeTextEditor;
+            if(editor)
+            {
+                checkForErrors(editor.document);
+            }
+        }
+    });
+}
 
 export class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider
 {

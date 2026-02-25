@@ -107,7 +107,7 @@ public class CableNetworkManager {
         if (event.getLevel().isClientSide()) return;
         if (!(event.getLevel() instanceof ServerLevel level)) return;
         var chunk = event.getChunk();
-        NETWORK_MANAGER.clearChunk(level, chunk.getPos());
+        NETWORK_MANAGER.purgeChunk(level, chunk.getPos());
     }
 
     @SFMSubscribeEvent

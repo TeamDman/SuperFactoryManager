@@ -1,51 +1,46 @@
---This example comes from the github itself, currently it does 5/7 cases (blame the last forget)
-
+-- This example comes from the github itself, currently it does 7/7 cases
 
 EVERY 20 TICKS DO
+    --Should warn both, since one its fluid and the other is items (Warn)
     INPUT fluid:mek: FROM tank1
     OUTPUT TO tank2
-    -- missing fluid output
 
     FORGET
-
+    --Should warn both, since its the same as above but inverted (Warn)
     INPUT FROM thing1
     OUTPUT fluid::* TO thing2
 
     FORGET
-
+    --It case one, but using fluid:: only (Warn)
     INPUT FROM tank1
     OUTPUT fluid:: TO tank2
-    -- missing fluid input
 
     FORGET
-
+    --Should only warn about fluid:: (Warn)
     INPUT FROM chest
     INPUT fluid:: FROM tank1
     OUTPUT TO chest
-    -- missing fluid output
 
     FORGET
-
+    --Should only warn about input fluid:: (Warn)
     IF chest HAS > 0 stone THEN
         INPUT FROM chest
         INPUT fluid:: FROM tank
     END
     OUTPUT TO chest
-    -- missing fluid input
 END
+
+--Should warn both, since the output and input are between a forget (warn)
 EVERY 20 TICKS DO
     OUTPUT TO chest
-    -- missing input
-
     FORGET
-
     INPUT FROM chest
-    -- missing output
 END
+
+--Should not warn about anything, since we are forgetting labels not inputs and outputs (Doesnt warn)
 EVERY 20 TICKS DO
     INPUT 5 FROM a,b,c
     OUTPUT 1 to z1
     FORGET b,c
     OUTPUT TO z2
-    -- no output uses input from b,c
 END
