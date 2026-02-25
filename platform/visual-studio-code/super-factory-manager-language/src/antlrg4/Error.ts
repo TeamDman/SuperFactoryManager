@@ -2,10 +2,11 @@
  * File for parser and error checking
  */
 import * as vscode from 'vscode';
-import { CharStreams, CommonTokenStream } from 'antlr4ts';
+import { CharStreams, CommonTokenStream, Token } from 'antlr4ts';
 import { SFMLLexer } from '../generated/SFMLLexer';
 import { SFMLParser } from '../generated/SFMLParser';
 import { ANTLRErrorListener, RecognitionException, Recognizer } from 'antlr4ts';
+import { keywordToTokenType } from '../syntaxes/map';
 
 // Will clear all errors each time a file is saved, so we don't have duplicated errors or non-existent ones
 export const diagnosticCollectionErrors = vscode.languages.createDiagnosticCollection('syntaxErrors');
@@ -23,6 +24,14 @@ export function checkForErrors(document: vscode.TextDocument)
     if(!enableErrorChecking) return;
 
     const diagnostics: vscode.Diagnostic[] = [];
+
+    const config = vscode.workspace.getConfiguration('sfml');
+    const disabledKeywords = config.get<string[]>('disabledKeywords', []);
+    const disabledTokenTypes = new Set<number>();
+    disabledKeywords.forEach(keyword => {
+        const type = keywordToTokenType[keyword];
+        if (type !== undefined) disabledTokenTypes.add(type);
+    });
 
     if(document.languageId === "markdown")
     {
@@ -65,6 +74,32 @@ export function checkForErrors(document: vscode.TextDocument)
                     diagnostics.push(diagnostic);
                 });
             }
+
+            if(disabledTokenTypes.size > 0)
+            {
+                const inputStream = CharStreams.fromString(block.content);
+                const lexer = new SFMLLexer(inputStream);
+                let token: Token;
+                while((token = lexer.nextToken()) && token.type !== Token.EOF)
+                {
+                    if(disabledTokenTypes.has(token.type))
+                    {
+                        const tokenLine = block.startLine + token.line - 1;
+                        const tokenStartCol = token.charPositionInLine;
+                        const tokenEndCol = tokenStartCol + (token.text?.length || 0);
+                        const range = new vscode.Range(
+                            new vscode.Position(tokenLine, tokenStartCol),
+                            new vscode.Position(tokenLine, tokenEndCol)
+                        );
+                        const diagnostic = new vscode.Diagnostic(
+                            range,
+                            `Keyword '${token.text}' is not allowed (Disabled on the configuration)`,
+                            vscode.DiagnosticSeverity.Error
+                        );
+                        diagnostics.push(diagnostic);
+                    }
+                }
+            }
         }
     }
     else if(document.languageId === "sfm" || document.languageId === "sfml")
@@ -73,7 +108,7 @@ export function checkForErrors(document: vscode.TextDocument)
         const text = document.getText();
         const { success, errors } = parseInput(text);
 
-        if (!success) 
+        if(!success) 
         {
             errors.forEach((error: any) => {
                 const { lineStart, columnStart, lineEnd, columnEnd, message } = error;
@@ -98,6 +133,28 @@ export function checkForErrors(document: vscode.TextDocument)
             });
         }
 
+        // Añadir diagnósticos por keywords deshabilitadas (si las hay)
+        if(disabledTokenTypes.size > 0) 
+        {
+            const inputStream = CharStreams.fromString(text);
+            const lexer = new SFMLLexer(inputStream);
+            let token: Token;
+            while((token = lexer.nextToken()) && token.type !== Token.EOF)
+            {
+                if(disabledTokenTypes.has(token.type))
+                {
+                    const startPos = document.positionAt(token.startIndex);
+                    const endPos = document.positionAt(token.stopIndex + 1);
+                    const range = new vscode.Range(startPos, endPos);
+                    const diagnostic = new vscode.Diagnostic(
+                        range,
+                        `Keyword '${token.text}' is not allowed (Disabled on the configuration)`,
+                        vscode.DiagnosticSeverity.Error
+                    );
+                    diagnostics.push(diagnostic);
+                }
+            }
+        }
     }
     
     diagnosticCollectionErrors.set(document.uri, diagnostics);
