@@ -560,7 +560,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
 
     private void printChangeDiagnostics(String changeDescription) {
 
-        boolean enabled = true;
+        boolean enabled = false;
         if (!enabled) return;
         if (!SFMEnvironmentUtils.isInIDE()) return;
         SFM.LOGGER.info("================= SFM BEGIN ================= ");
