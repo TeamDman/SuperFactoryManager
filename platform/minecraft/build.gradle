@@ -303,6 +303,8 @@ dependencies {
 
     implementation 'org.appliedenergistics:appliedenergistics2:19.2.15'
     compileOnly "org.appliedenergistics:appliedenergistics2:19.2.15:api"
+
+    implementation "curse.maven:building-gadgets-298187:6850515"
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
