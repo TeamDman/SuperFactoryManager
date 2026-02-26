@@ -3,3 +3,10 @@
 .gitignore
 vsc-extension-quickstart.md
 tests/**
+src/**
+syntaxes/SFML.g4
+TODO.md
+tsconfig.json
+vsce-versions/**
+out/**/*.map
+node_modules/**
