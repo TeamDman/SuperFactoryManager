@@ -87,7 +87,7 @@ dependencies {
 
     antlr("org.antlr:antlr4:4.9.1")
     embed("org.antlr:antlr4-runtime:4.9.1") { transitive = false }
-    embed("com.github.mpkorstanje:simmetrics-core:4.1.1")
+    embed("com.github.mpkorstanje:simmetrics-core:4.1.1") { transitive = false }
 
     // For testing with AE2
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:ae2-extended-life-570458:6302098"))
