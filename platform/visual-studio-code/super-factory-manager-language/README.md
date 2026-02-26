@@ -2,6 +2,10 @@
 
 This extension provides syntax highlighting for the Super Factory Manager Language (SFM) and a few extras
 
+https://marketplace.visualstudio.com/items?itemName=TeamDman.super-factory-manager-language
+
+https://marketplace.visualstudio.com/manage/publishers/teamdman
+
 ## Features
 
 - **Syntax highlighting:** For SFM code, similar to in-game text editor (well, a bit of a lie, not exact same colors).
