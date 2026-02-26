@@ -27,12 +27,22 @@ pub struct PropagateOptions {
     pub auto_abort: bool,
 }
 
-/// Patterns for generated files that should always keep "ours" during merge conflicts.
-/// These are files that are auto-generated and should be regenerated after merge.
-const GENERATED_PATH_PATTERNS: &[&str] = &["src/generated/", "platform/minecraft/src/generated/"];
+/// Patterns for files that should always keep "ours" (current branch version)
+/// during merge conflicts.
+const KEEP_OURS_PATH_PATTERNS: &[&str] = &[
+    "src/generated/",
+    "platform/minecraft/src/generated/",
+    "docs/AGENTS.md",
+];
+
+#[derive(Debug)]
+struct DirtyWorktree {
+    path: PathBuf,
+    changes: Vec<String>,
+}
 
 /// Check if any worktree has uncommitted changes
-fn check_uncommitted_changes(worktrees: &[Worktree]) -> eyre::Result<Vec<&Worktree>> {
+fn check_uncommitted_changes(worktrees: &[Worktree]) -> eyre::Result<Vec<DirtyWorktree>> {
     let mut dirty = Vec::new();
 
     for wt in worktrees {
@@ -51,8 +61,18 @@ fn check_uncommitted_changes(worktrees: &[Worktree]) -> eyre::Result<Vec<&Worktr
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-        if !stdout.trim().is_empty() {
-            dirty.push(wt);
+        let changes: Vec<String> = stdout
+            .lines()
+            .map(str::trim_end)
+            .filter(|line| !line.is_empty())
+            .map(String::from)
+            .collect();
+
+        if !changes.is_empty() {
+            dirty.push(DirtyWorktree {
+                path: wt.path.clone(),
+                changes,
+            });
         }
     }
 
@@ -176,7 +196,8 @@ fn format_conflict_error(path: &PathBuf, branch: &str) -> eyre::Result<String> {
         .collect();
 
     let mut msg = format!(
-        "Worktree {} is in the middle of a merge with {} unresolved conflict(s).\n\n\
+        "Worktree {} has an in-progress merge with {} unresolved conflict(s).\n\n\
+         This is an expected outcome when a propagated merge needs manual conflict resolution.\n\n\
          Unresolved conflicts:\n{}",
         branch,
         conflicts.len(),
@@ -198,23 +219,23 @@ fn format_conflict_error(path: &PathBuf, branch: &str) -> eyre::Result<String> {
 
     let _ = write!(
         msg,
-        "\n\nPlease resolve the conflicts in {canonical_path} and run this command again,\n\
-         or abort the merge with `git merge --abort`.",
+        "\n\nResolve the conflicts in {canonical_path}, then run this command again to continue.\n\
+         If you want to cancel this merge, run `git merge --abort` in that worktree.",
     );
 
     Ok(msg)
 }
 
-/// Check if a file path matches a generated path pattern
-fn is_generated_path(file_path: &str) -> bool {
-    GENERATED_PATH_PATTERNS
+/// Check if a file path matches a keep-ours path pattern
+fn is_keep_ours_path(file_path: &str) -> bool {
+    KEEP_OURS_PATH_PATTERNS
         .iter()
         .any(|pattern| file_path.contains(pattern))
 }
 
-/// Partition conflicted files into generated and non-generated
+/// Partition conflicted files into keep-ours and manual-resolution groups
 fn partition_conflicts(files: &[String]) -> (Vec<&String>, Vec<&String>) {
-    files.iter().partition(|f| is_generated_path(f))
+    files.iter().partition(|f| is_keep_ours_path(f))
 }
 
 /// Prompt user with Y/n question (defaults to yes)
@@ -231,10 +252,10 @@ fn prompt_yes_no(question: &str) -> eyre::Result<bool> {
         || !(trimmed.eq_ignore_ascii_case("n") || trimmed.eq_ignore_ascii_case("no")))
 }
 
-/// Resolve generated file conflicts by keeping "ours" (current branch version)
-fn resolve_generated_conflicts(path: &PathBuf, files: &[&String]) -> eyre::Result<()> {
+/// Resolve keep-ours file conflicts by keeping "ours" (current branch version)
+fn resolve_keep_ours_conflicts(path: &PathBuf, files: &[&String]) -> eyre::Result<()> {
     for file in files {
-        info!("Resolving generated file conflict (keeping ours): {file}");
+        info!("Resolving keep-ours conflict (keeping current branch version): {file}");
 
         // Try checkout --ours first (for modified files)
         let checkout_result = Command::new("git")
@@ -292,21 +313,24 @@ fn resolve_generated_conflicts(path: &PathBuf, files: &[&String]) -> eyre::Resul
     Ok(())
 }
 
-/// Try to auto-resolve generated file conflicts if user agrees
-fn try_auto_resolve_generated_conflicts(path: &PathBuf) -> eyre::Result<bool> {
+/// Try to auto-resolve keep-ours file conflicts if user agrees
+fn try_auto_resolve_keep_ours_conflicts(path: &PathBuf) -> eyre::Result<bool> {
     let conflicts = get_conflicted_files(path)?;
     if conflicts.is_empty() {
         return Ok(true); // No conflicts, all resolved
     }
 
-    let (generated, other) = partition_conflicts(&conflicts);
+    let (keep_ours, other) = partition_conflicts(&conflicts);
 
-    if generated.is_empty() {
-        return Ok(false); // No generated conflicts to auto-resolve
+    if keep_ours.is_empty() {
+        return Ok(false); // No keep-ours conflicts to auto-resolve
     }
 
-    println!("\nFound {} generated file conflict(s):", generated.len());
-    for file in &generated {
+    println!(
+        "\nFound {} auto-resolvable keep-current conflict(s):",
+        keep_ours.len()
+    );
+    for file in &keep_ours {
         println!("  - {file}");
     }
 
@@ -318,9 +342,9 @@ fn try_auto_resolve_generated_conflicts(path: &PathBuf) -> eyre::Result<bool> {
     }
 
     println!();
-    if prompt_yes_no("Auto-resolve generated file conflicts by keeping current branch version?")? {
-        resolve_generated_conflicts(path, &generated)?;
-        info!("Resolved {} generated file conflict(s)", generated.len());
+    if prompt_yes_no("Auto-resolve these conflicts by keeping current branch version?")? {
+        resolve_keep_ours_conflicts(path, &keep_ours)?;
+        info!("Resolved {} keep-ours conflict(s)", keep_ours.len());
 
         // Check if all conflicts are now resolved
         if !has_merge_conflicts(path)? {
@@ -479,8 +503,8 @@ fn do_merge(source: &Worktree, dest: &Worktree, options: &PropagateOptions) -> e
         if stderr.contains("CONFLICT") || stdout.contains("CONFLICT") {
             warn!("Merge conflict detected");
 
-            // Try to auto-resolve generated file conflicts
-            if try_auto_resolve_generated_conflicts(&dest.path)? {
+            // Try to auto-resolve keep-ours file conflicts
+            if try_auto_resolve_keep_ours_conflicts(&dest.path)? {
                 // All conflicts resolved, commit the merge
                 commit_merge(source, dest)?;
                 return Ok(true);
@@ -584,8 +608,8 @@ pub fn run(options: PropagateOptions) -> eyre::Result<()> {
                     );
                 }
 
-                // Try to auto-resolve generated file conflicts
-                if try_auto_resolve_generated_conflicts(&dest_path.0)? {
+                // Try to auto-resolve keep-ours file conflicts
+                if try_auto_resolve_keep_ours_conflicts(&dest_path.0)? {
                     info!("All conflicts resolved via auto-resolution");
                 } else {
                     bail!("{}", format_conflict_error(&dest_path.0, dest_branch)?);
@@ -610,6 +634,30 @@ pub fn run(options: PropagateOptions) -> eyre::Result<()> {
     }
 
     Ok(())
+}
+
+fn format_dirty_worktree_details(truly_dirty: &[DirtyWorktree]) -> String {
+    let mut details = String::new();
+
+    for (index, dirty_wt) in truly_dirty.iter().enumerate() {
+        if index > 0 {
+            details.push('\n');
+        }
+
+        let canonical_path = canonicalize_worktree_path(&dirty_wt.path);
+        let _ = write!(details, "  - {canonical_path}");
+
+        for change in dirty_wt.changes.iter().take(3) {
+            let _ = write!(details, "\n      {change}");
+        }
+
+        let remaining = dirty_wt.changes.len().saturating_sub(3);
+        if remaining > 0 {
+            let _ = write!(details, "\n      ... and {remaining} more");
+        }
+    }
+
+    details
 }
 
 fn run_idle_state(
@@ -654,9 +702,9 @@ fn run_idle_state(
                 );
             }
 
-            // Try to auto-resolve generated file conflicts
+            // Try to auto-resolve keep-ours file conflicts
             if has_merge_conflicts(&wt.path)? {
-                if try_auto_resolve_generated_conflicts(&wt.path)? {
+                if try_auto_resolve_keep_ours_conflicts(&wt.path)? {
                     info!("All conflicts resolved via auto-resolution");
 
                     // Commit the merge
@@ -699,17 +747,14 @@ fn run_idle_state(
         // Filter out any that are in merging state (we handled those above)
         let truly_dirty: Vec<_> = dirty
             .into_iter()
-            .filter(|wt| !is_merging(&wt.path).unwrap_or(false))
+            .filter(|dirty_wt| !is_merging(&dirty_wt.path).unwrap_or(false))
             .collect();
-
         if !truly_dirty.is_empty() {
-            let paths: Vec<_> = truly_dirty
-                .iter()
-                .map(|w| w.path.display().to_string())
-                .collect();
+            let details = format_dirty_worktree_details(&truly_dirty);
+
             bail!(
                 "The following worktrees have uncommitted changes:\n  {}\n\nPlease commit or stash changes before propagating.",
-                paths.join("\n  ")
+                details
             );
         }
     }

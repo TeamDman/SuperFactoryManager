@@ -52,17 +52,35 @@ public record ServerboundManagerRebuildPacket(
                             SFM.LOGGER.error("Received {} from null player", this.getPacketClass().getName());
                             return;
                         }
-                        // perform rebuild by unregistering the cable network
-                        CableNetworkManager.purgeCableNetworkForManager(manager);
-                        manager.logger.warn(x -> x.accept(LocalizationKeys.LOG_MANAGER_CABLE_NETWORK_REBUILD.get()));
+                        try {
+                            // perform rebuild by unregistering the cable network
+                            CableNetworkManager.purgeCableNetworkForManager(manager);
+                            manager.logger.warn(x -> x.accept(LocalizationKeys.LOG_MANAGER_CABLE_NETWORK_REBUILD.get()));
+                            player.sendStatusMessage(
+                                LocalizationKeys.CHAT_MANAGER_CABLE_NETWORK_REBUILD_SUCCESS.getComponent(msg.pos()),
+                                false
+                            );
 
-                        // log it
-                        SFM.LOGGER.debug(
+                            // log it
+                            SFM.LOGGER.debug(
                                 "{} performed rebuild for manager {} {}",
                                 player.getName(),
                                 msg.pos(),
                                 manager.getWorld()
-                        );
+                            );
+                        } catch (Exception e) {
+                            SFM.LOGGER.warn(
+                                "Failed to rebuild network for manager {} {}; purging all cable networks instead",
+                                msg.pos(),
+                                manager.getLevel(),
+                                e
+                            );
+                            CableNetworkManager.clear();
+                            player.sendStatusMessage(
+                                LocalizationKeys.CHAT_MANAGER_CABLE_NETWORK_REBUILD_FAILED_FALLBACK.getComponent(msg.pos()),
+                                false
+                            );
+                        }
                     }
             );
         }

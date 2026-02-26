@@ -1,13 +1,15 @@
 package ca.teamdman.sfm.common.block_network;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
-import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
-import ca.teamdman.sfm.common.util.Unit;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.Side;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +34,7 @@ import java.util.stream.Stream;
  * - Remove the network if it was the only member
  * - Cause a network to split into other networks if it was a "bridge" block
  */
+@Mod.EventBusSubscriber(modid = SFM.MOD_ID, value = Side.SERVER)
 public class CableNetworkManager {
     private static final BlockNetworkManager<World, CableType, CableNetwork> NETWORK_MANAGER = new BlockNetworkManager<>(
             CableNetwork::cableMemberFilterMapper,
@@ -115,15 +118,15 @@ public class CableNetworkManager {
         NETWORK_MANAGER.clear();
     }
 
-    @SFMSubscribeEvent
+    @SubscribeEvent
     public static void onChunkUnload(ChunkEvent.Unload event) {
         if (event.getWorld().isRemote) return;
         if (!(event.getWorld() instanceof WorldServer level)) return;
         var chunk = event.getChunk();
-        NETWORK_MANAGER.clearChunk(level, chunk.getPos());
+        NETWORK_MANAGER.purgeChunk(level, chunk.getPos());
     }
 
-    @SFMSubscribeEvent
+    @SubscribeEvent
     public static void onLevelUnload(WorldEvent.Unload event) {
         if (!(event.getWorld() instanceof WorldServer level)) return;
         NETWORK_MANAGER.clearLevel(level);

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.TestInstance;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -30,7 +31,7 @@ public class ObjectPoolPerformanceComparisonTests {
         if (index + slots.size() >= pool.length) {
             int slotsFree = pool.length - index - 1;
             int newLength = pool.length + slots.size() - slotsFree;
-            pool = java.util.Arrays.copyOf(pool, newLength);
+            pool = Arrays.copyOf(pool, newLength);
         }
         // add to pool
         for (Thingy slot : slots) {

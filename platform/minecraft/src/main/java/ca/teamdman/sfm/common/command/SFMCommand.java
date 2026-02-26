@@ -9,6 +9,7 @@ public class SFMCommand extends CommandTreeBase {
         super();
         this.addSubcommand(new BustCableNetworkCacheCommand());
         this.addSubcommand(new ShowBadCableCacheEntriesCommand());
+        this.addSubcommand(new KitCommand());
         this.addSubcommand(new ChangelogCommand());
     }
 

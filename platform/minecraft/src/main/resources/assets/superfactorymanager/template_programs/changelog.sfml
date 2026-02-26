@@ -6,8 +6,13 @@ NAME "Changelog"
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
----- 4.29.0 PRE ---
--- Fix double-gathering of input slots causing lag and correctness issues, thanks @Mei
+---- 4.30.0 ----
+-- Add `/sfm kit [player]` game master command to cheat in default SFM items
+-- Make manager rebuild cable network button give response in chat
+-- Make manager rebuild cable network button run `/sfm bust_cable_network_cache` if exception encountered
+
+---- 4.29.0 ----
+-- Fix double-gathering of input slots causing lag and correctness issues, thanks @Mei for the contribution!
 -- Fix #445 where UP and DOWN directions cannot be rotated to determine relative left/right/front/back faces.
 -- Introduce tunnelled cables
 -- Introduce tough cables
@@ -16,6 +21,13 @@ NAME "Changelog"
 -- Update block network logic used by cable networks and water tanks
 ---- Should fix https://github.com/FTBTeam/FTB-Modpack-Issues/issues/10084
 ---- Should fix https://github.com/TeamDman/SuperFactoryManager/issues/426
+-- Network tool can now be attuned to a block position, thanks @Mei for the contribution! #456
+-- Update PT_BR localization, thanks @PrincessStelllar for the contribution! #431, #497
+-- Update ZH_CN localization, thanks @ZHAY10086 for the contribution! #438, #439, #498
+-- Fix ResourcesProgramLinter not tracking warnings properly, thanks @Mei for the contribution! #440
+-- Add missing block tags to tunnelled factory manager, thanks @jez4753 for the report! #457
+-- Add warnings for slots that don't support extraction, thanks @Mei for the contribution! #446
+-- Fix round robin example correctness, fixes #455
 
 ---- 4.28.0 ----
 -- Fix #430 where fancy cable improperly visually connects to blocks it should not

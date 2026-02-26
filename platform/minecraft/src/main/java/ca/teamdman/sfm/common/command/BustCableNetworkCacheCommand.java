@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.command;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
+import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -25,6 +26,7 @@ public class BustCableNetworkCacheCommand extends CommandBase {
                 "Busting cable networks - slash command used by {}",
                 sender.getName()
         );
+        notifyCommandListener(sender, this, LocalizationKeys.COMMAND_BUST_CABLE_NETWORK_CACHE_SUCCESS.key().get());
         CableNetworkManager.clear();
     }
 

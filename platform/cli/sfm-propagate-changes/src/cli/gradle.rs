@@ -1,6 +1,6 @@
 use crate::cli::status::assert_worktrees_clean_or_autocommit_generated;
+use crate::mc_version_filter::McVersionFilter;
 use crate::worktree::get_sorted_worktrees;
-use crate::worktree::parse_version;
 use color_eyre::owo_colors::OwoColorize;
 use eyre::Context;
 use eyre::bail;
@@ -65,59 +65,6 @@ struct TaskError {
     interrupted: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum VersionOp {
-    Lt,
-    Lte,
-    Gt,
-    Gte,
-    Eq,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct McVersionFilter {
-    op: VersionOp,
-    version: (u32, u32, u32),
-}
-
-impl McVersionFilter {
-    fn parse(input: &str) -> eyre::Result<Self> {
-        let trimmed = input.trim();
-        let (op, version_text) = if let Some(rest) = trimmed.strip_prefix(">=") {
-            (VersionOp::Gte, rest)
-        } else if let Some(rest) = trimmed.strip_prefix("<=") {
-            (VersionOp::Lte, rest)
-        } else if let Some(rest) = trimmed.strip_prefix("==") {
-            (VersionOp::Eq, rest)
-        } else if let Some(rest) = trimmed.strip_prefix('>') {
-            (VersionOp::Gt, rest)
-        } else if let Some(rest) = trimmed.strip_prefix('<') {
-            (VersionOp::Lt, rest)
-        } else if let Some(rest) = trimmed.strip_prefix('=') {
-            (VersionOp::Eq, rest)
-        } else {
-            (VersionOp::Eq, trimmed)
-        };
-
-        let version_text = version_text.trim();
-        let version = parse_version(version_text)
-            .ok_or_else(|| eyre::eyre!("Invalid mc version expression: '{input}'"))?;
-
-        Ok(Self { op, version })
-    }
-
-    fn matches_branch(&self, branch: &str) -> Option<bool> {
-        let branch_version = parse_version(branch)?;
-        Some(match self.op {
-            VersionOp::Lt => branch_version < self.version,
-            VersionOp::Lte => branch_version <= self.version,
-            VersionOp::Gt => branch_version > self.version,
-            VersionOp::Gte => branch_version >= self.version,
-            VersionOp::Eq => branch_version == self.version,
-        })
-    }
-}
-
 impl GradleTask {
     fn from_input(input: &str) -> Self {
         match input.to_ascii_lowercase().as_str() {
@@ -180,6 +127,50 @@ impl TaskState {
             Self::Success { .. } => text.green().bold().to_string(),
             Self::Failed { .. } => text.red().bold().to_string(),
             Self::NotFound { .. } => text.magenta().to_string(),
+        }
+    }
+}
+
+fn extract_failed_gametest_names(output: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut in_failed_section = false;
+
+    for line in output.lines() {
+        // Strip the log prefix, e.g. "[HH:MM:SS] [Server thread/INFO] [minecraft/GameTestServer]: "
+        let content = if let Some(idx) = line.rfind("]: ") {
+            &line[idx + 3..]
+        } else {
+            line
+        };
+
+        if content.contains("required tests failed :(") {
+            in_failed_section = true;
+            continue;
+        }
+
+        if in_failed_section {
+            if content.contains("====") {
+                break;
+            }
+            let stripped = content.trim();
+            if let Some(name) = stripped.strip_prefix("- ") {
+                names.push(name.trim().to_string());
+            }
+        }
+    }
+
+    names
+}
+
+fn print_gametest_failures(failures: &[(String, Vec<String>)]) {
+    if failures.is_empty() {
+        return;
+    }
+    println!();
+    println!("{}", "FAILED GAME TESTS".red().bold());
+    for (branch, names) in failures {
+        for name in names {
+            println!("  {}", format!("{branch}: {name}").red());
         }
     }
 }
@@ -494,6 +485,12 @@ pub struct GradleCommand {
     /// If set, hide stdout of each gradle process while it runs.
     #[facet(rename = "hide-logs", args::named, default = false)]
     pub hide_logs: bool,
+
+    /// If set, continue with later branches after a task failure.
+    ///
+    /// Remaining tasks for the failed branch are marked as skipped.
+    #[facet(rename = "continue-on-error", args::named, default = false)]
+    pub continue_on_error: bool,
 }
 
 impl GradleCommand {
@@ -527,7 +524,7 @@ impl GradleCommand {
         let mut excluded_worktree_branches = Vec::new();
 
         if let Some(filter) = mc_filter {
-            worktrees.retain(|wt| match filter.matches_branch(&wt.branch) {
+            worktrees.retain(|wt| match filter.matches_version_text(&wt.branch) {
                 Some(true) => true,
                 Some(false) => {
                     excluded_worktree_branches.push(wt.branch.clone());
@@ -584,6 +581,7 @@ impl GradleCommand {
         info!(
             tasks = ?self.tasks,
             mc_filter = ?self.mc,
+            continue_on_error = self.continue_on_error,
             worktrees = ?all_worktree_branches,
             worktrees_included = ?included_worktree_branches,
             worktrees_included_count = worktrees_included,
@@ -592,6 +590,9 @@ impl GradleCommand {
             worktrees_excluded_count = worktrees_excluded,
             "Running gradle tasks in strict sequence"
         );
+
+        let mut failures: Vec<String> = Vec::new();
+        let mut gametest_failures: Vec<(String, Vec<String>)> = Vec::new();
 
         for (branch_idx, wt) in worktrees.iter().enumerate() {
             let minecraft_dir = wt.path.join("platform").join("minecraft");
@@ -664,9 +665,18 @@ impl GradleCommand {
                         for remaining in branches[branch_idx].tasks.iter_mut().skip(task_idx + 1) {
                             remaining.state = TaskState::Skipped;
                         }
-                        for later_branch in branches.iter_mut().skip(branch_idx + 1) {
-                            for task in &mut later_branch.tasks {
-                                task.state = TaskState::Skipped;
+
+                        if matches!(current_task, GradleTask::RunGameTestServer) {
+                            if let Some(ref output) = err.output {
+                                let combined = format!(
+                                    "{}
+{}",
+                                    output.stdout, output.stderr
+                                );
+                                let names = extract_failed_gametest_names(&combined);
+                                if !names.is_empty() {
+                                    gametest_failures.push((wt.branch.clone(), names));
+                                }
                             }
                         }
 
@@ -676,6 +686,13 @@ impl GradleCommand {
                             error = %err.message,
                             "Task failed"
                         );
+
+                        failures.push(format!(
+                            "branch: {}, task: {}, error: {}",
+                            wt.branch,
+                            current_task.as_gradle_arg(),
+                            err.message
+                        ));
 
                         if err.interrupted {
                             println!();
@@ -714,6 +731,17 @@ impl GradleCommand {
                             }
                         }
 
+                        if self.continue_on_error && !err.interrupted {
+                            print_report_to_stderr(&branches, &tasks);
+                            continue;
+                        }
+
+                        for later_branch in branches.iter_mut().skip(branch_idx + 1) {
+                            for task in &mut later_branch.tasks {
+                                task.state = TaskState::Skipped;
+                            }
+                        }
+                        print_gametest_failures(&gametest_failures);
                         print_report_to_stdout(&branches, &tasks);
                         bail!(err.message);
                     }
@@ -721,7 +749,17 @@ impl GradleCommand {
             }
         }
 
+        print_gametest_failures(&gametest_failures);
         print_report_to_stdout(&branches, &tasks);
+
+        if !failures.is_empty() {
+            let mut summary = String::from("One or more gradle tasks failed:\n");
+            for failure in &failures {
+                let _ = writeln!(summary, "  - {failure}");
+            }
+            bail!(summary);
+        }
+
         Ok(())
     }
 }

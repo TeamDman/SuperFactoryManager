@@ -71,12 +71,6 @@ impl Cli {
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum Command {
-    /// Propagate changes by merging from older to newer version branches
-    Merge {
-        /// Merge options
-        #[facet(flatten)]
-        command: super::merge::MergeCommand,
-    },
     /// Run arbitrary gradle task(s) for each worktree in strict sequence
     Gradle {
         /// Gradle options
@@ -101,11 +95,11 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::server::ServerCommand,
     },
-    /// Push branches (runs `git push` in each worktree)
-    Push {
-        /// Push options
-        #[facet(flatten)]
-        command: super::push::PushCommand,
+    /// Git operation commands across all worktrees
+    Git {
+        /// Git subcommand
+        #[facet(args::subcommand)]
+        command: super::git::GitCommand,
     },
     /// Home directory related commands
     Home {
@@ -119,6 +113,18 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::cache::CacheCommand,
     },
+    /// CurseForge release and file related commands
+    Curseforge {
+        /// CurseForge subcommand
+        #[facet(args::subcommand)]
+        command: super::curseforge::CurseforgeCommand,
+    },
+    /// Modrinth release related commands
+    Modrinth {
+        /// Modrinth subcommand
+        #[facet(args::subcommand)]
+        command: super::modrinth::ModrinthCommand,
+    },
     /// Jar directory and release artifact related commands
     Jar {
         /// Jar subcommand
@@ -131,12 +137,6 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::repo_root::RepoRootCommand,
     },
-    /// Show git status for all worktrees
-    Status {
-        /// Status subcommand
-        #[facet(default, args::subcommand)]
-        command: Option<super::status::StatusCommand>,
-    },
 }
 
 impl Command {
@@ -145,17 +145,17 @@ impl Command {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Command::Merge { command } => command.invoke(),
             Command::Gradle { command } => command.invoke(),
             Command::Check { command } => command.invoke(),
             Command::Client { command } => command.invoke(),
             Command::Server { command } => command.invoke(),
-            Command::Push { command } => command.invoke(),
+            Command::Git { command } => command.invoke(),
             Command::Home { command } => command.invoke(),
             Command::Cache { command } => command.invoke(),
+            Command::Curseforge { command } => command.invoke(),
+            Command::Modrinth { command } => command.invoke(),
             Command::Jar { command } => command.invoke(),
             Command::RepoRoot { command } => command.invoke(),
-            Command::Status { command } => command.unwrap_or_default().invoke(),
         }
     }
 }

@@ -669,3 +669,6 @@ sfm.label_gun.view_mode.show_only_active_and_targeted=Showing blocks with active
 sfm.label_gun.view_mode.show_only_targeted=Showing only targeted block labels. Cycle mode in gui or with %s
 sfm.network_tool.reminder_overlay=Toggle network tool overlay with %s
 sfm.command.bust_cable_network_cache.success=Successfully busted cable network cache.
+sfm.command.kit.success=Gave SFM kit to %s
+chat.sfm.manager.cable_network_rebuild.success=Rebuilt cable network at manager %s
+chat.sfm.manager.cable_network_rebuild.failed_fallback=Failed to rebuild cable network at manager %s; purged all cable networks instead

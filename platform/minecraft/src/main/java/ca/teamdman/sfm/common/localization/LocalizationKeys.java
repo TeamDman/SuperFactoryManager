@@ -663,6 +663,14 @@ public final class LocalizationKeys {
             "log.sfm.manager.cable_network_rebuild",
             "User performed cable network rebuild"
     );
+    public static final LocalizationEntry CHAT_MANAGER_CABLE_NETWORK_REBUILD_SUCCESS = new LocalizationEntry(
+            "chat.sfm.manager.cable_network_rebuild.success",
+            "Rebuilt cable network at manager %s"
+    );
+    public static final LocalizationEntry CHAT_MANAGER_CABLE_NETWORK_REBUILD_FAILED_FALLBACK = new LocalizationEntry(
+            "chat.sfm.manager.cable_network_rebuild.failed_fallback",
+            "Failed to rebuild cable network at manager %s; purged all cable networks instead"
+    );
     public static final LocalizationEntry LOG_PROGRAM_TICK_OUTPUT_STATEMENT_DISCOVERED_INPUT_SLOT_COUNT = new LocalizationEntry(
             "log.sfm.statement.tick.output.discovered_input_slot_count",
             "Discovered %d input slots"

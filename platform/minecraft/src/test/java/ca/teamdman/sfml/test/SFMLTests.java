@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -757,11 +758,11 @@ END
         assertTrue(x.isPresent());
     }
 
-    private static java.nio.file.Path findDirectoryUpwards(String relativePath) {
-        java.nio.file.Path cwd = Paths.get(System.getProperty("user.dir"));
+    private static Path findDirectoryUpwards(String relativePath) {
+        Path cwd = Paths.get(System.getProperty("user.dir"));
         System.out.println("Starting search for " + relativePath + " from " + cwd);
         for (int i = 0; i < 5; i++) {
-            java.nio.file.Path candidate = cwd.resolve(relativePath);
+            Path candidate = cwd.resolve(relativePath);
             System.out.println("Checking " + candidate);
             if (Files.isDirectory(candidate)) {
                 return candidate;
