@@ -15,7 +15,7 @@
       "name": "Titop54"
     }
   ],
-  "version": "0.0.15",
+  "version": "0.0.16",
   "icon": "media/controller.png",
   "main": "./out/extension.js",
   "engines": {
@@ -252,22 +252,24 @@
     ]
   },
   "devDependencies": {
+    "antlr4ts-cli": "^0.5.0-alpha.4",
     "@types/node": "^25.2.2",
     "@types/vscode": "^1.0.0",
-    "typescript": "^5.9.3"
+    "axios": "^1.13.5",
+    "antlr4ts": "^0.5.0-alpha.4",
+    "esbuild": "^0.25.10",
+    "typescript": "^5.9.3",
+    "vsce": "^2.15.0"
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -w -p ./",
+    "vscode:prepublish": "npm run package-extension",
+    "package-extension": "npm run check-types && node esbuild.mjs --production",
+    "compile": "npm run check-types && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "check-types": "tsc --noEmit -p ./",
     "antlr": "antlr4ts -o src/generated -listener -visitor ./syntaxes/SFML.g4",
     "package": "vsce package -o vsce-versions",
     "publish": "vsce publish"
   },
-  "dependencies": {
-    "antlr4ts": "^0.5.0-alpha.4",
-    "antlr4ts-cli": "^0.5.0-alpha.4",
-    "axios": "^1.13.5",
-    "vsce": "^2.15.0"
-  }
+  "dependencies": {}
 }
