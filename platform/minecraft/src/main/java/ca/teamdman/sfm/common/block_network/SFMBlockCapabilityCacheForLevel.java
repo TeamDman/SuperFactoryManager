@@ -101,7 +101,7 @@ public class SFMBlockCapabilityCacheForLevel {
                 SFMBlockCapabilityKind<?> capKind = e.getKey();
 
                 var dirMap = e.getValue();
-                for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+                for (Direction direction : SFMDirections.DIRECTIONS_WITH_NULL) {
                     SFMBlockCapabilityResult<?> cap = dirMap.get(direction);
                     if (cap != null) {
                         putCapability(BlockPos.of(pos), (SFMBlockCapabilityKind) capKind, direction, cap);

@@ -155,7 +155,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
 
         // Scan neighbours to find networks and unclaimed members
         ArrayDeque<BlockPos> unclaimedNeighbourPositions = new ArrayDeque<>(6);
-        List<NETWORK> neighbouringNetworks = new ArrayList<>();
+        Set<NETWORK> neighbouringNetworks = Sets.newIdentityHashSet();
 
         BlockPos.MutableBlockPos neighbourBlockPosition = new BlockPos.MutableBlockPos();
         for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {

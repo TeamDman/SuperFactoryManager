@@ -44,7 +44,7 @@ public record SFMBlockCapabilityResult<CAP>(
         return SFMBlockCapabilityResult.of(null);
     }
 
-    public @NotNull CAP unwrap() {
+    public CAP unwrap() {
 
         return Objects.requireNonNull(inner);
     }
