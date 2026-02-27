@@ -117,6 +117,7 @@ enum LogEvent {
 struct LogReduction {
     important_lines: Vec<String>,
     failed_tests: Vec<String>,
+    failed_test_reasons: Vec<(String, String)>,
     tests_passed: bool,
     build_failed: bool,
 }
@@ -218,15 +219,47 @@ fn extract_failed_gametest_names(output: &str) -> Vec<String> {
     names
 }
 
-fn print_gametest_failures(failures: &[(String, Vec<String>)]) {
+fn extract_failed_gametest_reasons(output: &str) -> Vec<(String, String)> {
+    let mut reasons = Vec::new();
+
+    for line in output.lines() {
+        let content = if let Some(idx) = line.rfind("]: ") {
+            &line[idx + 3..]
+        } else {
+            line
+        };
+
+        let Some((test_name, tail)) = content.split_once(" failed at ") else {
+            continue;
+        };
+
+        let Some((_, reason)) = tail.split_once("! ") else {
+            continue;
+        };
+
+        let test_name = test_name.trim();
+        let reason = reason.trim();
+        if !test_name.is_empty() && !reason.is_empty() {
+            reasons.push((test_name.to_string(), reason.to_string()));
+        }
+    }
+
+    reasons
+}
+
+fn print_gametest_failures(failures: &[(String, Vec<(String, Option<String>)>)]) {
     if failures.is_empty() {
         return;
     }
     println!();
     println!("{}", "FAILED GAME TESTS".red().bold());
-    for (branch, names) in failures {
-        for name in names {
-            println!("  {}", format!("{branch}: {name}").red());
+    for (branch, tests) in failures {
+        for (name, reason) in tests {
+            let detail = reason
+                .as_deref()
+                .map(|x| format!(" — {x}"))
+                .unwrap_or_default();
+            println!("  {}", format!("{branch}: {name}{detail}").red());
         }
     }
 }
@@ -660,6 +693,7 @@ fn reduce_log_content(content: &str, stream: LogStreamKind) -> LogReduction {
 
     let mut reduction = LogReduction {
         failed_tests: extract_failed_gametest_names(content),
+        failed_test_reasons: extract_failed_gametest_reasons(content),
         tests_passed: has_gametest_success(content),
         ..LogReduction::default()
     };
@@ -778,7 +812,15 @@ fn merge_reduction(into: &mut LogReduction, from: LogReduction) {
     into.tests_passed |= from.tests_passed;
     into.build_failed |= from.build_failed;
     into.failed_tests.extend(from.failed_tests);
+    into.failed_test_reasons.extend(from.failed_test_reasons);
     into.important_lines.extend(from.important_lines);
+}
+
+fn find_failed_test_reason<'a>(reduction: &'a LogReduction, test_name: &str) -> Option<&'a str> {
+    reduction
+        .failed_test_reasons
+        .iter()
+        .find_map(|(name, reason)| (name == test_name).then_some(reason.as_str()))
 }
 
 fn normalize_spaces(input: &str) -> String {
@@ -896,14 +938,21 @@ fn summarize_reduction(_pair: &LogPair, reduction: &LogReduction) -> String {
 
     if unique_failed.len() == 1 {
         let test_name = &unique_failed[0];
+        let reason_suffix = find_failed_test_reason(reduction, test_name)
+            .map(|reason| format!(" — {reason}"))
+            .unwrap_or_default();
+
         if let Some(path) = find_gametest_source(test_name) {
-            return format!("One test failed: {test_name} at {}", path.display())
-                .red()
-                .bold()
-                .to_string();
+            return format!(
+                "One test failed: {test_name}{reason_suffix} at {}",
+                path.display()
+            )
+            .red()
+            .bold()
+            .to_string();
         }
 
-        return format!("One test failed: {test_name}")
+        return format!("One test failed: {test_name}{reason_suffix}")
             .red()
             .bold()
             .to_string();
@@ -1482,7 +1531,7 @@ impl GradleRunCommand {
         );
 
         let mut failures: Vec<String> = Vec::new();
-        let mut gametest_failures: Vec<(String, Vec<String>)> = Vec::new();
+        let mut gametest_failures: Vec<(String, Vec<(String, Option<String>)>)> = Vec::new();
 
         for (branch_idx, wt) in worktrees.iter().enumerate() {
             let minecraft_dir = wt.path.join("platform").join("minecraft");
@@ -1605,8 +1654,20 @@ impl GradleRunCommand {
                                     output.stdout, output.stderr
                                 );
                                 let names = extract_failed_gametest_names(&combined);
+                                let reasons = extract_failed_gametest_reasons(&combined);
                                 if !names.is_empty() {
-                                    gametest_failures.push((wt.branch.clone(), names));
+                                    let tests = names
+                                        .into_iter()
+                                        .map(|name| {
+                                            let reason = reasons
+                                                .iter()
+                                                .find_map(|(test_name, reason)| {
+                                                    (test_name == &name).then_some(reason.clone())
+                                                });
+                                            (name, reason)
+                                        })
+                                        .collect();
+                                    gametest_failures.push((wt.branch.clone(), tests));
                                 }
                             }
                         }
@@ -1685,6 +1746,13 @@ impl GradleRunCommand {
                         }
                         print_gametest_failures(&gametest_failures);
                         print_report_to_stdout(&branches, &tasks);
+                        if let Err(tldr_err) = print_tldr_for_run(&run_log_dir) {
+                            warn!(
+                                run_dir = %run_log_dir.display(),
+                                error = %tldr_err,
+                                "Failed to generate automatic TLDR summary for gradle run"
+                            );
+                        }
                         bail!(err.message);
                     }
                 }
@@ -1693,6 +1761,13 @@ impl GradleRunCommand {
 
         print_gametest_failures(&gametest_failures);
         print_report_to_stdout(&branches, &tasks);
+        if let Err(tldr_err) = print_tldr_for_run(&run_log_dir) {
+            warn!(
+                run_dir = %run_log_dir.display(),
+                error = %tldr_err,
+                "Failed to generate automatic TLDR summary for gradle run"
+            );
+        }
 
         if !failures.is_empty() {
             let mut summary = String::from("One or more gradle tasks failed:\n");

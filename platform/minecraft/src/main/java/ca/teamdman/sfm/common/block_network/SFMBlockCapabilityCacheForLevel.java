@@ -101,7 +101,7 @@ public class SFMBlockCapabilityCacheForLevel {
                 SFMBlockCapabilityKind<?> capKind = e.getKey();
 
                 var dirMap = e.getValue();
-                for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+                for (Direction direction : SFMDirections.DIRECTIONS_WITH_NULL) {
                     SFMBlockCapabilityResult<?> cap = dirMap.get(direction);
                     if (cap != null) {
                         putCapability(BlockPos.of(pos), (SFMBlockCapabilityKind) capKind, direction, cap);
@@ -117,6 +117,7 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     public LongSet getPositionsRaw() {
+
         return blockPosToCapKindToDirectionToCapResultMap.keySet();
     }
 
@@ -176,7 +177,10 @@ public class SFMBlockCapabilityCacheForLevel {
 
         // Get the entry for (pos, ...)
         Object2ObjectOpenHashMap<SFMBlockCapabilityKind<?>, SFMDirections.NullableDirectionEnumMap<SFMBlockCapabilityResult<?>>>
-                posEntry = blockPosToCapKindToDirectionToCapResultMap.computeIfAbsent(pos.asLong(), k -> new Object2ObjectOpenHashMap<>());
+                posEntry = blockPosToCapKindToDirectionToCapResultMap.computeIfAbsent(
+                pos.asLong(),
+                k -> new Object2ObjectOpenHashMap<>()
+        );
 
         // Get the entry for the (pos, capKind, ...direction)
         SFMDirections.NullableDirectionEnumMap<SFMBlockCapabilityResult<?>>
@@ -193,15 +197,12 @@ public class SFMBlockCapabilityCacheForLevel {
             return listenerRemainsValid;
         };
 
-        // Track a strong reference to the listener in the SFMBlockCapabilityResult
-        // We MUST avoid it getting garbage collected by CapabilityListenerHolder
-        cap.addInvalidationListener(listener);
-
-        // Register the listener to the level
-        serverLevel.registerCapabilityListener(pos, listener);
+        // Register the listener
+        cap.addInvalidationListener(listener, serverLevel, pos);
     }
 
     public void bustCacheForChunk(ChunkAccess chunkAccess) {
+
         bustCacheForChunk(chunkAccess.getPos());
     }
 
