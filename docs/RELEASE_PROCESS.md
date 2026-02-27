@@ -25,7 +25,7 @@ These steps must be performed at the start of the release process.
 
 This phase handles ensuring generated sources are up-to-date.
 
-1. Run `sfm-propagate-changes.exe gradle runData` to ensure all generated resources are up to date for each MC version
+1. Run `sfm-propagate-changes.exe gradle run runData` to ensure all generated resources are up to date for each MC version
 2. Run `sfm-propagate-changes.exe git status` to ensure all changes under [src/generated](../platform/minecraft/src/generated/) are committed
 3. Run `sfm-propagate-changes.exe git merge` to ensure merge stability after committing generated files; each branch must keep its own src/generated files during the merge; reject incoming
 
@@ -33,13 +33,13 @@ This phase handles ensuring generated sources are up-to-date.
 
 This phase ensures that there is no unexpected behaviour in the mod.
 
-1. Run `sfm-propagate-changes.exe gradle runGameTestServer` to ensure all game tests are passing
+1. Run `sfm-propagate-changes.exe gradle run runGameTestServer` to ensure all game tests are passing
 
 ## Phase 4 - Building Jarfiles
 
 This phase produces the `.jar` files that users will add to their instance's `mods` directory
 
-1. Run `sfm-propagate-changes.exe gradle build` to build the jar and ensure all unit tests are passing for each MC version
+1. Run `sfm-propagate-changes.exe gradle run build` to build the jar and ensure all unit tests are passing for each MC version
 2. Run `sfm-propagate-changes.exe jar dir clean` to prepare the destination directory
 3. Run `sfm-propagate-changes.exe jar collect` to collect all the built jar files in one location
 
@@ -160,13 +160,13 @@ We want to close these issues once the newest release is available.
 All commands have a `--help` behaviour that can be used to learn more.
 
 ```
-❯ sfm-propagate-changes.exe gradle --help
+❯ sfm-propagate-changes.exe gradle run --help
 sfm-propagate-changes.exe gradle
 
 Run arbitrary gradle task(s) for each worktree in strict sequence
 
 USAGE:
-    sfm-propagate-changes.exe gradle [OPTIONS] <TASKS>
+    sfm-propagate-changes.exe gradle run [OPTIONS] <TASKS>
 
 ARGUMENTS:
         <TASKS>
