@@ -198,6 +198,9 @@ public class BlockNetwork<LEVEL, T> {
     }
 
     void addAllFromOtherNetwork(BlockNetwork<LEVEL, T> other) {
+        if (this == other) {
+            throw new IllegalArgumentException("Should never merge a network into itself");
+        }
 
         membersByBlockPosition.putAll(other.membersByBlockPosition);
         for (LongIterator iterator = other.memberBlockPositionsByChunk.keySet().iterator(); iterator.hasNext(); ) {
