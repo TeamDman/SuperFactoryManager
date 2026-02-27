@@ -11,6 +11,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraftforge.common.util.NonNullConsumer;
 import org.jetbrains.annotations.Nullable;
 public class SFMBlockCapabilityCacheForLevel {
     // Position => Capability => Direction => CapabilityResult/LazyOptional
@@ -97,7 +98,7 @@ public class SFMBlockCapabilityCacheForLevel {
                 SFMBlockCapabilityKind<?> capKind = e.getKey();
 
                 var dirMap = e.getValue();
-                for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+                for (Direction direction : SFMDirections.DIRECTIONS_WITH_NULL) {
                     SFMBlockCapabilityResult<?> cap = dirMap.get(direction);
                     if (cap != null) {
                         putCapability(BlockPos.of(pos), (SFMBlockCapabilityKind) capKind, direction, cap);
@@ -113,6 +114,7 @@ public class SFMBlockCapabilityCacheForLevel {
     }
 
     public LongSet getPositionsRaw() {
+
         return blockPosToCapKindToDirectionToCapResultMap.keySet();
     }
 
@@ -167,7 +169,10 @@ public class SFMBlockCapabilityCacheForLevel {
 
         // Get the entry for (pos, ...capKind)
         Object2ObjectOpenHashMap<SFMBlockCapabilityKind<?>, SFMDirections.NullableDirectionEnumMap<SFMBlockCapabilityResult<?>>>
-                posEntry = blockPosToCapKindToDirectionToCapResultMap.computeIfAbsent(pos.asLong(), k -> new Object2ObjectOpenHashMap<>());
+                posEntry = blockPosToCapKindToDirectionToCapResultMap.computeIfAbsent(
+                pos.asLong(),
+                k -> new Object2ObjectOpenHashMap<>()
+        );
 
         // Get the entry for the (pos, capKind, ...direction)
         SFMDirections.NullableDirectionEnumMap<SFMBlockCapabilityResult<?>>
@@ -177,15 +182,19 @@ public class SFMBlockCapabilityCacheForLevel {
         capKindEntry.put(direction, cap);
         addToChunkMap(pos);
 
-        // Register a listener to remove the cache entry when the world tells us to.
-        cap.addInvalidationListener(__ -> this.remove(
+        // Create the listener to remove the entry when the capability is invalidated
+        NonNullConsumer<SFMBlockCapabilityResult<CAP>> listener = (SFMBlockCapabilityResult<CAP> unused) -> this.remove(
                 pos,
                 capKind,
                 direction
-        ));
+        );
+
+        // Register the listener
+        cap.addInvalidationListener(listener);
     }
 
     public void bustCacheForChunk(ChunkAccess chunkAccess) {
+
         bustCacheForChunk(chunkAccess.getPos());
     }
 

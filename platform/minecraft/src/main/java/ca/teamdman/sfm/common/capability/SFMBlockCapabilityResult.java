@@ -32,7 +32,7 @@ public record SFMBlockCapabilityResult<CAP>(LazyOptional<CAP> inner) {
         return SFMBlockCapabilityResult.of(LazyOptional.empty());
     }
 
-    public @NotNull CAP unwrap() {
+    public CAP unwrap() {
 
         return inner.orElseThrow(IllegalStateException::new);
     }
@@ -42,7 +42,8 @@ public record SFMBlockCapabilityResult<CAP>(LazyOptional<CAP> inner) {
         return inner.isPresent();
     }
 
-    /// If this is not present, the listener is called immediately.
+    /// If this capability is not present, the listener is called immediately.
+    @MCVersionDependentBehaviour
     public void addInvalidationListener(NonNullConsumer<SFMBlockCapabilityResult<CAP>> listener) {
 
         inner.addListener(inner -> listener.accept(SFMBlockCapabilityResult.this));
