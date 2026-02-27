@@ -1,20 +1,30 @@
 use crate::cli::status::assert_worktrees_clean_or_autocommit_generated;
 use crate::mc_version_filter::McVersionFilter;
+use crate::paths::CACHE_DIR;
 use crate::worktree::get_sorted_worktrees;
+use chrono::Local;
 use color_eyre::owo_colors::OwoColorize;
 use eyre::Context;
 use eyre::bail;
 use facet::Facet;
 use figue::{self as args};
+use humansize::DECIMAL;
+use humansize::format_size;
+use std::ffi::OsStr;
 use std::fmt::Write as _;
+use std::fs;
+use std::io::Write as _;
+use std::mem;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::ExitStatus;
 use std::process::Stdio;
 use std::time::Duration;
 use std::time::Instant;
-use tokio::io::AsyncBufReadExt;
+use tokio::fs::File;
 use tokio::io::AsyncRead;
-use tokio::io::BufReader;
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tracing::debug;
 use tracing::error;
@@ -56,6 +66,8 @@ struct TaskOutput {
     stdout: String,
     stderr: String,
     duration: Duration,
+    stdout_log_path: PathBuf,
+    stderr_log_path: PathBuf,
 }
 
 #[derive(Debug)]
@@ -63,6 +75,50 @@ struct TaskError {
     message: String,
     output: Option<TaskOutput>,
     interrupted: bool,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum LogStreamKind {
+    Stdout,
+    Stderr,
+}
+
+#[derive(Debug, Clone)]
+struct LogPair {
+    relative_task_dir: PathBuf,
+    stdout_log: PathBuf,
+    stderr_log: PathBuf,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum LogModelState {
+    Startup,
+    Registration,
+    Runtime,
+    Exception,
+    Terminal,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum LogEvent {
+    StartupNoise,
+    RegistrationMarker,
+    RuntimeMarker,
+    ExceptionHead,
+    StackLine,
+    BuildSuccess,
+    BuildFailed,
+    TestFailures,
+    Signal,
+    Other,
+}
+
+#[derive(Debug, Default)]
+struct LogReduction {
+    important_lines: Vec<String>,
+    failed_tests: Vec<String>,
+    tests_passed: bool,
+    build_failed: bool,
 }
 
 impl GradleTask {
@@ -203,6 +259,15 @@ fn format_duration(duration: Duration) -> String {
     }
 }
 
+fn format_log_summary(label: &str, output: &str, log_path: &Path) -> String {
+    let lines = output.lines().count();
+    let bytes = fs::metadata(log_path)
+        .map(|meta| meta.len())
+        .unwrap_or_else(|_| u64::try_from(output.len()).unwrap_or(u64::MAX));
+
+    format!("  {label}: {lines} lines ({})", format_size(bytes, DECIMAL))
+}
+
 fn format_report(branches: &[BranchRun], tasks: &[GradleTask]) -> String {
     let mut widths = Vec::with_capacity(tasks.len() + 1);
     widths.push(
@@ -275,22 +340,803 @@ fn print_report_to_stdout(branches: &[BranchRun], tasks: &[GradleTask]) {
     println!("{}", format_report(branches, tasks));
 }
 
-async fn collect_output<R>(reader: R, hide_logs: bool) -> std::io::Result<String>
+fn print_stream_path(label: &str, path: &Path) {
+    println!("{}", format!("  {label}: {}", path.display()).dimmed());
+}
+
+fn sanitize_for_path(input: &str) -> String {
+    let sanitized: String = input
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+
+    let trimmed = sanitized.trim_matches('_');
+    if trimmed.is_empty() {
+        "unnamed".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn create_gradle_run_log_dir(tasks: &[String]) -> eyre::Result<PathBuf> {
+    let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
+    let task_segment = tasks
+        .iter()
+        .map(|t| sanitize_for_path(t))
+        .collect::<Vec<_>>()
+        .join("+");
+    let task_segment = if task_segment.len() > 80 {
+        task_segment[..80].to_string()
+    } else {
+        task_segment
+    };
+
+    let run_dir_name = if task_segment.is_empty() {
+        format!("gradle_{timestamp}")
+    } else {
+        format!("gradle_{timestamp}_{task_segment}")
+    };
+
+    let run_dir = CACHE_DIR.0.join("gradle-runs").join(run_dir_name);
+    fs::create_dir_all(&run_dir).wrap_err_with(|| {
+        format!(
+            "Failed to create gradle run log directory: {}",
+            run_dir.display()
+        )
+    })?;
+    Ok(run_dir)
+}
+
+fn gradle_runs_dir() -> PathBuf {
+    CACHE_DIR.0.join("gradle-runs")
+}
+
+fn latest_gradle_run_dir() -> eyre::Result<PathBuf> {
+    let runs_dir = gradle_runs_dir();
+
+    if !runs_dir.exists() {
+        bail!("No gradle run logs exist yet: {}", runs_dir.display());
+    }
+
+    let mut run_dirs = Vec::new();
+    for entry in fs::read_dir(&runs_dir).wrap_err_with(|| {
+        format!(
+            "Failed to read gradle runs directory: {}",
+            runs_dir.display()
+        )
+    })? {
+        let entry = entry.wrap_err("Failed to read gradle runs directory entry")?;
+        let path = entry.path();
+        let file_type = entry
+            .file_type()
+            .wrap_err_with(|| format!("Failed to inspect: {}", path.display()))?;
+        if !file_type.is_dir() {
+            continue;
+        }
+        let modified = entry.metadata().and_then(|meta| meta.modified()).ok();
+        run_dirs.push((modified, path));
+    }
+
+    run_dirs.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| right.1.cmp(&left.1)));
+
+    run_dirs
+        .into_iter()
+        .next()
+        .map(|(_, path)| path)
+        .ok_or_else(|| eyre::eyre!("No gradle run directories found in {}", runs_dir.display()))
+}
+
+fn collect_named_logs(root: &Path, file_name: &str) -> eyre::Result<Vec<PathBuf>> {
+    let mut logs = Vec::new();
+    let mut pending = vec![root.to_path_buf()];
+
+    while let Some(dir) = pending.pop() {
+        for entry in fs::read_dir(&dir)
+            .wrap_err_with(|| format!("Failed to read directory: {}", dir.display()))?
+        {
+            let entry = entry.wrap_err("Failed to read directory entry")?;
+            let path = entry.path();
+            let file_type = entry
+                .file_type()
+                .wrap_err_with(|| format!("Failed to inspect: {}", path.display()))?;
+
+            if file_type.is_dir() {
+                pending.push(path);
+            } else if file_type.is_file() && path.file_name() == Some(OsStr::new(file_name)) {
+                logs.push(path);
+            }
+        }
+    }
+
+    logs.sort();
+    Ok(logs)
+}
+
+fn collect_log_pairs(run_dir: &Path) -> eyre::Result<Vec<LogPair>> {
+    let stdout_logs = collect_named_logs(run_dir, "stdout.log")?;
+    let mut pairs = Vec::new();
+
+    for stdout_log in stdout_logs {
+        let Some(task_dir) = stdout_log.parent() else {
+            continue;
+        };
+
+        let stderr_log = task_dir.join("stderr.log");
+        if !stderr_log.exists() {
+            continue;
+        }
+
+        let relative_task_dir = task_dir
+            .strip_prefix(run_dir)
+            .map_or_else(|_| task_dir.to_path_buf(), Path::to_path_buf);
+
+        pairs.push(LogPair {
+            relative_task_dir,
+            stdout_log,
+            stderr_log,
+        });
+    }
+
+    pairs.sort_by(|left, right| left.relative_task_dir.cmp(&right.relative_task_dir));
+    Ok(pairs)
+}
+
+fn classify_log_event(line: &str) -> LogEvent {
+    let trimmed = line.trim();
+
+    if trimmed.is_empty()
+        || trimmed.starts_with("To honour the JVM settings for this build")
+        || trimmed.starts_with("Daemon will be stopped at the end of the build")
+        || trimmed.contains("did not locate the diffplug APT plugin")
+        || trimmed.contains("[main/DEBUG]")
+        || trimmed.contains("/DEBUG]")
+        || (trimmed.starts_with("> Task :")
+            && (trimmed.contains("UP-TO-DATE")
+                || trimmed.contains("NO-SOURCE")
+                || trimmed.ends_with("FROM-CACHE")))
+    {
+        return LogEvent::StartupNoise;
+    }
+
+    if trimmed.contains("register") || trimmed.contains("registry") {
+        return LogEvent::RegistrationMarker;
+    }
+
+    if trimmed.contains("runGameTestServer")
+        || trimmed.contains("Launch target")
+        || trimmed.contains("GameTestServer")
+    {
+        return LogEvent::RuntimeMarker;
+    }
+
+    if trimmed.contains("BUILD SUCCESSFUL") {
+        return LogEvent::BuildSuccess;
+    }
+
+    if trimmed.contains("BUILD FAILED") {
+        return LogEvent::BuildFailed;
+    }
+
+    if trimmed.contains("required tests failed :(") {
+        return LogEvent::TestFailures;
+    }
+
+    if trimmed.starts_with("at ")
+        || trimmed.starts_with("\tat ")
+        || trimmed.starts_with("... ")
+        || trimmed.starts_with("Suppressed:")
+    {
+        return LogEvent::StackLine;
+    }
+
+    if trimmed.contains("Exception") || trimmed.contains("Caused by:") {
+        return LogEvent::ExceptionHead;
+    }
+
+    if trimmed.contains(" WARN") || trimmed.contains(" ERROR") || trimmed.contains(" FAILURE:") {
+        return LogEvent::Signal;
+    }
+
+    LogEvent::Other
+}
+
+fn advance_log_state(
+    state: LogModelState,
+    event: LogEvent,
+    resume_state: &mut LogModelState,
+) -> LogModelState {
+    if state == LogModelState::Terminal {
+        return LogModelState::Terminal;
+    }
+
+    if matches!(event, LogEvent::BuildSuccess | LogEvent::BuildFailed) {
+        return LogModelState::Terminal;
+    }
+
+    match state {
+        LogModelState::Exception => {
+            if event == LogEvent::StackLine {
+                LogModelState::Exception
+            } else {
+                *resume_state
+            }
+        }
+        LogModelState::Startup => match event {
+            LogEvent::RegistrationMarker => LogModelState::Registration,
+            LogEvent::RuntimeMarker => LogModelState::Runtime,
+            LogEvent::ExceptionHead => {
+                *resume_state = LogModelState::Startup;
+                LogModelState::Exception
+            }
+            _ => LogModelState::Startup,
+        },
+        LogModelState::Registration => match event {
+            LogEvent::RuntimeMarker => LogModelState::Runtime,
+            LogEvent::ExceptionHead => {
+                *resume_state = LogModelState::Registration;
+                LogModelState::Exception
+            }
+            _ => LogModelState::Registration,
+        },
+        LogModelState::Runtime => match event {
+            LogEvent::ExceptionHead => {
+                *resume_state = LogModelState::Runtime;
+                LogModelState::Exception
+            }
+            _ => LogModelState::Runtime,
+        },
+        LogModelState::Terminal => LogModelState::Terminal,
+    }
+}
+
+fn is_ignorable_surprise_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+
+    trimmed.contains("Advanced terminal features are not available in this environment")
+        || trimmed.contains("[main/WARN] [mixin/]: Error loading class:")
+        || trimmed.contains("noobanidus/mods/lootr/config/ConfigManager")
+        || trimmed.contains("Reflective setAccessible(true) disabled")
+        || trimmed.contains("io.netty.util.internal.ReflectionUtil.trySetAccessible")
+        || trimmed.contains("io.netty.util.internal.PlatformDependent0")
+        || trimmed.contains("io.netty.util.internal.PlatformDependent")
+        || trimmed.contains("io.netty.util.ConstantPool")
+        || trimmed.contains("io.netty.util.AttributeKey")
+        || trimmed.contains("net.minecraftforge.network.NetworkConstants")
+        || trimmed.contains("net.minecraftforge.common.ForgeMod")
+        || trimmed.contains("java.lang.IllegalAccessException")
+        || trimmed.contains("jdk.internal.misc.Unsafe")
+        || trimmed.starts_with("... omitted ")
+        || trimmed.contains("finished with non-zero exit value 1")
+        || trimmed == "* Try:"
+        || trimmed.contains("Run with --stacktrace option to get the stack trace")
+        || trimmed.contains("Run with --info or --debug option to get more log output")
+        || trimmed.contains("Run with --scan to get full insights")
+        || trimmed.contains("Get more help at https://help.gradle.org")
+        || trimmed.starts_with("BUILD FAILED in ")
+}
+
+fn is_daemon_shutdown_noise_line(line: &str) -> bool {
+    let trimmed = line.trim();
+
+    trimmed.contains("Daemon vm is shutting down")
+        || trimmed.contains("The daemon has exited normally")
+        || trimmed == "----- End of the daemon log -----"
+        || trimmed == "* What went wrong:"
+        || trimmed == "Could not dispatch a message to the daemon."
+        || trimmed == "FAILURE: Build failed with an exception."
+}
+
+fn is_ignorable_exception_head_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.contains(
+        "java.lang.UnsupportedOperationException: Reflective setAccessible(true) disabled",
+    ) || (trimmed.contains("java.lang.IllegalAccessException")
+        && trimmed.contains("jdk.internal.misc.Unsafe"))
+}
+
+fn is_relevant_stack_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.contains("ca.teamdman.")
+        || trimmed.contains("net.minecraft.gametest.")
+        || trimmed.contains("GameTest")
+}
+
+fn reduce_log_content(content: &str, stream: LogStreamKind) -> LogReduction {
+    let mut state = LogModelState::Startup;
+    let mut resume_state = LogModelState::Startup;
+    let mut stack_lines_kept = 0_usize;
+    let mut stack_lines_omitted = 0_usize;
+    let mut suppress_exception_stack = false;
+    const STACKTRACE_LINE_BUDGET: usize = 12;
+
+    let mut reduction = LogReduction {
+        failed_tests: extract_failed_gametest_names(content),
+        tests_passed: has_gametest_success(content),
+        ..LogReduction::default()
+    };
+    let has_daemon_shutdown_noise = content.contains("Daemon vm is shutting down")
+        || content.contains("The daemon has exited normally");
+
+    for line in content.lines() {
+        let mut reprocess = true;
+        while reprocess {
+            reprocess = false;
+
+            let event = classify_log_event(line);
+            let previous_state = state;
+            state = advance_log_state(state, event, &mut resume_state);
+
+            if previous_state == LogModelState::Exception
+                && state != LogModelState::Exception
+                && event != LogEvent::StackLine
+            {
+                if stack_lines_omitted > 0 {
+                    reduction.important_lines.push(
+                        format!("... omitted {} stacktrace lines", stack_lines_omitted)
+                            .dimmed()
+                            .to_string(),
+                    );
+                    stack_lines_omitted = 0;
+                }
+                stack_lines_kept = 0;
+                suppress_exception_stack = false;
+                reprocess = true;
+                continue;
+            }
+
+            if event == LogEvent::ExceptionHead && is_ignorable_exception_head_line(line) {
+                suppress_exception_stack = true;
+                stack_lines_kept = 0;
+                stack_lines_omitted = 0;
+                continue;
+            }
+
+            if previous_state == LogModelState::Exception
+                && event == LogEvent::StackLine
+                && suppress_exception_stack
+            {
+                continue;
+            }
+
+            if has_daemon_shutdown_noise && is_daemon_shutdown_noise_line(line) {
+                continue;
+            }
+
+            if is_ignorable_surprise_line(line) {
+                continue;
+            }
+
+            if event == LogEvent::BuildFailed {
+                reduction.build_failed = true;
+                reduction.important_lines.push(line.to_string());
+                continue;
+            }
+
+            if event == LogEvent::ExceptionHead
+                || event == LogEvent::Signal
+                || event == LogEvent::TestFailures
+            {
+                reduction.important_lines.push(line.to_string());
+                if event == LogEvent::ExceptionHead {
+                    suppress_exception_stack = false;
+                    stack_lines_kept = 0;
+                    stack_lines_omitted = 0;
+                }
+                continue;
+            }
+
+            if previous_state == LogModelState::Exception && event == LogEvent::StackLine {
+                if suppress_exception_stack {
+                    continue;
+                }
+
+                if !is_relevant_stack_line(line) {
+                    stack_lines_omitted += 1;
+                    continue;
+                }
+
+                if stack_lines_kept < STACKTRACE_LINE_BUDGET {
+                    reduction.important_lines.push(line.to_string());
+                    stack_lines_kept += 1;
+                } else {
+                    stack_lines_omitted += 1;
+                }
+                continue;
+            }
+
+            if stream == LogStreamKind::Stderr
+                && event == LogEvent::Other
+                && !line.trim().is_empty()
+                && state == LogModelState::Runtime
+            {
+                reduction.important_lines.push(line.to_string());
+            }
+        }
+    }
+
+    if stack_lines_omitted > 0 {
+        reduction.important_lines.push(
+            format!("... omitted {} stacktrace lines", stack_lines_omitted)
+                .dimmed()
+                .to_string(),
+        );
+    }
+
+    reduction
+}
+
+fn merge_reduction(into: &mut LogReduction, from: LogReduction) {
+    into.tests_passed |= from.tests_passed;
+    into.build_failed |= from.build_failed;
+    into.failed_tests.extend(from.failed_tests);
+    into.important_lines.extend(from.important_lines);
+}
+
+fn normalize_spaces(input: &str) -> String {
+    input
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                ' '
+            }
+        })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn find_gametest_source(test_name: &str) -> Option<PathBuf> {
+    let cwd = std::env::current_dir().ok()?;
+
+    let mut repo_root = None;
+    for ancestor in cwd.ancestors() {
+        let gametest_dir = ancestor
+            .join("platform")
+            .join("minecraft")
+            .join("src")
+            .join("gametest")
+            .join("java");
+        if gametest_dir.exists() {
+            repo_root = Some(ancestor.to_path_buf());
+            break;
+        }
+    }
+
+    let repo_root = repo_root?;
+    let gametest_dir = repo_root
+        .join("platform")
+        .join("minecraft")
+        .join("src")
+        .join("gametest")
+        .join("java");
+
+    let normalized_test = normalize_spaces(test_name);
+    let test_tokens: Vec<&str> = normalized_test.split_whitespace().collect();
+    let mut pending = vec![gametest_dir];
+
+    while let Some(dir) = pending.pop() {
+        let entries = match fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(_) => continue,
+        };
+        for entry in entries {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(_) => continue,
+            };
+            let path = entry.path();
+            let file_type = match entry.file_type() {
+                Ok(file_type) => file_type,
+                Err(_) => continue,
+            };
+
+            if file_type.is_dir() {
+                pending.push(path);
+                continue;
+            }
+
+            if !file_type.is_file() || path.extension() != Some(OsStr::new("java")) {
+                continue;
+            }
+
+            let normalized_path = normalize_spaces(&path.to_string_lossy());
+            if test_tokens
+                .iter()
+                .all(|token| normalized_path.contains(token))
+            {
+                return path
+                    .strip_prefix(&repo_root)
+                    .ok()
+                    .map(Path::to_path_buf)
+                    .or(Some(path));
+            }
+
+            let content = match fs::read_to_string(&path) {
+                Ok(content) => content,
+                Err(_) => continue,
+            };
+            let normalized_content = normalize_spaces(&content);
+            if normalized_content.contains(&normalized_test)
+                || test_tokens
+                    .iter()
+                    .all(|token| normalized_content.contains(token))
+            {
+                return path
+                    .strip_prefix(&repo_root)
+                    .ok()
+                    .map(Path::to_path_buf)
+                    .or(Some(path));
+            }
+        }
+    }
+
+    None
+}
+
+fn summarize_reduction(_pair: &LogPair, reduction: &LogReduction) -> String {
+    let mut unique_failed = reduction.failed_tests.clone();
+    unique_failed.sort();
+    unique_failed.dedup();
+
+    if unique_failed.is_empty() && reduction.important_lines.is_empty() && reduction.tests_passed {
+        return "No surprises, all tests passed".green().bold().to_string();
+    }
+
+    if unique_failed.len() == 1 {
+        let test_name = &unique_failed[0];
+        if let Some(path) = find_gametest_source(test_name) {
+            return format!("One test failed: {test_name} at {}", path.display())
+                .red()
+                .bold()
+                .to_string();
+        }
+
+        return format!("One test failed: {test_name}")
+            .red()
+            .bold()
+            .to_string();
+    }
+
+    if !unique_failed.is_empty() {
+        return format!(
+            "{} tests failed: {}",
+            unique_failed.len(),
+            unique_failed.join(", ")
+        )
+        .red()
+        .bold()
+        .to_string();
+    }
+
+    if reduction.build_failed {
+        return "Build failed with surprises".red().bold().to_string();
+    }
+
+    "Potential surprises".yellow().bold().to_string()
+}
+
+fn read_log_stats(path: &Path) -> eyre::Result<(usize, u64)> {
+    let bytes = fs::metadata(path)
+        .wrap_err_with(|| format!("Failed to stat log file: {}", path.display()))?
+        .len();
+    let content =
+        fs::read(path).wrap_err_with(|| format!("Failed to read log file: {}", path.display()))?;
+    let text = String::from_utf8_lossy(&content);
+    Ok((text.lines().count(), bytes))
+}
+
+fn print_log_list(run_dir: &Path) -> eyre::Result<()> {
+    let pairs = collect_log_pairs(run_dir)?;
+    if pairs.is_empty() {
+        println!("No stdout/stderr log pairs found in {}", run_dir.display());
+        return Ok(());
+    }
+
+    println!(
+        "{}",
+        format!("Gradle logs in {}", run_dir.display())
+            .cyan()
+            .bold()
+    );
+
+    for pair in pairs {
+        println!("{}", pair.relative_task_dir.display().to_string().bold());
+
+        let (stdout_lines, stdout_bytes) = read_log_stats(&pair.stdout_log)?;
+        let (stderr_lines, stderr_bytes) = read_log_stats(&pair.stderr_log)?;
+
+        let stdout_rel = pair
+            .stdout_log
+            .strip_prefix(run_dir)
+            .map_or_else(|_| pair.stdout_log.clone(), Path::to_path_buf);
+        let stderr_rel = pair
+            .stderr_log
+            .strip_prefix(run_dir)
+            .map_or_else(|_| pair.stderr_log.clone(), Path::to_path_buf);
+
+        println!(
+            "  stdout: {} ({stdout_lines} lines, {})",
+            stdout_rel.display(),
+            format_size(stdout_bytes, DECIMAL)
+        );
+        println!(
+            "  stderr: {} ({stderr_lines} lines, {})",
+            stderr_rel.display(),
+            format_size(stderr_bytes, DECIMAL)
+        );
+    }
+
+    Ok(())
+}
+
+const TLDR_MAX_LINES: usize = 100;
+const TLDR_MAX_CHARS: usize = 50_000;
+
+fn truncate_tldr_summary(summary: &str) -> String {
+    let lines: Vec<&str> = summary.lines().collect();
+    if lines.is_empty() {
+        return summary.to_string();
+    }
+
+    let mut kept_lines = Vec::new();
+    let mut used_chars = 0_usize;
+    let mut used_bytes = 0_u64;
+
+    for line in &lines {
+        if kept_lines.len() >= TLDR_MAX_LINES {
+            break;
+        }
+
+        let separator_chars = usize::from(!kept_lines.is_empty());
+        let separator_bytes = u64::from(!kept_lines.is_empty());
+        let line_chars = line.chars().count();
+
+        if used_chars
+            .saturating_add(separator_chars)
+            .saturating_add(line_chars)
+            > TLDR_MAX_CHARS
+        {
+            break;
+        }
+
+        kept_lines.push(*line);
+        used_chars = used_chars
+            .saturating_add(separator_chars)
+            .saturating_add(line_chars);
+        used_bytes = used_bytes
+            .saturating_add(separator_bytes)
+            .saturating_add(u64::try_from(line.len()).unwrap_or(u64::MAX));
+    }
+
+    if kept_lines.len() == lines.len() {
+        return summary.to_string();
+    }
+
+    let omitted_lines = lines.len().saturating_sub(kept_lines.len());
+    let total_bytes = u64::try_from(summary.len()).unwrap_or(u64::MAX);
+    let omitted_bytes = total_bytes.saturating_sub(used_bytes);
+    let truncated_line = format!(
+        "... truncated, {} lines ({}) omitted",
+        omitted_lines,
+        format_size(omitted_bytes, DECIMAL)
+    )
+    .dimmed()
+    .to_string();
+
+    if kept_lines.is_empty() {
+        truncated_line
+    } else {
+        format!("{}\n{}", kept_lines.join("\n"), truncated_line)
+    }
+}
+
+fn print_tldr_for_run(run_dir: &Path) -> eyre::Result<()> {
+    let pairs = collect_log_pairs(run_dir)?;
+    if pairs.is_empty() {
+        println!("No stdout/stderr log pairs found in {}", run_dir.display());
+        return Ok(());
+    }
+
+    println!();
+    println!(
+        "{}",
+        format!("TLDR (model-driven reduction) {}", run_dir.display())
+            .cyan()
+            .bold()
+    );
+
+    for pair in pairs {
+        let stdout_content = fs::read_to_string(&pair.stdout_log)
+            .wrap_err_with(|| format!("Failed to read log file: {}", pair.stdout_log.display()))?;
+        let stderr_content = fs::read_to_string(&pair.stderr_log)
+            .wrap_err_with(|| format!("Failed to read log file: {}", pair.stderr_log.display()))?;
+
+        let stdout_reduction = reduce_log_content(&stdout_content, LogStreamKind::Stdout);
+        let stderr_reduction = reduce_log_content(&stderr_content, LogStreamKind::Stderr);
+        let mut combined = LogReduction::default();
+        merge_reduction(&mut combined, stdout_reduction);
+        merge_reduction(&mut combined, stderr_reduction);
+
+        let headline = summarize_reduction(&pair, &combined);
+        println!();
+        println!("{}", pair.relative_task_dir.display().to_string().bold());
+        println!("  {}", headline);
+
+        let important_lines = mem::take(&mut combined.important_lines);
+        if !important_lines.is_empty() {
+            let preview = truncate_tldr_summary(&important_lines.join("\n"));
+            println!("{}", preview);
+        }
+    }
+
+    Ok(())
+}
+
+fn create_task_log_paths(
+    run_log_dir: &Path,
+    branch: &str,
+    task_idx: usize,
+    task: &GradleTask,
+) -> eyre::Result<(PathBuf, PathBuf)> {
+    let branch_dir = sanitize_for_path(branch);
+    let task_dir = format!(
+        "{:02}_{}",
+        task_idx + 1,
+        sanitize_for_path(task.as_gradle_arg())
+    );
+
+    let dir = run_log_dir.join(branch_dir).join(task_dir);
+    fs::create_dir_all(&dir)
+        .wrap_err_with(|| format!("Failed to create task log directory: {}", dir.display()))?;
+
+    Ok((dir.join("stdout.log"), dir.join("stderr.log")))
+}
+
+async fn collect_output<R>(
+    reader: R,
+    stream_logs_to_console: bool,
+    log_path: PathBuf,
+) -> std::io::Result<String>
 where
     R: AsyncRead + Unpin,
 {
-    let mut lines = BufReader::new(reader).lines();
-    let mut out = String::new();
+    let mut reader = reader;
+    let mut log_file = File::create(log_path).await?;
+    let mut buf = [0_u8; 8 * 1024];
+    let mut out = Vec::new();
 
-    while let Some(line) = lines.next_line().await? {
-        if !hide_logs {
-            eprintln!("{line}");
+    loop {
+        let bytes_read = reader.read(&mut buf).await?;
+        if bytes_read == 0 {
+            break;
         }
-        out.push_str(&line);
-        out.push('\n');
+
+        let chunk = &buf[..bytes_read];
+        if stream_logs_to_console {
+            eprint!("{}", String::from_utf8_lossy(chunk));
+            std::io::stderr().flush()?;
+        }
+
+        log_file.write_all(chunk).await?;
+        log_file.flush().await?;
+        out.extend_from_slice(chunk);
     }
 
-    Ok(out)
+    log_file.flush().await?;
+
+    Ok(String::from_utf8_lossy(&out).into_owned())
 }
 
 #[expect(
@@ -301,7 +1147,9 @@ async fn run_gradle_task(
     gradlew: &Path,
     minecraft_dir: &Path,
     task: &GradleTask,
-    hide_logs: bool,
+    show_logs: bool,
+    stdout_log_path: &Path,
+    stderr_log_path: &Path,
 ) -> Result<TaskOutput, TaskError> {
     debug!(
         path = %minecraft_dir.display(),
@@ -309,7 +1157,7 @@ async fn run_gradle_task(
         "Running task"
     );
 
-    if !hide_logs {
+    if show_logs {
         eprintln!(
             "{}",
             format!("━━━ {} ({})", task.as_gradle_arg(), minecraft_dir.display())
@@ -320,6 +1168,7 @@ async fn run_gradle_task(
 
     let start = Instant::now();
     let mut child = Command::new(gradlew)
+        .arg("--console=plain")
         .arg(task.as_gradle_arg())
         .current_dir(minecraft_dir)
         .kill_on_drop(true)
@@ -351,8 +1200,12 @@ async fn run_gradle_task(
         interrupted: false,
     })?;
 
-    let stdout_task = tokio::spawn(collect_output(stdout, hide_logs));
-    let stderr_task = tokio::spawn(collect_output(stderr, hide_logs));
+    let stdout_log_path_buf = stdout_log_path.to_path_buf();
+    let stderr_log_path_buf = stderr_log_path.to_path_buf();
+    let stdout_task =
+        tokio::spawn(async move { collect_output(stdout, show_logs, stdout_log_path_buf).await });
+    let stderr_task =
+        tokio::spawn(async move { collect_output(stderr, show_logs, stderr_log_path_buf).await });
 
     let (status, interrupted) = tokio::select! {
         status_res = child.wait() => {
@@ -441,6 +1294,8 @@ async fn run_gradle_task(
         stdout,
         stderr,
         duration: start.elapsed(),
+        stdout_log_path: stdout_log_path.to_path_buf(),
+        stderr_log_path: stderr_log_path.to_path_buf(),
     };
 
     if interrupted {
@@ -471,9 +1326,39 @@ async fn run_gradle_task(
     }
 }
 
+/// Gradle-related commands.
+#[derive(Facet, Debug)]
+#[repr(u8)]
+pub enum GradleCommand {
+    /// Run arbitrary gradle task(s) for each worktree in strict sequence
+    Run {
+        /// Gradle run options
+        #[facet(flatten)]
+        command: GradleRunCommand,
+    },
+    /// Inspect previously captured gradle logs (alias)
+    Log {
+        /// Log inspection subcommand
+        #[facet(args::subcommand)]
+        command: GradleLogsCommand,
+    },
+}
+
+impl GradleCommand {
+    /// # Errors
+    ///
+    /// This function will return an error if the subcommand fails.
+    pub fn invoke(self) -> eyre::Result<()> {
+        match self {
+            Self::Run { command } => command.invoke(),
+            Self::Log { command } => command.invoke(),
+        }
+    }
+}
+
 /// Gradle command - runs arbitrary gradle tasks in each worktree in strict sequence.
 #[derive(Facet, Debug, Default)]
-pub struct GradleCommand {
+pub struct GradleRunCommand {
     /// Gradle tasks to run (for example: `runData`, `runGameTestServer`, `test`).
     #[facet(args::positional)]
     pub tasks: Vec<String>,
@@ -482,9 +1367,11 @@ pub struct GradleCommand {
     #[facet(default, args::named)]
     pub mc: Option<String>,
 
-    /// If set, hide stdout of each gradle process while it runs.
-    #[facet(rename = "hide-logs", args::named, default = false)]
-    pub hide_logs: bool,
+    /// If set, stream gradle stdout/stderr to the console while tasks run.
+    ///
+    /// By default logs are written to cache files only and not streamed.
+    #[facet(rename = "show-logs", args::named, default = false)]
+    pub show_logs: bool,
 
     /// If set, continue with later branches after a task failure.
     ///
@@ -493,7 +1380,7 @@ pub struct GradleCommand {
     pub continue_on_error: bool,
 }
 
-impl GradleCommand {
+impl GradleRunCommand {
     /// # Errors
     ///
     /// Returns an error if any task fails.
@@ -553,6 +1440,9 @@ impl GradleCommand {
             .iter()
             .map(|task| GradleTask::from_input(task))
             .collect();
+
+        let run_log_dir = create_gradle_run_log_dir(&self.tasks)?;
+        println!("Gradle run logs: {}", run_log_dir.display());
 
         if tasks.iter().any(GradleTask::needs_generated_preflight) {
             assert_worktrees_clean_or_autocommit_generated(&worktrees)?;
@@ -640,14 +1530,55 @@ impl GradleCommand {
                     "Starting gradle task"
                 );
 
-                let result =
-                    run_gradle_task(&gradlew, &minecraft_dir, &current_task, self.hide_logs).await;
+                let result = {
+                    let (stdout_log_path, stderr_log_path) =
+                        create_task_log_paths(&run_log_dir, &wt.branch, task_idx, &current_task)?;
+
+                    fs::write(&stdout_log_path, "").wrap_err_with(|| {
+                        format!(
+                            "Failed to initialize stdout log file: {}",
+                            stdout_log_path.display()
+                        )
+                    })?;
+                    fs::write(&stderr_log_path, "").wrap_err_with(|| {
+                        format!(
+                            "Failed to initialize stderr log file: {}",
+                            stderr_log_path.display()
+                        )
+                    })?;
+
+                    println!(
+                        "Running {} for {}",
+                        current_task.as_gradle_arg().cyan().bold(),
+                        wt.branch.cyan().bold()
+                    );
+                    print_stream_path("stdout", &stdout_log_path);
+                    print_stream_path("stderr", &stderr_log_path);
+
+                    run_gradle_task(
+                        &gradlew,
+                        &minecraft_dir,
+                        &current_task,
+                        self.show_logs,
+                        &stdout_log_path,
+                        &stderr_log_path,
+                    )
+                    .await
+                };
 
                 match result {
                     Ok(output) => {
                         branches[branch_idx].tasks[task_idx].state = TaskState::Success {
                             duration: output.duration,
                         };
+                        println!(
+                            "{}",
+                            format_log_summary("stdout", &output.stdout, &output.stdout_log_path)
+                        );
+                        println!(
+                            "{}",
+                            format_log_summary("stderr", &output.stderr, &output.stderr_log_path)
+                        );
                         info!(
                             branch = %wt.branch,
                             task = %current_task.as_gradle_arg(),
@@ -680,6 +1611,25 @@ impl GradleCommand {
                             }
                         }
 
+                        if let Some(ref output) = err.output {
+                            println!(
+                                "{}",
+                                format_log_summary(
+                                    "stdout",
+                                    &output.stdout,
+                                    &output.stdout_log_path
+                                )
+                            );
+                            println!(
+                                "{}",
+                                format_log_summary(
+                                    "stderr",
+                                    &output.stderr,
+                                    &output.stderr_log_path
+                                )
+                            );
+                        }
+
                         error!(
                             branch = %wt.branch,
                             task = %current_task.as_gradle_arg(),
@@ -710,7 +1660,7 @@ impl GradleCommand {
 
                         if let Some(output) = err.output {
                             println!();
-                            println!("{}", "FAILED COMMAND OUTPUT".red().bold());
+                            println!("{}", "FAILED COMMAND LOGS".red().bold());
                             println!(
                                 "{}",
                                 format!(
@@ -721,14 +1671,6 @@ impl GradleCommand {
                                 )
                                 .red()
                             );
-                            if !output.stdout.trim().is_empty() {
-                                println!("{}", "--- stdout ---".red().bold());
-                                println!("{}", output.stdout);
-                            }
-                            if !output.stderr.trim().is_empty() {
-                                println!("{}", "--- stderr ---".red().bold());
-                                println!("{}", output.stderr);
-                            }
                         }
 
                         if self.continue_on_error && !err.interrupted {
@@ -761,5 +1703,68 @@ impl GradleCommand {
         }
 
         Ok(())
+    }
+}
+
+/// Gradle log inspection commands.
+#[derive(Facet, Debug)]
+#[repr(u8)]
+pub enum GradleLogsCommand {
+    /// List discovered stdout/stderr log paths and sizes
+    List {
+        /// Inspect the latest run directory under `cache/gradle-runs`
+        #[facet(args::named, default = false)]
+        latest: bool,
+    },
+    /// Summarize log files with noise filtering
+    Tldr {
+        /// Summarize the latest run directory under `cache/gradle-runs`
+        #[facet(args::named, default = false)]
+        latest: bool,
+
+        /// Run directory to summarize (if set, `--latest` is not required)
+        #[facet(default, args::positional)]
+        path: Option<PathBuf>,
+    },
+}
+
+impl GradleLogsCommand {
+    /// # Errors
+    ///
+    /// This function will return an error if the operation fails.
+    pub fn invoke(self) -> eyre::Result<()> {
+        match self {
+            Self::List { latest } => {
+                if !latest {
+                    bail!("Only `--latest` is currently supported for `gradle log list`.");
+                }
+
+                let run_dir = latest_gradle_run_dir()?;
+                println!("Listing latest gradle logs from {}", run_dir.display());
+                print_log_list(&run_dir)
+            }
+            Self::Tldr { latest, path } => {
+                let run_dir = match (latest, path) {
+                    (true, Some(_)) => {
+                        bail!("Provide either `--latest` or `<path>`, not both.");
+                    }
+                    (true, None) => latest_gradle_run_dir()?,
+                    (false, Some(path)) => path,
+                    (false, None) => {
+                        bail!("Provide `--latest` or a run directory path.");
+                    }
+                };
+
+                if !run_dir.exists() {
+                    bail!("Run directory not found: {}", run_dir.display());
+                }
+                if !run_dir.is_dir() {
+                    bail!("Run path is not a directory: {}", run_dir.display());
+                }
+
+                println!("Summarizing gradle logs from {}", run_dir.display());
+                print_tldr_for_run(&run_dir)
+            }
+        }
     }
 }
