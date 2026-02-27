@@ -151,7 +151,7 @@ public record ServerboundNetworkToolUsePacket(
                     }
                 }
 
-                Direction[] directions = new Direction[SFMDirections.DIRECTIONS_WITHOUT_NULL.length + 1];
+                Direction[] directions = new Direction[SFMDirections.DIRECTIONS_WITH_NULL.length];
                 directions[0] = blockFace;
                 directions[1] = null;
                 int assignmentIndex = 2;
