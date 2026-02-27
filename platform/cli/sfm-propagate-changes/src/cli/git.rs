@@ -30,7 +30,7 @@ pub enum GitCommand {
         #[facet(default, args::subcommand)]
         command: Option<super::status::StatusCommand>,
     },
-    /// Tag each branch as `<mod_version>-<mc_version>` and push tags to origin
+    /// Tag each branch as `<mod_version>-<mc_version>`
     Tag {
         /// Tag options
         #[facet(flatten)]
@@ -52,14 +52,14 @@ impl GitCommand {
     }
 }
 
-/// Tag command - tag each branch with `<mod_version>-<mc_version>` and push tags.
+/// Tag command - tag each branch with `<mod_version>-<mc_version>`.
 #[derive(Facet, Debug, Default)]
 pub struct TagCommand;
 
 impl TagCommand {
     /// # Errors
     ///
-    /// Returns an error if any worktree is dirty, tagging fails, or pushing a tag fails.
+    /// Returns an error if any worktree is dirty or tagging fails.
     pub fn invoke(self) -> eyre::Result<()> {
         let worktrees = get_sorted_worktrees()?;
 
@@ -95,28 +95,7 @@ impl TagCommand {
                 );
             }
 
-            let push_output = Command::new("git")
-                .args(["push", "origin", &tag])
-                .current_dir(&worktree.path)
-                .output()
-                .wrap_err_with(|| {
-                    format!(
-                        "Failed to run git push origin {} in {}",
-                        tag,
-                        worktree.path.display()
-                    )
-                })?;
-
-            if !push_output.status.success() {
-                bail!(
-                    "Failed to push tag {} from {}: {}",
-                    tag,
-                    worktree.path.display(),
-                    String::from_utf8_lossy(&push_output.stderr)
-                );
-            }
-
-            println!("Tagged and pushed {tag}");
+            println!("Tagged {tag}");
         }
 
         Ok(())
