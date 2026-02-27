@@ -2,14 +2,16 @@ package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.common.registry.registration.SFMGlobalBlockCapabilityProviders;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.neoforged.neoforge.capabilities.CapabilityListenerHolder;
 import net.neoforged.neoforge.capabilities.ICapabilityInvalidationListener;
-import org.apache.commons.lang3.mutable.Mutable;
-import org.apache.commons.lang3.mutable.MutableObject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /// In Minecraft before 1.20.3, NeoForge uses {@code LazyOptional<T>} for the type of retrieved Capabilities.
 /// In Minecraft 1.20.3 and later, {@code @Nullable T} is used instead.
@@ -25,12 +27,16 @@ import java.util.Objects;
 @SuppressWarnings("UnstableApiUsage") // javadoc lol
 @MCVersionDependentBehaviour
 public record SFMBlockCapabilityResult<CAP>(
+        /// The inner mod platform capability object
         @Nullable CAP inner,
-        Mutable<ICapabilityInvalidationListener> listener
+
+        /// The holder of references to invalidation listeners that must be kept alive to avoid garbage collection
+        Set<ICapabilityInvalidationListener> listeners
 ) {
 
     public static <CAP> SFMBlockCapabilityResult<CAP> of(@Nullable CAP capability) {
-        return new SFMBlockCapabilityResult<>(capability, new MutableObject<>());
+
+        return new SFMBlockCapabilityResult<>(capability, new HashSet<>(1));
     }
 
     public static <CAP> SFMBlockCapabilityResult<CAP> empty() {
@@ -39,19 +45,29 @@ public record SFMBlockCapabilityResult<CAP>(
     }
 
     public @NotNull CAP unwrap() {
+
         return Objects.requireNonNull(inner);
     }
 
     public boolean isPresent() {
+
         return inner != null;
     }
 
-    public void addInvalidationListener(ICapabilityInvalidationListener listener) {
-        if (this.listener.getValue() != null) {
-            throw new IllegalStateException("Listener already set, clobbering it will cause the old listener to never run!");
-        }
+    @MCVersionDependentBehaviour
+    public void addInvalidationListener(
+            ICapabilityInvalidationListener listener,
+            ServerLevel serverLevel,
+            BlockPos pos
+    ) {
 
-        this.listener.setValue(listener);
+        // Register the listener to the level; it stores a weak reference
+        serverLevel.registerCapabilityListener(pos, listener);
+
+        // Ensure the listener object lives as long as this result object by tracking a strong reference
+        // We MUST avoid it getting garbage collected by CapabilityListenerHolder
+        this.listeners.add(listener);
+
     }
 
 }
