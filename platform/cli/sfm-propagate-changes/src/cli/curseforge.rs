@@ -7,6 +7,8 @@ use crate::cli::repo_root::get_repo_root;
 use crate::mc_version_filter::McVersionFilter;
 use crate::paths::APP_HOME;
 use crate::worktree::parse_version;
+use chrono::DateTime;
+use chrono::Utc;
 use eyre::Context;
 use facet::Facet;
 use figue as args;
@@ -36,6 +38,8 @@ const CURSEFORGE_CORE_API_KEY_ENV_VAR: &str = "CURSEFORGE_CORE_API_KEY";
 const DEFAULT_OP_SECRET_REFERENCE: &str = "op://Private/CurseForge SFM Upload token/credential";
 const DEFAULT_OP_CORE_API_KEY_SECRET_REFERENCE: &str =
     "op://Private/SFM CurseForge studios token/credential";
+const DEFAULT_AMEND_SAFETY_AGE: &str = "30m";
+const CURSEFORGE_AUTHORS_FILES_URL_PREFIX: &str = "https://authors.curseforge.com/#/projects";
 
 const ANSI_RESET: &str = "\x1b[0m";
 const ANSI_BOLD_CYAN: &str = "\x1b[1;36m";
@@ -78,6 +82,10 @@ fn colorize_metadata_name(name: &str, mc_version: &str) -> String {
         "Java 21" => style(name, ANSI_BOLD_CYAN),
         _ => name.to_string(),
     }
+}
+
+fn curseforge_files_url(project_id: u64) -> String {
+    format!("{CURSEFORGE_AUTHORS_FILES_URL_PREFIX}/{project_id}/files")
 }
 
 /// CurseForge release and file related commands
@@ -173,6 +181,9 @@ pub enum CurseforgeReleaseCommand {
         /// 1Password secret reference used when credentials are omitted
         #[facet(default, args::named, rename = "op-secret")]
         op_secret: Option<String>,
+        /// Refuse amending files older than this age (examples: 30m, 2h, 45s)
+        #[facet(default, args::named, rename = "safety-age")]
+        safety_age: Option<String>,
     },
 }
 
@@ -303,7 +314,8 @@ impl CurseforgeReleaseCommand {
                 api_key,
                 token,
                 op_secret,
-            } => release_amend(project, api_key, token, op_secret),
+                safety_age,
+            } => release_amend(project, api_key, token, op_secret, safety_age),
         }
     }
 }
@@ -366,6 +378,8 @@ struct CurseforgeProjectFileItem {
     game_versions: Vec<String>,
     #[facet(default, rename = "downloadUrl")]
     download_url: Option<String>,
+    #[facet(default, rename = "fileDate")]
+    file_date: Option<String>,
     #[facet(default)]
     hashes: Vec<CurseforgeProjectFileHash>,
 }
@@ -818,6 +832,7 @@ fn release_now(
     );
     if !prompt_yes_no(&prompt)? {
         println!("{}", style("Aborted release-now.", ANSI_BOLD_YELLOW));
+        println!("{}", curseforge_files_url(project_id));
         return Ok(());
     }
 
@@ -863,6 +878,13 @@ fn release_now(
         })?;
 
         let uploaded_id = upload_project_file(client, project_id, &jar, &plan.metadata)?;
+        amend_file_changelog(
+            client,
+            project_id,
+            uploaded_id,
+            &plan.metadata.display_name,
+            &plan.metadata.changelog,
+        )?;
         println!(
             "  {} {}",
             style("uploaded file id", ANSI_BOLD_GREEN),
@@ -876,6 +898,7 @@ fn release_now(
             style("CurseForge release upload complete.", ANSI_BOLD_GREEN)
         );
     }
+    println!("{}", curseforge_files_url(project_id));
 
     Ok(())
 }
@@ -1261,11 +1284,70 @@ fn validate_release_hashes(
     Ok(())
 }
 
+fn parse_safety_age(value: &str) -> eyre::Result<Duration> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        eyre::bail!("--safety-age cannot be empty");
+    }
+
+    let mut chars = trimmed.chars();
+    let unit = chars
+        .next_back()
+        .ok_or_else(|| eyre::eyre!("Invalid --safety-age value: {trimmed}"))?;
+    let amount_text = chars.as_str();
+    let amount: u64 = amount_text
+        .parse()
+        .wrap_err_with(|| format!("Invalid --safety-age amount: {amount_text}"))?;
+
+    let seconds = match unit {
+        's' => amount,
+        'm' => amount
+            .checked_mul(60)
+            .ok_or_else(|| eyre::eyre!("--safety-age is too large"))?,
+        'h' => amount
+            .checked_mul(60)
+            .and_then(|mins| mins.checked_mul(60))
+            .ok_or_else(|| eyre::eyre!("--safety-age is too large"))?,
+        _ => eyre::bail!(
+            "Invalid --safety-age unit '{unit}'. Supported units: s, m, h (example: 30m)."
+        ),
+    };
+
+    Ok(Duration::from_secs(seconds))
+}
+
+fn parse_file_age(file_date: Option<&str>, now: DateTime<Utc>) -> eyre::Result<Duration> {
+    let Some(file_date) = file_date else {
+        eyre::bail!("Cannot determine age for historical file: missing fileDate");
+    };
+    let parsed = DateTime::parse_from_rfc3339(file_date)
+        .wrap_err_with(|| format!("Invalid CurseForge fileDate: {file_date}"))?
+        .with_timezone(&Utc);
+    let age = now.signed_duration_since(parsed);
+    if age.num_seconds() <= 0 {
+        return Ok(Duration::from_secs(0));
+    }
+    age.to_std()
+        .wrap_err_with(|| format!("Invalid age computed from fileDate: {file_date}"))
+}
+
+fn format_age(value: Duration) -> String {
+    let seconds = value.as_secs();
+    if seconds >= 3600 {
+        format!("{}h{}m", seconds / 3600, (seconds % 3600) / 60)
+    } else if seconds >= 60 {
+        format!("{}m{}s", seconds / 60, seconds % 60)
+    } else {
+        format!("{seconds}s")
+    }
+}
+
 fn release_amend(
     project: Option<u64>,
     api_key: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
+    safety_age: Option<String>,
 ) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
 
@@ -1303,23 +1385,51 @@ fn release_amend(
     let client = build_core_http_client(&core_key)?;
     let files = fetch_project_files(&client, project_id, &credential_source)?;
 
-    let mut file_targets: Vec<(String, u64, String)> = Vec::new();
+    let safety_age_text = safety_age.unwrap_or_else(|| DEFAULT_AMEND_SAFETY_AGE.to_string());
+    let max_file_age = parse_safety_age(&safety_age_text)?;
+    let now = Utc::now();
+
+    let mut file_targets: Vec<(String, u64, String, String, Duration)> = Vec::new();
     for (mc_version, jar_name) in target_versions {
         let file = find_latest_historical_file_for_mc(&files, &mc_version)?;
-        file_targets.push((mc_version, file.id, jar_name));
+        let old_name = file
+            .display_name
+            .clone()
+            .or_else(|| file.file_name.clone())
+            .unwrap_or_else(|| "<unknown>".to_string());
+        let file_age = parse_file_age(file.file_date.as_deref(), now)?;
+        if file_age > max_file_age {
+            eyre::bail!(
+                "Refusing to amend file {} for MC {} because it is {} old (safety-age is {}).",
+                file.id,
+                mc_version,
+                format_age(file_age),
+                safety_age_text
+            );
+        }
+        file_targets.push((mc_version, file.id, old_name, jar_name, file_age));
     }
 
     println!("{} {}", style("Project ID:", ANSI_BOLD_CYAN), project_id);
     println!("{} {}", style("Mod version:", ANSI_BOLD_CYAN), mod_version);
+    println!(
+        "{} {}",
+        style("Safety age:", ANSI_BOLD_CYAN),
+        style(&safety_age_text, ANSI_BOLD_CYAN)
+    );
     println!("{}", style("Amend targets:", ANSI_BOLD_CYAN));
-    for (mc_version, file_id, jar_name) in &file_targets {
+    for (mc_version, file_id, old_name, jar_name, file_age) in &file_targets {
         println!(
-            "  {} {} {} {} {} {}",
+            "  {} {} {} {} {} {} {} {} {} {}",
             style("MC", ANSI_DIM),
             style(mc_version, ANSI_BOLD_BLUE),
             style("file id", ANSI_DIM),
             file_id,
-            style("name", ANSI_DIM),
+            style("age", ANSI_DIM),
+            style(&format_age(*file_age), ANSI_BOLD_YELLOW),
+            style("old", ANSI_DIM),
+            old_name,
+            style("new", ANSI_DIM),
             jar_name
         );
     }
@@ -1337,14 +1447,18 @@ fn release_amend(
         return Ok(());
     }
 
-    for (mc_version, file_id, jar_name) in &file_targets {
+    for (mc_version, file_id, old_name, jar_name, file_age) in &file_targets {
         println!(
-            "{} {} {} {} {} {}",
+            "{} {} {} {} {} {} {} {} {} {}",
             style("Amending file", ANSI_BOLD_WHITE),
             style(&file_id.to_string(), ANSI_BOLD_MAGENTA),
             style("for MC", ANSI_DIM),
             style(mc_version, ANSI_BOLD_BLUE),
-            style("as", ANSI_DIM),
+            style("age", ANSI_DIM),
+            style(&format_age(*file_age), ANSI_BOLD_YELLOW),
+            style("old", ANSI_DIM),
+            old_name,
+            style("new", ANSI_DIM),
             jar_name
         );
         amend_file_changelog(
@@ -1861,5 +1975,33 @@ impl CurseforgeMinecraftVersionCommand {
                 list_minecraft_versions(&mc, token, op_secret)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::format_age;
+    use super::parse_safety_age;
+    use std::time::Duration;
+
+    #[test]
+    fn parse_safety_age_supports_seconds_minutes_and_hours() {
+        assert_eq!(parse_safety_age("45s").unwrap(), Duration::from_secs(45));
+        assert_eq!(parse_safety_age("30m").unwrap(), Duration::from_secs(1800));
+        assert_eq!(parse_safety_age("2h").unwrap(), Duration::from_secs(7200));
+    }
+
+    #[test]
+    fn parse_safety_age_rejects_invalid_inputs() {
+        assert!(parse_safety_age("").is_err());
+        assert!(parse_safety_age("30").is_err());
+        assert!(parse_safety_age("30x").is_err());
+    }
+
+    #[test]
+    fn format_age_uses_readable_units() {
+        assert_eq!(format_age(Duration::from_secs(5)), "5s");
+        assert_eq!(format_age(Duration::from_secs(90)), "1m30s");
+        assert_eq!(format_age(Duration::from_secs(7260)), "2h1m");
     }
 }
