@@ -30,6 +30,7 @@ const MODRINTH_API_ROOT: &str = "https://api.modrinth.com/v2";
 const MODRINTH_DEFAULT_PROJECT_ID: &str = "aecUorJQ";
 const MODRINTH_TOKEN_ENV_VAR: &str = "MODRINTH_TOKEN";
 const DEFAULT_OP_SECRET_REFERENCE: &str = "op://Private/Modrinth SFM API token/credential";
+const MODRINTH_VERSIONS_URL_PREFIX: &str = "https://modrinth.com/mod";
 
 const ANSI_RESET: &str = "\x1b[0m";
 const ANSI_BOLD_CYAN: &str = "\x1b[1;36m";
@@ -57,6 +58,10 @@ fn prompt_yes_no(message: &str) -> eyre::Result<bool> {
 
     let normalized = input.trim().to_ascii_lowercase();
     Ok(matches!(normalized.as_str(), "y" | "yes"))
+}
+
+fn modrinth_versions_url(project_id: &str) -> String {
+    format!("{MODRINTH_VERSIONS_URL_PREFIX}/{project_id}/versions")
 }
 
 /// Modrinth release-related commands.
@@ -606,6 +611,7 @@ fn release_now(
     );
     if !prompt_yes_no(&prompt)? {
         println!("{}", style("Aborted release-now.", ANSI_BOLD_YELLOW));
+        println!("{}", modrinth_versions_url(&project_id));
         return Ok(());
     }
 
@@ -671,6 +677,7 @@ fn release_now(
             style("Modrinth release upload complete.", ANSI_BOLD_GREEN)
         );
     }
+    println!("{}", modrinth_versions_url(&project_id));
 
     Ok(())
 }
