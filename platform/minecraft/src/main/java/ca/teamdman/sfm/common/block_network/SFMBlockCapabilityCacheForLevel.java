@@ -11,7 +11,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraftforge.common.util.NonNullConsumer;
+import net.neoforged.neoforge.common.util.NonNullConsumer;
 import org.jetbrains.annotations.Nullable;
 public class SFMBlockCapabilityCacheForLevel {
     // Position => Capability => Direction => CapabilityResult/LazyOptional
