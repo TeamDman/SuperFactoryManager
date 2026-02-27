@@ -1,0 +1,100 @@
+package ca.teamdman.sfm.gametest.tests.cable;
+
+import ca.teamdman.sfm.common.block_network.CableNetworkManager;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.gametest.SFMGameTest;
+import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
+import ca.teamdman.sfm.gametest.SFMGameTestHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+
+import java.util.Objects;
+
+import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
+import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
+@SuppressWarnings({"DataFlowIssue", "OptionalGetWithoutIsPresent"})
+@SFMGameTest
+public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinition {
+
+    @Override
+    public String template() {
+        return "7x4x7";
+    }
+
+    @Override
+    public void run(SFMGameTestHelper helper) {
+        BlockPos managerPos = new BlockPos(1, 2, 3);
+        BlockPos sourcePos = new BlockPos(1, 2, 2);
+        BlockPos targetPos = new BlockPos(1, 2, 4);
+
+        BlockPos[] ringWithoutBridge = new BlockPos[]{
+                new BlockPos(2, 2, 2),
+                new BlockPos(3, 2, 2),
+                new BlockPos(4, 2, 2),
+                new BlockPos(4, 2, 4),
+                new BlockPos(3, 2, 4),
+                new BlockPos(2, 2, 4),
+                new BlockPos(2, 2, 3)
+        };
+        BlockPos bridgePos = new BlockPos(4, 2, 3);
+
+        helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
+        helper.setBlock(sourcePos, SFMBlocks.TEST_BARREL.get());
+        helper.setBlock(targetPos, SFMBlocks.TEST_BARREL.get());
+        for (BlockPos cable : ringWithoutBridge) {
+            helper.setBlock(cable, SFMBlocks.CABLE.get());
+        }
+
+        var source = helper.getItemHandler(sourcePos);
+        var target = helper.getItemHandler(targetPos);
+        source.insertItem(0, new ItemStack(Blocks.DIRT, 64), false);
+
+        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
+        LabelPositionHolder.empty()
+                .add("a", helper.absolutePos(sourcePos))
+                .add("b", helper.absolutePos(targetPos))
+                .save(Objects.requireNonNull(manager.getDisk()));
+
+        manager.setProgram("""
+                                EVERY 20 TICKS DO
+                    INPUT FROM a
+                    OUTPUT TO b
+                END
+                """.stripTrailing().stripIndent());
+
+        assertManagerRunning(manager);
+
+        helper.runAfterDelay(60, () -> {
+            assertTrue(source.getStackInSlot(0).isEmpty(), "Expected source barrel to be emptied before bridge placement");
+            assertTrue(target.getStackInSlot(0).getCount() == 64, "Expected target barrel to receive moved items");
+
+            var networkBeforeBridge = CableNetworkManager
+                    .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(2, 2, 3)))
+                    .get();
+            assertTrue(
+                    networkBeforeBridge.getLevelCapabilityCache().size() > 0,
+                    "Expected capability cache to be populated before bridge placement"
+            );
+
+            // This is the critical placement: it touches the same existing network on two sides.
+            // On buggy versions this can crash with listener double-registration during network merge.
+            helper.setBlock(bridgePos, SFMBlocks.CABLE.get());
+
+            var mergedNetwork = CableNetworkManager
+                    .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(bridgePos))
+                    .get();
+            assertTrue(
+                    mergedNetwork.getCableCount() == 9,
+                    "Expected ring + bridge to form a single 9-cable network"
+            );
+
+            helper.succeed();
+        });
+    }
+}

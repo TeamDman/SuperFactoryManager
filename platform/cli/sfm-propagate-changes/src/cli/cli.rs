@@ -73,8 +73,8 @@ impl Cli {
 pub enum Command {
     /// Run arbitrary gradle task(s) for each worktree in strict sequence
     Gradle {
-        /// Gradle options
-        #[facet(flatten)]
+        /// Gradle subcommand
+        #[facet(args::subcommand)]
         command: super::gradle::GradleCommand,
     },
     /// Check workspace files for correctness
