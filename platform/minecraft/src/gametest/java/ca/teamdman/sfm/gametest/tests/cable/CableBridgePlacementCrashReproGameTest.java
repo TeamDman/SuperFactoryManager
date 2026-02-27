@@ -2,6 +2,7 @@ package ca.teamdman.sfm.gametest.tests.cable;
 
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
@@ -9,6 +10,7 @@ import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 
@@ -63,8 +65,8 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
 
         manager.setProgram("""
                                 EVERY 20 TICKS DO
-                    INPUT FROM a
-                    OUTPUT TO b
+                                        INPUT FROM a TOP SIDE
+                                        OUTPUT TO b TOP SIDE
                 END
                 """.stripTrailing().stripIndent());
 
@@ -81,10 +83,24 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
                     networkBeforeBridge.getLevelCapabilityCache().size() > 0,
                     "Expected capability cache to be populated before bridge placement"
             );
+            assertTrue(
+                    networkBeforeBridge
+                            .getLevelCapabilityCache()
+                            .getCapability(
+                                    helper.absolutePos(sourcePos),
+                                    SFMWellKnownCapabilities.ITEM_HANDLER,
+                                    Direction.UP
+                            )
+                    != null,
+                    "Expected directional (UP) item capability cache entry before bridge placement"
+            );
 
             // This is the critical placement: it touches the same existing network on two sides.
             // On buggy versions this can crash with listener double-registration during network merge.
-            helper.setBlock(bridgePos, SFMBlocks.CABLE.get());
+            helper.getLevel().setBlockAndUpdate(
+                    helper.absolutePos(bridgePos),
+                    SFMBlocks.CABLE.get().defaultBlockState()
+            );
 
             var mergedNetwork = CableNetworkManager
                     .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(bridgePos))
