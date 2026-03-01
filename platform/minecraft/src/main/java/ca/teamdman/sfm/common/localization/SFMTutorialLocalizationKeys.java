@@ -66,9 +66,17 @@ public final class SFMTutorialLocalizationKeys {
             "sfm.command.tutorial.chamber_entered",
             "You have entered chamber %s"
     );
+    public static final LocalizationEntry COMMAND_TUTORIAL_PLAYER_LEFT_LOBBY = new LocalizationEntry(
+            "sfm.command.tutorial.player_left_lobby",
+            "%s has left tutorial lobby #%d."
+    );
     public static final LocalizationEntry TUTORIAL_CHAMBER_MOVE_1_STACK_SIGN_PLACE_IN_MANAGER = new LocalizationEntry(
             "sfm.tutorial.chamber.move_1_stack_direct.sign.place_in_manager",
             "place this in the manager"
+    );
+    public static final LocalizationEntry TUTORIAL_CHAMBER_MOVE_1_STACK_SIGN_RESET = new LocalizationEntry(
+            "sfm.tutorial.chamber.move_1_stack_direct.sign.reset",
+            "reset"
     );
     public static final LocalizationEntry COMMAND_TUTORIAL_CHAMBER_COMPLETE = new LocalizationEntry(
             "sfm.command.tutorial.chamber_complete",

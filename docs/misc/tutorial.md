@@ -71,9 +71,13 @@ This command is currently triggered by chamber-placed command blocks (pressure p
 
 ### `/sfm tutorial lobby chamber restart`
 
-- Requires a real player sender.
-- Resolves the sender's current tutorial lobby.
-- Re-renders the current chamber for that lobby.
+- Can be run by a player or by a chamber command block.
+- Player invocation resolves the sender's current tutorial lobby.
+- Command-block invocation resolves lobby by command source position within tutorial lobby bounds.
+- Before restart render, iterates tracked lobby players:
+	- If player is not in tutorial dimension, removes them from lobby and does not modify inventory.
+	- If player is in tutorial dimension, clears inventory.
+- Re-renders the current chamber for the lobby.
 
 ## Lobby Model
 
@@ -106,6 +110,7 @@ Current lifecycle behavior:
 
 - Creating a lobby removes player from any prior lobby.
 - Lobby is deleted when its last tracked player is removed.
+- When a player is removed/left, remaining lobby players are notified.
 - Data is memory-only (not persisted across restart).
 
 ## Tutorial Dimension and World Rules
@@ -193,6 +198,15 @@ It also builds an exit/success room:
 
 	- `sfm tutorial lobby chamber succeed @p`
 
+It also builds a reset control on the wall opposite the disk item frame:
+
+- Stone wall button on the interior wall.
+- Wall sign beside it using tutorial i18n text `"reset"`.
+- Hidden command block just outside that wall.
+- Button powers hidden command block to execute:
+
+	- `sfm tutorial lobby chamber restart`
+
 ## Localization
 
 Tutorial-localized strings are defined in `SFMTutorialLocalizationKeys`.
@@ -201,9 +215,11 @@ This includes messages for:
 
 - Player/inventory prechecks
 - Lobby created/list/empty
+- Player-left-lobby notifications
 - Lobby not found
 - Chamber not found
 - Chamber advanced/final completion
+- Chamber reset sign text
 
 `LocalizationKeys.getEntries()` now appends entries from `SFMTutorialLocalizationKeys`, so existing language datagen automatically includes tutorial keys without broader localization refactors.
 

@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 
 public class Move1StackDirectTutorialTestChamberDefinition extends SFMTutorialTestChamberDefinition {
@@ -48,6 +49,20 @@ public class Move1StackDirectTutorialTestChamberDefinition extends SFMTutorialTe
             new BlockPos(2, 1, 0),
             Direction.SOUTH,
             SFMTutorialLocalizationKeys.TUTORIAL_CHAMBER_MOVE_1_STACK_SIGN_PLACE_IN_MANAGER.getComponent()
+        );
+
+        BlockState resetButtonState = Blocks.STONE_BUTTON.defaultBlockState()
+            .setValue(net.minecraft.world.level.block.ButtonBlock.FACE, AttachFace.WALL)
+            .setValue(net.minecraft.world.level.block.ButtonBlock.FACING, Direction.NORTH);
+        helper.setBlock(new BlockPos(3, 1, 7), resetButtonState);
+        helper.placeWallSign(
+            new BlockPos(2, 1, 7),
+            Direction.NORTH,
+            SFMTutorialLocalizationKeys.TUTORIAL_CHAMBER_MOVE_1_STACK_SIGN_RESET.getComponent()
+        );
+        helper.setCommandBlockCommand(
+            new BlockPos(3, 1, 8),
+            "sfm tutorial lobby chamber restart"
         );
     }
 
@@ -86,7 +101,6 @@ public class Move1StackDirectTutorialTestChamberDefinition extends SFMTutorialTe
         helper.setBlock(new BlockPos(8, 0, 3), Blocks.AIR);
         helper.setBlock(new BlockPos(8, 1, 3), Blocks.AIR);
 
-        int lobbyId = helper.getLobbyId().value();
         helper.setCommandBlockCommand(
                 new BlockPos(10, -1, 3),
             "sfm tutorial lobby chamber succeed @p"
