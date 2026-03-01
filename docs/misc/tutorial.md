@@ -48,6 +48,12 @@ Gamemaster-only command.
 - Shows lobby id and online player names in that lobby.
 - Uses colored chat components.
 
+### `/sfm tutorial lobby leave`
+
+- Requires a real player sender.
+- Removes the player from their current tutorial lobby.
+- Fails with a message if the player is not currently assigned to a tutorial lobby.
+
 ### `/sfm tutorial lobby chamber success <lobby_id>`
 
 Marks the current chamber as completed for the given lobby.
@@ -58,6 +64,12 @@ Marks the current chamber as completed for the given lobby.
 - If no next chamber is defined, reports completion of final chamber.
 
 This command is currently triggered by chamber-placed command blocks (pressure plate room).
+
+### `/sfm tutorial lobby chamber restart`
+
+- Requires a real player sender.
+- Resolves the sender's current tutorial lobby.
+- Re-renders the current chamber for that lobby.
 
 ## Lobby Model
 
@@ -115,6 +127,11 @@ Runtime enforcement is done every tick in `TutorialWorldHandler`:
 	- No icon
 	- Reapplied continuously
 
+During chamber rendering, the chamber/lobby build volume is reset before placement:
+
+- The full target volume is set to air first.
+- All non-player entities in that volume are discarded (for example item frames, dropped items, mobs).
+
 ## Chamber Registry Architecture
 
 Tutorial chambers use a custom Forge registry:
@@ -142,6 +159,10 @@ This supports optional chamber progression.
 - Item frame placement on walls.
 - Command block placement + command string programming.
 - Access to owning `LobbyId`.
+
+When a chamber is rendered (initial start, restart, or progression), each player in the lobby receives:
+
+- `You have entered chamber {chamber_id}`
 
 ## Starting Chamber: `move_1_stack_direct`
 

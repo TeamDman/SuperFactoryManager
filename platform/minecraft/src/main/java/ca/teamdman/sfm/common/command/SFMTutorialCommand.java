@@ -17,7 +17,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
 
 import java.util.List;
 import java.util.Objects;
@@ -42,6 +44,8 @@ public final class SFMTutorialCommand {
                 .then(Commands.literal("lobby")
                         .then(Commands.literal("create")
                     .executes(ctx -> createLobby(ctx.getSource())))
+                .then(Commands.literal("leave")
+                    .executes(ctx -> leaveLobby(ctx.getSource())))
                 .then(Commands.literal("list")
                     .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
                     .executes(ctx -> listLobbies(ctx.getSource())))
@@ -51,7 +55,9 @@ public final class SFMTutorialCommand {
                             .executes(ctx -> markChamberSuccess(
                                 ctx.getSource(),
                                 LobbyId.fromInt(IntegerArgumentType.getInteger(ctx, "lobby_id"))
-                            ))))));
+                            ))))
+                    .then(Commands.literal("restart")
+                        .executes(ctx -> restartCurrentChamber(ctx.getSource())))));
     }
 
     private static int createLobby(CommandSourceStack source) {
@@ -141,6 +147,63 @@ public final class SFMTutorialCommand {
             );
         }
 
+        return SINGLE_SUCCESS;
+    }
+
+    private static int leaveLobby(CommandSourceStack source) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            SFMCommandUtils.sendFailure(source, SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_ONLY_PLAYER::getComponent);
+            return 0;
+        }
+
+        var lobby = SFMTutorialLobbyManager.getLobbyForPlayer(player.getUUID()).orElse(null);
+        if (lobby == null) {
+            SFMCommandUtils.sendFailure(source, SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_LOBBY_NONE_FOR_PLAYER::getComponent);
+            return 0;
+        }
+
+        SFMTutorialLobbyManager.removePlayerFromCurrentLobby(player.getUUID());
+        SFMCommandUtils.sendSuccess(
+                source,
+                () -> SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_LOBBY_LEFT.getComponent(lobby.id().value())
+        );
+        return SINGLE_SUCCESS;
+    }
+
+    private static int restartCurrentChamber(CommandSourceStack source) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            SFMCommandUtils.sendFailure(source, SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_ONLY_PLAYER::getComponent);
+            return 0;
+        }
+
+        SFMTutorialLobby lobby = SFMTutorialLobbyManager.getLobbyForPlayer(player.getUUID()).orElse(null);
+        if (lobby == null) {
+            SFMCommandUtils.sendFailure(source, SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_LOBBY_NONE_FOR_PLAYER::getComponent);
+            return 0;
+        }
+
+        ServerLevel tutorialLevel = source.getServer().getLevel(SFMTutorialWorld.TUTORIAL_LEVEL_KEY);
+        if (tutorialLevel == null) {
+            SFMCommandUtils.sendFailure(
+                    source,
+                    SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_DIMENSION_UNAVAILABLE::getComponent
+            );
+            return 0;
+        }
+
+        if (!renderChamber(lobby, tutorialLevel, lobby.currentChamberId(), source)) {
+            return 0;
+        }
+
+        SFMCommandUtils.sendSuccess(
+                source,
+                () -> SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_CHAMBER_RESTARTED.getComponent(
+                        lobby.id().value(),
+                        lobby.currentChamberId()
+                )
+        );
         return SINGLE_SUCCESS;
     }
 
@@ -271,7 +334,18 @@ public final class SFMTutorialCommand {
         generateLobbyRoom(level, lobby.roomCenter());
         chamber.run(new SFMTutorialTestChamberHelper(level, lobby.chamberOrigin(), lobby.id()));
         lobby.setCurrentChamberId(chamberId);
+        notifyLobbyPlayersEnteredChamber(source, lobby, chamberId);
         return true;
+    }
+
+    private static void notifyLobbyPlayersEnteredChamber(CommandSourceStack source, SFMTutorialLobby lobby, ResourceLocation chamberId) {
+        for (var playerId : lobby.playerIds()) {
+            ServerPlayer lobbyPlayer = source.getServer().getPlayerList().getPlayer(playerId);
+            if (lobbyPlayer == null) {
+                continue;
+            }
+            lobbyPlayer.sendSystemMessage(SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_CHAMBER_ENTERED.getComponent(chamberId));
+        }
     }
 
     private static void clearLobbyArea(ServerLevel level, BlockPos center) {
@@ -281,6 +355,12 @@ public final class SFMTutorialCommand {
         int maxZ = center.getZ() + (ROOM_INTERIOR_RADIUS + 2);
         int minY = center.getY() - 2;
         int maxY = center.getY() + ROOM_WALL_HEIGHT + 1;
+
+        AABB clearBox = new AABB(minX, minY, minZ, maxX + 1D, maxY + 1D, maxZ + 1D);
+        List<Entity> entitiesToDiscard = level.getEntities((Entity) null, clearBox, entity -> !(entity instanceof ServerPlayer));
+        for (Entity entity : entitiesToDiscard) {
+            entity.discard();
+        }
 
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {

@@ -22,6 +22,14 @@ public final class SFMTutorialLocalizationKeys {
             "sfm.command.tutorial.lobby_created",
             "Created tutorial lobby #%d."
     );
+    public static final LocalizationEntry COMMAND_TUTORIAL_LOBBY_LEFT = new LocalizationEntry(
+            "sfm.command.tutorial.lobby_left",
+            "Left tutorial lobby #%d."
+    );
+    public static final LocalizationEntry COMMAND_TUTORIAL_LOBBY_NONE_FOR_PLAYER = new LocalizationEntry(
+            "sfm.command.tutorial.lobby_none_for_player",
+            "You are not in a tutorial lobby."
+    );
     public static final LocalizationEntry COMMAND_TUTORIAL_LOBBY_LIST_EMPTY = new LocalizationEntry(
             "sfm.command.tutorial.lobby_list.empty",
             "No tutorial lobbies are active."
@@ -45,6 +53,14 @@ public final class SFMTutorialLocalizationKeys {
     public static final LocalizationEntry COMMAND_TUTORIAL_CHAMBER_ADVANCED = new LocalizationEntry(
             "sfm.command.tutorial.chamber_advanced",
             "Lobby #%d advanced to chamber \"%s\"."
+    );
+    public static final LocalizationEntry COMMAND_TUTORIAL_CHAMBER_RESTARTED = new LocalizationEntry(
+            "sfm.command.tutorial.chamber_restarted",
+            "Lobby #%d restarted chamber \"%s\"."
+    );
+    public static final LocalizationEntry COMMAND_TUTORIAL_CHAMBER_ENTERED = new LocalizationEntry(
+            "sfm.command.tutorial.chamber_entered",
+            "You have entered chamber %s"
     );
     public static final LocalizationEntry COMMAND_TUTORIAL_CHAMBER_COMPLETE = new LocalizationEntry(
             "sfm.command.tutorial.chamber_complete",

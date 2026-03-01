@@ -53,6 +53,14 @@ public final class SFMTutorialLobbyManager {
         return rtn;
     }
 
+    public static Optional<SFMTutorialLobby> getLobbyForPlayer(UUID playerId) {
+        LobbyId lobbyId = PLAYER_TO_LOBBY.get(playerId);
+        if (lobbyId == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(LOBBIES_BY_ID.get(lobbyId));
+    }
+
     public static void assignPlayerToLobby(ServerPlayer player, LobbyId lobbyId) {
         removePlayerFromCurrentLobby(player.getUUID());
         SFMTutorialLobby lobby = LOBBIES_BY_ID.get(lobbyId);
