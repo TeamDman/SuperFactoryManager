@@ -7,9 +7,12 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.30.0 ----
+-- Fix cables breaking after chunk reloading, fixes #505
 -- Add `/sfm kit [player]` game master command to cheat in default SFM items
 -- Make manager rebuild cable network button give response in chat
 -- Make manager rebuild cable network button run `/sfm bust_cable_network_cache` if exception encountered
+-- Update VSCode grammar file to mitigate tokenization errors, thanks @rayan6ms for the contribution! #502
+-- Update VSCode extension, thanks @Titop54 for the contribution! #503
 
 ---- 4.29.0 ----
 -- Fix double-gathering of input slots causing lag and correctness issues, thanks @Mei for the contribution!
