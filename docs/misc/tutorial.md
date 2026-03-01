@@ -21,6 +21,10 @@ The tutorial command tree is registered under `/sfm tutorial`.
 
 Alias for `/sfm tutorial lobby create`.
 
+### `/sfm tutorial leave`
+
+Alias for `/sfm tutorial lobby leave`.
+
 ### `/sfm tutorial lobby create`
 
 Creates a new lobby for the invoking player.
@@ -54,11 +58,11 @@ Gamemaster-only command.
 - Removes the player from their current tutorial lobby.
 - Fails with a message if the player is not currently assigned to a tutorial lobby.
 
-### `/sfm tutorial lobby chamber success <lobby_id>`
+### `/sfm tutorial lobby chamber succeed <player>`
 
-Marks the current chamber as completed for the given lobby.
+Marks the current chamber as completed for the specified player's current lobby.
 
-- Looks up lobby by id.
+- Looks up lobby by the target player assignment.
 - Reads the current chamber definition.
 - If chamber has a `nextChamberId`, renders it and updates lobby state.
 - If no next chamber is defined, reports completion of final chamber.
@@ -187,7 +191,7 @@ It also builds an exit/success room:
 - Command block under pressure plate.
 - Command block executes:
 
-	- `sfm tutorial lobby chamber success <lobby_id>`
+	- `sfm tutorial lobby chamber succeed @p`
 
 ## Localization
 

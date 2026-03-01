@@ -12,6 +12,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -41,6 +42,8 @@ public final class SFMTutorialCommand {
         return Commands.literal("tutorial")
                 .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
                 .executes(ctx -> createLobby(ctx.getSource()))
+                .then(Commands.literal("leave")
+                    .executes(ctx -> leaveLobby(ctx.getSource())))
                 .then(Commands.literal("lobby")
                         .then(Commands.literal("create")
                     .executes(ctx -> createLobby(ctx.getSource())))
@@ -50,6 +53,12 @@ public final class SFMTutorialCommand {
                     .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
                     .executes(ctx -> listLobbies(ctx.getSource())))
                 .then(Commands.literal("chamber")
+                    .then(Commands.literal("succeed")
+                        .then(Commands.argument("player", EntityArgument.player())
+                            .executes(ctx -> markCurrentPlayerChamberSuccess(
+                                ctx.getSource(),
+                                EntityArgument.getPlayer(ctx, "player")
+                            ))))
                     .then(Commands.literal("success")
                         .then(Commands.argument("lobby_id", IntegerArgumentType.integer(1))
                             .executes(ctx -> markChamberSuccess(
@@ -257,6 +266,21 @@ public final class SFMTutorialCommand {
         return SINGLE_SUCCESS;
     }
 
+    private static int markCurrentPlayerChamberSuccess(CommandSourceStack source, ServerPlayer player) {
+        SFMTutorialLobby lobby = SFMTutorialLobbyManager.getLobbyForPlayer(player.getUUID()).orElse(null);
+        if (lobby == null) {
+            SFMCommandUtils.sendFailure(
+                    source,
+                    () -> SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_LOBBY_NONE_FOR_PLAYER_NAME.getComponent(
+                            player.getName().getString()
+                    )
+            );
+            return 0;
+        }
+
+        return markChamberSuccess(source, lobby.id());
+    }
+
     private static BlockPos findLobbyCenter(ServerPlayer player, ServerLevel tutorialLevel) {
         List<ServerPlayer> otherPlayers = tutorialLevel.players()
                 .stream()
@@ -356,18 +380,18 @@ public final class SFMTutorialCommand {
         int minY = center.getY() - 2;
         int maxY = center.getY() + ROOM_WALL_HEIGHT + 1;
 
-        AABB clearBox = new AABB(minX, minY, minZ, maxX + 1D, maxY + 1D, maxZ + 1D);
-        List<Entity> entitiesToDiscard = level.getEntities((Entity) null, clearBox, entity -> !(entity instanceof ServerPlayer));
-        for (Entity entity : entitiesToDiscard) {
-            entity.discard();
-        }
-
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int y = minY; y <= maxY; y++) {
                     level.setBlock(new BlockPos(x, y, z), Blocks.AIR.defaultBlockState(), 3);
                 }
             }
+        }
+
+        AABB clearBox = new AABB(minX, minY, minZ, maxX + 1D, maxY + 1D, maxZ + 1D);
+        List<Entity> entitiesToDiscard = level.getEntities((Entity) null, clearBox, entity -> !(entity instanceof ServerPlayer));
+        for (Entity entity : entitiesToDiscard) {
+            entity.discard();
         }
     }
 

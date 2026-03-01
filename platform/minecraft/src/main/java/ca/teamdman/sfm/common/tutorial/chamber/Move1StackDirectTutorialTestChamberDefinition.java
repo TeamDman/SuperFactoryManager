@@ -2,12 +2,14 @@ package ca.teamdman.sfm.common.tutorial.chamber;
 
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.localization.SFMTutorialLocalizationKeys;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
@@ -24,6 +26,7 @@ public class Move1StackDirectTutorialTestChamberDefinition extends SFMTutorialTe
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
+        helper.setContainerSlot(leftPos, 0, new ItemStack(Items.DIRT, 64));
 
         ItemStack programDisk = new ItemStack(SFMItems.DISK.get());
         DiskItem.setProgram(
@@ -41,6 +44,11 @@ public class Move1StackDirectTutorialTestChamberDefinition extends SFMTutorialTe
                 .save(programDisk);
 
         helper.placeItemFrameOnWall(new BlockPos(3, 1, 0), Direction.SOUTH, programDisk);
+        helper.placeWallSign(
+            new BlockPos(2, 1, 0),
+            Direction.SOUTH,
+            SFMTutorialLocalizationKeys.TUTORIAL_CHAMBER_MOVE_1_STACK_SIGN_PLACE_IN_MANAGER.getComponent()
+        );
     }
 
     private static void buildExitRoomAndDoor(SFMTutorialTestChamberHelper helper) {
@@ -81,7 +89,7 @@ public class Move1StackDirectTutorialTestChamberDefinition extends SFMTutorialTe
         int lobbyId = helper.getLobbyId().value();
         helper.setCommandBlockCommand(
                 new BlockPos(10, -1, 3),
-                "sfm tutorial lobby chamber success " + lobbyId
+            "sfm tutorial lobby chamber succeed @p"
         );
         helper.setBlock(new BlockPos(10, 0, 3), Blocks.STONE_PRESSURE_PLATE);
     }

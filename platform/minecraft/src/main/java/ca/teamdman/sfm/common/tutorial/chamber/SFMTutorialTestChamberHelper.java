@@ -3,11 +3,15 @@ package ca.teamdman.sfm.common.tutorial.chamber;
 import ca.teamdman.sfm.common.tutorial.lobby.LobbyId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.WallSignBlock;
 import net.minecraft.world.level.block.entity.CommandBlockEntity;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -72,6 +76,37 @@ public class SFMTutorialTestChamberHelper {
             commandBlockEntity.getCommandBlock().setTrackOutput(false);
             commandBlockEntity.setChanged();
             level.sendBlockUpdated(absolutePos, commandBlockEntity.getBlockState(), commandBlockEntity.getBlockState(), 3);
+        }
+    }
+
+    public void placeWallSign(BlockPos relativePos, Direction facing, Component... text) {
+        BlockPos absolutePos = absolutePos(relativePos);
+        BlockState signState = Blocks.OAK_WALL_SIGN.defaultBlockState().setValue(WallSignBlock.FACING, facing);
+        level.setBlockAndUpdate(absolutePos, signState);
+
+        BlockEntity blockEntity = level.getBlockEntity(absolutePos);
+        if (!(blockEntity instanceof SignBlockEntity signBlockEntity)) {
+            return;
+        }
+        int lines = Math.min(text.length, 4);
+        for (int i = 0; i < lines; i++) {
+            signBlockEntity.setMessage(i, text[i]);
+        }
+        signBlockEntity.setChanged();
+        level.sendBlockUpdated(absolutePos, signState, signState, 3);
+    }
+
+    public void setContainerSlot(BlockPos relativePos, int slot, ItemStack stack) {
+        BlockEntity blockEntity = getBlockEntity(relativePos);
+        if (!(blockEntity instanceof Container container)) {
+            return;
+        }
+        if (slot < 0 || slot >= container.getContainerSize()) {
+            return;
+        }
+        container.setItem(slot, stack.copy());
+        if (blockEntity != null) {
+            blockEntity.setChanged();
         }
     }
 }
