@@ -1170,6 +1170,7 @@ public final class LocalizationKeys {
                 }
             }
         }
+                rtn.addAll(SFMTutorialLocalizationKeys.getEntries());
         return rtn;
     }
 

@@ -38,6 +38,8 @@ public class SFM {
 
         SFMResourceTypes.register(bus);
 
+        SFMTutorialTestChambers.register(bus);
+
         SFMProgramLinters.register(bus);
 
         SFMBlockEntities.register(bus);

@@ -9,7 +9,9 @@ import ca.teamdman.sfm.common.program.linting.IProgramLinter;
 import ca.teamdman.sfm.common.registry.registration.SFMGlobalBlockCapabilityProviders;
 import ca.teamdman.sfm.common.registry.registration.SFMProgramLinters;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
+import ca.teamdman.sfm.common.registry.registration.SFMTutorialTestChambers;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.tutorial.chamber.SFMTutorialTestChamberDefinition;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Item;
@@ -54,6 +56,9 @@ public class SFMWellKnownRegistries {
 
     public static final SFMRegistryWrapper<ResourceType<?, ?, ?>> SFM_RESOURCE_TYPES
             = new SFMRegistryWrapper<>(SFMResourceTypes.REGISTRY_ID);
+
+    public static final SFMRegistryWrapper<SFMTutorialTestChamberDefinition> SFM_TUTORIAL_TEST_CHAMBERS
+            = new SFMRegistryWrapper<>(SFMTutorialTestChambers.REGISTRY_ID);
 
     public static final SFMRegistryWrapper<SFMBlockCapabilityProvider<?>> SFM_GLOBAL_BLOCK_CAPABILITY_PROVIDERS
             = new SFMRegistryWrapper<>(SFMGlobalBlockCapabilityProviders.REGISTRY_ID);
