@@ -168,7 +168,7 @@ public class ContainerScreenInspectorHandler {
             return;
         }
 
-        // Handle ~ hotkey to inspect hovered item
+        // Handle inspect-hovered-item hotkey
         var activateKey = SFMKeyMappings.ITEM_INSPECTOR_KEY.get();
         var activateKeyPressed = activateKey.isActiveAndMatches(InputConstants.Type.KEYSYM.getOrCreate(event.getKeyCode()));
         if (activateKeyPressed) {

@@ -10,6 +10,8 @@ import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenExampleProgramOpenContext;
 import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
+import ca.teamdman.sfm.common.item.DiskItem;
+import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
@@ -21,8 +23,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -129,23 +133,100 @@ public class SFMScreenChangeHelpers {
         ));
     }
 
-    // TODO: copy item id, not just NBT
-    // TODO: replace with showing a screen with the data
     public static void showItemInspectorScreen(ItemStack stack) {
 
-        CompoundTag tag = stack.getTag();
-        if (tag != null) {
-            String content = tag.toString();
-            Minecraft minecraft = Minecraft.getInstance();
-            minecraft.keyboardHandler.setClipboard(content);
-            SFM.LOGGER.info("Copied {} characters to clipboard", content.length());
-            assert minecraft.player != null;
-            minecraft.player.sendSystemMessage(
-                    LocalizationKeys.ITEM_INSPECTOR_COPIED_TO_CLIPBOARD.getComponent(
-                            Component.literal(String.valueOf(content.length())).withStyle(ChatFormatting.AQUA)
-                    )
-            );
+        String content = getItemInspectorContent(stack);
+        showTomlEditScreen(new TomlEditScreenOpenContext(content, x -> {
+        }));
+    }
+
+    public static String getItemInspectorContent(ItemStack stack) {
+
+        if (stack.getItem() instanceof DiskItem) {
+            return getDiskItemInspectorContent(stack);
+        } else if (stack.getItem() instanceof LabelGunItem) {
+            return getLabelGunItemInspectorContent(stack);
         }
+
+        CompoundTag stackTag = stack.save(new CompoundTag());
+        return stackTag.toString();
+    }
+
+    private static String getDiskItemInspectorContent(ItemStack stack) {
+
+        String programString = DiskItem.getProgramString(stack);
+        LabelPositionHolder labelPositionHolder = LabelPositionHolder.from(stack);
+
+        StringBuilder content = new StringBuilder();
+        content.append("# item\n");
+        content.append("id = \"")
+            .append(ForgeRegistries.ITEMS.getKey(stack.getItem()))
+            .append("\"\n");
+        content.append("count = ")
+                .append(stack.getCount())
+                .append("\n\n");
+        content.append("# disk program\n");
+        content.append("program = '''\n")
+                .append(programString)
+                .append("\n'''\n\n");
+        appendPrettyLabelPositionHolder(content, labelPositionHolder);
+        return content.toString();
+        }
+
+        private static String getLabelGunItemInspectorContent(ItemStack stack) {
+
+        String activeLabel = LabelGunItem.getActiveLabel(stack);
+        LabelPositionHolder labelPositionHolder = LabelPositionHolder.from(stack);
+
+        StringBuilder content = new StringBuilder();
+        content.append("# item\n");
+        content.append("id = \"")
+            .append(ForgeRegistries.ITEMS.getKey(stack.getItem()))
+            .append("\"\n");
+        content.append("count = ")
+            .append(stack.getCount())
+            .append("\n");
+        content.append("active_label = \"")
+            .append(activeLabel)
+            .append("\"\n");
+        content.append("view_mode = \"")
+            .append(LabelGunItem.getViewMode(stack).name())
+            .append("\"\n\n");
+        appendPrettyLabelPositionHolder(content, labelPositionHolder);
+        return content.toString();
+        }
+
+        private static void appendPrettyLabelPositionHolder(
+            StringBuilder content,
+            LabelPositionHolder labelPositionHolder
+        ) {
+
+        content.append("# labels\n");
+        if (labelPositionHolder.labels().isEmpty()) {
+            content.append("(none)\n");
+            return;
+        }
+
+        labelPositionHolder.labels().entrySet().stream()
+            .sorted(Comparator.comparing(entry -> entry.getKey().toLowerCase()))
+            .forEach(entry -> {
+                content.append("[\"")
+                    .append(entry.getKey())
+                    .append("\"] ")
+                    .append(entry.getValue().size())
+                    .append(" positions\n");
+
+                entry.getValue().blockPosIterator().forEachRemaining(pos ->
+                    content.append("- ")
+                        .append(pos.getX())
+                        .append(", ")
+                        .append(pos.getY())
+                        .append(", ")
+                        .append(pos.getZ())
+                        .append("\n")
+                );
+                content.append("\n");
+            });
     }
 
     public static void showChangelog() {

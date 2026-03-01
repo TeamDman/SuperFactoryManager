@@ -918,7 +918,7 @@ public final class LocalizationKeys {
     );
     public static final LocalizationEntry ITEM_INSPECTOR_TOGGLE_KEY = new LocalizationEntry(
             "key.sfm.item_inspector.activation_key",
-            "(WIP) Copy Hovered Item To Clipboard"
+            "Inspect Hovered Item"
     );
     public static final LocalizationEntry LABEL_GUN_PICK_BLOCK_MODIFIER_KEY = new LocalizationEntry(
             "key.sfm.label_gun.pick_block_modifier",
