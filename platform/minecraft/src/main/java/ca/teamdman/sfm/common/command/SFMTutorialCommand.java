@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.tutorial.chamber.SFMTutorialTestChamberHelper;
 import ca.teamdman.sfm.common.tutorial.lobby.LobbyId;
 import ca.teamdman.sfm.common.tutorial.lobby.SFMTutorialLobby;
 import ca.teamdman.sfm.common.tutorial.lobby.SFMTutorialLobbyManager;
+import ca.teamdman.sfm.common.tutorial.SFMTutorialPlayerContext;
 import ca.teamdman.sfm.common.tutorial.SFMTutorialWorld;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -176,6 +177,7 @@ public final class SFMTutorialCommand {
         }
 
         SFMTutorialLobbyManager.removePlayerFromCurrentLobby(player.getUUID());
+        SFMTutorialPlayerContext.clear(player);
         notifyLobbyPlayersPlayerLeft(source, lobby, player.getName().getString());
         SFMCommandUtils.sendSuccess(
                 source,
@@ -261,6 +263,9 @@ public final class SFMTutorialCommand {
             if (lobbyPlayer == null || !lobbyPlayer.level.dimension().equals(SFMTutorialWorld.TUTORIAL_LEVEL_KEY)) {
                 String playerName = lobbyPlayer != null ? lobbyPlayer.getName().getString() : playerId.toString();
                 SFMTutorialLobbyManager.removePlayerFromCurrentLobby(playerId);
+                if (lobbyPlayer != null) {
+                    SFMTutorialPlayerContext.clear(lobbyPlayer);
+                }
                 notifyLobbyPlayersPlayerLeft(source, lobby, playerName);
                 continue;
             }
@@ -435,6 +440,7 @@ public final class SFMTutorialCommand {
             if (lobbyPlayer == null) {
                 continue;
             }
+            SFMTutorialPlayerContext.rememberPlayerLobby(lobbyPlayer, lobby);
             lobbyPlayer.sendSystemMessage(SFMTutorialLocalizationKeys.COMMAND_TUTORIAL_CHAMBER_ENTERED.getComponent(chamberId));
         }
     }

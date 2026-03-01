@@ -8,6 +8,7 @@ import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenExampleProgramOpenContext;
+import ca.teamdman.sfm.client.tutorial.SFMTutorialClientContext;
 import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.item.DiskItem;
@@ -19,8 +20,10 @@ import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -28,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public class SFMScreenChangeHelpers {
@@ -163,12 +167,12 @@ public class SFMScreenChangeHelpers {
             .append(ForgeRegistries.ITEMS.getKey(stack.getItem()))
             .append("\"\n");
         content.append("count = ")
-                .append(stack.getCount())
-                .append("\n\n");
+            .append(stack.getCount())
+            .append("\n\n");
         content.append("# disk program\n");
         content.append("program = '''\n")
-                .append(programString)
-                .append("\n'''\n\n");
+            .append(programString)
+            .append("\n'''\n\n");
         appendPrettyLabelPositionHolder(content, labelPositionHolder);
         return content.toString();
         }
@@ -181,25 +185,42 @@ public class SFMScreenChangeHelpers {
         StringBuilder content = new StringBuilder();
         content.append("# item\n");
         content.append("id = \"")
-            .append(ForgeRegistries.ITEMS.getKey(stack.getItem()))
-            .append("\"\n");
+                .append(ForgeRegistries.ITEMS.getKey(stack.getItem()))
+                .append("\"\n");
         content.append("count = ")
-            .append(stack.getCount())
-            .append("\n");
+                .append(stack.getCount())
+                .append("\n");
         content.append("active_label = \"")
-            .append(activeLabel)
-            .append("\"\n");
+                .append(activeLabel)
+                .append("\"\n");
         content.append("view_mode = \"")
-            .append(LabelGunItem.getViewMode(stack).name())
-            .append("\"\n\n");
+                .append(LabelGunItem.getViewMode(stack).name())
+                .append("\"\n\n");
         appendPrettyLabelPositionHolder(content, labelPositionHolder);
         return content.toString();
-        }
+    }
 
-        private static void appendPrettyLabelPositionHolder(
+    private static void appendPrettyLabelPositionHolder(
             StringBuilder content,
             LabelPositionHolder labelPositionHolder
-        ) {
+    ) {
+
+        Optional<BlockPos> tutorialOrigin = SFMTutorialClientContext.getChamberOrigin();
+        Optional<ResourceLocation> tutorialChamberId = SFMTutorialClientContext.getChamberId();
+
+        tutorialOrigin.ifPresent(origin -> {
+            content.append("# tutorial_context\n");
+            tutorialChamberId.ifPresent(chamberId -> content.append("chamber = \"")
+                    .append(chamberId)
+                    .append("\"\n"));
+            content.append("origin = ")
+                    .append(origin.getX())
+                    .append(", ")
+                    .append(origin.getY())
+                    .append(", ")
+                    .append(origin.getZ())
+                    .append("\n\n");
+        });
 
         content.append("# labels\n");
         if (labelPositionHolder.labels().isEmpty()) {
@@ -208,25 +229,34 @@ public class SFMScreenChangeHelpers {
         }
 
         labelPositionHolder.labels().entrySet().stream()
-            .sorted(Comparator.comparing(entry -> entry.getKey().toLowerCase()))
-            .forEach(entry -> {
-                content.append("[\"")
-                    .append(entry.getKey())
-                    .append("\"] ")
-                    .append(entry.getValue().size())
-                    .append(" positions\n");
+                .sorted(Comparator.comparing(entry -> entry.getKey().toLowerCase()))
+                .forEach(entry -> {
+                    content.append("[\"")
+                            .append(entry.getKey())
+                            .append("\"] ")
+                            .append(entry.getValue().size())
+                            .append(" positions\n");
 
-                entry.getValue().blockPosIterator().forEachRemaining(pos ->
-                    content.append("- ")
-                        .append(pos.getX())
-                        .append(", ")
-                        .append(pos.getY())
-                        .append(", ")
-                        .append(pos.getZ())
-                        .append("\n")
-                );
-                content.append("\n");
-            });
+                    entry.getValue().blockPosIterator().forEachRemaining(pos -> {
+                        content.append("- ")
+                                .append(pos.getX())
+                                .append(", ")
+                                .append(pos.getY())
+                                .append(", ")
+                                .append(pos.getZ());
+
+                        tutorialOrigin.ifPresent(origin -> content.append(" (relative: ")
+                                .append(pos.getX() - origin.getX())
+                                .append(", ")
+                                .append(pos.getY() - origin.getY())
+                                .append(", ")
+                                .append(pos.getZ() - origin.getZ())
+                                .append(")"));
+
+                        content.append("\n");
+                    });
+                    content.append("\n");
+                });
     }
 
     public static void showChangelog() {

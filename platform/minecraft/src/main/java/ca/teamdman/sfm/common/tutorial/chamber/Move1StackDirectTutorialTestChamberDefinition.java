@@ -54,9 +54,9 @@ public class Move1StackDirectTutorialTestChamberDefinition extends SFMTutorialTe
         BlockState resetButtonState = Blocks.STONE_BUTTON.defaultBlockState()
             .setValue(net.minecraft.world.level.block.ButtonBlock.FACE, AttachFace.WALL)
             .setValue(net.minecraft.world.level.block.ButtonBlock.FACING, Direction.NORTH);
-        helper.setBlock(new BlockPos(3, 1, 7), resetButtonState);
+        helper.setBlock(new BlockPos(3, 1, 6), resetButtonState);
         helper.placeWallSign(
-            new BlockPos(2, 1, 7),
+            new BlockPos(2, 1, 6),
             Direction.NORTH,
             SFMTutorialLocalizationKeys.TUTORIAL_CHAMBER_MOVE_1_STACK_SIGN_RESET.getComponent()
         );
