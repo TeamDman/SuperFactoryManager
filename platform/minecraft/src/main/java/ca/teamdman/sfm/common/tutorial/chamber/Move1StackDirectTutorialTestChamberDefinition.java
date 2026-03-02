@@ -18,9 +18,16 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 public class Move1StackDirectTutorialTestChamberDefinition extends SFMTutorialTestChamberDefinition {
     @Override
     public void run(SFMTutorialTestChamberHelper helper) {
-        BlockPos managerPos = new BlockPos(3, 0, 1);
-        BlockPos rightPos = new BlockPos(2, 0, 1);
-        BlockPos leftPos = new BlockPos(4, 0, 1);
+        LabelPositionHolder features = LabelPositionHolder.empty();
+        features.add("left", helper.absolutePos(new BlockPos(2, 0, 0)));
+        features.add("right", helper.absolutePos(new BlockPos(4, 0, 0)));
+        features.add("manager", helper.absolutePos(new BlockPos(3, 0, 0)));
+
+
+
+        BlockPos managerPos = new BlockPos(3, 0, 0);
+        BlockPos rightPos = new BlockPos(4, 0, 0);
+        BlockPos leftPos = new BlockPos(2, 0, 0);
 
         buildExitRoomAndDoor(helper);
 
@@ -64,6 +71,8 @@ public class Move1StackDirectTutorialTestChamberDefinition extends SFMTutorialTe
             new BlockPos(3, 1, 8),
             "sfm tutorial lobby chamber restart"
         );
+
+        helper.setBlock(new BlockPos(0,0,0), Blocks.BEDROCK);
     }
 
     private static void buildExitRoomAndDoor(SFMTutorialTestChamberHelper helper) {
