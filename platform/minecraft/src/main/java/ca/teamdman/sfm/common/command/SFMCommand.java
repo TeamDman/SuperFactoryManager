@@ -150,6 +150,11 @@ public class SFMCommand {
                              }));
                 command.then(Commands.literal("ide")
                                                          .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                                                         .then(Commands.literal("help")
+                                                                                   .executes(ctx -> runIdeHelp(ctx.getSource())))
+                                                         .then(Commands.literal("echo")
+                                                                                   .then(Commands.argument("message", StringArgumentType.greedyString())
+                                                                                                 .executes(ctx -> runIdeEcho(ctx.getSource(), StringArgumentType.getString(ctx, "message")))))
                                                          .then(Commands.literal("toggle_right_panel")
                                                                                    .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:toggle_right_panel_visibility")))
                                                          .then(Commands.literal("show_right_panel")
@@ -197,6 +202,25 @@ public class SFMCommand {
                 }
                 SFMPackets.sendToPlayer(player, new ClientboundManagerIdeActionPacket(player.containerMenu.containerId, actionId));
                 sendSuccess(source, () -> Component.literal("Requested IDE action: " + actionId));
+                return SINGLE_SUCCESS;
+        }
+
+        private static int runIdeHelp(CommandSourceStack source) {
+                sendSuccess(source, () -> Component.literal("SFM IDE commands:"));
+                sendSuccess(source, () -> Component.literal("- /sfm ide help"));
+                sendSuccess(source, () -> Component.literal("- /sfm ide echo <message>"));
+                sendSuccess(source, () -> Component.literal("- /sfm ide toggle_right_panel"));
+                sendSuccess(source, () -> Component.literal("- /sfm ide show_right_panel"));
+                sendSuccess(source, () -> Component.literal("- /sfm ide hide_right_panel"));
+                sendSuccess(source, () -> Component.literal("- /sfm ide toggle_bottom_panel"));
+                sendSuccess(source, () -> Component.literal("- /sfm ide show_bottom_panel"));
+                sendSuccess(source, () -> Component.literal("- /sfm ide hide_bottom_panel"));
+                sendSuccess(source, () -> Component.literal("- /sfm ide focus_explorer"));
+                return SINGLE_SUCCESS;
+        }
+
+        private static int runIdeEcho(CommandSourceStack source, String message) {
+                sendSuccess(source, () -> Component.literal(message));
                 return SINGLE_SUCCESS;
         }
 

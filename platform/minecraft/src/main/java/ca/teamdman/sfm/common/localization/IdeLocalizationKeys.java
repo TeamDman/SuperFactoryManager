@@ -26,6 +26,18 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.explorer.node.slot",
             "Slot %s"
     );
+    public static final LocalizationEntry IDE_EXPLORER_MAIN_HAND_SLOT_NODE = new LocalizationEntry(
+            "gui.sfm.ide.explorer.node.main_hand_slot",
+            "Main hand: Slot %s"
+    );
+    public static final LocalizationEntry IDE_EXPLORER_CLICKED_SLOT_NODE = new LocalizationEntry(
+            "gui.sfm.ide.explorer.node.clicked_slot",
+            "Clicked: Slot %s"
+    );
+    public static final LocalizationEntry IDE_EXPLORER_CLICKED_SLOT_NONE = new LocalizationEntry(
+            "gui.sfm.ide.explorer.node.clicked_slot.none",
+            "Clicked: none"
+    );
     public static final LocalizationEntry IDE_PLAYER_INVENTORY_LABEL = new LocalizationEntry(
             "gui.sfm.ide.player_inventory.label",
             "Player Inventory"
@@ -37,6 +49,22 @@ public final class IdeLocalizationKeys {
     public static final LocalizationEntry IDE_TERMINAL_PREFIX_HINT = new LocalizationEntry(
             "gui.sfm.ide.terminal.prefix_hint",
             "IDE mode: /sfm ide"
+    );
+    public static final LocalizationEntry IDE_CENTER_TAB_INVENTORY = new LocalizationEntry(
+            "gui.sfm.ide.center.tab.inventory",
+            "Inventory"
+    );
+    public static final LocalizationEntry IDE_CENTER_TAB_TEXT_EDITOR = new LocalizationEntry(
+            "gui.sfm.ide.center.tab.text_editor",
+            "Text"
+    );
+    public static final LocalizationEntry IDE_CENTER_TEXT_EDITOR_TITLE = new LocalizationEntry(
+            "gui.sfm.ide.center.text_editor.title",
+            "Disk Preview (slot %s)"
+    );
+    public static final LocalizationEntry IDE_CENTER_TEXT_EDITOR_EMPTY = new LocalizationEntry(
+            "gui.sfm.ide.center.text_editor.empty",
+            "Select a disk in Explorer"
     );
 
     public static final LocalizationEntry IDE_KEY_TOGGLE_RIGHT_PANEL = new LocalizationEntry(

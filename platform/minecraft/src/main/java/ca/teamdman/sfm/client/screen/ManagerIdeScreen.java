@@ -2,7 +2,10 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.ide.action.ManagerIdeActionRegistry;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
+import ca.teamdman.sfm.client.widget.VirtualScrollViewport;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
+import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.localization.IdeLocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundManagerIdeExplorerDropPacket;
 import ca.teamdman.sfm.common.net.ServerboundManagerIdeTerminalCommandPacket;
@@ -10,14 +13,17 @@ import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.ChatFormatting;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
@@ -28,6 +34,7 @@ import java.util.List;
 public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMenu> {
     private static final int RIGHT_PANEL_WIDTH = 180;
     private static final int BOTTOM_PANEL_HEIGHT = 120;
+    private static final int CENTER_TAB_HEIGHT = 20;
 
     private boolean rightPanelVisible = true;
     private boolean bottomPanelVisible = true;
@@ -35,11 +42,23 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
     private boolean playerExpanded = true;
 
     private PanelFocus focusedPanel = PanelFocus.CENTER;
+    private CenterTab activeCenterTab = CenterTab.INVENTORY;
+
     private Integer selectedExplorerRow = 0;
     private Integer draggingSourceMenuSlot;
     private Integer hoveredExplorerMenuSlot;
+    private Integer clickedMenuSlot;
+    private Integer diskPreviewMenuSlot;
+    private Integer hoveredDiskPreviewMenuSlot;
+
+    private String diskPreviewProgram = "";
+    private List<MutableComponent> diskPreviewLines = new ArrayList<>();
 
     private EditBox terminalInput;
+    private CommandSuggestions terminalCommandSuggestions;
+
+    private VirtualScrollViewport explorerScroll;
+    private VirtualScrollViewport diskPreviewScroll;
 
     public ManagerIdeScreen(ManagerContainerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -48,6 +67,11 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
     @Override
     protected void init() {
         super.init();
+
+        int rowHeight = this.font.lineHeight + 2;
+        this.explorerScroll = new VirtualScrollViewport(rowHeight);
+        this.diskPreviewScroll = new VirtualScrollViewport(rowHeight);
+
         this.terminalInput = this.addRenderableWidget(new EditBox(
                 this.font,
                 10,
@@ -57,7 +81,39 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
                 IdeLocalizationKeys.IDE_TERMINAL_INPUT_PLACEHOLDER.getComponent()
         ));
         this.terminalInput.setMaxLength(ServerboundManagerIdeTerminalCommandPacket.MAX_COMMAND_LENGTH);
+        this.terminalInput.setResponder(this::onTerminalInputEdited);
+        this.terminalCommandSuggestions = new CommandSuggestions(
+                this.minecraft,
+                this,
+                this.terminalInput,
+                this.font,
+                false,
+                false,
+                1,
+                10,
+                true,
+                0xD0000000
+        );
+        this.terminalCommandSuggestions.setAllowSuggestions(false);
         updateTerminalInputBounds();
+    }
+
+    private void onTerminalInputEdited(String value) {
+        if (terminalCommandSuggestions == null) {
+            return;
+        }
+        terminalCommandSuggestions.setAllowSuggestions(value.startsWith("/"));
+        terminalCommandSuggestions.updateCommandInfo();
+    }
+
+    @Override
+    protected void slotClicked(Slot pSlot, int pSlotId, int pMouseButton, ClickType pType) {
+        super.slotClicked(pSlot, pSlotId, pMouseButton, pType);
+        if (pSlot != null && pSlotId >= 0) {
+            clickedMenuSlot = pSlotId;
+        } else if (pSlot == null) {
+            clickedMenuSlot = null;
+        }
     }
 
     public boolean executeIdeAction(String actionId) {
@@ -191,10 +247,17 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
                     selectedExplorerRow = Math.min(selectedExplorerRow, getExplorerRows().size() - 1);
                     return true;
                 }
+                if ((pKeyCode == GLFW.GLFW_KEY_ENTER || pKeyCode == GLFW.GLFW_KEY_SPACE) && row.kind.isSlotTarget()) {
+                    openDiskPreviewForMenuSlot(row.menuSlot);
+                    return true;
+                }
             }
         }
 
         if (bottomPanelVisible && terminalInput != null) {
+            if (terminalInput.isFocused() && terminalCommandSuggestions != null && terminalCommandSuggestions.keyPressed(pKeyCode, pScanCode, pModifiers)) {
+                return true;
+            }
             if (terminalInput.isFocused() && pKeyCode == GLFW.GLFW_KEY_ENTER) {
                 submitTerminalCommand();
                 return true;
@@ -217,8 +280,21 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
 
     @Override
     public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
+        if (bottomPanelVisible
+            && terminalInput != null
+            && terminalInput.visible
+            && terminalInput.isFocused()
+            && terminalCommandSuggestions != null
+            && terminalCommandSuggestions.mouseClicked((double) ((int) pMouseX), (double) ((int) pMouseY), pButton)) {
+            return true;
+        }
+
         if (bottomPanelVisible && terminalInput != null && terminalInput.visible && terminalInput.mouseClicked(pMouseX, pMouseY, pButton)) {
             focusTerminalPanel();
+            return true;
+        }
+
+        if (pButton == 0 && handleCenterTabClick((int) pMouseX, (int) pMouseY)) {
             return true;
         }
 
@@ -234,12 +310,18 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
                         managerExpanded = !managerExpanded;
                     } else if (row.kind == ExplorerRowKind.PLAYER_CONTAINER) {
                         playerExpanded = !playerExpanded;
-                    } else if (row.kind == ExplorerRowKind.SLOT) {
+                    } else if (row.kind.isSlotTarget()) {
                         draggingSourceMenuSlot = row.menuSlot;
+                        openDiskPreviewForMenuSlot(row.menuSlot);
                     }
                     return true;
                 }
             }
+        }
+
+        if (activeCenterTab == CenterTab.TEXT_EDITOR && isInsideCenterContent((int) pMouseX, (int) pMouseY)) {
+            focusCenterPanel();
+            return true;
         }
 
         return super.mouseClicked(pMouseX, pMouseY, pButton);
@@ -255,7 +337,7 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
                     ExplorerRow row = rows.get(rowIndex);
                     ServerboundManagerIdeExplorerDropPacket.TargetKind targetKind;
                     int targetSlot = -1;
-                    if (row.kind == ExplorerRowKind.SLOT) {
+                    if (row.kind.isSlotTarget()) {
                         targetKind = ServerboundManagerIdeExplorerDropPacket.TargetKind.SLOT;
                         targetSlot = row.menuSlot;
                     } else if (row.kind == ExplorerRowKind.MANAGER_CONTAINER) {
@@ -278,6 +360,31 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
         return super.mouseReleased(pMouseX, pMouseY, pButton);
     }
 
+    @Override
+    public boolean mouseScrolled(double pMouseX, double pMouseY, double pDelta) {
+        if (bottomPanelVisible
+            && terminalInput != null
+            && terminalInput.visible
+            && terminalInput.isFocused()
+            && terminalCommandSuggestions != null
+            && terminalCommandSuggestions.mouseScrolled(pDelta)) {
+            return true;
+        }
+
+        if (rightPanelVisible && isInsideExplorerContent((int) pMouseX, (int) pMouseY)) {
+            List<ExplorerRow> rows = getExplorerRows();
+            explorerScroll.scrollByWheel(pDelta, rows.size(), getExplorerContentHeight());
+            return true;
+        }
+
+        if (activeCenterTab == CenterTab.TEXT_EDITOR && isInsideTextEditorContent((int) pMouseX, (int) pMouseY)) {
+            diskPreviewScroll.scrollByWheel(pDelta, diskPreviewLines.size(), getTextEditorContentHeight());
+            return true;
+        }
+
+        return super.mouseScrolled(pMouseX, pMouseY, pDelta);
+    }
+
     private void submitTerminalCommand() {
         if (terminalInput == null) {
             return;
@@ -295,17 +402,67 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
         terminalInput.setValue("");
     }
 
+    private boolean openDiskPreviewForMenuSlot(int menuSlot) {
+        if (menuSlot < 0 || menuSlot >= menu.slots.size()) {
+            return false;
+        }
+        ItemStack stack = menu.getSlot(menuSlot).getItem();
+        if (!(stack.getItem() instanceof DiskItem)) {
+            return false;
+        }
+
+        activeCenterTab = CenterTab.TEXT_EDITOR;
+        diskPreviewMenuSlot = menuSlot;
+        refreshDiskPreviewFromSlot();
+        return true;
+    }
+
+    private void refreshDiskPreviewFromSlot() {
+        if (diskPreviewMenuSlot == null || diskPreviewMenuSlot < 0 || diskPreviewMenuSlot >= menu.slots.size()) {
+            return;
+        }
+
+        ItemStack stack = menu.getSlot(diskPreviewMenuSlot).getItem();
+        if (!(stack.getItem() instanceof DiskItem)) {
+            diskPreviewProgram = "";
+            diskPreviewLines = new ArrayList<>();
+            diskPreviewMenuSlot = null;
+            diskPreviewScroll.reset();
+            return;
+        }
+
+        String program = DiskItem.getProgramString(stack);
+        if (!program.equals(diskPreviewProgram)) {
+            diskPreviewProgram = program;
+            diskPreviewLines = ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false);
+            if (diskPreviewLines.isEmpty()) {
+                diskPreviewLines = new ArrayList<>();
+                diskPreviewLines.add(Component.empty());
+            }
+            diskPreviewScroll.reset();
+        }
+    }
+
     @Override
     public void render(PoseStack poseStack, int mx, int my, float partialTicks) {
         this.renderBackground(poseStack);
         super.render(poseStack, mx, my, partialTicks);
-        renderCenterSlotHighlights(poseStack);
+
+        if (activeCenterTab == CenterTab.INVENTORY) {
+            renderCenterSlotHighlights(poseStack);
+        }
 
         hoveredExplorerMenuSlot = null;
+        hoveredDiskPreviewMenuSlot = null;
+
+        drawCenterPanel(poseStack, mx, my);
         drawIdePanels(poseStack, mx, my);
 
         if (bottomPanelVisible && terminalInput != null && terminalInput.visible) {
             terminalInput.render(poseStack, mx, my, partialTicks);
+            if (terminalInput.isFocused() && terminalCommandSuggestions != null) {
+                terminalCommandSuggestions.render(poseStack, mx, my);
+            }
         }
 
         if (draggingSourceMenuSlot != null) {
@@ -318,8 +475,16 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
                 this.renderTooltip(poseStack, stack, mx, my);
             }
         }
+        if (hoveredDiskPreviewMenuSlot != null) {
+            ItemStack stack = menu.getSlot(hoveredDiskPreviewMenuSlot).getItem();
+            if (!stack.isEmpty()) {
+                this.renderTooltip(poseStack, stack, mx, my);
+            }
+        }
 
-        this.renderTooltip(poseStack, mx, my);
+        if (activeCenterTab == CenterTab.INVENTORY) {
+            this.renderTooltip(poseStack, mx, my);
+        }
     }
 
     private void drawIdePanels(PoseStack poseStack, int mx, int my) {
@@ -329,6 +494,130 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
         if (bottomPanelVisible) {
             drawTerminalPanel(poseStack);
         }
+    }
+
+    private void drawCenterPanel(PoseStack poseStack, int mx, int my) {
+        int x = getCenterPanelX();
+        int y = getCenterPanelY();
+        int w = getCenterPanelWidth();
+
+        fill(poseStack, x, y - CENTER_TAB_HEIGHT, x + w, y, 0xB0101010);
+
+        drawCenterTabButton(
+                poseStack,
+                x + 4,
+                y - CENTER_TAB_HEIGHT + 2,
+                76,
+                CENTER_TAB_HEIGHT - 4,
+                IdeLocalizationKeys.IDE_CENTER_TAB_INVENTORY.getComponent(),
+                activeCenterTab == CenterTab.INVENTORY
+        );
+        drawCenterTabButton(
+                poseStack,
+                x + 84,
+                y - CENTER_TAB_HEIGHT + 2,
+                92,
+                CENTER_TAB_HEIGHT - 4,
+                IdeLocalizationKeys.IDE_CENTER_TAB_TEXT_EDITOR.getComponent(),
+                activeCenterTab == CenterTab.TEXT_EDITOR
+        );
+
+        if (activeCenterTab == CenterTab.TEXT_EDITOR) {
+            drawTextEditorCenterPanel(poseStack, mx, my);
+        }
+    }
+
+    private void drawCenterTabButton(PoseStack poseStack, int x, int y, int w, int h, Component label, boolean active) {
+        fill(poseStack, x, y, x + w, y + h, active ? 0xFF2A3A4A : 0xFF1A1A1A);
+        drawString(poseStack, font, label, x + 6, y + 5, active ? 0xFFFFFF : 0xC0C0C0);
+    }
+
+    private void drawTextEditorCenterPanel(PoseStack poseStack, int mx, int my) {
+        refreshDiskPreviewFromSlot();
+
+        int x = getCenterPanelX();
+        int y = getCenterPanelY();
+        int w = getCenterPanelWidth();
+        int h = getCenterPanelHeight();
+
+        fill(poseStack, x, y, x + w, y + h, 0xEE080808);
+
+        if (diskPreviewMenuSlot == null || diskPreviewMenuSlot < 0 || diskPreviewMenuSlot >= menu.slots.size()) {
+            drawString(poseStack, font, IdeLocalizationKeys.IDE_CENTER_TEXT_EDITOR_EMPTY.getComponent(), x + 8, y + 8, 0xB0B0B0);
+            return;
+        }
+
+        ItemStack stack = menu.getSlot(diskPreviewMenuSlot).getItem();
+        if (!(stack.getItem() instanceof DiskItem)) {
+            drawString(poseStack, font, IdeLocalizationKeys.IDE_CENTER_TEXT_EDITOR_EMPTY.getComponent(), x + 8, y + 8, 0xB0B0B0);
+            return;
+        }
+
+        drawString(
+                poseStack,
+                font,
+                IdeLocalizationKeys.IDE_CENTER_TEXT_EDITOR_TITLE.getComponent(diskPreviewMenuSlot),
+                x + 8,
+                y + 8,
+                0xFFFFFF
+        );
+
+        int iconX = x + w - 22;
+        int iconY = y + 6;
+        this.itemRenderer.renderAndDecorateItem(stack, iconX, iconY);
+        if (mx >= iconX && mx <= iconX + 16 && my >= iconY && my <= iconY + 16) {
+            hoveredDiskPreviewMenuSlot = diskPreviewMenuSlot;
+        }
+
+        int contentX = x + 8;
+        int contentY = y + 24;
+        int contentW = w - 16;
+        int contentH = h - 30;
+
+        fill(poseStack, contentX - 2, contentY - 2, contentX + contentW, contentY + contentH, 0x55111111);
+
+        int rowCount = diskPreviewLines.size();
+        diskPreviewScroll.clamp(rowCount, contentH);
+
+        int first = diskPreviewScroll.firstVisibleRow(rowCount, contentH);
+        int last = diskPreviewScroll.lastVisibleRowExclusive(rowCount, contentH);
+
+        for (int i = first; i < last; i++) {
+            int rowY = diskPreviewScroll.rowTop(i, contentY);
+            MutableComponent line = diskPreviewLines.get(i);
+            drawString(poseStack, font, line, contentX, rowY, 0xFFFFFF);
+        }
+
+        drawSimpleScrollbar(
+                poseStack,
+                contentX + contentW - 3,
+                contentY,
+                contentH,
+                rowCount,
+                diskPreviewScroll
+        );
+    }
+
+    private boolean handleCenterTabClick(int mouseX, int mouseY) {
+        int x = getCenterPanelX();
+        int y = getCenterPanelY() - CENTER_TAB_HEIGHT + 2;
+        int h = CENTER_TAB_HEIGHT - 4;
+
+        if (mouseY < y || mouseY > y + h) {
+            return false;
+        }
+
+        if (mouseX >= x + 4 && mouseX <= x + 80) {
+            activeCenterTab = CenterTab.INVENTORY;
+            focusCenterPanel();
+            return true;
+        }
+        if (mouseX >= x + 84 && mouseX <= x + 176) {
+            activeCenterTab = CenterTab.TEXT_EDITOR;
+            focusCenterPanel();
+            return true;
+        }
+        return false;
     }
 
     private void drawExplorerPanel(PoseStack poseStack, int mx, int my) {
@@ -341,9 +630,16 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
         drawString(poseStack, font, IdeLocalizationKeys.IDE_PANEL_EXPLORER_TITLE.getComponent(), x + 6, y + 6, 0xFFFFFF);
 
         List<ExplorerRow> rows = getExplorerRows();
-        int rowY = y + 22;
-        for (int i = 0; i < rows.size(); i++) {
+        int contentTop = y + 22;
+        int contentHeight = getExplorerContentHeight();
+
+        explorerScroll.clamp(rows.size(), contentHeight);
+        int first = explorerScroll.firstVisibleRow(rows.size(), contentHeight);
+        int last = explorerScroll.lastVisibleRowExclusive(rows.size(), contentHeight);
+
+        for (int i = first; i < last; i++) {
             ExplorerRow row = rows.get(i);
+            int rowY = explorerScroll.rowTop(i, contentTop);
             int color = focusedPanel == PanelFocus.EXPLORER && selectedExplorerRow != null && selectedExplorerRow == i
                         ? 0xFF66CCFF
                         : 0xFFFFFFFF;
@@ -351,13 +647,15 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
             String prefix = switch (row.kind) {
                 case MANAGER_CONTAINER -> managerExpanded ? "▾ " : "▸ ";
                 case PLAYER_CONTAINER -> playerExpanded ? "▾ " : "▸ ";
+                case MAIN_HAND_SLOT -> "→ ";
+                case CLICKED_SLOT_META -> "◉ ";
                 case SLOT -> "• ";
             };
 
             int textX = x + 6;
             Component line = Component.literal(indent + prefix).append(row.label);
 
-            if (row.kind == ExplorerRowKind.SLOT && row.menuSlot >= 0 && row.menuSlot < menu.slots.size()) {
+            if (row.kind.isSlotTarget() && row.menuSlot >= 0 && row.menuSlot < menu.slots.size()) {
                 ItemStack stack = menu.getSlot(row.menuSlot).getItem();
                 int iconX = x + w - 60;
                 int iconY = rowY - 2;
@@ -375,12 +673,39 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
             }
 
             drawString(poseStack, font, line, textX, rowY, color);
-
-            rowY += font.lineHeight + 2;
-            if (rowY > y + h - 8) {
-                break;
-            }
         }
+
+        drawSimpleScrollbar(
+                poseStack,
+                x + w - 4,
+                contentTop,
+                contentHeight,
+                rows.size(),
+                explorerScroll
+        );
+    }
+
+    private void drawSimpleScrollbar(
+            PoseStack poseStack,
+            int x,
+            int y,
+            int height,
+            int rowCount,
+            VirtualScrollViewport viewport
+    ) {
+        int maxOffset = viewport.maxScrollOffset(rowCount, height);
+        if (maxOffset <= 0) {
+            return;
+        }
+
+        fill(poseStack, x, y, x + 2, y + height, 0x55303030);
+
+        int contentHeight = rowCount * viewport.rowHeight();
+        int thumbHeight = Math.max(16, (height * height) / Math.max(1, contentHeight));
+        int travel = Math.max(1, height - thumbHeight);
+        int thumbY = y + (int) ((viewport.scrollOffset() / (double) maxOffset) * travel);
+
+        fill(poseStack, x, thumbY, x + 2, thumbY + thumbHeight, 0xFFA0A0A0);
     }
 
     private void drawTerminalPanel(PoseStack poseStack) {
@@ -414,10 +739,18 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
         if (!bottomPanelVisible) {
             terminalInput.visible = false;
             terminalInput.setFocus(false);
+            if (terminalCommandSuggestions != null) {
+                terminalCommandSuggestions.hide();
+            }
             return;
         }
         terminalInput.visible = true;
         terminalInput.setWidth(getBottomPanelWidth() - 12);
+        terminalInput.setX(getBottomPanelX() + 6);
+        terminalInput.y = getBottomPanelY() + BOTTOM_PANEL_HEIGHT - 18;
+        if (terminalCommandSuggestions != null) {
+            terminalCommandSuggestions.updateCommandInfo();
+        }
     }
 
     @Override
@@ -432,14 +765,16 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
     @Override
     protected void renderLabels(PoseStack poseStack, int mx, int my) {
         drawString(poseStack, font, title, titleLabelX, titleLabelY, 0xFFFFFF);
-        drawString(
-                poseStack,
-                font,
-                IdeLocalizationKeys.IDE_PLAYER_INVENTORY_LABEL.getComponent(),
-                8,
-                74,
-                0xB0B0B0
-        );
+        if (activeCenterTab == CenterTab.INVENTORY) {
+            drawString(
+                    poseStack,
+                    font,
+                    IdeLocalizationKeys.IDE_PLAYER_INVENTORY_LABEL.getComponent(),
+                    8,
+                    74,
+                    0xB0B0B0
+            );
+        }
     }
 
     private void renderCenterSlotHighlights(PoseStack poseStack) {
@@ -468,6 +803,17 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
         return this.height - 16;
     }
 
+    private int getExplorerContentHeight() {
+        return Math.max(16, getRightPanelHeight() - 26);
+    }
+
+    private boolean isInsideExplorerContent(int mx, int my) {
+        int x = getRightPanelX();
+        int y = getRightPanelY() + 22;
+        int h = getExplorerContentHeight();
+        return mx >= x && mx <= x + RIGHT_PANEL_WIDTH && my >= y && my <= y + h;
+    }
+
     private int getBottomPanelX() {
         return 8;
     }
@@ -480,42 +826,99 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
         return this.width - 16;
     }
 
+    private int getCenterPanelX() {
+        return leftPos;
+    }
+
+    private int getCenterPanelY() {
+        return topPos;
+    }
+
+    private int getCenterPanelWidth() {
+        return imageWidth;
+    }
+
+    private int getCenterPanelHeight() {
+        return imageHeight;
+    }
+
+    private boolean isInsideCenterContent(int mx, int my) {
+        return mx >= getCenterPanelX()
+               && mx <= getCenterPanelX() + getCenterPanelWidth()
+               && my >= getCenterPanelY()
+               && my <= getCenterPanelY() + getCenterPanelHeight();
+    }
+
+    private boolean isInsideTextEditorContent(int mx, int my) {
+        int x = getCenterPanelX() + 8;
+        int y = getCenterPanelY() + 24;
+        int w = getCenterPanelWidth() - 16;
+        int h = getTextEditorContentHeight();
+        return mx >= x && mx <= x + w && my >= y && my <= y + h;
+    }
+
+    private int getTextEditorContentHeight() {
+        return Math.max(16, getCenterPanelHeight() - 30);
+    }
+
     public List<Rect2i> getJeiExclusionZones() {
         return List.of(new Rect2i(0, 0, this.width, this.height));
     }
 
     private Integer getExplorerRowAt(int mx, int my) {
-        int x = getRightPanelX();
-        int y = getRightPanelY();
-        int h = getRightPanelHeight();
-        if (mx < x || mx > x + RIGHT_PANEL_WIDTH || my < y || my > y + h) {
+        if (!isInsideExplorerContent(mx, my)) {
             return null;
         }
-        int startY = y + 22;
-        if (my < startY) {
-            return null;
-        }
-        int rowHeight = font.lineHeight + 2;
-        int index = (my - startY) / rowHeight;
-        if (index < 0 || index >= getExplorerRows().size()) {
-            return null;
-        }
-        return index;
+        List<ExplorerRow> rows = getExplorerRows();
+        return explorerScroll.rowAt(my, getRightPanelY() + 22, rows.size(), getExplorerContentHeight());
     }
 
     private List<ExplorerRow> getExplorerRows() {
         List<ExplorerRow> rows = new ArrayList<>();
+
+        if (clickedMenuSlot == null) {
+            rows.add(new ExplorerRow(
+                    ExplorerRowKind.CLICKED_SLOT_META,
+                    0,
+                    -1,
+                    IdeLocalizationKeys.IDE_EXPLORER_CLICKED_SLOT_NONE.getComponent()
+            ));
+        } else {
+            rows.add(new ExplorerRow(
+                    ExplorerRowKind.CLICKED_SLOT_META,
+                    0,
+                    clickedMenuSlot,
+                    IdeLocalizationKeys.IDE_EXPLORER_CLICKED_SLOT_NODE.getComponent(clickedMenuSlot)
+            ));
+        }
+
         rows.add(new ExplorerRow(ExplorerRowKind.MANAGER_CONTAINER, 0, -1, IdeLocalizationKeys.IDE_EXPLORER_MANAGER_NODE.getComponent()));
         if (managerExpanded) {
             rows.add(new ExplorerRow(ExplorerRowKind.SLOT, 1, 0, IdeLocalizationKeys.IDE_EXPLORER_SLOT_NODE.getComponent(0)));
         }
+
         rows.add(new ExplorerRow(ExplorerRowKind.PLAYER_CONTAINER, 0, -1, IdeLocalizationKeys.IDE_EXPLORER_PLAYER_NODE.getComponent()));
         if (playerExpanded) {
+            int heldPlayerSlot = this.minecraft != null && this.minecraft.player != null
+                                 ? this.minecraft.player.getInventory().selected
+                                 : 0;
+            rows.add(new ExplorerRow(
+                    ExplorerRowKind.MAIN_HAND_SLOT,
+                    1,
+                    28 + heldPlayerSlot,
+                    IdeLocalizationKeys.IDE_EXPLORER_MAIN_HAND_SLOT_NODE.getComponent(heldPlayerSlot)
+            ));
             for (int i = 0; i < 36; i++) {
                 rows.add(new ExplorerRow(ExplorerRowKind.SLOT, 1, i + 1, IdeLocalizationKeys.IDE_EXPLORER_SLOT_NODE.getComponent(i)));
             }
         }
+
         return rows;
+    }
+
+    private enum CenterTab {
+        INVENTORY,
+        TEXT_EDITOR
     }
 
     private enum PanelFocus {
@@ -525,9 +928,15 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
     }
 
     private enum ExplorerRowKind {
+        CLICKED_SLOT_META,
         MANAGER_CONTAINER,
         PLAYER_CONTAINER,
-        SLOT
+        MAIN_HAND_SLOT,
+        SLOT;
+
+        private boolean isSlotTarget() {
+            return this == MAIN_HAND_SLOT || this == SLOT;
+        }
     }
 
     private record ExplorerRow(
