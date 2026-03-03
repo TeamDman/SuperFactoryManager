@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.registry;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.localization.IdeLocalizationKeys;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.util.SFMDist;
@@ -152,6 +153,33 @@ public class SFMKeyMappings {
             LocalizationKeys.SFM_KEY_CATEGORY.key().get()
     ));
 
+        public static final Lazy<KeyMapping> IDE_TOGGLE_RIGHT_PANEL_KEY = Lazy.of(() -> new KeyMapping(
+            IdeLocalizationKeys.IDE_KEY_TOGGLE_RIGHT_PANEL.key().get(),
+            KeyConflictContext.GUI,
+            KeyModifier.CONTROL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_H,
+            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
+        ));
+
+        public static final Lazy<KeyMapping> IDE_TOGGLE_BOTTOM_PANEL_KEY = Lazy.of(() -> new KeyMapping(
+            IdeLocalizationKeys.IDE_KEY_TOGGLE_BOTTOM_PANEL.key().get(),
+            KeyConflictContext.GUI,
+            KeyModifier.CONTROL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_J,
+            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
+        ));
+
+        public static final Lazy<KeyMapping> IDE_FOCUS_EXPLORER_PANEL_KEY = Lazy.of(() -> new KeyMapping(
+            IdeLocalizationKeys.IDE_KEY_FOCUS_EXPLORER_PANEL.key().get(),
+            KeyConflictContext.GUI,
+            KeyModifier.CONTROL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_E,
+            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
+        ));
+
     public static KeyMapping[] getSFMKeyMappings() {
         return new KeyMapping[]{
                 MORE_INFO_TOOLTIP_KEY.get(),
@@ -168,7 +196,10 @@ public class SFMKeyMappings {
                 LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY.get(),
                 MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.get(),
                 TITLE_SCREEN_OPEN_TEXT_EDITOR_KEY.get(),
-                TOGGLE_NETWORK_TOOL_OVERLAY_KEY.get()
+                TOGGLE_NETWORK_TOOL_OVERLAY_KEY.get(),
+                IDE_TOGGLE_RIGHT_PANEL_KEY.get(),
+                IDE_TOGGLE_BOTTOM_PANEL_KEY.get(),
+                IDE_FOCUS_EXPLORER_PANEL_KEY.get()
         };
     }
 

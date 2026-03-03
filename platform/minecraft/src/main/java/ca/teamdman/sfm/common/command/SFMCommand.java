@@ -5,6 +5,7 @@ import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.block_network.WaterNetworkManager;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.net.ClientboundManagerIdeActionPacket;
 import ca.teamdman.sfm.common.net.ClientboundShowChangelogPacket;
 import ca.teamdman.sfm.common.program.RegexCache;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
@@ -147,6 +148,22 @@ public class SFMCommand {
                                  }
                                  return SINGLE_SUCCESS;
                              }));
+                command.then(Commands.literal("ide")
+                                                         .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                                                         .then(Commands.literal("toggle_right_panel")
+                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:toggle_right_panel_visibility")))
+                                                         .then(Commands.literal("show_right_panel")
+                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:show_right_panel")))
+                                                         .then(Commands.literal("hide_right_panel")
+                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:hide_right_panel")))
+                                                         .then(Commands.literal("toggle_bottom_panel")
+                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:toggle_bottom_panel_visibility")))
+                                                         .then(Commands.literal("show_bottom_panel")
+                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:show_bottom_panel")))
+                                                         .then(Commands.literal("hide_bottom_panel")
+                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:hide_bottom_panel")))
+                                                         .then(Commands.literal("focus_explorer")
+                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:focus_explorer_panel"))));
         command.then(Commands.literal("kit")
                              .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
                              .executes(ctx -> giveKitToPlayers(
@@ -171,6 +188,17 @@ public class SFMCommand {
         }
         event.getDispatcher().register(command);
     }
+
+        private static int runIdeAction(CommandSourceStack source, String actionId) {
+                ServerPlayer player = source.getPlayer();
+                if (player == null) {
+                        source.sendFailure(Component.literal("/sfm ide commands are only available to players."));
+                        return 0;
+                }
+                SFMPackets.sendToPlayer(player, new ClientboundManagerIdeActionPacket(player.containerMenu.containerId, actionId));
+                sendSuccess(source, () -> Component.literal("Requested IDE action: " + actionId));
+                return SINGLE_SUCCESS;
+        }
 
         private static int giveKitToPlayers(CommandSourceStack source, Collection<ServerPlayer> targets) {
                 List<ItemStack> kitItems = List.of(
