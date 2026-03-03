@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^\\.\\\\gradlew\\.bat compileJava$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Set-Location platform/minecraft; \\.\\\\gradlew\\.bat compileJava$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
