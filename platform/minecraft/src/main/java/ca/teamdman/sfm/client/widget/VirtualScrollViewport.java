@@ -34,6 +34,11 @@ public class VirtualScrollViewport {
         clamp(rowCount, viewportHeight);
     }
 
+    public void setScrollOffset(double offset, int rowCount, int viewportHeight) {
+        this.scrollOffset = offset;
+        clamp(rowCount, viewportHeight);
+    }
+
     public Integer rowAt(int mouseY, int contentTop, int rowCount, int viewportHeight) {
         if (mouseY < contentTop || mouseY >= contentTop + viewportHeight) {
             return null;

@@ -60,7 +60,9 @@ public class OverlayHider {
         for (GuiEventListener listener : new ArrayList<>(event.getListenersList())) {
             String className = listener.getClass().getName();
             if (className.equals("dev.ftb.mods.ftblibrary.sidebar.SidebarGroupGuiButton")
-                || className.contains(".ftblibrary.sidebar.")) {
+                || className.contains(".ftblibrary.sidebar.")
+                || className.startsWith("mezz.jei.")
+                || className.contains(".jei.")) {
                 event.removeListener(listener);
             }
         }

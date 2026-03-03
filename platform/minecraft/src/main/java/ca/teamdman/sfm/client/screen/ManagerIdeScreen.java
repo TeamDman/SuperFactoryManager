@@ -16,14 +16,12 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
@@ -31,10 +29,15 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMenu> {
+public class ManagerIdeScreen extends Screen {
     private static final int RIGHT_PANEL_WIDTH = 180;
     private static final int BOTTOM_PANEL_HEIGHT = 120;
     private static final int CENTER_TAB_HEIGHT = 20;
+    private static final int CENTER_PANEL_WIDTH = 176;
+    private static final int CENTER_PANEL_HEIGHT = 166;
+
+    private final ManagerContainerMenu menu;
+    private final Inventory playerInventory;
 
     private boolean rightPanelVisible = true;
     private boolean bottomPanelVisible = true;
@@ -48,6 +51,7 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
     private Integer draggingSourceMenuSlot;
     private Integer hoveredExplorerMenuSlot;
     private Integer clickedMenuSlot;
+    private Integer hoveredCenterMenuSlot;
     private Integer diskPreviewMenuSlot;
     private Integer hoveredDiskPreviewMenuSlot;
 
@@ -60,8 +64,18 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
     private VirtualScrollViewport explorerScroll;
     private VirtualScrollViewport diskPreviewScroll;
 
+    private boolean explorerScrollDragging;
+    private int explorerScrollDragStartMouseY;
+    private double explorerScrollDragStartOffset;
+
     public ManagerIdeScreen(ManagerContainerMenu menu, Inventory inv, Component title) {
-        super(menu, inv, title);
+        super(title);
+        this.menu = menu;
+        this.playerInventory = inv;
+    }
+
+    public ManagerContainerMenu getMenu() {
+        return menu;
     }
 
     @Override
@@ -98,22 +112,20 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
         updateTerminalInputBounds();
     }
 
+    @Override
+    public void onClose() {
+        if (this.minecraft != null && this.minecraft.player != null) {
+            this.minecraft.player.closeContainer();
+        }
+        super.onClose();
+    }
+
     private void onTerminalInputEdited(String value) {
         if (terminalCommandSuggestions == null) {
             return;
         }
         terminalCommandSuggestions.setAllowSuggestions(value.startsWith("/"));
         terminalCommandSuggestions.updateCommandInfo();
-    }
-
-    @Override
-    protected void slotClicked(Slot pSlot, int pSlotId, int pMouseButton, ClickType pType) {
-        super.slotClicked(pSlot, pSlotId, pMouseButton, pType);
-        if (pSlot != null && pSlotId >= 0) {
-            clickedMenuSlot = pSlotId;
-        } else if (pSlot == null) {
-            clickedMenuSlot = null;
-        }
     }
 
     public boolean executeIdeAction(String actionId) {
@@ -235,7 +247,7 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
                 selectedExplorerRow = Math.max(0, selectedExplorerRow - 1);
                 return true;
             }
-            if (pKeyCode == GLFW.GLFW_KEY_LEFT || pKeyCode == GLFW.GLFW_KEY_RIGHT || pKeyCode == GLFW.GLFW_KEY_ENTER) {
+            if (pKeyCode == GLFW.GLFW_KEY_LEFT || pKeyCode == GLFW.GLFW_KEY_RIGHT || pKeyCode == GLFW.GLFW_KEY_ENTER || pKeyCode == GLFW.GLFW_KEY_SPACE) {
                 ExplorerRow row = rows.get(selectedExplorerRow);
                 if (row.kind == ExplorerRowKind.MANAGER_CONTAINER) {
                     managerExpanded = !managerExpanded;
@@ -298,6 +310,13 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
             return true;
         }
 
+        if (rightPanelVisible && pButton == 0 && isInsideExplorerScrollbar((int) pMouseX, (int) pMouseY)) {
+            explorerScrollDragging = true;
+            explorerScrollDragStartMouseY = (int) pMouseY;
+            explorerScrollDragStartOffset = explorerScroll.scrollOffset();
+            return true;
+        }
+
         if (rightPanelVisible && pButton == 0) {
             Integer rowIndex = getExplorerRowAt((int) pMouseX, (int) pMouseY);
             if (rowIndex != null) {
@@ -312,10 +331,19 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
                         playerExpanded = !playerExpanded;
                     } else if (row.kind.isSlotTarget()) {
                         draggingSourceMenuSlot = row.menuSlot;
+                        clickedMenuSlot = row.menuSlot;
                         openDiskPreviewForMenuSlot(row.menuSlot);
                     }
                     return true;
                 }
+            }
+        }
+
+        if (activeCenterTab == CenterTab.INVENTORY && pButton == 0) {
+            Integer slot = getCenterSlotAt((int) pMouseX, (int) pMouseY);
+            if (slot != null) {
+                clickedMenuSlot = slot;
+                return true;
             }
         }
 
@@ -328,7 +356,33 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
     }
 
     @Override
+    public boolean mouseDragged(double pMouseX, double pMouseY, int pButton, double pDragX, double pDragY) {
+        if (explorerScrollDragging && pButton == 0) {
+            List<ExplorerRow> rows = getExplorerRows();
+            int contentHeight = getExplorerContentHeight();
+            int rowCount = rows.size();
+            int maxOffset = explorerScroll.maxScrollOffset(rowCount, contentHeight);
+            if (maxOffset <= 0) {
+                return true;
+            }
+
+            int thumbHeight = getScrollbarThumbHeight(contentHeight, rowCount, explorerScroll);
+            int travel = Math.max(1, contentHeight - thumbHeight);
+            double pixelsMoved = pMouseY - explorerScrollDragStartMouseY;
+            double contentOffsetDelta = (pixelsMoved / (double) travel) * maxOffset;
+            explorerScroll.setScrollOffset(explorerScrollDragStartOffset + contentOffsetDelta, rowCount, contentHeight);
+            return true;
+        }
+
+        return super.mouseDragged(pMouseX, pMouseY, pButton, pDragX, pDragY);
+    }
+
+    @Override
     public boolean mouseReleased(double pMouseX, double pMouseY, int pButton) {
+        if (pButton == 0) {
+            explorerScrollDragging = false;
+        }
+
         if (pButton == 0 && draggingSourceMenuSlot != null && rightPanelVisible) {
             Integer rowIndex = getExplorerRowAt((int) pMouseX, (int) pMouseY);
             if (rowIndex != null) {
@@ -446,29 +500,30 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
     @Override
     public void render(PoseStack poseStack, int mx, int my, float partialTicks) {
         this.renderBackground(poseStack);
-        super.render(poseStack, mx, my, partialTicks);
-
-        if (activeCenterTab == CenterTab.INVENTORY) {
-            renderCenterSlotHighlights(poseStack);
-        }
 
         hoveredExplorerMenuSlot = null;
         hoveredDiskPreviewMenuSlot = null;
+        hoveredCenterMenuSlot = null;
 
         drawCenterPanel(poseStack, mx, my);
         drawIdePanels(poseStack, mx, my);
 
-        if (bottomPanelVisible && terminalInput != null && terminalInput.visible) {
-            terminalInput.render(poseStack, mx, my, partialTicks);
-            if (terminalInput.isFocused() && terminalCommandSuggestions != null) {
-                terminalCommandSuggestions.render(poseStack, mx, my);
-            }
+        super.render(poseStack, mx, my, partialTicks);
+
+        if (bottomPanelVisible && terminalInput != null && terminalInput.visible && terminalInput.isFocused() && terminalCommandSuggestions != null) {
+            terminalCommandSuggestions.render(poseStack, mx, my);
         }
 
         if (draggingSourceMenuSlot != null) {
             drawString(poseStack, font, Component.literal("Dragging slot " + draggingSourceMenuSlot), mx + 8, my + 8, 0xFFFFFF);
         }
 
+        if (hoveredCenterMenuSlot != null) {
+            ItemStack stack = menu.getSlot(hoveredCenterMenuSlot).getItem();
+            if (!stack.isEmpty()) {
+                this.renderTooltip(poseStack, stack, mx, my);
+            }
+        }
         if (hoveredExplorerMenuSlot != null) {
             ItemStack stack = menu.getSlot(hoveredExplorerMenuSlot).getItem();
             if (!stack.isEmpty()) {
@@ -480,10 +535,6 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
             if (!stack.isEmpty()) {
                 this.renderTooltip(poseStack, stack, mx, my);
             }
-        }
-
-        if (activeCenterTab == CenterTab.INVENTORY) {
-            this.renderTooltip(poseStack, mx, my);
         }
     }
 
@@ -522,8 +573,53 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
                 activeCenterTab == CenterTab.TEXT_EDITOR
         );
 
-        if (activeCenterTab == CenterTab.TEXT_EDITOR) {
+        if (activeCenterTab == CenterTab.INVENTORY) {
+            drawCenterInventoryPanel(poseStack, mx, my);
+        } else {
             drawTextEditorCenterPanel(poseStack, mx, my);
+        }
+    }
+
+    private void drawCenterInventoryPanel(PoseStack poseStack, int mx, int my) {
+        int x = getCenterPanelX();
+        int y = getCenterPanelY();
+        int w = getCenterPanelWidth();
+        int h = getCenterPanelHeight();
+
+        fill(poseStack, x, y, x + w, y + h, 0x55000000);
+        drawString(poseStack, font, this.title, x + 8, y + 6, 0xFFFFFF);
+        drawString(
+                poseStack,
+                font,
+                IdeLocalizationKeys.IDE_PLAYER_INVENTORY_LABEL.getComponent(),
+                x + 8,
+                y + 74,
+                0xB0B0B0
+        );
+
+        for (int i = 0; i < menu.slots.size(); i++) {
+            Slot slot = menu.slots.get(i);
+            int sx = x + slot.x;
+            int sy = y + slot.y;
+
+            fill(poseStack, sx - 1, sy - 1, sx + 17, sy + 17, 0x88303030);
+            fill(poseStack, sx, sy, sx + 16, sy + 16, 0x88202020);
+
+            if (clickedMenuSlot != null && clickedMenuSlot == i) {
+                fill(poseStack, sx - 1, sy - 1, sx + 17, sy, 0xFF66CCFF);
+                fill(poseStack, sx - 1, sy + 16, sx + 17, sy + 17, 0xFF66CCFF);
+                fill(poseStack, sx - 1, sy, sx, sy + 16, 0xFF66CCFF);
+                fill(poseStack, sx + 16, sy, sx + 17, sy + 16, 0xFF66CCFF);
+            }
+
+            ItemStack stack = slot.getItem();
+            if (!stack.isEmpty()) {
+                itemRenderer.renderAndDecorateItem(stack, sx, sy);
+                itemRenderer.renderGuiItemDecorations(font, stack, sx, sy);
+                if (mx >= sx && mx <= sx + 16 && my >= sy && my <= sy + 16) {
+                    hoveredCenterMenuSlot = i;
+                }
+            }
         }
     }
 
@@ -700,12 +796,23 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
 
         fill(poseStack, x, y, x + 2, y + height, 0x55303030);
 
-        int contentHeight = rowCount * viewport.rowHeight();
-        int thumbHeight = Math.max(16, (height * height) / Math.max(1, contentHeight));
+        int thumbHeight = getScrollbarThumbHeight(height, rowCount, viewport);
         int travel = Math.max(1, height - thumbHeight);
         int thumbY = y + (int) ((viewport.scrollOffset() / (double) maxOffset) * travel);
 
         fill(poseStack, x, thumbY, x + 2, thumbY + thumbHeight, 0xFFA0A0A0);
+    }
+
+    private int getScrollbarThumbHeight(int viewportHeight, int rowCount, VirtualScrollViewport viewport) {
+        int contentHeight = Math.max(1, rowCount * viewport.rowHeight());
+        return Math.max(16, (viewportHeight * viewportHeight) / contentHeight);
+    }
+
+    private boolean isInsideExplorerScrollbar(int mx, int my) {
+        int x = getRightPanelX() + RIGHT_PANEL_WIDTH - 4;
+        int y = getRightPanelY() + 22;
+        int h = getExplorerContentHeight();
+        return mx >= x && mx <= x + 3 && my >= y && my <= y + h;
     }
 
     private void drawTerminalPanel(PoseStack poseStack) {
@@ -753,41 +860,6 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
         }
     }
 
-    @Override
-    protected void renderBg(PoseStack matrixStack, float partialTicks, int mx, int my) {
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        RenderSystem.disableTexture();
-        fill(matrixStack, leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0x55000000);
-        RenderSystem.enableTexture();
-    }
-
-    @Override
-    protected void renderLabels(PoseStack poseStack, int mx, int my) {
-        drawString(poseStack, font, title, titleLabelX, titleLabelY, 0xFFFFFF);
-        if (activeCenterTab == CenterTab.INVENTORY) {
-            drawString(
-                    poseStack,
-                    font,
-                    IdeLocalizationKeys.IDE_PLAYER_INVENTORY_LABEL.getComponent(),
-                    8,
-                    74,
-                    0xB0B0B0
-            );
-        }
-    }
-
-    private void renderCenterSlotHighlights(PoseStack poseStack) {
-        for (Slot slot : menu.slots) {
-            int x = leftPos + slot.x;
-            int y = topPos + slot.y;
-            fill(poseStack, x - 1, y - 1, x + 17, y, 0x88D0D0D0);
-            fill(poseStack, x - 1, y + 16, x + 17, y + 17, 0x88D0D0D0);
-            fill(poseStack, x - 1, y, x, y + 16, 0x88D0D0D0);
-            fill(poseStack, x + 16, y, x + 17, y + 16, 0x88D0D0D0);
-        }
-    }
-
     private int getRightPanelX() {
         return this.width - RIGHT_PANEL_WIDTH - 8;
     }
@@ -827,19 +899,19 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
     }
 
     private int getCenterPanelX() {
-        return leftPos;
+        return (this.width - CENTER_PANEL_WIDTH) / 2;
     }
 
     private int getCenterPanelY() {
-        return topPos;
+        return (this.height - CENTER_PANEL_HEIGHT) / 2;
     }
 
     private int getCenterPanelWidth() {
-        return imageWidth;
+        return CENTER_PANEL_WIDTH;
     }
 
     private int getCenterPanelHeight() {
-        return imageHeight;
+        return CENTER_PANEL_HEIGHT;
     }
 
     private boolean isInsideCenterContent(int mx, int my) {
@@ -859,6 +931,20 @@ public class ManagerIdeScreen extends AbstractContainerScreen<ManagerContainerMe
 
     private int getTextEditorContentHeight() {
         return Math.max(16, getCenterPanelHeight() - 30);
+    }
+
+    private Integer getCenterSlotAt(int mx, int my) {
+        int left = getCenterPanelX();
+        int top = getCenterPanelY();
+        for (int i = 0; i < menu.slots.size(); i++) {
+            Slot slot = menu.slots.get(i);
+            int sx = left + slot.x;
+            int sy = top + slot.y;
+            if (mx >= sx && mx <= sx + 16 && my >= sy && my <= sy + 16) {
+                return i;
+            }
+        }
+        return null;
     }
 
     public List<Rect2i> getJeiExclusionZones() {

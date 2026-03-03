@@ -1,13 +1,13 @@
 package ca.teamdman.sfm.client.registry;
 
-import ca.teamdman.sfm.client.screen.ManagerIdeScreen;
+import ca.teamdman.sfm.client.screen.ManagerIdeMenuBootstrapScreen;
 import ca.teamdman.sfm.client.screen.TestBarrelTankScreen;
 import ca.teamdman.sfm.common.registry.registration.SFMMenus;
 import net.minecraft.client.gui.screens.MenuScreens;
 
 public class SFMMenuScreens {
     public static void register() {
-        MenuScreens.register(SFMMenus.MANAGER.get(), ManagerIdeScreen::new);
+        MenuScreens.register(SFMMenus.MANAGER.get(), ManagerIdeMenuBootstrapScreen::new);
         MenuScreens.register(SFMMenus.TEST_BARREL_TANK.get(), TestBarrelTankScreen::new);
     }
 }
