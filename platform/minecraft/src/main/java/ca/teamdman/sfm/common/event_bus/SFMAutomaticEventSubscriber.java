@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.event_bus;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 import ca.teamdman.sfm.common.util.SFMDist;
+import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Method;
@@ -59,7 +60,9 @@ public class SFMAutomaticEventSubscriber {
         final Method handlerMethod = found;
 
         // Log registration attempt
-        SFM.LOGGER.debug("Registering event subscriber {}", methodDisplay);
+        if (SFMEnvironmentUtils.isInIDE()) {
+            SFM.LOGGER.debug("Registering event subscriber {}", methodDisplay);
+        }
 
         // Validate event handler method constraints
         if (!Modifier.isStatic(handlerMethod.getModifiers())) {
