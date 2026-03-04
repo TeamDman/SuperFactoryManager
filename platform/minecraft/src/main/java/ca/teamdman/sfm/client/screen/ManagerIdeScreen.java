@@ -81,6 +81,11 @@ public class ManagerIdeScreen extends Screen {
     private int resizeDragStartBottomPanelHeight;
     private boolean hoveredRightResizeHandle;
     private boolean hoveredBottomResizeHandle;
+    private boolean hoveredCornerResizeHandle;
+    private long horizontalResizeCursorHandle;
+    private long verticalResizeCursorHandle;
+    private long diagonalResizeCursorHandle;
+    private ResizeCursor activeResizeCursor = ResizeCursor.DEFAULT;
 
     public ManagerIdeScreen(ManagerContainerMenu menu, Inventory inv, Component title) {
         super(title);
@@ -96,6 +101,7 @@ public class ManagerIdeScreen extends Screen {
     protected void init() {
         super.init();
         clampPanelSizesToScreen();
+        initResizeCursors();
 
         int rowHeight = this.font.lineHeight + 2;
         this.explorerScroll = new VirtualScrollViewport(rowHeight);
@@ -129,6 +135,7 @@ public class ManagerIdeScreen extends Screen {
 
     @Override
     public void onClose() {
+        releaseResizeCursors();
         if (this.minecraft != null && this.minecraft.player != null) {
             this.minecraft.player.closeContainer();
         }
@@ -377,16 +384,18 @@ public class ManagerIdeScreen extends Screen {
     @Override
     public boolean mouseDragged(double pMouseX, double pMouseY, int pButton, double pDragX, double pDragY) {
         if (pButton == 0 && activeResizeEdge != ResizeEdge.NONE) {
-            if (activeResizeEdge == ResizeEdge.RIGHT_PANEL) {
+            if (activeResizeEdge == ResizeEdge.RIGHT_PANEL || activeResizeEdge == ResizeEdge.BOTH_PANELS) {
                 int deltaX = (int) pMouseX - resizeDragStartMouseX;
                 setRightPanelWidth(resizeDragStartRightPanelWidth - deltaX);
                 hoveredRightResizeHandle = true;
-                hoveredBottomResizeHandle = false;
-            } else if (activeResizeEdge == ResizeEdge.BOTTOM_PANEL) {
+            }
+            if (activeResizeEdge == ResizeEdge.BOTTOM_PANEL || activeResizeEdge == ResizeEdge.BOTH_PANELS) {
                 int deltaY = (int) pMouseY - resizeDragStartMouseY;
                 setBottomPanelHeight(resizeDragStartBottomPanelHeight - deltaY);
                 hoveredBottomResizeHandle = true;
-                hoveredRightResizeHandle = false;
+            }
+            if (activeResizeEdge == ResizeEdge.BOTH_PANELS) {
+                hoveredCornerResizeHandle = true;
             }
             return true;
         }
@@ -540,8 +549,14 @@ public class ManagerIdeScreen extends Screen {
         hoveredExplorerMenuSlot = null;
         hoveredDiskPreviewMenuSlot = null;
         hoveredCenterMenuSlot = null;
-        hoveredRightResizeHandle = isOverRightResizeHandle(mx, my) || activeResizeEdge == ResizeEdge.RIGHT_PANEL;
-        hoveredBottomResizeHandle = isOverBottomResizeHandle(mx, my) || activeResizeEdge == ResizeEdge.BOTTOM_PANEL;
+        hoveredCornerResizeHandle = isOverResizeCornerHandle(mx, my) || activeResizeEdge == ResizeEdge.BOTH_PANELS;
+        hoveredRightResizeHandle = hoveredCornerResizeHandle
+                                   || isOverRightResizeHandle(mx, my)
+                                   || activeResizeEdge == ResizeEdge.RIGHT_PANEL;
+        hoveredBottomResizeHandle = hoveredCornerResizeHandle
+                                    || isOverBottomResizeHandle(mx, my)
+                                    || activeResizeEdge == ResizeEdge.BOTTOM_PANEL;
+        updateResizeCursor();
 
         drawCenterPanel(poseStack, mx, my);
         drawIdePanels(poseStack, mx, my);
@@ -984,6 +999,15 @@ public class ManagerIdeScreen extends Screen {
     }
 
     private boolean tryBeginResizeDrag(int mouseX, int mouseY) {
+        if (rightPanelVisible && bottomPanelVisible && isOverResizeCornerHandle(mouseX, mouseY)) {
+            activeResizeEdge = ResizeEdge.BOTH_PANELS;
+            resizeDragStartMouseX = mouseX;
+            resizeDragStartMouseY = mouseY;
+            resizeDragStartRightPanelWidth = rightPanelWidth;
+            resizeDragStartBottomPanelHeight = bottomPanelHeight;
+            return true;
+        }
+
         if (rightPanelVisible && isOverRightResizeHandle(mouseX, mouseY)) {
             activeResizeEdge = ResizeEdge.RIGHT_PANEL;
             resizeDragStartMouseX = mouseX;
@@ -999,6 +1023,19 @@ public class ManagerIdeScreen extends Screen {
         }
 
         return false;
+    }
+
+    private boolean isOverResizeCornerHandle(int mouseX, int mouseY) {
+        if (!rightPanelVisible || !bottomPanelVisible) {
+            return false;
+        }
+
+        int cornerX = getRightPanelX();
+        int cornerY = getBottomPanelY();
+        return mouseX >= cornerX - RESIZE_HANDLE_THICKNESS
+               && mouseX <= cornerX + RESIZE_HANDLE_THICKNESS
+               && mouseY >= cornerY - RESIZE_HANDLE_THICKNESS
+               && mouseY <= cornerY + RESIZE_HANDLE_THICKNESS;
     }
 
     private boolean isOverRightResizeHandle(int mouseX, int mouseY) {
@@ -1034,7 +1071,9 @@ public class ManagerIdeScreen extends Screen {
             int x = getRightPanelX();
             int y = getRightPanelY();
             int h = getRightPanelHeight();
-            int color = activeResizeEdge == ResizeEdge.RIGHT_PANEL ? 0xFF66CCFF : 0xB066CCFF;
+            int color = (activeResizeEdge == ResizeEdge.RIGHT_PANEL || activeResizeEdge == ResizeEdge.BOTH_PANELS)
+                        ? 0xFF66CCFF
+                        : 0xB066CCFF;
             fill(poseStack, x - 1, y, x + 1, y + h, color);
         }
 
@@ -1042,9 +1081,76 @@ public class ManagerIdeScreen extends Screen {
             int x = getBottomPanelX();
             int y = getBottomPanelY();
             int w = getBottomPanelWidth();
-            int color = activeResizeEdge == ResizeEdge.BOTTOM_PANEL ? 0xFF66CCFF : 0xB066CCFF;
+            int color = (activeResizeEdge == ResizeEdge.BOTTOM_PANEL || activeResizeEdge == ResizeEdge.BOTH_PANELS)
+                        ? 0xFF66CCFF
+                        : 0xB066CCFF;
             fill(poseStack, x, y - 1, x + w, y + 1, color);
         }
+
+        if (rightPanelVisible && bottomPanelVisible && hoveredCornerResizeHandle) {
+            int cornerX = getRightPanelX();
+            int cornerY = getBottomPanelY();
+            int color = activeResizeEdge == ResizeEdge.BOTH_PANELS ? 0xFF66CCFF : 0xB066CCFF;
+            fill(poseStack, cornerX - 2, cornerY - 2, cornerX + 2, cornerY + 2, color);
+        }
+    }
+
+    private void initResizeCursors() {
+        if (horizontalResizeCursorHandle == 0L) {
+            horizontalResizeCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_HRESIZE_CURSOR);
+        }
+        if (verticalResizeCursorHandle == 0L) {
+            verticalResizeCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_VRESIZE_CURSOR);
+        }
+        if (diagonalResizeCursorHandle == 0L) {
+            diagonalResizeCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_CROSSHAIR_CURSOR);
+        }
+    }
+
+    private void releaseResizeCursors() {
+        applyResizeCursor(ResizeCursor.DEFAULT);
+        if (horizontalResizeCursorHandle != 0L) {
+            GLFW.glfwDestroyCursor(horizontalResizeCursorHandle);
+            horizontalResizeCursorHandle = 0L;
+        }
+        if (verticalResizeCursorHandle != 0L) {
+            GLFW.glfwDestroyCursor(verticalResizeCursorHandle);
+            verticalResizeCursorHandle = 0L;
+        }
+        if (diagonalResizeCursorHandle != 0L) {
+            GLFW.glfwDestroyCursor(diagonalResizeCursorHandle);
+            diagonalResizeCursorHandle = 0L;
+        }
+    }
+
+    private void updateResizeCursor() {
+        ResizeCursor desired;
+        if (activeResizeEdge == ResizeEdge.BOTH_PANELS || hoveredCornerResizeHandle) {
+            desired = ResizeCursor.DIAGONAL;
+        } else if (activeResizeEdge == ResizeEdge.RIGHT_PANEL || hoveredRightResizeHandle) {
+            desired = ResizeCursor.HORIZONTAL;
+        } else if (activeResizeEdge == ResizeEdge.BOTTOM_PANEL || hoveredBottomResizeHandle) {
+            desired = ResizeCursor.VERTICAL;
+        } else {
+            desired = ResizeCursor.DEFAULT;
+        }
+        applyResizeCursor(desired);
+    }
+
+    private void applyResizeCursor(ResizeCursor desired) {
+        if (desired == activeResizeCursor || this.minecraft == null) {
+            return;
+        }
+
+        long windowHandle = this.minecraft.getWindow().getWindow();
+        long cursorHandle = switch (desired) {
+            case DEFAULT -> 0L;
+            case HORIZONTAL -> horizontalResizeCursorHandle != 0L ? horizontalResizeCursorHandle : 0L;
+            case VERTICAL -> verticalResizeCursorHandle != 0L ? verticalResizeCursorHandle : 0L;
+            case DIAGONAL -> diagonalResizeCursorHandle != 0L ? diagonalResizeCursorHandle : 0L;
+        };
+        GLFW.glfwSetCursor(windowHandle, cursorHandle);
+        activeResizeCursor = desired;
     }
 
     private boolean isInsideCenterContent(int mx, int my) {
@@ -1161,7 +1267,15 @@ public class ManagerIdeScreen extends Screen {
     private enum ResizeEdge {
         NONE,
         RIGHT_PANEL,
-        BOTTOM_PANEL
+        BOTTOM_PANEL,
+        BOTH_PANELS
+    }
+
+    private enum ResizeCursor {
+        DEFAULT,
+        HORIZONTAL,
+        VERTICAL,
+        DIAGONAL
     }
 
     private record ExplorerRow(
