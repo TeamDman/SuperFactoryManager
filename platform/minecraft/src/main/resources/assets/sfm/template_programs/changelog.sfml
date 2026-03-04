@@ -6,6 +6,9 @@ NAME "Changelog"
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
+---- 4.32.0 ----
+-- Reduce logging about SFM event listener registration
+
 ---- 4.31.0 ----
 -- Fix cable placement causing crash when the same network touching multiple sides, thanks @𝓢𝓽𝓮𝓿𝓮𝓷 𝓤 and @textbookApologist for the report! #511
 
