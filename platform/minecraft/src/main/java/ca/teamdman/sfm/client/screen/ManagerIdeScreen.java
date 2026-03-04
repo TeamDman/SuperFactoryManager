@@ -30,8 +30,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ManagerIdeScreen extends Screen {
-    private static final int RIGHT_PANEL_WIDTH = 180;
-    private static final int BOTTOM_PANEL_HEIGHT = 120;
+    private static final int DEFAULT_RIGHT_PANEL_WIDTH = 180;
+    private static final int DEFAULT_BOTTOM_PANEL_HEIGHT = 120;
+    private static final int MIN_RIGHT_PANEL_WIDTH = 120;
+    private static final int MIN_BOTTOM_PANEL_HEIGHT = 72;
+    private static final int MIN_REMAINING_MAIN_AREA_WIDTH = 120;
+    private static final int MIN_REMAINING_MAIN_AREA_HEIGHT = 120;
+    private static final int RESIZE_HANDLE_THICKNESS = 4;
     private static final int CENTER_TAB_HEIGHT = 20;
     private static final int CENTER_PANEL_WIDTH = 176;
     private static final int CENTER_PANEL_HEIGHT = 166;
@@ -43,6 +48,8 @@ public class ManagerIdeScreen extends Screen {
     private boolean bottomPanelVisible = true;
     private boolean managerExpanded = true;
     private boolean playerExpanded = true;
+    private int rightPanelWidth = DEFAULT_RIGHT_PANEL_WIDTH;
+    private int bottomPanelHeight = DEFAULT_BOTTOM_PANEL_HEIGHT;
 
     private PanelFocus focusedPanel = PanelFocus.CENTER;
     private CenterTab activeCenterTab = CenterTab.INVENTORY;
@@ -67,6 +74,13 @@ public class ManagerIdeScreen extends Screen {
     private boolean explorerScrollDragging;
     private int explorerScrollDragStartMouseY;
     private double explorerScrollDragStartOffset;
+    private ResizeEdge activeResizeEdge = ResizeEdge.NONE;
+    private int resizeDragStartMouseX;
+    private int resizeDragStartMouseY;
+    private int resizeDragStartRightPanelWidth;
+    private int resizeDragStartBottomPanelHeight;
+    private boolean hoveredRightResizeHandle;
+    private boolean hoveredBottomResizeHandle;
 
     public ManagerIdeScreen(ManagerContainerMenu menu, Inventory inv, Component title) {
         super(title);
@@ -81,6 +95,7 @@ public class ManagerIdeScreen extends Screen {
     @Override
     protected void init() {
         super.init();
+        clampPanelSizesToScreen();
 
         int rowHeight = this.font.lineHeight + 2;
         this.explorerScroll = new VirtualScrollViewport(rowHeight);
@@ -310,6 +325,10 @@ public class ManagerIdeScreen extends Screen {
             return true;
         }
 
+        if (pButton == 0 && tryBeginResizeDrag((int) pMouseX, (int) pMouseY)) {
+            return true;
+        }
+
         if (rightPanelVisible && pButton == 0 && isInsideExplorerScrollbar((int) pMouseX, (int) pMouseY)) {
             explorerScrollDragging = true;
             explorerScrollDragStartMouseY = (int) pMouseY;
@@ -357,6 +376,21 @@ public class ManagerIdeScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double pMouseX, double pMouseY, int pButton, double pDragX, double pDragY) {
+        if (pButton == 0 && activeResizeEdge != ResizeEdge.NONE) {
+            if (activeResizeEdge == ResizeEdge.RIGHT_PANEL) {
+                int deltaX = (int) pMouseX - resizeDragStartMouseX;
+                setRightPanelWidth(resizeDragStartRightPanelWidth - deltaX);
+                hoveredRightResizeHandle = true;
+                hoveredBottomResizeHandle = false;
+            } else if (activeResizeEdge == ResizeEdge.BOTTOM_PANEL) {
+                int deltaY = (int) pMouseY - resizeDragStartMouseY;
+                setBottomPanelHeight(resizeDragStartBottomPanelHeight - deltaY);
+                hoveredBottomResizeHandle = true;
+                hoveredRightResizeHandle = false;
+            }
+            return true;
+        }
+
         if (explorerScrollDragging && pButton == 0) {
             List<ExplorerRow> rows = getExplorerRows();
             int contentHeight = getExplorerContentHeight();
@@ -381,6 +415,7 @@ public class ManagerIdeScreen extends Screen {
     public boolean mouseReleased(double pMouseX, double pMouseY, int pButton) {
         if (pButton == 0) {
             explorerScrollDragging = false;
+            activeResizeEdge = ResizeEdge.NONE;
         }
 
         if (pButton == 0 && draggingSourceMenuSlot != null && rightPanelVisible) {
@@ -500,13 +535,17 @@ public class ManagerIdeScreen extends Screen {
     @Override
     public void render(PoseStack poseStack, int mx, int my, float partialTicks) {
         this.renderBackground(poseStack);
+        clampPanelSizesToScreen();
 
         hoveredExplorerMenuSlot = null;
         hoveredDiskPreviewMenuSlot = null;
         hoveredCenterMenuSlot = null;
+        hoveredRightResizeHandle = isOverRightResizeHandle(mx, my) || activeResizeEdge == ResizeEdge.RIGHT_PANEL;
+        hoveredBottomResizeHandle = isOverBottomResizeHandle(mx, my) || activeResizeEdge == ResizeEdge.BOTTOM_PANEL;
 
         drawCenterPanel(poseStack, mx, my);
         drawIdePanels(poseStack, mx, my);
+        drawResizeHandles(poseStack);
 
         super.render(poseStack, mx, my, partialTicks);
 
@@ -719,7 +758,7 @@ public class ManagerIdeScreen extends Screen {
     private void drawExplorerPanel(PoseStack poseStack, int mx, int my) {
         int x = getRightPanelX();
         int y = getRightPanelY();
-        int w = RIGHT_PANEL_WIDTH;
+        int w = getRightPanelWidth();
         int h = getRightPanelHeight();
 
         fill(poseStack, x, y, x + w, y + h, 0xAA101010);
@@ -809,7 +848,7 @@ public class ManagerIdeScreen extends Screen {
     }
 
     private boolean isInsideExplorerScrollbar(int mx, int my) {
-        int x = getRightPanelX() + RIGHT_PANEL_WIDTH - 4;
+        int x = getRightPanelX() + getRightPanelWidth() - 4;
         int y = getRightPanelY() + 22;
         int h = getExplorerContentHeight();
         return mx >= x && mx <= x + 3 && my >= y && my <= y + h;
@@ -819,7 +858,7 @@ public class ManagerIdeScreen extends Screen {
         int x = getBottomPanelX();
         int y = getBottomPanelY();
         int w = getBottomPanelWidth();
-        int h = BOTTOM_PANEL_HEIGHT;
+        int h = getBottomPanelHeight();
 
         fill(poseStack, x, y, x + w, y + h, 0xAA101010);
         drawString(poseStack, font, IdeLocalizationKeys.IDE_PANEL_TERMINAL_TITLE.getComponent(), x + 6, y + 6, 0xFFFFFF);
@@ -854,14 +893,14 @@ public class ManagerIdeScreen extends Screen {
         terminalInput.visible = true;
         terminalInput.setWidth(getBottomPanelWidth() - 12);
         terminalInput.setX(getBottomPanelX() + 6);
-        terminalInput.y = getBottomPanelY() + BOTTOM_PANEL_HEIGHT - 18;
+        terminalInput.y = getBottomPanelY() + getBottomPanelHeight() - 18;
         if (terminalCommandSuggestions != null) {
             terminalCommandSuggestions.updateCommandInfo();
         }
     }
 
     private int getRightPanelX() {
-        return this.width - RIGHT_PANEL_WIDTH - 8;
+        return this.width - getRightPanelWidth() - 8;
     }
 
     private int getRightPanelY() {
@@ -870,7 +909,7 @@ public class ManagerIdeScreen extends Screen {
 
     private int getRightPanelHeight() {
         if (bottomPanelVisible) {
-            return this.height - BOTTOM_PANEL_HEIGHT - 20;
+            return this.height - getBottomPanelHeight() - 20;
         }
         return this.height - 16;
     }
@@ -883,7 +922,7 @@ public class ManagerIdeScreen extends Screen {
         int x = getRightPanelX();
         int y = getRightPanelY() + 22;
         int h = getExplorerContentHeight();
-        return mx >= x && mx <= x + RIGHT_PANEL_WIDTH && my >= y && my <= y + h;
+        return mx >= x && mx <= x + getRightPanelWidth() && my >= y && my <= y + h;
     }
 
     private int getBottomPanelX() {
@@ -891,7 +930,7 @@ public class ManagerIdeScreen extends Screen {
     }
 
     private int getBottomPanelY() {
-        return this.height - BOTTOM_PANEL_HEIGHT - 8;
+        return this.height - getBottomPanelHeight() - 8;
     }
 
     private int getBottomPanelWidth() {
@@ -912,6 +951,100 @@ public class ManagerIdeScreen extends Screen {
 
     private int getCenterPanelHeight() {
         return CENTER_PANEL_HEIGHT;
+    }
+
+    private int getRightPanelWidth() {
+        return rightPanelWidth;
+    }
+
+    private int getBottomPanelHeight() {
+        return bottomPanelHeight;
+    }
+
+    private void setRightPanelWidth(int requestedWidth) {
+        rightPanelWidth = Math.max(MIN_RIGHT_PANEL_WIDTH, Math.min(getMaxRightPanelWidth(), requestedWidth));
+    }
+
+    private void setBottomPanelHeight(int requestedHeight) {
+        bottomPanelHeight = Math.max(MIN_BOTTOM_PANEL_HEIGHT, Math.min(getMaxBottomPanelHeight(), requestedHeight));
+        updateTerminalInputBounds();
+    }
+
+    private int getMaxRightPanelWidth() {
+        return Math.max(MIN_RIGHT_PANEL_WIDTH, this.width - 16 - MIN_REMAINING_MAIN_AREA_WIDTH);
+    }
+
+    private int getMaxBottomPanelHeight() {
+        return Math.max(MIN_BOTTOM_PANEL_HEIGHT, this.height - 16 - MIN_REMAINING_MAIN_AREA_HEIGHT);
+    }
+
+    private void clampPanelSizesToScreen() {
+        rightPanelWidth = Math.max(MIN_RIGHT_PANEL_WIDTH, Math.min(getMaxRightPanelWidth(), rightPanelWidth));
+        bottomPanelHeight = Math.max(MIN_BOTTOM_PANEL_HEIGHT, Math.min(getMaxBottomPanelHeight(), bottomPanelHeight));
+    }
+
+    private boolean tryBeginResizeDrag(int mouseX, int mouseY) {
+        if (rightPanelVisible && isOverRightResizeHandle(mouseX, mouseY)) {
+            activeResizeEdge = ResizeEdge.RIGHT_PANEL;
+            resizeDragStartMouseX = mouseX;
+            resizeDragStartRightPanelWidth = rightPanelWidth;
+            return true;
+        }
+
+        if (bottomPanelVisible && isOverBottomResizeHandle(mouseX, mouseY)) {
+            activeResizeEdge = ResizeEdge.BOTTOM_PANEL;
+            resizeDragStartMouseY = mouseY;
+            resizeDragStartBottomPanelHeight = bottomPanelHeight;
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isOverRightResizeHandle(int mouseX, int mouseY) {
+        if (!rightPanelVisible) {
+            return false;
+        }
+
+        int edgeX = getRightPanelX();
+        int minY = getRightPanelY();
+        int maxY = getRightPanelY() + getRightPanelHeight();
+        return mouseX >= edgeX - RESIZE_HANDLE_THICKNESS
+               && mouseX <= edgeX + RESIZE_HANDLE_THICKNESS
+               && mouseY >= minY
+               && mouseY <= maxY;
+    }
+
+    private boolean isOverBottomResizeHandle(int mouseX, int mouseY) {
+        if (!bottomPanelVisible) {
+            return false;
+        }
+
+        int edgeY = getBottomPanelY();
+        int minX = getBottomPanelX();
+        int maxX = getBottomPanelX() + getBottomPanelWidth();
+        return mouseY >= edgeY - RESIZE_HANDLE_THICKNESS
+               && mouseY <= edgeY + RESIZE_HANDLE_THICKNESS
+               && mouseX >= minX
+               && mouseX <= maxX;
+    }
+
+    private void drawResizeHandles(PoseStack poseStack) {
+        if (rightPanelVisible && hoveredRightResizeHandle) {
+            int x = getRightPanelX();
+            int y = getRightPanelY();
+            int h = getRightPanelHeight();
+            int color = activeResizeEdge == ResizeEdge.RIGHT_PANEL ? 0xFF66CCFF : 0xB066CCFF;
+            fill(poseStack, x - 1, y, x + 1, y + h, color);
+        }
+
+        if (bottomPanelVisible && hoveredBottomResizeHandle) {
+            int x = getBottomPanelX();
+            int y = getBottomPanelY();
+            int w = getBottomPanelWidth();
+            int color = activeResizeEdge == ResizeEdge.BOTTOM_PANEL ? 0xFF66CCFF : 0xB066CCFF;
+            fill(poseStack, x, y - 1, x + w, y + 1, color);
+        }
     }
 
     private boolean isInsideCenterContent(int mx, int my) {
@@ -1023,6 +1156,12 @@ public class ManagerIdeScreen extends Screen {
         private boolean isSlotTarget() {
             return this == MAIN_HAND_SLOT || this == SLOT;
         }
+    }
+
+    private enum ResizeEdge {
+        NONE,
+        RIGHT_PANEL,
+        BOTTOM_PANEL
     }
 
     private record ExplorerRow(
