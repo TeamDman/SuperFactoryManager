@@ -4,6 +4,8 @@ import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.compat.SFMMekanismCompat;
 import ca.teamdman.sfm.common.compat.SFMModCompat;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.linting.IProgramLinter;
 import ca.teamdman.sfm.common.program.linting.ProblemTracker;
 import ca.teamdman.sfm.common.util.SFMStreamUtils;
@@ -29,10 +31,19 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_MEKANISM_BAD_SIDE_CONFIG;
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_MEKANISM_USED_WITH_NULL_DIRECTION;
-
 public class MekanismSidednessProgramLinter implements IProgramLinter {
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_MEKANISM_USED_WITH_NULL_DIRECTION = new LocalizationEntry(
+            "program.sfm.warnings.mekanism_used_without_direction",
+            "Mekanism blocks are read-only from the null direction, check label \"%s\" used in \"%s\""
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_MEKANISM_BAD_SIDE_CONFIG = new LocalizationEntry(
+            "program.sfm.warnings.mekanism_bad_side_config",
+            "Mekanism block side config at %s doesn't agree with statement, check label \"%s\" used in \"%s\""
+    );
 
     @Override
     public void gatherWarnings(
@@ -65,6 +76,7 @@ public class MekanismSidednessProgramLinter implements IProgramLinter {
             Level level,
             ItemStack disk
     ) {
+
         program.getDescendantStatements()
                 .filter(IOStatement.class::isInstance)
                 .map(IOStatement.class::cast)
@@ -197,7 +209,11 @@ public class MekanismSidednessProgramLinter implements IProgramLinter {
                 for (TransmissionType transmissionType : referencedTransmissionTypes) {
                     ConfigInfo transmissionConfig = mekBlockEntityConfig.getConfig(transmissionType);
                     if (transmissionConfig != null) {
-                        Set<Direction> activeSides = SFMMekanismCompat.getSides(transmissionConfig, mekBlockEntity, dataTypePredicate);
+                        Set<Direction> activeSides = SFMMekanismCompat.getSides(
+                                transmissionConfig,
+                                mekBlockEntity,
+                                dataTypePredicate
+                        );
                         boolean anySuccess = directions.stream().anyMatch(activeSides::contains);
                         if (!anySuccess) {
                             // we want to enable a side for the transmission type

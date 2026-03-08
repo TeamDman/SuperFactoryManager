@@ -2,14 +2,43 @@ package ca.teamdman.sfm.client.text_editor;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 
 import java.util.function.Consumer;
 
 public interface ISFMTextEditScreenOpenContext {
+    @SFMLocalizationDatagen
+    LocalizationEntry EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.exit_without_saving_confirm.title",
+            "Exit without saving?"
+    );
+
+    @SFMLocalizationDatagen
+    LocalizationEntry EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_MESSAGE = new LocalizationEntry(
+            "gui.sfm.exit_without_saving_confirm.message",
+            "Are you sure you want to abandon your work?"
+    );
+
+    @SFMLocalizationDatagen
+    LocalizationEntry EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_YES_BUTTON = new LocalizationEntry(
+            "gui.sfm.exit_without_saving_confirm.yes_button",
+            "Exit without saving"
+    );
+
+    @SFMLocalizationDatagen
+    LocalizationEntry EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_NO_BUTTON = new LocalizationEntry(
+            "gui.sfm.exit_without_saving_confirm.no_button",
+            "Continue editing"
+    );
+
     String initialValue();
-    default void onTryClose(String latestContent, Runnable finalizeClose) {
+
+    default void onTryClose(
+            String latestContent,
+            Runnable finalizeClose
+    ) {
         // If the content is different, ask to save
         if (initialValue().equals(latestContent)) {
             // Content is unmodified, close without confirmation
@@ -26,19 +55,24 @@ public interface ISFMTextEditScreenOpenContext {
                             finalizeClose.run();
                         }
                     },
-                    LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_TITLE.getComponent(),
-                    LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_MESSAGE.getComponent(),
-                    LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
-                    LocalizationKeys.EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_NO_BUTTON.getComponent()
+                    EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_TITLE.getComponent(),
+                    EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_MESSAGE.getComponent(),
+                    EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
+                    EXIT_WITHOUT_SAVING_CONFIRM_SCREEN_NO_BUTTON.getComponent()
             );
             SFMScreenChangeHelpers.setOrPushScreen(exitWithoutSavingConfirmScreen);
             exitWithoutSavingConfirmScreen.setDelay(20);
         }
     }
+
     default void onSaveAndClose(String latestContent) {
+
         saveWriter().accept(latestContent);
         SFMScreenChangeHelpers.popScreen();
     }
+
     Consumer<String> saveWriter();
+
     LabelPositionHolder labelPositionHolder();
+
 }

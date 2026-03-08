@@ -5,8 +5,10 @@ import ca.teamdman.sfm.client.handler.LabelGunKeyMappingHandler;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.SFMItemUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -27,7 +29,92 @@ import java.util.Comparator;
 import java.util.List;
 
 public class LabelGunItem extends Item {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.toggle_label_reminder",
+            () -> "%s a block to toggle the active label on it."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_PUSH_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.push_reminder",
+            () -> "%s a Factory Manager to push labels to it."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_PULL_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.pull_reminder",
+            () -> "%s + %s a Factory Manager to pull labels from it."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_CLEAR_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.clear_reminder",
+            () -> "%s + %s a block to remove labels from it."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_PICK_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.pick_reminder",
+            () -> "%s + %s a block to pick the active label from it."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_CONTIGUOUS_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.contiguous_reminder",
+            () -> "Hold %s to perform changes against contiguous blocks touching cables."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_CYCLE_VIEW_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.cycle_view_reminder",
+            () -> "Press %s to cycle label view."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_NEXT_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.next_reminder",
+            () -> "Press %s to select next label."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_PREVIOUS_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.previous_reminder",
+            () -> "Press %s to select previous label."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_SCROLL_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.scroll_reminder",
+            () -> "%s + mouse wheel to select next/previous label."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_GUI_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.gui_reminder",
+            () -> "%s the air to open GUI."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_TOOLTIP_TARGET_MANAGER_REMINDER = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".tooltip.target_manager_reminder",
+            () -> "%s + %s to label a Factory Manager itself."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM_NAME_WITH_LABEL = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".with_label",
+            () -> "Label Gun: \"%s\""
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_ITEM = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId(),
+            () -> "Label Gun"
+    );
+
     public LabelGunItem(Properties properties) {
+
         super(properties);
     }
 
@@ -35,6 +122,7 @@ public class LabelGunItem extends Item {
             ItemStack stack,
             @Nullable String label
     ) {
+
         if (label == null || label.isEmpty()) {
             clearActiveLabel(stack);
         } else {
@@ -46,6 +134,7 @@ public class LabelGunItem extends Item {
     public static void clearActiveLabel(
             ItemStack gun
     ) {
+
         gun.getOrCreateTag().remove("sfm:active_label");
     }
 
@@ -58,6 +147,7 @@ public class LabelGunItem extends Item {
             ItemStack gun,
             int change
     ) {
+
         var labels = LabelPositionHolder
                 .from(gun)
                 .labels()
@@ -87,6 +177,7 @@ public class LabelGunItem extends Item {
      * Returns the current enum mode for the label gun item.
      */
     public static LabelGunViewMode getViewMode(ItemStack stack) {
+
         int ordinal = stack.getOrCreateTag().getInt("sfm:label_gun_view_mode");
         // fallback if out of bounds or missing
         if (ordinal < 0 || ordinal >= LabelGunViewMode.values().length) {
@@ -102,10 +193,12 @@ public class LabelGunItem extends Item {
             ItemStack stack,
             LabelGunViewMode mode
     ) {
+
         stack.getOrCreateTag().putInt("sfm:label_gun_view_mode", mode.ordinal());
     }
 
     public static void cycleViewMode(ItemStack stack) {
+
         LabelGunViewMode current = getViewMode(stack);
         int nextOrdinal = (current.ordinal() + 1) % LabelGunViewMode.values().length;
         setViewMode(stack, LabelGunViewMode.values()[nextOrdinal]);
@@ -116,6 +209,7 @@ public class LabelGunItem extends Item {
             ItemStack gun,
             UseOnContext ctx
     ) {
+
         var level = ctx.getLevel();
         Player player = ctx.getPlayer();
         if (level.isClientSide && player != null) {
@@ -150,69 +244,70 @@ public class LabelGunItem extends Item {
             List<Component> lines,
             TooltipFlag detail
     ) {
+
         if (SFMItemUtils.isClientAndMoreInfoKeyPressed()) {
             Options options = Minecraft.getInstance().options;
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_CLEAR_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_CLEAR_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY),
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_PULL_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_PULL_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY),
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_PUSH_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_PUSH_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_TARGET_MANAGER_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_TARGET_MANAGER_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY),
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_CONTIGUOUS_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_CONTIGUOUS_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_PICK_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_PICK_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PICK_BLOCK_MODIFIER_KEY),
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_NEXT_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_NEXT_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_NEXT_LABEL_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_PREVIOUS_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_PREVIOUS_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PREVIOUS_LABEL_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_SCROLL_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_SCROLL_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_SCROLL_MODIFIER_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_CYCLE_VIEW_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_CYCLE_VIEW_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.CYCLE_LABEL_VIEW_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
             lines.add(
-                    LocalizationKeys.LABEL_GUN_ITEM_TOOLTIP_GUI_REMINDER.getComponent(
+                    LABEL_GUN_ITEM_TOOLTIP_GUI_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
@@ -228,6 +323,7 @@ public class LabelGunItem extends Item {
             Player player,
             InteractionHand hand
     ) {
+
         var stack = player.getItemInHand(hand);
         if (level.isClientSide) {
             SFMScreenChangeHelpers.showLabelGunScreen(stack, hand);
@@ -237,14 +333,16 @@ public class LabelGunItem extends Item {
 
     @Override
     public Component getName(ItemStack stack) {
+
         var name = getActiveLabel(stack);
         if (name.isEmpty()) return super.getName(stack);
-        return LocalizationKeys.LABEL_GUN_ITEM_NAME_WITH_LABEL
+        return LABEL_GUN_ITEM_NAME_WITH_LABEL
                 .getComponent(name)
                 .withStyle(ChatFormatting.AQUA);
     }
 
     public static void clearAll(ItemStack stack) {
+
         LabelPositionHolder.clear(stack);
         LabelGunItem.setActiveLabel(stack, null);
     }
@@ -254,4 +352,5 @@ public class LabelGunItem extends Item {
         SHOW_ONLY_ACTIVE_LABEL_AND_TARGETED_BLOCK,
         SHOW_ONLY_TARGETED_BLOCK,
     }
+
 }

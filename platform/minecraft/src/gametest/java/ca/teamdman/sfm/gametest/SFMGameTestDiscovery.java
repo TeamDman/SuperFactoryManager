@@ -32,7 +32,7 @@ public class SFMGameTestDiscovery {
     public static Stream<SFMGameTestDefinition> gatherTests() {
 
         Stream<SFMGameTestDefinition> annotatedTests = SFMAnnotationUtils.discoverAnnotations(SFMGameTest.class)
-                .map(SFMAnnotationUtils::tryLoadAnnotatedClass)
+                .map(SFMAnnotationUtils.SFMAnnotationData::tryLoadClass)
                 .map(clazz -> SFMAnnotationUtils.tryConstruct(clazz, SFMGameTestDefinition.class))
                 .peek(sfmGameTestDefinition -> SFM.LOGGER.info(
                         "Discovered SFM game test: {}",
@@ -49,7 +49,7 @@ public class SFMGameTestDiscovery {
         List<SFMGameTestDefinition> generatedTests = new ArrayList<>();
 
         SFMAnnotationUtils.discoverAnnotations(SFMGameTestGenerator.class)
-                .map(SFMAnnotationUtils::tryLoadAnnotatedClass)
+                .map(SFMAnnotationUtils.SFMAnnotationData::tryLoadClass)
                 .map(clazz -> SFMAnnotationUtils.tryConstruct(clazz, SFMGameTestGeneratorBase.class))
                 .forEach(generator -> {
                     SFM.LOGGER.info("Invoking SFM game test generator: {}", generator.getClass().getSimpleName());
