@@ -14,7 +14,7 @@ import net.minecraftforge.event.CreativeModeTabEvent;
 public class SFMCreativeTabs {
     @SuppressWarnings("NotNullFieldNotInitialized")
     @SFMLocalizationDatagen
-    public static final LocalizationEntry CREATIVE_TAB = new LocalizationEntry(
+    public static final LocalizationEntry CREATIVE_TAB_NAME = new LocalizationEntry(
             "item_group.sfm",
             "Super Factory Manager"
     );
@@ -23,14 +23,12 @@ public class SFMCreativeTabs {
 
     @SFMSubscribeEvent
     public static void onRegister(CreativeModeTabEvent.Register event) {
+
         MAIN = event.registerCreativeModeTab(
                 SFMResourceLocation.fromSFMPath("main"),
                 builder ->
-                        // Set name of tab to display
-                        builder.title(CREATIVE_TAB.getComponent())
-                                // Set icon of creative tab
+                        builder.title(CREATIVE_TAB_NAME.getComponent())
                                 .icon(() -> new ItemStack(SFMBlocks.MANAGER.get()))
-                                // Add default items to tab
                                 .displayItems((params, output) -> output.acceptAll(SFMItems.REGISTERER.getOurEntries()
                                                                                            .stream()
                                                                                            .map(SFMRegistryObject::get)
