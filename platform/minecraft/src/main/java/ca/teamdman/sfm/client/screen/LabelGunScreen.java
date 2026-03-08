@@ -124,7 +124,7 @@ public class LabelGunScreen extends Screen {
 
     @Override
     public void render(
-            PoseStack poseStack,
+            GuiGraphics graphics,
             int mx,
             int my,
             float partialTicks
@@ -136,8 +136,8 @@ public class LabelGunScreen extends Screen {
             shouldRebuildWidgets = false;
             rebuildWidgets();
         }
-        this.renderBackground(poseStack);
-        super.render(poseStack, mx, my, partialTicks);
+        this.renderBackground(graphics);
+        super.render(graphics, mx, my, partialTicks);
     }
 
     @Override
@@ -205,48 +205,6 @@ public class LabelGunScreen extends Screen {
         );
         onTextUpdated("");
     }
-
-    @Override
-    public boolean keyPressed(int key, int mod1, int mod2) {
-        if (super.keyPressed(key, mod1, mod2)) return true;
-        if (key != GLFW.GLFW_KEY_ENTER && key != GLFW.GLFW_KEY_KP_ENTER) return false;
-        onDone();
-        return true;
-    }
-
-    public void onDone() {
-        SFMPackets.sendToServer(new ServerboundLabelGunSetActiveLabelPacket(
-                labelField.getValue(),
-                HAND
-        ));
-        onClose();
-    }
-
-    @Override
-    public void resize(Minecraft mc, int x, int y) {
-        var prev = this.labelField.getValue();
-        init(mc, x, y);
-        super.resize(mc, x, y);
-        this.labelField.setValue(prev);
-    }
-
-    @Override
-    public void render(
-            GuiGraphics graphics,
-            int mx,
-            int my,
-            float partialTicks
-    ) {
-        if (shouldRebuildWidgets) {
-            // we delay this because focus gets reset _after_ the button event handler
-            // we want to end with the label input field focused
-            shouldRebuildWidgets = false;
-            rebuildWidgets();
-        }
-        this.renderBackground(graphics);
-        super.render(graphics, mx, my, partialTicks);
-    }
-
 
     private void onTextUpdated(String newText) {
 
