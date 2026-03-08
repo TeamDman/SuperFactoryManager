@@ -1,24 +1,32 @@
 package ca.teamdman.sfml.ast;
 
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.ProgramContext;
 
 import java.util.List;
 
 public record Block(List<Statement> statements) implements Statement {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_TICK_STATEMENT_TIME_MS = new LocalizationEntry(
+            "program.sfm.tick.time_taken.statement",
+            "Program statement tick took %.2f ms:\n```\n%s\n```\n"
+    );
+
     @Override
     public void tick(ProgramContext context) {
+
         for (Statement statement : statements) {
             long start = System.nanoTime();
             statement.tick(context);
             float elapsed = (System.nanoTime() - start) / 1_000_000f;
             if (statement instanceof ToStringPretty ps) {
-                context.getLogger().info(x -> x.accept(LocalizationKeys.PROGRAM_TICK_STATEMENT_TIME_MS.get(
+                context.getLogger().info(x -> x.accept(PROGRAM_TICK_STATEMENT_TIME_MS.get(
                         elapsed,
                         ps.toStringPretty()
                 )));
             } else {
-                context.getLogger().info(x -> x.accept(LocalizationKeys.PROGRAM_TICK_STATEMENT_TIME_MS.get(
+                context.getLogger().info(x -> x.accept(PROGRAM_TICK_STATEMENT_TIME_MS.get(
                         elapsed,
                         statement.toString()
                 )));
@@ -28,6 +36,7 @@ public record Block(List<Statement> statements) implements Statement {
 
     @Override
     public String toString() {
+
         var rtn = new StringBuilder();
         for (Statement statement : statements) {
             if (statement instanceof InputStatement ins) {
@@ -44,6 +53,8 @@ public record Block(List<Statement> statements) implements Statement {
 
     @Override
     public List<Statement> getStatements() {
+
         return statements;
     }
+
 }

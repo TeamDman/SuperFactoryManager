@@ -2,7 +2,8 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.*;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
@@ -22,15 +23,119 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
-
 public class OutputStatement implements IOStatement {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_OUTPUT_STATEMENT_DISCOVERED_INPUT_SLOT_COUNT = new LocalizationEntry(
+            "log.sfm.statement.tick.output.discovered_input_slot_count",
+            "Discovered %d input slots"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_OUTPUT_STATEMENT_DISCOVERED_OUTPUT_SLOT_COUNT = new LocalizationEntry(
+            "log.sfm.statement.tick.output.discovered_output_slot_count",
+            "Discovered %d output slots"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_OUTPUT_STATEMENT_SHORT_CIRCUIT_NO_INPUT_SLOTS = new LocalizationEntry(
+            "log.sfm.statement.tick.output.short_circuit_no_input_slots",
+            "No input slots, skipping"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_OUTPUT_STATEMENT_SHORT_CIRCUIT_NO_OUTPUT_SLOTS = new LocalizationEntry(
+            "log.sfm.statement.tick.output.short_circuit_no_output_slots",
+            "No output slots, skipping"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_OUTPUT_STATEMENT = new LocalizationEntry(
+            "log.sfm.statement.tick.output",
+            "%s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_END = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.end",
+            "Moved %d %s - source=%s, dest=%s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.extracted",
+            "Extracted %d from slot %d"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_BEGIN = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.begin",
+            "Begin moving %s into %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_TYPE_MISMATCH = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.type_mismatch",
+            "Type mismatch, skipping"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_DESTINATION_TRACKER_REJECT = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.destination_tracker_reject",
+            "Destination tracker rejected the transfer, skipping"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_ZERO_SIMULATED_MOVEMENT = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.zero_simulated_movement",
+            "Got remainder %d after simulated insertion of potential %d (0 to move), skipping"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_RETENTION_OBLIGATION = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.retention_obligation",
+            "Promised to leave %d in the source slot, still obligated to leave %d"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_RETENTION_OBLIGATION_NO_MOVE = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.retention_obligation_no_move",
+            "Nothing to move after retention obligations, marking source slot done and skipping"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_STACK_LIMIT_NEW_TO_MOVE = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.stack_limit_no_move",
+            "Max transferable dest=%d, source=%d, stack limit=%d; new toMove=%d"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_ZERO_TO_MOVE = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.zero_to_move",
+            "toMove=0, skipping"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED_NOTHING = new LocalizationEntry(
+            "log.sfm.statement.tick.io.move_to.extracted_nothing",
+            "extracted nothing, marking this input slot as done"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_VOIDED_RESOURCES = new LocalizationEntry(
+            "log.sfm.program.voided_resources",
+            "%s"
+    );
+
     private final LabelAccess labelAccess;
+
     private final ResourceLimits resourceLimits;
+
     private final boolean each;
+
     private final boolean emptySlotsOnly;
 
     private int lastInputCapacity = 32;
+
     private int lastOutputCapacity = 32;
 
     public OutputStatement(
@@ -39,6 +144,7 @@ public class OutputStatement implements IOStatement {
             boolean each,
             boolean emptySlotsOnly
     ) {
+
         this.labelAccess = labelAccess;
         this.resourceLimits = resourceLimits;
         this.each = each;
@@ -61,6 +167,7 @@ public class OutputStatement implements IOStatement {
             LimitedInputSlot<STACK, ITEM, CAP> source,
             LimitedOutputSlot<STACK, ITEM, CAP> destination
     ) {
+
         context.getLogger().trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_BEGIN.get(source, destination)));
 
         // Always ensure the resource types match.
@@ -317,7 +424,7 @@ public class OutputStatement implements IOStatement {
         // Log the output statement
         context
                 .getLogger()
-                .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_OUTPUT_STATEMENT.get(this.toString())));
+                .debug(x -> x.accept(LOG_PROGRAM_TICK_OUTPUT_STATEMENT.get(this.toString())));
 
         // Skip if simulating
         if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour behaviour) {
@@ -446,6 +553,7 @@ public class OutputStatement implements IOStatement {
             ProgramContext context,
             Consumer<LimitedOutputSlot<?, ?, ?>> slotConsumer
     ) {
+
         context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS.get(toStringPretty())));
 
         if (!each) {
@@ -459,18 +567,20 @@ public class OutputStatement implements IOStatement {
                                 resourceType.displayAsCapabilityClass(),
                                 resourceType.displayAsCapabilityClass()
                         )));
-                resourceType.forEachCapability(context, labelAccess, (
-                        (label, pos, direction, cap) -> gatherSlotsForCap(
-                                context,
-                                (ResourceType<Object, Object, Object>) resourceType,
-                                label,
-                                pos,
-                                direction,
-                                cap,
-                                outputTracker,
-                                slotConsumer
+                resourceType.forEachCapability(
+                        context, labelAccess, (
+                                (label, pos, direction, cap) -> gatherSlotsForCap(
+                                        context,
+                                        (ResourceType<Object, Object, Object>) resourceType,
+                                        label,
+                                        pos,
+                                        direction,
+                                        cap,
+                                        outputTracker,
+                                        slotConsumer
+                                )
                         )
-                ));
+                );
             }
         } else {
             context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_EACH.get()));
@@ -481,45 +591,52 @@ public class OutputStatement implements IOStatement {
                                 resourceType.displayAsCapabilityClass(),
                                 resourceType.displayAsCapabilityClass()
                         )));
-                resourceType.forEachCapability(context, labelAccess, (label, pos, direction, cap) -> {
-                    // create a new list of trackers for each limited slot
-                    List<IOutputResourceTracker> outputTracker = resourceLimits.createOutputTrackers();
-                    gatherSlotsForCap(
-                            context,
-                            (ResourceType<Object, Object, Object>) resourceType,
-                            label,
-                            pos,
-                            direction,
-                            cap,
-                            outputTracker,
-                            slotConsumer
-                    );
-                });
+                resourceType.forEachCapability(
+                        context, labelAccess, (label, pos, direction, cap) -> {
+                            // create a new list of trackers for each limited slot
+                            List<IOutputResourceTracker> outputTracker = resourceLimits.createOutputTrackers();
+                            gatherSlotsForCap(
+                                    context,
+                                    (ResourceType<Object, Object, Object>) resourceType,
+                                    label,
+                                    pos,
+                                    direction,
+                                    cap,
+                                    outputTracker,
+                                    slotConsumer
+                            );
+                        }
+                );
             }
         }
     }
 
     @Override
     public LabelAccess labelAccess() {
+
         return labelAccess;
     }
 
     @Override
     public ResourceLimits resourceLimits() {
+
         return resourceLimits;
     }
 
     @Override
     public boolean each() {
+
         return each;
     }
 
     public boolean emptySlotsOnly() {
+
         return emptySlotsOnly;
     }
 
     @Override
     public boolean equals(Object obj) {
+
         if (obj == this) return true;
         if (obj == null || obj.getClass() != this.getClass()) return false;
         var that = (OutputStatement) obj;
@@ -531,11 +648,13 @@ public class OutputStatement implements IOStatement {
 
     @Override
     public int hashCode() {
+
         return Objects.hash(labelAccess, resourceLimits, each, emptySlotsOnly);
     }
 
     @Override
     public String toString() {
+
         StringBuilder rtn = new StringBuilder();
         rtn.append("OUTPUT ");
         String limits = resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_MAX_RETENTION);
@@ -549,6 +668,7 @@ public class OutputStatement implements IOStatement {
 
     @Override
     public String toStringPretty() {
+
         StringBuilder sb = new StringBuilder();
         sb.append("OUTPUT");
         String rls = resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_MAX_RETENTION);
@@ -575,6 +695,7 @@ public class OutputStatement implements IOStatement {
             LimitedSlot<STACK, ITEM, CAP> slot,
             Level level
     ) {
+
         report.append("Slot: ").append(slot.getSlot()).append("\n");
         report.append("Position: ").append(slot.getPos()).append("\n");
         report.append("Direction: ").append(slot.getDirection()).append("\n");
@@ -617,9 +738,10 @@ public class OutputStatement implements IOStatement {
             List<IOutputResourceTracker> trackers,
             Consumer<LimitedOutputSlot<?, ?, ?>> acceptor
     ) {
+
         context
                 .getLogger()
-                .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_RANGE.get(labelAccess.slots())));
+                .debug(x -> x.accept(IOStatement.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_RANGE.get(labelAccess.slots())));
         for (int slot = 0; slot < type.getSlots(capability); slot++) {
             int finalSlot = slot;
             if (labelAccess.slots().contains(slot)) {
@@ -633,7 +755,7 @@ public class OutputStatement implements IOStatement {
                         if (shouldCreateSlot) {
                             context
                                     .getLogger()
-                                    .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_CREATED.get(
+                                    .debug(x -> x.accept(IOStatement.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_CREATED.get(
                                             finalSlot,
                                             stack,
                                             tracker.toString()
@@ -651,11 +773,14 @@ public class OutputStatement implements IOStatement {
                         } else {
                             context
                                     .getLogger()
-                                    .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_SHOULD_NOT_CREATE.get(
+                                    .debug(x -> x.accept(IOStatement.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_SHOULD_NOT_CREATE.get(
                                             finalSlot,
                                             type.getAmount(stack)
                                             + " of "
-                                            + Math.min(type.getMaxStackSize(stack), type.getMaxStackSizeForSlot(capability, finalSlot))
+                                            + Math.min(
+                                                    type.getMaxStackSize(stack),
+                                                    type.getMaxStackSizeForSlot(capability, finalSlot)
+                                            )
                                             + " "
                                             + type.getItem(stack)
                                     )));
@@ -665,7 +790,7 @@ public class OutputStatement implements IOStatement {
             } else {
                 context
                         .getLogger()
-                        .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_NOT_IN_RANGE.get(
+                        .debug(x -> x.accept(IOStatement.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_NOT_IN_RANGE.get(
                                 finalSlot)));
             }
         }
@@ -679,6 +804,7 @@ public class OutputStatement implements IOStatement {
             STACK stack,
             int slot
     ) {
+
         if (emptySlotsOnly) {
             return type.isEmpty(stack);
         }
@@ -702,4 +828,5 @@ public class OutputStatement implements IOStatement {
         }
         return true;
     }
+
 }

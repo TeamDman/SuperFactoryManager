@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.program.linting;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.ProgramBehaviour;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
@@ -19,11 +21,20 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_OUTPUT_RESOURCE_TYPE_NOT_FOUND_IN_INPUTS;
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_UNUSED_INPUT_LABEL;
-
 @SuppressWarnings("rawtypes")
 public class GatherWarningsProgramBehaviour extends SimulateExploreAllPathsProgramBehaviour {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_UNUSED_INPUT_LABEL = new LocalizationEntry(
+            "program.sfm.warnings.unused_input_label",
+            "Statement \"%s\" at %s inputs \"%s\" from \"%s\" but no future output statement consume \"%s\"."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_OUTPUT_RESOURCE_TYPE_NOT_FOUND_IN_INPUTS = new LocalizationEntry(
+            "program.sfm.warnings.output_label_not_found_in_inputs",
+            "Statement \"%s\" at %s uses resource type \"%s\" which has no matching input statement."
+    );
+
     private final List<Pair<ExecutionPath, List<Pair<ExecutionPathElement, TranslatableContents>>>> sharedMultiverseWarningsByPath;
 
     private final ProblemTracker tracker;

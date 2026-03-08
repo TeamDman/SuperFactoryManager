@@ -133,7 +133,7 @@ impl ModrinthCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::Release { command } => command.invoke(),
+            Self::Release { command } => super::modrinth_release_command::invoke(command),
         }
     }
 }
@@ -144,21 +144,46 @@ impl ModrinthReleaseCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::Check { mc, project } => check_release_metadata(mc, project),
-            Self::Validate { mc, project } => validate_release_hashes(mc, project),
+            Self::Check { mc, project } => super::modrinth_check_command::invoke(mc, project),
+            Self::Validate { mc, project } => super::modrinth_validate_command::invoke(mc, project),
             Self::Now {
                 project,
                 token,
                 op_secret,
                 dry_run,
-            } => release_now(project, token, op_secret, dry_run),
+            } => super::modrinth_now_command::invoke(project, token, op_secret, dry_run),
             Self::Amend {
                 project,
                 token,
                 op_secret,
-            } => release_amend(project, token, op_secret),
+            } => super::modrinth_amend_command::invoke(project, token, op_secret),
         }
     }
+}
+
+pub(super) fn invoke_check(mc: Option<String>, project: Option<String>) -> eyre::Result<()> {
+    check_release_metadata(mc, project)
+}
+
+pub(super) fn invoke_validate(mc: Option<String>, project: Option<String>) -> eyre::Result<()> {
+    validate_release_hashes(mc, project)
+}
+
+pub(super) fn invoke_now(
+    project: Option<String>,
+    token: Option<String>,
+    op_secret: Option<String>,
+    dry_run: bool,
+) -> eyre::Result<()> {
+    release_now(project, token, op_secret, dry_run)
+}
+
+pub(super) fn invoke_amend(
+    project: Option<String>,
+    token: Option<String>,
+    op_secret: Option<String>,
+) -> eyre::Result<()> {
+    release_amend(project, token, op_secret)
 }
 
 #[derive(Facet, Debug, Clone)]

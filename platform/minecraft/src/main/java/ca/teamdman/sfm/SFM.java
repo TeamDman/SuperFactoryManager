@@ -6,6 +6,8 @@ import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.event_bus.SFMAutomaticEventSubscriber;
 import ca.teamdman.sfm.common.event_bus.SFMEventBus;
 import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.*;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModLoadingContext;
@@ -22,6 +24,12 @@ public class SFM {
     public static final Logger LOGGER = LogManager.getLogger(SFM.MOD_ID);
 
     public static final String ISSUE_TRACKER_URL = "https://github.com/TeamDman/SuperFactoryManager/issues";
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MOD_NAME = new LocalizationEntry(
+            "mod.name",
+            "Super Factory Manager"
+    );
 
     public SFM(IEventBus bus) {
 

@@ -3,7 +3,7 @@ package ca.teamdman.sfm.gametest.tests.migrated;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.program.linting.GatherWarningsProgramBehaviour;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.gametest.SFMGameTest;
@@ -33,11 +33,13 @@ public class UnusedIoWarningInputLabelNotPresentInOutputGameTest extends SFMGame
 
     @Override
     public String template() {
+
         return "3x2x1";
     }
 
     @Override
     public String batchName() {
+
         return "linting";
     }
 
@@ -68,7 +70,7 @@ public class UnusedIoWarningInputLabelNotPresentInOutputGameTest extends SFMGame
         assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size());
 
         TranslatableContents firstWarning = (TranslatableContents) warnings.getFirst().getContents();
-        String expectedKey = LocalizationKeys.PROGRAM_WARNING_UNUSED_INPUT_LABEL.key().get();
+        String expectedKey = GatherWarningsProgramBehaviour.PROGRAM_WARNING_UNUSED_INPUT_LABEL.key().get();
         assertTrue(firstWarning.getKey().equals(expectedKey), "expected output without matching input warning");
         assertTrue(firstWarning.getArgs().length == 5, "expected 5 arguments in warning");
         assertTrue(firstWarning.getArgs()[0].equals("INPUT FROM left"), "expected arg 0 to be \"INPUT FROM left\"");
@@ -78,4 +80,5 @@ public class UnusedIoWarningInputLabelNotPresentInOutputGameTest extends SFMGame
         assertTrue(firstWarning.getArgs()[4].equals("sfm:item"), "expected arg 4 to be \"sfm:item\"");
         helper.succeed();
     }
+
 }

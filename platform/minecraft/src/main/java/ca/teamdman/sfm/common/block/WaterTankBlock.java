@@ -2,8 +2,10 @@ package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.block_network.WaterNetworkManager;
 import ca.teamdman.sfm.common.blockentity.WaterTankBlockEntity;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.ChatFormatting;
@@ -40,8 +42,27 @@ import java.util.Optional;
 public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, BucketPickup, LiquidBlockContainer {
     public static final BooleanProperty IN_WATER = BooleanProperty.create("in_water");
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry WATER_TANK_ITEM_TOOLTIP_1 = new LocalizationEntry(
+            () -> SFMBlocks.WATER_TANK.get().getDescriptionId() + ".tooltip.1",
+            () -> "Requires two adjacent water sources."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry WATER_TANK_ITEM_TOOLTIP_2 = new LocalizationEntry(
+            () -> SFMBlocks.WATER_TANK.get().getDescriptionId() + ".tooltip.2",
+            () -> "More effective when also adjacent to other active water tanks."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry WATER_TANK_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.WATER_TANK.get().getDescriptionId(),
+            () -> "Water Tank"
+    );
+
 
     public WaterTankBlock() {
+
         super(BlockBehaviour.Properties.of().destroyTime(2).sound(SoundType.WOOD));
         registerDefaultState(getStateDefinition().any().setValue(IN_WATER, false));
     }
@@ -73,6 +94,7 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
             BlockState pNewState,
             boolean pIsMoving
     ) {
+
         super.onRemove(pState, pLevel, pPos, pNewState, pIsMoving);
 
         // Changing the active block state causes this to fire, we want to debounce this
@@ -90,10 +112,11 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
             List<Component> pTootipComponents,
             TooltipFlag pTooltipFlag
     ) {
-        pTootipComponents.add(LocalizationKeys.WATER_TANK_ITEM_TOOLTIP_1
+
+        pTootipComponents.add(WATER_TANK_ITEM_TOOLTIP_1
                              .getComponent()
                              .withStyle(ChatFormatting.GRAY));
-        pTootipComponents.add(LocalizationKeys.WATER_TANK_ITEM_TOOLTIP_2
+        pTootipComponents.add(WATER_TANK_ITEM_TOOLTIP_2
                              .getComponent()
                              .withStyle(ChatFormatting.GRAY));
     }
@@ -105,6 +128,7 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
 
     @Override
     public RenderShape getRenderShape(BlockState state) {
+
         return RenderShape.MODEL;
     }
 
@@ -113,11 +137,13 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
             BlockPos pos,
             BlockState state
     ) {
+
         return SFMBlockEntities.WATER_TANK.get().create(pos, state);
     }
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
+
         return defaultBlockState().setValue(
                 IN_WATER,
                 hasWaterNeighbours(context.getLevel(), context.getClickedPos())
@@ -128,6 +154,7 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
             LevelAccessor level,
             BlockPos pos
     ) {
+
         int neighbourWaterCount = 0;
         BlockPos.MutableBlockPos target = new BlockPos.MutableBlockPos();
         for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
@@ -152,6 +179,7 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
             BlockPos fromPos,
             boolean isMoving
     ) {
+
         if (level.isClientSide) return;
         boolean isActive = hasWaterNeighbours(level, pos);
         if (state.getValue(IN_WATER) != isActive) {
@@ -172,11 +200,13 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
             BlockPos blockPos,
             BlockState blockState
     ) {
+
         return blockState.getValue(IN_WATER) ? new ItemStack(Fluids.WATER.getBucket()) : ItemStack.EMPTY;
     }
 
     @Override
     public Optional<SoundEvent> getPickupSound() {
+
         return Fluids.WATER.getPickupSound();
     }
 
@@ -188,6 +218,7 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
             BlockState blockState,
             Fluid fluid
     ) {
+
         return fluid.isSame(Fluids.WATER);
     }
 
@@ -198,11 +229,14 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
             BlockState state,
             FluidState fluid
     ) {
+
         return fluid.getType().isSame(Fluids.WATER);
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+
         builder.add(IN_WATER);
     }
+
 }

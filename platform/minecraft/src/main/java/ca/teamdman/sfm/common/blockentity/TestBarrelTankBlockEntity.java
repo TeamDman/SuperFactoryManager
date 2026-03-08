@@ -1,7 +1,8 @@
 package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.common.containermenu.TestBarrelTankContainerMenu;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.util.SFMContainerUtil;
 import net.minecraft.core.BlockPos;
@@ -19,19 +20,30 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
 public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
-    private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TEST_BARREL_TANK_CONTAINER = new LocalizationEntry(
+            "container.sfm.test_barrel_tank",
+            "Test Barrel Tank"
+    );
+
     private final FluidTank tank = new FluidTank(1000);
+
+    private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
+
+    private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
 
     public TestBarrelTankBlockEntity(
             BlockPos pPos,
             BlockState pBlockState
     ) {
+
         super(SFMBlockEntities.TEST_BARREL_TANK.get(), pPos, pBlockState);
     }
 
     //    @Override
     @SuppressWarnings("unused") // 1.21.1 only
     public boolean isValidBlockState(BlockState blockState) {
+
         return SFMBlockEntities.TEST_BARREL.get().isValid(blockState);
     }
 
@@ -48,21 +60,25 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     public void clearContent() {
+
         items.clear();
     }
 
     @Override
     public boolean isEmpty() {
+
         return items.isEmpty();
     }
 
     @Override
     public int getContainerSize() {
+
         return 27;
     }
 
     @Override
     public ItemStack getItem(int pSlot) {
+
         return items.get(pSlot);
     }
 
@@ -71,6 +87,7 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
             int pSlot,
             int pAmount
     ) {
+
         ItemStack itemstack = ContainerHelper.removeItem(items, pSlot, pAmount);
         if (!itemstack.isEmpty()) {
             this.setChanged();
@@ -81,6 +98,7 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     public ItemStack removeItemNoUpdate(int pSlot) {
+
         return ContainerHelper.takeItem(items, pSlot);
     }
 
@@ -89,16 +107,19 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
             int pSlot,
             ItemStack pStack
     ) {
+
         if (pSlot < 0 || pSlot >= items.size()) return;
         items.set(pSlot, pStack);
     }
 
     @Override
     public boolean stillValid(Player pPlayer) {
+
         return SFMContainerUtil.stillValid(this, pPlayer);
     }
 
     public NonNullList<ItemStack> getItems() {
+
         return items;
     }
 
@@ -108,6 +129,7 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
     }
 
     public FluidTank getTank() {
+
         return tank;
     }
 
@@ -123,7 +145,8 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     protected Component getDefaultName() {
-        return LocalizationKeys.TEST_BARREL_TANK_CONTAINER.getComponent();
+
+        return TEST_BARREL_TANK_CONTAINER.getComponent();
     }
 
     @Override
@@ -131,6 +154,8 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
             int pContainerId,
             Inventory pInventory
     ) {
+
         return new TestBarrelTankContainerMenu(pContainerId, pInventory, this);
     }
+
 }

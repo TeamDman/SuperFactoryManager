@@ -6,7 +6,8 @@ import ca.teamdman.sfm.common.enchantment.SFMEnchantmentCollectionKind;
 import ca.teamdman.sfm.common.enchantment.SFMEnchantmentEntry;
 import ca.teamdman.sfm.common.enchantment.SFMEnchantmentKey;
 import ca.teamdman.sfm.common.item.FormItem;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockTags;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
@@ -65,7 +66,7 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
     @Override
     public Component getTitle() {
 
-        return LocalizationKeys.FALLING_ANVIL_JEI_CATEGORY_TITLE.getComponent();
+        return Localization.FALLING_ANVIL_JEI_CATEGORY_TITLE.getComponent();
     }
 
     @Override
@@ -118,7 +119,7 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
                     .peek(stack ->
                                   SFMComponentUtils.appendLore(
                                           stack,
-                                          LocalizationKeys.FALLING_ANVIL_JEI_CONSUMED.getComponent()
+                                          Localization.FALLING_ANVIL_JEI_CONSUMED.getComponent()
                                   )
                     ).toList();
             builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).addItemStacks(consumedCatalystBlocks);
@@ -312,7 +313,7 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
                     .map(ItemStack::new)
                     .peek(stack -> SFMComponentUtils.appendLore(
                             stack,
-                            LocalizationKeys.FALLING_ANVIL_JEI_NOT_CONSUMED.getComponent()
+                            Localization.FALLING_ANVIL_JEI_NOT_CONSUMED.getComponent()
                     ))
                     .toList();
             builder
@@ -344,7 +345,7 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
             builder.addSlot(RecipeIngredientRole.CATALYST, 0, 0).addItemStacks(anvil);
             builder.addSlot(RecipeIngredientRole.INPUT, 0, 18).addIngredients(Ingredient.of(Items.ENCHANTED_BOOK));
             ItemStack obsidian = new ItemStack(Blocks.OBSIDIAN);
-            SFMComponentUtils.appendLore(obsidian, LocalizationKeys.FALLING_ANVIL_JEI_NOT_CONSUMED.getComponent());
+            SFMComponentUtils.appendLore(obsidian, Localization.FALLING_ANVIL_JEI_NOT_CONSUMED.getComponent());
             builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).addItemStack(obsidian);
             builder
                     .addSlot(RecipeIngredientRole.OUTPUT, 50, 18)
@@ -356,6 +357,30 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
     private static ItemStack getIngredientItemStack(IFocus<?> focus) {
 
         return focus.getTypedValue().getIngredient(VanillaTypes.ITEM_STACK).orElse(ItemStack.EMPTY);
+    }
+
+    /// This indirection is necessary because the static fields in {@link FallingAnvilJEICategory} depend on JEI code
+    /// which is not present in the classpath during datagen
+    public static final class Localization {
+
+        @SFMLocalizationDatagen
+        public static final LocalizationEntry FALLING_ANVIL_JEI_CATEGORY_TITLE = new LocalizationEntry(
+                "gui.jei.category.sfm.falling_anvil",
+                "Falling Anvil"
+        );
+
+        @SFMLocalizationDatagen
+        public static final LocalizationEntry FALLING_ANVIL_JEI_CONSUMED = new LocalizationEntry(
+                "gui.jei.category.sfm.falling_anvil.consumed",
+                "Gets consumed"
+        );
+
+        @SFMLocalizationDatagen
+        public static final LocalizationEntry FALLING_ANVIL_JEI_NOT_CONSUMED = new LocalizationEntry(
+                "gui.jei.category.sfm.falling_anvil.not_consumed",
+                "Not consumed"
+        );
+
     }
 
 }

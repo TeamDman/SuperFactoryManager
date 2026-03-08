@@ -1,7 +1,8 @@
 package ca.teamdman.sfm.common.config;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.io.WritingMode;
@@ -27,6 +28,30 @@ import java.util.function.Supplier;
 
 @SuppressWarnings("BooleanMethodIsAlwaysInverted")
 public class SFMConfigReadWriter {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONFIG_UPDATE_AND_SYNC_RESULT_SUCCESS = new LocalizationEntry(
+            "chat.sfm.config_update_and_sync_result.success",
+            "Successfully updated SFM config."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONFIG_UPDATE_AND_SYNC_RESULT_INVALID_CONFIG = new LocalizationEntry(
+            "chat.sfm.config_update_and_sync_result.invalid_config",
+            "The provided SFM config was invalid, no changes were made."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONFIG_UPDATE_AND_SYNC_RESULT_FAILED_TO_FIND = new LocalizationEntry(
+            "chat.sfm.config_update_and_sync_result.failed_to_find",
+            "Failed to find the SFM config toml."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONFIG_UPDATE_AND_SYNC_RESULT_INTERNAL_FAILURE = new LocalizationEntry(
+            "chat.sfm.config_update_and_sync_result.internal_failure",
+            "Something went wrong while updating the SFM config, I have no idea if changes were made. Check the server logs."
+    );
+
     /**
      * SERVER configs are synced at login to servers, which can serve as inspiration for how we should update the configs on our own.
      * <p>
@@ -39,6 +64,7 @@ public class SFMConfigReadWriter {
      */
     @SuppressWarnings("JavadocReference")
     public static ConfigSyncResult updateAndSyncServerConfig(String newConfigToml) {
+
         try {
             SFM.LOGGER.debug("Received server config for update and sync:\n{}", newConfigToml);
             CommentedConfig config = parseConfigToml(newConfigToml, SFMConfig.SERVER_CONFIG_SPEC);
@@ -60,6 +86,7 @@ public class SFMConfigReadWriter {
     }
 
     public static ConfigSyncResult updateClientConfig(String newConfigToml) {
+
         try {
             SFM.LOGGER.debug("Received client config for update and sync:\n{}", newConfigToml);
             CommentedConfig config = parseConfigToml(newConfigToml, SFMConfig.CLIENT_CONFIG_SPEC);
@@ -81,6 +108,7 @@ public class SFMConfigReadWriter {
     }
 
     public static @Nullable Path getConfigBasePath() {
+
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) {
             return null;
@@ -105,6 +133,7 @@ public class SFMConfigReadWriter {
             Path configPath,
             CommentedConfig newConfig
     ) {
+
         SFM.LOGGER.info("Updating active client config and firing reloaded event");
         Class<?> loadedConfigClass;
         try {
@@ -151,6 +180,7 @@ public class SFMConfigReadWriter {
             String configToml,
             ModConfigSpec configSpec
     ) {
+
         CommentedConfig config = TomlFormat.instance().createParser().parse(configToml);
         if (!configSpec.isCorrect(config)) {
             return null;
@@ -248,6 +278,7 @@ public class SFMConfigReadWriter {
             ModConfig modConfig,
             CommentedConfig configData
     ) {
+
         try {
             Method setConfigData = ModConfig.class.getDeclaredMethod("setConfigData", CommentedConfig.class);
             setConfigData.setAccessible(true);
@@ -266,12 +297,14 @@ public class SFMConfigReadWriter {
         INTERNAL_FAILURE;
 
         public MutableComponent component() {
+
             return switch (this) {
-                case SUCCESS -> LocalizationKeys.CONFIG_UPDATE_AND_SYNC_RESULT_SUCCESS.getComponent();
-                case INVALID_CONFIG -> LocalizationKeys.CONFIG_UPDATE_AND_SYNC_RESULT_INVALID_CONFIG.getComponent();
-                case FAILED_TO_FIND -> LocalizationKeys.CONFIG_UPDATE_AND_SYNC_RESULT_FAILED_TO_FIND.getComponent();
-                case INTERNAL_FAILURE -> LocalizationKeys.CONFIG_UPDATE_AND_SYNC_RESULT_INTERNAL_FAILURE.getComponent();
+                case SUCCESS -> CONFIG_UPDATE_AND_SYNC_RESULT_SUCCESS.getComponent();
+                case INVALID_CONFIG -> CONFIG_UPDATE_AND_SYNC_RESULT_INVALID_CONFIG.getComponent();
+                case FAILED_TO_FIND -> CONFIG_UPDATE_AND_SYNC_RESULT_FAILED_TO_FIND.getComponent();
+                case INTERNAL_FAILURE -> CONFIG_UPDATE_AND_SYNC_RESULT_INTERNAL_FAILURE.getComponent();
             };
         }
     }
+
 }

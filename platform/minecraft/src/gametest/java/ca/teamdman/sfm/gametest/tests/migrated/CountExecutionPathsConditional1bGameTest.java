@@ -3,7 +3,7 @@ package ca.teamdman.sfm.gametest.tests.migrated;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.program.linting.GatherWarningsProgramBehaviour;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.gametest.SFMGameTest;
@@ -31,11 +31,13 @@ public class CountExecutionPathsConditional1bGameTest extends SFMGameTestDefinit
 
     @Override
     public String template() {
+
         return "3x2x1";
     }
 
     @Override
     public String batchName() {
+
         return "linting";
     }
 
@@ -76,9 +78,10 @@ public class CountExecutionPathsConditional1bGameTest extends SFMGameTestDefinit
                                 .getFirst()
                                 .getContents()
                 ).getKey()
-                        .equals(LocalizationKeys.PROGRAM_WARNING_UNUSED_INPUT_LABEL // should be unused input
+                        .equals(GatherWarningsProgramBehaviour.PROGRAM_WARNING_UNUSED_INPUT_LABEL // should be unused input
                                         .key()
                                         .get()), "expected output without matching input warning");
         helper.succeed();
     }
+
 }

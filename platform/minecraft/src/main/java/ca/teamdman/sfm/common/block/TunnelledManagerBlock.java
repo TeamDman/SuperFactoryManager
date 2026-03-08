@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.blockentity.TunnelledManagerBlockEntity;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -19,8 +21,20 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class TunnelledManagerBlock extends ManagerBlock {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TUNNELLED_MANAGER_ITEM_TOOLTIP = new LocalizationEntry(
+            () -> SFMBlocks.TUNNELLED_MANAGER.get().getDescriptionId() + ".tooltip",
+            () -> "Passes capabilities through to the opposite side."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TUNNELLED_MANAGER_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TUNNELLED_MANAGER.get().getDescriptionId(),
+            () -> "Tunnelled Factory Manager"
+    );
+
     @Override
-    public BlockEntity newBlockEntity(
+    public @NullableBlockEntity newBlockEntity(
             BlockPos pos,
             BlockState state
     ) {
@@ -38,7 +52,7 @@ public class TunnelledManagerBlock extends ManagerBlock {
             TooltipFlag pFlag
     ) {
 
-        pTooltip.add(LocalizationKeys.TUNNELLED_MANAGER_ITEM_TOOLTIP
+        pTooltip.add(TUNNELLED_MANAGER_ITEM_TOOLTIP
                              .getComponent()
                              .withStyle(ChatFormatting.GRAY));
     }

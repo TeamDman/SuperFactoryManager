@@ -4,7 +4,8 @@ import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.langs.SFMLParser;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
@@ -26,6 +27,36 @@ import java.util.WeakHashMap;
 
 /// Helper for building programs and acquiring a {@link ProgramBuildResult}
 public class ProgramBuilder {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_ERROR_MALFORMED_RESOURCE_TYPE = new LocalizationEntry(
+            "program.sfm.error.malformed_resource_type",
+            "Program has a malformed resource type \"%s\".\nReminder: Resource types must be literals, not wildcards."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_ERROR_UNKNOWN_RESOURCE_TYPE = new LocalizationEntry(
+            "program.sfm.error.unknown_resource_type",
+            "Program references an unknown resource type \"%s\""
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_ERROR_DISALLOWED_RESOURCE_TYPE = new LocalizationEntry(
+            "program.sfm.error.disallowed_resource_type",
+            "Program references a disallowed resource type \"%s\""
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_ERROR_COMPILE_FAILED = new LocalizationEntry(
+            "program.sfm.error.compile_failed",
+            "Failed to compile."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_ERROR_LITERAL = new LocalizationEntry(
+            "program.sfm.error.literal",
+            "%s"
+    );
+
     /// Reduce duplication of effort compiling the same program over and over again
     private static final WeakHashMap<String, ProgramBuildResult> cache = new WeakHashMap<>();
 
@@ -88,7 +119,7 @@ public class ProgramBuilder {
 
         // initial parse
         SFMLParser.ProgramContext context = parser.program();
-        buildErrors.stream().map(LocalizationKeys.PROGRAM_ERROR_LITERAL::get).forEach(errors::add);
+        buildErrors.stream().map(PROGRAM_ERROR_LITERAL::get).forEach(errors::add);
 
 
         // build program from AST only when there are no errors from previous phases
@@ -99,9 +130,9 @@ public class ProgramBuilder {
                 // Make sure all referenced resources are valid during compilation instead of waiting for the program to tick
                 checkResourceTypes(program, errors);
             } catch (ResourceLocationException | IllegalArgumentException | AssertionError e) {
-                errors.add(LocalizationKeys.PROGRAM_ERROR_LITERAL.get(e.getMessage()));
+                errors.add(PROGRAM_ERROR_LITERAL.get(e.getMessage()));
             } catch (Throwable t) {
-                errors.add(LocalizationKeys.PROGRAM_ERROR_COMPILE_FAILED.get());
+                errors.add(PROGRAM_ERROR_COMPILE_FAILED.get());
                 SFM.LOGGER.warn(
                         "Encountered unhandled error while compiling program\n```\n{}\n```",
                         programString,
@@ -150,19 +181,19 @@ public class ProgramBuilder {
             try {
                 ResourceType<?, ?, ?> resourceType = referencedResource.getResourceType();
                 if (resourceType == null) {
-                    errors.add(LocalizationKeys.PROGRAM_ERROR_UNKNOWN_RESOURCE_TYPE.get(
+                    errors.add(PROGRAM_ERROR_UNKNOWN_RESOURCE_TYPE.get(
                             referencedResource));
                 } else {
                     ResourceLocation resourceTypeId = Objects.requireNonNull(SFMResourceTypes
                                                                                      .registry()
                                                                                      .getId(resourceType));
                     if (disallowedResourceTypes.contains(resourceTypeId.toString())) {
-                        errors.add(LocalizationKeys.PROGRAM_ERROR_DISALLOWED_RESOURCE_TYPE.get(
+                        errors.add(PROGRAM_ERROR_DISALLOWED_RESOURCE_TYPE.get(
                                 referencedResource));
                     }
                 }
             } catch (ResourceLocationException e) {
-                errors.add(LocalizationKeys.PROGRAM_ERROR_MALFORMED_RESOURCE_TYPE.get(
+                errors.add(PROGRAM_ERROR_MALFORMED_RESOURCE_TYPE.get(
                         referencedResource));
             }
         }
