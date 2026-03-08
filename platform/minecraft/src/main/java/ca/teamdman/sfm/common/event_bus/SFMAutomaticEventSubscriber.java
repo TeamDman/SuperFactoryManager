@@ -35,7 +35,7 @@ public class SFMAutomaticEventSubscriber {
     private static void tryRegisterAnnotatedMethod(SFMAnnotationUtils.SFMAnnotationData annotationData) {
         // Load the class, since the annotation scraping doesn't do this.
         // By this time, we have already validated if we are on the correct physical side to avoid issues.
-        Class<?> handlerMethodParentClass = SFMAnnotationUtils.tryLoadAnnotatedClass(annotationData);
+        Class<?> handlerMethodParentClass = annotationData.tryLoadClass();
 
         // Create a display representation of the method for logging
         String methodDisplay = handlerMethodParentClass.getName() + "#" + annotationData.memberName();

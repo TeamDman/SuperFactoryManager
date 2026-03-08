@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.common.util;
 
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -68,7 +67,9 @@ public class SFMComponentUtils {
         }
 
         // Append our lore
-        lore.add(StringTag.valueOf(Component.Serializer.toJson(LocalizationKeys.FALLING_ANVIL_JEI_CONSUMED.getComponent())));
+        for (Component component : components) {
+            lore.add(StringTag.valueOf(Component.Serializer.toJson(component)));
+        }
 
         // Track the lore list back into the display tag
         displayTag.put("Lore", lore);

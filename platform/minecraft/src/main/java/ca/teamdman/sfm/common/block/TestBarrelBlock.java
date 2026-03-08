@@ -1,6 +1,9 @@
 package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.blockentity.TestBarrelBlockEntity;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BarrelBlock;
@@ -11,7 +14,14 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 public class TestBarrelBlock extends BarrelBlock {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TEST_BARREL_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TEST_BARREL.get().getDescriptionId(),
+            () -> "Test Barrel"
+    );
+
     public TestBarrelBlock() {
+
         super(BlockBehaviour.Properties.of().strength(2.5F).sound(SoundType.WOOD));
     }
 
@@ -23,6 +33,7 @@ public class TestBarrelBlock extends BarrelBlock {
             BlockState pNewState,
             boolean pIsMoving
     ) {
+
         if (!pState.is(pNewState.getBlock())) {
             // Remove the block entity manually to prevent the items from dropping on the ground from super logic.
             // Note that this doesn't drain the inventory like the normal drop behaviour does.
@@ -39,6 +50,8 @@ public class TestBarrelBlock extends BarrelBlock {
             BlockPos pPos,
             BlockState pState
     ) {
+
         return new TestBarrelBlockEntity(pPos, pState);
     }
+
 }

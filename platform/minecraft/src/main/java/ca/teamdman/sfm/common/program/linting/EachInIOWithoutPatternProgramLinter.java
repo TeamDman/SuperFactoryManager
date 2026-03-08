@@ -2,6 +2,8 @@ package ca.teamdman.sfm.common.program.linting;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfml.ast.IOStatement;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.ast.ResourceQuantity;
@@ -9,9 +11,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_RESOURCE_EACH_WITHOUT_PATTERN;
-
 public class EachInIOWithoutPatternProgramLinter implements IProgramLinter {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_RESOURCE_EACH_WITHOUT_PATTERN = new LocalizationEntry(
+            "program.sfm.warnings.each_without_pattern",
+            "EACH used without a pattern, statement %s"
+    );
+
     /// Example:
     /// ```sfm
     /// INPUT EACH stick FROM chest
@@ -23,6 +29,7 @@ public class EachInIOWithoutPatternProgramLinter implements IProgramLinter {
             @Nullable ManagerBlockEntity managerBlockEntity,
             ProblemTracker tracker
     ) {
+
         program.getDescendantStatements()
                 .filter(IOStatement.class::isInstance)
                 .map(IOStatement.class::cast)
@@ -52,4 +59,5 @@ public class EachInIOWithoutPatternProgramLinter implements IProgramLinter {
     ) {
         // todo: rewrite by removing "each" keyword in applicable places
     }
+
 }

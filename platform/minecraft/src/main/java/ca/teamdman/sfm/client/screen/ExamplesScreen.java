@@ -2,7 +2,8 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.examples.SFMExampleProgram;
 import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -12,11 +13,29 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 public class ExamplesScreen extends Screen {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry EXAMPLES_GUI_WARNING_1 = new LocalizationEntry(
+            "gui.sfm.program_template_picker.warning1",
+            "Hitting \"Done\" will on the next screen will overwrite your existing program!"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry EXAMPLES_GUI_WARNING_2 = new LocalizationEntry(
+            "gui.sfm.program_template_picker.warning2",
+            "Hit <esc> to cancel instead."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry EXAMPLES_GUI_TITLE = new LocalizationEntry(
+            "gui.sfm.title.program_template_picker",
+            "Program Template Picker"
+    );
+
     private final BiConsumer<String, List<SFMExampleProgram>> CALLBACK;
 
     public ExamplesScreen(BiConsumer<String, List<SFMExampleProgram>> callback) {
 
-        super(LocalizationKeys.EXAMPLES_GUI_TITLE.getComponent());
+        super(EXAMPLES_GUI_TITLE.getComponent());
         CALLBACK = callback;
     }
 
@@ -32,7 +51,7 @@ public class ExamplesScreen extends Screen {
         super.render(graphics, pMouseX, pMouseY, pPartialTick);
 
         // Draw the warning that informs the user that this can overwrite their program
-        MutableComponent warning1 = LocalizationKeys.EXAMPLES_GUI_WARNING_1.getComponent();
+        MutableComponent warning1 = EXAMPLES_GUI_WARNING_1.getComponent();
         SFMFontUtils.draw(
                 graphics,
                 this.font,
@@ -43,7 +62,7 @@ public class ExamplesScreen extends Screen {
                 false
         );
 
-        MutableComponent warning2 = LocalizationKeys.EXAMPLES_GUI_WARNING_2.getComponent();
+        MutableComponent warning2 = EXAMPLES_GUI_WARNING_2.getComponent();
         SFMFontUtils.draw(
                 graphics,
                 this.font,
