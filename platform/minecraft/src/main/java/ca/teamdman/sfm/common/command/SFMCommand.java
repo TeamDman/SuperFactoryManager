@@ -24,12 +24,7 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.blocks.BlockInput;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
 import net.minecraft.core.BlockPos;
-import net.minecraft.gametest.framework.GameTestRegistry;
-import net.minecraft.gametest.framework.GameTestInfo;
-import net.minecraft.gametest.framework.GameTestRunner;
-import net.minecraft.gametest.framework.RetryOptions;
-import net.minecraft.gametest.framework.StructureGridSpawner;
-import net.minecraft.gametest.framework.TestFunction;
+import net.minecraft.gametest.framework.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -241,15 +236,6 @@ public class SFMCommand {
     ) {
 
         commandSourceStack.sendSuccess(componentSupplier, true);
-    }
-
-    @MCVersionDependentBehaviour
-    private static void sendSuccess(
-            CommandSourceStack commandSourceStack,
-            Supplier<Component> componentSupplier
-    ) {
-
-        commandSourceStack.sendSuccess(componentSupplier.get(), true);
     }
 
     private static int giveKitToPlayers(

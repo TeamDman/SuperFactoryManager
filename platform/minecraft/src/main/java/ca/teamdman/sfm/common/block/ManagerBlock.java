@@ -91,25 +91,6 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
     }
 
     @Override
-    protected InteractionResult useWithoutItem(
-            BlockState pState,
-            Level level,
-            BlockPos pos,
-            Player player,
-            BlockHitResult pHitResult
-    ) {
-
-        if (level.getBlockEntity(pos) instanceof ManagerBlockEntity manager
-            && player instanceof ServerPlayer serverPlayer) {
-            // update warnings on disk as we open the gui
-            DiskItem.rebuildWarnings(manager);
-            openMenu(serverPlayer, manager);
-            return InteractionResult.CONSUME;
-        }
-        return InteractionResult.SUCCESS;
-    }
-
-    @Override
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(
             Level level,
             BlockState state,
@@ -159,13 +140,23 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
         throw new NotImplementedException("This isn't used until 1.20.5 apparently");
     }
 
-    @MCVersionDependentBehaviour
-    private void openMenu(
-            ServerPlayer player,
-            ManagerBlockEntity manager
+    @Override
+    protected InteractionResult useWithoutItem(
+            BlockState pState,
+            Level level,
+            BlockPos pos,
+            Player player,
+            BlockHitResult pHitResult
     ) {
 
-        player.openMenu(manager, buf -> ManagerContainerMenu.encode(manager, buf));
+        if (level.getBlockEntity(pos) instanceof ManagerBlockEntity manager
+            && player instanceof ServerPlayer serverPlayer) {
+            // update warnings on disk as we open the gui
+            DiskItem.rebuildWarnings(manager);
+            openMenu(serverPlayer, manager);
+            return InteractionResult.CONSUME;
+        }
+        return InteractionResult.SUCCESS;
     }
 
     @MCVersionDependentBehaviour
@@ -174,7 +165,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             ManagerBlockEntity manager
     ) {
 
-        NetworkHooks.openScreen(player, manager, buf -> ManagerContainerMenu.encode(manager, buf));
+        player.openMenu(manager, buf -> ManagerContainerMenu.encode(manager, buf));
     }
 
     @Override

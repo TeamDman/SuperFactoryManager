@@ -34,11 +34,10 @@ public class TunnelledManagerBlock extends ManagerBlock {
     );
 
     @Override
-    public @NullableBlockEntity newBlockEntity(
+    public @Nullable BlockEntity newBlockEntity(
             BlockPos pos,
             BlockState state
     ) {
-        //noinspection DataFlowIssue
         return SFMBlockEntities.TUNNELLED_MANAGER
                 .get()
                 .create(pos, state);

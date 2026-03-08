@@ -30,8 +30,6 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
 
     private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
 
-    private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
-
     public TestBarrelTankBlockEntity(
             BlockPos pPos,
             BlockState pBlockState
@@ -118,6 +116,7 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
         return SFMContainerUtil.stillValid(this, pPlayer);
     }
 
+    @Override
     public NonNullList<ItemStack> getItems() {
 
         return items;
