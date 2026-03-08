@@ -276,9 +276,9 @@ impl CurseforgeCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::Project { command } => command.invoke(),
-            Self::Minecraft { command } => command.invoke(),
-            Self::Release { command } => command.invoke(),
+            Self::Project { command } => super::curseforge_project_command::invoke(command),
+            Self::Minecraft { command } => super::curseforge_minecraft_command::invoke(command),
+            Self::Release { command } => super::curseforge_release_command::invoke(command),
         }
     }
 }
@@ -295,27 +295,33 @@ impl CurseforgeReleaseCommand {
                 api_key,
                 token,
                 op_secret,
-            } => check_minecraft_version_metadata(mc, project, api_key, token, op_secret),
+            } => super::curseforge_release_check_command::invoke(
+                mc, project, api_key, token, op_secret,
+            ),
             Self::Validate {
                 mc,
                 project,
                 api_key,
                 token,
                 op_secret,
-            } => validate_release_hashes(mc, project, api_key, token, op_secret),
+            } => super::curseforge_release_validate_command::invoke(
+                mc, project, api_key, token, op_secret,
+            ),
             Self::Now {
                 project,
                 token,
                 op_secret,
                 dry_run,
-            } => release_now(project, token, op_secret, dry_run),
+            } => super::curseforge_release_now_command::invoke(project, token, op_secret, dry_run),
             Self::Amend {
                 project,
                 api_key,
                 token,
                 op_secret,
                 safety_age,
-            } => release_amend(project, api_key, token, op_secret, safety_age),
+            } => super::curseforge_release_amend_command::invoke(
+                project, api_key, token, op_secret, safety_age,
+            ),
         }
     }
 }
@@ -326,8 +332,8 @@ impl CurseforgeProjectCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::Default { command } => command.invoke(),
-            Self::File { command } => command.invoke(),
+            Self::Default { command } => super::curseforge_project_default_command::invoke(command),
+            Self::File { command } => super::curseforge_project_file_command::invoke(command),
         }
     }
 }
@@ -338,11 +344,8 @@ impl CurseforgeProjectDefaultCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::Set { project } => set_default_project_id(project),
-            Self::Show => {
-                println!("{}", get_default_project_id()?);
-                Ok(())
-            }
+            Self::Set { project } => super::curseforge_project_default_command::invoke_set(project),
+            Self::Show => super::curseforge_project_default_command::invoke_show(),
         }
     }
 }
@@ -358,7 +361,7 @@ impl CurseforgeProjectFileCommand {
                 api_key,
                 token,
                 op_secret,
-            } => list_project_files(project, api_key, token, op_secret),
+            } => super::curseforge_project_file_command::invoke_list(project, api_key, token, op_secret),
         }
     }
 }
@@ -1955,7 +1958,7 @@ impl CurseforgeMinecraftCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::Version { command } => command.invoke(),
+            Self::Version { command } => super::curseforge_minecraft_version_command::invoke(command),
         }
     }
 }
@@ -1970,12 +1973,75 @@ impl CurseforgeMinecraftVersionCommand {
                 mc,
                 token,
                 op_secret,
-            } => {
-                let mc = mc.unwrap_or_else(|| ">=1.19.2,<=1.21.1".to_string());
-                list_minecraft_versions(&mc, token, op_secret)
-            }
+            } => super::curseforge_minecraft_version_command::invoke_list(mc, token, op_secret),
         }
     }
+}
+
+pub(super) fn invoke_release_check(
+    mc: Option<String>,
+    project: Option<u64>,
+    api_key: Option<String>,
+    token: Option<String>,
+    op_secret: Option<String>,
+) -> eyre::Result<()> {
+    check_minecraft_version_metadata(mc, project, api_key, token, op_secret)
+}
+
+pub(super) fn invoke_release_validate(
+    mc: Option<String>,
+    project: Option<u64>,
+    api_key: Option<String>,
+    token: Option<String>,
+    op_secret: Option<String>,
+) -> eyre::Result<()> {
+    validate_release_hashes(mc, project, api_key, token, op_secret)
+}
+
+pub(super) fn invoke_release_now(
+    project: Option<u64>,
+    token: Option<String>,
+    op_secret: Option<String>,
+    dry_run: bool,
+) -> eyre::Result<()> {
+    release_now(project, token, op_secret, dry_run)
+}
+
+pub(super) fn invoke_release_amend(
+    project: Option<u64>,
+    api_key: Option<String>,
+    token: Option<String>,
+    op_secret: Option<String>,
+    safety_age: Option<String>,
+) -> eyre::Result<()> {
+    release_amend(project, api_key, token, op_secret, safety_age)
+}
+
+pub(super) fn invoke_project_default_set(project: u64) -> eyre::Result<()> {
+    set_default_project_id(project)
+}
+
+pub(super) fn invoke_project_default_show() -> eyre::Result<()> {
+    println!("{}", get_default_project_id()?);
+    Ok(())
+}
+
+pub(super) fn invoke_project_file_list(
+    project: Option<u64>,
+    api_key: Option<String>,
+    token: Option<String>,
+    op_secret: Option<String>,
+) -> eyre::Result<()> {
+    list_project_files(project, api_key, token, op_secret)
+}
+
+pub(super) fn invoke_minecraft_version_list(
+    mc: Option<String>,
+    token: Option<String>,
+    op_secret: Option<String>,
+) -> eyre::Result<()> {
+    let mc = mc.unwrap_or_else(|| ">=1.19.2,<=1.21.1".to_string());
+    list_minecraft_versions(&mc, token, op_secret)
 }
 
 #[cfg(test)]

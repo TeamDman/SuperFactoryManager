@@ -1,11 +1,14 @@
 package ca.teamdman.sfm.datagen;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
+import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 import ca.teamdman.sfm.datagen.version_plumbing.MCVersionAgnosticLanguageDataGen;
 import net.minecraftforge.data.event.GatherDataEvent;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -13,13 +16,61 @@ import java.util.Set;
 
 public class SFMLanguageProviderDatagen extends MCVersionAgnosticLanguageDataGen {
     public SFMLanguageProviderDatagen(GatherDataEvent event) {
+
         super(event, SFM.MOD_ID, "en_us");
+    }
+
+    public static List<LocalizationEntry> getEntries() {
+
+        var rtn = new ArrayList<LocalizationEntry>();
+
+        SFMAnnotationUtils.discoverAnnotations(SFMLocalizationDatagen.class)
+                .forEach(annotationData -> {
+                    // Load the class containing the field with the annotation
+                    Class<?> parentClass = annotationData.tryLoadClass();
+
+                    // Load the field
+                    Field declaredField;
+                    try {
+                        declaredField = parentClass.getDeclaredField(annotationData.memberName());
+                    } catch (NoSuchFieldException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    // Ensure the field is of the correct type
+                    if (!declaredField.getType().equals(LocalizationEntry.class)) {
+                        throw new RuntimeException("Field "
+                                                   + declaredField.getName()
+                                                   + " is not of type LocalizationEntry");
+                    }
+
+                    // Get the instance
+                    LocalizationEntry entry;
+                    try {
+                        entry = (LocalizationEntry) declaredField.get(null);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    SFM.LOGGER.info(
+                            "Found localization entry \"{}\" in {}#{}",
+                            entry.key().get(),
+                            parentClass.getName(),
+                            declaredField.getName()
+                    );
+
+                    // Add to the results list
+                    rtn.add(entry);
+                });
+
+        return rtn;
     }
 
     @Override
     protected void addTranslations() {
+
         Set<String> seen = new HashSet<>();
-        for (var entry : LocalizationKeys.getEntries()) {
+        for (var entry : getEntries()) {
             add(entry.key().get(), entry.value().get());
             seen.add(entry.key().get());
         }
@@ -42,4 +93,5 @@ public class SFMLanguageProviderDatagen extends MCVersionAgnosticLanguageDataGen
             throw new IllegalStateException("Unmapped entries: " + String.join(", ", unmapped));
         }
     }
+
 }

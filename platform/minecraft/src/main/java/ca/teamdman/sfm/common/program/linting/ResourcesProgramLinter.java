@@ -2,6 +2,8 @@ package ca.teamdman.sfm.common.program.linting;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.resources.ResourceLocation;
@@ -11,9 +13,13 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_WARNING_UNKNOWN_RESOURCE_ID;
-
 public class ResourcesProgramLinter implements IProgramLinter {
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_UNKNOWN_RESOURCE_ID = new LocalizationEntry(
+            "program.sfm.warnings.unknown_resource_id",
+            "Resource \"%s\" was not found."
+    );
 
     @Override
     public void gatherWarnings(
@@ -51,4 +57,5 @@ public class ResourcesProgramLinter implements IProgramLinter {
     ) {
         // Resource references typically cannot be “auto-fixed,” so do nothing here.
     }
+
 }

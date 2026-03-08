@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.facade.FacadeTransparency;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.core.BlockPos;
@@ -18,7 +20,14 @@ import static ca.teamdman.sfm.common.block.ToughCableFacadeBlock.canEntityDestro
 import static ca.teamdman.sfm.common.block.ToughCableFacadeBlock.getFacadedToughCableExplosionResistance;
 
 public class ToughFancyCableFacadeBlock extends FancyCableFacadeBlock implements IFacadableBlock, EntityBlock {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TOUGH_FANCY_CABLE_FACADE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TOUGH_FANCY_CABLE_FACADE.get().getDescriptionId(),
+            () -> "Tough Fancy Inventory Cable Facade"
+    );
+
     public ToughFancyCableFacadeBlock(Properties properties) {
+
         super(properties);
         registerDefaultState(
                 defaultBlockState()
@@ -32,6 +41,7 @@ public class ToughFancyCableFacadeBlock extends FancyCableFacadeBlock implements
             BlockPos blockPos,
             BlockState blockState
     ) {
+
         return SFMBlockEntities.TOUGH_FANCY_CABLE_FACADE.get().create(blockPos, blockState);
     }
 
@@ -41,16 +51,19 @@ public class ToughFancyCableFacadeBlock extends FancyCableFacadeBlock implements
             BlockPos pPos,
             BlockState pState
     ) {
+
         return new ItemStack(SFMBlocks.TOUGH_FANCY_CABLE.get());
     }
 
     @Override
     public IFacadableBlock getNonFacadeBlock() {
+
         return SFMBlocks.TOUGH_FANCY_CABLE.get();
     }
 
     @Override
     public IFacadableBlock getFacadeBlock() {
+
         return SFMBlocks.TOUGH_FANCY_CABLE_FACADE.get();
     }
 
@@ -73,6 +86,7 @@ public class ToughFancyCableFacadeBlock extends FancyCableFacadeBlock implements
             BlockPos blockPos,
             Entity entity
     ) {
+
         return canEntityDestroyFacaded(state, level, blockPos, entity);
     }
 

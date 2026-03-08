@@ -9,7 +9,8 @@ import ca.teamdman.sfm.client.widget.PickList;
 import ca.teamdman.sfm.client.widget.PickListItem;
 import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMComponentUtils;
 import ca.teamdman.sfm.common.util.SFMDisplayUtils;
@@ -42,11 +43,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP;
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP;
-
 @SuppressWarnings("NotNullFieldNotInitialized")
 public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TEXT_EDIT_SCREEN_V1_TITLE = new LocalizationEntry(
+            "gui.sfm.text_editor.v1.title",
+            "Text Editor"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry INTELLISENSE_PICK_LIST_GUI_TITLE = new LocalizationEntry(
+            "gui.sfm.title.intellisense_pick_list",
+            "Intellisense Pick List"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.text_editor.done_button.tooltip",
+            "Shift+Enter to submit"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.text_editor.config_button.tooltip",
+            "Open editor config"
+    );
+
     private final ISFMTextEditScreenOpenContext openContext;
 
     protected MyMultiLineEditBox textarea;
@@ -63,7 +85,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             ISFMTextEditScreenOpenContext openContext
     ) {
 
-        super(LocalizationKeys.TEXT_EDIT_SCREEN_TITLE.getComponent());
+        super(TEXT_EDIT_SCREEN_V1_TITLE.getComponent());
         this.openContext = openContext;
     }
 
@@ -272,6 +294,12 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
     }
 
     @Override
+    public void tick() {
+
+        this.textarea.tick();
+    }
+
+    @Override
     protected void init() {
 
         super.init();
@@ -293,7 +321,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 0,
                 180,
                 this.font.lineHeight * 6,
-                LocalizationKeys.INTELLISENSE_PICK_LIST_GUI_TITLE.getComponent(),
+                INTELLISENSE_PICK_LIST_GUI_TITLE.getComponent(),
                 new ArrayList<>()
         ));
 
@@ -353,12 +381,6 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         this.setInitialFocus(textarea);
-    }
-
-    @Override
-    public void tick() {
-
-        this.textarea.tick();
     }
 
     // TODO: enable scrolling without focus; respond to wheel events
@@ -598,6 +620,14 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             super.setScrollAmount(pScrollAmount);
         }
 
+        @Override
+        public void tick() {
+
+            super.tick();
+
+            this.cursorBlinkTick++;
+        }
+
         private void seekCursorFromPoint(
                 double mx,
                 double my
@@ -768,14 +798,6 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             while (displayedLineStartOffsets.size() < lines) {
                 displayedLineStartOffsets.add(lastProgram.length());
             }
-        }
-
-        @Override
-        public void tick() {
-
-            super.tick();
-
-            this.cursorBlinkTick++;
         }
 
         @Override
