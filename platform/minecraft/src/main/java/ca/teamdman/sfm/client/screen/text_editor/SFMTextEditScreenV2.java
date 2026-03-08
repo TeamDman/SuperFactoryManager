@@ -11,7 +11,8 @@ import ca.teamdman.sfm.client.text_editor.action.ITextEditAction;
 import ca.teamdman.sfm.client.text_editor.action.KeyboardImpulse;
 import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
@@ -33,15 +34,24 @@ import org.lwjgl.glfw.GLFW;
 import java.util.LinkedList;
 
 public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TEXT_EDIT_SCREEN_V2_TITLE = new LocalizationEntry(
+            "gui.sfm.text_editor.v2.title",
+            "Text Editor"
+    );
+
     private final @Nullable Screen previousScreen;
+
     protected TextEditContext textEditContext;
+
     protected ISFMTextEditScreenOpenContext openContext;
 
     public SFMTextEditScreenV2(
             ISFMTextEditScreenOpenContext openContext,
             @Nullable Screen previousScreen
     ) {
-        super(LocalizationKeys.TEXT_EDIT_SCREEN_TITLE.getComponent());
+
+        super(TEXT_EDIT_SCREEN_V2_TITLE.getComponent());
         this.openContext = openContext;
         this.previousScreen = previousScreen;
         this.textEditContext = new TextEditContext(openContext.initialValue());
@@ -74,17 +84,20 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
             char pCodePoint,
             int pModifiers
     ) {
+
         String text = Character.toString(pCodePoint);
         textEditContext.insertTextAtCursors(text);
         return true;
     }
 
     public boolean shouldShowLineNumbers() {
+
         return SFMConfig.getOrDefault(SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.showLineNumbers);
     }
 
     @MCVersionDependentBehaviour
     public @Nullable PanoramaRenderer getPanorama() {
+
         if (this.openContext instanceof SFMTextEditScreenTitleScreenOpenContext titleScreenOpenContext) {
             return titleScreenOpenContext.titleScreen().panorama;
         }
@@ -98,6 +111,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
             int pMouseY,
             float pPartialTick
     ) {
+
         PanoramaRenderer panorama = getPanorama();
         if (panorama != null) {
             panorama.render(pPartialTick, Mth.clamp(1.0F, 0.0F, 1.0F));
@@ -181,6 +195,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
      */
     @Override
     public void onClose() {
+
         openContext.onTryClose(
                 textEditContext.getContent(),
                 () -> SFMScreenChangeHelpers.setScreen(previousScreen)
@@ -189,11 +204,13 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
 
     @Override
     public ISFMTextEditScreenOpenContext openContext() {
+
         return openContext;
     }
 
     @Override
     public OpenBehaviour openBehaviour() {
+
         return OpenBehaviour.Replace;
     }
 
@@ -203,6 +220,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
             int y,
             int color
     ) {
+
         guiGraphics.fill(
                 x,
                 y,
@@ -214,6 +232,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
 
     @Override
     protected void init() {
+
         super.init();
         SFMScreenRenderUtils.enableKeyRepeating();
 
@@ -230,7 +249,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
                                         () -> { /* no-op */ }
                                 )
                         ))
-                        .setTooltip(this, font, LocalizationKeys.PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP)
+                        .setTooltip(this, font, SFMTextEditScreenV1.PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP)
                         .build()
         );
     }
@@ -240,6 +259,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
             int mx,
             int my
     ) {
+
         if (this.minecraft != null && this.minecraft.screen != this) {
             // keep focus behavior consistent with V1 (avoid stray tooltips)
             this.renderables
@@ -265,4 +285,5 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
 //                .map(SFMExtendedButtonWithTooltip.class::cast)
 //                .forEach(x -> x.renderToolTip(pose, mx, my));
     }
+
 }

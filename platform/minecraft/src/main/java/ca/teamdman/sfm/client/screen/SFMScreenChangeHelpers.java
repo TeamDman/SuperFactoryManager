@@ -11,7 +11,8 @@ import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenExampleProgramOpenCon
 import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import net.minecraft.ChatFormatting;
@@ -27,6 +28,12 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class SFMScreenChangeHelpers {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry ITEM_INSPECTOR_COPIED_TO_CLIPBOARD = new LocalizationEntry(
+            "gui.sfm.item_inspector.copied_to_clipboard",
+            "Copied {} characters to clipboard!"
+    );
+
     public static void setOrPushScreen(Screen screen) {
 
         if (Minecraft.getInstance().screen == null) {
@@ -141,7 +148,7 @@ public class SFMScreenChangeHelpers {
             SFM.LOGGER.info("Copied {} characters to clipboard", content.length());
             assert minecraft.player != null;
             minecraft.player.sendSystemMessage(
-                    LocalizationKeys.ITEM_INSPECTOR_COPIED_TO_CLIPBOARD.getComponent(
+                    ITEM_INSPECTOR_COPIED_TO_CLIPBOARD.getComponent(
                             Component.literal(String.valueOf(content.length())).withStyle(ChatFormatting.AQUA)
                     )
             );

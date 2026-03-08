@@ -3,6 +3,8 @@ package ca.teamdman.sfm.common.block;
 import ca.teamdman.sfm.common.block.shape.ShapeCache;
 import ca.teamdman.sfm.common.block_network.ICableBlock;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
@@ -25,20 +27,30 @@ import java.util.function.Supplier;
 
 public class FancyCableBlock extends CableBlock implements IFacadableBlock {
     public static final BooleanProperty NORTH = BooleanProperty.create("north");
+
     public static final BooleanProperty SOUTH = BooleanProperty.create("south");
+
     public static final BooleanProperty EAST = BooleanProperty.create("east");
+
     public static final BooleanProperty WEST = BooleanProperty.create("west");
+
     public static final BooleanProperty UP = BooleanProperty.create("up");
 
 
     public static final BooleanProperty DOWN = BooleanProperty.create("down");
 
     public static final VoxelShape SHAPE_CORE = Block.box(4, 4, 4, 12, 12, 12);
+
     public static final VoxelShape SHAPE_NORTH = Block.box(5, 5, 0, 11, 11, 5);
+
     public static final VoxelShape SHAPE_SOUTH = Block.box(5, 5, 11, 11, 11, 16);
+
     public static final VoxelShape SHAPE_EAST = Block.box(11, 5, 5, 16, 11, 11);
+
     public static final VoxelShape SHAPE_WEST = Block.box(0, 5, 5, 5, 11, 11);
+
     public static final VoxelShape SHAPE_UP = Block.box(5, 11, 5, 11, 16, 11);
+
     public static final VoxelShape SHAPE_DOWN = Block.box(5, 0, 5, 11, 5, 11);
 
     public static final Map<Direction, BooleanProperty> DIRECTION_PROPERTIES = ImmutableMap.of(
@@ -50,7 +62,14 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             Direction.DOWN, DOWN
     );
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FANCY_CABLE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.FANCY_CABLE.get().getDescriptionId(),
+            () -> "Fancy Inventory Cable"
+    );
+
     public FancyCableBlock(Properties properties) {
+
         super(properties);
         registerDefaultState(
                 defaultBlockState()
@@ -65,16 +84,19 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
 
     @Override
     public IFacadableBlock getNonFacadeBlock() {
+
         return SFMBlocks.FANCY_CABLE.get();
     }
 
     @Override
     public IFacadableBlock getFacadeBlock() {
+
         return SFMBlocks.FANCY_CABLE_FACADE.get();
     }
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext ctx) {
+
         return getState(defaultBlockState(), ctx.getLevel(), ctx.getClickedPos());
     }
 
@@ -88,6 +110,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             BlockPos fromPos,
             boolean isMoving
     ) {
+
         super.neighborChanged(state, level, pos, block, fromPos, isMoving);
 
         level.setBlockAndUpdate(pos, getState(level.getBlockState(pos), level, pos));
@@ -101,6 +124,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             BlockPos pos,
             CollisionContext ctx
     ) {
+
         return ShapeCache.getOrCompute(state, FancyCableBlock::getShape);
     }
 
@@ -114,6 +138,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             BlockPos pos,
             BlockPos facingPos
     ) {
+
         return getState(state, world, pos);
     }
 
@@ -122,10 +147,12 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             LevelAccessor level,
             BlockPos pos
     ) {
+
         return getState(defaultBlockState(), level, pos);
     }
 
     protected static VoxelShape getShape(BlockState state) {
+
         var shape = SHAPE_CORE;
 
         shape = combineShapes(shape, SHAPE_NORTH, () -> state.getValue(NORTH));
@@ -143,11 +170,13 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             VoxelShape shape2,
             Supplier<Boolean> condition
     ) {
+
         return condition.get() ? Shapes.or(shape1, shape2) : shape1;
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+
         super.createBlockStateDefinition(builder);
         builder.add(NORTH, SOUTH, EAST, WEST, UP, DOWN);
     }
@@ -157,6 +186,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             LevelAccessor level,
             BlockPos pos
     ) {
+
         boolean north = hasConnection(level, pos, Direction.NORTH);
         boolean south = hasConnection(level, pos, Direction.SOUTH);
         boolean east = hasConnection(level, pos, Direction.EAST);
@@ -186,4 +216,5 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
 
         return SFMBlockCapabilityDiscovery.hasAnyCapabilityAnyDirection(level, relative);
     }
+
 }

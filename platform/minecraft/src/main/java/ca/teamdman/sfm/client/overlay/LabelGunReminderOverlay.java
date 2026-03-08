@@ -4,7 +4,8 @@ import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.item.LabelGunItem;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.SFMHandUtils;
 import net.minecraft.ChatFormatting;
@@ -21,6 +22,18 @@ import org.jetbrains.annotations.Nullable;
 public class LabelGunReminderOverlay implements IGuiOverlay {
 
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_VIEW_MODE_SHOW_ONLY_ACTIVE_AND_TARGETED = new LocalizationEntry(
+            () -> "sfm.label_gun.view_mode.show_only_active_and_targeted",
+            () -> "Showing blocks with active label. Cycle mode in gui or with %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_VIEW_MODE_SHOW_ONLY_TARGETED = new LocalizationEntry(
+            () -> "sfm.label_gun.view_mode.show_only_targeted",
+            () -> "Showing only targeted block labels. Cycle mode in gui or with %s"
+    );
+
     @SuppressWarnings("DuplicatedCode")
     @Override
     public void render(
@@ -30,6 +43,7 @@ public class LabelGunReminderOverlay implements IGuiOverlay {
             int screenWidth,
             int screenHeight
     ) {
+
         Minecraft minecraft = gui.getMinecraft();
         if (minecraft.options.hideGui) {
             return;
@@ -41,10 +55,10 @@ public class LabelGunReminderOverlay implements IGuiOverlay {
 
         LabelGunItem.LabelGunViewMode viewMode = getViewMode(minecraft);
         if (viewMode == null) return;
-        var msg = switch(viewMode) {
+        var msg = switch (viewMode) {
             case SHOW_ALL -> null;
-            case SHOW_ONLY_ACTIVE_LABEL_AND_TARGETED_BLOCK -> LocalizationKeys.LABEL_GUN_VIEW_MODE_SHOW_ONLY_ACTIVE_AND_TARGETED;
-            case SHOW_ONLY_TARGETED_BLOCK -> LocalizationKeys.LABEL_GUN_VIEW_MODE_SHOW_ONLY_TARGETED;
+            case SHOW_ONLY_ACTIVE_LABEL_AND_TARGETED_BLOCK -> LABEL_GUN_VIEW_MODE_SHOW_ONLY_ACTIVE_AND_TARGETED;
+            case SHOW_ONLY_TARGETED_BLOCK -> LABEL_GUN_VIEW_MODE_SHOW_ONLY_TARGETED;
         };
         if (msg == null) return;
         Font font = minecraft.font;
@@ -70,6 +84,7 @@ public class LabelGunReminderOverlay implements IGuiOverlay {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private static @Nullable LabelGunItem.LabelGunViewMode getViewMode(Minecraft minecraft) {
+
         LocalPlayer player = minecraft.player;
         if (player == null) return null;
         if (!SFMConfig.CLIENT_CONFIG.showLabelGunReminderOverlay.get()) return null;
@@ -77,4 +92,5 @@ public class LabelGunReminderOverlay implements IGuiOverlay {
         if (labelGun.isEmpty()) return null;
         return LabelGunItem.getViewMode(labelGun);
     }
+
 }

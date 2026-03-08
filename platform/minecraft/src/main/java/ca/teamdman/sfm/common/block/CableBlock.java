@@ -6,6 +6,8 @@ import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.block_network.ICableBlock;
 import ca.teamdman.sfm.common.facade.FacadeSpreadLogic;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ServerboundFacadePacket;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
@@ -21,7 +23,14 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
 public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CABLE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.CABLE.get().getDescriptionId(),
+            () -> "Inventory Cable"
+    );
+
     public CableBlock(Properties properties) {
+
         super(properties);
     }
 
@@ -69,6 +78,7 @@ public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
             InteractionHand pHand,
             BlockHitResult pHit
     ) {
+
         if (pPlayer.getOffhandItem().getItem() == SFMItems.NETWORK_TOOL.get()) {
             if (pLevel.isClientSide() && pHand == InteractionHand.MAIN_HAND) {
                 ServerboundFacadePacket msg = new ServerboundFacadePacket(
@@ -91,11 +101,13 @@ public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
 
     @Override
     public IFacadableBlock getNonFacadeBlock() {
+
         return SFMBlocks.CABLE.get();
     }
 
     @Override
     public IFacadableBlock getFacadeBlock() {
+
         return SFMBlocks.CABLE_FACADE.get();
     }
 
@@ -104,6 +116,8 @@ public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
             LevelAccessor level,
             BlockPos pos
     ) {
+
         return defaultBlockState();
     }
+
 }

@@ -2,7 +2,8 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.*;
 import ca.teamdman.sfm.common.timing.SFMInstant;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
@@ -51,6 +52,90 @@ public record Program(
 
     public static final int MAX_LABEL_LENGTH = 256;
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_TOO_MANY_CONDITIONS = new LocalizationEntry(
+            "program.sfm.warnings.too_many_conditions",
+            "Too many conditions for simulation, some linter warnings may be missed."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_WITH_REDSTONE_COUNT = new LocalizationEntry(
+            "log.sfm.program.tick.redstone_count",
+            "Program ticking with %d unprocessed redstone pulses."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_TRIGGER_STATEMENT = new LocalizationEntry(
+            "log.sfm.statement.tick.trigger",
+            "TRIGGERED FROM %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK = new LocalizationEntry(
+            "log.sfm.program.tick",
+            "PROGRAM TICK BEGIN"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_CONTEXT = new LocalizationEntry(
+            "log.sfm.program.context",
+            "Initial program context: %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_CABLE_NETWORK_DETAILS_HEADER_1 = new LocalizationEntry(
+            "log.sfm.cable_network.header.1",
+            "======= Cable network ======="
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_CABLE_NETWORK_DETAILS_HEADER_2 = new LocalizationEntry(
+            "log.sfm.cable_network.header.2",
+            "Cable positions:"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_CABLE_NETWORK_DETAILS_HEADER_3 = new LocalizationEntry(
+            "log.sfm.cable_network.header.3",
+            "Capability positions:"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_CABLE_NETWORK_DETAILS_BODY = new LocalizationEntry(
+            "log.sfm.cable_network.body",
+            "%s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_CABLE_NETWORK_DETAILS_FOOTER = new LocalizationEntry(
+            "log.sfm.cable_network.footer",
+            "============================="
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_LABEL_POSITION_HOLDER_DETAILS_HEADER = new LocalizationEntry(
+            "log.sfm.label_position_holder.header",
+            "=== Label position holder ==="
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_LABEL_POSITION_HOLDER_DETAILS_BODY = new LocalizationEntry(
+            "log.sfm.label_position_holder.body",
+            "%s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_LABEL_POSITION_HOLDER_DETAILS_FOOTER = new LocalizationEntry(
+            "log.sfm.label_position_holder.footer",
+            "============================="
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_TICK_TRIGGER_TIME_MS = new LocalizationEntry(
+            "program.sfm.tick.time_taken.trigger",
+            "Program trigger tick took %.2f ms:\n```\n%s\n```\n"
+    );
+
     /**
      * Create a context and tick the program.
      *
@@ -63,7 +148,7 @@ public record Program(
         // log if there are unprocessed redstone pulses
         int unprocessedRedstonePulseCount = manager.getUnprocessedRedstonePulseCount();
         if (unprocessedRedstonePulseCount > 0) {
-            manager.logger.debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_WITH_REDSTONE_COUNT.get(
+            manager.logger.debug(x -> x.accept(LOG_PROGRAM_TICK_WITH_REDSTONE_COUNT.get(
                     unprocessedRedstonePulseCount)));
         }
 
@@ -97,14 +182,14 @@ public record Program(
             if (!context.didSomething()) {
                 context.setDidSomething(true);
                 context.getLogger().trace(getTraceLogWriter(context));
-                context.getLogger().debug(debug -> debug.accept(LocalizationKeys.LOG_PROGRAM_TICK.get()));
+                context.getLogger().debug(debug -> debug.accept(LOG_PROGRAM_TICK.get()));
             }
 
             // Log pretty triggers
             if (triggers instanceof ToStringCondensed ss) {
                 context
                         .getLogger()
-                        .debug(x -> x.accept(LocalizationKeys.LOG_PROGRAM_TICK_TRIGGER_STATEMENT.get(
+                        .debug(x -> x.accept(LOG_PROGRAM_TICK_TRIGGER_STATEMENT.get(
                                 ss.toStringCondensed())));
             }
 
@@ -124,7 +209,7 @@ public record Program(
                         ((SimulateExploreAllPathsProgramBehaviour) forkedContext.getBehaviour()).terminatePathAndBeginAnew();
                     }
                 } else {
-                    context.getLogger().warn(LocalizationKeys.PROGRAM_WARNING_TOO_MANY_CONDITIONS.get(
+                    context.getLogger().warn(PROGRAM_WARNING_TOO_MANY_CONDITIONS.get(
                             trigger.toString(),
                             conditionCount,
                             maxConditionCount
@@ -141,7 +226,7 @@ public record Program(
             Duration elapsed = start.elapsed();
 
             // Log trigger time
-            context.getLogger().info(x -> x.accept(LocalizationKeys.PROGRAM_TICK_TRIGGER_TIME_MS.get(
+            context.getLogger().info(x -> x.accept(PROGRAM_TICK_TRIGGER_TIME_MS.get(
                     elapsed.toMillis(),
                     trigger.toString()
             )));
@@ -205,8 +290,8 @@ public record Program(
     private static Consumer<Consumer<TranslatableContents>> getTraceLogWriter(ProgramContext context) {
 
         return trace -> {
-            trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_HEADER_1.get());
-            trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_HEADER_2.get());
+            trace.accept(LOG_CABLE_NETWORK_DETAILS_HEADER_1.get());
+            trace.accept(LOG_CABLE_NETWORK_DETAILS_HEADER_2.get());
             Level level = context
                     .getManager()
                     .getLevel();
@@ -222,20 +307,20 @@ public record Program(
                                 + level
                                         .getBlockState(
                                                 pos))
-                    .forEach(body -> trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_BODY.get(
+                    .forEach(body -> trace.accept(LOG_CABLE_NETWORK_DETAILS_BODY.get(
                             body)));
-            trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_HEADER_3.get());
+            trace.accept(LOG_CABLE_NETWORK_DETAILS_HEADER_3.get());
             context
                     .getNetwork()
                     .getCapabilityProviderPositions()
                     .forEach(blockPos -> {
                         assert level != null;
                         String content = "- " + blockPos.toString() + " " + level.getBlockState(blockPos);
-                        trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_BODY.get(content));
+                        trace.accept(LOG_CABLE_NETWORK_DETAILS_BODY.get(content));
                     });
-            trace.accept(LocalizationKeys.LOG_CABLE_NETWORK_DETAILS_FOOTER.get());
+            trace.accept(LOG_CABLE_NETWORK_DETAILS_FOOTER.get());
 
-            trace.accept(LocalizationKeys.LOG_LABEL_POSITION_HOLDER_DETAILS_HEADER.get());
+            trace.accept(LOG_LABEL_POSITION_HOLDER_DETAILS_HEADER.get());
             //noinspection DataFlowIssue
             context
                     .getLabelPositionHolder()
@@ -245,10 +330,10 @@ public record Program(
                             .stream()
                             .map(pos -> "- " + label + ": " + pos.toString() + " " + level.getBlockState(pos))
                             .forEach(body -> trace.accept(
-                                    LocalizationKeys.LOG_LABEL_POSITION_HOLDER_DETAILS_BODY.get(body)
+                                    LOG_LABEL_POSITION_HOLDER_DETAILS_BODY.get(body)
                             )));
-            trace.accept(LocalizationKeys.LOG_LABEL_POSITION_HOLDER_DETAILS_FOOTER.get());
-            trace.accept(LocalizationKeys.LOG_PROGRAM_CONTEXT.get(context.toString()));
+            trace.accept(LOG_LABEL_POSITION_HOLDER_DETAILS_FOOTER.get());
+            trace.accept(LOG_PROGRAM_CONTEXT.get(context.toString()));
         };
     }
 
