@@ -1,7 +1,8 @@
 package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
@@ -12,6 +13,12 @@ import net.minecraftforge.event.CreativeModeTabEvent;
 @MCVersionDependentBehaviour
 public class SFMCreativeTabs {
     @SuppressWarnings("NotNullFieldNotInitialized")
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CREATIVE_TAB = new LocalizationEntry(
+            "item_group.sfm",
+            "Super Factory Manager"
+    );
+
     public static CreativeModeTab MAIN;
 
     @SFMSubscribeEvent
@@ -20,7 +27,7 @@ public class SFMCreativeTabs {
                 SFMResourceLocation.fromSFMPath("main"),
                 builder ->
                         // Set name of tab to display
-                        builder.title(LocalizationKeys.CREATIVE_TAB.getComponent())
+                        builder.title(CREATIVE_TAB.getComponent())
                                 // Set icon of creative tab
                                 .icon(() -> new ItemStack(SFMBlocks.MANAGER.get()))
                                 // Add default items to tab
@@ -31,4 +38,5 @@ public class SFMCreativeTabs {
                                                                                            .toList()))
         );
     }
+
 }

@@ -3,7 +3,8 @@ package ca.teamdman.sfm.common.net;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
 import ca.teamdman.sfm.common.compat.SFMModCompat;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
@@ -28,12 +29,20 @@ import java.util.List;
 
 public record ServerboundContainerExportsInspectionRequestPacket(
         int windowId,
+
         BlockPos pos
 ) implements SFMPacket {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONTAINER_INSPECTOR_MEKANISM_NULL_DIRECTION_WARNING = new LocalizationEntry(
+            "gui.sfm.container_inspector.mekanism_null_direction_warning",
+            "MEKANISM BLOCKS ARE READ-ONLY FROM THE NULL DIRECTION!!!!!!"
+    );
+
     public static String buildInspectionResults(
             Level level,
             BlockPos pos
     ) {
+
         StringBuilder sb = new StringBuilder();
         for (Direction direction : SFMDirections.DIRECTIONS_WITH_NULL) {
             sb.append("-- ").append(direction).append("\n");
@@ -71,6 +80,7 @@ public record ServerboundContainerExportsInspectionRequestPacket(
             BlockPos pos,
             @Nullable Direction direction
     ) {
+
         StringBuilder sb = new StringBuilder();
         SFMBlockCapabilityResult<CAP> capResult = SFMBlockCapabilityDiscovery.discoverCapabilityFromLevel(
                 level,
@@ -142,7 +152,7 @@ public record ServerboundContainerExportsInspectionRequestPacket(
                     .getNamespace()
                     .equals("mekanism")) {
                 return "-- "
-                       + LocalizationKeys.CONTAINER_INSPECTOR_MEKANISM_NULL_DIRECTION_WARNING.getStub()
+                       + CONTAINER_INSPECTOR_MEKANISM_NULL_DIRECTION_WARNING.getStub()
                        + "\n"
                        + result;
             }
@@ -153,6 +163,7 @@ public record ServerboundContainerExportsInspectionRequestPacket(
     public static class Daddy implements SFMPacketDaddy<ServerboundContainerExportsInspectionRequestPacket> {
         @Override
         public PacketDirection getPacketDirection() {
+
             return PacketDirection.SERVERBOUND;
         }
 
@@ -161,12 +172,14 @@ public record ServerboundContainerExportsInspectionRequestPacket(
                 ServerboundContainerExportsInspectionRequestPacket msg,
                 FriendlyByteBuf friendlyByteBuf
         ) {
+
             friendlyByteBuf.writeVarInt(msg.windowId());
             friendlyByteBuf.writeBlockPos(msg.pos());
         }
 
         @Override
         public ServerboundContainerExportsInspectionRequestPacket decode(FriendlyByteBuf friendlyByteBuf) {
+
             return new ServerboundContainerExportsInspectionRequestPacket(
                     friendlyByteBuf.readVarInt(),
                     friendlyByteBuf.readBlockPos()
@@ -178,6 +191,7 @@ public record ServerboundContainerExportsInspectionRequestPacket(
                 ServerboundContainerExportsInspectionRequestPacket msg,
                 SFMPacketHandlingContext context
         ) {
+
             context.handleServerboundContainerPacket(
                     AbstractContainerMenu.class,
                     BlockEntity.class,
@@ -203,8 +217,10 @@ public record ServerboundContainerExportsInspectionRequestPacket(
 
         @Override
         public Class<ServerboundContainerExportsInspectionRequestPacket> getPacketClass() {
+
             return ServerboundContainerExportsInspectionRequestPacket.class;
         }
+
     }
 
 }

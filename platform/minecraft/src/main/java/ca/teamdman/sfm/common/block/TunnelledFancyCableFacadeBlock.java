@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.facade.FacadeTransparency;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.core.BlockPos;
@@ -13,7 +15,14 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 public class TunnelledFancyCableFacadeBlock extends FancyCableFacadeBlock implements EntityBlock, IFacadableBlock {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TUNNELLED_FANCY_CABLE_FACADE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TUNNELLED_FANCY_CABLE_FACADE.get().getDescriptionId(),
+            () -> "Tunnelled Fancy Inventory Cable Facade"
+    );
+
     public TunnelledFancyCableFacadeBlock(Properties properties) {
+
         super(properties.lightLevel(LightBlock.LIGHT_EMISSION));
         registerDefaultState(
                 defaultBlockState()
@@ -27,6 +36,7 @@ public class TunnelledFancyCableFacadeBlock extends FancyCableFacadeBlock implem
             BlockPos blockPos,
             BlockState blockState
     ) {
+
         return SFMBlockEntities.TUNNELLED_FANCY_CABLE_FACADE.get().create(blockPos, blockState);
     }
 
@@ -36,16 +46,20 @@ public class TunnelledFancyCableFacadeBlock extends FancyCableFacadeBlock implem
             BlockPos pPos,
             BlockState pState
     ) {
+
         return new ItemStack(SFMBlocks.TUNNELLED_FANCY_CABLE.get());
     }
 
     @Override
     public IFacadableBlock getNonFacadeBlock() {
+
         return SFMBlocks.TUNNELLED_FANCY_CABLE.get();
     }
 
     @Override
     public IFacadableBlock getFacadeBlock() {
+
         return SFMBlocks.TUNNELLED_FANCY_CABLE_FACADE.get();
     }
+
 }

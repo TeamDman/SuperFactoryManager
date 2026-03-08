@@ -3,7 +3,8 @@ package ca.teamdman.sfm.client.screen;
 import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.diagnostics.SFMDiagnostics;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.logging.TranslatableLogEvent;
 import ca.teamdman.sfm.common.net.ServerboundManagerClearLogsPacket;
 import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
@@ -23,10 +24,40 @@ import org.apache.logging.log4j.Level;
 import java.util.HashMap;
 import java.util.Map;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP;
+import static ca.teamdman.sfm.client.screen.text_editor.SFMTextEditScreenV1.PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP;
 
 // todo: checkbox for auto-scrolling
 public class LogsScreen extends Screen {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOGS_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.logs.title",
+            "Logs"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOGS_GUI_CLEAR_LOGS_BUTTON = new LocalizationEntry(
+            "gui.sfm.logs.button.clear_logs",
+            "Clear logs"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOGS_GUI_COPY_LOGS_BUTTON = new LocalizationEntry(
+            "gui.sfm.logs.button.copy_logs",
+            "Copy logs"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOGS_GUI_COPY_LOGS_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.logs.button.copy_logs.tooltip",
+            "Shift-click for raw"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOGS_GUI_NO_CONTENT = new LocalizationEntry(
+            "gui.sfm.logs.no_content",
+            "Ahoy, world!\nChange the log level using the buttons at the top of this screen.\nTrace, debug, and info log levels will be turned off after a single program execution.\nLogging can make statements take longer to execute.\nUse the copy button to help view in a different editor."
+    );
+
     private final ManagerContainerMenu MENU;
 
     @SuppressWarnings("NotNullFieldNotInitialized")
@@ -41,7 +72,7 @@ public class LogsScreen extends Screen {
 
     public LogsScreen(ManagerContainerMenu menu) {
 
-        super(LocalizationKeys.LOGS_SCREEN_TITLE.getComponent());
+        super(LOGS_SCREEN_TITLE.getComponent());
         this.MENU = menu;
         this.lastKnownLogLevel = MENU.logLevel;
     }
@@ -132,7 +163,7 @@ public class LogsScreen extends Screen {
             MENU.logs.add(new TranslatableLogEvent(
                     Level.INFO,
                     SFMEpochInstant.now(),
-                    LocalizationKeys.LOGS_GUI_NO_CONTENT.get()
+                    LOGS_GUI_NO_CONTENT.get()
             ));
         }
 
@@ -219,9 +250,9 @@ public class LogsScreen extends Screen {
                 new SFMButtonBuilder()
                         .setPosition(this.width / 2 - 200, this.height / 2 - 100 + 195)
                         .setSize(80, 20)
-                        .setText(LocalizationKeys.LOGS_GUI_COPY_LOGS_BUTTON)
+                        .setText(LOGS_GUI_COPY_LOGS_BUTTON)
                         .setOnPress(this::onCopyLogsClicked)
-                        .setTooltip(this, font, LocalizationKeys.LOGS_GUI_COPY_LOGS_BUTTON_TOOLTIP)
+                        .setTooltip(this, font, LOGS_GUI_COPY_LOGS_BUTTON_TOOLTIP)
                         .build()
         );
         this.addRenderableWidget(
@@ -238,7 +269,7 @@ public class LogsScreen extends Screen {
                     new SFMButtonBuilder()
                             .setPosition(this.width / 2 - 2 + 115, this.height / 2 - 100 + 195)
                             .setSize(80, 20)
-                            .setText(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON)
+                            .setText(LOGS_GUI_CLEAR_LOGS_BUTTON)
                             .setOnPress((button) -> {
                                 SFMPackets.sendToServer(new ServerboundManagerClearLogsPacket(
                                         MENU.containerId,

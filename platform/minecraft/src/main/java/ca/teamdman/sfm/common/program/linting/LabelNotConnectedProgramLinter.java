@@ -5,6 +5,8 @@ import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.core.BlockPos;
@@ -14,9 +16,25 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
-
 public class LabelNotConnectedProgramLinter implements IProgramLinter {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_CONNECTED_BUT_NOT_VIABLE_LABEL = new LocalizationEntry(
+            "program.sfm.warnings.adjacent_but_disconnected_label",
+            "Label \"%s\" is assigned in the world at %s and is connected by cables but is not detected as a valid inventory."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_DISCONNECTED_LABEL = new LocalizationEntry(
+            "program.sfm.warnings.disconnected_label",
+            "Label \"%s\" is assigned in the world at %s but not connected by cables."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_REMINDER_PUSH_LABELS = new LocalizationEntry(
+            "program.sfm.reminders.push_labels",
+            "Did you remember to push your labels using the label gun?"
+    );
+
     @Override
     public void gatherWarnings(
             Program program,

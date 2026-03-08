@@ -5,7 +5,10 @@ import ca.teamdman.sfm.common.block_network.ICableBlock;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.item.DiskItem;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -33,7 +36,14 @@ import org.jetbrains.annotations.Nullable;
 public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICableBlock {
     public static final BooleanProperty TRIGGERED = BlockStateProperties.TRIGGERED;
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.MANAGER.get().getDescriptionId(),
+            () -> "Factory Manager"
+    );
+
     public ManagerBlock() {
+
         super(BlockBehaviour.Properties
                       .of(Material.PISTON)
                       .destroyTime(2)
@@ -44,6 +54,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
     @Override
     @SuppressWarnings("deprecation")
     public RenderShape getRenderShape(BlockState state) {
+
         return RenderShape.MODEL;
     }
 
@@ -57,6 +68,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             BlockPos neighbourPos,
             boolean movedByPiston
     ) {
+
         if (!(level.getBlockEntity(pos) instanceof ManagerBlockEntity mgr)) return;
         if (!(level instanceof ServerLevel)) return;
         { // check redstone for triggers
@@ -72,11 +84,10 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
     }
 
     @Override
-    public BlockEntity newBlockEntity(
+    public @Nullable BlockEntity newBlockEntity(
             BlockPos pos,
             BlockState state
     ) {
-        //noinspection DataFlowIssue
         return SFMBlockEntities.MANAGER.get().create(pos, state);
     }
 
@@ -90,6 +101,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             InteractionHand hand,
             BlockHitResult hit
     ) {
+
         if (level.getBlockEntity(pos) instanceof ManagerBlockEntity manager
             && player instanceof ServerPlayer serverPlayer) {
             // update warnings on disk as we open the gui
@@ -100,17 +112,13 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
         return InteractionResult.SUCCESS;
     }
 
-    @MCVersionDependentBehaviour
-    private void openMenu(ServerPlayer player, ManagerBlockEntity manager) {
-        NetworkHooks.openScreen(player, manager, buf -> ManagerContainerMenu.encode(manager, buf));
-    }
-
     @Override
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(
             Level level,
             BlockState state,
             BlockEntityType<T> type
     ) {
+
         if (level.isClientSide()) return null;
         return createTickerHelper(type, SFMBlockEntities.MANAGER.get(), ManagerBlockEntity::serverTick);
     }
@@ -124,6 +132,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             BlockState oldState,
             boolean isMoving
     ) {
+
         CableNetworkManager.onCablePlaced(world, pos);
     }
 
@@ -136,6 +145,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             BlockState newState,
             boolean isMoving
     ) {
+
         if (!state.is(newState.getBlock())) {
             if (level.getBlockEntity(pos) instanceof Container container) {
                 Containers.dropContents(level, pos, container);
@@ -146,8 +156,19 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
         }
     }
 
+    @MCVersionDependentBehaviour
+    private void openMenu(
+            ServerPlayer player,
+            ManagerBlockEntity manager
+    ) {
+
+        NetworkHooks.openScreen(player, manager, buf -> ManagerContainerMenu.encode(manager, buf));
+    }
+
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+
         builder.add(TRIGGERED);
     }
+
 }

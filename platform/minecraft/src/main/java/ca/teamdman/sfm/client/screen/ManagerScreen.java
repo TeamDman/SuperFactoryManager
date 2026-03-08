@@ -9,7 +9,8 @@ import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.diagnostics.SFMDiagnostics;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.*;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -38,25 +39,222 @@ import java.text.DecimalFormat;
 import java.time.Duration;
 import java.util.List;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
-
 @SuppressWarnings({"FieldCanBeLocal", "unused", "NotNullFieldNotInitialized"})
 public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu> {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_PASTE_FROM_CLIPBOARD_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.manager.tooltip.paste",
+            "Press Ctrl+V to paste."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_EDIT_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.manager.edit_button.tooltip",
+            "Press %s to edit."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_EDIT_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.edit_button",
+            "Edit"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_RESET_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.manager.tooltip.reset",
+            "Wipes ALL disk data."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATUS_FIX = new LocalizationEntry(
+            "gui.sfm.manager.status.fix",
+            "Fixing problems!"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATUS_RESET = new LocalizationEntry(
+            "gui.sfm.manager.status.reset",
+            "Reset program and labels!"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATUS_REBUILD = new LocalizationEntry(
+            "gui.sfm.manager.status.rebuild",
+            "Rebuilding cache!"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_VIEW_EXAMPLES_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.manager.button.view_examples.tooltip",
+            "Press Ctrl+Shift+E to view examples."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_RESET_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.button.reset",
+            "Reset"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_WARNING_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.manager.button.warning.tooltip",
+            "Click to copy code with warnings and errors.\nShift-click to attempt to fix warnings."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_WARNING_BUTTON_TOOLTIP_READ_ONLY = new LocalizationEntry(
+            "gui.sfm.manager.button.warning.tooltip.read_only",
+            "Click to copy code with warnings and errors."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATUS_LOADED_CLIPBOARD = new LocalizationEntry(
+            "gui.sfm.manager.status.loaded_clipboard",
+            "Loaded from clipboard!"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATUS_SAVED_CLIPBOARD = new LocalizationEntry(
+            "gui.sfm.manager.status.saved_clipboard",
+            "Saved to clipboard!"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_SERVER_CONFIG_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.button.server_config",
+            "View server config"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_PASTE_FROM_CLIPBOARD_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.button.paste_clipboard",
+            "Paste from clipboard"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_COPY_TO_CLIPBOARD_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.button.copy_to_clipboard",
+            "Copy to clipboard"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_VIEW_EXAMPLES_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.button.view_examples",
+            "View examples"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_VIEW_LOGS_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.button.view_logs",
+            "View logs"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_DISCORD_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.button.discord",
+            "Discord"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_REBUILD_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.button.rebuild",
+            "Rebuild cable network"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_PEAK_TICK_TIME_MS = new LocalizationEntry(
+            "gui.sfm.manager.peak_tick_time",
+            "Peak tick time: %s ms"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_HOVERED_TICK_TIME_MS = new LocalizationEntry(
+            "gui.sfm.manager.hovered_tick_time",
+            "Hovered tick time: %s ms"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATE = new LocalizationEntry(
+            "gui.sfm.manager.state",
+            "State: %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_RESET_CONFIRM_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.manager.reset_confirm_screen.title",
+            "Reset disk?"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_RESET_CONFIRM_SCREEN_MESSAGE = new LocalizationEntry(
+            "gui.sfm.manager.reset_confirm_screen.message",
+            "Are you sure you want to reset this disk?"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_RESET_CONFIRM_SCREEN_YES_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.reset_confirm_screen.yes_button",
+            "Wipe program and labels"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_RESET_CONFIRM_SCREEN_NO_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.reset_confirm_screen.no_button",
+            "Never mind, make no changes"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_PASTE_CONFIRM_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.manager.paste_confirm_screen.title",
+            "Paste from clipboard?"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_PASTE_CONFIRM_SCREEN_MESSAGE = new LocalizationEntry(
+            "gui.sfm.manager.paste_confirm_screen.message",
+            "Are you sure you want to overwrite this disk?"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_PASTE_CONFIRM_SCREEN_YES_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.paste_confirm_screen.yes_button",
+            "Paste clipboard"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_PASTE_CONFIRM_SCREEN_NO_BUTTON = new LocalizationEntry(
+            "gui.sfm.manager.paste_confirm_screen.no_button",
+            "Never mind, make no changes"
+    );
+
     private static final ResourceLocation BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
             "textures/gui/container/manager.png"
     );
+
     private final float STATUS_DURATION = 40;
+
     private Component status = Component.empty();
+
     private float statusCountdown = 0;
+
     private Button diagButton;
+
     private Button clipboardPasteButton;
+
     private Button clipboardCopyButton;
+
     private Button discordButton;
+
     private Button resetButton;
+
     private Button editButton;
+
     private Button examplesButton;
+
     private Button logsButton;
+
     private Button rebuildButton;
+
     private Button serverConfigButton;
 
     public ManagerScreen(
@@ -64,10 +262,12 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             Inventory inv,
             Component title
     ) {
+
         super(menu, inv, title);
     }
 
     public List<Button> getButtonsForJEIExclusionZones() {
+
         return List.of(
                 clipboardPasteButton,
                 editButton,
@@ -80,11 +280,13 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     public boolean isReadOnly() {
+
         LocalPlayer player = Minecraft.getInstance().player;
         return player == null || player.isSpectator();
     }
 
     public void updateVisibilities() {
+
         boolean diskPresent = menu.getSlot(0).hasItem();
         diagButton.visible = shouldShowDiagButton();
         clipboardCopyButton.visible = diskPresent;
@@ -101,6 +303,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             int pScanCode,
             int pModifiers
     ) {
+
         if (Screen.isPaste(pKeyCode) && clipboardPasteButton.visible) {
             onClipboardPasteButtonClicked();
             return true;
@@ -122,6 +325,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     public ChatFormatting getMillisecondColour(float ms) {
+
         if (ms <= 5) {
             return ChatFormatting.GREEN;
         } else if (ms <= 15) {
@@ -138,6 +342,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             int my,
             float partialTicks
     ) {
+
         this.renderBackground(poseStack);
         super.render(poseStack, mx, my, partialTicks);
         this.renderTooltip(poseStack, mx, my);
@@ -148,8 +353,15 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         statusCountdown -= partialTicks;
     }
 
+    @MCVersionDependentBehaviour
+    public float getBlitOffsetGood() {
+
+        return 0F;
+    }
+
     @Override
     protected void init() {
+
         super.init();
         int buttonWidth = 120;
         int buttonHeight = 16;
@@ -288,6 +500,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onDiagButtonClicked() {
+
         if (Screen.hasShiftDown() && !isReadOnly()) {
             sendAttemptFix();
         } else {
@@ -296,10 +509,12 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private String getProgram() {
+
         return menu.program;
     }
 
     private void onEditButtonClicked() {
+
         SFMScreenChangeHelpers.showProgramEditScreen(new SFMTextEditScreenDiskOpenContext(
                 getProgram(),
                 LabelPositionHolder.from(menu.getDisk()),
@@ -308,6 +523,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onExamplesButtonClicked() {
+
         SFMScreenChangeHelpers.showExampleListScreen(
                 getProgram(),
                 LabelPositionHolder.from(menu.getDisk()),
@@ -316,10 +532,12 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onLogsButtonClicked() {
+
         SFMScreenChangeHelpers.showLogsScreen(menu);
     }
 
     private void performReset() {
+
         SFMPackets.sendToServer(new ServerboundManagerResetPacket(
                 menu.containerId,
                 menu.MANAGER_POSITION
@@ -329,21 +547,23 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onResetButtonClicked() {
+
         if (getProgram().isBlank() && LabelPositionHolder.from(menu.getDisk()).isEmpty()) {
             performReset();
             return;
         }
         SFMScreenChangeHelpers.setOrPushScreen(new SFMConfirmationScreen(
                 this::performReset,
-                LocalizationKeys.MANAGER_RESET_CONFIRM_SCREEN_TITLE.getComponent(),
-                LocalizationKeys.MANAGER_RESET_CONFIRM_SCREEN_MESSAGE.getComponent(),
-                LocalizationKeys.MANAGER_RESET_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
-                LocalizationKeys.MANAGER_RESET_CONFIRM_SCREEN_NO_BUTTON.getComponent(),
+                MANAGER_RESET_CONFIRM_SCREEN_TITLE.getComponent(),
+                MANAGER_RESET_CONFIRM_SCREEN_MESSAGE.getComponent(),
+                MANAGER_RESET_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
+                MANAGER_RESET_CONFIRM_SCREEN_NO_BUTTON.getComponent(),
                 20
         ));
     }
 
     private void onRebuildButtonClicked() {
+
         SFMPackets.sendToServer(new ServerboundManagerRebuildPacket(
                 menu.containerId,
                 menu.MANAGER_POSITION
@@ -353,10 +573,12 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onServerConfigButtonClicked() {
+
         SFMPackets.sendToServer(new ServerboundServerConfigRequestPacket(ConfigCommandBehaviourInput.SHOW));
     }
 
     private void sendAttemptFix() {
+
         SFMPackets.sendToServer(new ServerboundManagerFixPacket(
                 menu.containerId,
                 menu.MANAGER_POSITION
@@ -366,6 +588,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void sendProgram(String program) {
+
         program = SFMPacketDaddy.truncate(program, Program.MAX_PROGRAM_LENGTH);
         SFMPackets.sendToServer(new ServerboundManagerProgramPacket(
                 menu.containerId,
@@ -378,6 +601,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onDiscordButtonClicked() {
+
         String discordUrl = "https://discord.gg/xjXYj9MmS4";
         SFMScreenChangeHelpers.setOrPushScreen(
                 new ConfirmLinkScreen(
@@ -394,6 +618,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onClipboardCopyButtonClicked() {
+
         try {
             Minecraft.getInstance().keyboardHandler.setClipboard(menu.program);
             status = MANAGER_GUI_STATUS_SAVED_CLIPBOARD.getComponent();
@@ -404,6 +629,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private boolean shouldShowDiagButton() {
+
         var disk = menu.getDisk();
         if (!(disk.getItem() instanceof DiskItem)) return false;
         var errors = DiskItem.getErrors(disk);
@@ -412,6 +638,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onSaveDiagnosticsToClipboard() {
+
         try {
             var disk = menu.CONTAINER.getItem(0);
             if (!(disk.getItem() instanceof DiskItem)) return;
@@ -425,6 +652,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     private void onClipboardPasteButtonClicked() {
+
         String clipboardContents;
         try {
             clipboardContents = Minecraft.getInstance().keyboardHandler.getClipboard();
@@ -440,16 +668,17 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         }
         SFMScreenChangeHelpers.setOrPushScreen(new SFMConfirmationScreen(
                 () -> sendProgram(clipboardContents),
-                LocalizationKeys.MANAGER_PASTE_CONFIRM_SCREEN_TITLE.getComponent(),
-                LocalizationKeys.MANAGER_PASTE_CONFIRM_SCREEN_MESSAGE.getComponent(),
-                LocalizationKeys.MANAGER_PASTE_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
-                LocalizationKeys.MANAGER_PASTE_CONFIRM_SCREEN_NO_BUTTON.getComponent(),
+                MANAGER_PASTE_CONFIRM_SCREEN_TITLE.getComponent(),
+                MANAGER_PASTE_CONFIRM_SCREEN_MESSAGE.getComponent(),
+                MANAGER_PASTE_CONFIRM_SCREEN_YES_BUTTON.getComponent(),
+                MANAGER_PASTE_CONFIRM_SCREEN_NO_BUTTON.getComponent(),
                 20
         ));
     }
 
     @MCVersionDependentBehaviour
     private void disableTexture() {
+
 //        RenderSystem.disableTexture(); // 1.19.2
     }
 
@@ -639,13 +868,8 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     @MCVersionDependentBehaviour
-    private void enableTexture(){
+    private void enableTexture() {
 //        RenderSystem.enableTexture(); // 1.19.2
-    }
-
-    @MCVersionDependentBehaviour
-    public float getBlitOffsetGood() {
-        return 0F;
     }
 
     @Override
@@ -654,6 +878,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             int mx,
             int my
     ) {
+
         if (Minecraft.getInstance().screen != this) {
             // this should fix the annoying Ctrl+E popup when editing
             this.renderables
@@ -690,6 +915,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             int mx,
             int my
     ) {
+
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         if (!menu.logLevel.equals(Level.OFF.name())) {
             RenderSystem.setShaderColor(0.2f, 0.8f, 1f, 1f);
@@ -702,4 +928,5 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         //noinspection SuspiciousNameCombination
         blit(matrixStack, i, j, 0, 0, this.imageWidth, this.imageHeight);
     }
+
 }
