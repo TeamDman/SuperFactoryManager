@@ -55,13 +55,10 @@ impl ServerCommand {
     /// This function will return an error if the operation fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            ServerCommand::Add { glob } => add_servers(&glob),
-            ServerCommand::Remove { glob } => remove_servers(&glob),
-            ServerCommand::List { glob } => {
-                let glob = glob.unwrap_or_else(|| "*".to_string());
-                list_servers(&glob)
-            }
-            ServerCommand::Launch { mc } => launch_servers(mc.as_deref()),
+            ServerCommand::Add { glob } => super::server_add_command::invoke(glob),
+            ServerCommand::Remove { glob } => super::server_remove_command::invoke(glob),
+            ServerCommand::List { glob } => super::server_list_command::invoke(glob),
+            ServerCommand::Launch { mc } => super::server_launch_command::invoke(mc),
         }
     }
 }
@@ -75,11 +72,11 @@ pub fn load_server_targets() -> eyre::Result<Vec<ServerTarget>> {
     load_targets(SERVER_TARGETS_FILE)
 }
 
-fn save_server_targets(targets: &[ServerTarget]) -> eyre::Result<()> {
+pub(super) fn save_server_targets(targets: &[ServerTarget]) -> eyre::Result<()> {
     save_targets(SERVER_TARGETS_FILE, targets)
 }
 
-fn add_servers(glob_pattern: &str) -> eyre::Result<()> {
+pub(super) fn add_servers(glob_pattern: &str) -> eyre::Result<()> {
     let matched_dirs = expand_directories(glob_pattern)?;
 
     if matched_dirs.is_empty() {
@@ -119,7 +116,7 @@ fn add_servers(glob_pattern: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-fn remove_servers(glob_pattern: &str) -> eyre::Result<()> {
+pub(super) fn remove_servers(glob_pattern: &str) -> eyre::Result<()> {
     let mut targets = load_server_targets()?;
     let before = targets.len();
 
@@ -133,7 +130,7 @@ fn remove_servers(glob_pattern: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-fn list_servers(glob_pattern: &str) -> eyre::Result<()> {
+pub(super) fn list_servers(glob_pattern: &str) -> eyre::Result<()> {
     let targets = load_server_targets()?;
     let matcher = build_matcher(glob_pattern)?;
 
@@ -154,7 +151,7 @@ fn list_servers(glob_pattern: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-fn launch_servers(mc_filter: Option<&str>) -> eyre::Result<()> {
+pub(super) fn launch_servers(mc_filter: Option<&str>) -> eyre::Result<()> {
     let mut targets = load_server_targets()?;
 
     if targets.is_empty() {
@@ -288,7 +285,7 @@ fn save_targets(file_name: &str, targets: &[ServerTarget]) -> eyre::Result<()> {
     Ok(())
 }
 
-fn expand_directories(glob_pattern: &str) -> eyre::Result<Vec<PathBuf>> {
+pub(super) fn expand_directories(glob_pattern: &str) -> eyre::Result<Vec<PathBuf>> {
     let mut out = Vec::new();
 
     for entry in glob::glob(glob_pattern)
@@ -309,13 +306,13 @@ fn expand_directories(glob_pattern: &str) -> eyre::Result<Vec<PathBuf>> {
     Ok(out)
 }
 
-fn build_matcher(glob_pattern: &str) -> eyre::Result<Pattern> {
+pub(super) fn build_matcher(glob_pattern: &str) -> eyre::Result<Pattern> {
     let normalized = glob_pattern.replace('\\', "/");
     Pattern::new(&normalized)
         .wrap_err_with(|| format!("Invalid glob pattern for remove/list: {glob_pattern}"))
 }
 
-fn determine_mc_version_from_dir_name(dir_path: &Path) -> Option<String> {
+pub(super) fn determine_mc_version_from_dir_name(dir_path: &Path) -> Option<String> {
     let file_name = dir_path.file_name()?.to_str()?;
     let token = extract_version_token(file_name)?;
 
@@ -349,6 +346,6 @@ fn extract_version_token(input: &str) -> Option<String> {
         .find(|token| parse_version(token).is_some())
 }
 
-fn normalize_for_match(path: &Path) -> String {
+pub(super) fn normalize_for_match(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }

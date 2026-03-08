@@ -2,7 +2,8 @@ package ca.teamdman.sfm.client.jei;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.item.FormItem;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.recipe.PrintingPressRecipe;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
@@ -24,11 +25,15 @@ public class PrintingPressJEICategory implements IRecipeCategory<PrintingPressRe
             "printing_press",
             PrintingPressRecipe.class
     );
+
     private final IDrawable background;
+
     private final IDrawable icon;
+
     private final IDrawable slot;
 
     public PrintingPressJEICategory(IJeiHelpers jeiHelpers) {
+
         background = jeiHelpers.getGuiHelper().createBlankDrawable(50, 54);
         icon = jeiHelpers.getGuiHelper().createDrawableItemStack(new ItemStack(SFMBlocks.PRINTING_PRESS.get()));
         slot = jeiHelpers.getGuiHelper().getSlotDrawable();
@@ -36,26 +41,35 @@ public class PrintingPressJEICategory implements IRecipeCategory<PrintingPressRe
 
     @Override
     public RecipeType<PrintingPressRecipe> getRecipeType() {
+
         return RECIPE_TYPE;
     }
 
     @Override
     public Component getTitle() {
-        return LocalizationKeys.PRINTING_PRESS_JEI_CATEGORY_TITLE.getComponent();
+
+        return Localization.PRINTING_PRESS_JEI_CATEGORY_TITLE.getComponent();
     }
 
     @Override
     public IDrawable getBackground() {
+
         return background;
     }
 
     @Override
     public IDrawable getIcon() {
+
         return icon;
     }
 
     @Override
-    public void setRecipe(IRecipeLayoutBuilder builder, PrintingPressRecipe recipe, IFocusGroup focuses) {
+    public void setRecipe(
+            IRecipeLayoutBuilder builder,
+            PrintingPressRecipe recipe,
+            IFocusGroup focuses
+    ) {
+
         builder
                 .addSlot(RecipeIngredientRole.INPUT, 0, 0)
                 .addItemStacks(Arrays.stream(recipe.form().getItems()).map(FormItem::createFormFromReference).toList())
@@ -64,4 +78,18 @@ public class PrintingPressJEICategory implements IRecipeCategory<PrintingPressRe
         builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).addIngredients(recipe.paper()).setBackground(slot, -1, -1);
         builder.addSlot(RecipeIngredientRole.OUTPUT, 25, 18).addIngredients(recipe.form());
     }
+
+
+    /// This indirection is necessary because the static fields in {@link PrintingPressJEICategory} depend on JEI code
+    /// which is not present in the classpath during datagen
+    public static final class Localization {
+
+        @SFMLocalizationDatagen
+        public static final LocalizationEntry PRINTING_PRESS_JEI_CATEGORY_TITLE = new LocalizationEntry(
+                "gui.jei.category.sfm.printing_press",
+                "Printing Press"
+        );
+
+    }
+
 }

@@ -2,19 +2,27 @@ package ca.teamdman.sfm.common.label;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.LabelGunItem;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.SFMEntityUtils;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.LABEL_GUN_CHAT_SKIPPED_BLOCKS;
-
 public class LabelGunPlanner {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_CHAT_SKIPPED_BLOCKS = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".chat.skipped_blocks",
+            () -> "Skipped %d blocks not touching cables"
+    );
+
     public static @Nullable LabelGunPlan getLabelGunPlan(
             Player player,
             ServerboundLabelGunUsePacket msg,
             boolean doWarning
     ) {
+
         var gunStack = player.getItemInHand(msg.hand());
         var level = SFMEntityUtils.getLevel(player);
         if (!(gunStack.getItem() instanceof LabelGunItem)) {
@@ -82,4 +90,5 @@ public class LabelGunPlanner {
             }
         }
     }
+
 }

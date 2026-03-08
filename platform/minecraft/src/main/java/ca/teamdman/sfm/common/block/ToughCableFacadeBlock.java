@@ -3,6 +3,8 @@ package ca.teamdman.sfm.common.block;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
 import ca.teamdman.sfm.common.facade.FacadeData;
 import ca.teamdman.sfm.common.facade.FacadeTransparency;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -19,7 +21,20 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 public class ToughCableFacadeBlock extends CableFacadeBlock implements EntityBlock, IFacadableBlock {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TOUGH_CABLE_FACADE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TOUGH_CABLE_FACADE.get().getDescriptionId(),
+            () -> "Tough Inventory Cable Facade"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FANCY_CABLE_FACADE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.FANCY_CABLE_FACADE.get().getDescriptionId(),
+            () -> "Fancy Inventory Cable Facade"
+    );
+
     public ToughCableFacadeBlock(Properties properties) {
+
         super(properties.lightLevel(LightBlock.LIGHT_EMISSION));
         registerDefaultState(
                 getStateDefinition()
@@ -37,6 +52,7 @@ public class ToughCableFacadeBlock extends CableFacadeBlock implements EntityBlo
             BlockPos blockPos,
             BlockState blockState
     ) {
+
         return SFMBlockEntities.TOUGH_CABLE_FACADE.get().create(blockPos, blockState);
     }
 
@@ -46,16 +62,19 @@ public class ToughCableFacadeBlock extends CableFacadeBlock implements EntityBlo
             BlockPos pPos,
             BlockState pState
     ) {
+
         return new ItemStack(SFMBlocks.TOUGH_CABLE.get());
     }
 
     @Override
     public IFacadableBlock getNonFacadeBlock() {
+
         return SFMBlocks.TOUGH_CABLE.get();
     }
 
     @Override
     public IFacadableBlock getFacadeBlock() {
+
         return SFMBlocks.TOUGH_CABLE_FACADE.get();
     }
 
@@ -68,6 +87,18 @@ public class ToughCableFacadeBlock extends CableFacadeBlock implements EntityBlo
     ) {
 
         return canEntityDestroyFacaded(state, level, blockPos, entity);
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public float getExplosionResistance(
+            BlockState state,
+            BlockGetter world,
+            BlockPos pos,
+            Explosion explosion
+    ) {
+
+        return getFacadedToughCableExplosionResistance(world, pos, super.getExplosionResistance());
     }
 
     static boolean canEntityDestroyFacaded(
@@ -91,18 +122,6 @@ public class ToughCableFacadeBlock extends CableFacadeBlock implements EntityBlo
         // delegate to the mimicked block to check if the destruction should succeed
         BlockState mimickingBlockState = facadeData.facadeBlockState();
         return mimickingBlockState.canEntityDestroy(level, blockPos, entity);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public float getExplosionResistance(
-            BlockState state,
-            BlockGetter world,
-            BlockPos pos,
-            Explosion explosion
-    ) {
-
-        return getFacadedToughCableExplosionResistance(world, pos, super.getExplosionResistance());
     }
 
     @SuppressWarnings("deprecation")

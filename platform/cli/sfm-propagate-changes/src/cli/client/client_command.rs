@@ -66,15 +66,12 @@ impl ClientCommand {
     /// This function will return an error if the operation fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            ClientCommand::Add { glob } => add_clients(&glob),
-            ClientCommand::Remove { glob } => remove_clients(&glob),
-            ClientCommand::List { glob } => {
-                let glob = glob.unwrap_or_else(|| "*".to_string());
-                list_clients(&glob)
-            }
-            ClientCommand::SetLauncher { path } => set_launcher(&path),
-            ClientCommand::GetLauncher => get_launcher(),
-            ClientCommand::Launch => launch_client(),
+            ClientCommand::Add { glob } => super::client_add_command::invoke(glob),
+            ClientCommand::Remove { glob } => super::client_remove_command::invoke(glob),
+            ClientCommand::List { glob } => super::client_list_command::invoke(glob),
+            ClientCommand::SetLauncher { path } => super::client_set_launcher_command::invoke(path),
+            ClientCommand::GetLauncher => super::client_get_launcher_command::invoke(),
+            ClientCommand::Launch => super::client_launch_command::invoke(),
         }
     }
 }
@@ -88,11 +85,11 @@ pub fn load_client_targets() -> eyre::Result<Vec<ClientTarget>> {
     load_targets(CLIENT_TARGETS_FILE)
 }
 
-fn save_client_targets(targets: &[ClientTarget]) -> eyre::Result<()> {
+pub(super) fn save_client_targets(targets: &[ClientTarget]) -> eyre::Result<()> {
     save_targets(CLIENT_TARGETS_FILE, targets)
 }
 
-fn add_clients(glob_pattern: &str) -> eyre::Result<()> {
+pub(super) fn add_clients(glob_pattern: &str) -> eyre::Result<()> {
     let matched_dirs = expand_directories(glob_pattern)?;
 
     if matched_dirs.is_empty() {
@@ -132,7 +129,7 @@ fn add_clients(glob_pattern: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-fn remove_clients(glob_pattern: &str) -> eyre::Result<()> {
+pub(super) fn remove_clients(glob_pattern: &str) -> eyre::Result<()> {
     let mut targets = load_client_targets()?;
     let before = targets.len();
 
@@ -146,7 +143,7 @@ fn remove_clients(glob_pattern: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-fn list_clients(glob_pattern: &str) -> eyre::Result<()> {
+pub(super) fn list_clients(glob_pattern: &str) -> eyre::Result<()> {
     let targets = load_client_targets()?;
     let matcher = build_matcher(glob_pattern)?;
 
@@ -167,7 +164,7 @@ fn list_clients(glob_pattern: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-fn set_launcher(path: &PathBuf) -> eyre::Result<()> {
+pub(super) fn set_launcher(path: &PathBuf) -> eyre::Result<()> {
     let canonical = dunce::canonicalize(path)
         .wrap_err_with(|| format!("Failed to canonicalize launcher path: {}", path.display()))?;
 
@@ -185,7 +182,7 @@ fn set_launcher(path: &PathBuf) -> eyre::Result<()> {
     Ok(())
 }
 
-fn launch_client() -> eyre::Result<()> {
+pub(super) fn launch_client() -> eyre::Result<()> {
     let launcher = get_launcher_path()?;
 
     let mut command = Command::new(&launcher);
@@ -201,13 +198,13 @@ fn launch_client() -> eyre::Result<()> {
     Ok(())
 }
 
-fn get_launcher() -> eyre::Result<()> {
+pub(super) fn get_launcher() -> eyre::Result<()> {
     let launcher = get_launcher_path()?;
     println!("{}", launcher.display());
     Ok(())
 }
 
-fn get_launcher_path() -> eyre::Result<PathBuf> {
+pub(super) fn get_launcher_path() -> eyre::Result<PathBuf> {
     let launcher_file = APP_HOME.file_path(CLIENT_LAUNCHER_FILE);
     if !launcher_file.exists() {
         eyre::bail!(
@@ -278,7 +275,7 @@ fn save_targets(file_name: &str, targets: &[ClientTarget]) -> eyre::Result<()> {
     Ok(())
 }
 
-fn expand_directories(glob_pattern: &str) -> eyre::Result<Vec<PathBuf>> {
+pub(super) fn expand_directories(glob_pattern: &str) -> eyre::Result<Vec<PathBuf>> {
     let mut out = Vec::new();
 
     for entry in glob::glob(glob_pattern)
@@ -299,13 +296,13 @@ fn expand_directories(glob_pattern: &str) -> eyre::Result<Vec<PathBuf>> {
     Ok(out)
 }
 
-fn build_matcher(glob_pattern: &str) -> eyre::Result<Pattern> {
+pub(super) fn build_matcher(glob_pattern: &str) -> eyre::Result<Pattern> {
     let normalized = glob_pattern.replace('\\', "/");
     Pattern::new(&normalized)
         .wrap_err_with(|| format!("Invalid glob pattern for remove/list: {glob_pattern}"))
 }
 
-fn determine_mc_version_from_dir_name(dir_path: &Path) -> Option<String> {
+pub(super) fn determine_mc_version_from_dir_name(dir_path: &Path) -> Option<String> {
     let file_name = dir_path.file_name()?.to_str()?;
     let token = extract_version_token(file_name)?;
 
@@ -339,6 +336,6 @@ fn extract_version_token(input: &str) -> Option<String> {
         .find(|token| parse_version(token).is_some())
 }
 
-fn normalize_for_match(path: &Path) -> String {
+pub(super) fn normalize_for_match(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }

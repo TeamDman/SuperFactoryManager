@@ -3,7 +3,8 @@ package ca.teamdman.sfm.common.facade;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.block.IFacadableBlock;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfm.common.util.ConfirmationParams;
 import net.minecraft.world.level.Level;
@@ -17,10 +18,24 @@ import static ca.teamdman.sfm.common.facade.FacadeTransparency.FACADE_TRANSPAREN
 
 public record ChangeWorldBlockFacadePlan(
         IFacadableBlock worldBlock,
+
         BlockPosSet positions
 ) implements IFacadePlan {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FACADE_CONFIRM_CHANGE_WORLD_BLOCK_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.facade_confirm_change_world_block.title",
+            "Are you sure you want to change the facade world block?"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FACADE_CONFIRM_CHANGE_WORLD_BLOCK_SCREEN_MESSAGE = new LocalizationEntry(
+            "gui.sfm.facade_confirm_change_world_block.message",
+            "%d blocks will change shape, their facades will be persisted."
+    );
+
     @Override
     public void apply(Level level) {
+
         this.positions().blockPosIterator().forEach(pos -> {
             if (level.getBlockEntity(pos) instanceof IFacadeBlockEntity oldFacadeBlockEntity) {
                 // this position already has a facade
@@ -71,15 +86,17 @@ public record ChangeWorldBlockFacadePlan(
     public @Nullable ConfirmationParams computeWarning(
             Level level
     ) {
+
         FacadePlanAnalysisResult analysisResult = FacadePlanAnalysisResult.analyze(level, positions);
         if (analysisResult.shouldWarn()) {
             return ConfirmationParams.of(
-                    LocalizationKeys.FACADE_CONFIRM_CHANGE_WORLD_BLOCK_SCREEN_TITLE.getComponent(),
-                    LocalizationKeys.FACADE_CONFIRM_CHANGE_WORLD_BLOCK_SCREEN_MESSAGE.getComponent(
+                    FACADE_CONFIRM_CHANGE_WORLD_BLOCK_SCREEN_TITLE.getComponent(),
+                    FACADE_CONFIRM_CHANGE_WORLD_BLOCK_SCREEN_MESSAGE.getComponent(
                             analysisResult.countAffected()
                     )
             );
         }
         return null;
     }
+
 }

@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.gametest.tests.migrated;
 
 import ca.teamdman.sfm.common.item.DiskItem;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.gametest.SFMGameTest;
@@ -28,11 +27,13 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
 
     @Override
     public String template() {
+
         return "1x2x1";
     }
 
     @Override
     public void run(SFMGameTestHelper helper) {
+
         BlockPos chestPos = new BlockPos(0, 2, 0);
         helper.setBlock(chestPos, SFMBlocks.TEST_BARREL.get());
         var chest = helper.getItemHandler(chestPos);
@@ -65,10 +66,11 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
             assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 2");
             assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 2");
             assertTrue(
-                    disk.getHoverName().contains(LocalizationKeys.DISK_ITEM.getComponent()),
+                    disk.getHoverName().contains(DiskItem.DISK_ITEM.getComponent()),
                     "display name should be default for disk 2"
             );
         }
         helper.succeed();
     }
+
 }

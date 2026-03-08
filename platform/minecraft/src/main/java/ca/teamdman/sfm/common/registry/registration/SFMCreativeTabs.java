@@ -2,7 +2,8 @@ package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.registries.Registries;
@@ -15,6 +16,13 @@ import java.util.function.Supplier;
 
 @MCVersionDependentBehaviour
 public class SFMCreativeTabs {
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CREATIVE_TAB_NAME = new LocalizationEntry(
+            "item_group.sfm",
+            "Super Factory Manager"
+    );
+
     private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(
             Registries.CREATIVE_MODE_TAB,
             SFM.MOD_ID
@@ -25,13 +33,14 @@ public class SFMCreativeTabs {
             "main",
             () -> CreativeModeTab
                     .builder()
-                    .title(LocalizationKeys.CREATIVE_TAB.getComponent())
+                    .title(CREATIVE_TAB_NAME.getComponent())
                     .icon(() -> new ItemStack(SFMBlocks.MANAGER.get()))
                     .displayItems(SFMCreativeTabs::populateMainCreativeTab)
                     .build()
     );
 
     public static void register(IEventBus bus) {
+
         CREATIVE_TABS.register(bus);
     }
 
@@ -41,6 +50,7 @@ public class SFMCreativeTabs {
             CreativeModeTab.ItemDisplayParameters params,
             CreativeModeTab.Output output
     ) {
+
         output.acceptAll(
                 SFMItems.REGISTERER
                         .getOurEntries()
@@ -50,4 +60,5 @@ public class SFMCreativeTabs {
                         .toList()
         );
     }
+
 }

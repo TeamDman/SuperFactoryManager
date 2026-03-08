@@ -4,7 +4,7 @@ import ca.teamdman.sfm.SFM;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.moddiscovery.ModAnnotation;
 import net.neoforged.neoforgespi.language.ModFileScanData;
-import org.jetbrains.annotations.UnknownNullability;
+import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Type;
 
 import java.lang.annotation.Annotation;
@@ -21,21 +21,6 @@ public class SFMAnnotationUtils {
                 .flatMap(Collection::stream)
                 .filter(annotationData -> annotationType.equals(annotationData.annotationType()))
                 .map(SFMAnnotationData::new);
-    }
-
-    public static Class<?> tryLoadAnnotatedClass(
-            SFMAnnotationData annotation
-    ) {
-        // load the class
-        try {
-            return Class.forName(
-                    annotation.clazz().getClassName(),
-                    true,
-                    SFM.class.getClassLoader()
-            );
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public static <T> T tryConstruct(
@@ -63,12 +48,15 @@ public class SFMAnnotationUtils {
 
     @MCVersionDependentBehaviour
     public static String getEnumValue(ModAnnotation.EnumHolder holder) {
+
         return holder.getValue();
     }
 
+    @SuppressWarnings("unused")
     public record SFMAnnotationData(
             ModFileScanData.AnnotationData inner
     ) {
+
         public Type annotationType() {
 
             return inner.annotationType();
@@ -99,6 +87,7 @@ public class SFMAnnotationUtils {
                 String key,
                 Class<T> clazz
         ) {
+
             var existing = (List<ModAnnotation.EnumHolder>) annotationData().getOrDefault(
                     key,
                     new ArrayList<>()
@@ -111,9 +100,26 @@ public class SFMAnnotationUtils {
             return rtn;
         }
 
-        public <T extends Enum<T>> @UnknownNullability T getEnum(String key, Class<T> clazz) {
+        public <T extends Enum<T>> @Nullable T getEnum(
+                String key,
+                Class<T> clazz
+        ) {
+
             var existing = (ModAnnotation.EnumHolder) annotationData().get(key);
             return existing == null ? null : Enum.valueOf(clazz, getEnumValue(existing));
+        }
+
+        public Class<?> tryLoadClass() {
+            // load the class
+            try {
+                return Class.forName(
+                        clazz().getClassName(),
+                        true,
+                        SFM.class.getClassLoader()
+                );
+            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                throw new RuntimeException("Failed to load class " + clazz().getClassName(), e);
+            }
         }
 
     }

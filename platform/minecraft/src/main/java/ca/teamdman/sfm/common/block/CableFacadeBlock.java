@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.facade.FacadeTransparency;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.core.BlockPos;
@@ -19,7 +21,14 @@ import org.jetbrains.annotations.Nullable;
 
 
 public class CableFacadeBlock extends CableBlock implements EntityBlock, IFacadableBlock {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CABLE_FACADE_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.CABLE_FACADE.get().getDescriptionId(),
+            () -> "Inventory Cable Facade"
+    );
+
     public CableFacadeBlock(Properties properties) {
+
         super(properties.lightLevel(LightBlock.LIGHT_EMISSION));
         registerDefaultState(
                 getStateDefinition()
@@ -37,6 +46,7 @@ public class CableFacadeBlock extends CableBlock implements EntityBlock, IFacada
             BlockPos blockPos,
             BlockState blockState
     ) {
+
         return SFMBlockEntities.CABLE_FACADE.get().create(blockPos, blockState);
     }
 
@@ -60,6 +70,7 @@ public class CableFacadeBlock extends CableBlock implements EntityBlock, IFacada
             BlockPos pPos,
             BlockState pState
     ) {
+
         return new ItemStack(SFMBlocks.CABLE.get());
     }
 
@@ -69,11 +80,14 @@ public class CableFacadeBlock extends CableBlock implements EntityBlock, IFacada
             BlockGetter pLevel,
             BlockPos pPos
     ) {
+
         return pState.getValue(FacadeTransparency.FACADE_TRANSPARENCY_PROPERTY) == FacadeTransparency.TRANSLUCENT;
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+
         createFacadeBlockStateDefinition(builder);
     }
+
 }
