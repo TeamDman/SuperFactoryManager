@@ -2,7 +2,8 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
@@ -10,6 +11,12 @@ public record ServerboundManagerClearLogsPacket(
         int windowId,
         BlockPos pos
 ) implements SFMPacket {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOGS_GUI_CLEAR_LOGS_BUTTON_PACKET_RECEIVED = new LocalizationEntry(
+            "gui.sfm.logs.button.clear_logs.packet_received",
+            "Cleared logs"
+    );
+
     public static class Daddy implements SFMPacketDaddy<ServerboundManagerClearLogsPacket> {
         @Override
         public PacketDirection getPacketDirection() {
@@ -44,7 +51,7 @@ public record ServerboundManagerClearLogsPacket(
                     msg.windowId,
                     (menu, manager) -> {
                         manager.logger.clear();
-                        manager.logger.info(x -> x.accept(LocalizationKeys.LOGS_GUI_CLEAR_LOGS_BUTTON_PACKET_RECEIVED.get()));
+                        manager.logger.info(x -> x.accept(LOGS_GUI_CLEAR_LOGS_BUTTON_PACKET_RECEIVED.get()));
                     }
             );
         }

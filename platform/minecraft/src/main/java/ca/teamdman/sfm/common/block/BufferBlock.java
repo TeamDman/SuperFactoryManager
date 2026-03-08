@@ -2,7 +2,10 @@ package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntity;
 import ca.teamdman.sfm.common.compat.SFMModCompat;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import com.mojang.serialization.MapCodec;
@@ -30,9 +33,19 @@ public class BufferBlock extends BaseEntityBlock {
             ContainedResource.class
     );
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry BUFFER_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.BUFFER_BLOCK.get().getDescriptionId(),
+            () -> "Resource Buffer"
+    );
+
     public final BufferBlockTier tier;
 
-    public BufferBlock(Properties pProperties, BufferBlockTier tier) {
+    public BufferBlock(
+            Properties pProperties,
+            BufferBlockTier tier
+    ) {
+
         super(pProperties);
         registerDefaultState(getStateDefinition().any().setValue(CONTAINED_RESOURCE, ContainedResource.Item));
         this.tier = tier;
@@ -43,6 +56,7 @@ public class BufferBlock extends BaseEntityBlock {
             BlockPos pPos,
             BlockState pState
     ) {
+
         return SFMBlockEntities.BUFFER.get().create(pPos, pState);
     }
 
@@ -54,11 +68,13 @@ public class BufferBlock extends BaseEntityBlock {
     @SuppressWarnings("deprecation")
     @Override
     public RenderShape getRenderShape(BlockState pState) {
+
         return RenderShape.MODEL;
     }
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext pContext) {
+
         return defaultBlockState().setValue(CONTAINED_RESOURCE, ContainedResource.Unknown);
     }
 
@@ -68,6 +84,7 @@ public class BufferBlock extends BaseEntityBlock {
             BlockState pState,
             BlockEntityType<T> pBlockEntityType
     ) {
+
         if (pLevel.isClientSide()) return null;
         return createTickerHelper(
                 pBlockEntityType,
@@ -78,6 +95,7 @@ public class BufferBlock extends BaseEntityBlock {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> pBuilder) {
+
         pBuilder.add(CONTAINED_RESOURCE);
     }
 
@@ -91,6 +109,7 @@ public class BufferBlock extends BaseEntityBlock {
 
         @Override
         public String getSerializedName() {
+
             return switch (this) {
                 case Item -> "item";
                 case Fluid -> "fluid";
@@ -102,6 +121,7 @@ public class BufferBlock extends BaseEntityBlock {
         }
 
         public static ContainedResource from(ResourceType<?, ?, ?> resourceType) {
+
             String name = Objects.requireNonNull(SFMResourceTypes.registry().getId(resourceType)).getPath();
             if (name.equals("item")) {
                 return Item;
@@ -121,4 +141,5 @@ public class BufferBlock extends BaseEntityBlock {
             return Unknown;
         }
     }
+
 }

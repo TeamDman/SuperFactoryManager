@@ -1,5 +1,7 @@
 package ca.teamdman.sfml.ast;
 
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.ExecuteProgramBehaviour;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
@@ -10,13 +12,18 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.LOG_PROGRAM_TICK_FORGET_STATEMENT;
-
 public record ForgetStatement(
         Set<Label> labelToForget
 ) implements Statement {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_FORGET_STATEMENT = new LocalizationEntry(
+            "log.sfm.statement.tick.forget",
+            "FORGET %s"
+    );
+
     @Override
     public void tick(ProgramContext context) {
+
         List<InputStatement> newInputs = new ArrayList<>();
         for (InputStatement oldInputStatement : context.getInputs()) {
             var newLabels = oldInputStatement.labelAccess().labels().stream()
@@ -62,6 +69,8 @@ public record ForgetStatement(
 
     @Override
     public String toString() {
+
         return "FORGET " + labelToForget.stream().map(Objects::toString).collect(Collectors.joining(", "));
     }
+
 }

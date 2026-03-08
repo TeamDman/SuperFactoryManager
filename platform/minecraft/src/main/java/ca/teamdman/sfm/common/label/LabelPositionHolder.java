@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.common.label;
 
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.BlockPosIterator;
 import ca.teamdman.sfm.common.util.BlockPosSet;
 import com.mojang.serialization.Codec;
@@ -22,10 +24,24 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("UnusedReturnValue")
 public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry DISK_ITEM_TOOLTIP_LABEL_HEADER = new LocalizationEntry(
+            () -> SFMItems.DISK.get().getDescriptionId() + ".tooltip.label_section.header",
+            () -> "Labels"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry DISK_ITEM_TOOLTIP_LABEL = new LocalizationEntry(
+            () -> SFMItems.DISK.get().getDescriptionId() + ".tooltip.label_section.entry",
+            () -> " - %s: %d blocks"
+    );
+
+
     public static final StreamCodec<FriendlyByteBuf, LabelPositionHolder> STREAM_CODEC = StreamCodec.ofMember(
             LabelPositionHolder::encode,
             LabelPositionHolder::decode
     );
+
     public static final MapCodec<LabelPositionHolder> CODEC =
             RecordCodecBuilder.mapCodec(
                     builder -> builder.group(
@@ -42,11 +58,13 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
                                 }
                                 return rtn;
                             })
-                    ).apply(builder, data -> {
-                        Map<String, BlockPosSet> map = new HashMap<>();
-                        data.forEach((key, value) -> map.put(key, new BlockPosSet(value)));
-                        return new LabelPositionHolder(map);
-                    })
+                    ).apply(
+                            builder, data -> {
+                                Map<String, BlockPosSet> map = new HashMap<>();
+                                data.forEach((key, value) -> map.put(key, new BlockPosSet(value)));
+                                return new LabelPositionHolder(map);
+                            }
+                    )
             );
 
     private final static WeakHashMap<ItemStack, LabelPositionHolder> CACHE = new WeakHashMap<>();
@@ -66,6 +84,7 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
             LabelPositionHolder labelPositionHolder,
             FriendlyByteBuf friendlyByteBuf
     ) {
+
         friendlyByteBuf.writeVarInt(labelPositionHolder.labels().size());
         for (Map.Entry<String, BlockPosSet> entry : labelPositionHolder.labels().entrySet()) {
             String label = entry.getKey();
@@ -77,6 +96,7 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
     }
 
     public static LabelPositionHolder decode(FriendlyByteBuf friendlyByteBuf) {
+
         LabelPositionHolder rtn = LabelPositionHolder.empty();
         int size = friendlyByteBuf.readVarInt();
         for (int i = 0; i < size; i++) {
@@ -119,6 +139,7 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
     }
 
     public LabelPositionHolder save(ItemStack stack) {
+
         LabelPositionHolder copy = new LabelPositionHolder(this);
         stack.set(SFMDataComponents.LABEL_POSITION_HOLDER, copy);
         CACHE.put(stack, copy);
@@ -185,11 +206,11 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
 
         var rtn = new ArrayList<Component>();
         if (labels().isEmpty()) return rtn;
-        rtn.add(LocalizationKeys.DISK_ITEM_TOOLTIP_LABEL_HEADER
+        rtn.add(DISK_ITEM_TOOLTIP_LABEL_HEADER
                         .getComponent()
                         .withStyle(ChatFormatting.UNDERLINE));
         for (var entry : labels().entrySet()) {
-            rtn.add(LocalizationKeys.DISK_ITEM_TOOLTIP_LABEL.getComponent(
+            rtn.add(DISK_ITEM_TOOLTIP_LABEL.getComponent(
                     entry.getKey(),
                     entry.getValue().size()
             ).withStyle(ChatFormatting.GRAY));
@@ -213,6 +234,7 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
         return "-- LabelPositionHolder - " + total + " total labels\n" + rtn;
     }
 
+    @SuppressWarnings("unused")
     public LabelPositionHolder removeAll(BlockPos blockPos) {
 
         labels().values().forEach(list -> list.remove(blockPos));

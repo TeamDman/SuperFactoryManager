@@ -5,7 +5,8 @@ import ca.teamdman.sfm.client.export.ClientExportHelper;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.block_network.WaterNetworkManager;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ClientboundShowChangelogPacket;
 import ca.teamdman.sfm.common.program.RegexCache;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
@@ -23,12 +24,7 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.blocks.BlockInput;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
 import net.minecraft.core.BlockPos;
-import net.minecraft.gametest.framework.GameTestRegistry;
-import net.minecraft.gametest.framework.GameTestInfo;
-import net.minecraft.gametest.framework.GameTestRunner;
-import net.minecraft.gametest.framework.RetryOptions;
-import net.minecraft.gametest.framework.StructureGridSpawner;
-import net.minecraft.gametest.framework.TestFunction;
+import net.minecraft.gametest.framework.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -48,13 +44,21 @@ import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
 
 @SuppressWarnings({"LoggingSimilarMessage", "DuplicatedCode"})
 public class SFMCommand {
-    @MCVersionDependentBehaviour
-    private static void sendSuccess(CommandSourceStack commandSourceStack, Supplier<Component> componentSupplier) {
-        commandSourceStack.sendSuccess(componentSupplier, true);
-    }
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry COMMAND_BUST_WATER_NETWORK_CACHE_SUCCESS = new LocalizationEntry(
+            "sfm.command.bust_water_network_cache.success",
+            "Successfully busted water network cache."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry COMMAND_BUST_CABLE_NETWORK_CACHE_SUCCESS = new LocalizationEntry(
+            "sfm.command.bust_cable_network_cache.success",
+            "Successfully busted cable network cache."
+    );
 
     @SFMSubscribeEvent
     public static void onRegisterCommand(final RegisterCommandsEvent event) {
+
         var command = Commands.literal("sfm");
         command.then(Commands.literal("bust_cable_network_cache")
                              .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
@@ -65,7 +69,7 @@ public class SFMCommand {
                                          source.getTextName()
                                  );
                                  CableNetworkManager.clear();
-                                 sendSuccess(source, LocalizationKeys.COMMAND_BUST_CABLE_NETWORK_CACHE_SUCCESS::getComponent);
+                                 sendSuccess(source, COMMAND_BUST_CABLE_NETWORK_CACHE_SUCCESS::getComponent);
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("bust_water_network_cache")
@@ -77,7 +81,7 @@ public class SFMCommand {
                                          source.getTextName()
                                  );
                                  WaterNetworkManager.clear();
-                                 sendSuccess(source, LocalizationKeys.COMMAND_BUST_WATER_NETWORK_CACHE_SUCCESS::getComponent);
+                                 sendSuccess(source, COMMAND_BUST_WATER_NETWORK_CACHE_SUCCESS::getComponent);
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("show_bad_cable_cache_entries")
@@ -171,7 +175,10 @@ public class SFMCommand {
                                                .then(Commands.argument("pattern", StringArgumentType.greedyString())
                                                              .executes(ctx -> {
                                                                  var source = ctx.getSource();
-                                                                 var wildcardPattern = StringArgumentType.getString(ctx, "pattern");
+                                                                 var wildcardPattern = StringArgumentType.getString(
+                                                                         ctx,
+                                                                         "pattern"
+                                                                 );
                                                                  return runTestsByWildcard(source, wildcardPattern);
                                                              }))));
         }
@@ -222,35 +229,52 @@ public class SFMCommand {
         event.getDispatcher().register(command);
     }
 
-        private static int giveKitToPlayers(CommandSourceStack source, Collection<ServerPlayer> targets) {
-                List<ItemStack> kitItems = List.of(
-                                new ItemStack(SFMItems.LABEL_GUN.get()),
-                                new ItemStack(SFMItems.MANAGER.get()),
-                                new ItemStack(SFMItems.DISK.get()),
-                                new ItemStack(SFMItems.NETWORK_TOOL.get()),
-                                new ItemStack(SFMItems.CABLE.get()),
-                                new ItemStack(Items.CHEST)
-                );
+    @MCVersionDependentBehaviour
+    private static void sendSuccess(
+            CommandSourceStack commandSourceStack,
+            Supplier<Component> componentSupplier
+    ) {
 
-                CommandSourceStack giveSource = source.withPermission(Commands.LEVEL_GAMEMASTERS);
-                for (ServerPlayer target : targets) {
-                        for (ItemStack kitItem : kitItems) {
-                                var itemId = SFMWellKnownRegistries.ITEMS.getId(kitItem.getItem());
-                                if (itemId == null) {
-                                        SFM.LOGGER.warn("Skipping kit item without registry id: {}", kitItem);
-                                        continue;
-                                }
+        commandSourceStack.sendSuccess(componentSupplier, true);
+    }
 
-                                String command = "give " + target.getScoreboardName() + " " + itemId + " " + kitItem.getCount();
-                                source.getServer().getCommands().performPrefixedCommand(giveSource, command);
-                        }
+    private static int giveKitToPlayers(
+            CommandSourceStack source,
+            Collection<ServerPlayer> targets
+    ) {
+
+        List<ItemStack> kitItems = List.of(
+                new ItemStack(SFMItems.LABEL_GUN.get()),
+                new ItemStack(SFMItems.MANAGER.get()),
+                new ItemStack(SFMItems.DISK.get()),
+                new ItemStack(SFMItems.NETWORK_TOOL.get()),
+                new ItemStack(SFMItems.CABLE.get()),
+                new ItemStack(Items.CHEST)
+        );
+
+        CommandSourceStack giveSource = source.withPermission(Commands.LEVEL_GAMEMASTERS);
+        for (ServerPlayer target : targets) {
+            for (ItemStack kitItem : kitItems) {
+                var itemId = SFMWellKnownRegistries.ITEMS.getId(kitItem.getItem());
+                if (itemId == null) {
+                    SFM.LOGGER.warn("Skipping kit item without registry id: {}", kitItem);
+                    continue;
                 }
 
-                sendSuccess(source, () -> Component.literal("Gave SFM kit to " + targets.size() + " player(s)."));
-                return targets.size();
+                String command = "give " + target.getScoreboardName() + " " + itemId + " " + kitItem.getCount();
+                source.getServer().getCommands().performPrefixedCommand(giveSource, command);
+            }
         }
 
-    private static int runTestsByWildcard(CommandSourceStack source, String wildcardPattern) {
+        sendSuccess(source, () -> Component.literal("Gave SFM kit to " + targets.size() + " player(s)."));
+        return targets.size();
+    }
+
+    private static int runTestsByWildcard(
+            CommandSourceStack source,
+            String wildcardPattern
+    ) {
+
         var matcher = RegexCache.buildPredicate(wildcardToRegex(wildcardPattern));
         List<TestFunction> matchingTests = GameTestRegistry
                 .getAllTestFunctions()
@@ -279,7 +303,12 @@ public class SFMCommand {
     }
 
     @MCVersionDependentBehaviour
-    private static void runTests(List<TestFunction> matchingTests, BlockPos startPos, ServerLevel level) {
+    private static void runTests(
+            List<TestFunction> matchingTests,
+            BlockPos startPos,
+            ServerLevel level
+    ) {
+
         var gameTestInfos = matchingTests
                 .stream()
                 .map(testFunction -> new GameTestInfo(testFunction, Rotation.NONE, level, RetryOptions.noRetries()))
@@ -292,7 +321,8 @@ public class SFMCommand {
     }
 
     private static String wildcardToRegex(String wildcardPattern) {
-                return wildcardPattern.replace("*", ".*");
+
+        return wildcardPattern.replace("*", ".*");
     }
 
 }

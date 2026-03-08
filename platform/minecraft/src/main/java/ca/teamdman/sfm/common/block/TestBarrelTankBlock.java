@@ -2,8 +2,11 @@ package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.blockentity.TestBarrelTankBlockEntity;
 import ca.teamdman.sfm.common.containermenu.TestBarrelTankContainerMenu;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import com.mojang.serialization.MapCodec;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
@@ -19,7 +22,14 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.Nullable;
 
 public class TestBarrelTankBlock extends BaseEntityBlock {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TEST_BARREL_TANK_BLOCK = new LocalizationEntry(
+            () -> SFMBlocks.TEST_BARREL_TANK.get().getDescriptionId(),
+            () -> "Test Barrel Tank"
+    );
+
     public TestBarrelTankBlock() {
+
         super(Properties.of().sound(SoundType.WOOD).strength(2.5F).sound(SoundType.WOOD));
     }
 
@@ -31,6 +41,7 @@ public class TestBarrelTankBlock extends BaseEntityBlock {
     @Override
     @SuppressWarnings("deprecation")
     public RenderShape getRenderShape(BlockState state) {
+
         return RenderShape.MODEL;
     }
 
@@ -39,6 +50,7 @@ public class TestBarrelTankBlock extends BaseEntityBlock {
             BlockPos pPos,
             BlockState pState
     ) {
+
         return SFMBlockEntities.TEST_BARREL_TANK.get().create(pPos, pState);
     }
 
@@ -50,6 +62,7 @@ public class TestBarrelTankBlock extends BaseEntityBlock {
             Player pPlayer,
             BlockHitResult pHitResult
     ) {
+
         if (pLevel.getBlockEntity(pPos) instanceof TestBarrelTankBlockEntity blockEntity) {
             pPlayer.openMenu(new SimpleMenuProvider(
                     (containerId, playerInventory, player) ->
@@ -64,4 +77,5 @@ public class TestBarrelTankBlock extends BaseEntityBlock {
         }
         return InteractionResult.SUCCESS;
     }
+
 }

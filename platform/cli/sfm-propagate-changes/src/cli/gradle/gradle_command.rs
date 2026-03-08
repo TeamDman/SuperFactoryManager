@@ -1,4 +1,4 @@
-use crate::cli::status::assert_worktrees_clean_or_autocommit_generated;
+use crate::cli::git::status::assert_worktrees_clean_or_autocommit_generated;
 use crate::mc_version_filter::McVersionFilter;
 use crate::paths::CACHE_DIR;
 use crate::worktree::get_sorted_worktrees;
@@ -1399,8 +1399,8 @@ impl GradleCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::Run { command } => command.invoke(),
-            Self::Log { command } => command.invoke(),
+            Self::Run { command } => super::gradle_run_command::invoke(command),
+            Self::Log { command } => super::gradle_log_command::invoke(command),
         }
     }
 }
@@ -1659,9 +1659,8 @@ impl GradleRunCommand {
                                     let tests = names
                                         .into_iter()
                                         .map(|name| {
-                                            let reason = reasons
-                                                .iter()
-                                                .find_map(|(test_name, reason)| {
+                                            let reason =
+                                                reasons.iter().find_map(|(test_name, reason)| {
                                                     (test_name == &name).then_some(reason.clone())
                                                 });
                                             (name, reason)
@@ -1809,37 +1808,41 @@ impl GradleLogsCommand {
     /// This function will return an error if the operation fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::List { latest } => {
-                if !latest {
-                    bail!("Only `--latest` is currently supported for `gradle log list`.");
-                }
-
-                let run_dir = latest_gradle_run_dir()?;
-                println!("Listing latest gradle logs from {}", run_dir.display());
-                print_log_list(&run_dir)
-            }
-            Self::Tldr { latest, path } => {
-                let run_dir = match (latest, path) {
-                    (true, Some(_)) => {
-                        bail!("Provide either `--latest` or `<path>`, not both.");
-                    }
-                    (true, None) => latest_gradle_run_dir()?,
-                    (false, Some(path)) => path,
-                    (false, None) => {
-                        bail!("Provide `--latest` or a run directory path.");
-                    }
-                };
-
-                if !run_dir.exists() {
-                    bail!("Run directory not found: {}", run_dir.display());
-                }
-                if !run_dir.is_dir() {
-                    bail!("Run path is not a directory: {}", run_dir.display());
-                }
-
-                println!("Summarizing gradle logs from {}", run_dir.display());
-                print_tldr_for_run(&run_dir)
-            }
+            Self::List { latest } => super::gradle_log_list_command::invoke(latest),
+            Self::Tldr { latest, path } => super::gradle_log_tldr_command::invoke(latest, path),
         }
     }
+}
+
+pub(super) fn invoke_gradle_logs_list(latest: bool) -> eyre::Result<()> {
+    if !latest {
+        bail!("Only `--latest` is currently supported for `gradle log list`.");
+    }
+
+    let run_dir = latest_gradle_run_dir()?;
+    println!("Listing latest gradle logs from {}", run_dir.display());
+    print_log_list(&run_dir)
+}
+
+pub(super) fn invoke_gradle_logs_tldr(latest: bool, path: Option<PathBuf>) -> eyre::Result<()> {
+    let run_dir = match (latest, path) {
+        (true, Some(_)) => {
+            bail!("Provide either `--latest` or `<path>`, not both.");
+        }
+        (true, None) => latest_gradle_run_dir()?,
+        (false, Some(path)) => path,
+        (false, None) => {
+            bail!("Provide `--latest` or a run directory path.");
+        }
+    };
+
+    if !run_dir.exists() {
+        bail!("Run directory not found: {}", run_dir.display());
+    }
+    if !run_dir.is_dir() {
+        bail!("Run path is not a directory: {}", run_dir.display());
+    }
+
+    println!("Summarizing gradle logs from {}", run_dir.display());
+    print_tldr_for_run(&run_dir)
 }

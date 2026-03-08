@@ -2,6 +2,9 @@ package ca.teamdman.sfm.common.item;
 
 import ca.teamdman.sfm.common.component.ItemStackBox;
 import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
+import ca.teamdman.sfm.common.registry.registration.SFMCreativeTabs;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.network.chat.Component;
@@ -12,11 +15,19 @@ import net.minecraft.world.item.TooltipFlag;
 import java.util.List;
 
 public class FormItem extends Item {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FORM_ITEM = new LocalizationEntry(
+            () -> SFMItems.FORM.get().getDescriptionId(),
+            () -> "Printing Form"
+    );
+
     public FormItem() {
+
         super(new Item.Properties());
     }
 
     public static ItemStack createFormFromReference(ItemStack stack) {
+
         // Immutability: create a copy of the stack we received by reference
         stack = stack.copy();
 
@@ -55,4 +66,5 @@ public class FormItem extends Item {
             pTooltipComponents.addAll(reference.getTooltipLines(pContext, null, pTooltipFlag));
         }
     }
+
 }

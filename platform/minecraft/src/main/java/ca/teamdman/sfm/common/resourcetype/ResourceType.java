@@ -3,7 +3,8 @@ package ca.teamdman.sfm.common.resourcetype;
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.CapabilityConsumer;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
@@ -20,6 +21,24 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 public abstract class ResourceType<STACK, ITEM, CAP> {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_RESOURCE_TYPE_GET_CAPABILITIES_BEGIN = new LocalizationEntry(
+            "log.sfm.resource_type.get_capabilities.begin",
+            "Gathering capabilities of type %s (%s) against labels %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_RESOURCE_TYPE_GET_CAPABILITIES_CAP_NOT_PRESENT = new LocalizationEntry(
+            "log.sfm.resource_type.get_capabilities.not_present",
+            "Capability %s %s direction=%s not present"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_RESOURCE_TYPE_GET_CAPABILITIES_CAP_PRESENT = new LocalizationEntry(
+            "log.sfm.resource_type.get_capabilities.present",
+            "Capability %s %s direction=%s present"
+    );
+
     public final SFMBlockCapabilityKind<CAP> CAPABILITY_KIND;
 
     public ResourceType(SFMBlockCapabilityKind<CAP> CAPABILITY_KIND) {
@@ -88,7 +107,11 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             boolean simulate
     );
 
-    public boolean canExtract(CAP capability, int slot) {
+    public boolean canExtract(
+            CAP capability,
+            int slot
+    ) {
+
         return true;
     }
 
@@ -111,7 +134,11 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             boolean simulate
     );
 
-    public boolean canInsert(CAP capability, int slot) {
+    public boolean canInsert(
+            CAP capability,
+            int slot
+    ) {
+
         return true;
     }
 
@@ -145,7 +172,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
         // Log
         programContext
                 .getLogger()
-                .trace(x -> x.accept(LocalizationKeys.LOG_RESOURCE_TYPE_GET_CAPABILITIES_BEGIN.get(
+                .trace(x -> x.accept(LOG_RESOURCE_TYPE_GET_CAPABILITIES_BEGIN.get(
                         displayAsCode(),
                         displayAsCapabilityClass(),
                         labelAccess.toString() // @MCVersionDependentBehaviour We must cast to string here // do I want to update the base method to perform the component/boolean/string/other check and call tostring on my own?
@@ -176,7 +203,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             if (maybeCap.isPresent()) {
                 programContext
                         .getLogger()
-                        .debug(x -> x.accept(LocalizationKeys.LOG_RESOURCE_TYPE_GET_CAPABILITIES_CAP_PRESENT.get(
+                        .debug(x -> x.accept(LOG_RESOURCE_TYPE_GET_CAPABILITIES_CAP_PRESENT.get(
                                 displayAsCapabilityClass(),
                                 pos,
                                 dir
@@ -187,7 +214,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
                 // Log error
                 programContext
                         .getLogger()
-                        .error(x -> x.accept(LocalizationKeys.LOG_RESOURCE_TYPE_GET_CAPABILITIES_CAP_NOT_PRESENT.get(
+                        .error(x -> x.accept(LOG_RESOURCE_TYPE_GET_CAPABILITIES_CAP_NOT_PRESENT.get(
                                 displayAsCapabilityClass(),
                                 pos,
                                 dir

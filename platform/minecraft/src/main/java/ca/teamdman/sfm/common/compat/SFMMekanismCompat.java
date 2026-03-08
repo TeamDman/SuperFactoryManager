@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.compat;
 
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.linting.IProgramLinter;
 import ca.teamdman.sfm.common.program.linting.compat.mekanism.MekanismSidednessProgramLinter;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
@@ -31,7 +32,20 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class SFMMekanismCompat {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONTAINER_INSPECTOR_MEKANISM_MACHINE_INPUTS = new LocalizationEntry(
+            "gui.sfm.container_inspector.mekanism_machine_inputs",
+            "The following are based on the MACHINE'S input config"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONTAINER_INSPECTOR_MEKANISM_MACHINE_OUTPUTS = new LocalizationEntry(
+            "gui.sfm.container_inspector.mekanism_machine_outputs",
+            "The following are based on the MACHINE'S output config"
+    );
+
     public static @Nullable ResourceType<?, ?, ?> getResourceType(TransmissionType trans) {
+
         return switch (trans) {
             case ITEM -> SFMResourceTypes.ITEM.get();
             case FLUID -> SFMResourceTypes.FLUID.get();
@@ -59,6 +73,7 @@ public class SFMMekanismCompat {
     }
 
     public static EnumSet<TransmissionType> getReferencedTransmissionTypes(IOStatement statement) {
+
         EnumSet<TransmissionType> transmissionTypes = EnumSet.noneOf(TransmissionType.class);
         Set<? extends ResourceType<?, ?, ?>> referencedResourceTypes = statement
                 .getReferencedIOResourceIds()
@@ -73,11 +88,17 @@ public class SFMMekanismCompat {
     }
 
     public static long createForgeEnergy(long amount) {
+
         return UnitDisplayUtils.EnergyUnit.FORGE_ENERGY.convertFrom(amount);
     }
 
     @MCVersionDependentBehaviour
-    public static Set<Direction> getSides(ConfigInfo config, ISideConfiguration facing, Predicate<DataType> condition) {
+    public static Set<Direction> getSides(
+            ConfigInfo config,
+            ISideConfiguration facing,
+            Predicate<DataType> condition
+    ) {
+
 
         Set<Direction> rtn = EnumSet.noneOf(Direction.class);
         for (Map.Entry<RelativeSide, DataType> entry : config.getSideConfig()) {
@@ -89,6 +110,7 @@ public class SFMMekanismCompat {
     }
 
     public static String gatherInspectionResults(BlockEntity blockEntity) {
+
         if (!(blockEntity instanceof ISideConfiguration sideConfiguration)) {
             return "";
         }
@@ -116,7 +138,7 @@ public class SFMMekanismCompat {
             if (!outputSides.isEmpty()) {
                 sb
                         .append("-- ")
-                        .append(LocalizationKeys.CONTAINER_INSPECTOR_MEKANISM_MACHINE_OUTPUTS.getStub())
+                        .append(CONTAINER_INSPECTOR_MEKANISM_MACHINE_OUTPUTS.getStub())
                         .append("\n");
                 sb.append("INPUT ").append(resourceTypeKey.location()).append(":: FROM target ");
                 sb.append(outputSides
@@ -140,7 +162,7 @@ public class SFMMekanismCompat {
             if (!inputSides.isEmpty()) {
                 sb
                         .append("-- ")
-                        .append(LocalizationKeys.CONTAINER_INSPECTOR_MEKANISM_MACHINE_INPUTS.getStub())
+                        .append(CONTAINER_INSPECTOR_MEKANISM_MACHINE_INPUTS.getStub())
                         .append("\n");
                 sb.append("OUTPUT ").append(resourceTypeKey.location()).append(":: TO target ");
                 sb.append(inputSides
@@ -155,6 +177,7 @@ public class SFMMekanismCompat {
     }
 
     public static void registerResourceTypes(SFMDeferredRegister<ResourceType<?, ?, ?>> types) {
+
         types.register("chemical", ChemicalResourceType::new);
         types.register(
                 "gas",
@@ -180,6 +203,7 @@ public class SFMMekanismCompat {
     }
 
     public static void registerProgramLinters(SFMDeferredRegister<IProgramLinter> types) {
+
         types.register(
                 "mekanism_sidedness",
                 MekanismSidednessProgramLinter::new
@@ -192,6 +216,7 @@ public class SFMMekanismCompat {
             RelativeSide relativeSide,
             DataType dataType
     ) {
+
         TileComponentConfig config = mekanismBlockEntity.getConfig();
         for (TransmissionType value : TransmissionType.values()) {
             ConfigInfo info = config.getConfig(value);
@@ -205,4 +230,5 @@ public class SFMMekanismCompat {
             config.sideChanged(value, relativeSide);
         }
     }
+
 }

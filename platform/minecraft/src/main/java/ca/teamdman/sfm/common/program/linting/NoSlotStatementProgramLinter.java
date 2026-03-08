@@ -4,6 +4,7 @@ import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
@@ -17,9 +18,25 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.*;
-
 public class NoSlotStatementProgramLinter implements IProgramLinter {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_NO_VIABLE_INPUT_SLOTS = new LocalizationEntry(
+            "program.sfm.warnings.no_viable_input_slots",
+            "No slots support extraction: statement \"%s\" at %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_NO_VIABLE_OUTPUT_SLOTS = new LocalizationEntry(
+            "program.sfm.warnings.no_viable_output_slots",
+            "No slots support insertion: statement \"%s\" at %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_WARNING_NO_SLOTS = new LocalizationEntry(
+            "program.sfm.warnings.no_slots",
+            "Statement matches no slots: statement \"%s\" at %s"
+    );
+
     // Check for input and output statements that gather no valid slots
     @Override
     public void gatherWarnings(
@@ -28,6 +45,7 @@ public class NoSlotStatementProgramLinter implements IProgramLinter {
             @Nullable ManagerBlockEntity manager,
             ProblemTracker tracker
     ) {
+
         if (manager == null || manager.getLevel() == null) {
             return;
         }
@@ -50,8 +68,19 @@ public class NoSlotStatementProgramLinter implements IProgramLinter {
                 .filter(IOStatement.class::isInstance)
                 .map(IOStatement.class::cast)
                 .forEach(statement ->
-                        findEmptyIOStatement(tracker, simulationContext, statement, IODirection.of(statement))
+                                 findEmptyIOStatement(tracker, simulationContext, statement, IODirection.of(statement))
                 );
+
+    }
+
+    @Override
+    public void fixWarnings(
+            Program program,
+            LabelPositionHolder labels,
+            ManagerBlockEntity manager,
+            Level level,
+            ItemStack disk
+    ) {
 
     }
 
@@ -61,6 +90,7 @@ public class NoSlotStatementProgramLinter implements IProgramLinter {
             IOStatement inputStatement,
             IODirection ioDirection
     ) {
+
         if (tracker.isSaturated()) {
             return;
         }
@@ -116,6 +146,7 @@ public class NoSlotStatementProgramLinter implements IProgramLinter {
             AtomicBoolean anyMatches,
             AtomicBoolean ioDirectionMatches
     ) {
+
         for (int slot = 0; slot < type.getSlots(capability); slot++) {
             if (labelAccess.slots().contains(slot)) {
                 anyMatches.set(true);
@@ -131,23 +162,15 @@ public class NoSlotStatementProgramLinter implements IProgramLinter {
         }
     }
 
-    @Override
-    public void fixWarnings(
-            Program program,
-            LabelPositionHolder labels,
-            ManagerBlockEntity manager,
-            Level level,
-            ItemStack disk
-    ) {
-    }
-
 
     enum IODirection {
         INPUT,
         OUTPUT;
 
         public static IODirection of(IOStatement statement) {
+
             return statement instanceof InputStatement ? IODirection.INPUT : IODirection.OUTPUT;
         }
     }
+
 }
