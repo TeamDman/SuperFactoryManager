@@ -6,12 +6,13 @@ NAME "Changelog"
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
----- 4.32.0 (pre) ----
--- Reduce logging about SFM event listener registration
--- Fix JEI integration item lore being written improperly
--- Refactor localization entries to live in code closer to where they are used
+---- 4.32.0 ----
 -- Add keymapping for accepting intellisense suggestion instead of hardcoding backslash, thanks @npg418 for the report! #513
 -- Fix "rebuild cable network" button in manager erroring due to bad i18n param, thanks @Tctiancan for the report! #514
+-- Added static analysis test to flag bad i18n params, see LocalizationEntryArgumentValidationTests
+-- Reduce logging for SFM event listener registration, thanks @Relentless for the report!
+-- Fix JEI integration item lore being written improperly
+-- Refactor localization entries to live in code closer to where they are used
 
 ---- 4.31.0 ----
 -- Fix cable placement causing crash when the same network touching multiple sides, thanks @𝓢𝓽𝓮𝓿𝓮𝓷 𝓤 and @textbookApologist for the report! #511
