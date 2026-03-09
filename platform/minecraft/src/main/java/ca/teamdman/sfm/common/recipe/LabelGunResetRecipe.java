@@ -4,6 +4,7 @@ import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMRecipeSerializers;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
