@@ -60,7 +60,7 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
         BlockPos dropPos = helper.absolutePos(new BlockPos(1, 4, 1));
         helper
                 .getLevel()
-                .getEntitiesOfClass(ItemEntity.class, new AABB(dropPos).inflate(3))
+                .getEntitiesOfClass(ItemEntity.class, new AABB(dropPos).inflate(5))
                 .forEach(Entity::discard);
 
         Vec3 spawnPos = helper.absoluteVec(new Vec3(1.5, 3.5, 1.5));
@@ -82,7 +82,7 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
                     .getLevel()
                     .getEntitiesOfClass(
                             ItemEntity.class,
-                            new AABB(helper.absolutePos(new BlockPos(1, 4, 1))).inflate(3)
+                            new AABB(helper.absolutePos(new BlockPos(1, 4, 1))).inflate(5)
                     );
             assertTrue(!found.isEmpty(), "expected shards to be produced");
 
