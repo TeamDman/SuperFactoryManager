@@ -171,15 +171,6 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
         player.openMenu(manager, buf -> ManagerContainerMenu.encode(manager, buf));
     }
 
-    @MCVersionDependentBehaviour
-    private void openMenu(
-            ServerPlayer player,
-            ManagerBlockEntity manager
-    ) {
-
-        NetworkHooks.openScreen(player, manager, buf -> ManagerContainerMenu.encode(manager, buf));
-    }
-
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
 
