@@ -275,7 +275,6 @@
   "program.sfm.warnings.unused_label": "Label \"%s\" is used in code but not assigned in the world.",
   "sfm.command.bust_cable_network_cache.success": "Successfully busted cable network cache.",
   "sfm.command.bust_water_network_cache.success": "Successfully busted water network cache.",
-  "sfm.error.bad_translation_argument": "Failed to create translatable contents for key \"{}\" with error {}",
   "sfm.label_gun.view_mode.show_only_active_and_targeted": "Showing blocks with active label. Cycle mode in gui or with %s",
   "sfm.label_gun.view_mode.show_only_targeted": "Showing only targeted block labels. Cycle mode in gui or with %s",
   "sfm.network_tool.reminder_overlay": "Toggle network tool overlay with %s"
