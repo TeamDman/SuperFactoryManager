@@ -3,7 +3,6 @@ package ca.teamdman.sfm.common.item;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
-import ca.teamdman.sfm.common.registry.registration.SFMCreativeTabs;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
