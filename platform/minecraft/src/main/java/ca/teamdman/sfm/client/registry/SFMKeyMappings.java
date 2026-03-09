@@ -249,6 +249,21 @@ public class SFMKeyMappings {
             SFM_KEY_CATEGORY.key().get()
     ));
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TEXT_EDITOR_ACCEPT_INTELLISENSE_KEY_NAME = new LocalizationEntry(
+            "key.sfm.text_editor.accept_intellisense",
+            "Text Editor - Accept Intellisense Suggestion"
+    );
+
+    public static final Lazy<KeyMapping> TEXT_EDITOR_ACCEPT_INTELLISENSE_KEY = Lazy.of(() -> new KeyMapping(
+            TEXT_EDITOR_ACCEPT_INTELLISENSE_KEY_NAME.key().get(),
+            KeyConflictContext.GUI,
+            KeyModifier.NONE,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_BACKSLASH,
+            SFM_KEY_CATEGORY.key().get()
+    ));
+
     public static KeyMapping[] getSFMKeyMappings() {
 
         return new KeyMapping[]{
@@ -264,6 +279,7 @@ public class SFMKeyMappings {
                 LABEL_GUN_PREVIOUS_LABEL_KEY.get(),
                 LABEL_GUN_PULL_MODIFIER_KEY.get(),
                 LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY.get(),
+                TEXT_EDITOR_ACCEPT_INTELLISENSE_KEY.get(),
                 MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY.get(),
                 TITLE_SCREEN_OPEN_TEXT_EDITOR_KEY.get(),
                 TOGGLE_NETWORK_TOOL_OVERLAY_KEY.get()
