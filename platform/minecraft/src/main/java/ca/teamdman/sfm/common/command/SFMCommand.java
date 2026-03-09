@@ -241,15 +241,6 @@ public class SFMCommand {
         commandSourceStack.sendSuccess(componentSupplier, true);
     }
 
-    @MCVersionDependentBehaviour
-    private static void sendSuccess(
-            CommandSourceStack commandSourceStack,
-            Supplier<Component> componentSupplier
-    ) {
-
-        commandSourceStack.sendSuccess(componentSupplier.get(), true);
-    }
-
     private static int giveKitToPlayers(
             CommandSourceStack source,
             Collection<ServerPlayer> targets
