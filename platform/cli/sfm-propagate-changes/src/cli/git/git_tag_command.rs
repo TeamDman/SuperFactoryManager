@@ -37,7 +37,9 @@ impl TagCommand {
                 .args(["tag", &tag])
                 .current_dir(&worktree.path)
                 .output()
-                .wrap_err_with(|| format!("Failed to run git tag in {}", worktree.path.display()))?;
+                .wrap_err_with(|| {
+                    format!("Failed to run git tag in {}", worktree.path.display())
+                })?;
 
             if !tag_output.status.success() {
                 bail!(
@@ -70,7 +72,12 @@ fn ensure_worktree_clean(worktree: &Worktree) -> eyre::Result<()> {
         .args(["diff", "--quiet"])
         .current_dir(&worktree.path)
         .status()
-        .wrap_err_with(|| format!("Failed to check unstaged diff in {}", worktree.path.display()))?;
+        .wrap_err_with(|| {
+            format!(
+                "Failed to check unstaged diff in {}",
+                worktree.path.display()
+            )
+        })?;
 
     if !unstaged.success() {
         bail!("Worktree {} has unstaged changes", worktree.branch);
@@ -86,8 +93,12 @@ fn read_mod_version_for_first_worktree(worktree: &Worktree) -> eyre::Result<Stri
         .join("minecraft")
         .join("gradle.properties");
 
-    read_mod_version(&gradle_properties)
-        .wrap_err_with(|| format!("Failed to read mod_version from {}", gradle_properties.display()))
+    read_mod_version(&gradle_properties).wrap_err_with(|| {
+        format!(
+            "Failed to read mod_version from {}",
+            gradle_properties.display()
+        )
+    })
 }
 
 fn read_mod_version(gradle_properties: &Path) -> eyre::Result<String> {

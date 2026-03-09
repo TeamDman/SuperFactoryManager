@@ -976,6 +976,13 @@ fn summarize_reduction(_pair: &LogPair, reduction: &LogReduction) -> String {
     "Potential surprises".yellow().bold().to_string()
 }
 
+fn reduction_has_visible_content(reduction: &LogReduction) -> bool {
+    reduction.tests_passed
+        || reduction.build_failed
+        || !reduction.failed_tests.is_empty()
+        || !reduction.important_lines.is_empty()
+}
+
 fn read_log_stats(path: &Path) -> eyre::Result<(usize, u64)> {
     let bytes = fs::metadata(path)
         .wrap_err_with(|| format!("Failed to stat log file: {}", path.display()))?
@@ -1106,6 +1113,8 @@ fn print_tldr_for_run(run_dir: &Path) -> eyre::Result<()> {
             .bold()
     );
 
+    let mut printed_any = false;
+
     for pair in pairs {
         let stdout_content = fs::read_to_string(&pair.stdout_log)
             .wrap_err_with(|| format!("Failed to read log file: {}", pair.stdout_log.display()))?;
@@ -1118,7 +1127,12 @@ fn print_tldr_for_run(run_dir: &Path) -> eyre::Result<()> {
         merge_reduction(&mut combined, stdout_reduction);
         merge_reduction(&mut combined, stderr_reduction);
 
+        if !reduction_has_visible_content(&combined) {
+            continue;
+        }
+
         let headline = summarize_reduction(&pair, &combined);
+        printed_any = true;
         println!();
         println!("{}", pair.relative_task_dir.display().to_string().bold());
         println!("  {}", headline);
@@ -1128,6 +1142,10 @@ fn print_tldr_for_run(run_dir: &Path) -> eyre::Result<()> {
             let preview = truncate_tldr_summary(&important_lines.join("\n"));
             println!("{}", preview);
         }
+    }
+
+    if !printed_any {
+        println!("  {}", "No notable log output found".dimmed());
     }
 
     Ok(())

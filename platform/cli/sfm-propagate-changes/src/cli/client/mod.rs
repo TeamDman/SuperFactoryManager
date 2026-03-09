@@ -1,5 +1,5 @@
-mod client_command;
 mod client_add_command;
+mod client_command;
 mod client_get_launcher_command;
 mod client_launch_command;
 mod client_list_command;

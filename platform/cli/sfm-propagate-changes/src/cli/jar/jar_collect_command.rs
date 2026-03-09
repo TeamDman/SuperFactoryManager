@@ -51,15 +51,17 @@ pub(super) fn invoke() -> eyre::Result<()> {
             continue;
         }
 
-        let mod_version = super::jar_shared::read_mod_version(&gradle_properties).wrap_err_with(|| {
-            format!(
-                "Failed to read mod_version for branch {} from {}",
-                wt.branch,
-                gradle_properties.display()
-            )
-        })?;
+        let mod_version =
+            super::jar_shared::read_mod_version(&gradle_properties).wrap_err_with(|| {
+                format!(
+                    "Failed to read mod_version for branch {} from {}",
+                    wt.branch,
+                    gradle_properties.display()
+                )
+            })?;
 
-        let Some(jar) = super::jar_shared::pick_jar_for_mod_version(&libs_dir, &mod_version)? else {
+        let Some(jar) = super::jar_shared::pick_jar_for_mod_version(&libs_dir, &mod_version)?
+        else {
             warn!(
                 branch = %wt.branch,
                 mod_version = %mod_version,
