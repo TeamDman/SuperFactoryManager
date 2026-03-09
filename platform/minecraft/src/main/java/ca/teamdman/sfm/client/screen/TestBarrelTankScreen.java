@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.screen;
 
+import ca.teamdman.sfm.client.screen.widget.SFMExtendedButtonWithTooltip;
 import ca.teamdman.sfm.common.containermenu.TestBarrelTankContainerMenu;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;

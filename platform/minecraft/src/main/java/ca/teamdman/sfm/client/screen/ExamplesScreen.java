@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.examples.SFMExampleProgram;
-import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
