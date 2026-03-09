@@ -1,6 +1,6 @@
+mod curseforge_command;
 mod curseforge_minecraft_command;
 mod curseforge_minecraft_version_command;
-mod curseforge_command;
 mod curseforge_project_command;
 mod curseforge_project_default_command;
 mod curseforge_project_file_command;
