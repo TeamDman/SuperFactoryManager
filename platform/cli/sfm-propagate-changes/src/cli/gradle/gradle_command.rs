@@ -1646,7 +1646,7 @@ impl GradleRunCommand {
                             "{}",
                             format_log_summary("stderr", &output.stderr, &output.stderr_log_path)
                         );
-                        info!(
+                        debug!(
                             branch = %wt.branch,
                             task = %current_task.as_gradle_arg(),
                             duration = %format_duration(output.duration),
