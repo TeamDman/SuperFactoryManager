@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LocalizationEntryArgumentValidationTests {
-    private static final Path PROJECT_ROOT = Paths.get("").toAbsolutePath().normalize();
+    private static final Path PROJECT_ROOT = findProjectRoot();
     private static final Path MAIN_SOURCE_ROOT = PROJECT_ROOT.resolve("src/main/java");
     private static final Set<String> ALLOWED_PRIMITIVE_TYPES = Set.of(
             "byte",
@@ -96,6 +96,23 @@ public class LocalizationEntryArgumentValidationTests {
         addSourceRootIfPresent(typeSolver, MAIN_SOURCE_ROOT);
         addSourceRootIfPresent(typeSolver, PROJECT_ROOT.resolve("build/generated-src/antlr/main"));
         return typeSolver;
+    }
+
+    private static Path findProjectRoot() {
+        Path workingDirectory = Paths.get("").toAbsolutePath().normalize();
+
+        for (Path candidate = workingDirectory; candidate != null; candidate = candidate.getParent()) {
+            if (Files.isDirectory(candidate.resolve("src/main/java"))) {
+                return candidate;
+            }
+
+            Path nestedMinecraftProjectRoot = candidate.resolve("platform/minecraft");
+            if (Files.isDirectory(nestedMinecraftProjectRoot.resolve("src/main/java"))) {
+                return nestedMinecraftProjectRoot;
+            }
+        }
+
+        throw new IllegalStateException("Could not locate project root containing src/main/java from " + workingDirectory);
     }
 
     private static void addSourceRootIfPresent(
