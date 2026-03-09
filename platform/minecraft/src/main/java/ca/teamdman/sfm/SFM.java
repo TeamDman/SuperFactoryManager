@@ -5,7 +5,6 @@ import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.event_bus.SFMAutomaticEventSubscriber;
 import ca.teamdman.sfm.common.event_bus.SFMEventBus;
-import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.*;

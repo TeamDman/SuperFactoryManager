@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.common.util;
 
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
