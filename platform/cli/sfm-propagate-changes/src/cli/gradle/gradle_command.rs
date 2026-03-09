@@ -839,6 +839,21 @@ fn normalize_spaces(input: &str) -> String {
         .join(" ")
 }
 
+fn normalize_compact(input: &str) -> String {
+    input
+        .chars()
+        .filter(|c| c.is_alphanumeric())
+        .map(|c| c.to_ascii_lowercase())
+        .collect()
+}
+
+fn relativize_to_repo_root(path: PathBuf, repo_root: &Path) -> PathBuf {
+    path.strip_prefix(repo_root)
+        .ok()
+        .map(Path::to_path_buf)
+        .unwrap_or(path)
+}
+
 fn find_gametest_source(test_name: &str) -> Option<PathBuf> {
     let cwd = std::env::current_dir().ok()?;
 
@@ -865,8 +880,14 @@ fn find_gametest_source(test_name: &str) -> Option<PathBuf> {
         .join("java");
 
     let normalized_test = normalize_spaces(test_name);
-    let test_tokens: Vec<&str> = normalized_test.split_whitespace().collect();
+    let compact_test = normalize_compact(test_name);
+    let compact_test_with_suffix = format!("{compact_test}gametest");
+    let legacy_marker = normalize_spaces(&format!(
+        "Migrated from SFMCorrectnessGameTests.{test_name}"
+    ));
     let mut pending = vec![gametest_dir];
+    let mut legacy_marker_match = None;
+    let mut exact_phrase_match = None;
 
     while let Some(dir) = pending.pop() {
         let entries = match fs::read_dir(&dir) {
@@ -893,16 +914,10 @@ fn find_gametest_source(test_name: &str) -> Option<PathBuf> {
                 continue;
             }
 
-            let normalized_path = normalize_spaces(&path.to_string_lossy());
-            if test_tokens
-                .iter()
-                .all(|token| normalized_path.contains(token))
-            {
-                return path
-                    .strip_prefix(&repo_root)
-                    .ok()
-                    .map(Path::to_path_buf)
-                    .or(Some(path));
+            let file_stem = path.file_stem().and_then(OsStr::to_str).unwrap_or_default();
+            let compact_file_stem = normalize_compact(file_stem);
+            if compact_file_stem == compact_test || compact_file_stem == compact_test_with_suffix {
+                return Some(relativize_to_repo_root(path, &repo_root));
             }
 
             let content = match fs::read_to_string(&path) {
@@ -910,21 +925,18 @@ fn find_gametest_source(test_name: &str) -> Option<PathBuf> {
                 Err(_) => continue,
             };
             let normalized_content = normalize_spaces(&content);
-            if normalized_content.contains(&normalized_test)
-                || test_tokens
-                    .iter()
-                    .all(|token| normalized_content.contains(token))
-            {
-                return path
-                    .strip_prefix(&repo_root)
-                    .ok()
-                    .map(Path::to_path_buf)
-                    .or(Some(path));
+
+            if legacy_marker_match.is_none() && normalized_content.contains(&legacy_marker) {
+                legacy_marker_match = Some(relativize_to_repo_root(path.clone(), &repo_root));
+            }
+
+            if exact_phrase_match.is_none() && normalized_content.contains(&normalized_test) {
+                exact_phrase_match = Some(relativize_to_repo_root(path, &repo_root));
             }
         }
     }
 
-    None
+    legacy_marker_match.or(exact_phrase_match)
 }
 
 fn summarize_reduction(_pair: &LogPair, reduction: &LogReduction) -> String {
