@@ -29,8 +29,6 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
 
     private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
 
-    private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
-
     public TestBarrelTankBlockEntity(
             BlockPos pPos,
             BlockState pBlockState
