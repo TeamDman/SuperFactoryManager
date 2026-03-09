@@ -361,7 +361,9 @@ impl CurseforgeProjectFileCommand {
                 api_key,
                 token,
                 op_secret,
-            } => super::curseforge_project_file_command::invoke_list(project, api_key, token, op_secret),
+            } => super::curseforge_project_file_command::invoke_list(
+                project, api_key, token, op_secret,
+            ),
         }
     }
 }
@@ -1958,7 +1960,9 @@ impl CurseforgeMinecraftCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::Version { command } => super::curseforge_minecraft_version_command::invoke(command),
+            Self::Version { command } => {
+                super::curseforge_minecraft_version_command::invoke(command)
+            }
         }
     }
 }
