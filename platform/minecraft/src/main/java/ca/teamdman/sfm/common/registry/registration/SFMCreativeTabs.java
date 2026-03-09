@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;

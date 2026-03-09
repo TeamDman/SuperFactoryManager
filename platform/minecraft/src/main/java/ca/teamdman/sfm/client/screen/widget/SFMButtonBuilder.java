@@ -1,4 +1,4 @@
-package ca.teamdman.sfm.client.widget;
+package ca.teamdman.sfm.client.screen.widget;
 
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
