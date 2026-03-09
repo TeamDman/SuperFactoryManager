@@ -4,7 +4,6 @@ import ca.teamdman.sfm.common.component.ItemStackBox;
 import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
-import ca.teamdman.sfm.common.registry.registration.SFMCreativeTabs;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.network.chat.Component;
