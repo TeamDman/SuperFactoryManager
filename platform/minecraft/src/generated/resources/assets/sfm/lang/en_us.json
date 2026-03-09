@@ -188,6 +188,7 @@
   "key.sfm.label_gun.target_manager_modifier": "Label Gun Target Manager Modifier",
   "key.sfm.manager.text_editor": "Manager Screen - Open Text Editor",
   "key.sfm.more_info": "Hold For More Info",
+  "key.sfm.text_editor.accept_intellisense": "Text Editor - Accept Intellisense Suggestion",
   "key.sfm.title_screen.text_editor": "Title Screen - Open Text Editor",
   "key.sfm.toggle_label_view_key": "Cycle label gun view",
   "key.sfm.toggle_network_tool_overlay": "Toggle network tool overlay",
