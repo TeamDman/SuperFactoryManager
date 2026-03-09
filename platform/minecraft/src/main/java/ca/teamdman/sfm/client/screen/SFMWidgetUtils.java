@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.client.screen;
 
-import ca.teamdman.sfm.client.screen.widget.SFMExtendedButtonWithTooltip;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;

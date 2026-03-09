@@ -7,7 +7,6 @@ import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
 import ca.teamdman.sfm.client.screen.SFMTextEditorConfigScreen;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
-import ca.teamdman.sfm.client.screen.widget.SFMExtendedButtonWithTooltip;
 import ca.teamdman.sfm.client.text_editor.*;
 import ca.teamdman.sfm.client.text_editor.action.ITextEditAction;
 import ca.teamdman.sfm.client.text_editor.action.KeyboardImpulse;
