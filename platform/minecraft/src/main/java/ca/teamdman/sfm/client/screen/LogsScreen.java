@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.client.screen;
 
-import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.diagnostics.SFMDiagnostics;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
