@@ -102,6 +102,26 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
         super.render(graphics, pMouseX, pMouseY, pPartialTick);
     }
 
+    @Override
+    @MCVersionDependentBehaviour
+    public void renderWidget(
+            GuiGraphics graphics,
+            int pMouseX,
+            int pMouseY,
+            float pPartialTick
+    ) {
+        if (items.isEmpty()) return;
+
+        graphics.pose().pushPose();
+        // Fixes https://github.com/TeamDman/SuperFactoryManager/issues/518
+        // Adjust the Z-index such that the popup renders on top of the editor text
+        graphics.pose().translate(0.0F, 0.0F, 400.0F);
+
+        super.renderWidget(graphics, pMouseX, pMouseY, pPartialTick);
+
+        graphics.pose().popPose();
+    }
+
     public void selectPreviousWrapping() {
         if (this.selectionIndex == -1) {
             this.selectionIndex = this.items.size() - 1;
