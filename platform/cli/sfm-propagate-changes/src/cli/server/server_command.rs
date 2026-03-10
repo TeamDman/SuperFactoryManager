@@ -40,10 +40,13 @@ pub enum ServerCommand {
         /// Glob pattern for tracked server directories
         #[facet(default, args::positional)]
         glob: Option<String>,
+        /// Minecraft version filter expression for tracked servers (examples: `>=1.21.0`, `<1.20`, `=1.20.4`, `=1.19.2 OR =1.21.1`).
+        #[facet(default, args::named)]
+        mc: Option<String>,
     },
     /// Launch tracked servers by running each `run.bat` and waiting for successful exit
     Launch {
-        /// Minecraft version filter expression for tracked servers (examples: `>=1.21.0`, `<1.20`, `=1.20.4`).
+        /// Minecraft version filter expression for tracked servers (examples: `>=1.21.0`, `<1.20`, `=1.20.4`, `=1.19.2 OR =1.21.1`).
         #[facet(default, args::named)]
         mc: Option<String>,
     },
@@ -57,7 +60,7 @@ impl ServerCommand {
         match self {
             ServerCommand::Add { glob } => super::server_add_command::invoke(glob),
             ServerCommand::Remove { glob } => super::server_remove_command::invoke(glob),
-            ServerCommand::List { glob } => super::server_list_command::invoke(glob),
+            ServerCommand::List { glob, mc } => super::server_list_command::invoke(glob, mc),
             ServerCommand::Launch { mc } => super::server_launch_command::invoke(mc),
         }
     }
@@ -130,9 +133,11 @@ pub(super) fn remove_servers(glob_pattern: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-pub(super) fn list_servers(glob_pattern: &str) -> eyre::Result<()> {
-    let targets = load_server_targets()?;
+pub(super) fn list_servers(glob_pattern: &str, mc_filter: Option<&str>) -> eyre::Result<()> {
+    let mut targets = load_server_targets()?;
     let matcher = build_matcher(glob_pattern)?;
+
+    apply_mc_filter(&mut targets, mc_filter)?;
 
     let filtered: Vec<ServerTarget> = targets
         .into_iter()
@@ -140,7 +145,11 @@ pub(super) fn list_servers(glob_pattern: &str) -> eyre::Result<()> {
         .collect();
 
     if filtered.is_empty() {
-        println!("No tracked servers match {glob_pattern}.");
+        if mc_filter.is_some() {
+            println!("No tracked servers match the requested filters.");
+        } else {
+            println!("No tracked servers match {glob_pattern}.");
+        }
         return Ok(());
     }
 
@@ -159,22 +168,7 @@ pub(super) fn launch_servers(mc_filter: Option<&str>) -> eyre::Result<()> {
         return Ok(());
     }
 
-    let parsed_filter = mc_filter.map(McVersionFilter::parse).transpose()?;
-
-    if let Some(filter) = parsed_filter {
-        targets.retain(|target| {
-            if let Some(matches) = filter.matches_version_text(&target.mc_version) {
-                matches
-            } else {
-                warn!(
-                    mc_version = %target.mc_version,
-                    path = %target.path.display(),
-                    "Skipping tracked server with non-version mc value for --mc filter"
-                );
-                false
-            }
-        });
-    }
+    apply_mc_filter(&mut targets, mc_filter)?;
 
     if targets.is_empty() {
         if mc_filter.is_some() {
@@ -233,6 +227,27 @@ pub(super) fn launch_servers(mc_filter: Option<&str>) -> eyre::Result<()> {
     }
 
     println!("All selected servers exited successfully.");
+    Ok(())
+}
+
+fn apply_mc_filter(targets: &mut Vec<ServerTarget>, mc_filter: Option<&str>) -> eyre::Result<()> {
+    let parsed_filter = mc_filter.map(McVersionFilter::parse).transpose()?;
+
+    if let Some(filter) = parsed_filter {
+        targets.retain(|target| {
+            if let Some(matches) = filter.matches_version_text(&target.mc_version) {
+                matches
+            } else {
+                warn!(
+                    mc_version = %target.mc_version,
+                    path = %target.path.display(),
+                    "Skipping tracked server with non-version mc value for --mc filter"
+                );
+                false
+            }
+        });
+    }
+
     Ok(())
 }
 
