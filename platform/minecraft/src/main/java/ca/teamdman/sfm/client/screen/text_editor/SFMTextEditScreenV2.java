@@ -117,7 +117,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
         Matrix4f matrix4f = pGuiGraphics.pose().last().pose();
         LinkedList<StringBuilder> lines = textEditContext.lines();
         int numLines = lines.size();
-        var buffer = pGuiGraphics.bufferSource();
+        MultiBufferSource.BufferSource buffer = pGuiGraphics.bufferSource();
         boolean shouldShowLineNumbers = shouldShowLineNumbers();
         int marginForLineNumber = shouldShowLineNumbers() ? this.font.width("000") + 4 : 0;
         for (int lineIndex = 0; lineIndex < numLines; lineIndex++) {
