@@ -1442,7 +1442,7 @@ pub struct GradleRunCommand {
     #[facet(args::positional)]
     pub tasks: Vec<String>,
 
-    /// Minecraft version filter expression for branch names (examples: `>=1.21.0`, `<1.20`, `=1.20.4`).
+    /// Minecraft version filter expression for branch names (examples: `>=1.21.0`, `<1.20`, `=1.20.4`, `=1.19.2 OR =1.21.1`).
     #[facet(default, args::named)]
     pub mc: Option<String>,
 
