@@ -82,7 +82,7 @@ pub enum ModrinthCommand {
 pub enum ModrinthReleaseCommand {
     /// Verify computed release metadata against historical project versions
     Check {
-        /// Minecraft version filter expression list, comma-separated (example: "=1.20.1" or ">=1.19.2,<=1.21.1")
+        /// Minecraft version filter expression (examples: `=1.20.1`, `>=1.19.2,<=1.21.1`, `=1.19.2 OR =1.21.1`).
         #[facet(default, args::named)]
         mc: Option<String>,
         /// Modrinth project id/slug (defaults to Super Factory Manager)
@@ -91,7 +91,7 @@ pub enum ModrinthReleaseCommand {
     },
     /// Validate remote downloadable jars against local release jars by hash
     Validate {
-        /// Minecraft version filter expression list, comma-separated (example: "=1.20.1" or ">=1.19.2,<=1.21.1")
+        /// Minecraft version filter expression (examples: `=1.20.1`, `>=1.19.2,<=1.21.1`, `=1.19.2 OR =1.21.1`).
         #[facet(default, args::named)]
         mc: Option<String>,
         /// Modrinth project id/slug (defaults to Super Factory Manager)
