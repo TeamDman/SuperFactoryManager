@@ -13,6 +13,7 @@ NAME "Changelog"
 -- Reduce logging for SFM event listener registration, thanks @Relentless for the report!
 -- Fix JEI integration item lore being written improperly
 -- Refactor localization entries to live in code closer to where they are used
+-- Fix intellisense popup being transparent for MC>=1.20, fixes #518
 
 ---- 4.31.0 ----
 -- Fix cable placement causing crash when the same network touching multiple sides, thanks @𝓢𝓽𝓮𝓿𝓮𝓷 𝓤 and @textbookApologist for the report! #511
