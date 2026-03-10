@@ -763,6 +763,7 @@ fn release_now(
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let changelog_section = read_changelog_section(&changelog_path, &mod_version)?;
+    let wrapped_changelog = format!("```\n{}\n```", changelog_section.trim());
     let jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
 
     let game_version_index = if dry_run {
@@ -789,7 +790,7 @@ fn release_now(
         );
     }
     println!("{}", style("Changelog:", ANSI_BOLD_CYAN));
-    println!("{changelog_section}");
+    println!("{wrapped_changelog}");
 
     let upload_plans = if dry_run {
         None
@@ -800,7 +801,7 @@ fn release_now(
         Some(build_upload_plans(
             &jars,
             &mod_version,
-            &changelog_section,
+            &wrapped_changelog,
             index,
         )?)
     };
