@@ -88,18 +88,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
     protected void updateWidgetNarration(NarrationElementOutput narration) {
         narration.add(NarratedElementType.TITLE, getMessage());
     }
-
-    @Override
-    public void renderWidget(
-            GuiGraphics graphics,
-            int pMouseX,
-            int pMouseY,
-            float pPartialTick
-    ) {
-        if (items.isEmpty()) return;
-        super.renderWidget(graphics, pMouseX, pMouseY, pPartialTick);
-    }
-
+    
     @Override
     @MCVersionDependentBehaviour
     public void renderWidget(
