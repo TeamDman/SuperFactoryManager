@@ -1039,12 +1039,14 @@ Implemented so far:
 	- `sfm:panel.toggle_layout`
 	- `sfm:panel.toggle_terminal`
 	- `sfm:selection.select_focused`
-- terminal action surface that can run canonical ids, shorthand aliases, and `/sfm ide ...`-style forms
+- terminal action surface that currently executes exact resource-location action ids directly from the registry
 - command palette overlay opened with `Ctrl+Shift+P` that:
-	- searches actions by label, id, and alias
+	- searches actions by label and id
 	- shows recent actions and keybinding hints
 	- can execute actions directly from the palette
-- registry-backed playground action definitions instead of a hardcoded action map
+- registry-backed action definitions instead of a hardcoded action map
+- keybind dispatch now targets registered action objects directly instead of round-tripping through string lookup
+- recent-action recall is currently based on action-definition identity rather than remembered string ids
 - panel focus and visibility state retained on the client side instead of being recomputed ad hoc each frame
 - directional panel navigation with:
 	- `Alt+Arrow` = move focus by spatial direction
@@ -1057,6 +1059,14 @@ Implemented so far:
 	- `Alt+Drag` = reposition palette
 	- `Alt+Ctrl+Arrow` = nudge palette in screen space
 
+Implications of the latest action refactor:
+
+- the registry is now the real source of truth for IDE actions, not an overlay alias map living beside it
+- the action-definition concept is being lifted from playground-only scope toward a reusable IDE-wide `IdeActionDefinition`
+- string command ergonomics have narrowed for now: exact ids are the stable contract, while alias and `/sfm ide ...` convenience parsing is no longer part of the active playground flow
+- command palette discovery is therefore stricter but also better aligned with registry truth and future typed action routing
+- there is still transitional cleanup to do around older playground-specific helper types so the architecture matches the new direction cleanly
+
 This means Slice A is no longer just a concept; a usable shell/layout/input scaffold already exists and is being refined in-game.
 
 ## 8.1 What to keep from current prototype
@@ -1064,13 +1074,13 @@ This means Slice A is no longer just a concept; a usable shell/layout/input scaf
 - virtual scrolling work
 - terminal command bridge
 - action registry momentum
-- command palette routing and action discovery
+- command palette routing and registry-native action discovery
 - plain-screen rendering experiments
 - basic paneling experiments
 - session-backed shell context rendering
 - selected-set model instead of single-target-only state
 - directional focus navigation as a first-class layout concern
-- canonical action ids shared by keybinds, terminal input, and future command palette routing
+- canonical action ids shared by keybinds, terminal input, and command palette routing
 
 ## 8.2 What to stop coupling to
 
@@ -1118,6 +1128,7 @@ Status:
 - partially underway
 - terminal panel exists as an action shell surface
 - registry with resource-location-style action ids exists
+- command execution has tightened around exact registered ids rather than alias expansion
 - shell context already exposes player/look/hit/dimension/focused-target summary in the playground
 - typed `IdeResult` plumbing and a true editor surface are still pending
 
@@ -1147,6 +1158,7 @@ Status:
 - underway
 - canonical keybinding string formatting now exists for palette hints
 - command palette open/search/execute flow now exists as a first-class shell surface
+- command palette search currently follows the stricter registry-native id/title model rather than a broader alias vocabulary
 - floating palette repositioning via gesture and key-driven nudging now exists
 - still missing a broader user-remappable hotkey manager and richer context dispatch rules
 
@@ -1287,8 +1299,9 @@ More concretely, the prototype now has:
 - session/action/target scaffolding
 - shell-context capture and selected-set semantics
 - canonical action ids with terminal dispatch
-- registry-backed playground action metadata and lookup
+- registry-backed action metadata and lookup
 - floating command palette overlay with recent-action recall and keybinding hints
+- direct keybind-to-action-object dispatch through the registry
 - context-sensitive navigation and resizing controls
 
 ---
