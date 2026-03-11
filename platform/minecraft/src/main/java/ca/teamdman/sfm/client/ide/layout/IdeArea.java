@@ -9,6 +9,10 @@ public record IdeArea(int x, int y, int width, int height) {
         return y + height;
     }
 
+    public boolean contains(double pointX, double pointY) {
+        return pointX >= x && pointX < right() && pointY >= y && pointY < bottom();
+    }
+
     public boolean isEmpty() {
         return width <= 0 || height <= 0;
     }

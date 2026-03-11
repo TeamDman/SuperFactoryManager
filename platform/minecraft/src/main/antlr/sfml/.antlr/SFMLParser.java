@@ -150,14 +150,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_program; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterProgram(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitProgram(this);
-		}
 	}
 
 	public final ProgramContext program() throws RecognitionException {
@@ -216,14 +208,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_name; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterName(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitName(this);
-		}
 	}
 
 	public final NameContext name() throws RecognitionException {
@@ -272,14 +256,6 @@ public class SFMLParser extends Parser {
 		}
 		public TerminalNode END() { return getToken(SFMLParser.END, 0); }
 		public PulseTriggerContext(TriggerContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterPulseTrigger(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitPulseTrigger(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class TimerTriggerContext extends TriggerContext {
@@ -293,14 +269,6 @@ public class SFMLParser extends Parser {
 		}
 		public TerminalNode END() { return getToken(SFMLParser.END, 0); }
 		public TimerTriggerContext(TriggerContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterTimerTrigger(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitTimerTrigger(this);
-		}
 	}
 
 	public final TriggerContext trigger() throws RecognitionException {
@@ -379,14 +347,6 @@ public class SFMLParser extends Parser {
 		public TerminalNode PLUS() { return getToken(SFMLParser.PLUS, 0); }
 		public TerminalNode NUMBER() { return getToken(SFMLParser.NUMBER, 0); }
 		public IntervalNoSpaceContext(IntervalContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterIntervalNoSpace(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitIntervalNoSpace(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class IntervalSpaceContext extends IntervalContext {
@@ -401,14 +361,6 @@ public class SFMLParser extends Parser {
 		public TerminalNode GLOBAL() { return getToken(SFMLParser.GLOBAL, 0); }
 		public TerminalNode PLUS() { return getToken(SFMLParser.PLUS, 0); }
 		public IntervalSpaceContext(IntervalContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterIntervalSpace(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitIntervalSpace(this);
-		}
 	}
 
 	public final IntervalContext interval() throws RecognitionException {
@@ -530,14 +482,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_block; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterBlock(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitBlock(this);
-		}
 	}
 
 	public final BlockContext block() throws RecognitionException {
@@ -592,14 +536,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_statement; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterStatement(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitStatement(this);
-		}
 	}
 
 	public final StatementContext statement() throws RecognitionException {
@@ -671,14 +607,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_forgetStatement; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterForgetStatement(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitForgetStatement(this);
-		}
 	}
 
 	public final ForgetStatementContext forgetStatement() throws RecognitionException {
@@ -760,14 +688,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_inputStatement; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterInputStatement(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitInputStatement(this);
-		}
 	}
 
 	public final InputStatementContext inputStatement() throws RecognitionException {
@@ -896,14 +816,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_outputStatement; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterOutputStatement(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitOutputStatement(this);
-		}
 	}
 
 	public final OutputStatementContext outputStatement() throws RecognitionException {
@@ -1040,14 +952,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_inputResourceLimits; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterInputResourceLimits(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitInputResourceLimits(this);
-		}
 	}
 
 	public final InputResourceLimitsContext inputResourceLimits() throws RecognitionException {
@@ -1080,14 +984,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_outputResourceLimits; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterOutputResourceLimits(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitOutputResourceLimits(this);
-		}
 	}
 
 	public final OutputResourceLimitsContext outputResourceLimits() throws RecognitionException {
@@ -1127,14 +1023,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_resourceLimitList; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterResourceLimitList(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitResourceLimitList(this);
-		}
 	}
 
 	public final ResourceLimitListContext resourceLimitList() throws RecognitionException {
@@ -1203,14 +1091,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_resourceLimit; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterResourceLimit(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitResourceLimit(this);
-		}
 	}
 
 	public final ResourceLimitContext resourceLimit() throws RecognitionException {
@@ -1303,14 +1183,6 @@ public class SFMLParser extends Parser {
 			return getRuleContext(RetentionContext.class,0);
 		}
 		public RetentionLimitContext(LimitContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterRetentionLimit(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitRetentionLimit(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class QuantityRetentionLimitContext extends LimitContext {
@@ -1321,14 +1193,6 @@ public class SFMLParser extends Parser {
 			return getRuleContext(RetentionContext.class,0);
 		}
 		public QuantityRetentionLimitContext(LimitContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterQuantityRetentionLimit(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitQuantityRetentionLimit(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class QuantityLimitContext extends LimitContext {
@@ -1336,14 +1200,6 @@ public class SFMLParser extends Parser {
 			return getRuleContext(QuantityContext.class,0);
 		}
 		public QuantityLimitContext(LimitContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterQuantityLimit(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitQuantityLimit(this);
-		}
 	}
 
 	public final LimitContext limit() throws RecognitionException {
@@ -1402,14 +1258,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_quantity; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterQuantity(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitQuantity(this);
-		}
 	}
 
 	public final QuantityContext quantity() throws RecognitionException {
@@ -1455,14 +1303,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_retention; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterRetention(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitRetention(this);
-		}
 	}
 
 	public final RetentionContext retention() throws RecognitionException {
@@ -1509,14 +1349,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_resourceExclusion; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterResourceExclusion(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitResourceExclusion(this);
-		}
 	}
 
 	public final ResourceExclusionContext resourceExclusion() throws RecognitionException {
@@ -1560,14 +1392,6 @@ public class SFMLParser extends Parser {
 			return getRuleContext(StringContext.class,0);
 		}
 		public StringResourceContext(ResourceIdContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterStringResource(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitStringResource(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class ResourceContext extends ResourceIdContext {
@@ -1582,14 +1406,6 @@ public class SFMLParser extends Parser {
 			return getToken(SFMLParser.COLON, i);
 		}
 		public ResourceContext(ResourceIdContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterResource(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitResource(this);
-		}
 	}
 
 	public final ResourceIdContext resourceId() throws RecognitionException {
@@ -1718,14 +1534,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_resourceIdList; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterResourceIdList(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitResourceIdList(this);
-		}
 	}
 
 	public final ResourceIdListContext resourceIdList() throws RecognitionException {
@@ -1794,14 +1602,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_resourceIdDisjunction; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterResourceIdDisjunction(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitResourceIdDisjunction(this);
-		}
 	}
 
 	public final ResourceIdDisjunctionContext resourceIdDisjunction() throws RecognitionException {
@@ -1865,14 +1665,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_with; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterWith(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitWith(this);
-		}
 	}
 
 	public final WithContext with() throws RecognitionException {
@@ -1937,14 +1729,6 @@ public class SFMLParser extends Parser {
 		}
 		public TerminalNode AND() { return getToken(SFMLParser.AND, 0); }
 		public WithConjunctionContext(WithClauseContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterWithConjunction(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitWithConjunction(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class WithParenContext extends WithClauseContext {
@@ -1954,14 +1738,6 @@ public class SFMLParser extends Parser {
 		}
 		public TerminalNode RPAREN() { return getToken(SFMLParser.RPAREN, 0); }
 		public WithParenContext(WithClauseContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterWithParen(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitWithParen(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class WithNegationContext extends WithClauseContext {
@@ -1970,14 +1746,6 @@ public class SFMLParser extends Parser {
 			return getRuleContext(WithClauseContext.class,0);
 		}
 		public WithNegationContext(WithClauseContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterWithNegation(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitWithNegation(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class WithTagContext extends WithClauseContext {
@@ -1987,14 +1755,6 @@ public class SFMLParser extends Parser {
 		public TerminalNode TAG() { return getToken(SFMLParser.TAG, 0); }
 		public TerminalNode HASHTAG() { return getToken(SFMLParser.HASHTAG, 0); }
 		public WithTagContext(WithClauseContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterWithTag(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitWithTag(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class WithDisjunctionContext extends WithClauseContext {
@@ -2006,14 +1766,6 @@ public class SFMLParser extends Parser {
 		}
 		public TerminalNode OR() { return getToken(SFMLParser.OR, 0); }
 		public WithDisjunctionContext(WithClauseContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterWithDisjunction(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitWithDisjunction(this);
-		}
 	}
 
 	public final WithClauseContext withClause() throws RecognitionException {
@@ -2174,14 +1926,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_tagMatcher; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterTagMatcher(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitTagMatcher(this);
-		}
 	}
 
 	public final TagMatcherContext tagMatcher() throws RecognitionException {
@@ -2276,14 +2020,6 @@ public class SFMLParser extends Parser {
 		public TerminalNode EACH() { return getToken(SFMLParser.EACH, 0); }
 		public TerminalNode SIDE() { return getToken(SFMLParser.SIDE, 0); }
 		public EachSideContext(SidequalifierContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterEachSide(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitEachSide(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class ListedSidesContext extends SidequalifierContext {
@@ -2299,14 +2035,6 @@ public class SFMLParser extends Parser {
 			return getToken(SFMLParser.COMMA, i);
 		}
 		public ListedSidesContext(SidequalifierContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterListedSides(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitListedSides(this);
-		}
 	}
 
 	public final SidequalifierContext sidequalifier() throws RecognitionException {
@@ -2395,14 +2123,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_side; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterSide(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitSide(this);
-		}
 	}
 
 	public final SideContext side() throws RecognitionException {
@@ -2446,14 +2166,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_slotqualifier; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterSlotqualifier(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitSlotqualifier(this);
-		}
 	}
 
 	public final SlotqualifierContext slotqualifier() throws RecognitionException {
@@ -2504,14 +2216,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_rangeset; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterRangeset(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitRangeset(this);
-		}
 	}
 
 	public final RangesetContext rangeset() throws RecognitionException {
@@ -2565,14 +2269,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_range; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterRange(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitRange(this);
-		}
 	}
 
 	public final RangeContext range() throws RecognitionException {
@@ -2640,14 +2336,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_ifStatement; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterIfStatement(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitIfStatement(this);
-		}
 	}
 
 	public final IfStatementContext ifStatement() throws RecognitionException {
@@ -2755,14 +2443,6 @@ public class SFMLParser extends Parser {
 			return getRuleContext(ResourceIdListContext.class,0);
 		}
 		public BooleanHasContext(BoolexprContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterBooleanHas(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitBooleanHas(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class BooleanConjunctionContext extends BoolexprContext {
@@ -2774,14 +2454,6 @@ public class SFMLParser extends Parser {
 		}
 		public TerminalNode AND() { return getToken(SFMLParser.AND, 0); }
 		public BooleanConjunctionContext(BoolexprContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterBooleanConjunction(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitBooleanConjunction(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class BooleanRedstoneContext extends BoolexprContext {
@@ -2793,14 +2465,6 @@ public class SFMLParser extends Parser {
 			return getRuleContext(NumberContext.class,0);
 		}
 		public BooleanRedstoneContext(BoolexprContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterBooleanRedstone(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitBooleanRedstone(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class BooleanDisjunctionContext extends BoolexprContext {
@@ -2812,27 +2476,11 @@ public class SFMLParser extends Parser {
 		}
 		public TerminalNode OR() { return getToken(SFMLParser.OR, 0); }
 		public BooleanDisjunctionContext(BoolexprContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterBooleanDisjunction(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitBooleanDisjunction(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class BooleanFalseContext extends BoolexprContext {
 		public TerminalNode FALSE() { return getToken(SFMLParser.FALSE, 0); }
 		public BooleanFalseContext(BoolexprContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterBooleanFalse(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitBooleanFalse(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class BooleanParenContext extends BoolexprContext {
@@ -2842,14 +2490,6 @@ public class SFMLParser extends Parser {
 		}
 		public TerminalNode RPAREN() { return getToken(SFMLParser.RPAREN, 0); }
 		public BooleanParenContext(BoolexprContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterBooleanParen(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitBooleanParen(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class BooleanNegationContext extends BoolexprContext {
@@ -2858,27 +2498,11 @@ public class SFMLParser extends Parser {
 			return getRuleContext(BoolexprContext.class,0);
 		}
 		public BooleanNegationContext(BoolexprContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterBooleanNegation(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitBooleanNegation(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class BooleanTrueContext extends BoolexprContext {
 		public TerminalNode TRUE() { return getToken(SFMLParser.TRUE, 0); }
 		public BooleanTrueContext(BoolexprContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterBooleanTrue(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitBooleanTrue(this);
-		}
 	}
 
 	public final BoolexprContext boolexpr() throws RecognitionException {
@@ -3094,14 +2718,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_comparisonOp; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterComparisonOp(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitComparisonOp(this);
-		}
 	}
 
 	public final ComparisonOpContext comparisonOp() throws RecognitionException {
@@ -3146,14 +2762,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_setOp; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterSetOp(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitSetOp(this);
-		}
 	}
 
 	public final SetOpContext setOp() throws RecognitionException {
@@ -3211,14 +2819,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_labelAccess; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterLabelAccess(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitLabelAccess(this);
-		}
 	}
 
 	public final LabelAccessContext labelAccess() throws RecognitionException {
@@ -3300,14 +2900,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_roundrobin; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterRoundrobin(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitRoundrobin(this);
-		}
 	}
 
 	public final RoundrobinContext roundrobin() throws RecognitionException {
@@ -3364,14 +2956,6 @@ public class SFMLParser extends Parser {
 			return getRuleContext(IdentifierContext.class,0);
 		}
 		public RawLabelContext(LabelContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterRawLabel(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitRawLabel(this);
-		}
 	}
 	@SuppressWarnings("CheckReturnValue")
 	public static class StringLabelContext extends LabelContext {
@@ -3379,14 +2963,6 @@ public class SFMLParser extends Parser {
 			return getRuleContext(StringContext.class,0);
 		}
 		public StringLabelContext(LabelContext ctx) { copyFrom(ctx); }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterStringLabel(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitStringLabel(this);
-		}
 	}
 
 	public final LabelContext label() throws RecognitionException {
@@ -3449,14 +3025,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_emptyslots; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterEmptyslots(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitEmptyslots(this);
-		}
 	}
 
 	public final EmptyslotsContext emptyslots() throws RecognitionException {
@@ -3510,14 +3078,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_identifier; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterIdentifier(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitIdentifier(this);
-		}
 	}
 
 	public final IdentifierContext identifier() throws RecognitionException {
@@ -3557,14 +3117,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_string; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterString(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitString(this);
-		}
 	}
 
 	public final StringContext string() throws RecognitionException {
@@ -3595,14 +3147,6 @@ public class SFMLParser extends Parser {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_number; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).enterNumber(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof SFMLListener ) ((SFMLListener)listener).exitNumber(this);
-		}
 	}
 
 	public final NumberContext number() throws RecognitionException {

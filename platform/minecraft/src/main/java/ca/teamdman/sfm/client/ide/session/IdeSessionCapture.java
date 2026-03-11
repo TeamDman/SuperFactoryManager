@@ -17,18 +17,18 @@ public final class IdeSessionCapture {
     private IdeSessionCapture() {
     }
 
-        public static void capture(IdeSession session, Minecraft minecraft, String focusedPanelDisplay) {
+    public static void capture(IdeSession session, Minecraft minecraft, String focusedPanelDisplay) {
         if (minecraft == null || minecraft.player == null || minecraft.level == null) {
             session.update(
-                new IdeShellContextSnapshot(
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.of(focusedPanelDisplay),
-                    Optional.empty(),
-                    0
-                ),
+                    new IdeShellContextSnapshot(
+                            Optional.empty(),
+                            Optional.empty(),
+                            Optional.empty(),
+                            Optional.empty(),
+                            Optional.of(focusedPanelDisplay),
+                            Optional.empty(),
+                            0
+                    ),
                     IdeSessionTarget.none(),
                     List.of()
             );
@@ -39,20 +39,19 @@ public final class IdeSessionCapture {
         Vec3 look = minecraft.player.getLookAngle();
         String dimensionId = minecraft.level.dimension().location().toString();
         IdeSessionTarget focusedTarget = captureFocusedTarget(minecraft, dimensionId);
-        List<IdeSessionTarget> selectedTargets = focusedTarget.isBound() ? List.of(focusedTarget) : List.of();
+        List<IdeSessionTarget> selectedTargets = session.selectedTargets();
 
         session.update(
                 new IdeShellContextSnapshot(
-                    Optional.of(playerPos.getX() + ", " + playerPos.getY() + ", " + playerPos.getZ()),
-                    Optional.of(String.format(Locale.ROOT, "%.2f, %.2f, %.2f", look.x, look.y, look.z)),
-                    describeHit(minecraft),
-                    Optional.of(dimensionId),
-                    Optional.of(focusedPanelDisplay),
+                        Optional.of(playerPos.getX() + ", " + playerPos.getY() + ", " + playerPos.getZ()),
+                        Optional.of(String.format(Locale.ROOT, "%.2f, %.2f, %.2f", look.x, look.y, look.z)),
+                        describeHit(minecraft),
+                        Optional.of(dimensionId),
+                        Optional.of(focusedPanelDisplay),
                         focusedTarget.summary(),
                         selectedTargets.size()
                 ),
-                focusedTarget,
-                selectedTargets
+                focusedTarget
         );
     }
 

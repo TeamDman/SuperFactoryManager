@@ -20,10 +20,25 @@ public final class IdeSession {
         return List.copyOf(selectedTargets);
     }
 
-    public void update(IdeShellContextSnapshot newShellContext, IdeSessionTarget newFocusedTarget, List<IdeSessionTarget> newSelectedTargets) {
+    public void update(IdeShellContextSnapshot newShellContext, IdeSessionTarget newFocusedTarget) {
         this.shellContext = newShellContext;
         this.focusedTarget = newFocusedTarget;
+    }
+
+    public void update(IdeShellContextSnapshot newShellContext, IdeSessionTarget newFocusedTarget, List<IdeSessionTarget> newSelectedTargets) {
+        update(newShellContext, newFocusedTarget);
         this.selectedTargets.clear();
         this.selectedTargets.addAll(newSelectedTargets);
+    }
+
+    public void selectFocusedTarget() {
+        if (!focusedTarget.isBound() || selectedTargets.contains(focusedTarget)) {
+            return;
+        }
+        selectedTargets.add(focusedTarget);
+    }
+
+    public void clearSelectedTargets() {
+        selectedTargets.clear();
     }
 }

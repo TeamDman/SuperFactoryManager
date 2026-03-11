@@ -1416,6 +1416,10 @@ pub struct GradleRunCommand {
     #[facet(default, args::named)]
     pub mc: Option<String>,
 
+    /// Exact git branch name filter for worktrees (example: `feat/1.19.2/ide`).
+    #[facet(default, args::named)]
+    pub branch: Option<String>,
+
     /// If set, stream gradle stdout/stderr to the console while tasks run.
     ///
     /// By default logs are written to cache files only and not streamed.
@@ -1459,6 +1463,18 @@ impl GradleRunCommand {
 
         let mut excluded_worktree_branches = Vec::new();
 
+        if let Some(branch_filter) = self.branch.as_deref() {
+            worktrees.retain(|wt| {
+                if wt.branch == branch_filter {
+                    true
+                } else {
+                    excluded_worktree_branches.push(wt.branch.clone());
+                    debug!(branch = %wt.branch, requested_branch = branch_filter, "Skipping branch due to --branch filter");
+                    false
+                }
+            });
+        }
+
         if let Some(filter) = mc_filter {
             worktrees.retain(|wt| match filter.matches_version_text(&wt.branch) {
                 Some(true) => true,
@@ -1476,8 +1492,12 @@ impl GradleRunCommand {
         }
 
         if worktrees.is_empty() {
-            if self.mc.is_some() {
+            if self.mc.is_some() && self.branch.is_some() {
+                println!("No worktrees match the requested --branch/--mc filters.");
+            } else if self.mc.is_some() {
                 println!("No worktrees match the requested --mc filter.");
+            } else if self.branch.is_some() {
+                println!("No worktrees match the requested --branch filter.");
             } else {
                 println!("No worktrees found.");
             }
@@ -1519,6 +1539,7 @@ impl GradleRunCommand {
 
         info!(
             tasks = ?self.tasks,
+            branch_filter = ?self.branch,
             mc_filter = ?self.mc,
             continue_on_error = self.continue_on_error,
             worktrees = ?all_worktree_branches,
@@ -1659,9 +1680,8 @@ impl GradleRunCommand {
                                     let tests = names
                                         .into_iter()
                                         .map(|name| {
-                                            let reason = reasons
-                                                .iter()
-                                                .find_map(|(test_name, reason)| {
+                                            let reason =
+                                                reasons.iter().find_map(|(test_name, reason)| {
                                                     (test_name == &name).then_some(reason.clone())
                                                 });
                                             (name, reason)

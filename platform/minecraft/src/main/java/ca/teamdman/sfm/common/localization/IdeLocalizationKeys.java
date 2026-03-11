@@ -120,7 +120,7 @@ public final class IdeLocalizationKeys {
     );
     public static final LocalizationEntry IDE_PLAYGROUND_LABEL_HINTS = new LocalizationEntry(
             "gui.sfm.ide.playground.label.hints",
-            "Tab: cycle focus | Arrows: resize focused edge | %s: close"
+            "Tab: cycle focus | Alt+Shift+Arrows: resize focused edge | %s: close"
     );
     public static final LocalizationEntry IDE_PLAYGROUND_LABEL_LAYOUT_MODE = new LocalizationEntry(
             "gui.sfm.ide.playground.label.layout_mode",
@@ -133,6 +133,26 @@ public final class IdeLocalizationKeys {
     public static final LocalizationEntry IDE_PLAYGROUND_LABEL_TERMINAL = new LocalizationEntry(
             "gui.sfm.ide.playground.label.terminal",
             "Terminal/result surface placeholder"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_TERMINAL_PLACEHOLDER = new LocalizationEntry(
+            "gui.sfm.ide.playground.terminal.placeholder",
+            "Run action id or /sfm ide ..."
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_TERMINAL_HINT = new LocalizationEntry(
+            "gui.sfm.ide.playground.terminal.hint",
+            "Action bus terminal. Try exact ids, panel.*, selection.*, or /sfm ide ..."
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_TERMINAL_EMPTY = new LocalizationEntry(
+            "gui.sfm.ide.playground.terminal.empty",
+            "Try: sfm:panel.toggle_layout | sfm:panel.toggle_terminal | sfm:selection.select_focused"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_TERMINAL_SUCCESS = new LocalizationEntry(
+            "gui.sfm.ide.playground.terminal.success",
+            "Ran: %s"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_TERMINAL_UNKNOWN = new LocalizationEntry(
+            "gui.sfm.ide.playground.terminal.unknown",
+            "Unknown action: %s"
     );
     public static final LocalizationEntry IDE_PLAYGROUND_LABEL_WORKSPACE = new LocalizationEntry(
             "gui.sfm.ide.playground.label.workspace",

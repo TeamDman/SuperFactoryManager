@@ -1,23 +1,30 @@
 package ca.teamdman.sfm.client.screen;
 
+import ca.teamdman.sfm.client.ide.action.IdePlaygroundActionIds;
+import ca.teamdman.sfm.client.ide.action.IdePlaygroundActionRegistry;
 import ca.teamdman.sfm.client.ide.layout.IdeArea;
 import ca.teamdman.sfm.client.ide.layout.IdeDockDirection;
 import ca.teamdman.sfm.client.ide.layout.IdeDockLayout;
 import ca.teamdman.sfm.client.ide.layout.IdeDockPiece;
 import ca.teamdman.sfm.client.ide.session.IdeSession;
 import ca.teamdman.sfm.client.ide.session.IdeSessionCapture;
+import ca.teamdman.sfm.client.ide.session.IdeSessionTarget;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.localization.IdeLocalizationKeys;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Optional;
 
 public class IdePlaygroundScreen extends Screen {
@@ -26,12 +33,24 @@ public class IdePlaygroundScreen extends Screen {
     private static final int MIN_SIDE_PANEL_WIDTH = 96;
     private static final int MIN_BOTTOM_PANEL_HEIGHT = 64;
     private static final int PANEL_TEXT_PADDING = 6;
+    private static final int TERMINAL_INPUT_HEIGHT = 16;
+    private static final int TERMINAL_INPUT_MARGIN = 6;
+    private static final int MAX_TERMINAL_MESSAGES = 8;
 
     private int shellPanelWidth = 160;
     private int layoutPanelWidth = 180;
     private int terminalPanelHeight = 96;
+    private boolean shellPanelVisible = true;
+    private boolean layoutPanelVisible = true;
+    private boolean terminalPanelVisible = true;
     private PlaygroundPanel focusedPanel = PlaygroundPanel.WORKSPACE;
     private final IdeSession session = new IdeSession();
+    private final List<Component> terminalMessages = new ArrayList<>();
+    private final List<String> terminalHistory = new ArrayList<>();
+    private Map<PlaygroundPanel, IdeArea> currentLayout = Map.of();
+    private EditBox terminalInput;
+    private int terminalHistoryIndex;
+    private String terminalHistoryDraft = "";
 
     public IdePlaygroundScreen() {
         super(IdeLocalizationKeys.IDE_PLAYGROUND_TITLE.getComponent());
@@ -41,6 +60,22 @@ public class IdePlaygroundScreen extends Screen {
     protected void init() {
         super.init();
         clampPanelSizes();
+
+        terminalInput = addRenderableWidget(new EditBox(
+                font,
+                MARGIN,
+                height - MARGIN - TERMINAL_INPUT_HEIGHT,
+                Math.max(96, width - MARGIN * 2),
+                TERMINAL_INPUT_HEIGHT,
+                IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_PLACEHOLDER.getComponent()
+        ));
+        terminalInput.setMaxLength(256);
+        terminalInput.setVisible(false);
+        terminalHistoryIndex = terminalHistory.size();
+
+        if (terminalMessages.isEmpty()) {
+            appendTerminalMessage(IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_EMPTY.getComponent().withStyle(ChatFormatting.DARK_GRAY));
+        }
     }
 
     @Override
@@ -50,8 +85,33 @@ public class IdePlaygroundScreen extends Screen {
             this.onClose();
             return true;
         }
+        if (SFMKeyMappings.IDE_TOGGLE_RIGHT_PANEL_KEY.get().isActiveAndMatches(key)) {
+            return dispatchAction(IdePlaygroundActionIds.TOGGLE_LAYOUT_PANEL);
+        }
+        if (SFMKeyMappings.IDE_TOGGLE_BOTTOM_PANEL_KEY.get().isActiveAndMatches(key)) {
+            return dispatchAction(IdePlaygroundActionIds.TOGGLE_TERMINAL_PANEL);
+        }
+
+        if (terminalPanelVisible && terminalInput != null && terminalInput.visible && terminalInput.isFocused()) {
+            if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                submitTerminalCommand();
+                return true;
+            }
+            if (!hasAltDown() && !hasShiftDown()) {
+                if (keyCode == GLFW.GLFW_KEY_UP && recallTerminalHistory(-1)) {
+                    return true;
+                }
+                if (keyCode == GLFW.GLFW_KEY_DOWN && recallTerminalHistory(1)) {
+                    return true;
+                }
+            }
+            if (terminalInput.keyPressed(keyCode, scanCode, modifiers)) {
+                return true;
+            }
+        }
+
         if (keyCode == GLFW.GLFW_KEY_TAB) {
-            focusedPanel = focusedPanel.next(hasShiftDown());
+            cycleFocus(hasShiftDown());
             return true;
         }
         if (handleResizeKey(keyCode)) {
@@ -61,6 +121,10 @@ public class IdePlaygroundScreen extends Screen {
     }
 
     private boolean handleResizeKey(int keyCode) {
+        if (!hasAltDown() || !hasShiftDown()) {
+            return false;
+        }
+
         switch (focusedPanel) {
             case SHELL -> {
                 if (keyCode == GLFW.GLFW_KEY_LEFT) {
@@ -76,17 +140,20 @@ public class IdePlaygroundScreen extends Screen {
             }
             case LAYOUT -> {
                 if (keyCode == GLFW.GLFW_KEY_LEFT) {
-                    layoutPanelWidth -= 8;
+                    layoutPanelWidth += 8;
                     clampPanelSizes();
                     return true;
                 }
                 if (keyCode == GLFW.GLFW_KEY_RIGHT) {
-                    layoutPanelWidth += 8;
+                    layoutPanelWidth -= 8;
                     clampPanelSizes();
                     return true;
                 }
             }
             case TERMINAL -> {
+                if (!terminalPanelVisible) {
+                    return false;
+                }
                 if (keyCode == GLFW.GLFW_KEY_DOWN) {
                     terminalPanelHeight -= 8;
                     clampPanelSizes();
@@ -133,7 +200,7 @@ public class IdePlaygroundScreen extends Screen {
         clampPanelSizes();
 
         drawString(poseStack, font, title, MARGIN, MARGIN, 0xFFFFFF);
-        drawString(poseStack, font, IdeLocalizationKeys.IDE_PLAYGROUND_SUBTITLE.getComponent(), MARGIN, MARGIN + 12, 0xA0A0A0);
+        drawWrappedText(poseStack, IdeLocalizationKeys.IDE_PLAYGROUND_SUBTITLE.getComponent(), MARGIN, MARGIN + 12, Math.max(120, width - MARGIN * 2), 0xA0A0A0, 2);
         IdeSessionCapture.capture(session, Minecraft.getInstance(), focusedPanel.display().getString());
 
         IdeArea rootArea = new IdeArea(
@@ -143,18 +210,29 @@ public class IdePlaygroundScreen extends Screen {
                 Math.max(0, height - MARGIN * 2 - HEADER_HEIGHT)
         );
 
-        List<IdeDockPiece<PlaygroundPanel>> pieces = List.of(
-                new IdeDockPiece<>(PlaygroundPanel.SHELL, IdeDockDirection.LEFT, shellPanelWidth),
-                new IdeDockPiece<>(PlaygroundPanel.WORKSPACE, IdeDockDirection.CENTER, 0),
-                new IdeDockPiece<>(PlaygroundPanel.LAYOUT, IdeDockDirection.RIGHT, layoutPanelWidth),
-                new IdeDockPiece<>(PlaygroundPanel.TERMINAL, IdeDockDirection.DOWN, terminalPanelHeight)
-        );
+        List<IdeDockPiece<PlaygroundPanel>> pieces = new ArrayList<>();
+        if (shellPanelVisible) {
+            pieces.add(new IdeDockPiece<>(PlaygroundPanel.SHELL, IdeDockDirection.LEFT, shellPanelWidth));
+        }
+        pieces.add(new IdeDockPiece<>(PlaygroundPanel.WORKSPACE, IdeDockDirection.CENTER, 0));
+        if (layoutPanelVisible) {
+            pieces.add(new IdeDockPiece<>(PlaygroundPanel.LAYOUT, IdeDockDirection.RIGHT, layoutPanelWidth));
+        }
+        if (terminalPanelVisible) {
+            pieces.add(new IdeDockPiece<>(PlaygroundPanel.TERMINAL, IdeDockDirection.DOWN, terminalPanelHeight));
+        }
         Map<PlaygroundPanel, IdeArea> layout = IdeDockLayout.calculate(rootArea, pieces);
+        currentLayout = layout;
+        ensureFocusedPanelVisible();
 
-        drawPanel(poseStack, layout.get(PlaygroundPanel.SHELL), IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_SHELL.getComponent(), focusedPanel == PlaygroundPanel.SHELL, buildShellLines());
+        if (shellPanelVisible) {
+            drawPanel(poseStack, layout.get(PlaygroundPanel.SHELL), IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_SHELL.getComponent(), focusedPanel == PlaygroundPanel.SHELL, buildShellLines());
+        }
         drawWorkspacePanel(poseStack, layout.get(PlaygroundPanel.WORKSPACE), focusedPanel == PlaygroundPanel.WORKSPACE, layout);
-        drawPanel(poseStack, layout.get(PlaygroundPanel.LAYOUT), IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_LAYOUT.getComponent(), focusedPanel == PlaygroundPanel.LAYOUT, buildLayoutLines());
-        drawPanel(poseStack, layout.get(PlaygroundPanel.TERMINAL), IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_TERMINAL.getComponent(), focusedPanel == PlaygroundPanel.TERMINAL, buildTerminalLines());
+        if (layoutPanelVisible) {
+            drawPanel(poseStack, layout.get(PlaygroundPanel.LAYOUT), IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_LAYOUT.getComponent(), focusedPanel == PlaygroundPanel.LAYOUT, buildLayoutLines());
+        }
+        drawTerminalPanel(poseStack, layout.get(PlaygroundPanel.TERMINAL), focusedPanel == PlaygroundPanel.TERMINAL);
 
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
@@ -178,18 +256,13 @@ public class IdePlaygroundScreen extends Screen {
                 IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_LAYOUT_MODE.getComponent(),
                 IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_LAYOUT_PIECES.getComponent(),
                 Component.empty(),
+            Component.literal(String.format(Locale.ROOT, "shell=%s layout=%s terminal=%s",
+                shellPanelVisible ? "shown" : "hidden",
+                layoutPanelVisible ? "shown" : "hidden",
+                terminalPanelVisible ? "shown" : "hidden"
+            )).withStyle(ChatFormatting.GRAY),
                 IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_TARGET.getComponent(displayOrNone(session.focusedTarget().summary())),
                 IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_FOCUS.getComponent(focusedPanel.display().getString())
-        );
-    }
-
-    private List<Component> buildTerminalLines() {
-        return List.of(
-                IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_TERMINAL.getComponent(),
-                Component.literal("/sfm ide ..."),
-                Component.literal("sfm:panel.toggle_terminal"),
-                Component.literal("sfm:layout.split_down"),
-                IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_TARGET.getComponent(displayOrNone(session.focusedTarget().summary()))
         );
     }
 
@@ -198,14 +271,21 @@ public class IdePlaygroundScreen extends Screen {
     }
 
     private void drawWorkspacePanel(PoseStack poseStack, IdeArea area, boolean focused, Map<PlaygroundPanel, IdeArea> outerLayout) {
+        if (area == null || area.isEmpty()) {
+            return;
+        }
         drawPanelFrame(poseStack, area, IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_WORKSPACE.getComponent(), focused);
-        drawString(poseStack, font, IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_WORKSPACE.getComponent(), area.x() + PANEL_TEXT_PADDING, area.y() + 18, 0xE0E0E0);
+        int textWidth = Math.max(32, area.width() - PANEL_TEXT_PADDING * 2);
+        int infoY = area.y() + 18;
+        infoY = drawWrappedText(poseStack, IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_WORKSPACE.getComponent(), area.x() + PANEL_TEXT_PADDING, infoY, textWidth, 0xE0E0E0, 2);
+        infoY = drawWrappedText(poseStack, IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_TARGET.getComponent(displayOrNone(session.focusedTarget().summary())), area.x() + PANEL_TEXT_PADDING, infoY, textWidth, 0xC8C8C8, 2);
+        infoY = drawWrappedText(poseStack, IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_SELECTION.getComponent(Integer.toString(session.selectedTargets().size())), area.x() + PANEL_TEXT_PADDING, infoY, textWidth, 0xC8C8C8, 1);
 
         IdeArea previewArea = new IdeArea(
                 area.x() + 10,
-                area.y() + 32,
+                infoY + 4,
                 Math.max(0, area.width() - 20),
-                Math.max(0, area.height() - 42)
+                Math.max(0, area.bottom() - (infoY + 14))
         );
         fill(poseStack, previewArea.x(), previewArea.y(), previewArea.right(), previewArea.bottom(), 0x33101010);
 
@@ -221,7 +301,56 @@ public class IdePlaygroundScreen extends Screen {
             int previewH = Math.max(10, scale(panelArea.height(), height - MARGIN * 2 - HEADER_HEIGHT, previewArea.height()));
             int color = panel == focusedPanel ? 0xFF4C7899 : 0xAA2A2A2A;
             fill(poseStack, previewX, previewY, previewX + previewW, previewY + previewH, color);
-            drawCenteredString(poseStack, font, panel.display(), previewX + previewW / 2, previewY + Math.max(1, previewH / 2 - 4), 0xFFFFFF);
+            String previewLabel = font.plainSubstrByWidth(panel.display().getString(), Math.max(6, previewW - 4));
+            drawCenteredString(poseStack, font, previewLabel, previewX + previewW / 2, previewY + Math.max(1, previewH / 2 - 4), 0xFFFFFF);
+        }
+
+        int footerY = previewArea.bottom() - (font.lineHeight + 2) * Math.min(3, session.selectedTargets().size()) - 8;
+        for (IdeSessionTarget selectedTarget : session.selectedTargets().stream().limit(3).toList()) {
+            drawString(
+                    poseStack,
+                    font,
+                    Component.literal("• " + displayOrNone(selectedTarget.summary())).withStyle(ChatFormatting.AQUA),
+                    previewArea.x() + PANEL_TEXT_PADDING,
+                    footerY,
+                    0xAEE8FF
+            );
+            footerY += font.lineHeight + 2;
+        }
+    }
+
+    private void drawTerminalPanel(PoseStack poseStack, IdeArea area, boolean focused) {
+        updateTerminalInputBounds(area);
+        if (!terminalPanelVisible || area == null || area.isEmpty()) {
+            return;
+        }
+
+        drawPanelFrame(poseStack, area, IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_TERMINAL.getComponent(), focused);
+
+        int inputTop = area.bottom() - TERMINAL_INPUT_HEIGHT - TERMINAL_INPUT_MARGIN - 2;
+        int lineStep = font.lineHeight + 2;
+        int textWidth = Math.max(32, area.width() - PANEL_TEXT_PADDING * 2);
+
+        int messageTop = drawWrappedText(
+                poseStack,
+                IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_HINT.getComponent(),
+                area.x() + PANEL_TEXT_PADDING,
+                area.y() + 18,
+                textWidth,
+                0xC8C8C8,
+                2
+        ) + 2;
+
+        int lineY = inputTop - font.lineHeight;
+        for (int i = terminalMessages.size() - 1; i >= 0; i--) {
+            List<FormattedCharSequence> wrapped = font.split(terminalMessages.get(i), textWidth);
+            for (int j = wrapped.size() - 1; j >= 0; j--) {
+                if (lineY < messageTop) {
+                    return;
+                }
+                font.draw(poseStack, wrapped.get(j), area.x() + PANEL_TEXT_PADDING, lineY, 0xE0E0E0);
+                lineY -= lineStep;
+            }
         }
     }
 
@@ -233,11 +362,14 @@ public class IdePlaygroundScreen extends Screen {
     }
 
     private void drawPanel(PoseStack poseStack, IdeArea area, Component title, boolean focused, List<Component> lines) {
+        if (area == null || area.isEmpty()) {
+            return;
+        }
         drawPanelFrame(poseStack, area, title, focused);
         int y = area.y() + 18;
+        int textWidth = Math.max(32, area.width() - PANEL_TEXT_PADDING * 2);
         for (Component line : lines) {
-            drawString(poseStack, font, line, area.x() + PANEL_TEXT_PADDING, y, 0xE0E0E0);
-            y += font.lineHeight + 2;
+            y = drawWrappedText(poseStack, line, area.x() + PANEL_TEXT_PADDING, y, textWidth, 0xE0E0E0, Integer.MAX_VALUE);
             if (y > area.bottom() - font.lineHeight - PANEL_TEXT_PADDING) {
                 break;
             }
@@ -245,6 +377,9 @@ public class IdePlaygroundScreen extends Screen {
     }
 
     private void drawPanelFrame(PoseStack poseStack, IdeArea area, Component panelTitle, boolean focused) {
+        if (area == null || area.isEmpty()) {
+            return;
+        }
         int background = focused ? 0xCC18212A : 0xB8141414;
         int border = focused ? 0xFF66CCFF : 0xFF303030;
         fill(poseStack, area.x(), area.y(), area.right(), area.bottom(), background);
@@ -252,7 +387,7 @@ public class IdePlaygroundScreen extends Screen {
         fill(poseStack, area.x(), area.bottom() - 1, area.right(), area.bottom(), border);
         fill(poseStack, area.x(), area.y(), area.x() + 1, area.bottom(), border);
         fill(poseStack, area.right() - 1, area.y(), area.right(), area.bottom(), border);
-        drawString(poseStack, font, panelTitle, area.x() + PANEL_TEXT_PADDING, area.y() + 5, 0xFFFFFF);
+        drawString(poseStack, font, font.plainSubstrByWidth(panelTitle.getString(), Math.max(16, area.width() - PANEL_TEXT_PADDING * 2)), area.x() + PANEL_TEXT_PADDING, area.y() + 5, 0xFFFFFF);
     }
 
     @Override
@@ -260,23 +395,226 @@ public class IdePlaygroundScreen extends Screen {
         return false;
     }
 
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (terminalPanelVisible && terminalInput != null && terminalInput.visible && terminalInput.isFocused()) {
+            return terminalInput.charTyped(codePoint, modifiers);
+        }
+        return super.charTyped(codePoint, modifiers);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        for (PlaygroundPanel panel : visiblePanels()) {
+            IdeArea area = currentLayout.get(panel);
+            if (area != null && area.contains(mouseX, mouseY)) {
+                focusPanel(panel);
+                break;
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    public void toggleShellPanel() {
+        shellPanelVisible = !shellPanelVisible;
+        ensureFocusedPanelVisible();
+    }
+
+    public void toggleLayoutPanel() {
+        layoutPanelVisible = !layoutPanelVisible;
+        ensureFocusedPanelVisible();
+    }
+
+    public void toggleTerminalPanel() {
+        terminalPanelVisible = !terminalPanelVisible;
+        if (!terminalPanelVisible && terminalInput != null) {
+            terminalInput.setFocus(false);
+            setFocused(null);
+        }
+        ensureFocusedPanelVisible();
+    }
+
+    public void focusShellPanel() {
+        shellPanelVisible = true;
+        focusPanel(PlaygroundPanel.SHELL);
+    }
+
+    public void focusWorkspacePanel() {
+        focusPanel(PlaygroundPanel.WORKSPACE);
+    }
+
+    public void focusLayoutPanel() {
+        layoutPanelVisible = true;
+        focusPanel(PlaygroundPanel.LAYOUT);
+    }
+
+    public void focusTerminalPanel() {
+        terminalPanelVisible = true;
+        focusPanel(PlaygroundPanel.TERMINAL);
+    }
+
+    public void selectFocusedTarget() {
+        session.selectFocusedTarget();
+    }
+
+    public void clearSelectedTargets() {
+        session.clearSelectedTargets();
+    }
+
+    private boolean dispatchAction(String actionId) {
+        boolean executed = IdePlaygroundActionRegistry.run(actionId, this);
+        appendTerminalMessage((executed
+                              ? IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_SUCCESS.getComponent(actionId).withStyle(ChatFormatting.GREEN)
+                              : IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_UNKNOWN.getComponent(actionId).withStyle(ChatFormatting.RED)));
+        return executed;
+    }
+
+    private void submitTerminalCommand() {
+        if (terminalInput == null) {
+            return;
+        }
+
+        String rawCommand = terminalInput.getValue().trim();
+        if (rawCommand.isEmpty()) {
+            return;
+        }
+        terminalInput.setValue("");
+        terminalHistory.add(rawCommand);
+        terminalHistoryIndex = terminalHistory.size();
+        terminalHistoryDraft = "";
+
+        if (rawCommand.equalsIgnoreCase("help") || rawCommand.equalsIgnoreCase("/sfm ide help")) {
+            appendTerminalMessage(IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_EMPTY.getComponent().withStyle(ChatFormatting.DARK_GRAY));
+            return;
+        }
+
+        Optional<String> resolvedActionId = IdePlaygroundActionRegistry.resolveActionId(rawCommand);
+        if (resolvedActionId.isPresent()) {
+            dispatchAction(resolvedActionId.get());
+        } else {
+            appendTerminalMessage(IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_UNKNOWN.getComponent(rawCommand).withStyle(ChatFormatting.RED));
+        }
+    }
+
+    private void appendTerminalMessage(Component message) {
+        terminalMessages.add(message);
+        while (terminalMessages.size() > MAX_TERMINAL_MESSAGES) {
+            terminalMessages.remove(0);
+        }
+    }
+
+    private boolean recallTerminalHistory(int direction) {
+        if (terminalInput == null || terminalHistory.isEmpty()) {
+            return false;
+        }
+
+        int size = terminalHistory.size();
+        if (terminalHistoryIndex == size) {
+            terminalHistoryDraft = terminalInput.getValue();
+        }
+
+        int nextIndex = Math.max(0, Math.min(size, terminalHistoryIndex + direction));
+        if (nextIndex == terminalHistoryIndex) {
+            return true;
+        }
+
+        terminalHistoryIndex = nextIndex;
+        if (terminalHistoryIndex == size) {
+            terminalInput.setValue(terminalHistoryDraft);
+        } else {
+            terminalInput.setValue(terminalHistory.get(terminalHistoryIndex));
+        }
+        terminalInput.moveCursorToEnd();
+        return true;
+    }
+
+    private void updateTerminalInputBounds(IdeArea area) {
+        if (terminalInput == null) {
+            return;
+        }
+        boolean visible = terminalPanelVisible && area != null && !area.isEmpty();
+        terminalInput.visible = visible;
+        terminalInput.active = visible;
+        if (!visible) {
+            terminalInput.setFocus(false);
+            return;
+        }
+
+        terminalInput.setWidth(Math.max(80, area.width() - PANEL_TEXT_PADDING * 2));
+        terminalInput.setX(area.x() + PANEL_TEXT_PADDING);
+        terminalInput.y = area.bottom() - TERMINAL_INPUT_HEIGHT - TERMINAL_INPUT_MARGIN;
+    }
+
+    private int drawWrappedText(PoseStack poseStack, Component text, int x, int y, int maxWidth, int color, int maxLines) {
+        int linesDrawn = 0;
+        for (FormattedCharSequence sequence : font.split(text, Math.max(1, maxWidth))) {
+            if (linesDrawn >= maxLines) {
+                break;
+            }
+            font.draw(poseStack, sequence, x, y, color);
+            y += font.lineHeight + 2;
+            linesDrawn++;
+        }
+        return y;
+    }
+
+    private void ensureFocusedPanelVisible() {
+        if (isPanelVisible(focusedPanel)) {
+            return;
+        }
+        focusPanel(visiblePanels().get(0));
+    }
+
+    private void cycleFocus(boolean reverse) {
+        List<PlaygroundPanel> visiblePanels = visiblePanels();
+        int currentIndex = visiblePanels.indexOf(focusedPanel);
+        if (currentIndex < 0) {
+            currentIndex = 0;
+        }
+        int nextIndex = reverse
+                        ? (currentIndex - 1 + visiblePanels.size()) % visiblePanels.size()
+                        : (currentIndex + 1) % visiblePanels.size();
+        focusPanel(visiblePanels.get(nextIndex));
+    }
+
+    private void focusPanel(PlaygroundPanel panel) {
+        focusedPanel = panel;
+        boolean focusTerminalInput = panel == PlaygroundPanel.TERMINAL && terminalPanelVisible && terminalInput != null && terminalInput.visible;
+        if (terminalInput != null) {
+            terminalInput.setFocus(focusTerminalInput);
+        }
+        setFocused(focusTerminalInput ? terminalInput : null);
+    }
+
+    private List<PlaygroundPanel> visiblePanels() {
+        ArrayList<PlaygroundPanel> panels = new ArrayList<>();
+        if (shellPanelVisible) {
+            panels.add(PlaygroundPanel.SHELL);
+        }
+        panels.add(PlaygroundPanel.WORKSPACE);
+        if (layoutPanelVisible) {
+            panels.add(PlaygroundPanel.LAYOUT);
+        }
+        if (terminalPanelVisible) {
+            panels.add(PlaygroundPanel.TERMINAL);
+        }
+        return panels;
+    }
+
+    private boolean isPanelVisible(PlaygroundPanel panel) {
+        return switch (panel) {
+            case SHELL -> shellPanelVisible;
+            case WORKSPACE -> true;
+            case LAYOUT -> layoutPanelVisible;
+            case TERMINAL -> terminalPanelVisible;
+        };
+    }
+
     private enum PlaygroundPanel {
         SHELL,
         WORKSPACE,
         LAYOUT,
         TERMINAL;
-
-        public PlaygroundPanel next(boolean reverse) {
-            PlaygroundPanel[] values = values();
-            int index = ordinal() + (reverse ? -1 : 1);
-            if (index < 0) {
-                index = values.length - 1;
-            }
-            if (index >= values.length) {
-                index = 0;
-            }
-            return values[index];
-        }
 
         public Component display() {
             return switch (this) {

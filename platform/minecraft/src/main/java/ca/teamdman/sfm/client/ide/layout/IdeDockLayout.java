@@ -12,11 +12,19 @@ public final class IdeDockLayout {
         LinkedHashMap<T, IdeArea> carvedAreas = new LinkedHashMap<>();
         IdeArea remaining = root;
 
-        for (int i = pieces.size() - 1; i >= 0; i--) {
-            IdeDockPiece<T> piece = pieces.get(i);
+        for (IdeDockPiece<T> piece : pieces) {
+            if (piece.direction() == IdeDockDirection.CENTER) {
+                continue;
+            }
             IdeArea allocated = carve(remaining, piece.direction(), piece.size());
             carvedAreas.put(piece.target(), allocated);
             remaining = subtract(remaining, piece.direction(), allocated);
+        }
+
+        for (IdeDockPiece<T> piece : pieces) {
+            if (piece.direction() == IdeDockDirection.CENTER) {
+                carvedAreas.put(piece.target(), remaining);
+            }
         }
 
         LinkedHashMap<T, IdeArea> orderedResult = new LinkedHashMap<>();
