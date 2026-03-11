@@ -107,6 +107,15 @@ public final class SFMIdePlaygroundActions {
             )
     );
 
+    public static final SFMRegistryObject<IdeActionDefinition, IdeActionDefinition> HELP = REGISTERER.register(
+            "help",
+            () -> new IdeActionDefinition(
+                    IdeLocalizationKeys.IDE_PLAYGROUND_ACTION_HELP,
+                    IdePlaygroundScreen::showTerminalHelp,
+                    null
+            )
+    );
+
     private SFMIdePlaygroundActions() {
 
     }

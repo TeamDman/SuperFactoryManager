@@ -154,6 +154,10 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.playground.terminal.empty",
             "Try: sfm:panel.toggle_layout | sfm:panel.toggle_terminal | sfm:selection.select_focused"
     );
+    public static final LocalizationEntry IDE_PLAYGROUND_TERMINAL_HELP = new LocalizationEntry(
+            "gui.sfm.ide.playground.terminal.help",
+            "Type `help` for this message or run exact action ids from the registry."
+    );
     public static final LocalizationEntry IDE_PLAYGROUND_TERMINAL_SUCCESS = new LocalizationEntry(
             "gui.sfm.ide.playground.terminal.success",
             "Ran: %s"
@@ -217,6 +221,10 @@ public final class IdeLocalizationKeys {
     public static final LocalizationEntry IDE_PLAYGROUND_ACTION_CLEAR_SELECTION = new LocalizationEntry(
             "gui.sfm.ide.playground.action.clear_selection",
             "Clear selected targets"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_HELP = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.help",
+            "Show terminal help"
     );
 
     public static final LocalizationEntry IDE_KEY_OPEN_PLAYGROUND = new LocalizationEntry(
