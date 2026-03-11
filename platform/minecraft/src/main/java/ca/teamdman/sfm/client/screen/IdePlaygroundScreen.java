@@ -2533,16 +2533,51 @@ public class IdePlaygroundScreen extends Screen {
         return Math.max(minY, Math.min(y, maxY));
     }
 
+    private LayoutSnapshot captureLayoutSnapshot() {
+
+        return new LayoutSnapshot(
+                shellPanelWidth,
+                layoutPanelWidth,
+                terminalPanelHeight,
+                contentMarginLeft,
+                contentMarginTop,
+                contentMarginRight,
+                contentMarginBottom,
+                panelState(PlaygroundPanel.SHELL).dockDirection(),
+                panelState(PlaygroundPanel.LAYOUT).dockDirection(),
+                panelState(PlaygroundPanel.TERMINAL).dockDirection()
+        );
+    }
+
+    private void restoreLayoutSnapshot(LayoutSnapshot snapshot) {
+
+        shellPanelWidth = snapshot.shellPanelWidth();
+        layoutPanelWidth = snapshot.layoutPanelWidth();
+        terminalPanelHeight = snapshot.terminalPanelHeight();
+        contentMarginLeft = snapshot.contentMarginLeft();
+        contentMarginTop = snapshot.contentMarginTop();
+        contentMarginRight = snapshot.contentMarginRight();
+        contentMarginBottom = snapshot.contentMarginBottom();
+        panelState(PlaygroundPanel.SHELL).setDockDirection(snapshot.shellDockDirection());
+        panelState(PlaygroundPanel.LAYOUT).setDockDirection(snapshot.layoutDockDirection());
+        panelState(PlaygroundPanel.TERMINAL).setDockDirection(snapshot.terminalDockDirection());
+        clampPanelSizes();
+    }
+
     private abstract class DragTransaction {
         private double lastMouseX;
 
         private double lastMouseY;
 
+        private final @Nullable LayoutSnapshot cancelSnapshot;
+
         protected DragTransaction(
+                boolean restoreLayoutOnCancel,
                 double lastMouseX,
                 double lastMouseY
         ) {
 
+            this.cancelSnapshot = restoreLayoutOnCancel ? captureLayoutSnapshot() : null;
             this.lastMouseX = lastMouseX;
             this.lastMouseY = lastMouseY;
         }
@@ -2571,6 +2606,9 @@ public class IdePlaygroundScreen extends Screen {
 
         public void cancel() {
 
+            if (cancelSnapshot != null) {
+                restoreLayoutSnapshot(cancelSnapshot);
+            }
         }
     }
 
@@ -2586,7 +2624,7 @@ public class IdePlaygroundScreen extends Screen {
                 double lastMouseY
         ) {
 
-            super(lastMouseX, lastMouseY);
+            super(true, lastMouseX, lastMouseY);
             this.panel = panel;
             this.edge = edge;
         }
@@ -2623,7 +2661,7 @@ public class IdePlaygroundScreen extends Screen {
                 double lastMouseY
         ) {
 
-            super(lastMouseX, lastMouseY);
+            super(true, lastMouseX, lastMouseY);
             this.panel = panel;
             this.corner = corner;
         }
@@ -2662,7 +2700,7 @@ public class IdePlaygroundScreen extends Screen {
                 double lastMouseY
         ) {
 
-            super(lastMouseX, lastMouseY);
+            super(true, lastMouseX, lastMouseY);
             this.edge = edge;
         }
 
@@ -2695,7 +2733,7 @@ public class IdePlaygroundScreen extends Screen {
                 double lastMouseY
         ) {
 
-            super(lastMouseX, lastMouseY);
+            super(true, lastMouseX, lastMouseY);
             this.corner = corner;
         }
 
@@ -2726,7 +2764,7 @@ public class IdePlaygroundScreen extends Screen {
                 double lastMouseY
         ) {
 
-            super(lastMouseX, lastMouseY);
+            super(true, lastMouseX, lastMouseY);
         }
 
         @Override
@@ -2760,7 +2798,7 @@ public class IdePlaygroundScreen extends Screen {
                 double lastMouseY
         ) {
 
-            super(lastMouseX, lastMouseY);
+            super(true, lastMouseX, lastMouseY);
             this.panel = panel;
             this.previewDirection = panelState(panel).dockDirection();
         }
@@ -2802,8 +2840,23 @@ public class IdePlaygroundScreen extends Screen {
         @Override
         public void cancel() {
 
+            super.cancel();
             previewDirection = null;
         }
+    }
+
+    private record LayoutSnapshot(
+            int shellPanelWidth,
+            int layoutPanelWidth,
+            int terminalPanelHeight,
+            int contentMarginLeft,
+            int contentMarginTop,
+            int contentMarginRight,
+            int contentMarginBottom,
+            IdeDockDirection shellDockDirection,
+            IdeDockDirection layoutDockDirection,
+            IdeDockDirection terminalDockDirection
+    ) {
     }
 
     private static final class PanelInstanceState {

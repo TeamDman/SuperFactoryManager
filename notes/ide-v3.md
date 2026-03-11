@@ -1084,7 +1084,7 @@ Implemented so far:
 	- drag start creates a transaction object
 	- drag update mutates preview or edge delta state
 	- release commits
-	- `Escape` cancels the active drag transaction
+	- `Escape` cancels the active drag transaction and now restores the pre-drag layout snapshot
 
 Implications of the latest action refactor:
 
@@ -1101,6 +1101,7 @@ Implications of the latest Hyprland-inspired layout work:
 - the current built-in panels now have a real instance-state bucket, which is a useful halfway step between panel-type enums and a future registry of many independent panel instances
 - dock placement is no longer fully hardcoded; non-workspace panels now have mutable dock directions and can be reassigned by drag gesture
 - this validates the idea that layout mutation should be modeled as explicit transactions against panel instances rather than as ad hoc rectangle edits; the playground now has a first drag-transaction controller shape for dock drags and edge-resize drags
+- transaction cancellation semantics are now more real: canceling a drag restores the pre-gesture layout snapshot instead of merely stopping further drag updates
 - the content work area itself is now mutable state rather than a hardcoded inset: outside edges and corners can reshape the dockspace margins, and the old title band is gone so the layout owns the whole screen rectangle
 - we are still in dockspace territory, not floating-window territory: the current drag flow re-docks panels rather than detaching them into independent floating surfaces
 
@@ -1122,7 +1123,7 @@ The next implementation steps suggested by the current prototype are:
 	- many instances of the same panel type with independent size, scale, bindings, and history
 
 3. **Drag transaction controller**
-	- partially underway: dock drags and edge-resize drags now use explicit transaction objects with start / preview / commit / cancel lifecycle
+	- partially underway: dock drags and edge-resize drags now use explicit transaction objects with start / preview / commit / cancel lifecycle, including cancel-time rollback to the pre-drag layout snapshot
 	- next: overlap remediation rules where the most recently adjusted instance wins
 	- next: cleaner separation between gesture interpretation and layout mutation
 
