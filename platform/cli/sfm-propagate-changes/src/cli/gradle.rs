@@ -1420,6 +1420,10 @@ pub struct GradleRunCommand {
     #[facet(default, args::named)]
     pub branch: Option<String>,
 
+    /// If set, skip the generated-file cleanliness preflight for tasks like `runData`.
+    #[facet(rename = "allow-dirty", args::named, default = false)]
+    pub allow_dirty: bool,
+
     /// If set, stream gradle stdout/stderr to the console while tasks run.
     ///
     /// By default logs are written to cache files only and not streamed.
@@ -1513,8 +1517,13 @@ impl GradleRunCommand {
         let run_log_dir = create_gradle_run_log_dir(&self.tasks)?;
         println!("Gradle run logs: {}", run_log_dir.display());
 
-        if tasks.iter().any(GradleTask::needs_generated_preflight) {
+        if tasks.iter().any(GradleTask::needs_generated_preflight) && !self.allow_dirty {
             assert_worktrees_clean_or_autocommit_generated(&worktrees)?;
+        } else if tasks.iter().any(GradleTask::needs_generated_preflight) && self.allow_dirty {
+            warn!(
+                tasks = ?self.tasks,
+                "Skipping generated-file cleanliness preflight due to --allow-dirty"
+            );
         }
 
         let mut branches: Vec<BranchRun> = worktrees
@@ -1541,6 +1550,7 @@ impl GradleRunCommand {
             tasks = ?self.tasks,
             branch_filter = ?self.branch,
             mc_filter = ?self.mc,
+            allow_dirty = self.allow_dirty,
             continue_on_error = self.continue_on_error,
             worktrees = ?all_worktree_branches,
             worktrees_included = ?included_worktree_branches,
