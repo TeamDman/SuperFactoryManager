@@ -1018,6 +1018,38 @@ This framing is much cleaner for features like:
 
 ## 8. Concrete Prototype Direction
 
+## 8.0 Current implementation snapshot
+
+The current `1.19.2` prototype has moved beyond a static playground sketch.
+
+Implemented so far:
+
+- sovereign plain `Screen` playground, opened in-game via `Alt+I`
+- dock reducer with four concrete regions:
+	- left: shell context
+	- top/center: workspace
+	- bottom: terminal
+	- right: layout
+- explicit `IdeSession` model with:
+	- shell-context snapshot
+	- focused target
+	- selected target set
+- action bus / registry using canonical ids such as:
+	- `sfm:panel.toggle_shell`
+	- `sfm:panel.toggle_layout`
+	- `sfm:panel.toggle_terminal`
+	- `sfm:selection.select_focused`
+- terminal action surface that can run canonical ids, shorthand aliases, and `/sfm ide ...`-style forms
+- panel focus and visibility state retained on the client side instead of being recomputed ad hoc each frame
+- directional panel navigation with:
+	- `Alt+Arrow` = move focus by spatial direction
+	- `Alt+Shift+Arrow` = resize the focused edge/panel
+- panel visibility toggles with:
+	- `Ctrl+M` = toggle left shell panel
+	- existing right/bottom panel toggles preserved
+
+This means Slice A is no longer just a concept; a usable shell/layout/input scaffold already exists and is being refined in-game.
+
 ## 8.1 What to keep from current prototype
 
 - virtual scrolling work
@@ -1025,6 +1057,10 @@ This framing is much cleaner for features like:
 - action registry momentum
 - plain-screen rendering experiments
 - basic paneling experiments
+- session-backed shell context rendering
+- selected-set model instead of single-target-only state
+- directional focus navigation as a first-class layout concern
+- canonical action ids shared by keybinds, terminal input, and future command palette routing
 
 ## 8.2 What to stop coupling to
 
@@ -1045,6 +1081,12 @@ This framing is much cleaner for features like:
 - initial shell context object
 - hotkey to toggle/open the IDE
 
+Status:
+
+- substantially underway
+- plain `Screen`, keybind open/toggle, dock reducer, focus manager, shell context object, and playground hotkeys now exist
+- still missing the more authoritative bootstrap/bind path for arbitrary target inspection
+
 ### Slice B: Arbitrary block inspector
 
 - raycast target acquisition
@@ -1060,6 +1102,14 @@ This framing is much cleaner for features like:
 - `IdeResult` plumbing
 - action registry with resource-location ids
 - shell variable exposure for player/look/hit context
+
+Status:
+
+- partially underway
+- terminal panel exists as an action shell surface
+- registry with resource-location-style action ids exists
+- shell context already exposes player/look/hit/dimension/focused-target summary in the playground
+- typed `IdeResult` plumbing and a true editor surface are still pending
 
 ### Slice D: Tabs and groups
 
@@ -1204,6 +1254,22 @@ Avoid overloading "window" unless we intentionally mean floating top-level UI.
 12. add groups/tabs, focus history, and undo units
 13. add pinned floating tools
 14. add canvas scene prototype
+
+Progress against this order:
+
+- done: 1, 2, 3
+- substantially started: 4, 5, 7, 9, 10
+- not started in earnest yet: 6, 8, 11, 12, 13, 14
+
+More concretely, the prototype now has:
+
+- hotkey-driven open/toggle
+- sovereign screen identity
+- dock playground with retained panel state
+- session/action/target scaffolding
+- shell-context capture and selected-set semantics
+- canonical action ids with terminal dispatch
+- context-sensitive navigation and resizing controls
 
 ---
 
