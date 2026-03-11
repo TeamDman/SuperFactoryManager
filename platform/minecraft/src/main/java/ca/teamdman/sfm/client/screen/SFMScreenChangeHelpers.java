@@ -53,6 +53,11 @@ public class SFMScreenChangeHelpers {
         setOrPushScreen(new LabelGunScreen(stack, hand));
     }
 
+    public static void showIdePlaygroundScreen() {
+
+        setOrPushScreen(new IdePlaygroundScreen());
+    }
+
     public static ISFMTextEditScreen createProgramEditScreen(
             ISFMTextEditScreenOpenContext openContext
     ) {

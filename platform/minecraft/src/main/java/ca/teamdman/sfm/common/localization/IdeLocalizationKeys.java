@@ -66,7 +66,83 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.center.text_editor.empty",
             "Select a disk in Explorer"
     );
+    public static final LocalizationEntry IDE_PLAYGROUND_TITLE = new LocalizationEntry(
+            "gui.sfm.ide.playground.title",
+            "SFM IDE Playground"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_SUBTITLE = new LocalizationEntry(
+            "gui.sfm.ide.playground.subtitle",
+            "Hyprland-inspired dock layout playground"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_PANEL_SHELL = new LocalizationEntry(
+            "gui.sfm.ide.playground.panel.shell",
+            "Shell Context"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_PANEL_WORKSPACE = new LocalizationEntry(
+            "gui.sfm.ide.playground.panel.workspace",
+            "Workspace"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_PANEL_LAYOUT = new LocalizationEntry(
+            "gui.sfm.ide.playground.panel.layout",
+            "Layout"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_PANEL_TERMINAL = new LocalizationEntry(
+            "gui.sfm.ide.playground.panel.terminal",
+            "Terminal"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_PLAYER = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.player",
+            "Player: %s"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_LOOK = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.look",
+            "Look: %s"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_HIT = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.hit",
+            "Hit: %s"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_DIMENSION = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.dimension",
+            "Dimension: %s"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_FOCUS = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.focus",
+            "Focused panel: %s"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_TARGET = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.target",
+            "Focused target: %s"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_SELECTION = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.selection",
+            "Selected targets: %s"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_HINTS = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.hints",
+            "Tab: cycle focus | Arrows: resize focused edge | %s: close"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_LAYOUT_MODE = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.layout_mode",
+            "Ordered edge carving"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_LAYOUT_PIECES = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.layout_pieces",
+            "Pieces: shell left, layout right, terminal down, workspace center"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_TERMINAL = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.terminal",
+            "Terminal/result surface placeholder"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_WORKSPACE = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.workspace",
+            "Dock workspace preview"
+    );
 
+    public static final LocalizationEntry IDE_KEY_OPEN_PLAYGROUND = new LocalizationEntry(
+            "key.sfm.ide.open_playground",
+            "IDE - Open Playground"
+    );
     public static final LocalizationEntry IDE_KEY_TOGGLE_RIGHT_PANEL = new LocalizationEntry(
             "key.sfm.ide.toggle_right_panel",
             "IDE - Toggle Right Panel"
