@@ -95,6 +95,13 @@ public class IdePlaygroundScreen extends Screen {
             return dispatchAction(IdePlaygroundActionIds.TOGGLE_TERMINAL_PANEL);
         }
 
+        if (handleResizeKey(keyCode)) {
+            return true;
+        }
+        if (handleFocusNavigationKey(keyCode)) {
+            return true;
+        }
+
         if (terminalPanelVisible && terminalInput != null && terminalInput.visible && terminalInput.isFocused()) {
             if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
                 submitTerminalCommand();
@@ -115,12 +122,6 @@ public class IdePlaygroundScreen extends Screen {
 
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             cycleFocus(hasShiftDown());
-            return true;
-        }
-        if (handleFocusNavigationKey(keyCode)) {
-            return true;
-        }
-        if (handleResizeKey(keyCode)) {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
@@ -616,8 +617,8 @@ public class IdePlaygroundScreen extends Screen {
             return true;
         }
 
-        double focusedCenterX = focusedArea.x() + focusedArea.width() / 2.0;
-        double focusedCenterY = focusedArea.y() + focusedArea.height() / 2.0;
+        int focusedCenterX = focusedArea.x() + focusedArea.width() / 2;
+        int focusedCenterY = focusedArea.y() + focusedArea.height() / 2;
         PlaygroundPanel bestPanel = null;
         double bestScore = Double.POSITIVE_INFINITY;
 
@@ -631,30 +632,73 @@ public class IdePlaygroundScreen extends Screen {
                 continue;
             }
 
-            double candidateCenterX = candidateArea.x() + candidateArea.width() / 2.0;
-            double candidateCenterY = candidateArea.y() + candidateArea.height() / 2.0;
-            double dx = candidateCenterX - focusedCenterX;
-            double dy = candidateCenterY - focusedCenterY;
+            int primaryDistance;
+            int secondaryDistance;
 
-            if (xDirection < 0 && dx >= 0) {
-                continue;
+            if (xDirection < 0) {
+                primaryDistance = focusedArea.x() - candidateArea.right();
+                secondaryDistance = perpendicularDistance(focusedArea.y(), focusedArea.bottom(), candidateArea.y(), candidateArea.bottom());
+            } else if (xDirection > 0) {
+                primaryDistance = candidateArea.x() - focusedArea.right();
+                secondaryDistance = perpendicularDistance(focusedArea.y(), focusedArea.bottom(), candidateArea.y(), candidateArea.bottom());
+            } else if (yDirection < 0) {
+                primaryDistance = focusedArea.y() - candidateArea.bottom();
+                secondaryDistance = perpendicularDistance(focusedArea.x(), focusedArea.right(), candidateArea.x(), candidateArea.right());
+            } else {
+                primaryDistance = candidateArea.y() - focusedArea.bottom();
+                secondaryDistance = perpendicularDistance(focusedArea.x(), focusedArea.right(), candidateArea.x(), candidateArea.right());
             }
-            if (xDirection > 0 && dx <= 0) {
-                continue;
-            }
-            if (yDirection < 0 && dy >= 0) {
-                continue;
-            }
-            if (yDirection > 0 && dy <= 0) {
+
+            if (primaryDistance < 0) {
                 continue;
             }
 
-            double primaryDistance = xDirection != 0 ? Math.abs(dx) : Math.abs(dy);
-            double secondaryDistance = xDirection != 0 ? Math.abs(dy) : Math.abs(dx);
-            double score = primaryDistance * 1000 + secondaryDistance;
+            double score = primaryDistance * 1000.0 + secondaryDistance;
             if (score < bestScore) {
                 bestScore = score;
                 bestPanel = panel;
+            }
+        }
+
+        if (bestPanel == null) {
+            for (PlaygroundPanel panel : visiblePanels) {
+                if (panel == focusedPanel) {
+                    continue;
+                }
+
+                IdeArea candidateArea = layout.get(panel);
+                if (candidateArea == null || candidateArea.isEmpty()) {
+                    continue;
+                }
+
+                int candidateCenterX = candidateArea.x() + candidateArea.width() / 2;
+                int candidateCenterY = candidateArea.y() + candidateArea.height() / 2;
+                int primaryDistance;
+                int secondaryDistance;
+
+                if (xDirection < 0) {
+                    primaryDistance = focusedCenterX - candidateCenterX;
+                    secondaryDistance = perpendicularDistance(focusedArea.y(), focusedArea.bottom(), candidateArea.y(), candidateArea.bottom());
+                } else if (xDirection > 0) {
+                    primaryDistance = candidateCenterX - focusedCenterX;
+                    secondaryDistance = perpendicularDistance(focusedArea.y(), focusedArea.bottom(), candidateArea.y(), candidateArea.bottom());
+                } else if (yDirection < 0) {
+                    primaryDistance = focusedCenterY - candidateCenterY;
+                    secondaryDistance = perpendicularDistance(focusedArea.x(), focusedArea.right(), candidateArea.x(), candidateArea.right());
+                } else {
+                    primaryDistance = candidateCenterY - focusedCenterY;
+                    secondaryDistance = perpendicularDistance(focusedArea.x(), focusedArea.right(), candidateArea.x(), candidateArea.right());
+                }
+
+                if (primaryDistance <= 0) {
+                    continue;
+                }
+
+                double score = primaryDistance * 1000.0 + secondaryDistance;
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestPanel = panel;
+                }
             }
         }
 
@@ -665,6 +709,16 @@ public class IdePlaygroundScreen extends Screen {
 
         focusPanel(bestPanel);
         return true;
+    }
+
+    private int perpendicularDistance(int focusedStart, int focusedEnd, int candidateStart, int candidateEnd) {
+        if (candidateEnd <= focusedStart) {
+            return focusedStart - candidateEnd;
+        }
+        if (candidateStart >= focusedEnd) {
+            return candidateStart - focusedEnd;
+        }
+        return 0;
     }
 
     private void focusPanel(PlaygroundPanel panel) {
