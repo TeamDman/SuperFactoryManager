@@ -58,6 +58,11 @@ public class SFMScreenChangeHelpers {
         setOrPushScreen(new IdePlaygroundScreen());
     }
 
+    public static void showSfmDrawScreen() {
+
+        setOrPushScreen(new SfmDrawScreen());
+    }
+
     public static ISFMTextEditScreen createProgramEditScreen(
             ISFMTextEditScreenOpenContext openContext
     ) {

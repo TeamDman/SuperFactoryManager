@@ -163,6 +163,15 @@ public class SFMKeyMappings {
             LocalizationKeys.SFM_KEY_CATEGORY.key().get()
     ));
 
+        public static final Lazy<KeyMapping> IDE_OPEN_DRAW_KEY = Lazy.of(() -> new KeyMapping(
+            IdeLocalizationKeys.IDE_KEY_OPEN_DRAW.key().get(),
+            KeyConflictContext.IN_GAME,
+            KeyModifier.ALT,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_D,
+            LocalizationKeys.SFM_KEY_CATEGORY.key().get()
+        ));
+
     public static final Lazy<KeyMapping> IDE_TOGGLE_RIGHT_PANEL_KEY = Lazy.of(() -> new KeyMapping(
             IdeLocalizationKeys.IDE_KEY_TOGGLE_RIGHT_PANEL.key().get(),
             KeyConflictContext.GUI,
@@ -217,6 +226,7 @@ public class SFMKeyMappings {
                 TITLE_SCREEN_OPEN_TEXT_EDITOR_KEY.get(),
                 TOGGLE_NETWORK_TOOL_OVERLAY_KEY.get(),
                 IDE_OPEN_PLAYGROUND_KEY.get(),
+                IDE_OPEN_DRAW_KEY.get(),
                 IDE_TOGGLE_LEFT_PANEL_KEY.get(),
                 IDE_TOGGLE_RIGHT_PANEL_KEY.get(),
                 IDE_TOGGLE_BOTTOM_PANEL_KEY.get(),

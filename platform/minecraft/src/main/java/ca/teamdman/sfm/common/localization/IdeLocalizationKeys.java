@@ -231,6 +231,10 @@ public final class IdeLocalizationKeys {
             "key.sfm.ide.open_playground",
             "IDE - Open Playground"
     );
+    public static final LocalizationEntry IDE_KEY_OPEN_DRAW = new LocalizationEntry(
+            "key.sfm.ide.open_draw",
+            "IDE - Open Draw"
+    );
     public static final LocalizationEntry IDE_KEY_TOGGLE_RIGHT_PANEL = new LocalizationEntry(
             "key.sfm.ide.toggle_right_panel",
             "IDE - Toggle Right Panel"
@@ -246,6 +250,62 @@ public final class IdeLocalizationKeys {
     public static final LocalizationEntry IDE_KEY_FOCUS_EXPLORER_PANEL = new LocalizationEntry(
             "key.sfm.ide.focus_explorer_panel",
             "IDE - Focus Explorer"
+    );
+    public static final LocalizationEntry IDE_DRAW_TITLE = new LocalizationEntry(
+            "gui.sfm.ide.draw.title",
+            "SFM Draw"
+    );
+    public static final LocalizationEntry IDE_DRAW_SUBTITLE = new LocalizationEntry(
+            "gui.sfm.ide.draw.subtitle",
+            "Infinite canvas prototype"
+    );
+    public static final LocalizationEntry IDE_DRAW_HOTBAR_TITLE = new LocalizationEntry(
+            "gui.sfm.ide.draw.hotbar.title",
+            "Tools"
+    );
+    public static final LocalizationEntry IDE_DRAW_HINTS = new LocalizationEntry(
+            "gui.sfm.ide.draw.hints",
+            "Ctrl+Scroll: zoom | Middle drag / Hand: pan | Drag tool strip to move"
+    );
+    public static final LocalizationEntry IDE_DRAW_WORLD_LABEL = new LocalizationEntry(
+            "gui.sfm.ide.draw.world_label",
+            "canvas-space"
+    );
+    public static final LocalizationEntry IDE_DRAW_SCREEN_LABEL = new LocalizationEntry(
+            "gui.sfm.ide.draw.screen_label",
+            "screen-space"
+    );
+    public static final LocalizationEntry IDE_DRAW_MINIMAP_TITLE = new LocalizationEntry(
+            "gui.sfm.ide.draw.minimap.title",
+            "Camera"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_CURSOR = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.cursor",
+            "Cursor"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_RECTANGLE = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.rectangle",
+            "Rectangle"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_ARROW = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.arrow",
+            "Arrow"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_TEXT = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.text",
+            "Text"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_FREEHAND = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.freehand",
+            "Freehand"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_HAND = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.hand",
+            "Hand"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_CAMERA = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.camera",
+            "Camera"
     );
 
     public static List<LocalizationEntry> getEntries() {
