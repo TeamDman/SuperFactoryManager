@@ -1050,6 +1050,7 @@ Implemented so far:
 - keybind dispatch now targets registered action objects directly instead of round-tripping through string lookup
 - recent-action recall is currently based on action-definition identity rather than remembered string ids
 - panel focus and visibility state retained on the client side instead of being recomputed ad hoc each frame
+- built-in panels now flow through a `PanelInstanceState` model that keeps visibility, dock direction, and per-instance scale together instead of scattering them across separate booleans and maps
 - directional panel navigation with:
 	- `Alt+Arrow` = move focus by spatial direction
 	- `Alt+Arrow` on a panel can first select a panel edge before crossing to the neighboring panel
@@ -1070,9 +1071,20 @@ Implemented so far:
 - edge-focused resize/drag affordances with:
 	- click-near-edge = select resize handle
 	- `Alt+Drag` on a selected edge = resize that edge directly
+- corner resize affordances with:
+	- corners between panels can now resize both contributing axes together
+	- outer dockspace corners can now resize the content-area margins diagonally
 - dock reassignment with:
 	- `Alt+Drag` on a docked panel body = preview and move that panel to another dock edge
 	- drop-zone previews now exist for left/right/up/down docking targets
+- workspace/body drag affordances with:
+	- `Alt+Drag` on the workspace body now translates the full content area within the screen
+	- `Alt+Drag` on the outside content-area edges resizes the outer margins directly
+- drag transactions now have an explicit lifecycle in the playground:
+	- drag start creates a transaction object
+	- drag update mutates preview or edge delta state
+	- release commits
+	- `Escape` cancels the active drag transaction
 
 Implications of the latest action refactor:
 
@@ -1086,8 +1098,10 @@ Implications of the latest Hyprland-inspired layout work:
 
 - the prototype is now moving from whole-panel focus toward **2D handle focus**, where edges are first-class focus targets
 - per-panel-instance state is starting to matter more than panel type alone; scale is already keyed by persistent panel ids, which is the right direction for future multiple instances of the same panel type
+- the current built-in panels now have a real instance-state bucket, which is a useful halfway step between panel-type enums and a future registry of many independent panel instances
 - dock placement is no longer fully hardcoded; non-workspace panels now have mutable dock directions and can be reassigned by drag gesture
-- this validates the idea that layout mutation should be modeled as explicit transactions against panel instances rather than as ad hoc rectangle edits
+- this validates the idea that layout mutation should be modeled as explicit transactions against panel instances rather than as ad hoc rectangle edits; the playground now has a first drag-transaction controller shape for dock drags and edge-resize drags
+- the content work area itself is now mutable state rather than a hardcoded inset: outside edges and corners can reshape the dockspace margins, and the old title band is gone so the layout owns the whole screen rectangle
 - we are still in dockspace territory, not floating-window territory: the current drag flow re-docks panels rather than detaching them into independent floating surfaces
 
 This means Slice A is no longer just a concept; a usable shell/layout/input scaffold already exists and is being refined in-game.
@@ -1102,14 +1116,15 @@ The next implementation steps suggested by the current prototype are:
 	- a proper 2D focus graph instead of only panel-to-panel heuristics
 
 2. **Panel-instance model separate from panel type**
-	- stable panel instance ids
+	- in progress: built-in panels now already store instance state separately from raw panel-type conditionals
+	- next: stable panel instance ids that are no longer implicitly one-per-enum-entry
 	- panel type registry
 	- many instances of the same panel type with independent size, scale, bindings, and history
 
 3. **Drag transaction controller**
-	- start / preview / commit / cancel lifecycle
-	- overlap remediation rules where the most recently adjusted instance wins
-	- cleaner separation between gesture interpretation and layout mutation
+	- partially underway: dock drags and edge-resize drags now use explicit transaction objects with start / preview / commit / cancel lifecycle
+	- next: overlap remediation rules where the most recently adjusted instance wins
+	- next: cleaner separation between gesture interpretation and layout mutation
 
 4. **True floating path**
 	- detach from dockspace
