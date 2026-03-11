@@ -110,6 +110,10 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.playground.label.focus",
             "Focused panel: %s"
     );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_IDE_SCALE = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.ide_scale",
+            "IDE scale: %s"
+    );
     public static final LocalizationEntry IDE_PLAYGROUND_LABEL_TARGET = new LocalizationEntry(
             "gui.sfm.ide.playground.label.target",
             "Focused target: %s"
@@ -118,9 +122,13 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.playground.label.selection",
             "Selected targets: %s"
     );
+    public static final LocalizationEntry IDE_PLAYGROUND_LABEL_PANEL_SCALE = new LocalizationEntry(
+            "gui.sfm.ide.playground.label.panel_scale",
+            "Focused panel scale: %s"
+    );
     public static final LocalizationEntry IDE_PLAYGROUND_LABEL_HINTS = new LocalizationEntry(
             "gui.sfm.ide.playground.label.hints",
-            "Tab: cycle focus | Alt+Arrows: focus panel | Alt+Shift+Arrows: resize focused edge | %s: close"
+            "Tab: cycle focus | Alt+Arrows: focus panel | Alt+Ctrl+Arrows: resize focused edge | %s: close"
     );
     public static final LocalizationEntry IDE_PLAYGROUND_LABEL_LAYOUT_MODE = new LocalizationEntry(
             "gui.sfm.ide.playground.label.layout_mode",

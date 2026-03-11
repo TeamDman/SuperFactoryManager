@@ -26,6 +26,7 @@ import org.jetbrains.annotations.UnknownNullability;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,6 +57,18 @@ public class IdePlaygroundScreen extends Screen {
     private static final int COMMAND_PALETTE_MOVE_STEP = 12;
 
     private static final int COMMAND_PALETTE_Z_OFFSET = 350;
+
+    private static final float IDE_GLOBAL_SCALE_STEP = 0.1F;
+
+    private static final float IDE_GLOBAL_SCALE_MIN = 0.75F;
+
+    private static final float IDE_GLOBAL_SCALE_MAX = 2.0F;
+
+    private static final float PANEL_SCALE_STEP = 0.1F;
+
+    private static final float PANEL_SCALE_MIN = 0.75F;
+
+    private static final float PANEL_SCALE_MAX = 2.5F;
 
     private static final String COMMAND_PALETTE_SHORTCUT = "Ctrl+Shift+P";
 
@@ -107,6 +120,12 @@ public class IdePlaygroundScreen extends Screen {
 
     private int commandPaletteDragOffsetY;
 
+    private float ideGlobalScale = 1.0F;
+
+    // Per-panel-instance visual scale keyed by a persistent panel id.
+    // This keeps the prototype aligned with a future where multiple instances of the same panel type can coexist.
+    private final Map<ResourceLocation, Float> panelScales = new HashMap<>();
+
     public IdePlaygroundScreen() {
 
         super(IdeLocalizationKeys.IDE_PLAYGROUND_TITLE.getComponent());
@@ -138,6 +157,10 @@ public class IdePlaygroundScreen extends Screen {
         }
         if (isCommandPaletteShortcut(keyCode)) {
             toggleCommandPalette();
+            return true;
+        }
+
+        if (handleScaleKey(keyCode)) {
             return true;
         }
 
@@ -186,6 +209,11 @@ public class IdePlaygroundScreen extends Screen {
     ) {
 
         renderBackground(poseStack);
+        int ideMouseX = ideCoordinate(mouseX);
+        int ideMouseY = ideCoordinate(mouseY);
+
+        poseStack.pushPose();
+        poseStack.scale(ideGlobalScale, ideGlobalScale, 1.0F);
         clampPanelSizes();
         updateCommandPaletteBounds();
 
@@ -195,7 +223,7 @@ public class IdePlaygroundScreen extends Screen {
                 IdeLocalizationKeys.IDE_PLAYGROUND_SUBTITLE.getComponent(),
                 MARGIN,
                 MARGIN + 12,
-                Math.max(120, width - MARGIN * 2),
+            Math.max(120, ideWidth() - MARGIN * 2),
                 0xA0A0A0,
                 2
         );
@@ -208,6 +236,7 @@ public class IdePlaygroundScreen extends Screen {
         if (shellPanelVisible) {
             drawPanel(
                     poseStack,
+                    PlaygroundPanel.SHELL,
                     layout.get(PlaygroundPanel.SHELL),
                     IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_SHELL.getComponent(),
                     focusedPanel == PlaygroundPanel.SHELL,
@@ -223,6 +252,7 @@ public class IdePlaygroundScreen extends Screen {
         if (layoutPanelVisible) {
             drawPanel(
                     poseStack,
+                    PlaygroundPanel.LAYOUT,
                     layout.get(PlaygroundPanel.LAYOUT),
                     IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_LAYOUT.getComponent(),
                     focusedPanel == PlaygroundPanel.LAYOUT,
@@ -237,12 +267,13 @@ public class IdePlaygroundScreen extends Screen {
             commandPaletteInput.visible = false;
         }
 
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        super.render(poseStack, ideMouseX, ideMouseY, partialTick);
 
         if (commandPaletteVisible && commandPaletteInput != null) {
             commandPaletteInput.visible = restoreCommandPaletteVisibility;
-            drawCommandPaletteOverlay(poseStack, mouseX, mouseY, partialTick);
+            drawCommandPaletteOverlay(poseStack, ideMouseX, ideMouseY, partialTick);
         }
+        poseStack.popPose();
     }
 
     @Override
@@ -276,6 +307,9 @@ public class IdePlaygroundScreen extends Screen {
             int button
     ) {
 
+        mouseX = ideCoordinate(mouseX);
+        mouseY = ideCoordinate(mouseY);
+
         if (commandPaletteVisible) {
             if (handleCommandPaletteClick(mouseX, mouseY, button)) {
                 return true;
@@ -302,6 +336,11 @@ public class IdePlaygroundScreen extends Screen {
             double dragY
     ) {
 
+        mouseX = ideCoordinate(mouseX);
+        mouseY = ideCoordinate(mouseY);
+        dragX /= ideGlobalScale;
+        dragY /= ideGlobalScale;
+
         if (commandPaletteVisible && commandPaletteDragging && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             setCommandPalettePosition(
                     (int) Math.round(mouseX) - commandPaletteDragOffsetX,
@@ -319,6 +358,9 @@ public class IdePlaygroundScreen extends Screen {
             double mouseY,
             int button
     ) {
+
+        mouseX = ideCoordinate(mouseX);
+        mouseY = ideCoordinate(mouseY);
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && commandPaletteDragging) {
             commandPaletteDragging = false;
@@ -391,8 +433,8 @@ public class IdePlaygroundScreen extends Screen {
         terminalInput = addRenderableWidget(new EditBox(
                 font,
                 MARGIN,
-                height - MARGIN - TERMINAL_INPUT_HEIGHT,
-                Math.max(96, width - MARGIN * 2),
+            ideHeight() - MARGIN - TERMINAL_INPUT_HEIGHT,
+            Math.max(96, ideWidth() - MARGIN * 2),
                 TERMINAL_INPUT_HEIGHT,
                 IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_PLACEHOLDER.getComponent()
         ));
@@ -404,7 +446,7 @@ public class IdePlaygroundScreen extends Screen {
                 font,
                 MARGIN,
                 MARGIN,
-                Math.max(160, width / 3),
+            Math.max(160, ideWidth() / 3),
                 COMMAND_PALETTE_INPUT_HEIGHT,
                 IdeLocalizationKeys.IDE_PLAYGROUND_COMMAND_PALETTE_PLACEHOLDER.getComponent()
         ));
@@ -438,7 +480,7 @@ public class IdePlaygroundScreen extends Screen {
 
     private boolean handleResizeKey(int keyCode) {
 
-        if (!hasAltDown() || !hasShiftDown()) {
+        if (!hasAltDown() || !hasControlDown()) {
             return false;
         }
 
@@ -471,6 +513,16 @@ public class IdePlaygroundScreen extends Screen {
                 if (!terminalPanelVisible) {
                     return false;
                 }
+                if (keyCode == GLFW.GLFW_KEY_LEFT && shellPanelVisible) {
+                    shellPanelWidth = Math.max(MIN_SIDE_PANEL_WIDTH, shellPanelWidth - 8);
+                    clampPanelSizes();
+                    return true;
+                }
+                if (keyCode == GLFW.GLFW_KEY_RIGHT && layoutPanelVisible) {
+                    layoutPanelWidth = Math.max(MIN_SIDE_PANEL_WIDTH, layoutPanelWidth - 8);
+                    clampPanelSizes();
+                    return true;
+                }
                 if (keyCode == GLFW.GLFW_KEY_DOWN) {
                     terminalPanelHeight -= 8;
                     clampPanelSizes();
@@ -483,6 +535,16 @@ public class IdePlaygroundScreen extends Screen {
                 }
             }
             case WORKSPACE -> {
+                if (keyCode == GLFW.GLFW_KEY_LEFT && shellPanelVisible) {
+                    shellPanelWidth = Math.max(MIN_SIDE_PANEL_WIDTH, shellPanelWidth - 8);
+                    clampPanelSizes();
+                    return true;
+                }
+                if (keyCode == GLFW.GLFW_KEY_RIGHT && layoutPanelVisible) {
+                    layoutPanelWidth = Math.max(MIN_SIDE_PANEL_WIDTH, layoutPanelWidth - 8);
+                    clampPanelSizes();
+                    return true;
+                }
                 return false;
             }
         }
@@ -491,8 +553,8 @@ public class IdePlaygroundScreen extends Screen {
 
     private void clampPanelSizes() {
 
-        int availableWidth = Math.max(0, width - MARGIN * 2);
-        int availableHeight = Math.max(0, height - MARGIN * 2 - HEADER_HEIGHT);
+        int availableWidth = Math.max(0, ideWidth() - MARGIN * 2);
+        int availableHeight = Math.max(0, ideHeight() - MARGIN * 2 - HEADER_HEIGHT);
         int maxCombinedSideWidth = Math.max(
                 MIN_SIDE_PANEL_WIDTH * 2,
                 availableWidth - 160
@@ -529,8 +591,8 @@ public class IdePlaygroundScreen extends Screen {
         IdeArea rootArea = new IdeArea(
                 MARGIN,
                 MARGIN + HEADER_HEIGHT,
-                Math.max(0, width - MARGIN * 2),
-                Math.max(0, height - MARGIN * 2 - HEADER_HEIGHT)
+            Math.max(0, ideWidth() - MARGIN * 2),
+            Math.max(0, ideHeight() - MARGIN * 2 - HEADER_HEIGHT)
         );
 
         List<IdeDockPiece<PlaygroundPanel>> pieces = new ArrayList<>();
@@ -582,6 +644,8 @@ public class IdePlaygroundScreen extends Screen {
                                                                                       .shellContext()
                                                                                       .focusedPanelDisplay()
                                                                                       .orElse("none")));
+        lines.add(IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_IDE_SCALE.getComponent(formatScale(ideGlobalScale)));
+        lines.add(IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_PANEL_SCALE.getComponent(formatScale(getPanelScale(focusedPanel))));
         lines.add(Component.literal("Palette: " + COMMAND_PALETTE_SHORTCUT).withStyle(ChatFormatting.GRAY));
         lines.add(IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_HINTS.getComponent(SFMKeyMappings.getKeyDisplay(
                 SFMKeyMappings.IDE_OPEN_PLAYGROUND_KEY)));
@@ -621,19 +685,21 @@ public class IdePlaygroundScreen extends Screen {
             return;
         }
         drawPanelFrame(poseStack, area, IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_WORKSPACE.getComponent(), focused);
+        float panelScale = getPanelScale(PlaygroundPanel.WORKSPACE);
         int textWidth = Math.max(32, area.width() - PANEL_TEXT_PADDING * 2);
         int infoY = area.y() + 18;
-        infoY = drawWrappedText(
+        infoY = drawScaledWrappedText(
                 poseStack,
                 IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_WORKSPACE.getComponent(),
                 area.x() + PANEL_TEXT_PADDING,
                 infoY,
                 textWidth,
                 0xE0E0E0,
-                2
+            2,
+            panelScale
         );
 
-        infoY = drawWrappedText(
+        infoY = drawScaledWrappedText(
                 poseStack,
                 IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_TARGET.getComponent(session
                                                                                      .focusedTarget()
@@ -642,9 +708,10 @@ public class IdePlaygroundScreen extends Screen {
                 infoY,
                 textWidth,
                 0xC8C8C8,
-                2
+            2,
+                panelScale
         );
-        infoY = drawWrappedText(
+            infoY = drawScaledWrappedText(
                 poseStack,
                 IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_SELECTION.getComponent(Integer.toString(session
                                                                                                          .selectedTargets()
@@ -653,7 +720,8 @@ public class IdePlaygroundScreen extends Screen {
                 infoY,
                 textWidth,
                 0xC8C8C8,
-                1
+                1,
+                panelScale
         );
 
         IdeArea previewArea = new IdeArea(
@@ -670,16 +738,16 @@ public class IdePlaygroundScreen extends Screen {
                 continue;
             }
 
-            int previewX = previewArea.x() + scale(panelArea.x() - MARGIN, width - MARGIN * 2, previewArea.width());
+                int previewX = previewArea.x() + scale(panelArea.x() - MARGIN, ideWidth() - MARGIN * 2, previewArea.width());
             int previewY = previewArea.y() + scale(
                     panelArea.y() - (MARGIN + HEADER_HEIGHT),
-                    height - MARGIN * 2 - HEADER_HEIGHT,
+                    ideHeight() - MARGIN * 2 - HEADER_HEIGHT,
                     previewArea.height()
             );
-            int previewW = Math.max(12, scale(panelArea.width(), width - MARGIN * 2, previewArea.width()));
+                int previewW = Math.max(12, scale(panelArea.width(), ideWidth() - MARGIN * 2, previewArea.width()));
             int previewH = Math.max(
                     10,
-                    scale(panelArea.height(), height - MARGIN * 2 - HEADER_HEIGHT, previewArea.height())
+                    scale(panelArea.height(), ideHeight() - MARGIN * 2 - HEADER_HEIGHT, previewArea.height())
             );
             int color = panel == focusedPanel ? 0xFF4C7899 : 0xAA2A2A2A;
             fill(poseStack, previewX, previewY, previewX + previewW, previewY + previewH, color);
@@ -694,18 +762,20 @@ public class IdePlaygroundScreen extends Screen {
             );
         }
 
-        int footerY = previewArea.bottom() - (font.lineHeight + 2) * Math.min(3, session.selectedTargets().size()) - 8;
+        int targetLineStep = Math.max(1, Math.round((font.lineHeight + 2) * panelScale));
+        int footerY = previewArea.bottom() - targetLineStep * Math.min(3, session.selectedTargets().size()) - 8;
         for (IdeSessionTarget selectedTarget : session.selectedTargets().stream().limit(3).toList()) {
 
-            drawString(
+            footerY = drawScaledWrappedText(
                     poseStack,
-                    font,
                     Component.literal("• " + selectedTarget.summary().orElse("none")).withStyle(ChatFormatting.AQUA),
                     previewArea.x() + PANEL_TEXT_PADDING,
                     footerY,
-                    0xAEE8FF
+                    Math.max(32, previewArea.width() - PANEL_TEXT_PADDING * 2),
+                    0xAEE8FF,
+                    1,
+                    panelScale
             );
-            footerY += font.lineHeight + 2;
         }
     }
 
@@ -721,32 +791,40 @@ public class IdePlaygroundScreen extends Screen {
         }
 
         drawPanelFrame(poseStack, area, IdeLocalizationKeys.IDE_PLAYGROUND_PANEL_TERMINAL.getComponent(), focused);
+        float panelScale = getPanelScale(PlaygroundPanel.TERMINAL);
 
         int inputTop = area.bottom() - TERMINAL_INPUT_HEIGHT - TERMINAL_INPUT_MARGIN - 2;
-        int lineStep = font.lineHeight + 2;
+        int lineStep = Math.max(1, Math.round((font.lineHeight + 2) * panelScale));
         int textWidth = Math.max(32, area.width() - PANEL_TEXT_PADDING * 2);
 
-        int messageTop = drawWrappedText(
+        int messageTop = drawScaledWrappedText(
                 poseStack,
                 IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_HINT.getComponent(),
                 area.x() + PANEL_TEXT_PADDING,
                 area.y() + 18,
                 textWidth,
                 0xC8C8C8,
-                2
+                2,
+                panelScale
         ) + 2;
 
         int lineY = inputTop - font.lineHeight;
+        int scaledTextWidth = Math.max(1, Math.round(textWidth / panelScale));
+        int scaledTextX = Math.round((area.x() + PANEL_TEXT_PADDING) / panelScale);
+        poseStack.pushPose();
+        poseStack.scale(panelScale, panelScale, 1.0F);
         for (int i = terminalMessages.size() - 1; i >= 0; i--) {
-            List<FormattedCharSequence> wrapped = font.split(terminalMessages.get(i), textWidth);
+            List<FormattedCharSequence> wrapped = font.split(terminalMessages.get(i), scaledTextWidth);
             for (int j = wrapped.size() - 1; j >= 0; j--) {
                 if (lineY < messageTop) {
+                    poseStack.popPose();
                     return;
                 }
-                font.draw(poseStack, wrapped.get(j), area.x() + PANEL_TEXT_PADDING, lineY, 0xE0E0E0);
+                font.draw(poseStack, wrapped.get(j), scaledTextX, Math.round(lineY / panelScale), 0xE0E0E0);
                 lineY -= lineStep;
             }
         }
+        poseStack.popPose();
     }
 
     private void drawCommandPaletteOverlay(
@@ -875,8 +953,42 @@ public class IdePlaygroundScreen extends Screen {
         return (int) Math.round((double) value * targetSize / sourceSize);
     }
 
+    private int drawScaledWrappedText(
+            PoseStack poseStack,
+            Component text,
+            int x,
+            int y,
+            int maxWidth,
+            int color,
+            int maxLines,
+            float scale
+    ) {
+
+        if (Math.abs(scale - 1.0F) < 0.001F) {
+            return drawWrappedText(poseStack, text, x, y, maxWidth, color, maxLines);
+        }
+
+        int linesDrawn = 0;
+        int scaledX = Math.round(x / scale);
+        int scaledY = Math.round(y / scale);
+        int scaledWidth = Math.max(1, Math.round(maxWidth / scale));
+        poseStack.pushPose();
+        poseStack.scale(scale, scale, 1.0F);
+        for (FormattedCharSequence sequence : font.split(text, scaledWidth)) {
+            if (linesDrawn >= maxLines) {
+                break;
+            }
+            font.draw(poseStack, sequence, scaledX, scaledY, color);
+            scaledY += font.lineHeight + 2;
+            linesDrawn++;
+        }
+        poseStack.popPose();
+        return y + Math.round(linesDrawn * (font.lineHeight + 2) * scale);
+    }
+
     private void drawPanel(
             PoseStack poseStack,
+            PlaygroundPanel panel,
             @Nullable IdeArea area,
             Component title,
             boolean focused,
@@ -887,19 +999,21 @@ public class IdePlaygroundScreen extends Screen {
             return;
         }
         drawPanelFrame(poseStack, area, title, focused);
+        float panelScale = getPanelScale(panel);
         int y = area.y() + 18;
         int textWidth = Math.max(32, area.width() - PANEL_TEXT_PADDING * 2);
         for (Component line : lines) {
-            y = drawWrappedText(
+            y = drawScaledWrappedText(
                     poseStack,
                     line,
                     area.x() + PANEL_TEXT_PADDING,
                     y,
                     textWidth,
                     0xE0E0E0,
-                    Integer.MAX_VALUE
+                    Integer.MAX_VALUE,
+                    panelScale
             );
-            if (y > area.bottom() - font.lineHeight - PANEL_TEXT_PADDING) {
+            if (y > area.bottom() - Math.round(font.lineHeight * panelScale) - PANEL_TEXT_PADDING) {
                 break;
             }
         }
@@ -1054,14 +1168,14 @@ public class IdePlaygroundScreen extends Screen {
 
     private IdeArea getCommandPaletteArea() {
 
-        int paletteWidth = Math.min(420, Math.max(220, width - MARGIN * 6));
+        int paletteWidth = Math.min(420, Math.max(220, ideWidth() - MARGIN * 6));
         int visibleRows = Math.max(1, Math.min(COMMAND_PALETTE_MAX_RESULTS, filteredPaletteActions.size()));
         int paletteHeight = 16
                             + COMMAND_PALETTE_INPUT_HEIGHT
                             + 18
                             + font.lineHeight * 2
                             + visibleRows * COMMAND_PALETTE_ROW_HEIGHT;
-        int x = commandPaletteX == Integer.MIN_VALUE ? (width - paletteWidth) / 2 : commandPaletteX;
+        int x = commandPaletteX == Integer.MIN_VALUE ? (ideWidth() - paletteWidth) / 2 : commandPaletteX;
         int y = commandPaletteY == Integer.MIN_VALUE ? MARGIN + HEADER_HEIGHT + 18 : commandPaletteY;
         x = clampCommandPaletteX(x, paletteWidth);
         y = clampCommandPaletteY(y, paletteHeight);
@@ -1339,6 +1453,116 @@ public class IdePlaygroundScreen extends Screen {
         return keyCode == GLFW.GLFW_KEY_P && hasControlDown() && hasShiftDown();
     }
 
+    private boolean handleScaleKey(int keyCode) {
+
+        if (keyCode == GLFW.GLFW_KEY_0 || keyCode == GLFW.GLFW_KEY_KP_0) {
+            if (hasControlDown() && !hasAltDown()) {
+                ideGlobalScale = 1.0F;
+                clampPanelSizes();
+                updateCommandPaletteBounds();
+                return true;
+            }
+            if (hasAltDown() && !hasControlDown()) {
+                resetPanelScale(focusedPanel);
+                return true;
+            }
+            return false;
+        }
+
+        int direction = scaleKeyDirection(keyCode);
+        if (direction == 0) {
+            return false;
+        }
+
+        if (hasControlDown() && !hasAltDown()) {
+            ideGlobalScale = clampScale(
+                    ideGlobalScale + IDE_GLOBAL_SCALE_STEP * direction,
+                    IDE_GLOBAL_SCALE_MIN,
+                    IDE_GLOBAL_SCALE_MAX
+            );
+            clampPanelSizes();
+            updateCommandPaletteBounds();
+            return true;
+        }
+        if (hasAltDown() && !hasControlDown()) {
+            setPanelScale(
+                focusedPanel,
+                clampScale(
+                    getPanelScale(focusedPanel) + PANEL_SCALE_STEP * direction,
+                    PANEL_SCALE_MIN,
+                    PANEL_SCALE_MAX
+                )
+            );
+            return true;
+        }
+        return false;
+    }
+
+    private int scaleKeyDirection(int keyCode) {
+
+        return switch (keyCode) {
+            case GLFW.GLFW_KEY_EQUAL, GLFW.GLFW_KEY_KP_ADD -> 1;
+            case GLFW.GLFW_KEY_MINUS, GLFW.GLFW_KEY_KP_SUBTRACT -> -1;
+            default -> 0;
+        };
+    }
+
+    private float clampScale(
+            float value,
+            float min,
+            float max
+    ) {
+
+        return Math.max(min, Math.min(max, Math.round(value * 100.0F) / 100.0F));
+    }
+
+    private String formatScale(float value) {
+
+        return String.format(Locale.ROOT, "%.2fx", value);
+    }
+
+    private float getPanelScale(PlaygroundPanel panel) {
+
+        return panelScales.getOrDefault(panel.persistentId(), 1.0F);
+    }
+
+    private void setPanelScale(
+            PlaygroundPanel panel,
+            float scale
+    ) {
+
+        if (Math.abs(scale - 1.0F) < 0.001F) {
+            panelScales.remove(panel.persistentId());
+            return;
+        }
+        panelScales.put(panel.persistentId(), scale);
+    }
+
+    private void resetPanelScale(PlaygroundPanel panel) {
+
+        panelScales.remove(panel.persistentId());
+    }
+
+    private int ideWidth() {
+
+        return Math.max(1, Math.round(width / ideGlobalScale));
+    }
+
+    private int ideHeight() {
+
+        return Math.max(1, Math.round(height / ideGlobalScale));
+    }
+
+    private int ideCoordinate(int actualCoordinate) {
+
+        return Math.round(actualCoordinate / ideGlobalScale);
+    }
+
+    private double ideCoordinate(double actualCoordinate) {
+
+        return actualCoordinate / ideGlobalScale;
+    }
+
     private void toggleCommandPalette() {
 
         if (commandPaletteVisible) {
@@ -1592,7 +1816,7 @@ public class IdePlaygroundScreen extends Screen {
     ) {
 
         int minX = MARGIN;
-        int maxX = Math.max(minX, width - MARGIN - paletteWidth);
+        int maxX = Math.max(minX, ideWidth() - MARGIN - paletteWidth);
         return Math.max(minX, Math.min(x, maxX));
     }
 
@@ -1602,7 +1826,7 @@ public class IdePlaygroundScreen extends Screen {
     ) {
 
         int minY = MARGIN + HEADER_HEIGHT;
-        int maxY = Math.max(minY, height - MARGIN - paletteHeight);
+        int maxY = Math.max(minY, ideHeight() - MARGIN - paletteHeight);
         return Math.max(minY, Math.min(y, maxY));
     }
 
@@ -1611,6 +1835,16 @@ public class IdePlaygroundScreen extends Screen {
         WORKSPACE,
         LAYOUT,
         TERMINAL;
+
+        public ResourceLocation persistentId() {
+
+            return switch (this) {
+                case SHELL -> SFMResourceLocation.fromSFMPath("ide_playground/panel/shell");
+                case WORKSPACE -> SFMResourceLocation.fromSFMPath("ide_playground/panel/workspace");
+                case LAYOUT -> SFMResourceLocation.fromSFMPath("ide_playground/panel/layout");
+                case TERMINAL -> SFMResourceLocation.fromSFMPath("ide_playground/panel/terminal");
+            };
+        }
 
         public Component display() {
 
