@@ -120,7 +120,7 @@ public final class IdeLocalizationKeys {
     );
     public static final LocalizationEntry IDE_PLAYGROUND_LABEL_HINTS = new LocalizationEntry(
             "gui.sfm.ide.playground.label.hints",
-            "Tab: cycle focus | Alt+Shift+Arrows: resize focused edge | %s: close"
+            "Tab: cycle focus | Alt+Arrows: focus panel | Alt+Shift+Arrows: resize focused edge | %s: close"
     );
     public static final LocalizationEntry IDE_PLAYGROUND_LABEL_LAYOUT_MODE = new LocalizationEntry(
             "gui.sfm.ide.playground.label.layout_mode",
@@ -166,6 +166,10 @@ public final class IdeLocalizationKeys {
     public static final LocalizationEntry IDE_KEY_TOGGLE_RIGHT_PANEL = new LocalizationEntry(
             "key.sfm.ide.toggle_right_panel",
             "IDE - Toggle Right Panel"
+    );
+    public static final LocalizationEntry IDE_KEY_TOGGLE_LEFT_PANEL = new LocalizationEntry(
+            "key.sfm.ide.toggle_left_panel",
+            "IDE - Toggle Left Panel"
     );
     public static final LocalizationEntry IDE_KEY_TOGGLE_BOTTOM_PANEL = new LocalizationEntry(
             "key.sfm.ide.toggle_bottom_panel",

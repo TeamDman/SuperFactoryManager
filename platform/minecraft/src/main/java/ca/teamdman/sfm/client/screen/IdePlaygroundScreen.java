@@ -85,6 +85,9 @@ public class IdePlaygroundScreen extends Screen {
             this.onClose();
             return true;
         }
+        if (SFMKeyMappings.IDE_TOGGLE_LEFT_PANEL_KEY.get().isActiveAndMatches(key)) {
+            return dispatchAction(IdePlaygroundActionIds.TOGGLE_SHELL_PANEL);
+        }
         if (SFMKeyMappings.IDE_TOGGLE_RIGHT_PANEL_KEY.get().isActiveAndMatches(key)) {
             return dispatchAction(IdePlaygroundActionIds.TOGGLE_LAYOUT_PANEL);
         }
@@ -114,10 +117,27 @@ public class IdePlaygroundScreen extends Screen {
             cycleFocus(hasShiftDown());
             return true;
         }
+        if (handleFocusNavigationKey(keyCode)) {
+            return true;
+        }
         if (handleResizeKey(keyCode)) {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private boolean handleFocusNavigationKey(int keyCode) {
+        if (!hasAltDown() || hasShiftDown()) {
+            return false;
+        }
+
+        return switch (keyCode) {
+            case GLFW.GLFW_KEY_LEFT -> moveFocusInDirection(-1, 0, true);
+            case GLFW.GLFW_KEY_RIGHT -> moveFocusInDirection(1, 0, false);
+            case GLFW.GLFW_KEY_UP -> moveFocusInDirection(0, -1, true);
+            case GLFW.GLFW_KEY_DOWN -> moveFocusInDirection(0, 1, false);
+            default -> false;
+        };
     }
 
     private boolean handleResizeKey(int keyCode) {
@@ -194,15 +214,7 @@ public class IdePlaygroundScreen extends Screen {
         terminalPanelHeight = Math.max(MIN_BOTTOM_PANEL_HEIGHT, Math.min(terminalPanelHeight, Math.max(MIN_BOTTOM_PANEL_HEIGHT, availableHeight - 96)));
     }
 
-    @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        renderBackground(poseStack);
-        clampPanelSizes();
-
-        drawString(poseStack, font, title, MARGIN, MARGIN, 0xFFFFFF);
-        drawWrappedText(poseStack, IdeLocalizationKeys.IDE_PLAYGROUND_SUBTITLE.getComponent(), MARGIN, MARGIN + 12, Math.max(120, width - MARGIN * 2), 0xA0A0A0, 2);
-        IdeSessionCapture.capture(session, Minecraft.getInstance(), focusedPanel.display().getString());
-
+    private Map<PlaygroundPanel, IdeArea> calculateLayout() {
         IdeArea rootArea = new IdeArea(
                 MARGIN,
                 MARGIN + HEADER_HEIGHT,
@@ -221,7 +233,19 @@ public class IdePlaygroundScreen extends Screen {
         if (terminalPanelVisible) {
             pieces.add(new IdeDockPiece<>(PlaygroundPanel.TERMINAL, IdeDockDirection.DOWN, terminalPanelHeight));
         }
-        Map<PlaygroundPanel, IdeArea> layout = IdeDockLayout.calculate(rootArea, pieces);
+        return IdeDockLayout.calculate(rootArea, pieces);
+    }
+
+    @Override
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        renderBackground(poseStack);
+        clampPanelSizes();
+
+        drawString(poseStack, font, title, MARGIN, MARGIN, 0xFFFFFF);
+        drawWrappedText(poseStack, IdeLocalizationKeys.IDE_PLAYGROUND_SUBTITLE.getComponent(), MARGIN, MARGIN + 12, Math.max(120, width - MARGIN * 2), 0xA0A0A0, 2);
+        IdeSessionCapture.capture(session, Minecraft.getInstance(), focusedPanel.display().getString());
+
+        Map<PlaygroundPanel, IdeArea> layout = calculateLayout();
         currentLayout = layout;
         ensureFocusedPanelVisible();
 
@@ -575,6 +599,72 @@ public class IdePlaygroundScreen extends Screen {
                         ? (currentIndex - 1 + visiblePanels.size()) % visiblePanels.size()
                         : (currentIndex + 1) % visiblePanels.size();
         focusPanel(visiblePanels.get(nextIndex));
+    }
+
+    private boolean moveFocusInDirection(int xDirection, int yDirection, boolean reverseFallback) {
+        List<PlaygroundPanel> visiblePanels = visiblePanels();
+        if (visiblePanels.size() <= 1) {
+            return false;
+        }
+
+        Map<PlaygroundPanel, IdeArea> layout = calculateLayout();
+        currentLayout = layout;
+
+        IdeArea focusedArea = layout.get(focusedPanel);
+        if (focusedArea == null || focusedArea.isEmpty()) {
+            cycleFocus(reverseFallback);
+            return true;
+        }
+
+        double focusedCenterX = focusedArea.x() + focusedArea.width() / 2.0;
+        double focusedCenterY = focusedArea.y() + focusedArea.height() / 2.0;
+        PlaygroundPanel bestPanel = null;
+        double bestScore = Double.POSITIVE_INFINITY;
+
+        for (PlaygroundPanel panel : visiblePanels) {
+            if (panel == focusedPanel) {
+                continue;
+            }
+
+            IdeArea candidateArea = layout.get(panel);
+            if (candidateArea == null || candidateArea.isEmpty()) {
+                continue;
+            }
+
+            double candidateCenterX = candidateArea.x() + candidateArea.width() / 2.0;
+            double candidateCenterY = candidateArea.y() + candidateArea.height() / 2.0;
+            double dx = candidateCenterX - focusedCenterX;
+            double dy = candidateCenterY - focusedCenterY;
+
+            if (xDirection < 0 && dx >= 0) {
+                continue;
+            }
+            if (xDirection > 0 && dx <= 0) {
+                continue;
+            }
+            if (yDirection < 0 && dy >= 0) {
+                continue;
+            }
+            if (yDirection > 0 && dy <= 0) {
+                continue;
+            }
+
+            double primaryDistance = xDirection != 0 ? Math.abs(dx) : Math.abs(dy);
+            double secondaryDistance = xDirection != 0 ? Math.abs(dy) : Math.abs(dx);
+            double score = primaryDistance * 1000 + secondaryDistance;
+            if (score < bestScore) {
+                bestScore = score;
+                bestPanel = panel;
+            }
+        }
+
+        if (bestPanel == null) {
+            cycleFocus(reverseFallback);
+            return true;
+        }
+
+        focusPanel(bestPanel);
+        return true;
     }
 
     private void focusPanel(PlaygroundPanel panel) {
