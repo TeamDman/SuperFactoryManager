@@ -791,8 +791,8 @@ Because the OS already owns the Windows key, the pragmatic current candidate is:
 Examples:
 
 - `Alt+Arrow` move focus between panels
-- `Alt+Shift+Arrow` move panel in direction
-- `Alt+Drag` rearrange or detach panel
+- `Alt+Ctrl+Arrow` resize the currently selected panel edge
+- `Alt+Drag` rearrange docked panels or resize a selected edge
 - `Alt+R` enter resize mode
 
 This should remain configurable, but designing around a dedicated layout modifier is sensible.
@@ -823,6 +823,7 @@ We need at least:
 
 3. **Per-target or per-view scale factor**
 	- useful for terminals, graphs, inspectors, or canvas nodes
+	- in the current playground prototype this has evolved into per-panel-instance scale state keyed by persistent panel ids
 
 This suggests actions like:
 
@@ -1040,6 +1041,7 @@ Implemented so far:
 	- `sfm:panel.toggle_terminal`
 	- `sfm:selection.select_focused`
 - terminal action surface that currently executes exact resource-location action ids directly from the registry
+- terminal built-ins such as `help` now also route through the same registry-backed action surface
 - command palette overlay opened with `Ctrl+Shift+P` that:
 	- searches actions by label and id
 	- shows recent actions and keybinding hints
@@ -1050,14 +1052,27 @@ Implemented so far:
 - panel focus and visibility state retained on the client side instead of being recomputed ad hoc each frame
 - directional panel navigation with:
 	- `Alt+Arrow` = move focus by spatial direction
-	- `Alt+Shift+Arrow` = resize the focused edge/panel
+	- `Alt+Arrow` on a panel can first select a panel edge before crossing to the neighboring panel
+	- `Alt+Ctrl+Arrow` = resize the currently focused edge/panel handle
 	- left/right wrap between shell and layout side panels
 - panel visibility toggles with:
 	- `Ctrl+M` = toggle left shell panel
 	- existing right/bottom panel toggles preserved
+- global IDE scaling with:
+	- `Ctrl++` / `Ctrl+-` = grow/shrink the full IDE shell
+	- `Ctrl+0` = reset IDE shell scale
+- per-panel-instance scaling with:
+	- `Alt++` / `Alt+-` = grow/shrink the focused panel instance
+	- `Alt+0` = reset the focused panel instance scale
 - floating command palette movement with:
 	- `Alt+Drag` = reposition palette
 	- `Alt+Ctrl+Arrow` = nudge palette in screen space
+- edge-focused resize/drag affordances with:
+	- click-near-edge = select resize handle
+	- `Alt+Drag` on a selected edge = resize that edge directly
+- dock reassignment with:
+	- `Alt+Drag` on a docked panel body = preview and move that panel to another dock edge
+	- drop-zone previews now exist for left/right/up/down docking targets
 
 Implications of the latest action refactor:
 
@@ -1067,7 +1082,44 @@ Implications of the latest action refactor:
 - command palette discovery is therefore stricter but also better aligned with registry truth and future typed action routing
 - there is still transitional cleanup to do around older playground-specific helper types so the architecture matches the new direction cleanly
 
+Implications of the latest Hyprland-inspired layout work:
+
+- the prototype is now moving from whole-panel focus toward **2D handle focus**, where edges are first-class focus targets
+- per-panel-instance state is starting to matter more than panel type alone; scale is already keyed by persistent panel ids, which is the right direction for future multiple instances of the same panel type
+- dock placement is no longer fully hardcoded; non-workspace panels now have mutable dock directions and can be reassigned by drag gesture
+- this validates the idea that layout mutation should be modeled as explicit transactions against panel instances rather than as ad hoc rectangle edits
+- we are still in dockspace territory, not floating-window territory: the current drag flow re-docks panels rather than detaching them into independent floating surfaces
+
 This means Slice A is no longer just a concept; a usable shell/layout/input scaffold already exists and is being refined in-game.
+
+### 8.0.1 What seems next on the Hyprland front
+
+The next implementation steps suggested by the current prototype are:
+
+1. **Explicit focusable handles beyond edges**
+	- corners
+	- possibly panel-body vs edge vs tab-strip focus roles
+	- a proper 2D focus graph instead of only panel-to-panel heuristics
+
+2. **Panel-instance model separate from panel type**
+	- stable panel instance ids
+	- panel type registry
+	- many instances of the same panel type with independent size, scale, bindings, and history
+
+3. **Drag transaction controller**
+	- start / preview / commit / cancel lifecycle
+	- overlap remediation rules where the most recently adjusted instance wins
+	- cleaner separation between gesture interpretation and layout mutation
+
+4. **True floating path**
+	- detach from dockspace
+	- move and resize floating tools independently
+	- pinned tools and temporary inspectors
+
+5. **Layout algorithm plurality**
+	- keep the current edge-carving dock reducer
+	- add a master-like layout path
+	- eventually add monocle / scrolling-columns / canvas transitions
 
 ## 8.1 What to keep from current prototype
 
@@ -1081,6 +1133,8 @@ This means Slice A is no longer just a concept; a usable shell/layout/input scaf
 - selected-set model instead of single-target-only state
 - directional focus navigation as a first-class layout concern
 - canonical action ids shared by keybinds, terminal input, and command palette routing
+- per-panel-instance visual state keyed by persistent ids
+- edge selection as part of layout interaction rather than only mouse hit testing
 
 ## 8.2 What to stop coupling to
 
@@ -1105,6 +1159,7 @@ Status:
 
 - substantially underway
 - plain `Screen`, keybind open/toggle, dock reducer, focus manager, shell context object, and playground hotkeys now exist
+- mutable dock-edge reassignment and edge-focused resizing now exist in the playground
 - still missing the more authoritative bootstrap/bind path for arbitrary target inspection
 
 ### Slice B: Arbitrary block inspector
@@ -1160,6 +1215,7 @@ Status:
 - command palette open/search/execute flow now exists as a first-class shell surface
 - command palette search currently follows the stricter registry-native id/title model rather than a broader alias vocabulary
 - floating palette repositioning via gesture and key-driven nudging now exists
+- focused panel edges and per-panel-instance scale controls now exist as the first seed of 2D handle-oriented layout input
 - still missing a broader user-remappable hotkey manager and richer context dispatch rules
 
 ---
@@ -1288,8 +1344,8 @@ Avoid overloading "window" unless we intentionally mean floating top-level UI.
 Progress against this order:
 
 - done: 1, 2, 3
-- substantially started: 4, 5, 7, 9, 10
-- not started in earnest yet: 6, 8, 11, 12, 13, 14
+- substantially started: 4, 5, 7, 9, 10, 13
+- not started in earnest yet: 6, 8, 11, 12, 14
 
 More concretely, the prototype now has:
 
@@ -1303,6 +1359,8 @@ More concretely, the prototype now has:
 - floating command palette overlay with recent-action recall and keybinding hints
 - direct keybind-to-action-object dispatch through the registry
 - context-sensitive navigation and resizing controls
+- edge-focused resize handles and dock reassignment previews
+- mutable dock positions for non-workspace panels
 
 ---
 

@@ -26,6 +26,7 @@ import org.jetbrains.annotations.UnknownNullability;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -114,9 +115,13 @@ public class IdePlaygroundScreen extends Screen {
 
     private boolean commandPaletteDragging;
 
+    private boolean panelDragging;
+
     private @Nullable PlaygroundPanel draggedPanel;
 
     private @Nullable PanelEdge draggedEdge;
+
+    private @Nullable IdeDockDirection panelDragPreviewDirection;
 
     private double lastDragMouseX;
 
@@ -132,9 +137,15 @@ public class IdePlaygroundScreen extends Screen {
     // This keeps the prototype aligned with a future where multiple instances of the same panel type can coexist.
     private final Map<ResourceLocation, Float> panelScales = new HashMap<>();
 
+    private final EnumMap<PlaygroundPanel, IdeDockDirection> panelDockDirections = new EnumMap<>(PlaygroundPanel.class);
+
     public IdePlaygroundScreen() {
 
         super(IdeLocalizationKeys.IDE_PLAYGROUND_TITLE.getComponent());
+        panelDockDirections.put(PlaygroundPanel.SHELL, IdeDockDirection.LEFT);
+        panelDockDirections.put(PlaygroundPanel.WORKSPACE, IdeDockDirection.CENTER);
+        panelDockDirections.put(PlaygroundPanel.LAYOUT, IdeDockDirection.RIGHT);
+        panelDockDirections.put(PlaygroundPanel.TERMINAL, IdeDockDirection.DOWN);
     }
 
     @Override
@@ -279,6 +290,7 @@ public class IdePlaygroundScreen extends Screen {
             commandPaletteInput.visible = restoreCommandPaletteVisibility;
             drawCommandPaletteOverlay(poseStack, ideMouseX, ideMouseY, partialTick);
         }
+        drawPanelDragOverlay(poseStack);
         poseStack.popPose();
     }
 
@@ -336,6 +348,15 @@ public class IdePlaygroundScreen extends Screen {
                 }
                 return true;
             }
+
+            if (hasAltDown()) {
+                @Nullable PlaygroundPanel draggablePanel = findDraggablePanel(mouseX, mouseY);
+                if (draggablePanel != null) {
+                    focusPanel(draggablePanel);
+                    beginPanelDrag(draggablePanel, mouseX, mouseY);
+                    return true;
+                }
+            }
         }
 
         for (PlaygroundPanel panel : visiblePanels()) {
@@ -361,6 +382,13 @@ public class IdePlaygroundScreen extends Screen {
         mouseY = ideCoordinate(mouseY);
         dragX /= ideGlobalScale;
         dragY /= ideGlobalScale;
+
+        if (panelDragging && draggedPanel != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            panelDragPreviewDirection = getDockDropDirection(mouseX, mouseY);
+            lastDragMouseX = mouseX;
+            lastDragMouseY = mouseY;
+            return true;
+        }
 
         if (draggedPanel != null && draggedEdge != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             resizeDraggedEdge(mouseX - lastDragMouseX, mouseY - lastDragMouseY);
@@ -389,6 +417,11 @@ public class IdePlaygroundScreen extends Screen {
 
         mouseX = ideCoordinate(mouseX);
         mouseY = ideCoordinate(mouseY);
+
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && panelDragging && draggedPanel != null) {
+            completePanelDrag(mouseX, mouseY);
+            return true;
+        }
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && draggedEdge != null) {
             draggedPanel = null;
@@ -630,6 +663,43 @@ public class IdePlaygroundScreen extends Screen {
         );
     }
 
+    private void addDockPieceIfVisible(
+            List<IdeDockPiece<PlaygroundPanel>> pieces,
+            PlaygroundPanel panel
+    ) {
+
+        if (!isPanelVisible(panel) || panel == PlaygroundPanel.WORKSPACE) {
+            return;
+        }
+
+        IdeDockDirection direction = panelDockDirections.getOrDefault(panel, defaultDirection(panel));
+        int size = getDockSize(panel, direction);
+        pieces.add(new IdeDockPiece<>(panel, direction, size));
+    }
+
+    private int getDockSize(
+            PlaygroundPanel panel,
+            IdeDockDirection direction
+    ) {
+
+        return switch (panel) {
+            case SHELL -> direction == IdeDockDirection.UP || direction == IdeDockDirection.DOWN ? terminalPanelHeight : shellPanelWidth;
+            case LAYOUT -> direction == IdeDockDirection.UP || direction == IdeDockDirection.DOWN ? terminalPanelHeight : layoutPanelWidth;
+            case TERMINAL -> direction == IdeDockDirection.LEFT || direction == IdeDockDirection.RIGHT ? layoutPanelWidth : terminalPanelHeight;
+            case WORKSPACE -> 0;
+        };
+    }
+
+    private IdeDockDirection defaultDirection(PlaygroundPanel panel) {
+
+        return switch (panel) {
+            case SHELL -> IdeDockDirection.LEFT;
+            case WORKSPACE -> IdeDockDirection.CENTER;
+            case LAYOUT -> IdeDockDirection.RIGHT;
+            case TERMINAL -> IdeDockDirection.DOWN;
+        };
+    }
+
     private Map<PlaygroundPanel, IdeArea> calculateLayout() {
 
         IdeArea rootArea = new IdeArea(
@@ -640,16 +710,11 @@ public class IdePlaygroundScreen extends Screen {
         );
 
         List<IdeDockPiece<PlaygroundPanel>> pieces = new ArrayList<>();
-        if (shellPanelVisible) {
-            pieces.add(new IdeDockPiece<>(PlaygroundPanel.SHELL, IdeDockDirection.LEFT, shellPanelWidth));
-        }
+
+        addDockPieceIfVisible(pieces, PlaygroundPanel.SHELL);
+        addDockPieceIfVisible(pieces, PlaygroundPanel.LAYOUT);
+        addDockPieceIfVisible(pieces, PlaygroundPanel.TERMINAL);
         pieces.add(new IdeDockPiece<>(PlaygroundPanel.WORKSPACE, IdeDockDirection.CENTER, 0));
-        if (layoutPanelVisible) {
-            pieces.add(new IdeDockPiece<>(PlaygroundPanel.LAYOUT, IdeDockDirection.RIGHT, layoutPanelWidth));
-        }
-        if (terminalPanelVisible) {
-            pieces.add(new IdeDockPiece<>(PlaygroundPanel.TERMINAL, IdeDockDirection.DOWN, terminalPanelHeight));
-        }
         return IdeDockLayout.calculate(rootArea, pieces);
     }
 
@@ -1113,6 +1178,43 @@ public class IdePlaygroundScreen extends Screen {
         }
     }
 
+    private void drawPanelDragOverlay(PoseStack poseStack) {
+
+        if (!panelDragging || draggedPanel == null || panelDragPreviewDirection == null) {
+            return;
+        }
+
+        IdeArea preview = getDockPreviewArea(panelDragPreviewDirection);
+        if (preview == null || preview.isEmpty()) {
+            return;
+        }
+
+        fill(poseStack, preview.x(), preview.y(), preview.right(), preview.bottom(), 0x334C9AFF);
+        fill(poseStack, preview.x(), preview.y(), preview.right(), preview.y() + 1, 0xFF9EDAFF);
+        fill(poseStack, preview.x(), preview.bottom() - 1, preview.right(), preview.bottom(), 0xFF9EDAFF);
+        fill(poseStack, preview.x(), preview.y(), preview.x() + 1, preview.bottom(), 0xFF9EDAFF);
+        fill(poseStack, preview.right() - 1, preview.y(), preview.right(), preview.bottom(), 0xFF9EDAFF);
+        drawCenteredString(poseStack, font, draggedPanel.display().getString(), preview.x() + preview.width() / 2, preview.y() + preview.height() / 2 - 4, 0xFFFFFF);
+    }
+
+    private @Nullable IdeArea getDockPreviewArea(IdeDockDirection direction) {
+
+        IdeArea root = new IdeArea(
+                MARGIN,
+                MARGIN + HEADER_HEIGHT,
+                Math.max(1, ideWidth() - MARGIN * 2),
+                Math.max(1, ideHeight() - MARGIN * 2 - HEADER_HEIGHT)
+        );
+
+        return switch (direction) {
+            case LEFT -> new IdeArea(root.x(), root.y(), Math.max(MIN_SIDE_PANEL_WIDTH, root.width() / 4), root.height());
+            case RIGHT -> new IdeArea(root.right() - Math.max(MIN_SIDE_PANEL_WIDTH, root.width() / 4), root.y(), Math.max(MIN_SIDE_PANEL_WIDTH, root.width() / 4), root.height());
+            case UP -> new IdeArea(root.x(), root.y(), root.width(), Math.max(MIN_BOTTOM_PANEL_HEIGHT, root.height() / 4));
+            case DOWN -> new IdeArea(root.x(), root.bottom() - Math.max(MIN_BOTTOM_PANEL_HEIGHT, root.height() / 4), root.width(), Math.max(MIN_BOTTOM_PANEL_HEIGHT, root.height() / 4));
+            case CENTER -> null;
+        };
+    }
+
     private void dispatchAction(IdeActionDefinition action) {
 
         action.executor().accept(this);
@@ -1555,6 +1657,23 @@ public class IdePlaygroundScreen extends Screen {
         };
     }
 
+    private @Nullable PlaygroundPanel findDraggablePanel(
+            double mouseX,
+            double mouseY
+    ) {
+
+        for (PlaygroundPanel panel : visiblePanels()) {
+            if (panel == PlaygroundPanel.WORKSPACE) {
+                continue;
+            }
+            IdeArea area = currentLayout.get(panel);
+            if (area != null && area.contains(mouseX, mouseY) && findEdgeHandle(mouseX, mouseY) == null) {
+                return panel;
+            }
+        }
+        return null;
+    }
+
     private boolean isCommandPaletteShortcut(int keyCode) {
 
         return keyCode == GLFW.GLFW_KEY_P && hasControlDown() && hasShiftDown();
@@ -1649,11 +1768,17 @@ public class IdePlaygroundScreen extends Screen {
             PanelEdge edge
     ) {
 
+        IdeDockDirection direction = panelDockDirections.getOrDefault(panel, defaultDirection(panel));
+
         return switch (panel) {
-            case SHELL -> edge == PanelEdge.RIGHT;
-            case LAYOUT -> edge == PanelEdge.LEFT;
-            case WORKSPACE -> edge == PanelEdge.LEFT || edge == PanelEdge.RIGHT || edge == PanelEdge.DOWN;
-            case TERMINAL -> edge == PanelEdge.LEFT || edge == PanelEdge.RIGHT || edge == PanelEdge.UP;
+            case WORKSPACE -> edge == PanelEdge.LEFT || edge == PanelEdge.RIGHT || edge == PanelEdge.DOWN || edge == PanelEdge.UP;
+            case SHELL, LAYOUT, TERMINAL -> switch (direction) {
+                case LEFT -> edge == PanelEdge.RIGHT;
+                case RIGHT -> edge == PanelEdge.LEFT;
+                case UP -> edge == PanelEdge.DOWN;
+                case DOWN -> edge == PanelEdge.UP;
+                case CENTER -> false;
+            };
         };
     }
 
@@ -1732,32 +1857,64 @@ public class IdePlaygroundScreen extends Screen {
             int deltaY
     ) {
 
+        IdeDockDirection direction = panelDockDirections.getOrDefault(panel, defaultDirection(panel));
+
         switch (panel) {
             case SHELL -> {
-                if (edge == PanelEdge.RIGHT) {
+                if (direction == IdeDockDirection.LEFT && edge == PanelEdge.RIGHT) {
                     shellPanelWidth += deltaX;
+                } else if (direction == IdeDockDirection.RIGHT && edge == PanelEdge.LEFT) {
+                    shellPanelWidth -= deltaX;
+                } else if (direction == IdeDockDirection.DOWN && edge == PanelEdge.UP) {
+                    terminalPanelHeight -= deltaY;
                 }
             }
             case LAYOUT -> {
-                if (edge == PanelEdge.LEFT) {
+                if (direction == IdeDockDirection.RIGHT && edge == PanelEdge.LEFT) {
                     layoutPanelWidth -= deltaX;
+                } else if (direction == IdeDockDirection.LEFT && edge == PanelEdge.RIGHT) {
+                    layoutPanelWidth += deltaX;
+                } else if (direction == IdeDockDirection.DOWN && edge == PanelEdge.UP) {
+                    terminalPanelHeight -= deltaY;
                 }
             }
             case WORKSPACE -> {
                 switch (edge) {
                     case LEFT -> shellPanelWidth += deltaX;
                     case RIGHT -> layoutPanelWidth -= deltaX;
+                    case UP -> terminalPanelHeight += deltaY;
                     case DOWN -> terminalPanelHeight -= deltaY;
                     default -> {
                     }
                 }
             }
             case TERMINAL -> {
-                switch (edge) {
-                    case LEFT -> shellPanelWidth += deltaX;
-                    case RIGHT -> layoutPanelWidth -= deltaX;
-                    case UP -> terminalPanelHeight -= deltaY;
-                    default -> {
+                switch (direction) {
+                    case DOWN -> {
+                        switch (edge) {
+                            case LEFT -> shellPanelWidth += deltaX;
+                            case RIGHT -> layoutPanelWidth -= deltaX;
+                            case UP -> terminalPanelHeight -= deltaY;
+                            default -> {
+                            }
+                        }
+                    }
+                    case LEFT -> {
+                        if (edge == PanelEdge.RIGHT) {
+                            shellPanelWidth += deltaX;
+                        }
+                    }
+                    case RIGHT -> {
+                        if (edge == PanelEdge.LEFT) {
+                            layoutPanelWidth -= deltaX;
+                        }
+                    }
+                    case UP -> {
+                        if (edge == PanelEdge.DOWN) {
+                            terminalPanelHeight += deltaY;
+                        }
+                    }
+                    case CENTER -> {
                     }
                 }
             }
@@ -1818,6 +1975,90 @@ public class IdePlaygroundScreen extends Screen {
             return false;
         }
         return codePoint == '+' || codePoint == '-' || codePoint == '=' || codePoint == '0';
+    }
+
+    private void beginPanelDrag(
+            PlaygroundPanel panel,
+            double mouseX,
+            double mouseY
+    ) {
+
+        panelDragging = true;
+        draggedPanel = panel;
+        draggedEdge = null;
+        panelDragPreviewDirection = panelDockDirections.getOrDefault(panel, defaultDirection(panel));
+        lastDragMouseX = mouseX;
+        lastDragMouseY = mouseY;
+    }
+
+    private void completePanelDrag(
+            double mouseX,
+            double mouseY
+    ) {
+
+        IdeDockDirection dropDirection = getDockDropDirection(mouseX, mouseY);
+        if (draggedPanel != null && dropDirection != IdeDockDirection.CENTER) {
+            assignPanelToDirection(draggedPanel, dropDirection);
+        }
+        panelDragging = false;
+        draggedPanel = null;
+        panelDragPreviewDirection = null;
+    }
+
+    private IdeDockDirection getDockDropDirection(
+            double mouseX,
+            double mouseY
+    ) {
+
+        int contentX = MARGIN;
+        int contentY = MARGIN + HEADER_HEIGHT;
+        int contentWidth = Math.max(1, ideWidth() - MARGIN * 2);
+        int contentHeight = Math.max(1, ideHeight() - MARGIN * 2 - HEADER_HEIGHT);
+        double relativeX = (mouseX - contentX) / contentWidth;
+        double relativeY = (mouseY - contentY) / contentHeight;
+
+        if (relativeX < 0.2D) {
+            return IdeDockDirection.LEFT;
+        }
+        if (relativeX > 0.8D) {
+            return IdeDockDirection.RIGHT;
+        }
+        if (relativeY > 0.7D) {
+            return IdeDockDirection.DOWN;
+        }
+        if (relativeY < 0.2D) {
+            return IdeDockDirection.UP;
+        }
+        return IdeDockDirection.CENTER;
+    }
+
+    private void assignPanelToDirection(
+            PlaygroundPanel panel,
+            IdeDockDirection direction
+    ) {
+
+        if (panel == PlaygroundPanel.WORKSPACE || direction == IdeDockDirection.CENTER) {
+            return;
+        }
+
+        PlaygroundPanel occupyingPanel = null;
+        for (PlaygroundPanel candidate : PlaygroundPanel.values()) {
+            if (candidate == panel || candidate == PlaygroundPanel.WORKSPACE) {
+                continue;
+            }
+            if (panelDockDirections.getOrDefault(candidate, defaultDirection(candidate)) == direction) {
+                occupyingPanel = candidate;
+                break;
+            }
+        }
+
+        IdeDockDirection previousDirection = panelDockDirections.getOrDefault(panel, defaultDirection(panel));
+        panelDockDirections.put(panel, direction);
+        if (occupyingPanel != null) {
+            panelDockDirections.put(occupyingPanel, previousDirection);
+        }
+        focusedEdge = null;
+        clampPanelSizes();
     }
 
     private @Nullable IdeActionDefinition resolveTerminalCommand(String rawCommand) {
