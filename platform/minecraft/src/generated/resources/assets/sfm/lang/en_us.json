@@ -83,7 +83,7 @@
   "gui.sfm.ide.player_inventory.label": "Player Inventory",
   "gui.sfm.ide.playground.label.dimension": "Dimension: %s",
   "gui.sfm.ide.playground.label.focus": "Focused panel: %s",
-  "gui.sfm.ide.playground.label.hints": "Tab: cycle focus | Arrows: resize focused edge | %s: close",
+  "gui.sfm.ide.playground.label.hints": "Tab: cycle focus | Alt+Shift+Arrows: resize focused edge | %s: close",
   "gui.sfm.ide.playground.label.hit": "Hit: %s",
   "gui.sfm.ide.playground.label.layout_mode": "Ordered edge carving",
   "gui.sfm.ide.playground.label.layout_pieces": "Pieces: shell left, layout right, terminal down, workspace center",
