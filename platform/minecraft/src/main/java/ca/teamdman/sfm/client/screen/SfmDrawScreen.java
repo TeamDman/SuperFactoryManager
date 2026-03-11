@@ -50,6 +50,11 @@ public class SfmDrawScreen extends Screen {
     private double cameraY = 0.0D;
     private double zoom = 1.0D;
     private boolean cameraOverlayVisible = true;
+    private int cameraOverlayX = Integer.MIN_VALUE;
+    private int cameraOverlayY = Integer.MIN_VALUE;
+    private boolean cameraOverlayDragging = false;
+    private int cameraOverlayDragOffsetX = 0;
+    private int cameraOverlayDragOffsetY = 0;
 
     private int hotbarX = Integer.MIN_VALUE;
     private int hotbarY = Integer.MIN_VALUE;
@@ -89,7 +94,12 @@ public class SfmDrawScreen extends Screen {
             hotbarX = (width - HOTBAR_WIDTH) / 2;
             hotbarY = Math.max(32, height - HOTBAR_HEIGHT - 30);
         }
+        if (cameraOverlayX == Integer.MIN_VALUE || cameraOverlayY == Integer.MIN_VALUE) {
+            cameraOverlayX = width - MINIMAP_WIDTH - 12;
+            cameraOverlayY = 30;
+        }
         clampHotbarToScreen();
+        clampCameraOverlayToScreen();
     }
 
     @Override
@@ -107,8 +117,7 @@ public class SfmDrawScreen extends Screen {
 
         if (textEditingElementId >= 0) {
             if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-                textEditingElementId = -1;
-                textEditingCaretIndex = 0;
+                finishTextEditing();
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
@@ -143,6 +152,12 @@ public class SfmDrawScreen extends Screen {
             if (deleteSelectedElements()) {
                 return true;
             }
+        }
+
+        int hotbarIndex = hotbarIndexForKeyCode(keyCode);
+        if (hotbarIndex >= 0 && hotbarIndex < TOOL_COUNT) {
+            handleHotbarToolClick(DrawTool.VALUES[hotbarIndex]);
+            return true;
         }
 
         if (keyCode == GLFW.GLFW_KEY_C) {
@@ -188,6 +203,14 @@ public class SfmDrawScreen extends Screen {
             int button
     ) {
 
+        Rect cameraHeaderBounds = cameraOverlayHeaderBounds();
+        if (cameraOverlayVisible && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraHeaderBounds.contains(mouseX, mouseY)) {
+            cameraOverlayDragging = true;
+            cameraOverlayDragOffsetX = (int) Math.round(mouseX) - cameraOverlayX;
+            cameraOverlayDragOffsetY = (int) Math.round(mouseY) - cameraOverlayY;
+            return true;
+        }
+
         Rect hotbarHeaderBounds = hotbarHeaderBounds();
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarHeaderBounds.contains(mouseX, mouseY)) {
             hotbarDragging = true;
@@ -230,8 +253,7 @@ public class SfmDrawScreen extends Screen {
             if (editingTextElement != null && textElementContains(editingTextElement, canvasPoint)) {
                 placeTextCaretFromScreen(editingTextElement, mouseX, mouseY);
             } else {
-                textEditingElementId = -1;
-                textEditingCaretIndex = 0;
+                finishTextEditing();
             }
             return true;
         }
@@ -275,6 +297,13 @@ public class SfmDrawScreen extends Screen {
             hotbarX = (int) Math.round(mouseX) - hotbarDragOffsetX;
             hotbarY = (int) Math.round(mouseY) - hotbarDragOffsetY;
             clampHotbarToScreen();
+            return true;
+        }
+
+        if (cameraOverlayDragging && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            cameraOverlayX = (int) Math.round(mouseX) - cameraOverlayDragOffsetX;
+            cameraOverlayY = (int) Math.round(mouseY) - cameraOverlayDragOffsetY;
+            clampCameraOverlayToScreen();
             return true;
         }
 
@@ -326,6 +355,12 @@ public class SfmDrawScreen extends Screen {
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarDragging) {
             hotbarDragging = false;
             clampHotbarToScreen();
+            return true;
+        }
+
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraOverlayDragging) {
+            cameraOverlayDragging = false;
+            clampCameraOverlayToScreen();
             return true;
         }
 
@@ -419,6 +454,14 @@ public class SfmDrawScreen extends Screen {
         Component cameraLabel = Component.literal(String.format("cam %.0f, %.0f  zoom %.2fx", cameraX, cameraY, zoom));
         int cameraLabelWidth = font.width(cameraLabel);
         drawString(poseStack, font, cameraLabel, width - cameraLabelWidth - 12, 12, 0xC4CBD6);
+
+        @Nullable CameraOverlayProjection overlayProjection = cameraOverlayProjection();
+        CanvasPoint cursorPoint = overlayProjection != null && overlayProjection.mapBounds().contains(mouseX, mouseY)
+                      ? overlayProjection.screenToCanvas(mouseX, mouseY)
+                      : screenToCanvas(mouseX, mouseY, null);
+        Component cursorLabel = Component.literal(String.format("cursor %.0f, %.0f", cursorPoint.x(), cursorPoint.y()));
+        int cursorLabelWidth = font.width(cursorLabel);
+        drawString(poseStack, font, cursorLabel, width - cursorLabelWidth - 12, 24, 0x9AA3B2);
         drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_WORLD_LABEL.getComponent(), 12, height - 16, 0x707B8D);
 
         if (cameraOverlayVisible) {
@@ -615,7 +658,8 @@ public class SfmDrawScreen extends Screen {
         String[] lines = textLines(element);
         poseStack.pushPose();
         poseStack.translate(point.x(), point.y(), 0.0D);
-        poseStack.scale((float) element.textScale, (float) element.textScale, 1.0F);
+        float renderScale = (float) (element.textScale * zoom);
+        poseStack.scale(renderScale, renderScale, 1.0F);
         for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
             drawString(poseStack, font, lines[lineIndex], 0, lineIndex * font.lineHeight, element.color);
         }
@@ -856,6 +900,9 @@ public class SfmDrawScreen extends Screen {
     }
 
     private void handleHotbarToolClick(DrawTool tool) {
+        if (textEditingElementId >= 0 && tool != DrawTool.TEXT) {
+            finishTextEditing();
+        }
         if (tool == DrawTool.CAMERA) {
             cameraOverlayVisible = !cameraOverlayVisible;
             return;
@@ -1017,6 +1064,16 @@ public class SfmDrawScreen extends Screen {
         return element;
     }
 
+    private void finishTextEditing() {
+        TextElement textElement = editingTextElement();
+        if (textElement != null && textElement.text.isEmpty()) {
+            elements.removeIf(element -> element.id() == textElement.id());
+            selectedElementIds.remove(textElement.id());
+        }
+        textEditingElementId = -1;
+        textEditingCaretIndex = 0;
+    }
+
     private void appendEditingText(String value) {
         if (value == null || value.isEmpty()) {
             return;
@@ -1114,8 +1171,9 @@ public class SfmDrawScreen extends Screen {
             double mouseY
     ) {
         ScreenPoint anchor = canvasToScreen(new CanvasPoint(textElement.x, textElement.y));
-        double localX = (mouseX - anchor.x()) / textElement.textScale;
-        double localY = (mouseY - anchor.y()) / textElement.textScale;
+        double renderScale = textElement.textScale * zoom;
+        double localX = (mouseX - anchor.x()) / renderScale;
+        double localY = (mouseY - anchor.y()) / renderScale;
         String[] lines = textLines(textElement);
         int[] lineStarts = textLineStarts(textElement);
         int lineIndex = Mth.clamp((int) Math.floor(localY / font.lineHeight), 0, Math.max(0, lines.length - 1));
@@ -1241,6 +1299,26 @@ public class SfmDrawScreen extends Screen {
         hotbarY = Mth.clamp(hotbarY, HOTBAR_HEADER_HEIGHT + 8, Math.max(HOTBAR_HEADER_HEIGHT + 8, height - HOTBAR_HEIGHT - 24));
     }
 
+    private void clampCameraOverlayToScreen() {
+        cameraOverlayX = Mth.clamp(cameraOverlayX, 8, Math.max(8, width - MINIMAP_WIDTH - 8));
+        cameraOverlayY = Mth.clamp(cameraOverlayY, 8, Math.max(8, height - MINIMAP_HEIGHT - 8));
+    }
+
+    private int hotbarIndexForKeyCode(int keyCode) {
+        return switch (keyCode) {
+            case GLFW.GLFW_KEY_1 -> 0;
+            case GLFW.GLFW_KEY_2 -> 1;
+            case GLFW.GLFW_KEY_3 -> 2;
+            case GLFW.GLFW_KEY_4 -> 3;
+            case GLFW.GLFW_KEY_5 -> 4;
+            case GLFW.GLFW_KEY_6 -> 5;
+            case GLFW.GLFW_KEY_7 -> 6;
+            case GLFW.GLFW_KEY_8 -> 7;
+            case GLFW.GLFW_KEY_9 -> 8;
+            default -> -1;
+        };
+    }
+
     private CanvasPoint screenToCanvas(
             double screenX,
             double screenY,
@@ -1298,7 +1376,12 @@ public class SfmDrawScreen extends Screen {
     }
 
     private Rect cameraOverlayBounds() {
-        return new Rect(width - MINIMAP_WIDTH - 12, 30, MINIMAP_WIDTH, MINIMAP_HEIGHT);
+        return new Rect(cameraOverlayX, cameraOverlayY, MINIMAP_WIDTH, MINIMAP_HEIGHT);
+    }
+
+    private Rect cameraOverlayHeaderBounds() {
+        Rect overlayBounds = cameraOverlayBounds();
+        return new Rect(overlayBounds.left(), overlayBounds.top(), overlayBounds.width(), 24);
     }
 
     private @Nullable CameraOverlayProjection cameraOverlayProjection() {
@@ -1611,8 +1694,8 @@ public class SfmDrawScreen extends Screen {
             for (String line : lines) {
                 pixelWidth = Math.max(pixelWidth, screen.font.width(line.isEmpty() ? " " : line));
             }
-            double width = Math.max(16.0D, pixelWidth * textScale) / Math.max(screen.zoom, 0.01D);
-            double height = Math.max(screen.font.lineHeight, lines.length * screen.font.lineHeight * textScale) / Math.max(screen.zoom, 0.01D);
+            double width = Math.max(16.0D, pixelWidth * textScale);
+            double height = Math.max(screen.font.lineHeight, lines.length * screen.font.lineHeight * textScale);
             return CanvasBounds.of(x, y, x + width, y + height);
         }
 
