@@ -66,6 +66,7 @@ public class SfmDrawScreen extends Screen {
 
     private boolean textToolCreatesBoundText = true;
     private int textEditingElementId = -1;
+    private int textEditingCaretIndex = 0;
 
     private @Nullable DraftInteraction draftInteraction = null;
     private @Nullable MoveSelectionDrag moveSelectionDrag = null;
@@ -107,10 +108,24 @@ public class SfmDrawScreen extends Screen {
         if (textEditingElementId >= 0) {
             if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
                 textEditingElementId = -1;
+                textEditingCaretIndex = 0;
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
                 mutateEditingTextBackspace();
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_DELETE) {
+                mutateEditingTextDelete();
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_LEFT) {
+                textEditingCaretIndex = Math.max(0, textEditingCaretIndex - 1);
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+                TextElement textElement = editingTextElement();
+                textEditingCaretIndex = Math.min(textElement != null ? textElement.text.length() : 0, textEditingCaretIndex + 1);
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
@@ -122,6 +137,12 @@ public class SfmDrawScreen extends Screen {
                 return true;
             }
             return true;
+        }
+
+        if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+            if (deleteSelectedElements()) {
+                return true;
+            }
         }
 
         if (keyCode == GLFW.GLFW_KEY_C) {
@@ -202,11 +223,18 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, projectionUnderMouse);
+
         if (textEditingElementId >= 0) {
+            TextElement editingTextElement = editingTextElement();
+            if (editingTextElement != null && textElementContains(editingTextElement, canvasPoint)) {
+                placeTextCaretFromScreen(editingTextElement, mouseX, mouseY);
+            } else {
+                textEditingElementId = -1;
+                textEditingCaretIndex = 0;
+            }
             return true;
         }
-
-        CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, projectionUnderMouse);
 
         if (activeTool == DrawTool.CURSOR) {
             boolean doubleClick = isCursorDoubleClick(mouseX, mouseY);
@@ -222,6 +250,7 @@ public class SfmDrawScreen extends Screen {
             if (textToolCreatesBoundText) {
                 activeTool = DrawTool.TEXT;
                 textEditingElementId = textElement.id();
+                textEditingCaretIndex = textElement.text.length();
             }
             return true;
         }
@@ -574,21 +603,28 @@ public class SfmDrawScreen extends Screen {
             boolean selected
     ) {
         ScreenPoint point = canvasToScreen(new CanvasPoint(element.x, element.y));
-        Component label = Component.literal(element.text);
-        int textWidth = font.width(label);
-        int left = (int) Math.round(point.x()) - 3;
-        int top = (int) Math.round(point.y()) - 2;
-        int right = left + textWidth + 6;
-        int bottom = top + font.lineHeight + 4;
+        CanvasBounds textBounds = element.bounds(this);
+        ScreenRect screenBounds = canvasBoundsToScreenRect(textBounds);
+        int left = screenBounds.left() - 3;
+        int top = screenBounds.top() - 2;
+        int right = screenBounds.right() + 3;
+        int bottom = screenBounds.bottom() + 2;
         if (selected) {
             fill(poseStack, left, top, right, bottom, 0x33F6E27F);
         }
-        drawString(poseStack, font, label, (int) Math.round(point.x()), (int) Math.round(point.y()), element.color);
+        String[] lines = textLines(element);
+        poseStack.pushPose();
+        poseStack.translate(point.x(), point.y(), 0.0D);
+        poseStack.scale((float) element.textScale, (float) element.textScale, 1.0F);
+        for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            drawString(poseStack, font, lines[lineIndex], 0, lineIndex * font.lineHeight, element.color);
+        }
 
         if (element.id() == textEditingElementId && (Util.getMillis() / 400L) % 2L == 0L) {
-            int caretX = (int) Math.round(point.x()) + textWidth + 1;
-            fill(poseStack, caretX, (int) Math.round(point.y()) - 1, caretX + 1, (int) Math.round(point.y()) + font.lineHeight + 1, 0xFFF1F5FB);
+            CaretPlacement caretPlacement = caretPlacement(element, textEditingCaretIndex);
+            fill(poseStack, caretPlacement.x(), caretPlacement.y() - 1, caretPlacement.x() + 1, caretPlacement.y() + font.lineHeight + 1, 0xFFF1F5FB);
         }
+        poseStack.popPose();
     }
 
     private void drawFreehandElement(
@@ -975,7 +1011,7 @@ public class SfmDrawScreen extends Screen {
     }
 
     private TextElement createTextElement(CanvasPoint point) {
-        TextElement element = new TextElement(nextElementId++, point.x(), point.y(), "", 0xFFF1F5FB);
+        TextElement element = new TextElement(nextElementId++, point.x(), point.y(), "", 0xFFF1F5FB, 1.0D);
         elements.add(element);
         selectOnly(element.id());
         return element;
@@ -987,15 +1023,44 @@ public class SfmDrawScreen extends Screen {
         }
         DrawElement element = findElementById(textEditingElementId);
         if (element instanceof TextElement textElement) {
-            textElement.text = textElement.text + value;
+            textEditingCaretIndex = Mth.clamp(textEditingCaretIndex, 0, textElement.text.length());
+            textElement.text = textElement.text.substring(0, textEditingCaretIndex) + value + textElement.text.substring(textEditingCaretIndex);
+            textEditingCaretIndex += value.length();
         }
     }
 
     private void mutateEditingTextBackspace() {
         DrawElement element = findElementById(textEditingElementId);
-        if (element instanceof TextElement textElement && !textElement.text.isEmpty()) {
-            textElement.text = textElement.text.substring(0, textElement.text.length() - 1);
+        if (element instanceof TextElement textElement && !textElement.text.isEmpty() && textEditingCaretIndex > 0) {
+            textElement.text = textElement.text.substring(0, textEditingCaretIndex - 1) + textElement.text.substring(textEditingCaretIndex);
+            textEditingCaretIndex--;
         }
+    }
+
+    private void mutateEditingTextDelete() {
+        DrawElement element = findElementById(textEditingElementId);
+        if (element instanceof TextElement textElement && textEditingCaretIndex >= 0 && textEditingCaretIndex < textElement.text.length()) {
+            textElement.text = textElement.text.substring(0, textEditingCaretIndex) + textElement.text.substring(textEditingCaretIndex + 1);
+        }
+    }
+
+    private @Nullable TextElement editingTextElement() {
+        DrawElement element = findElementById(textEditingElementId);
+        return element instanceof TextElement textElement ? textElement : null;
+    }
+
+    private boolean deleteSelectedElements() {
+        if (selectedElementIds.isEmpty()) {
+            return false;
+        }
+
+        elements.removeIf(element -> selectedElementIds.contains(element.id()));
+        if (selectedElementIds.contains(textEditingElementId)) {
+            textEditingElementId = -1;
+            textEditingCaretIndex = 0;
+        }
+        selectedElementIds.clear();
+        return true;
     }
 
     private int findTopElementAt(CanvasPoint point) {
@@ -1023,8 +1088,7 @@ public class SfmDrawScreen extends Screen {
             return distancePointToSegment(point, arrowElement.start, arrowElement.end) <= 8.0D / zoom;
         }
         if (element instanceof TextElement textElement) {
-            CanvasBounds bounds = textElement.bounds(this);
-            return bounds.contains(point);
+            return textElementContains(textElement, point);
         }
         if (element instanceof FreehandElement freehandElement) {
             List<CanvasPoint> points = freehandElement.points;
@@ -1035,6 +1099,70 @@ public class SfmDrawScreen extends Screen {
             }
         }
         return false;
+    }
+
+    private boolean textElementContains(
+            TextElement textElement,
+            CanvasPoint point
+    ) {
+        return textElement.bounds(this).contains(point);
+    }
+
+    private void placeTextCaretFromScreen(
+            TextElement textElement,
+            double mouseX,
+            double mouseY
+    ) {
+        ScreenPoint anchor = canvasToScreen(new CanvasPoint(textElement.x, textElement.y));
+        double localX = (mouseX - anchor.x()) / textElement.textScale;
+        double localY = (mouseY - anchor.y()) / textElement.textScale;
+        String[] lines = textLines(textElement);
+        int[] lineStarts = textLineStarts(textElement);
+        int lineIndex = Mth.clamp((int) Math.floor(localY / font.lineHeight), 0, Math.max(0, lines.length - 1));
+        String line = lines[lineIndex];
+        int column = 0;
+        for (int i = 0; i <= line.length(); i++) {
+            int widthAtIndex = font.width(line.substring(0, i));
+            if (localX < widthAtIndex + 3 || i == line.length()) {
+                column = i;
+                break;
+            }
+        }
+        textEditingCaretIndex = lineStarts[lineIndex] + column;
+    }
+
+    private CaretPlacement caretPlacement(
+            TextElement textElement,
+            int caretIndex
+    ) {
+        String[] lines = textLines(textElement);
+        int[] lineStarts = textLineStarts(textElement);
+        int clampedIndex = Mth.clamp(caretIndex, 0, textElement.text.length());
+        for (int lineIndex = lines.length - 1; lineIndex >= 0; lineIndex--) {
+            if (clampedIndex >= lineStarts[lineIndex]) {
+                int column = Math.min(lines[lineIndex].length(), clampedIndex - lineStarts[lineIndex]);
+                return new CaretPlacement(font.width(lines[lineIndex].substring(0, column)), lineIndex * font.lineHeight);
+            }
+        }
+        return new CaretPlacement(0, 0);
+    }
+
+    private String[] textLines(TextElement textElement) {
+        return textElement.text.isEmpty() ? new String[]{""} : textElement.text.split("\\n", -1);
+    }
+
+    private int[] textLineStarts(TextElement textElement) {
+        String[] lines = textLines(textElement);
+        int[] result = new int[lines.length];
+        int index = 0;
+        for (int i = 0; i < lines.length; i++) {
+            result[i] = index;
+            index += lines[i].length();
+            if (i < lines.length - 1) {
+                index += 1;
+            }
+        }
+        return result;
     }
 
     private @Nullable DrawElement findElementById(int id) {
@@ -1284,7 +1412,7 @@ public class SfmDrawScreen extends Screen {
     private void seedPrototypeElements() {
         RectangleElement rectangle = new RectangleElement(nextElementId++, -180.0D, -80.0D, 40.0D, 60.0D, 0x334D7CFE, 0xFF7FD7FF);
         ArrowElement arrow = new ArrowElement(nextElementId++, new CanvasPoint(60.0D, -40.0D), new CanvasPoint(210.0D, 80.0D), 0xFFE8A652);
-        TextElement text = new TextElement(nextElementId++, -20.0D, -130.0D, "Document origin", 0xFFF1F5FB);
+        TextElement text = new TextElement(nextElementId++, -20.0D, -130.0D, "Document origin", 0xFFF1F5FB, 1.0D);
         elements.add(rectangle);
         elements.add(arrow);
         elements.add(text);
@@ -1458,31 +1586,39 @@ public class SfmDrawScreen extends Screen {
         private double y;
         private String text;
         private final int color;
+        private double textScale;
 
         private TextElement(
                 int id,
                 double x,
                 double y,
                 String text,
-                int color
+                int color,
+                double textScale
         ) {
             super(id);
             this.x = x;
             this.y = y;
             this.text = text;
             this.color = color;
+            this.textScale = textScale;
         }
 
         @Override
         public CanvasBounds bounds(SfmDrawScreen screen) {
-            double width = Math.max(16.0D, screen.font.width(text.isEmpty() ? " " : text)) / Math.max(screen.zoom, 0.01D);
-            double height = screen.font.lineHeight / Math.max(screen.zoom, 0.01D);
+            String[] lines = screen.textLines(this);
+            int pixelWidth = 0;
+            for (String line : lines) {
+                pixelWidth = Math.max(pixelWidth, screen.font.width(line.isEmpty() ? " " : line));
+            }
+            double width = Math.max(16.0D, pixelWidth * textScale) / Math.max(screen.zoom, 0.01D);
+            double height = Math.max(screen.font.lineHeight, lines.length * screen.font.lineHeight * textScale) / Math.max(screen.zoom, 0.01D);
             return CanvasBounds.of(x, y, x + width, y + height);
         }
 
         @Override
         public DrawElement copy() {
-            return new TextElement(id(), x, y, text, color);
+            return new TextElement(id(), x, y, text, color, textScale);
         }
 
         @Override
@@ -1491,6 +1627,7 @@ public class SfmDrawScreen extends Screen {
             x = element.x;
             y = element.y;
             text = element.text;
+            textScale = element.textScale;
         }
 
         @Override
@@ -1504,6 +1641,10 @@ public class SfmDrawScreen extends Screen {
             CanvasPoint point = screen.transformPoint(new CanvasPoint(x, y), fromBounds, toBounds);
             x = point.x();
             y = point.y();
+            double widthScale = fromBounds.width() <= 0.000001D ? 1.0D : toBounds.width() / fromBounds.width();
+            double heightScale = fromBounds.height() <= 0.000001D ? 1.0D : toBounds.height() / fromBounds.height();
+            double dominantScale = Math.max(0.1D, Math.max(widthScale, heightScale));
+            textScale *= dominantScale;
         }
     }
 
@@ -1658,6 +1799,12 @@ public class SfmDrawScreen extends Screen {
             double y
     ) {
     }
+
+        private record CaretPlacement(
+            int x,
+            int y
+        ) {
+        }
 
     private record ScreenRect(
             int left,
