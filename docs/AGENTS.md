@@ -132,7 +132,7 @@ Commit messages should contain the worktrees relevant to the work that was done 
 
 Commit messages should contain the platform relevant to the work that was done ("mod" (platform/minecraft; java), cli (platform/cli/sfm-propagate-changes), etc).
 
-Commit messages should contain an emoji.
+Commit messages should contain an emoji in colon form - `:recycle:` instead of `♻`.
 
 ## Writing Java
 
