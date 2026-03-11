@@ -16,6 +16,7 @@ import net.minecraftforge.client.settings.KeyModifier;
 import net.minecraftforge.common.util.Lazy;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.Locale;
 import java.util.function.Supplier;
 
 
@@ -229,6 +230,43 @@ public class SFMKeyMappings {
 
     public static Component getKeyDisplay(Supplier<KeyMapping> key) {
         return getKeyDisplay(key.get());
+    }
+
+    public static String getCanonicalKeybindingString(Supplier<KeyMapping> key) {
+        return getCanonicalKeybindingString(key.get());
+    }
+
+    public static String getCanonicalKeybindingString(KeyMapping key) {
+        if (key.getKey().equals(InputConstants.UNKNOWN)) {
+            return "Unbound";
+        }
+
+        StringBuilder result = new StringBuilder();
+        appendModifier(result, key.getKeyModifier());
+
+        String translated = key.getTranslatedKeyMessage().getString();
+        if (translated == null || translated.isBlank()) {
+            translated = key.getKey().getDisplayName().getString();
+        }
+        translated = translated.replace(" + ", "+");
+        if (result.length() > 0 && translated.toLowerCase(Locale.ROOT).startsWith(result.toString().toLowerCase(Locale.ROOT) + "+")) {
+            return translated;
+        }
+        if (result.length() > 0) {
+            result.append('+');
+        }
+        result.append(translated);
+        return result.toString();
+    }
+
+    private static void appendModifier(StringBuilder result, KeyModifier modifier) {
+        switch (modifier) {
+            case CONTROL -> result.append("Ctrl");
+            case SHIFT -> result.append("Shift");
+            case ALT -> result.append("Alt");
+            case NONE -> {
+            }
+        }
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)

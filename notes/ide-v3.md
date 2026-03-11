@@ -1040,13 +1040,22 @@ Implemented so far:
 	- `sfm:panel.toggle_terminal`
 	- `sfm:selection.select_focused`
 - terminal action surface that can run canonical ids, shorthand aliases, and `/sfm ide ...`-style forms
+- command palette overlay opened with `Ctrl+Shift+P` that:
+	- searches actions by label, id, and alias
+	- shows recent actions and keybinding hints
+	- can execute actions directly from the palette
+- registry-backed playground action definitions instead of a hardcoded action map
 - panel focus and visibility state retained on the client side instead of being recomputed ad hoc each frame
 - directional panel navigation with:
 	- `Alt+Arrow` = move focus by spatial direction
 	- `Alt+Shift+Arrow` = resize the focused edge/panel
+	- left/right wrap between shell and layout side panels
 - panel visibility toggles with:
 	- `Ctrl+M` = toggle left shell panel
 	- existing right/bottom panel toggles preserved
+- floating command palette movement with:
+	- `Alt+Drag` = reposition palette
+	- `Alt+Ctrl+Arrow` = nudge palette in screen space
 
 This means Slice A is no longer just a concept; a usable shell/layout/input scaffold already exists and is being refined in-game.
 
@@ -1055,6 +1064,7 @@ This means Slice A is no longer just a concept; a usable shell/layout/input scaf
 - virtual scrolling work
 - terminal command bridge
 - action registry momentum
+- command palette routing and action discovery
 - plain-screen rendering experiments
 - basic paneling experiments
 - session-backed shell context rendering
@@ -1131,6 +1141,14 @@ Status:
 - context-sensitive hotkey dispatch
 - initial layout/meta modifier decisions
 - focused-target scaling actions
+
+Status:
+
+- underway
+- canonical keybinding string formatting now exists for palette hints
+- command palette open/search/execute flow now exists as a first-class shell surface
+- floating palette repositioning via gesture and key-driven nudging now exists
+- still missing a broader user-remappable hotkey manager and richer context dispatch rules
 
 ---
 
@@ -1269,6 +1287,8 @@ More concretely, the prototype now has:
 - session/action/target scaffolding
 - shell-context capture and selected-set semantics
 - canonical action ids with terminal dispatch
+- registry-backed playground action metadata and lookup
+- floating command palette overlay with recent-action recall and keybinding hints
 - context-sensitive navigation and resizing controls
 
 ---

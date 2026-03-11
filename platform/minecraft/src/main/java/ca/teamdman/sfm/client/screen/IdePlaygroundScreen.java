@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.screen;
 
+import ca.teamdman.sfm.client.ide.action.IdePlaygroundActionDefinition;
 import ca.teamdman.sfm.client.ide.action.IdePlaygroundActionIds;
 import ca.teamdman.sfm.client.ide.action.IdePlaygroundActionRegistry;
 import ca.teamdman.sfm.client.ide.layout.IdeArea;
@@ -36,6 +37,12 @@ public class IdePlaygroundScreen extends Screen {
     private static final int TERMINAL_INPUT_HEIGHT = 16;
     private static final int TERMINAL_INPUT_MARGIN = 6;
     private static final int MAX_TERMINAL_MESSAGES = 8;
+    private static final int COMMAND_PALETTE_INPUT_HEIGHT = 16;
+    private static final int COMMAND_PALETTE_ROW_HEIGHT = 22;
+    private static final int COMMAND_PALETTE_MAX_RESULTS = 7;
+    private static final int COMMAND_PALETTE_MOVE_STEP = 12;
+    private static final int COMMAND_PALETTE_Z_OFFSET = 350;
+    private static final String COMMAND_PALETTE_SHORTCUT = "Ctrl+Shift+P";
 
     private int shellPanelWidth = 160;
     private int layoutPanelWidth = 180;
@@ -49,8 +56,18 @@ public class IdePlaygroundScreen extends Screen {
     private final List<String> terminalHistory = new ArrayList<>();
     private Map<PlaygroundPanel, IdeArea> currentLayout = Map.of();
     private EditBox terminalInput;
+    private EditBox commandPaletteInput;
     private int terminalHistoryIndex;
     private String terminalHistoryDraft = "";
+    private boolean commandPaletteVisible;
+    private List<IdePlaygroundActionDefinition> filteredPaletteActions = List.of();
+    private final List<String> recentActionIds = new ArrayList<>();
+    private int selectedPaletteActionIndex;
+    private int commandPaletteX = Integer.MIN_VALUE;
+    private int commandPaletteY = Integer.MIN_VALUE;
+    private boolean commandPaletteDragging;
+    private int commandPaletteDragOffsetX;
+    private int commandPaletteDragOffsetY;
 
     public IdePlaygroundScreen() {
         super(IdeLocalizationKeys.IDE_PLAYGROUND_TITLE.getComponent());
@@ -73,6 +90,20 @@ public class IdePlaygroundScreen extends Screen {
         terminalInput.setVisible(false);
         terminalHistoryIndex = terminalHistory.size();
 
+        commandPaletteInput = addRenderableWidget(new EditBox(
+            font,
+            MARGIN,
+            MARGIN,
+            Math.max(160, width / 3),
+            COMMAND_PALETTE_INPUT_HEIGHT,
+            IdeLocalizationKeys.IDE_PLAYGROUND_COMMAND_PALETTE_PLACEHOLDER.getComponent()
+        ));
+        commandPaletteInput.setMaxLength(128);
+        commandPaletteInput.setVisible(false);
+        commandPaletteInput.active = false;
+        commandPaletteInput.setResponder(this::refreshCommandPaletteResults);
+        refreshCommandPaletteResults("");
+
         if (terminalMessages.isEmpty()) {
             appendTerminalMessage(IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_EMPTY.getComponent().withStyle(ChatFormatting.DARK_GRAY));
         }
@@ -93,6 +124,14 @@ public class IdePlaygroundScreen extends Screen {
         }
         if (SFMKeyMappings.IDE_TOGGLE_BOTTOM_PANEL_KEY.get().isActiveAndMatches(key)) {
             return dispatchAction(IdePlaygroundActionIds.TOGGLE_TERMINAL_PANEL);
+        }
+        if (isCommandPaletteShortcut(keyCode)) {
+            toggleCommandPalette();
+            return true;
+        }
+
+        if (commandPaletteVisible && handleCommandPaletteKeyPressed(keyCode, scanCode, modifiers)) {
+            return true;
         }
 
         if (handleResizeKey(keyCode)) {
@@ -241,6 +280,7 @@ public class IdePlaygroundScreen extends Screen {
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
         renderBackground(poseStack);
         clampPanelSizes();
+        updateCommandPaletteBounds();
 
         drawString(poseStack, font, title, MARGIN, MARGIN, 0xFFFFFF);
         drawWrappedText(poseStack, IdeLocalizationKeys.IDE_PLAYGROUND_SUBTITLE.getComponent(), MARGIN, MARGIN + 12, Math.max(120, width - MARGIN * 2), 0xA0A0A0, 2);
@@ -259,7 +299,18 @@ public class IdePlaygroundScreen extends Screen {
         }
         drawTerminalPanel(poseStack, layout.get(PlaygroundPanel.TERMINAL), focusedPanel == PlaygroundPanel.TERMINAL);
 
+        boolean restoreCommandPaletteVisibility = false;
+        if (commandPaletteVisible && commandPaletteInput != null) {
+            restoreCommandPaletteVisibility = commandPaletteInput.visible;
+            commandPaletteInput.visible = false;
+        }
+
         super.render(poseStack, mouseX, mouseY, partialTick);
+
+        if (commandPaletteVisible && commandPaletteInput != null) {
+            commandPaletteInput.visible = restoreCommandPaletteVisibility;
+            drawCommandPaletteOverlay(poseStack, mouseX, mouseY, partialTick);
+        }
     }
 
     private List<Component> buildShellLines() {
@@ -272,6 +323,7 @@ public class IdePlaygroundScreen extends Screen {
         lines.add(IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_TARGET.getComponent(displayOrNone(session.shellContext().focusedTargetSummary())));
         lines.add(IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_SELECTION.getComponent(Integer.toString(session.shellContext().selectedTargetCount())));
         lines.add(IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_FOCUS.getComponent(displayOrNone(session.shellContext().focusedPanelDisplay())));
+        lines.add(Component.literal("Palette: " + COMMAND_PALETTE_SHORTCUT).withStyle(ChatFormatting.GRAY));
         lines.add(IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_HINTS.getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.IDE_OPEN_PLAYGROUND_KEY)));
         return lines;
     }
@@ -286,6 +338,7 @@ public class IdePlaygroundScreen extends Screen {
                 layoutPanelVisible ? "shown" : "hidden",
                 terminalPanelVisible ? "shown" : "hidden"
             )).withStyle(ChatFormatting.GRAY),
+                Component.literal("palette=" + (commandPaletteVisible ? "shown" : "hidden")).withStyle(ChatFormatting.GRAY),
                 IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_TARGET.getComponent(displayOrNone(session.focusedTarget().summary())),
                 IdeLocalizationKeys.IDE_PLAYGROUND_LABEL_FOCUS.getComponent(focusedPanel.display().getString())
         );
@@ -379,6 +432,59 @@ public class IdePlaygroundScreen extends Screen {
         }
     }
 
+    private void drawCommandPaletteOverlay(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        poseStack.pushPose();
+        poseStack.translate(0, 0, COMMAND_PALETTE_Z_OFFSET);
+        drawCommandPalette(poseStack);
+        if (commandPaletteInput != null) {
+            commandPaletteInput.render(poseStack, mouseX, mouseY, partialTick);
+        }
+        poseStack.popPose();
+    }
+
+    private void drawCommandPalette(PoseStack poseStack) {
+        if (commandPaletteInput == null) {
+            return;
+        }
+
+        IdeArea area = getCommandPaletteArea();
+        fill(poseStack, area.x(), area.y(), area.right(), area.bottom(), 0xE0181B22);
+        fill(poseStack, area.x(), area.y(), area.right(), area.y() + 1, 0xFF66CCFF);
+        fill(poseStack, area.x(), area.bottom() - 1, area.right(), area.bottom(), 0xFF66CCFF);
+        fill(poseStack, area.x(), area.y(), area.x() + 1, area.bottom(), 0xFF66CCFF);
+        fill(poseStack, area.right() - 1, area.y(), area.right(), area.bottom(), 0xFF66CCFF);
+
+        drawString(poseStack, font, IdeLocalizationKeys.IDE_PLAYGROUND_COMMAND_PALETTE_TITLE.getComponent(), area.x() + PANEL_TEXT_PADDING, area.y() + 6, 0xFFFFFF);
+        drawString(poseStack, font, IdeLocalizationKeys.IDE_PLAYGROUND_COMMAND_PALETTE_HINT.getComponent(), area.x() + PANEL_TEXT_PADDING, area.y() + 6 + font.lineHeight + 4, 0xB8C8D6);
+
+        int resultsTop = commandPaletteInput.y + COMMAND_PALETTE_INPUT_HEIGHT + 8;
+        if (filteredPaletteActions.isEmpty()) {
+            drawString(poseStack, font, IdeLocalizationKeys.IDE_PLAYGROUND_COMMAND_PALETTE_EMPTY.getComponent().withStyle(ChatFormatting.DARK_GRAY), area.x() + PANEL_TEXT_PADDING, resultsTop, 0x808080);
+            return;
+        }
+
+        for (int i = 0; i < filteredPaletteActions.size() && i < COMMAND_PALETTE_MAX_RESULTS; i++) {
+            IdePlaygroundActionDefinition definition = filteredPaletteActions.get(i);
+            int rowTop = resultsTop + i * COMMAND_PALETTE_ROW_HEIGHT;
+            boolean selected = i == selectedPaletteActionIndex;
+            if (selected) {
+                fill(poseStack, area.x() + 4, rowTop - 2, area.right() - 4, rowTop + COMMAND_PALETTE_ROW_HEIGHT - 4, 0x553A5E7A);
+            }
+
+            String titleText = definition.title().getString();
+            if (recentActionIds.contains(definition.id()) && commandPaletteInput.getValue().isBlank()) {
+                titleText = "★ " + titleText;
+            }
+            drawString(poseStack, font, font.plainSubstrByWidth(titleText, Math.max(32, area.width() - 120)), area.x() + PANEL_TEXT_PADDING, rowTop, selected ? 0xFFFFFF : 0xDDE7EF);
+            drawString(poseStack, font, font.plainSubstrByWidth(definition.id(), Math.max(32, area.width() - PANEL_TEXT_PADDING * 2)), area.x() + PANEL_TEXT_PADDING, rowTop + font.lineHeight + 1, selected ? 0x9EDAFF : 0x8AA1B5);
+
+            definition.keybindingHint().ifPresent(hint -> {
+                int hintWidth = font.width(hint);
+                drawString(poseStack, font, hint, area.right() - PANEL_TEXT_PADDING - hintWidth, rowTop, selected ? 0xC5F0FF : 0x7FAFC9);
+            });
+        }
+    }
+
     private int scale(int value, int sourceSize, int targetSize) {
         if (sourceSize <= 0 || targetSize <= 0) {
             return 0;
@@ -422,6 +528,9 @@ public class IdePlaygroundScreen extends Screen {
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
+        if (commandPaletteVisible && commandPaletteInput != null && commandPaletteInput.visible && commandPaletteInput.isFocused()) {
+            return commandPaletteInput.charTyped(codePoint, modifiers);
+        }
         if (terminalPanelVisible && terminalInput != null && terminalInput.visible && terminalInput.isFocused()) {
             return terminalInput.charTyped(codePoint, modifiers);
         }
@@ -430,6 +539,13 @@ public class IdePlaygroundScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (commandPaletteVisible) {
+            if (handleCommandPaletteClick(mouseX, mouseY, button)) {
+                return true;
+            }
+            closeCommandPalette();
+            return true;
+        }
         for (PlaygroundPanel panel : visiblePanels()) {
             IdeArea area = currentLayout.get(panel);
             if (area != null && area.contains(mouseX, mouseY)) {
@@ -438,6 +554,25 @@ public class IdePlaygroundScreen extends Screen {
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (commandPaletteVisible && commandPaletteDragging && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            setCommandPalettePosition((int) Math.round(mouseX) - commandPaletteDragOffsetX, (int) Math.round(mouseY) - commandPaletteDragOffsetY);
+            updateCommandPaletteBounds();
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && commandPaletteDragging) {
+            commandPaletteDragging = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     public void toggleShellPanel() {
@@ -488,6 +623,10 @@ public class IdePlaygroundScreen extends Screen {
 
     private boolean dispatchAction(String actionId) {
         boolean executed = IdePlaygroundActionRegistry.run(actionId, this);
+        if (executed) {
+            rememberRecentAction(actionId);
+            refreshCommandPaletteResults(commandPaletteInput == null ? "" : commandPaletteInput.getValue());
+        }
         appendTerminalMessage((executed
                               ? IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_SUCCESS.getComponent(actionId).withStyle(ChatFormatting.GREEN)
                               : IdeLocalizationKeys.IDE_PLAYGROUND_TERMINAL_UNKNOWN.getComponent(actionId).withStyle(ChatFormatting.RED)));
@@ -570,6 +709,35 @@ public class IdePlaygroundScreen extends Screen {
         terminalInput.y = area.bottom() - TERMINAL_INPUT_HEIGHT - TERMINAL_INPUT_MARGIN;
     }
 
+    private void updateCommandPaletteBounds() {
+        if (commandPaletteInput == null) {
+            return;
+        }
+        IdeArea area = getCommandPaletteArea();
+        commandPaletteInput.visible = commandPaletteVisible;
+        commandPaletteInput.active = commandPaletteVisible;
+        if (!commandPaletteVisible) {
+            commandPaletteInput.setFocus(false);
+            return;
+        }
+        commandPaletteInput.setWidth(Math.max(160, area.width() - PANEL_TEXT_PADDING * 2));
+        commandPaletteInput.setX(area.x() + PANEL_TEXT_PADDING);
+        commandPaletteInput.y = area.y() + 6 + font.lineHeight + 6 + font.lineHeight + 6;
+    }
+
+    private IdeArea getCommandPaletteArea() {
+        int paletteWidth = Math.min(420, Math.max(220, width - MARGIN * 6));
+        int visibleRows = Math.max(1, Math.min(COMMAND_PALETTE_MAX_RESULTS, filteredPaletteActions.size()));
+        int paletteHeight = 16 + COMMAND_PALETTE_INPUT_HEIGHT + 18 + font.lineHeight * 2 + visibleRows * COMMAND_PALETTE_ROW_HEIGHT;
+        int x = commandPaletteX == Integer.MIN_VALUE ? (width - paletteWidth) / 2 : commandPaletteX;
+        int y = commandPaletteY == Integer.MIN_VALUE ? MARGIN + HEADER_HEIGHT + 18 : commandPaletteY;
+        x = clampCommandPaletteX(x, paletteWidth);
+        y = clampCommandPaletteY(y, paletteHeight);
+        commandPaletteX = x;
+        commandPaletteY = y;
+        return new IdeArea(x, y, paletteWidth, paletteHeight);
+    }
+
     private int drawWrappedText(PoseStack poseStack, Component text, int x, int y, int maxWidth, int color, int maxLines) {
         int linesDrawn = 0;
         for (FormattedCharSequence sequence : font.split(text, Math.max(1, maxWidth))) {
@@ -606,6 +774,15 @@ public class IdePlaygroundScreen extends Screen {
         List<PlaygroundPanel> visiblePanels = visiblePanels();
         if (visiblePanels.size() <= 1) {
             return false;
+        }
+
+        if (xDirection < 0 && focusedPanel == PlaygroundPanel.SHELL && layoutPanelVisible) {
+            focusPanel(PlaygroundPanel.LAYOUT);
+            return true;
+        }
+        if (xDirection > 0 && focusedPanel == PlaygroundPanel.LAYOUT && shellPanelVisible) {
+            focusPanel(PlaygroundPanel.SHELL);
+            return true;
         }
 
         Map<PlaygroundPanel, IdeArea> layout = calculateLayout();
@@ -723,6 +900,9 @@ public class IdePlaygroundScreen extends Screen {
 
     private void focusPanel(PlaygroundPanel panel) {
         focusedPanel = panel;
+        if (commandPaletteVisible) {
+            return;
+        }
         boolean focusTerminalInput = panel == PlaygroundPanel.TERMINAL && terminalPanelVisible && terminalInput != null && terminalInput.visible;
         if (terminalInput != null) {
             terminalInput.setFocus(focusTerminalInput);
@@ -752,6 +932,241 @@ public class IdePlaygroundScreen extends Screen {
             case LAYOUT -> layoutPanelVisible;
             case TERMINAL -> terminalPanelVisible;
         };
+    }
+
+    private boolean isCommandPaletteShortcut(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_P && hasControlDown() && hasShiftDown();
+    }
+
+    private void toggleCommandPalette() {
+        if (commandPaletteVisible) {
+            closeCommandPalette();
+        } else {
+            openCommandPalette();
+        }
+    }
+
+    private void openCommandPalette() {
+        commandPaletteVisible = true;
+        refreshCommandPaletteResults(commandPaletteInput == null ? "" : commandPaletteInput.getValue());
+        updateCommandPaletteBounds();
+        if (commandPaletteInput != null) {
+            commandPaletteInput.setValue("");
+            commandPaletteInput.setFocus(true);
+            commandPaletteInput.moveCursorToEnd();
+        }
+        if (terminalInput != null) {
+            terminalInput.setFocus(false);
+        }
+        setFocused(commandPaletteInput);
+    }
+
+    private void closeCommandPalette() {
+        commandPaletteVisible = false;
+        if (commandPaletteInput != null) {
+            commandPaletteInput.setFocus(false);
+        }
+        refreshCommandPaletteResults("");
+        focusPanel(focusedPanel);
+    }
+
+    private boolean handleCommandPaletteKeyPressed(int keyCode, int scanCode, int modifiers) {
+        if (hasAltDown() && hasControlDown() && handleCommandPaletteMoveKey(keyCode)) {
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            closeCommandPalette();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_UP) {
+            moveCommandPaletteSelection(-1);
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_DOWN) {
+            moveCommandPaletteSelection(1);
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_TAB) {
+            fillCommandPaletteWithSelection();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            executeSelectedPaletteAction();
+            return true;
+        }
+        if (commandPaletteInput != null && commandPaletteInput.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        return true;
+    }
+
+    private boolean handleCommandPaletteClick(double mouseX, double mouseY, int button) {
+        if (button != 0) {
+            return false;
+        }
+        IdeArea area = getCommandPaletteArea();
+        if (!area.contains(mouseX, mouseY)) {
+            return false;
+        }
+        if (hasAltDown()) {
+            commandPaletteDragging = true;
+            commandPaletteDragOffsetX = (int) Math.round(mouseX) - area.x();
+            commandPaletteDragOffsetY = (int) Math.round(mouseY) - area.y();
+            return true;
+        }
+        if (commandPaletteInput != null && commandPaletteInput.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+
+        int resultsTop = commandPaletteInput.y + COMMAND_PALETTE_INPUT_HEIGHT + 8;
+        for (int i = 0; i < filteredPaletteActions.size() && i < COMMAND_PALETTE_MAX_RESULTS; i++) {
+            int rowTop = resultsTop + i * COMMAND_PALETTE_ROW_HEIGHT;
+            if (mouseY >= rowTop - 2 && mouseY <= rowTop + COMMAND_PALETTE_ROW_HEIGHT - 4) {
+                selectedPaletteActionIndex = i;
+                executeSelectedPaletteAction();
+                return true;
+            }
+        }
+        return true;
+    }
+
+    private void moveCommandPaletteSelection(int direction) {
+        if (filteredPaletteActions.isEmpty()) {
+            selectedPaletteActionIndex = 0;
+            return;
+        }
+        selectedPaletteActionIndex = Math.floorMod(selectedPaletteActionIndex + direction, filteredPaletteActions.size());
+    }
+
+    private void fillCommandPaletteWithSelection() {
+        if (commandPaletteInput == null || filteredPaletteActions.isEmpty()) {
+            return;
+        }
+        commandPaletteInput.setValue(filteredPaletteActions.get(selectedPaletteActionIndex).id());
+        commandPaletteInput.moveCursorToEnd();
+    }
+
+    private void executeSelectedPaletteAction() {
+        if (filteredPaletteActions.isEmpty()) {
+            return;
+        }
+        String actionId = filteredPaletteActions.get(selectedPaletteActionIndex).id();
+        closeCommandPalette();
+        dispatchAction(actionId);
+    }
+
+    private void refreshCommandPaletteResults(String query) {
+        String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        List<IdePlaygroundActionDefinition> definitions = IdePlaygroundActionRegistry.definitions();
+        if (normalized.isBlank()) {
+            ArrayList<IdePlaygroundActionDefinition> results = new ArrayList<>();
+            for (String recentActionId : recentActionIds) {
+                IdePlaygroundActionRegistry.getDefinition(recentActionId).ifPresent(results::add);
+            }
+            for (IdePlaygroundActionDefinition definition : definitions) {
+                if (!results.contains(definition)) {
+                    results.add(definition);
+                }
+            }
+            filteredPaletteActions = results.stream().limit(COMMAND_PALETTE_MAX_RESULTS).toList();
+            selectedPaletteActionIndex = Math.min(selectedPaletteActionIndex, Math.max(0, filteredPaletteActions.size() - 1));
+            return;
+        }
+
+        filteredPaletteActions = definitions.stream()
+                .filter(definition -> matchesCommandPalette(definition, normalized))
+                .sorted((left, right) -> Integer.compare(commandPaletteScore(left, normalized), commandPaletteScore(right, normalized)))
+                .limit(COMMAND_PALETTE_MAX_RESULTS)
+                .toList();
+        selectedPaletteActionIndex = 0;
+    }
+
+    private boolean matchesCommandPalette(IdePlaygroundActionDefinition definition, String query) {
+        return commandPaletteScore(definition, query) < Integer.MAX_VALUE;
+    }
+
+    private int commandPaletteScore(IdePlaygroundActionDefinition definition, String query) {
+        String id = definition.id().toLowerCase(Locale.ROOT);
+        String title = definition.title().getString().toLowerCase(Locale.ROOT);
+
+        if (id.equals(query)) {
+            return 0;
+        }
+        if (title.equals(query)) {
+            return 1;
+        }
+        for (String alias : definition.aliases()) {
+            String normalizedAlias = alias.toLowerCase(Locale.ROOT);
+            if (normalizedAlias.equals(query)) {
+                return 2;
+            }
+        }
+        if (id.startsWith(query)) {
+            return 10;
+        }
+        if (title.startsWith(query)) {
+            return 20;
+        }
+        for (String alias : definition.aliases()) {
+            if (alias.toLowerCase(Locale.ROOT).startsWith(query)) {
+                return 30;
+            }
+        }
+        if (id.contains(query)) {
+            return 40;
+        }
+        if (title.contains(query)) {
+            return 50;
+        }
+        for (String alias : definition.aliases()) {
+            if (alias.toLowerCase(Locale.ROOT).contains(query)) {
+                return 60;
+            }
+        }
+        return Integer.MAX_VALUE;
+    }
+
+    private void rememberRecentAction(String actionId) {
+        recentActionIds.remove(actionId);
+        recentActionIds.add(0, actionId);
+        while (recentActionIds.size() > COMMAND_PALETTE_MAX_RESULTS) {
+            recentActionIds.remove(recentActionIds.size() - 1);
+        }
+    }
+
+    private boolean handleCommandPaletteMoveKey(int keyCode) {
+        return switch (keyCode) {
+            case GLFW.GLFW_KEY_LEFT -> moveCommandPaletteBy(-COMMAND_PALETTE_MOVE_STEP, 0);
+            case GLFW.GLFW_KEY_RIGHT -> moveCommandPaletteBy(COMMAND_PALETTE_MOVE_STEP, 0);
+            case GLFW.GLFW_KEY_UP -> moveCommandPaletteBy(0, -COMMAND_PALETTE_MOVE_STEP);
+            case GLFW.GLFW_KEY_DOWN -> moveCommandPaletteBy(0, COMMAND_PALETTE_MOVE_STEP);
+            default -> false;
+        };
+    }
+
+    private boolean moveCommandPaletteBy(int deltaX, int deltaY) {
+        IdeArea area = getCommandPaletteArea();
+        setCommandPalettePosition(area.x() + deltaX, area.y() + deltaY);
+        updateCommandPaletteBounds();
+        return true;
+    }
+
+    private void setCommandPalettePosition(int x, int y) {
+        IdeArea currentArea = getCommandPaletteArea();
+        commandPaletteX = clampCommandPaletteX(x, currentArea.width());
+        commandPaletteY = clampCommandPaletteY(y, currentArea.height());
+    }
+
+    private int clampCommandPaletteX(int x, int paletteWidth) {
+        int minX = MARGIN;
+        int maxX = Math.max(minX, width - MARGIN - paletteWidth);
+        return Math.max(minX, Math.min(x, maxX));
+    }
+
+    private int clampCommandPaletteY(int y, int paletteHeight) {
+        int minY = MARGIN + HEADER_HEIGHT;
+        int maxY = Math.max(minY, height - MARGIN - paletteHeight);
+        return Math.max(minY, Math.min(y, maxY));
     }
 
     private enum PlaygroundPanel {

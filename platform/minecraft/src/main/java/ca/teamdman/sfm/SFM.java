@@ -1,6 +1,7 @@
 package ca.teamdman.sfm;
 
 import ca.teamdman.sfm.client.registry.SFMMenuScreens;
+import ca.teamdman.sfm.client.registry.SFMIdePlaygroundActions;
 import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.common.config.SFMConfig;
@@ -45,6 +46,8 @@ public class SFM {
         SFMGlobalBlockCapabilityProviders.register(bus);
 
         SFMTextEditors.register(bus);
+
+        SFMIdePlaygroundActions.register(bus);
 
         SFMTextEditorActions.register(bus);
 

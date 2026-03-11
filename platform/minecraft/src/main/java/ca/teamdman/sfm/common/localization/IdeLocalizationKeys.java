@@ -158,6 +158,58 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.playground.label.workspace",
             "Dock workspace preview"
     );
+    public static final LocalizationEntry IDE_PLAYGROUND_COMMAND_PALETTE_TITLE = new LocalizationEntry(
+            "gui.sfm.ide.playground.command_palette.title",
+            "Command Palette"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_COMMAND_PALETTE_PLACEHOLDER = new LocalizationEntry(
+            "gui.sfm.ide.playground.command_palette.placeholder",
+            "Search actions by label or id"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_COMMAND_PALETTE_HINT = new LocalizationEntry(
+            "gui.sfm.ide.playground.command_palette.hint",
+            "Enter to run · Tab to fill · Esc to close"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_COMMAND_PALETTE_EMPTY = new LocalizationEntry(
+            "gui.sfm.ide.playground.command_palette.empty",
+            "No matching actions"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_TOGGLE_SHELL = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.toggle_shell",
+            "Toggle shell panel"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_TOGGLE_LAYOUT = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.toggle_layout",
+            "Toggle layout panel"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_TOGGLE_TERMINAL = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.toggle_terminal",
+            "Toggle terminal panel"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_FOCUS_SHELL = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.focus_shell",
+            "Focus shell panel"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_FOCUS_WORKSPACE = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.focus_workspace",
+            "Focus workspace panel"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_FOCUS_LAYOUT = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.focus_layout",
+            "Focus layout panel"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_FOCUS_TERMINAL = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.focus_terminal",
+            "Focus terminal panel"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_SELECT_FOCUSED = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.select_focused",
+            "Select focused target"
+    );
+    public static final LocalizationEntry IDE_PLAYGROUND_ACTION_CLEAR_SELECTION = new LocalizationEntry(
+            "gui.sfm.ide.playground.action.clear_selection",
+            "Clear selected targets"
+    );
 
     public static final LocalizationEntry IDE_KEY_OPEN_PLAYGROUND = new LocalizationEntry(
             "key.sfm.ide.open_playground",
