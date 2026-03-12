@@ -3,11 +3,7 @@ package ca.teamdman.sfm.client.screen;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.localization.IdeLocalizationKeys;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Matrix4f;
 import net.minecraft.Util;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -72,11 +68,16 @@ public class SfmDrawScreen extends Screen {
     private boolean textToolCreatesBoundText = true;
     private int textEditingElementId = -1;
     private int textEditingCaretIndex = 0;
+    private boolean stickyToolMode = true;
+
+    private final List<CanvasPoint> pendingArrowAnchors = new ArrayList<>();
+    private @Nullable CameraOverlayProjection pendingArrowProjection = null;
 
     private @Nullable DraftInteraction draftInteraction = null;
     private @Nullable MoveSelectionDrag moveSelectionDrag = null;
     private @Nullable ResizeSelectionDrag resizeSelectionDrag = null;
     private @Nullable MarqueeSelectionDrag marqueeSelectionDrag = null;
+    private @Nullable CameraFrameDrag cameraFrameDrag = null;
 
     private long lastCursorClickAtMs = 0L;
     private double lastCursorClickX = 0.0D;
@@ -148,10 +149,20 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        if (hasControlDown() && keyCode == GLFW.GLFW_KEY_A) {
+            selectAllElements();
+            return true;
+        }
+
         if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             if (deleteSelectedElements()) {
                 return true;
             }
+        }
+
+        if (keyCode == GLFW.GLFW_KEY_TAB) {
+            stickyToolMode = !stickyToolMode;
+            return true;
         }
 
         int hotbarIndex = hotbarIndexForKeyCode(keyCode);
@@ -161,7 +172,16 @@ public class SfmDrawScreen extends Screen {
         }
 
         if (keyCode == GLFW.GLFW_KEY_C) {
-            cameraOverlayVisible = !cameraOverlayVisible;
+            if (activeTool == DrawTool.CAMERA) {
+                cameraOverlayVisible = !cameraOverlayVisible;
+            } else {
+                activeTool = DrawTool.CAMERA;
+            }
+            return true;
+        }
+
+        if (activeTool == DrawTool.ARROW && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER || keyCode == GLFW.GLFW_KEY_ESCAPE)) {
+            finalizePendingArrowAnchors();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_T) {
@@ -248,6 +268,13 @@ public class SfmDrawScreen extends Screen {
 
         CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, projectionUnderMouse);
 
+        if (activeTool == DrawTool.CAMERA) {
+            if (projectionUnderMouse != null) {
+                cameraFrameDrag = new CameraFrameDrag(canvasPoint, canvasPoint, projectionUnderMouse);
+            }
+            return true;
+        }
+
         if (textEditingElementId >= 0) {
             TextElement editingTextElement = editingTextElement();
             if (editingTextElement != null && textElementContains(editingTextElement, canvasPoint)) {
@@ -273,6 +300,19 @@ public class SfmDrawScreen extends Screen {
                 activeTool = DrawTool.TEXT;
                 textEditingElementId = textElement.id();
                 textEditingCaretIndex = textElement.text.length();
+            }
+            return true;
+        }
+
+        if (activeTool == DrawTool.ARROW && pendingArrowAnchors.isEmpty()) {
+            draftInteraction = new DraftInteraction(activeTool, canvasPoint, canvasPoint, projectionUnderMouse);
+            return true;
+        }
+
+        if (activeTool == DrawTool.ARROW) {
+            if (pendingArrowProjection == projectionUnderMouse || (pendingArrowProjection == null && projectionUnderMouse == null)) {
+                pendingArrowAnchors.add(canvasPoint);
+                pendingArrowProjection = projectionUnderMouse;
             }
             return true;
         }
@@ -310,6 +350,11 @@ public class SfmDrawScreen extends Screen {
         if (panning && button == panButton) {
             cameraX = panAnchorCameraX - (mouseX - panAnchorMouseX) / zoom;
             cameraY = panAnchorCameraY - (mouseY - panAnchorMouseY) / zoom;
+            return true;
+        }
+
+        if (cameraFrameDrag != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            cameraFrameDrag.currentPoint = screenToCanvas(mouseX, mouseY, cameraFrameDrag.projection());
             return true;
         }
 
@@ -367,6 +412,13 @@ public class SfmDrawScreen extends Screen {
         if (panning && button == panButton) {
             panning = false;
             panButton = -1;
+            return true;
+        }
+
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraFrameDrag != null) {
+            cameraFrameDrag.currentPoint = screenToCanvas(mouseX, mouseY, cameraFrameDrag.projection());
+            applyCameraFrame(cameraFrameDrag);
+            cameraFrameDrag = null;
             return true;
         }
 
@@ -449,7 +501,6 @@ public class SfmDrawScreen extends Screen {
     ) {
         drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_TITLE.getComponent(), 12, 12, 0xF0F3F7);
         drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_SUBTITLE.getComponent(), 12, 24, 0x9AA3B2);
-        drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_HINTS.getComponent(), 12, 40, 0x7B8697);
 
         Component cameraLabel = Component.literal(String.format("cam %.0f, %.0f  zoom %.2fx", cameraX, cameraY, zoom));
         int cameraLabelWidth = font.width(cameraLabel);
@@ -537,11 +588,7 @@ public class SfmDrawScreen extends Screen {
                     new RectangleElement(-1, draftInteraction.startPoint().x(), draftInteraction.startPoint().y(), draftInteraction.currentPoint().x(), draftInteraction.currentPoint().y(), 0x332FB5FF, 0xFF7FD7FF),
                     true
             );
-            case ARROW -> drawArrowElement(
-                    poseStack,
-                    new ArrowElement(-1, draftInteraction.startPoint(), draftInteraction.currentPoint(), 0xFFE8A652),
-                    true
-            );
+            case ARROW -> drawArrowElement(poseStack, new ArrowElement(-1, List.of(draftInteraction.startPoint(), draftInteraction.currentPoint()), 0xFFE8A652), true);
             case FREEHAND -> {
                 if (draftInteraction.points().size() >= 2) {
                     drawFreehandElement(
@@ -553,6 +600,20 @@ public class SfmDrawScreen extends Screen {
             }
             default -> {
             }
+        }
+
+        if (!pendingArrowAnchors.isEmpty()) {
+            drawArrowElement(poseStack, new ArrowElement(-1, List.copyOf(pendingArrowAnchors), 0xFFE8A652), true);
+        }
+
+        if (cameraFrameDrag != null) {
+            drawBoundsInProjection(
+                    poseStack,
+                    CanvasBounds.of(cameraFrameDrag.startPoint.x(), cameraFrameDrag.startPoint.y(), cameraFrameDrag.currentPoint.x(), cameraFrameDrag.currentPoint.y()),
+                    cameraFrameDrag.projection(),
+                    0xFFE8A652,
+                    0x22E8A652
+            );
         }
     }
 
@@ -617,11 +678,18 @@ public class SfmDrawScreen extends Screen {
             ArrowElement element,
             boolean selected
     ) {
-        ScreenPoint start = canvasToScreen(element.start);
-        ScreenPoint end = canvasToScreen(element.end);
+        if (element.points.size() < 2) {
+            return;
+        }
+        List<ScreenPoint> linePoints = new ArrayList<>(element.points.size());
+        for (CanvasPoint point : element.points) {
+            linePoints.add(canvasToScreen(point));
+        }
         int color = selected ? 0xFFF6E27F : element.color;
-        drawLineStrip(poseStack, List.of(start, end), color);
+        drawLineStrip(poseStack, linePoints, color);
 
+        ScreenPoint start = linePoints.get(linePoints.size() - 2);
+        ScreenPoint end = linePoints.get(linePoints.size() - 1);
         double dx = end.x() - start.x();
         double dy = end.y() - start.y();
         double length = Math.sqrt(dx * dx + dy * dy);
@@ -767,6 +835,15 @@ public class SfmDrawScreen extends Screen {
                     0x2288C0FF
             );
         }
+        if (cameraFrameDrag != null) {
+            drawBoundsInProjection(
+                    poseStack,
+                    CanvasBounds.of(cameraFrameDrag.startPoint.x(), cameraFrameDrag.startPoint.y(), cameraFrameDrag.currentPoint.x(), cameraFrameDrag.currentPoint.y()),
+                    cameraFrameDrag.projection(),
+                    0xFFE8A652,
+                    0x22E8A652
+            );
+        }
     }
 
     private void drawBoundsOrPathInProjection(
@@ -782,11 +859,7 @@ public class SfmDrawScreen extends Screen {
                     0xFF7FD7FF,
                     0x222FB5FF
             );
-            case ARROW -> drawLineStrip(
-                    poseStack,
-                    List.of(projection.canvasToScreen(interaction.startPoint()), projection.canvasToScreen(interaction.currentPoint())),
-                    0xFFE8A652
-            );
+            case ARROW -> drawLineStrip(poseStack, List.of(projection.canvasToScreen(interaction.startPoint()), projection.canvasToScreen(interaction.currentPoint())), 0xFFE8A652);
             case FREEHAND -> {
                 if (interaction.points().size() >= 2) {
                     List<ScreenPoint> points = new ArrayList<>(interaction.points().size());
@@ -883,7 +956,8 @@ public class SfmDrawScreen extends Screen {
         if (tool == DrawTool.CAMERA) {
             return tool.label() + " [c] " + (cameraOverlayVisible ? "on" : "off");
         }
-        return tool.label() + " [" + tool.shortcutGlyph().toLowerCase() + "]";
+        String stickySuffix = stickyToolMode ? " sticky" : " one-shot";
+        return tool.label() + " [" + tool.shortcutGlyph().toLowerCase() + "]" + (tool == DrawTool.CURSOR || tool == DrawTool.HAND ? "" : stickySuffix);
     }
 
     private void beginPan(
@@ -904,7 +978,11 @@ public class SfmDrawScreen extends Screen {
             finishTextEditing();
         }
         if (tool == DrawTool.CAMERA) {
-            cameraOverlayVisible = !cameraOverlayVisible;
+            if (activeTool == DrawTool.CAMERA) {
+                cameraOverlayVisible = !cameraOverlayVisible;
+            } else {
+                activeTool = DrawTool.CAMERA;
+            }
             return;
         }
         if (tool == DrawTool.TEXT && activeTool == DrawTool.TEXT) {
@@ -951,6 +1029,9 @@ public class SfmDrawScreen extends Screen {
         }
 
         if (selectionBounds != null && selectionBounds.contains(canvasPoint)) {
+            if (hasControlDown()) {
+                duplicateSelection();
+            }
             moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection);
             return;
         }
@@ -959,6 +1040,8 @@ public class SfmDrawScreen extends Screen {
         if (hitElementId >= 0) {
             if (!selectedElementIds.contains(hitElementId)) {
                 selectOnly(hitElementId);
+            } else if (hasControlDown()) {
+                duplicateSelection();
             }
             moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection);
             return;
@@ -1018,7 +1101,7 @@ public class SfmDrawScreen extends Screen {
 
         selectedElementIds.clear();
         for (DrawElement element : elements) {
-            if (element.bounds(this).intersects(marqueeBounds)) {
+            if (elementIntersectsSelection(element, marqueeBounds)) {
                 selectedElementIds.add(element.id());
             }
         }
@@ -1035,26 +1118,44 @@ public class SfmDrawScreen extends Screen {
                     RectangleElement element = new RectangleElement(nextElementId++, draftInteraction.startPoint().x(), draftInteraction.startPoint().y(), draftInteraction.currentPoint().x(), draftInteraction.currentPoint().y(), 0x332FB5FF, 0xFF7FD7FF);
                     elements.add(element);
                     selectOnly(element.id());
+                    resetToolAfterCreation(DrawTool.RECTANGLE);
                 }
             }
             case ARROW -> {
                 if (distanceSquared(draftInteraction.startPoint(), draftInteraction.currentPoint()) > 4.0D) {
-                    ArrowElement element = new ArrowElement(nextElementId++, draftInteraction.startPoint(), draftInteraction.currentPoint(), 0xFFE8A652);
+                    ArrowElement element = new ArrowElement(nextElementId++, List.of(draftInteraction.startPoint(), draftInteraction.currentPoint()), 0xFFE8A652);
                     elements.add(element);
                     selectOnly(element.id());
+                    resetToolAfterCreation(DrawTool.ARROW);
+                } else {
+                    pendingArrowAnchors.clear();
+                    pendingArrowAnchors.add(draftInteraction.startPoint());
+                    pendingArrowProjection = draftInteraction.projection();
                 }
             }
             case FREEHAND -> {
                 if (draftInteraction.points().size() >= 2) {
                     FreehandElement element = new FreehandElement(nextElementId++, List.copyOf(draftInteraction.points()), 0xFF88D498);
                     elements.add(element);
-                    selectOnly(element.id());
+                    selectedElementIds.clear();
+                    resetToolAfterCreation(DrawTool.FREEHAND);
                 }
             }
             default -> {
             }
         }
         draftInteraction = null;
+    }
+
+    private void finalizePendingArrowAnchors() {
+        if (pendingArrowAnchors.size() >= 2) {
+            ArrowElement element = new ArrowElement(nextElementId++, List.copyOf(pendingArrowAnchors), 0xFFE8A652);
+            elements.add(element);
+            selectOnly(element.id());
+            resetToolAfterCreation(DrawTool.ARROW);
+        }
+        pendingArrowAnchors.clear();
+        pendingArrowProjection = null;
     }
 
     private TextElement createTextElement(CanvasPoint point) {
@@ -1072,6 +1173,115 @@ public class SfmDrawScreen extends Screen {
         }
         textEditingElementId = -1;
         textEditingCaretIndex = 0;
+        selectedElementIds.clear();
+        resetToolAfterCreation(DrawTool.TEXT);
+    }
+
+    private void applyCameraFrame(CameraFrameDrag drag) {
+        CanvasBounds bounds = CanvasBounds.of(drag.startPoint.x(), drag.startPoint.y(), drag.currentPoint.x(), drag.currentPoint.y());
+        if (bounds.width() <= 1.0D || bounds.height() <= 1.0D) {
+            return;
+        }
+        cameraX = (bounds.minX() + bounds.maxX()) / 2.0D;
+        cameraY = (bounds.minY() + bounds.maxY()) / 2.0D;
+        double zoomX = width / bounds.width();
+        double zoomY = height / bounds.height();
+        zoom = Mth.clamp(Math.min(zoomX, zoomY), MIN_ZOOM, MAX_ZOOM);
+    }
+
+    private void resetToolAfterCreation(DrawTool createdTool) {
+        if (!stickyToolMode && activeTool == createdTool) {
+            activeTool = DrawTool.CURSOR;
+        }
+    }
+
+    private void selectAllElements() {
+        selectedElementIds.clear();
+        for (DrawElement element : elements) {
+            selectedElementIds.add(element.id());
+        }
+    }
+
+    private void duplicateSelection() {
+        if (selectedElementIds.isEmpty()) {
+            return;
+        }
+        List<DrawElement> duplicates = new ArrayList<>(selectedElementIds.size());
+        Set<Integer> newSelection = new LinkedHashSet<>();
+        for (Integer selectedElementId : selectedElementIds) {
+            DrawElement element = findElementById(selectedElementId);
+            if (element == null) {
+                continue;
+            }
+            DrawElement duplicate = element.copyWithId(nextElementId++);
+            duplicates.add(duplicate);
+            newSelection.add(duplicate.id());
+        }
+        elements.addAll(duplicates);
+        selectedElementIds.clear();
+        selectedElementIds.addAll(newSelection);
+    }
+
+    private boolean elementIntersectsSelection(
+            DrawElement element,
+            CanvasBounds selectionBounds
+    ) {
+        if (element instanceof ArrowElement arrowElement) {
+            return arrowIntersectsSelection(arrowElement, selectionBounds);
+        }
+        return element.bounds(this).intersects(selectionBounds);
+    }
+
+    private boolean arrowIntersectsSelection(
+            ArrowElement arrowElement,
+            CanvasBounds selectionBounds
+    ) {
+        List<CanvasPoint> points = arrowElement.points;
+        for (int i = 1; i < points.size(); i++) {
+            if (segmentIntersectsRect(points.get(i - 1), points.get(i), selectionBounds)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean segmentIntersectsRect(
+            CanvasPoint start,
+            CanvasPoint end,
+            CanvasBounds rect
+    ) {
+        if (rect.contains(start) || rect.contains(end)) {
+            return true;
+        }
+        CanvasPoint topLeft = new CanvasPoint(rect.minX(), rect.minY());
+        CanvasPoint topRight = new CanvasPoint(rect.maxX(), rect.minY());
+        CanvasPoint bottomLeft = new CanvasPoint(rect.minX(), rect.maxY());
+        CanvasPoint bottomRight = new CanvasPoint(rect.maxX(), rect.maxY());
+        return segmentsIntersect(start, end, topLeft, topRight)
+               || segmentsIntersect(start, end, topRight, bottomRight)
+               || segmentsIntersect(start, end, bottomRight, bottomLeft)
+               || segmentsIntersect(start, end, bottomLeft, topLeft);
+    }
+
+    private boolean segmentsIntersect(
+            CanvasPoint a,
+            CanvasPoint b,
+            CanvasPoint c,
+            CanvasPoint d
+    ) {
+        double o1 = orientation(a, b, c);
+        double o2 = orientation(a, b, d);
+        double o3 = orientation(c, d, a);
+        double o4 = orientation(c, d, b);
+        return o1 * o2 <= 0.0D && o3 * o4 <= 0.0D;
+    }
+
+    private double orientation(
+            CanvasPoint a,
+            CanvasPoint b,
+            CanvasPoint c
+    ) {
+        return (b.x() - a.x()) * (c.y() - a.y()) - (b.y() - a.y()) * (c.x() - a.x());
     }
 
     private void appendEditingText(String value) {
@@ -1142,7 +1352,12 @@ public class SfmDrawScreen extends Screen {
             return point.x() >= minX && point.x() <= maxX && point.y() >= minY && point.y() <= maxY;
         }
         if (element instanceof ArrowElement arrowElement) {
-            return distancePointToSegment(point, arrowElement.start, arrowElement.end) <= 8.0D / zoom;
+            for (int i = 1; i < arrowElement.points.size(); i++) {
+                if (distancePointToSegment(point, arrowElement.points.get(i - 1), arrowElement.points.get(i)) <= 8.0D / zoom) {
+                    return true;
+                }
+            }
+            return false;
         }
         if (element instanceof TextElement textElement) {
             return textElementContains(textElement, point);
@@ -1494,7 +1709,7 @@ public class SfmDrawScreen extends Screen {
 
     private void seedPrototypeElements() {
         RectangleElement rectangle = new RectangleElement(nextElementId++, -180.0D, -80.0D, 40.0D, 60.0D, 0x334D7CFE, 0xFF7FD7FF);
-        ArrowElement arrow = new ArrowElement(nextElementId++, new CanvasPoint(60.0D, -40.0D), new CanvasPoint(210.0D, 80.0D), 0xFFE8A652);
+        ArrowElement arrow = new ArrowElement(nextElementId++, List.of(new CanvasPoint(60.0D, -40.0D), new CanvasPoint(210.0D, 80.0D)), 0xFFE8A652);
         TextElement text = new TextElement(nextElementId++, -20.0D, -130.0D, "Document origin", 0xFFF1F5FB, 1.0D);
         elements.add(rectangle);
         elements.add(arrow);
@@ -1546,6 +1761,8 @@ public class SfmDrawScreen extends Screen {
 
         public abstract DrawElement copy();
 
+        public abstract DrawElement copyWithId(int id);
+
         public abstract void copyFrom(DrawElement other);
 
         public abstract void translate(double dx, double dy);
@@ -1590,6 +1807,11 @@ public class SfmDrawScreen extends Screen {
         }
 
         @Override
+        public DrawElement copyWithId(int id) {
+            return new RectangleElement(id, x1, y1, x2, y2, fillColor, strokeColor);
+        }
+
+        @Override
         public void copyFrom(DrawElement other) {
             RectangleElement element = (RectangleElement) other;
             x1 = element.x1;
@@ -1618,49 +1840,66 @@ public class SfmDrawScreen extends Screen {
     }
 
     private static final class ArrowElement extends DrawElement {
-        private CanvasPoint start;
-        private CanvasPoint end;
+        private List<CanvasPoint> points;
         private final int color;
 
         private ArrowElement(
                 int id,
-                CanvasPoint start,
-                CanvasPoint end,
+                List<CanvasPoint> points,
                 int color
         ) {
             super(id);
-            this.start = start;
-            this.end = end;
+            this.points = new ArrayList<>(points);
             this.color = color;
         }
 
         @Override
         public CanvasBounds bounds(SfmDrawScreen screen) {
-            return CanvasBounds.of(start.x(), start.y(), end.x(), end.y()).pad(8.0D);
+            double minX = Double.POSITIVE_INFINITY;
+            double minY = Double.POSITIVE_INFINITY;
+            double maxX = Double.NEGATIVE_INFINITY;
+            double maxY = Double.NEGATIVE_INFINITY;
+            for (CanvasPoint point : points) {
+                minX = Math.min(minX, point.x());
+                minY = Math.min(minY, point.y());
+                maxX = Math.max(maxX, point.x());
+                maxY = Math.max(maxY, point.y());
+            }
+            return CanvasBounds.of(minX, minY, maxX, maxY).pad(8.0D);
         }
 
         @Override
         public DrawElement copy() {
-            return new ArrowElement(id(), start, end, color);
+            return new ArrowElement(id(), points, color);
+        }
+
+        @Override
+        public DrawElement copyWithId(int id) {
+            return new ArrowElement(id, points, color);
         }
 
         @Override
         public void copyFrom(DrawElement other) {
             ArrowElement element = (ArrowElement) other;
-            start = element.start;
-            end = element.end;
+            points = new ArrayList<>(element.points);
         }
 
         @Override
         public void translate(double dx, double dy) {
-            start = new CanvasPoint(start.x() + dx, start.y() + dy);
-            end = new CanvasPoint(end.x() + dx, end.y() + dy);
+            List<CanvasPoint> translated = new ArrayList<>(points.size());
+            for (CanvasPoint point : points) {
+                translated.add(new CanvasPoint(point.x() + dx, point.y() + dy));
+            }
+            points = translated;
         }
 
         @Override
         public void transform(CanvasBounds fromBounds, CanvasBounds toBounds, SfmDrawScreen screen) {
-            start = screen.transformPoint(start, fromBounds, toBounds);
-            end = screen.transformPoint(end, fromBounds, toBounds);
+            List<CanvasPoint> transformed = new ArrayList<>(points.size());
+            for (CanvasPoint point : points) {
+                transformed.add(screen.transformPoint(point, fromBounds, toBounds));
+            }
+            points = transformed;
         }
     }
 
@@ -1702,6 +1941,11 @@ public class SfmDrawScreen extends Screen {
         @Override
         public DrawElement copy() {
             return new TextElement(id(), x, y, text, color, textScale);
+        }
+
+        @Override
+        public DrawElement copyWithId(int id) {
+            return new TextElement(id, x, y, text, color, textScale);
         }
 
         @Override
@@ -1763,6 +2007,11 @@ public class SfmDrawScreen extends Screen {
         @Override
         public DrawElement copy() {
             return new FreehandElement(id(), points, color);
+        }
+
+        @Override
+        public DrawElement copyWithId(int id) {
+            return new FreehandElement(id, points, color);
         }
 
         @Override
@@ -1867,6 +2116,26 @@ public class SfmDrawScreen extends Screen {
         }
 
         public @Nullable CameraOverlayProjection projection() {
+            return projection;
+        }
+    }
+
+    private static final class CameraFrameDrag {
+        private final CanvasPoint startPoint;
+        private CanvasPoint currentPoint;
+        private final CameraOverlayProjection projection;
+
+        private CameraFrameDrag(
+                CanvasPoint startPoint,
+                CanvasPoint currentPoint,
+                CameraOverlayProjection projection
+        ) {
+            this.startPoint = startPoint;
+            this.currentPoint = currentPoint;
+            this.projection = projection;
+        }
+
+        public CameraOverlayProjection projection() {
             return projection;
         }
     }
@@ -2045,7 +2314,7 @@ public class SfmDrawScreen extends Screen {
         TEXT(GLFW.GLFW_KEY_T, IdeLocalizationKeys.IDE_DRAW_TOOL_TEXT.getString(), "T", icon("text"), true),
         FREEHAND(GLFW.GLFW_KEY_F, IdeLocalizationKeys.IDE_DRAW_TOOL_FREEHAND.getString(), "F", icon("freehand"), true),
         HAND(GLFW.GLFW_KEY_H, IdeLocalizationKeys.IDE_DRAW_TOOL_HAND.getString(), "H", icon("hand"), true),
-        CAMERA(GLFW.GLFW_KEY_C, IdeLocalizationKeys.IDE_DRAW_TOOL_CAMERA.getString(), "C", icon("camera"), false);
+        CAMERA(GLFW.GLFW_KEY_C, IdeLocalizationKeys.IDE_DRAW_TOOL_CAMERA.getString(), "C", icon("camera"), true);
 
         private static final DrawTool[] VALUES = values();
 
