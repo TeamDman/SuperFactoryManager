@@ -279,6 +279,22 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.draw.minimap.title",
             "Camera"
     );
+    public static final LocalizationEntry IDE_DRAW_LAYER_WINDOW_TITLE = new LocalizationEntry(
+            "gui.sfm.ide.draw.layer_window.title",
+            "Layers"
+    );
+    public static final LocalizationEntry IDE_DRAW_ACTIVE_LAYER_LABEL = new LocalizationEntry(
+            "gui.sfm.ide.draw.active_layer.label",
+            "Layer: %s"
+    );
+    public static final LocalizationEntry IDE_DRAW_LAYER_ELEMENTS = new LocalizationEntry(
+            "gui.sfm.ide.draw.layer.elements",
+            "Elements"
+    );
+    public static final LocalizationEntry IDE_DRAW_LAYER_CHROME = new LocalizationEntry(
+            "gui.sfm.ide.draw.layer.chrome",
+            "Chrome"
+    );
     public static final LocalizationEntry IDE_DRAW_TOOL_CURSOR = new LocalizationEntry(
             "gui.sfm.ide.draw.tool.cursor",
             "Cursor"
@@ -306,6 +322,10 @@ public final class IdeLocalizationKeys {
     public static final LocalizationEntry IDE_DRAW_TOOL_CAMERA = new LocalizationEntry(
             "gui.sfm.ide.draw.tool.camera",
             "Camera"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_LAYER = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.layer",
+            "Layers"
     );
 
     public static List<LocalizationEntry> getEntries() {
