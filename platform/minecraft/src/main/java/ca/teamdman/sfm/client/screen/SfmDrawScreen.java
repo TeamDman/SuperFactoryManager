@@ -31,6 +31,9 @@ public class SfmDrawScreen extends Screen {
     private static final int HOTBAR_WIDTH = 182;
     private static final int HOTBAR_HEIGHT = 22;
     private static final int HOTBAR_HEADER_HEIGHT = 12;
+    private static final double HOTBAR_MIN_SCALE = 0.75D;
+    private static final double HOTBAR_MAX_SCALE = 2.0D;
+    private static final int HOTBAR_RESIZE_HANDLE_SIZE = 10;
     private static final int HOTBAR_SLOT_COUNT = 9;
     private static final int TOOL_COUNT = 8;
     private static final int MINIMAP_WIDTH = 150;
@@ -74,9 +77,13 @@ public class SfmDrawScreen extends Screen {
 
     private int hotbarX = Integer.MIN_VALUE;
     private int hotbarY = Integer.MIN_VALUE;
+    private double hotbarScale = 1.0D;
     private boolean hotbarDragging = false;
     private int hotbarDragOffsetX = 0;
     private int hotbarDragOffsetY = 0;
+    private boolean hotbarResizing = false;
+    private int hotbarResizeAnchorX = 0;
+    private double hotbarResizeStartScale = 1.0D;
 
     private boolean layerWindowVisible = false;
     private int layerWindowX = Integer.MIN_VALUE;
@@ -337,11 +344,20 @@ public class SfmDrawScreen extends Screen {
         }
 
         Rect hotbarHeaderBounds = hotbarHeaderBounds();
+        Rect hotbarResizeHandleBounds = hotbarResizeHandleBounds();
         // r[impl draw.chrome.hotbar.draggable]
         if (isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarHeaderBounds.contains(mouseX, mouseY)) {
             hotbarDragging = true;
             hotbarDragOffsetX = (int) Math.round(mouseX) - hotbarX;
             hotbarDragOffsetY = (int) Math.round(mouseY) - hotbarY;
+            return true;
+        }
+
+        // r[impl draw.layer.chrome-customization-mode]
+        if (isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarResizeHandleBounds.contains(mouseX, mouseY)) {
+            hotbarResizing = true;
+            hotbarResizeAnchorX = (int) Math.round(mouseX);
+            hotbarResizeStartScale = hotbarScale;
             return true;
         }
 
@@ -475,6 +491,13 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.layer.chrome-customization-mode]
+        if (hotbarResizing && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            hotbarScale = Mth.clamp(hotbarResizeStartScale + ((int) Math.round(mouseX) - hotbarResizeAnchorX) / (double) HOTBAR_WIDTH, HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE);
+            clampHotbarToScreen();
+            return true;
+        }
+
         // r[impl draw.chrome.minimap.draggable]
         if (cameraOverlayDragging && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             cameraOverlayX = (int) Math.round(mouseX) - cameraOverlayDragOffsetX;
@@ -560,6 +583,12 @@ public class SfmDrawScreen extends Screen {
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarDragging) {
             hotbarDragging = false;
+            clampHotbarToScreen();
+            return true;
+        }
+
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarResizing) {
+            hotbarResizing = false;
             clampHotbarToScreen();
             return true;
         }
@@ -1123,16 +1152,26 @@ public class SfmDrawScreen extends Screen {
     ) {
         Rect headerBounds = hotbarHeaderBounds();
         fill(poseStack, headerBounds.left(), headerBounds.top(), headerBounds.right(), headerBounds.bottom(), 0xCC11161E);
-        drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent(), hotbarX + 6, hotbarY - HOTBAR_HEADER_HEIGHT + 2, 0xE4E8EF);
+        drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent(), hotbarX + 6, hotbarY - hotbarHeaderHeight() + 2, 0xE4E8EF);
 
+        poseStack.pushPose();
+        poseStack.translate(hotbarX, hotbarY, 0.0D);
+        poseStack.scale((float) hotbarScale, (float) hotbarScale, 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, AbstractWidget.WIDGETS_LOCATION);
-        blit(poseStack, hotbarX, hotbarY, 0, 0, HOTBAR_WIDTH, HOTBAR_HEIGHT);
+        blit(poseStack, 0, 0, 0, 0, HOTBAR_WIDTH, HOTBAR_HEIGHT);
 
         if (activeTool.selectable()) {
-            blit(poseStack, hotbarX - 1 + activeTool.ordinal() * 20, hotbarY - 1, 0, 22, 24, HOTBAR_HEIGHT);
+            blit(poseStack, -1 + activeTool.ordinal() * 20, -1, 0, 22, 24, HOTBAR_HEIGHT);
         }
+
+        for (int index = 0; index < TOOL_COUNT; index++) {
+            DrawTool tool = DrawTool.VALUES[index];
+            drawToolIcon(poseStack, tool, 3 + index * 20, 3);
+        }
+        poseStack.popPose();
+
         if (cameraOverlayVisible) {
             Rect cameraSlotBounds = hotbarSlotBounds(DrawTool.CAMERA.ordinal());
             drawScreenRectOutline(
@@ -1144,28 +1183,31 @@ public class SfmDrawScreen extends Screen {
         if (layerWindowVisible) {
             Rect layerSlotBounds = hotbarSlotBounds(DrawTool.LAYER.ordinal());
             drawScreenRectOutline(
-                poseStack,
-                new ScreenRect(layerSlotBounds.left() - 2, layerSlotBounds.top() - 2, layerSlotBounds.right() + 2, layerSlotBounds.bottom() + 2),
-                activeLayer.color()
+                    poseStack,
+                    new ScreenRect(layerSlotBounds.left() - 2, layerSlotBounds.top() - 2, layerSlotBounds.right() + 2, layerSlotBounds.bottom() + 2),
+                    activeLayer.color()
             );
         }
 
-        for (int index = 0; index < TOOL_COUNT; index++) {
-            DrawTool tool = DrawTool.VALUES[index];
-            Rect slotBounds = hotbarSlotBounds(index);
-            boolean hovered = slotBounds.contains(mouseX, mouseY);
-            if (hovered) {
-                fill(poseStack, slotBounds.left(), slotBounds.top(), slotBounds.right(), slotBounds.bottom(), 0x2238A3FF);
-            }
-            drawToolIcon(poseStack, tool, slotBounds.left(), slotBounds.top());
+        int hoveredToolIndex = hoveredToolIndex(mouseX, mouseY);
+        if (hoveredToolIndex >= 0) {
+            Rect slotBounds = hotbarSlotBounds(hoveredToolIndex);
+            fill(poseStack, slotBounds.left(), slotBounds.top(), slotBounds.right(), slotBounds.bottom(), 0x2238A3FF);
         }
 
-        int hoveredToolIndex = hoveredToolIndex(mouseX, mouseY);
+        if (isChromeLayerActive()) {
+            // r[impl draw.layer.chrome-customization-mode]
+            Rect resizeHandleBounds = hotbarResizeHandleBounds();
+            fill(poseStack, resizeHandleBounds.left(), resizeHandleBounds.top(), resizeHandleBounds.right(), resizeHandleBounds.bottom(), 0x88606975);
+        }
+
         DrawTool describedTool = hoveredToolIndex >= 0 ? DrawTool.VALUES[hoveredToolIndex] : activeTool;
         Component label = Component.literal(describeTool(describedTool));
         int labelWidth = font.width(label);
-        fill(poseStack, hotbarX + HOTBAR_WIDTH / 2 - labelWidth / 2 - 4, hotbarY + HOTBAR_HEIGHT + 4, hotbarX + HOTBAR_WIDTH / 2 + labelWidth / 2 + 4, hotbarY + HOTBAR_HEIGHT + 16, 0xCC10141A);
-        drawString(poseStack, font, label, hotbarX + HOTBAR_WIDTH / 2 - labelWidth / 2, hotbarY + HOTBAR_HEIGHT + 6, 0xDCE2EC);
+        int hotbarCenterX = hotbarX + hotbarWidth() / 2;
+        int hotbarBottomY = hotbarY + hotbarHeight();
+        fill(poseStack, hotbarCenterX - labelWidth / 2 - 4, hotbarBottomY + 4, hotbarCenterX + labelWidth / 2 + 4, hotbarBottomY + 16, 0xCC10141A);
+        drawString(poseStack, font, label, hotbarCenterX - labelWidth / 2, hotbarBottomY + 6, 0xDCE2EC);
     }
 
     private void drawToolIcon(
@@ -1787,6 +1829,7 @@ public class SfmDrawScreen extends Screen {
         marqueeSelectionDrag = null;
         cameraFrameDrag = null;
         hotbarDragging = false;
+        hotbarResizing = false;
         cameraOverlayDragging = false;
         cameraOverlayResizing = false;
         layerWindowDragging = false;
@@ -1796,16 +1839,40 @@ public class SfmDrawScreen extends Screen {
     }
 
     private Rect hotbarHeaderBounds() {
-        return new Rect(hotbarX, hotbarY - HOTBAR_HEADER_HEIGHT, HOTBAR_WIDTH, HOTBAR_HEADER_HEIGHT);
+        return new Rect(hotbarX, hotbarY - hotbarHeaderHeight(), hotbarWidth(), hotbarHeaderHeight());
     }
 
     private Rect hotbarSlotBounds(int slotIndex) {
-        return new Rect(hotbarX + slotIndex * 20 + 3, hotbarY + 3, 16, 16);
+        int left = hotbarX + scaledHotbarUnit(slotIndex * 20 + 3);
+        int top = hotbarY + scaledHotbarUnit(3);
+        int size = Math.max(8, scaledHotbarUnit(16));
+        return new Rect(left, top, size, size);
+    }
+
+    private Rect hotbarResizeHandleBounds() {
+        return new Rect(hotbarX + hotbarWidth() - HOTBAR_RESIZE_HANDLE_SIZE, hotbarY + hotbarHeight() - HOTBAR_RESIZE_HANDLE_SIZE, HOTBAR_RESIZE_HANDLE_SIZE, HOTBAR_RESIZE_HANDLE_SIZE);
     }
 
     private void clampHotbarToScreen() {
-        hotbarX = Mth.clamp(hotbarX, 8, Math.max(8, width - HOTBAR_WIDTH - 8));
-        hotbarY = Mth.clamp(hotbarY, HOTBAR_HEADER_HEIGHT + 8, Math.max(HOTBAR_HEADER_HEIGHT + 8, height - HOTBAR_HEIGHT - 24));
+        hotbarScale = Mth.clamp(hotbarScale, HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE);
+        hotbarX = Mth.clamp(hotbarX, 8, Math.max(8, width - hotbarWidth() - 8));
+        hotbarY = Mth.clamp(hotbarY, hotbarHeaderHeight() + 8, Math.max(hotbarHeaderHeight() + 8, height - hotbarHeight() - 24));
+    }
+
+    private int hotbarWidth() {
+        return scaledHotbarUnit(HOTBAR_WIDTH);
+    }
+
+    private int hotbarHeight() {
+        return scaledHotbarUnit(HOTBAR_HEIGHT);
+    }
+
+    private int hotbarHeaderHeight() {
+        return scaledHotbarUnit(HOTBAR_HEADER_HEIGHT);
+    }
+
+    private int scaledHotbarUnit(int value) {
+        return Math.max(1, (int) Math.round(value * hotbarScale));
     }
 
     private Rect layerWindowBounds() {
