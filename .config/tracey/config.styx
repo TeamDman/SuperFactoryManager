@@ -1,0 +1,19 @@
+@schema {id crate:tracey-config@1, cli tracey}
+
+specs (
+    {
+        name sfm-draw
+        source_url https://github.com/TeamDman/SuperFactoryManager
+        include (docs/content/spec/draw/**/*.md)
+        impls (
+            {
+                name draw
+                include (
+                    platform/minecraft/src/**/*.java
+                )
+                exclude ()
+                test_include ()
+            }
+        )
+    }
+)

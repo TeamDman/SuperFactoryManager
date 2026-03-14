@@ -24,6 +24,7 @@ public class SfmDrawOpenKeyHandler {
         }
 
         boolean keyDown = SFMKeyMappings.isKeyDown(SFMKeyMappings.IDE_OPEN_DRAW_KEY);
+        // r[impl draw.hotkey.open_screen]
         if (keyDown && !wasKeyDown) {
             if (minecraft.screen instanceof SfmDrawScreen) {
                 minecraft.setScreen(null);

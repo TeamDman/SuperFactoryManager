@@ -58,6 +58,7 @@ public class SFMScreenChangeHelpers {
         setOrPushScreen(new IdePlaygroundScreen());
     }
 
+    // r[impl draw.screen.main]
     public static void showSfmDrawScreen() {
 
         setOrPushScreen(new SfmDrawScreen());

@@ -163,14 +163,16 @@ public class SFMKeyMappings {
             LocalizationKeys.SFM_KEY_CATEGORY.key().get()
     ));
 
-        public static final Lazy<KeyMapping> IDE_OPEN_DRAW_KEY = Lazy.of(() -> new KeyMapping(
+    // r[impl draw.hotkey.open_screen]
+    // r[impl draw.hotkey.default_binding]
+    public static final Lazy<KeyMapping> IDE_OPEN_DRAW_KEY = Lazy.of(() -> new KeyMapping(
             IdeLocalizationKeys.IDE_KEY_OPEN_DRAW.key().get(),
             KeyConflictContext.IN_GAME,
             KeyModifier.ALT,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_D,
             LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-        ));
+    ));
 
     public static final Lazy<KeyMapping> IDE_TOGGLE_RIGHT_PANEL_KEY = Lazy.of(() -> new KeyMapping(
             IdeLocalizationKeys.IDE_KEY_TOGGLE_RIGHT_PANEL.key().get(),
@@ -181,14 +183,14 @@ public class SFMKeyMappings {
             LocalizationKeys.SFM_KEY_CATEGORY.key().get()
     ));
 
-        public static final Lazy<KeyMapping> IDE_TOGGLE_LEFT_PANEL_KEY = Lazy.of(() -> new KeyMapping(
+    public static final Lazy<KeyMapping> IDE_TOGGLE_LEFT_PANEL_KEY = Lazy.of(() -> new KeyMapping(
             IdeLocalizationKeys.IDE_KEY_TOGGLE_LEFT_PANEL.key().get(),
             KeyConflictContext.GUI,
             KeyModifier.CONTROL,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_M,
             LocalizationKeys.SFM_KEY_CATEGORY.key().get()
-        ));
+    ));
 
     public static final Lazy<KeyMapping> IDE_TOGGLE_BOTTOM_PANEL_KEY = Lazy.of(() -> new KeyMapping(
             IdeLocalizationKeys.IDE_KEY_TOGGLE_BOTTOM_PANEL.key().get(),

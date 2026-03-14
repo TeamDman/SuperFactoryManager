@@ -20,6 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+// r[impl draw.screen.main]
 public class SfmDrawScreen extends Screen {
     private static final double MIN_ZOOM = 0.01D;
     private static final double MAX_ZOOM = 10.0D;
@@ -149,22 +150,26 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.tool.cursor.select_all]
         if (hasControlDown() && keyCode == GLFW.GLFW_KEY_A) {
             selectAllElements();
             return true;
         }
 
+        // r[impl draw.tool.cursor.delete_selection]
         if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             if (deleteSelectedElements()) {
                 return true;
             }
         }
 
+        // r[impl draw.tool.creation.sticky_toggle]
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             stickyToolMode = !stickyToolMode;
             return true;
         }
 
+        // r[impl draw.chrome.hotbar.shortcuts]
         int hotbarIndex = hotbarIndexForKeyCode(keyCode);
         if (hotbarIndex >= 0 && hotbarIndex < TOOL_COUNT) {
             handleHotbarToolClick(DrawTool.VALUES[hotbarIndex]);
@@ -193,6 +198,7 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.chrome.hotbar.shortcuts]
         @Nullable DrawTool shortcutTool = DrawTool.byKeyCode(keyCode);
         if (shortcutTool != null && shortcutTool.selectable()) {
             activeTool = shortcutTool;
@@ -224,6 +230,7 @@ public class SfmDrawScreen extends Screen {
     ) {
 
         Rect cameraHeaderBounds = cameraOverlayHeaderBounds();
+        // r[impl draw.chrome.minimap.draggable]
         if (cameraOverlayVisible && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraHeaderBounds.contains(mouseX, mouseY)) {
             cameraOverlayDragging = true;
             cameraOverlayDragOffsetX = (int) Math.round(mouseX) - cameraOverlayX;
@@ -232,6 +239,7 @@ public class SfmDrawScreen extends Screen {
         }
 
         Rect hotbarHeaderBounds = hotbarHeaderBounds();
+        // r[impl draw.chrome.hotbar.draggable]
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarHeaderBounds.contains(mouseX, mouseY)) {
             hotbarDragging = true;
             hotbarDragOffsetX = (int) Math.round(mouseX) - hotbarX;
@@ -245,6 +253,7 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.camera.pan.middle_drag]
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
             beginPan(mouseX, mouseY, button);
             return true;
@@ -261,6 +270,7 @@ public class SfmDrawScreen extends Screen {
             return super.mouseClicked(mouseX, mouseY, button);
         }
 
+        // r[impl draw.camera.pan.hand_tool]
         if (activeTool == DrawTool.HAND) {
             beginPan(mouseX, mouseY, button);
             return true;
@@ -294,6 +304,7 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.tool.text.create]
         if (activeTool == DrawTool.TEXT) {
             TextElement textElement = createTextElement(canvasPoint);
             if (textToolCreatesBoundText) {
@@ -333,6 +344,7 @@ public class SfmDrawScreen extends Screen {
             double dragY
     ) {
 
+        // r[impl draw.chrome.hotbar.draggable]
         if (hotbarDragging && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             hotbarX = (int) Math.round(mouseX) - hotbarDragOffsetX;
             hotbarY = (int) Math.round(mouseY) - hotbarDragOffsetY;
@@ -340,6 +352,7 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.chrome.minimap.draggable]
         if (cameraOverlayDragging && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             cameraOverlayX = (int) Math.round(mouseX) - cameraOverlayDragOffsetX;
             cameraOverlayY = (int) Math.round(mouseY) - cameraOverlayDragOffsetY;
@@ -347,6 +360,8 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.camera.pan.middle_drag]
+        // r[impl draw.camera.pan.hand_tool]
         if (panning && button == panButton) {
             cameraX = panAnchorCameraX - (mouseX - panAnchorMouseX) / zoom;
             cameraY = panAnchorCameraY - (mouseY - panAnchorMouseY) / zoom;
@@ -358,12 +373,14 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.tool.cursor.transform_selection]
         if (moveSelectionDrag != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, moveSelectionDrag.projection());
             applyMoveSelectionDrag(moveSelectionDrag, canvasPoint);
             return true;
         }
 
+        // r[impl draw.tool.cursor.transform_selection]
         if (resizeSelectionDrag != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, resizeSelectionDrag.projection());
             applyResizeSelectionDrag(resizeSelectionDrag, canvasPoint);
@@ -375,6 +392,7 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.tool.freehand.create]
         if (draftInteraction != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, draftInteraction.projection());
             draftInteraction.currentPoint = canvasPoint;
@@ -415,6 +433,7 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.camera.frame_tool]
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraFrameDrag != null) {
             cameraFrameDrag.currentPoint = screenToCanvas(mouseX, mouseY, cameraFrameDrag.projection());
             applyCameraFrame(cameraFrameDrag);
@@ -457,6 +476,7 @@ public class SfmDrawScreen extends Screen {
             return super.mouseScrolled(mouseX, mouseY, delta);
         }
 
+        // r[impl draw.camera.zoom.cursor]
         @Nullable CameraOverlayProjection projection = cameraOverlayProjection();
         CanvasPoint focusPoint = projection != null && projection.mapBounds().contains(mouseX, mouseY)
                                 ? projection.screenToCanvas(mouseX, mouseY)
@@ -521,6 +541,7 @@ public class SfmDrawScreen extends Screen {
         drawToolHotbar(poseStack, mouseX, mouseY);
     }
 
+    // r[impl draw.canvas.grid]
     private void drawGrid(PoseStack poseStack) {
         double step = 32.0D;
         while (step * zoom < 18.0D) {
@@ -553,6 +574,7 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    // r[impl draw.canvas.origin]
     private void drawOriginAxes(PoseStack poseStack) {
         int axisColor = 0x4C8AC6FF;
         int originX = (int) Math.round(canvasToScreenX(0.0D));
@@ -781,6 +803,7 @@ public class SfmDrawScreen extends Screen {
         RenderSystem.disableBlend();
     }
 
+    // r[impl draw.chrome.minimap]
     private void drawMinimap(PoseStack poseStack) {
         Rect overlayBounds = cameraOverlayBounds();
         fill(poseStack, overlayBounds.left(), overlayBounds.top(), overlayBounds.right(), overlayBounds.bottom(), 0xCC10141A);
@@ -893,6 +916,7 @@ public class SfmDrawScreen extends Screen {
         drawScreenRectOutline(poseStack, rect, strokeColor);
     }
 
+    // r[impl draw.chrome.hotbar]
     private void drawToolHotbar(
             PoseStack poseStack,
             int mouseX,
@@ -994,6 +1018,8 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    // r[impl draw.tool.text.create]
+    // r[impl draw.tool.text.edit]
     private boolean handleCursorDoubleClick(CanvasPoint canvasPoint) {
         int hitElementId = findTopElementAt(canvasPoint);
         if (hitElementId >= 0) {
@@ -1013,6 +1039,10 @@ public class SfmDrawScreen extends Screen {
         return true;
     }
 
+    // r[impl draw.tool.cursor.selection]
+    // r[impl draw.tool.cursor.marquee]
+    // r[impl draw.tool.cursor.transform_selection]
+    // r[impl draw.tool.cursor.duplicate_selection]
     private void handleCursorPress(
             double mouseX,
             double mouseY,
@@ -1107,6 +1137,9 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    // r[impl draw.tool.rectangle.create]
+    // r[impl draw.tool.arrow.create]
+    // r[impl draw.tool.freehand.create]
     private void commitDraft() {
         if (draftInteraction == null) {
             return;
@@ -1147,6 +1180,7 @@ public class SfmDrawScreen extends Screen {
         draftInteraction = null;
     }
 
+    // r[impl draw.tool.arrow.multisegment]
     private void finalizePendingArrowAnchors() {
         if (pendingArrowAnchors.size() >= 2) {
             ArrowElement element = new ArrowElement(nextElementId++, List.copyOf(pendingArrowAnchors), 0xFFE8A652);
@@ -1158,6 +1192,7 @@ public class SfmDrawScreen extends Screen {
         pendingArrowProjection = null;
     }
 
+    // r[impl draw.tool.text.create]
     private TextElement createTextElement(CanvasPoint point) {
         TextElement element = new TextElement(nextElementId++, point.x(), point.y(), "", 0xFFF1F5FB, 1.0D);
         elements.add(element);
@@ -1165,6 +1200,7 @@ public class SfmDrawScreen extends Screen {
         return element;
     }
 
+    // r[impl draw.tool.text.edit]
     private void finishTextEditing() {
         TextElement textElement = editingTextElement();
         if (textElement != null && textElement.text.isEmpty()) {
@@ -1177,6 +1213,7 @@ public class SfmDrawScreen extends Screen {
         resetToolAfterCreation(DrawTool.TEXT);
     }
 
+    // r[impl draw.camera.frame_tool]
     private void applyCameraFrame(CameraFrameDrag drag) {
         CanvasBounds bounds = CanvasBounds.of(drag.startPoint.x(), drag.startPoint.y(), drag.currentPoint.x(), drag.currentPoint.y());
         if (bounds.width() <= 1.0D || bounds.height() <= 1.0D) {
@@ -1195,6 +1232,7 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    // r[impl draw.tool.cursor.select_all]
     private void selectAllElements() {
         selectedElementIds.clear();
         for (DrawElement element : elements) {
@@ -1202,6 +1240,7 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    // r[impl draw.tool.cursor.duplicate_selection]
     private void duplicateSelection() {
         if (selectedElementIds.isEmpty()) {
             return;
@@ -1316,6 +1355,7 @@ public class SfmDrawScreen extends Screen {
         return element instanceof TextElement textElement ? textElement : null;
     }
 
+    // r[impl draw.tool.cursor.delete_selection]
     private boolean deleteSelectedElements() {
         if (selectedElementIds.isEmpty()) {
             return false;
@@ -1447,6 +1487,7 @@ public class SfmDrawScreen extends Screen {
         return null;
     }
 
+    // r[impl draw.tool.cursor.selection]
     private void selectOnly(int id) {
         selectedElementIds.clear();
         selectedElementIds.add(id);
