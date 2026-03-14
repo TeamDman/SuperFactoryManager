@@ -35,6 +35,9 @@ public class SfmDrawScreen extends Screen {
     private static final int TOOL_COUNT = 8;
     private static final int MINIMAP_WIDTH = 150;
     private static final int MINIMAP_HEIGHT = 110;
+    private static final int MINIMAP_MIN_WIDTH = 110;
+    private static final int MINIMAP_MIN_HEIGHT = 80;
+    private static final int MINIMAP_RESIZE_HANDLE_SIZE = 10;
     private static final int LAYER_WINDOW_DEFAULT_WIDTH = 160;
     private static final int LAYER_WINDOW_DEFAULT_HEIGHT = 118;
     private static final int LAYER_WINDOW_MIN_WIDTH = 132;
@@ -58,9 +61,16 @@ public class SfmDrawScreen extends Screen {
     private boolean cameraOverlayVisible = true;
     private int cameraOverlayX = Integer.MIN_VALUE;
     private int cameraOverlayY = Integer.MIN_VALUE;
+    private int cameraOverlayWidth = MINIMAP_WIDTH;
+    private int cameraOverlayHeight = MINIMAP_HEIGHT;
     private boolean cameraOverlayDragging = false;
     private int cameraOverlayDragOffsetX = 0;
     private int cameraOverlayDragOffsetY = 0;
+    private boolean cameraOverlayResizing = false;
+    private int cameraOverlayResizeAnchorX = 0;
+    private int cameraOverlayResizeAnchorY = 0;
+    private int cameraOverlayResizeStartWidth = MINIMAP_WIDTH;
+    private int cameraOverlayResizeStartHeight = MINIMAP_HEIGHT;
 
     private int hotbarX = Integer.MIN_VALUE;
     private int hotbarY = Integer.MIN_VALUE;
@@ -307,11 +317,22 @@ public class SfmDrawScreen extends Screen {
         }
 
         Rect cameraHeaderBounds = cameraOverlayHeaderBounds();
+        Rect cameraResizeHandleBounds = cameraOverlayResizeHandleBounds();
         // r[impl draw.chrome.minimap.draggable]
         if (cameraOverlayVisible && isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraHeaderBounds.contains(mouseX, mouseY)) {
             cameraOverlayDragging = true;
             cameraOverlayDragOffsetX = (int) Math.round(mouseX) - cameraOverlayX;
             cameraOverlayDragOffsetY = (int) Math.round(mouseY) - cameraOverlayY;
+            return true;
+        }
+
+        // r[impl draw.layer.chrome-customization-mode]
+        if (cameraOverlayVisible && isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraResizeHandleBounds.contains(mouseX, mouseY)) {
+            cameraOverlayResizing = true;
+            cameraOverlayResizeAnchorX = (int) Math.round(mouseX);
+            cameraOverlayResizeAnchorY = (int) Math.round(mouseY);
+            cameraOverlayResizeStartWidth = cameraOverlayWidth;
+            cameraOverlayResizeStartHeight = cameraOverlayHeight;
             return true;
         }
 
@@ -462,6 +483,14 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.layer.chrome-customization-mode]
+        if (cameraOverlayResizing && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            cameraOverlayWidth = Math.max(MINIMAP_MIN_WIDTH, cameraOverlayResizeStartWidth + (int) Math.round(mouseX) - cameraOverlayResizeAnchorX);
+            cameraOverlayHeight = Math.max(MINIMAP_MIN_HEIGHT, cameraOverlayResizeStartHeight + (int) Math.round(mouseY) - cameraOverlayResizeAnchorY);
+            clampCameraOverlayToScreen();
+            return true;
+        }
+
         // r[impl draw.camera.pan.middle_drag]
         // r[impl draw.camera.pan.hand_tool]
         if (panning && button == panButton) {
@@ -537,6 +566,12 @@ public class SfmDrawScreen extends Screen {
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraOverlayDragging) {
             cameraOverlayDragging = false;
+            clampCameraOverlayToScreen();
+            return true;
+        }
+
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraOverlayResizing) {
+            cameraOverlayResizing = false;
             clampCameraOverlayToScreen();
             return true;
         }
@@ -1024,6 +1059,12 @@ public class SfmDrawScreen extends Screen {
                     0xFFE8A652,
                     0x22E8A652
             );
+        }
+
+        if (isChromeLayerActive()) {
+            // r[impl draw.layer.chrome-customization-mode]
+            Rect resizeHandleBounds = cameraOverlayResizeHandleBounds();
+            fill(poseStack, resizeHandleBounds.left(), resizeHandleBounds.top(), resizeHandleBounds.right(), resizeHandleBounds.bottom(), 0x88606975);
         }
     }
 
@@ -1747,6 +1788,7 @@ public class SfmDrawScreen extends Screen {
         cameraFrameDrag = null;
         hotbarDragging = false;
         cameraOverlayDragging = false;
+        cameraOverlayResizing = false;
         layerWindowDragging = false;
         layerWindowResizing = false;
         selectedElementIds.clear();
@@ -1811,8 +1853,10 @@ public class SfmDrawScreen extends Screen {
     }
 
     private void clampCameraOverlayToScreen() {
-        cameraOverlayX = Mth.clamp(cameraOverlayX, 8, Math.max(8, width - MINIMAP_WIDTH - 8));
-        cameraOverlayY = Mth.clamp(cameraOverlayY, 8, Math.max(8, height - MINIMAP_HEIGHT - 8));
+        cameraOverlayWidth = Mth.clamp(cameraOverlayWidth, MINIMAP_MIN_WIDTH, Math.max(MINIMAP_MIN_WIDTH, width - 16));
+        cameraOverlayHeight = Mth.clamp(cameraOverlayHeight, MINIMAP_MIN_HEIGHT, Math.max(MINIMAP_MIN_HEIGHT, height - 16));
+        cameraOverlayX = Mth.clamp(cameraOverlayX, 8, Math.max(8, width - cameraOverlayWidth - 8));
+        cameraOverlayY = Mth.clamp(cameraOverlayY, 8, Math.max(8, height - cameraOverlayHeight - 8));
     }
 
     private int hotbarIndexForKeyCode(int keyCode) {
@@ -1887,7 +1931,7 @@ public class SfmDrawScreen extends Screen {
     }
 
     private Rect cameraOverlayBounds() {
-        return new Rect(cameraOverlayX, cameraOverlayY, MINIMAP_WIDTH, MINIMAP_HEIGHT);
+        return new Rect(cameraOverlayX, cameraOverlayY, cameraOverlayWidth, cameraOverlayHeight);
     }
 
     private Rect cameraOverlayHeaderBounds() {
@@ -1895,12 +1939,22 @@ public class SfmDrawScreen extends Screen {
         return new Rect(overlayBounds.left(), overlayBounds.top(), overlayBounds.width(), 24);
     }
 
+    private Rect cameraOverlayResizeHandleBounds() {
+        Rect overlayBounds = cameraOverlayBounds();
+        return new Rect(
+                overlayBounds.right() - MINIMAP_RESIZE_HANDLE_SIZE,
+                overlayBounds.bottom() - MINIMAP_RESIZE_HANDLE_SIZE,
+                MINIMAP_RESIZE_HANDLE_SIZE,
+                MINIMAP_RESIZE_HANDLE_SIZE
+        );
+    }
+
     private @Nullable CameraOverlayProjection cameraOverlayProjection() {
         if (!cameraOverlayVisible) {
             return null;
         }
         Rect overlayBounds = cameraOverlayBounds();
-        Rect mapBounds = new Rect(overlayBounds.left() + 10, overlayBounds.top() + 28, MINIMAP_WIDTH - 20, MINIMAP_HEIGHT - 38);
+        Rect mapBounds = new Rect(overlayBounds.left() + 10, overlayBounds.top() + 28, overlayBounds.width() - 20, overlayBounds.height() - 38);
         CanvasBounds sceneBounds = sceneBoundsIncludingViewport();
         double sceneWidth = Math.max(1.0D, sceneBounds.width());
         double sceneHeight = Math.max(1.0D, sceneBounds.height());
