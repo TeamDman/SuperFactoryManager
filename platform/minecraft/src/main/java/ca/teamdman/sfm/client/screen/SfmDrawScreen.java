@@ -53,6 +53,7 @@ public class SfmDrawScreen extends Screen {
     private static final int LAYER_WINDOW_RESIZE_HANDLE_SIZE = 10;
     private static final int HANDLE_HALF_SIZE = 4;
     private static final int CHROME_EDGE_MARGIN = 2;
+    private static final float ARROW_STROKE_WIDTH = 2.5F;
 
     private final List<DrawElement> elements = new ArrayList<>();
     private final Set<Integer> selectedElementIds = new LinkedHashSet<>();
@@ -66,7 +67,7 @@ public class SfmDrawScreen extends Screen {
     private double cameraX = 0.0D;
     private double cameraY = 0.0D;
     private double zoom = 1.0D;
-    private boolean cameraOverlayVisible = true;
+    private boolean cameraOverlayVisible = false;
     private ChromeWidgetState minimapWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, MINIMAP_WIDTH, MINIMAP_HEIGHT, 1.0D);
 
     private ChromeWidgetState screenTitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
@@ -135,7 +136,8 @@ public class SfmDrawScreen extends Screen {
     private long handCursorHandle = 0L;
     private long horizontalResizeCursorHandle = 0L;
     private long verticalResizeCursorHandle = 0L;
-    private long diagonalResizeCursorHandle = 0L;
+    private long diagonalNorthWestSouthEastCursorHandle = 0L;
+    private long diagonalNorthEastSouthWestCursorHandle = 0L;
     private ChromeCursor activeChromeCursor = ChromeCursor.DEFAULT;
     private double chromeMouseX = 0.0D;
     private double chromeMouseY = 0.0D;
@@ -873,29 +875,27 @@ public class SfmDrawScreen extends Screen {
     }
 
     private void drawDraft(PoseStack poseStack) {
-        if (draftInteraction == null) {
-            return;
-        }
-
-        switch (draftInteraction.tool()) {
-            case RECTANGLE -> drawRectangleElement(
-                    poseStack,
-                    new RectangleElement(-1, draftInteraction.startPoint().x(), draftInteraction.startPoint().y(), draftInteraction.currentPoint().x(), draftInteraction.currentPoint().y(), 0x332FB5FF, 0xFF7FD7FF),
-                    true,
-                    false
-            );
-            case ARROW -> drawArrowElement(poseStack, new ArrowElement(-1, List.of(draftInteraction.startPoint(), draftInteraction.currentPoint()), 0xFFE8A652), true, false);
-            case FREEHAND -> {
-                if (draftInteraction.points().size() >= 2) {
-                    drawFreehandElement(
-                            poseStack,
-                            new FreehandElement(-1, List.copyOf(draftInteraction.points()), 0xFF88D498),
-                            true,
-                            false
-                    );
+        if (draftInteraction != null) {
+            switch (draftInteraction.tool()) {
+                case RECTANGLE -> drawRectangleElement(
+                        poseStack,
+                        new RectangleElement(-1, draftInteraction.startPoint().x(), draftInteraction.startPoint().y(), draftInteraction.currentPoint().x(), draftInteraction.currentPoint().y(), 0x332FB5FF, 0xFF7FD7FF),
+                        true,
+                        false
+                );
+                case ARROW -> drawArrowElement(poseStack, new ArrowElement(-1, List.of(draftInteraction.startPoint(), draftInteraction.currentPoint()), 0xFFE8A652), true, false);
+                case FREEHAND -> {
+                    if (draftInteraction.points().size() >= 2) {
+                        drawFreehandElement(
+                                poseStack,
+                                new FreehandElement(-1, List.copyOf(draftInteraction.points()), 0xFF88D498),
+                                true,
+                                false
+                        );
+                    }
                 }
-            }
-            default -> {
+                default -> {
+                }
             }
         }
 
@@ -1002,7 +1002,7 @@ public class SfmDrawScreen extends Screen {
             linePoints.add(canvasToScreen(point));
         }
         int color = renderColor(selected ? 0xFFF6E27F : element.color, hidden);
-        drawLineStrip(poseStack, linePoints, color);
+        drawLineStrip(poseStack, linePoints, color, ARROW_STROKE_WIDTH);
 
         ScreenPoint start = linePoints.get(linePoints.size() - 2);
         ScreenPoint end = linePoints.get(linePoints.size() - 1);
@@ -1020,8 +1020,8 @@ public class SfmDrawScreen extends Screen {
         double headWidth = 5.0D;
         ScreenPoint headA = new ScreenPoint(end.x() - ux * headLength + px * headWidth, end.y() - uy * headLength + py * headWidth);
         ScreenPoint headB = new ScreenPoint(end.x() - ux * headLength - px * headWidth, end.y() - uy * headLength - py * headWidth);
-        drawLineStrip(poseStack, List.of(end, headA), color);
-        drawLineStrip(poseStack, List.of(end, headB), color);
+        drawLineStrip(poseStack, List.of(end, headA), color, ARROW_STROKE_WIDTH);
+        drawLineStrip(poseStack, List.of(end, headB), color, ARROW_STROKE_WIDTH);
     }
 
     private void drawTextElement(
@@ -1084,13 +1084,22 @@ public class SfmDrawScreen extends Screen {
         for (CanvasPoint point : previewPoints) {
             linePoints.add(projectCanvasPointToScreen(point, pendingArrowProjection));
         }
-        drawDashedLineStrip(poseStack, linePoints, 0xFFE8A652);
+        drawDashedLineStrip(poseStack, linePoints, 0xFFE8A652, ARROW_STROKE_WIDTH);
     }
 
     private void drawLineStrip(
             PoseStack poseStack,
             List<ScreenPoint> points,
             int color
+    ) {
+        drawLineStrip(poseStack, points, color, 1.0F);
+    }
+
+    private void drawLineStrip(
+            PoseStack poseStack,
+            List<ScreenPoint> points,
+            int color,
+            float lineWidth
     ) {
         if (points.size() < 2) {
             return;
@@ -1099,6 +1108,7 @@ public class SfmDrawScreen extends Screen {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.lineWidth(lineWidth);
         Matrix4f pose = poseStack.last().pose();
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tesselator.getBuilder();
@@ -1111,13 +1121,15 @@ public class SfmDrawScreen extends Screen {
             bufferBuilder.vertex(pose, (float) point.x(), (float) point.y(), 0.0F).color(red, green, blue, alpha).endVertex();
         }
         tesselator.end();
+        RenderSystem.lineWidth(1.0F);
         RenderSystem.disableBlend();
     }
 
     private void drawDashedLineStrip(
             PoseStack poseStack,
             List<ScreenPoint> points,
-            int color
+            int color,
+            float lineWidth
     ) {
         if (points.size() < 2) {
             return;
@@ -1126,6 +1138,7 @@ public class SfmDrawScreen extends Screen {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.lineWidth(lineWidth);
         Matrix4f pose = poseStack.last().pose();
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferBuilder = tesselator.getBuilder();
@@ -1158,6 +1171,7 @@ public class SfmDrawScreen extends Screen {
             }
         }
         tesselator.end();
+        RenderSystem.lineWidth(1.0F);
         RenderSystem.disableBlend();
     }
 
@@ -1244,7 +1258,7 @@ public class SfmDrawScreen extends Screen {
                     0xFF7FD7FF,
                     0x222FB5FF
             );
-            case ARROW -> drawLineStrip(poseStack, List.of(projection.canvasToScreen(interaction.startPoint()), projection.canvasToScreen(interaction.currentPoint())), 0xFFE8A652);
+            case ARROW -> drawLineStrip(poseStack, List.of(projection.canvasToScreen(interaction.startPoint()), projection.canvasToScreen(interaction.currentPoint())), 0xFFE8A652, ARROW_STROKE_WIDTH);
             case FREEHAND -> {
                 if (interaction.points().size() >= 2) {
                     List<ScreenPoint> points = new ArrayList<>(interaction.points().size());
@@ -3027,8 +3041,11 @@ public class SfmDrawScreen extends Screen {
         if (verticalResizeCursorHandle == 0L) {
             verticalResizeCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_VRESIZE_CURSOR);
         }
-        if (diagonalResizeCursorHandle == 0L) {
-            diagonalResizeCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_CROSSHAIR_CURSOR);
+        if (diagonalNorthWestSouthEastCursorHandle == 0L) {
+            diagonalNorthWestSouthEastCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_RESIZE_NWSE_CURSOR);
+        }
+        if (diagonalNorthEastSouthWestCursorHandle == 0L) {
+            diagonalNorthEastSouthWestCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_RESIZE_NESW_CURSOR);
         }
     }
 
@@ -3046,9 +3063,13 @@ public class SfmDrawScreen extends Screen {
             GLFW.glfwDestroyCursor(verticalResizeCursorHandle);
             verticalResizeCursorHandle = 0L;
         }
-        if (diagonalResizeCursorHandle != 0L) {
-            GLFW.glfwDestroyCursor(diagonalResizeCursorHandle);
-            diagonalResizeCursorHandle = 0L;
+        if (diagonalNorthWestSouthEastCursorHandle != 0L) {
+            GLFW.glfwDestroyCursor(diagonalNorthWestSouthEastCursorHandle);
+            diagonalNorthWestSouthEastCursorHandle = 0L;
+        }
+        if (diagonalNorthEastSouthWestCursorHandle != 0L) {
+            GLFW.glfwDestroyCursor(diagonalNorthEastSouthWestCursorHandle);
+            diagonalNorthEastSouthWestCursorHandle = 0L;
         }
     }
 
@@ -3081,7 +3102,7 @@ public class SfmDrawScreen extends Screen {
         }
         if (isChromeWidgetOperational(ChromeWidget.LAYER_WINDOW)) {
             if (layerWindowResizeHandleBounds().contains(mouseX, mouseY)) {
-                applyChromeCursor(ChromeCursor.DIAGONAL);
+                applyChromeCursor(ChromeCursor.DIAGONAL_NORTH_WEST_SOUTH_EAST);
                 return;
             }
             if (layerWindowCloseButtonBounds().contains(mouseX, mouseY)) {
@@ -3116,8 +3137,11 @@ public class SfmDrawScreen extends Screen {
     }
 
     private ChromeCursor cursorForSelectionHandle(SelectionHandle handle) {
-        if ((handle.movesLeft() || handle.movesRight()) && (handle.movesTop() || handle.movesBottom())) {
-            return ChromeCursor.DIAGONAL;
+        if ((handle == SelectionHandle.NORTH_WEST) || (handle == SelectionHandle.SOUTH_EAST)) {
+            return ChromeCursor.DIAGONAL_NORTH_WEST_SOUTH_EAST;
+        }
+        if ((handle == SelectionHandle.NORTH_EAST) || (handle == SelectionHandle.SOUTH_WEST)) {
+            return ChromeCursor.DIAGONAL_NORTH_EAST_SOUTH_WEST;
         }
         if (handle.movesLeft() || handle.movesRight()) {
             return ChromeCursor.HORIZONTAL;
@@ -3136,7 +3160,8 @@ public class SfmDrawScreen extends Screen {
             case HAND -> handCursorHandle != 0L ? handCursorHandle : 0L;
             case HORIZONTAL -> horizontalResizeCursorHandle != 0L ? horizontalResizeCursorHandle : 0L;
             case VERTICAL -> verticalResizeCursorHandle != 0L ? verticalResizeCursorHandle : 0L;
-            case DIAGONAL -> diagonalResizeCursorHandle != 0L ? diagonalResizeCursorHandle : 0L;
+            case DIAGONAL_NORTH_WEST_SOUTH_EAST -> diagonalNorthWestSouthEastCursorHandle != 0L ? diagonalNorthWestSouthEastCursorHandle : 0L;
+            case DIAGONAL_NORTH_EAST_SOUTH_WEST -> diagonalNorthEastSouthWestCursorHandle != 0L ? diagonalNorthEastSouthWestCursorHandle : 0L;
         };
         GLFW.glfwSetCursor(windowHandle, cursorHandle);
         activeChromeCursor = desired;
@@ -4234,7 +4259,8 @@ public class SfmDrawScreen extends Screen {
         HAND,
         HORIZONTAL,
         VERTICAL,
-        DIAGONAL
+        DIAGONAL_NORTH_WEST_SOUTH_EAST,
+        DIAGONAL_NORTH_EAST_SOUTH_WEST
     }
 
     private enum DrawTool {
