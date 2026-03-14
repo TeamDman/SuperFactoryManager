@@ -264,6 +264,26 @@
 >
 > The draw screen MUST support selecting all current elements.
 
+> r[draw.tool.cursor.group]
+>
+> Pressing `G` with a canvas selection MUST persistently group the selected elements so later selection and transform operations can treat the connected component as a unit.
+
+> r[draw.tool.cursor.selection.group-transitive]
+>
+> Selection inclusion and exclusion on canvas elements SHOULD expand through the transitive closure of persistent groups on the active layer.
+
+> r[draw.tool.cursor.align]
+>
+> `Ctrl+Shift+Arrow` MUST align the active canvas selection to the corresponding outer edge of the full selection bounds.
+
+> r[draw.tool.cursor.distribute]
+>
+> `Ctrl+Alt+Shift+Arrow` MUST distribute the active canvas selection along the corresponding axis while preserving the extreme members.
+
+> r[draw.tool.cursor.arrange.group-components]
+>
+> Alignment and distribution MUST treat each transitive persistent-group component as a single arrangement unit.
+
 # Layers
 
 > r[draw.layer.system.exists]
@@ -277,6 +297,14 @@
 > r[draw.layer.default.elements]
 >
 > A built-in content layer for normal drawing MUST exist.
+
+> r[draw.layer.default.shell]
+>
+> A built-in shell layer for runtime game-state annotations MUST exist.
+
+> r[draw.layer.default.shell.autopopulated]
+>
+> The shell layer MUST be automatically populated with atomized text elements derived from live game state such as the current dimension, player position, and look direction.
 
 > r[draw.layer.default.chrome]
 >

@@ -16,8 +16,10 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 // r[impl draw.screen.main]
@@ -58,124 +60,100 @@ public class SfmDrawScreen extends Screen {
     private static final int LARGE_MOVE_SNAP = 32;
     private static final int SMALL_MOVE_SNAP = 1;
 
-    private final List<DrawElement> elements = new ArrayList<>();
-    private final Set<Integer> selectedElementIds = new LinkedHashSet<>();
-    private final Set<ArrowAnchorReference> selectedArrowAnchors = new LinkedHashSet<>();
+        private final List<DrawElement> elements = new ArrayList<>();
+        private final Set<Integer> selectedElementIds = new LinkedHashSet<>();
+        private final Set<ArrowAnchorReference> selectedArrowAnchors = new LinkedHashSet<>();
 
-    private DrawTool activeTool = DrawTool.CURSOR;
-    private DrawLayer activeLayer = DrawLayer.ELEMENTS;
-    private boolean elementsLayerMuted = false;
-    private boolean chromeLayerMuted = false;
-    private int nextElementId = 1;
+        private DrawTool activeTool = DrawTool.CURSOR;
+        private DrawLayer activeLayer = DrawLayer.ELEMENTS;
+        private boolean elementsLayerMuted = false;
+        private boolean shellLayerMuted = false;
+        private boolean chromeLayerMuted = false;
+        private int nextElementId = 1;
+        private int nextGroupId = 1;
 
-    private double cameraX = 0.0D;
-    private double cameraY = 0.0D;
-    private double zoom = 1.0D;
-    private boolean cameraOverlayVisible = false;
-    private ChromeWidgetState minimapWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, MINIMAP_WIDTH, MINIMAP_HEIGHT, 1.0D);
+        private double cameraX = 0.0D;
+        private double cameraY = 0.0D;
+        private double zoom = 1.0D;
+        private boolean cameraOverlayVisible = false;
+        private ChromeWidgetState minimapWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, MINIMAP_WIDTH, MINIMAP_HEIGHT, 1.0D);
 
-    private ChromeWidgetState screenTitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState screenSubtitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState layerLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState layerValueWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState cameraLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState cameraXWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState cameraSeparatorWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState cameraYWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState zoomLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState zoomValueWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState cursorLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState cursorXWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState cursorSeparatorWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState cursorYWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState screenTitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState screenSubtitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState layerLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState layerValueWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState cameraLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState cameraXWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState cameraSeparatorWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState cameraYWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState zoomLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState zoomValueWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState cursorLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState cursorXWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState cursorSeparatorWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState cursorYWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
 
-    private ChromeWidgetState hotbarWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, HOTBAR_WIDTH, HOTBAR_HEIGHT, 1.0D);
-    private ChromeWidgetState hotbarTitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
-    private ChromeWidgetState hotbarSubtitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState hotbarWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, HOTBAR_WIDTH, HOTBAR_HEIGHT, 1.0D);
+        private ChromeWidgetState hotbarTitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState hotbarSubtitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
 
-    private boolean layerWindowVisible = false;
-    private ChromeWidgetState layerWindowWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, LAYER_WINDOW_DEFAULT_WIDTH, LAYER_WINDOW_DEFAULT_HEIGHT, 1.0D);
-    private final Set<ChromeWidget> selectedChromeWidgets = new LinkedHashSet<>();
-    private @Nullable ChromeWidget selectedChromeWidget = null;
-    private @Nullable ChromeWidget draggingChromeWidget = null;
-    private int chromeWidgetDragOffsetX = 0;
-    private int chromeWidgetDragOffsetY = 0;
-    private @Nullable ChromeWidget resizingChromeWidget = null;
-    private @Nullable SelectionHandle chromeWidgetResizeHandle = null;
-    private @Nullable Rect chromeWidgetResizeOriginalBounds = null;
-    private int chromeWidgetResizeAnchorX = 0;
-    private int chromeWidgetResizeAnchorY = 0;
-    private int chromeWidgetResizeStartWidth = 0;
-    private int chromeWidgetResizeStartHeight = 0;
-    private double chromeWidgetResizeStartScale = 1.0D;
-    private boolean revealHiddenElements = false;
+        private boolean layerWindowVisible = false;
+        private ChromeWidgetState layerWindowWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, LAYER_WINDOW_DEFAULT_WIDTH, LAYER_WINDOW_DEFAULT_HEIGHT, 1.0D);
+        private final Set<ChromeWidget> selectedChromeWidgets = new LinkedHashSet<>();
+        private @Nullable ChromeWidget selectedChromeWidget = null;
+        private @Nullable ChromeWidget draggingChromeWidget = null;
+        private int chromeWidgetDragOffsetX = 0;
+        private int chromeWidgetDragOffsetY = 0;
+        private @Nullable ChromeWidget resizingChromeWidget = null;
+        private @Nullable SelectionHandle chromeWidgetResizeHandle = null;
+        private @Nullable Rect chromeWidgetResizeOriginalBounds = null;
+        private int chromeWidgetResizeAnchorX = 0;
+        private int chromeWidgetResizeAnchorY = 0;
+        private int chromeWidgetResizeStartWidth = 0;
+        private int chromeWidgetResizeStartHeight = 0;
+        private double chromeWidgetResizeStartScale = 1.0D;
+        private boolean revealHiddenElements = false;
 
-    private boolean panning = false;
-    private int panButton = -1;
-    private double panAnchorMouseX = 0.0D;
-    private double panAnchorMouseY = 0.0D;
-    private double panAnchorCameraX = 0.0D;
-    private double panAnchorCameraY = 0.0D;
+        private boolean panning = false;
+        private int panButton = -1;
+        private double panAnchorMouseX = 0.0D;
+        private double panAnchorMouseY = 0.0D;
+        private double panAnchorCameraX = 0.0D;
+        private double panAnchorCameraY = 0.0D;
 
-    private boolean textToolCreatesBoundText = true;
-    private int textEditingElementId = -1;
-    private int textEditingCaretIndex = 0;
-    private boolean stickyToolMode = false;
+        private boolean textToolCreatesBoundText = true;
+        private int textEditingElementId = -1;
+        private int textEditingCaretIndex = 0;
+        private boolean stickyToolMode = false;
 
-    private final List<CanvasPoint> pendingArrowAnchors = new ArrayList<>();
-    private @Nullable CameraOverlayProjection pendingArrowProjection = null;
+        private final List<CanvasPoint> pendingArrowAnchors = new ArrayList<>();
+        private @Nullable CameraOverlayProjection pendingArrowProjection = null;
 
-    private @Nullable DraftInteraction draftInteraction = null;
-    private @Nullable MoveSelectionDrag moveSelectionDrag = null;
-    private @Nullable ResizeSelectionDrag resizeSelectionDrag = null;
-    private @Nullable MarqueeSelectionDrag marqueeSelectionDrag = null;
-    private @Nullable ChromeMarqueeSelectionDrag chromeMarqueeSelectionDrag = null;
-    private @Nullable MoveChromeSelectionDrag moveChromeSelectionDrag = null;
-    private @Nullable CameraFrameDrag cameraFrameDrag = null;
-    private boolean duplicateSelectionPendingOnDrag = false;
+        private @Nullable DraftInteraction draftInteraction = null;
+        private @Nullable MoveSelectionDrag moveSelectionDrag = null;
+        private @Nullable ResizeSelectionDrag resizeSelectionDrag = null;
+        private @Nullable MarqueeSelectionDrag marqueeSelectionDrag = null;
+        private @Nullable ChromeMarqueeSelectionDrag chromeMarqueeSelectionDrag = null;
+        private @Nullable MoveChromeSelectionDrag moveChromeSelectionDrag = null;
+        private @Nullable CameraFrameDrag cameraFrameDrag = null;
+        private boolean duplicateSelectionPendingOnDrag = false;
 
-    private long lastCursorClickAtMs = 0L;
-    private double lastCursorClickX = 0.0D;
-    private double lastCursorClickY = 0.0D;
-    private long handCursorHandle = 0L;
-    private long horizontalResizeCursorHandle = 0L;
-    private long verticalResizeCursorHandle = 0L;
-    private long diagonalNorthWestSouthEastCursorHandle = 0L;
-    private long diagonalNorthEastSouthWestCursorHandle = 0L;
-    private ChromeCursor activeChromeCursor = ChromeCursor.DEFAULT;
-    private double chromeMouseX = 0.0D;
-    private double chromeMouseY = 0.0D;
+        private long lastCursorClickAtMs = 0L;
+        private double lastCursorClickX = 0.0D;
+        private double lastCursorClickY = 0.0D;
+        private long handCursorHandle = 0L;
+        private long horizontalResizeCursorHandle = 0L;
+        private long verticalResizeCursorHandle = 0L;
+        private long diagonalNorthWestSouthEastCursorHandle = 0L;
+        private long diagonalNorthEastSouthWestCursorHandle = 0L;
+        private ChromeCursor activeChromeCursor = ChromeCursor.DEFAULT;
+        private double chromeMouseX = 0.0D;
+        private double chromeMouseY = 0.0D;
 
-    public SfmDrawScreen() {
+        public SfmDrawScreen() {
         super(IdeLocalizationKeys.IDE_DRAW_TITLE.getComponent());
-        seedPrototypeElements();
-    }
-
-    @Override
-    protected void init() {
-        super.init();
-        initChromeCursors();
-        if (hotbarWidget.x() == Integer.MIN_VALUE || hotbarWidget.y() == Integer.MIN_VALUE) {
-            hotbarWidget = hotbarWidget.withPosition((width - HOTBAR_WIDTH) / 2, Math.max(32, height - HOTBAR_HEIGHT - 42));
+        seedShellElements();
         }
-        if (minimapWidget.x() == Integer.MIN_VALUE || minimapWidget.y() == Integer.MIN_VALUE) {
-            minimapWidget = minimapWidget.withPosition(width - MINIMAP_WIDTH - 12, 30);
-        }
-        if (layerWindowWidget.x() == Integer.MIN_VALUE || layerWindowWidget.y() == Integer.MIN_VALUE) {
-            layerWindowWidget = layerWindowWidget.withPosition(12, 42);
-        }
-        initializeStatusChromeWidgets();
-        clampHotbarToScreen();
-        clampAllTextChromeWidgetsToScreen();
-        clampCameraOverlayToScreen();
-        clampLayerWindowToScreen();
-    }
-
-    @Override
-    public void onClose() {
-        releaseChromeCursors();
-        super.onClose();
-    }
 
     @Override
     public boolean isPauseScreen() {
@@ -232,27 +210,35 @@ public class SfmDrawScreen extends Screen {
         }
 
         // r[impl draw.tool.cursor.select_all]
-        if (activeLayer == DrawLayer.ELEMENTS && hasControlDown() && keyCode == GLFW.GLFW_KEY_A) {
+        if (isCanvasLayerActive() && hasControlDown() && keyCode == GLFW.GLFW_KEY_A) {
             selectAllElements();
             return true;
         }
 
         // r[impl draw.element.hidden.select-revealed]
-        if (activeLayer == DrawLayer.ELEMENTS && revealHiddenElements && hasShiftDown() && keyCode == GLFW.GLFW_KEY_X) {
+        if (isCanvasLayerActive() && revealHiddenElements && hasShiftDown() && keyCode == GLFW.GLFW_KEY_X) {
             selectAllHiddenElements();
             return true;
         }
 
         // r[impl draw.tool.cursor.delete_selection]
-        if (activeLayer == DrawLayer.ELEMENTS && (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE)) {
+        if (isCanvasLayerActive() && (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE)) {
             if (deleteSelectedElements()) {
                 return true;
             }
         }
 
         // r[impl draw.tool.cursor.duplicate_selection]
-        if (activeLayer == DrawLayer.ELEMENTS && hasAltDown() && keyCode == GLFW.GLFW_KEY_D) {
+        if (isCanvasLayerActive() && hasAltDown() && keyCode == GLFW.GLFW_KEY_D) {
             duplicateSelection();
+            return true;
+        }
+
+        if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && keyCode == GLFW.GLFW_KEY_G && groupActiveSelection()) {
+            return true;
+        }
+
+        if (handleCanvasArrangementShortcut(keyCode)) {
             return true;
         }
 
@@ -302,7 +288,7 @@ public class SfmDrawScreen extends Screen {
         // r[impl draw.tool.creation.sticky_toggle.repeated-shortcut]
         @Nullable DrawTool shortcutTool = DrawTool.byKeyCode(keyCode);
         if (shortcutTool == DrawTool.TEXT && activeTool == DrawTool.TEXT && hasShiftDown()) {
-            if (activeLayer == DrawLayer.ELEMENTS) {
+            if (isCanvasLayerActive()) {
                 textToolCreatesBoundText = !textToolCreatesBoundText;
             }
             return true;
@@ -405,7 +391,7 @@ public class SfmDrawScreen extends Screen {
             return super.mouseClicked(mouseX, mouseY, button);
         }
 
-        if (activeLayer != DrawLayer.ELEMENTS) {
+        if (!isCanvasLayerActive()) {
             return true;
         }
 
@@ -671,6 +657,7 @@ public class SfmDrawScreen extends Screen {
 
         renderBackground(poseStack);
         fill(poseStack, 0, 0, width, height, 0xFF111318);
+        refreshShellElements();
         drawGrid(poseStack);
         drawOriginAxes(poseStack);
         drawElements(poseStack);
@@ -899,16 +886,16 @@ public class SfmDrawScreen extends Screen {
             switch (draftInteraction.tool()) {
                 case RECTANGLE -> drawRectangleElement(
                         poseStack,
-                        new RectangleElement(-1, draftInteraction.startPoint().x(), draftInteraction.startPoint().y(), draftInteraction.currentPoint().x(), draftInteraction.currentPoint().y(), 0x332FB5FF, 0xFF7FD7FF),
+                    new RectangleElement(-1, activeCanvasLayer(), draftInteraction.startPoint().x(), draftInteraction.startPoint().y(), draftInteraction.currentPoint().x(), draftInteraction.currentPoint().y(), 0x332FB5FF, 0xFF7FD7FF),
                         true,
                         false
                 );
-                case ARROW -> drawArrowElement(poseStack, new ArrowElement(-1, List.of(draftInteraction.startPoint(), draftInteraction.currentPoint()), 0xFFE8A652), true, false);
+                case ARROW -> drawArrowElement(poseStack, new ArrowElement(-1, activeCanvasLayer(), List.of(draftInteraction.startPoint(), draftInteraction.currentPoint()), 0xFFE8A652), true, false);
                 case FREEHAND -> {
                     if (draftInteraction.points().size() >= 2) {
                         drawFreehandElement(
                                 poseStack,
-                                new FreehandElement(-1, List.copyOf(draftInteraction.points()), 0xFF88D498),
+                        new FreehandElement(-1, activeCanvasLayer(), List.copyOf(draftInteraction.points()), 0xFF88D498),
                                 true,
                                 false
                         );
@@ -1639,7 +1626,7 @@ public class SfmDrawScreen extends Screen {
         int hitElementId = findTopElementAt(canvasPoint);
         if (hitElementId >= 0) {
             DrawElement element = findElementById(hitElementId);
-            if (element instanceof TextElement) {
+            if (element instanceof TextElement textElement && textElement.shellBinding == null) {
                 selectOnly(hitElementId);
                 activeTool = DrawTool.TEXT;
                 textEditingElementId = hitElementId;
@@ -1670,17 +1657,16 @@ public class SfmDrawScreen extends Screen {
         CanvasBounds selectionBounds = currentSelectionBounds();
         @Nullable ArrowAnchorReference hitArrowAnchor = findVisibleArrowAnchorAt(canvasPoint);
         if (hitArrowAnchor != null) {
+            applyArrowAnchorSelection(hitArrowAnchor, selectionMode);
             if (selectionMode == SelectionMode.ADD) {
-                selectedArrowAnchors.add(hitArrowAnchor);
                 return;
             }
             if (selectionMode == SelectionMode.SUBTRACT) {
-                selectedArrowAnchors.remove(hitArrowAnchor);
                 return;
             }
             // r[impl draw.tool.arrow.anchors.selectable]
             if (!selectedArrowAnchors.contains(hitArrowAnchor)) {
-                selectOnlyArrowAnchor(hitArrowAnchor);
+                return;
             }
             CanvasBounds anchorSelectionBounds = currentSelectionBounds();
             if (anchorSelectionBounds != null) {
@@ -1710,11 +1696,11 @@ public class SfmDrawScreen extends Screen {
             DrawElement hitElement = findElementById(hitElementId);
             if (hitElement instanceof ArrowElement arrowElement) {
                 if (selectionMode == SelectionMode.ADD) {
-                    addArrowAnchorsToSelection(arrowElement);
+                    addElementComponentToSelection(groupConnectedElementIds(arrowElement.id()));
                     return;
                 }
                 if (selectionMode == SelectionMode.SUBTRACT) {
-                    removeArrowAnchorsFromSelection(arrowElement);
+                    removeElementComponentFromSelection(groupConnectedElementIds(arrowElement.id()));
                     return;
                 }
                 // r[impl draw.tool.arrow.line-selects-anchors]
@@ -1727,11 +1713,11 @@ public class SfmDrawScreen extends Screen {
                 return;
             }
             if (selectionMode == SelectionMode.ADD) {
-                selectedElementIds.add(hitElementId);
+                addElementComponentToSelection(groupConnectedElementIds(hitElementId));
                 return;
             }
             if (selectionMode == SelectionMode.SUBTRACT) {
-                selectedElementIds.remove(hitElementId);
+                removeElementComponentFromSelection(groupConnectedElementIds(hitElementId));
                 return;
             }
             if (!selectedElementIds.contains(hitElementId)) {
@@ -1859,16 +1845,22 @@ public class SfmDrawScreen extends Screen {
             }
         }
 
+        Set<Integer> expandedHits = expandSelectionToGroupedElements(hits, arrowHits);
+        Set<Integer> explicitArrowIds = new LinkedHashSet<>();
+        for (ArrowAnchorReference arrowHit : arrowHits) {
+            explicitArrowIds.add(arrowHit.arrowId());
+        }
+
         if (mode == SelectionMode.REPLACE) {
             clearCanvasSelection();
-            selectedElementIds.addAll(hits);
             selectedArrowAnchors.addAll(arrowHits);
+            addExpandedGroupedSelections(expandedHits, explicitArrowIds);
         } else if (mode == SelectionMode.ADD) {
-            selectedElementIds.addAll(hits);
             selectedArrowAnchors.addAll(arrowHits);
+            addExpandedGroupedSelections(expandedHits, explicitArrowIds);
         } else {
-            selectedElementIds.removeAll(hits);
             selectedArrowAnchors.removeAll(arrowHits);
+            removeExpandedGroupedSelections(expandedHits, explicitArrowIds);
         }
     }
 
@@ -1918,7 +1910,7 @@ public class SfmDrawScreen extends Screen {
         switch (draftInteraction.tool()) {
             case RECTANGLE -> {
                 if (distanceSquared(draftInteraction.startPoint(), draftInteraction.currentPoint()) > 4.0D) {
-                    RectangleElement element = new RectangleElement(nextElementId++, draftInteraction.startPoint().x(), draftInteraction.startPoint().y(), draftInteraction.currentPoint().x(), draftInteraction.currentPoint().y(), 0x332FB5FF, 0xFF7FD7FF);
+                    RectangleElement element = new RectangleElement(nextElementId++, activeCanvasLayer(), draftInteraction.startPoint().x(), draftInteraction.startPoint().y(), draftInteraction.currentPoint().x(), draftInteraction.currentPoint().y(), 0x332FB5FF, 0xFF7FD7FF);
                     elements.add(element);
                     selectOnly(element.id());
                     resetToolAfterCreation(DrawTool.RECTANGLE);
@@ -1926,7 +1918,7 @@ public class SfmDrawScreen extends Screen {
             }
             case ARROW -> {
                 if (distanceSquared(draftInteraction.startPoint(), draftInteraction.currentPoint()) > 4.0D) {
-                    ArrowElement element = new ArrowElement(nextElementId++, List.of(draftInteraction.startPoint(), draftInteraction.currentPoint()), 0xFFE8A652);
+                    ArrowElement element = new ArrowElement(nextElementId++, activeCanvasLayer(), List.of(draftInteraction.startPoint(), draftInteraction.currentPoint()), 0xFFE8A652);
                     elements.add(element);
                     selectOnly(element.id());
                     resetToolAfterCreation(DrawTool.ARROW);
@@ -1938,7 +1930,7 @@ public class SfmDrawScreen extends Screen {
             }
             case FREEHAND -> {
                 if (draftInteraction.points().size() >= 2) {
-                    FreehandElement element = new FreehandElement(nextElementId++, List.copyOf(draftInteraction.points()), 0xFF88D498);
+                    FreehandElement element = new FreehandElement(nextElementId++, activeCanvasLayer(), List.copyOf(draftInteraction.points()), 0xFF88D498);
                     elements.add(element);
                     clearCanvasSelection();
                     resetToolAfterCreation(DrawTool.FREEHAND);
@@ -1953,7 +1945,7 @@ public class SfmDrawScreen extends Screen {
     // r[impl draw.tool.arrow.multisegment]
     private void finalizePendingArrowAnchors() {
         if (pendingArrowAnchors.size() >= 2) {
-            ArrowElement element = new ArrowElement(nextElementId++, List.copyOf(pendingArrowAnchors), 0xFFE8A652);
+            ArrowElement element = new ArrowElement(nextElementId++, activeCanvasLayer(), List.copyOf(pendingArrowAnchors), 0xFFE8A652);
             elements.add(element);
             selectOnly(element.id());
             resetToolAfterCreation(DrawTool.ARROW);
@@ -1964,7 +1956,7 @@ public class SfmDrawScreen extends Screen {
 
     // r[impl draw.tool.text.create]
     private TextElement createTextElement(CanvasPoint point) {
-        TextElement element = new TextElement(nextElementId++, point.x(), point.y(), "", 0xFFF1F5FB, 1.0D);
+        TextElement element = new TextElement(nextElementId++, activeCanvasLayer(), point.x(), point.y(), "", 0xFFF1F5FB, 1.0D, null);
         elements.add(element);
         selectOnly(element.id());
         return element;
@@ -1973,7 +1965,7 @@ public class SfmDrawScreen extends Screen {
     // r[impl draw.tool.text.edit]
     private void finishTextEditing() {
         TextElement textElement = editingTextElement();
-        if (textElement != null && textElement.text.isEmpty()) {
+        if (textElement != null && textElement.shellBinding == null && textElement.text.isEmpty()) {
             elements.removeIf(element -> element.id() == textElement.id());
             selectedElementIds.remove(textElement.id());
         }
@@ -2017,7 +2009,7 @@ public class SfmDrawScreen extends Screen {
         for (DrawElement element : elements) {
             // r[impl draw.tool.cursor.hidden-omitted-unless-revealed]
             if (isElementSelectable(element)) {
-                selectedElementIds.add(element.id());
+                addElementToSelection(element);
             }
         }
     }
@@ -2026,9 +2018,16 @@ public class SfmDrawScreen extends Screen {
         clearCanvasSelection();
         for (DrawElement element : elements) {
             if (isElementSelectable(element) && element.hidden()) {
-                selectedElementIds.add(element.id());
+                addElementToSelection(element);
             }
         }
+    }
+
+    private boolean handleCanvasArrangementShortcut(int keyCode) {
+        if (!isCanvasLayerActive() || activeTool != DrawTool.CURSOR || !isArrowKey(keyCode) || !hasControlDown() || !hasShiftDown()) {
+            return false;
+        }
+        return hasAltDown() ? distributeSelection(keyCode) : alignSelection(keyCode);
     }
 
     private boolean nudgeActiveSelection(int keyCode) {
@@ -2047,7 +2046,7 @@ public class SfmDrawScreen extends Screen {
                 return false;
             }
         }
-        if (activeLayer == DrawLayer.ELEMENTS) {
+        if (isCanvasLayerActive()) {
             return nudgeSelectedElements(dx, dy);
         }
         if (activeLayer == DrawLayer.CHROME) {
@@ -2064,14 +2063,102 @@ public class SfmDrawScreen extends Screen {
     }
 
     private boolean nudgeSelectedElements(int dx, int dy) {
-        if (selectedElementIds.isEmpty()) {
+        Set<Integer> selectedIds = selectedOwningElementIds();
+        if (selectedIds.isEmpty()) {
             return false;
         }
-        for (Integer selectedElementId : selectedElementIds) {
+        for (Integer selectedElementId : selectedIds) {
             DrawElement element = findElementById(selectedElementId);
             if (element != null) {
                 element.translate(dx, dy);
             }
+        }
+        return true;
+    }
+
+    private boolean groupActiveSelection() {
+        Set<Integer> selectedIds = selectedOwningElementIds();
+        if (selectedIds.size() < 2) {
+            return false;
+        }
+        int groupId = nextGroupId++;
+        for (Integer selectedId : selectedIds) {
+            DrawElement element = findElementById(selectedId);
+            if (element != null) {
+                element.groupIds().add(groupId);
+            }
+        }
+        return true;
+    }
+
+    private boolean alignSelection(int keyCode) {
+        List<SelectionComponent> components = selectedArrangementComponents();
+        if (components.size() < 2) {
+            return false;
+        }
+        CanvasBounds selectionBounds = boundsForComponents(components);
+        for (SelectionComponent component : components) {
+            double dx = 0.0D;
+            double dy = 0.0D;
+            switch (keyCode) {
+                case GLFW.GLFW_KEY_LEFT -> dx = selectionBounds.minX() - component.bounds().minX();
+                case GLFW.GLFW_KEY_RIGHT -> dx = selectionBounds.maxX() - component.bounds().maxX();
+                case GLFW.GLFW_KEY_UP -> dy = selectionBounds.minY() - component.bounds().minY();
+                case GLFW.GLFW_KEY_DOWN -> dy = selectionBounds.maxY() - component.bounds().maxY();
+                default -> {
+                    return false;
+                }
+            }
+            translateComponent(component, dx, dy);
+        }
+        return true;
+    }
+
+    private boolean distributeSelection(int keyCode) {
+        List<SelectionComponent> components = selectedArrangementComponents();
+        if (components.size() < 3) {
+            return false;
+        }
+        boolean horizontal = keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT;
+        boolean vertical = keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN;
+        if (!horizontal && !vertical) {
+            return false;
+        }
+
+        List<SelectionComponent> ordered = new ArrayList<>(components);
+        ordered.sort(horizontal
+                ? Comparator.comparingDouble(component -> component.bounds().minX())
+                : Comparator.comparingDouble(component -> component.bounds().minY()));
+
+        if (horizontal) {
+            double span = ordered.get(ordered.size() - 1).bounds().maxX() - ordered.get(0).bounds().minX();
+            double occupied = 0.0D;
+            for (SelectionComponent component : ordered) {
+                occupied += component.bounds().width();
+            }
+            double gap = (span - occupied) / (ordered.size() - 1);
+            double cursor = ordered.get(0).bounds().maxX() + gap;
+            for (int index = 1; index < ordered.size() - 1; index++) {
+                SelectionComponent component = ordered.get(index);
+                double dx = cursor - component.bounds().minX();
+                translateComponent(component, dx, 0.0D);
+                cursor += component.bounds().width() + gap;
+            }
+            return true;
+        }
+
+        double span = ordered.get(ordered.size() - 1).bounds().maxY() - ordered.get(0).bounds().minY();
+        double occupied = 0.0D;
+        for (SelectionComponent component : ordered) {
+            occupied += component.bounds().height();
+        }
+        double gap = (span - occupied) / (ordered.size() - 1);
+        double cursor = ordered.get(0).bounds().maxY() + gap;
+        for (int index = 1; index < ordered.size() - 1; index++) {
+            SelectionComponent component = ordered.get(index);
+            double dy = cursor - component.bounds().minY();
+            translateComponent(component, 0.0D, dy);
+            cursor += component.bounds().height() + gap;
         }
         return true;
     }
@@ -2276,12 +2363,12 @@ public class SfmDrawScreen extends Screen {
 
     private boolean shouldRenderElement(DrawElement element) {
         // r[impl draw.element.hidden.dim-when-revealed]
-        return !elementsLayerMuted && (!element.hidden() || revealHiddenElements);
+        return !isLayerMuted(element.layer()) && (!element.hidden() || revealHiddenElements);
     }
 
     private boolean isElementSelectable(DrawElement element) {
         // r[impl draw.tool.cursor.hidden-omitted-unless-revealed]
-        return !elementsLayerMuted && (!element.hidden() || revealHiddenElements);
+        return element.layer() == activeLayer && !isLayerMuted(element.layer()) && (!element.hidden() || revealHiddenElements);
     }
 
     private SelectionMode selectionMode() {
@@ -2295,7 +2382,7 @@ public class SfmDrawScreen extends Screen {
     }
 
     private @Nullable String selectionModifierIndicator() {
-        if (activeTool != DrawTool.CURSOR || activeLayer != DrawLayer.ELEMENTS) {
+        if (activeTool != DrawTool.CURSOR || !isCanvasLayerActive()) {
             return null;
         }
         return switch (selectionMode()) {
@@ -2358,7 +2445,7 @@ public class SfmDrawScreen extends Screen {
     }
 
     private boolean toggleHiddennessForActiveSelection() {
-        if (activeLayer == DrawLayer.ELEMENTS) {
+        if (isCanvasLayerActive()) {
             if (selectedElementIds.isEmpty() && selectedArrowAnchors.isEmpty()) {
                 return false;
             }
@@ -2585,12 +2672,11 @@ public class SfmDrawScreen extends Screen {
     // r[impl draw.tool.cursor.selection]
     private void selectOnly(int id) {
         clearCanvasSelection();
-        selectedElementIds.add(id);
+        addElementComponentToSelection(groupConnectedElementIds(id));
     }
 
     private void selectOnlyArrow(ArrowElement arrowElement) {
-        clearCanvasSelection();
-        addArrowAnchorsToSelection(arrowElement);
+        selectOnly(arrowElement.id());
     }
 
     private void selectOnlyArrowAnchor(ArrowAnchorReference anchorReference) {
@@ -2602,6 +2688,158 @@ public class SfmDrawScreen extends Screen {
         for (int index = 0; index < arrowElement.points.size(); index++) {
             selectedArrowAnchors.add(new ArrowAnchorReference(arrowElement.id(), index));
         }
+    }
+
+    private void applyArrowAnchorSelection(
+            ArrowAnchorReference anchorReference,
+            SelectionMode selectionMode
+    ) {
+        Set<Integer> connectedIds = groupConnectedElementIds(anchorReference.arrowId());
+        connectedIds.remove(anchorReference.arrowId());
+        switch (selectionMode) {
+            case REPLACE -> {
+                clearCanvasSelection();
+                selectedArrowAnchors.add(anchorReference);
+                addElementComponentToSelection(connectedIds);
+            }
+            case ADD -> {
+                selectedArrowAnchors.add(anchorReference);
+                addElementComponentToSelection(connectedIds);
+            }
+            case SUBTRACT -> {
+                selectedArrowAnchors.remove(anchorReference);
+                removeElementComponentFromSelection(connectedIds);
+            }
+        }
+    }
+
+    private void addElementComponentToSelection(Set<Integer> elementIds) {
+        for (Integer elementId : elementIds) {
+            DrawElement element = findElementById(elementId);
+            if (element == null || element.layer() != activeLayer) {
+                continue;
+            }
+            addElementToSelection(element);
+        }
+    }
+
+    private void addElementToSelection(DrawElement element) {
+        if (element instanceof ArrowElement arrowElement) {
+            addArrowAnchorsToSelection(arrowElement);
+            return;
+        }
+        selectedElementIds.add(element.id());
+    }
+
+    private void removeElementComponentFromSelection(Set<Integer> elementIds) {
+        for (Integer elementId : elementIds) {
+            DrawElement element = findElementById(elementId);
+            if (element == null) {
+                continue;
+            }
+            selectedElementIds.remove(element.id());
+            if (element instanceof ArrowElement arrowElement) {
+                removeArrowAnchorsFromSelection(arrowElement);
+            }
+        }
+    }
+
+    private Set<Integer> expandSelectionToGroupedElements(
+            Set<Integer> elementHits,
+            Set<ArrowAnchorReference> arrowHits
+    ) {
+        Set<Integer> expanded = new LinkedHashSet<>(elementHits);
+        for (ArrowAnchorReference arrowHit : arrowHits) {
+            expanded.add(arrowHit.arrowId());
+        }
+        for (Integer elementId : List.copyOf(expanded)) {
+            expanded.addAll(groupConnectedElementIds(elementId));
+        }
+        return expanded;
+    }
+
+    private void addExpandedGroupedSelections(
+            Set<Integer> expandedHits,
+            Set<Integer> explicitArrowIds
+    ) {
+        for (Integer elementId : expandedHits) {
+            if (explicitArrowIds.contains(elementId)) {
+                continue;
+            }
+            DrawElement element = findElementById(elementId);
+            if (element != null && element.layer() == activeLayer) {
+                addElementToSelection(element);
+            }
+        }
+    }
+
+    private void removeExpandedGroupedSelections(
+            Set<Integer> expandedHits,
+            Set<Integer> explicitArrowIds
+    ) {
+        for (Integer elementId : expandedHits) {
+            if (explicitArrowIds.contains(elementId)) {
+                continue;
+            }
+            DrawElement element = findElementById(elementId);
+            if (element == null) {
+                continue;
+            }
+            selectedElementIds.remove(element.id());
+            if (element instanceof ArrowElement arrowElement) {
+                removeArrowAnchorsFromSelection(arrowElement);
+            }
+        }
+    }
+
+    private Set<Integer> selectedOwningElementIds() {
+        Set<Integer> selectedIds = new LinkedHashSet<>(selectedElementIds);
+        for (ArrowAnchorReference selectedArrowAnchor : selectedArrowAnchors) {
+            DrawElement element = findElementById(selectedArrowAnchor.arrowId());
+            if (element != null) {
+                selectedIds.add(element.id());
+            }
+        }
+        return selectedIds;
+    }
+
+    private Set<Integer> groupConnectedElementIds(int elementId) {
+        DrawElement seed = findElementById(elementId);
+        Set<Integer> result = new LinkedHashSet<>();
+        if (seed == null) {
+            return result;
+        }
+        result.add(seed.id());
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (DrawElement candidate : elements) {
+                if (candidate.layer() != seed.layer() || result.contains(candidate.id())) {
+                    continue;
+                }
+                for (Integer existingId : List.copyOf(result)) {
+                    DrawElement existing = findElementById(existingId);
+                    if (existing != null && elementsShareGroup(existing, candidate)) {
+                        result.add(candidate.id());
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private boolean elementsShareGroup(
+            DrawElement a,
+            DrawElement b
+    ) {
+        for (Integer groupId : a.groupIds()) {
+            if (b.groupIds().contains(groupId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void removeArrowAnchorsFromSelection(ArrowElement arrowElement) {
@@ -2730,6 +2968,64 @@ public class SfmDrawScreen extends Screen {
 
     private boolean canResizeCurrentSelection() {
         return selectedArrowAnchors.isEmpty() && !selectedElementIds.isEmpty();
+    }
+
+    private List<SelectionComponent> selectedArrangementComponents() {
+        Set<Integer> selectedIds = selectedOwningElementIds();
+        List<SelectionComponent> components = new ArrayList<>();
+        Set<Integer> remaining = new LinkedHashSet<>(selectedIds);
+        while (!remaining.isEmpty()) {
+            Integer seedId = remaining.iterator().next();
+            Set<Integer> componentIds = new LinkedHashSet<>(groupConnectedElementIds(seedId));
+            componentIds.retainAll(selectedIds);
+            remaining.removeAll(componentIds);
+            components.add(new SelectionComponent(componentIds, boundsForElementIds(componentIds)));
+        }
+        return components;
+    }
+
+    private CanvasBounds boundsForComponents(List<SelectionComponent> components) {
+        CanvasBounds bounds = components.get(0).bounds();
+        for (int index = 1; index < components.size(); index++) {
+            bounds = bounds.expandToInclude(components.get(index).bounds());
+        }
+        return bounds;
+    }
+
+    private CanvasBounds boundsForElementIds(Set<Integer> elementIds) {
+        CanvasBounds bounds = null;
+        for (Integer elementId : elementIds) {
+            DrawElement element = findElementById(elementId);
+            if (element == null) {
+                continue;
+            }
+            bounds = bounds == null ? element.bounds(this) : bounds.expandToInclude(element.bounds(this));
+        }
+        return bounds != null ? bounds : CanvasBounds.of(0.0D, 0.0D, 0.0D, 0.0D);
+    }
+
+    private void translateComponent(
+            SelectionComponent component,
+            double dx,
+            double dy
+    ) {
+        if (Math.abs(dx) <= 0.000001D && Math.abs(dy) <= 0.000001D) {
+            return;
+        }
+        for (Integer elementId : component.elementIds()) {
+            DrawElement element = findElementById(elementId);
+            if (element != null) {
+                element.translate(dx, dy);
+            }
+        }
+    }
+
+    private boolean isCanvasLayerActive() {
+        return activeLayer.canvasLayer();
+    }
+
+    private DrawLayer activeCanvasLayer() {
+        return activeLayer.canvasLayer() ? activeLayer : DrawLayer.ELEMENTS;
     }
 
     private boolean isCursorDoubleClick(
@@ -3181,7 +3477,8 @@ public class SfmDrawScreen extends Screen {
     private @Nullable DrawLayer layerForHotkey(int keyCode) {
         return switch (keyCode) {
             case GLFW.GLFW_KEY_1 -> DrawLayer.ELEMENTS;
-            case GLFW.GLFW_KEY_2 -> DrawLayer.CHROME;
+            case GLFW.GLFW_KEY_2 -> DrawLayer.SHELL;
+            case GLFW.GLFW_KEY_3 -> DrawLayer.CHROME;
             default -> null;
         };
     }
@@ -3191,6 +3488,7 @@ public class SfmDrawScreen extends Screen {
     private boolean isLayerMuted(DrawLayer layer) {
         return switch (layer) {
             case ELEMENTS -> elementsLayerMuted;
+            case SHELL -> shellLayerMuted;
             case CHROME -> chromeLayerMuted;
         };
     }
@@ -3201,11 +3499,12 @@ public class SfmDrawScreen extends Screen {
     ) {
         switch (layer) {
             case ELEMENTS -> elementsLayerMuted = muted;
+            case SHELL -> shellLayerMuted = muted;
             case CHROME -> chromeLayerMuted = muted;
         }
 
         if (muted) {
-            if (layer == DrawLayer.ELEMENTS) {
+            if (layer.canvasLayer()) {
                 clearCanvasSelection();
                 if (textEditingElementId >= 0) {
                     finishTextEditing();
@@ -3561,7 +3860,7 @@ public class SfmDrawScreen extends Screen {
             applyChromeCursor(cursorForSelectionHandle(resizeSelectionDrag.handle()));
             return;
         }
-        if (activeLayer == DrawLayer.ELEMENTS && activeTool == DrawTool.CURSOR && selectionMode() == SelectionMode.REPLACE) {
+        if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && selectionMode() == SelectionMode.REPLACE) {
             CanvasBounds selectionBounds = currentSelectionBounds();
             if (selectionBounds != null && canResizeCurrentSelection()) {
                 SelectionHandle handle = findSelectionHandle(mouseX, mouseY, selectionBounds);
@@ -3931,14 +4230,22 @@ public class SfmDrawScreen extends Screen {
         );
     }
 
-    private void seedPrototypeElements() {
-        RectangleElement rectangle = new RectangleElement(nextElementId++, -180.0D, -80.0D, 40.0D, 60.0D, 0x334D7CFE, 0xFF7FD7FF);
-        ArrowElement arrow = new ArrowElement(nextElementId++, List.of(new CanvasPoint(60.0D, -40.0D), new CanvasPoint(210.0D, 80.0D)), 0xFFE8A652);
-        TextElement text = new TextElement(nextElementId++, -20.0D, -130.0D, "Document origin", 0xFFF1F5FB, 1.0D);
-        elements.add(rectangle);
-        elements.add(arrow);
-        elements.add(text);
-        selectOnly(rectangle.id());
+    private void seedShellElements() {
+        for (ShellTextBinding binding : ShellTextBinding.VALUES) {
+            elements.add(new TextElement(nextElementId++, DrawLayer.SHELL, binding.defaultX(), binding.defaultY(), binding.placeholderText(), 0xFFF1F5FB, 1.0D, binding));
+        }
+    }
+
+    private void refreshShellElements() {
+        for (DrawElement element : elements) {
+            if (element instanceof TextElement textElement && textElement.shellBinding != null) {
+                textElement.text = textElement.shellBinding.resolve(this);
+            }
+        }
+    }
+
+    private String formatShellNumber(double value) {
+        return String.format(Locale.ROOT, "%.1f", value);
     }
 
     private static double distanceSquared(
@@ -3972,10 +4279,16 @@ public class SfmDrawScreen extends Screen {
 
     private abstract static class DrawElement {
         private final int id;
+        private DrawLayer layer;
         private boolean hidden = false;
+        private Set<Integer> groupIds = new LinkedHashSet<>();
 
-        protected DrawElement(int id) {
+        protected DrawElement(
+                int id,
+                DrawLayer layer
+        ) {
             this.id = id;
+            this.layer = layer;
         }
 
         public int id() {
@@ -3986,8 +4299,28 @@ public class SfmDrawScreen extends Screen {
             return hidden;
         }
 
+        public DrawLayer layer() {
+            return layer;
+        }
+
+        public Set<Integer> groupIds() {
+            return groupIds;
+        }
+
         public void setHidden(boolean hidden) {
             this.hidden = hidden;
+        }
+
+        protected void copyMetadataTo(DrawElement copy) {
+            copy.hidden = hidden;
+            copy.layer = layer;
+            copy.groupIds = new LinkedHashSet<>(groupIds);
+        }
+
+        protected void copyMetadataFrom(DrawElement other) {
+            hidden = other.hidden;
+            layer = other.layer;
+            groupIds = new LinkedHashSet<>(other.groupIds);
         }
 
         public abstract CanvasBounds bounds(SfmDrawScreen screen);
@@ -4013,6 +4346,7 @@ public class SfmDrawScreen extends Screen {
 
         private RectangleElement(
                 int id,
+            DrawLayer layer,
                 double x1,
                 double y1,
                 double x2,
@@ -4020,7 +4354,7 @@ public class SfmDrawScreen extends Screen {
                 int fillColor,
                 int strokeColor
         ) {
-            super(id);
+            super(id, layer);
             this.x1 = x1;
             this.y1 = y1;
             this.x2 = x2;
@@ -4036,22 +4370,22 @@ public class SfmDrawScreen extends Screen {
 
         @Override
         public DrawElement copy() {
-            RectangleElement copy = new RectangleElement(id(), x1, y1, x2, y2, fillColor, strokeColor);
-            copy.setHidden(hidden());
+            RectangleElement copy = new RectangleElement(id(), layer(), x1, y1, x2, y2, fillColor, strokeColor);
+            copyMetadataTo(copy);
             return copy;
         }
 
         @Override
         public DrawElement copyWithId(int id) {
-            RectangleElement copy = new RectangleElement(id, x1, y1, x2, y2, fillColor, strokeColor);
-            copy.setHidden(hidden());
+            RectangleElement copy = new RectangleElement(id, layer(), x1, y1, x2, y2, fillColor, strokeColor);
+            copyMetadataTo(copy);
             return copy;
         }
 
         @Override
         public void copyFrom(DrawElement other) {
             RectangleElement element = (RectangleElement) other;
-            setHidden(element.hidden());
+            copyMetadataFrom(element);
             x1 = element.x1;
             y1 = element.y1;
             x2 = element.x2;
@@ -4084,10 +4418,11 @@ public class SfmDrawScreen extends Screen {
 
         private ArrowElement(
                 int id,
+                DrawLayer layer,
                 List<CanvasPoint> points,
                 int color
         ) {
-            super(id);
+            super(id, layer);
             this.points = new ArrayList<>(points);
             this.color = color;
         }
@@ -4109,16 +4444,16 @@ public class SfmDrawScreen extends Screen {
 
         @Override
         public DrawElement copy() {
-            ArrowElement copy = new ArrowElement(id(), points, color);
-            copy.setHidden(hidden());
+            ArrowElement copy = new ArrowElement(id(), layer(), points, color);
+            copyMetadataTo(copy);
             copy.hiddenAnchorIndexes = new LinkedHashSet<>(hiddenAnchorIndexes);
             return copy;
         }
 
         @Override
         public DrawElement copyWithId(int id) {
-            ArrowElement copy = new ArrowElement(id, points, color);
-            copy.setHidden(hidden());
+            ArrowElement copy = new ArrowElement(id, layer(), points, color);
+            copyMetadataTo(copy);
             copy.hiddenAnchorIndexes = new LinkedHashSet<>(hiddenAnchorIndexes);
             return copy;
         }
@@ -4126,7 +4461,7 @@ public class SfmDrawScreen extends Screen {
         @Override
         public void copyFrom(DrawElement other) {
             ArrowElement element = (ArrowElement) other;
-            setHidden(element.hidden());
+            copyMetadataFrom(element);
             points = new ArrayList<>(element.points);
             hiddenAnchorIndexes = new LinkedHashSet<>(element.hiddenAnchorIndexes);
         }
@@ -4191,21 +4526,25 @@ public class SfmDrawScreen extends Screen {
         private String text;
         private final int color;
         private double textScale;
+        private final @Nullable ShellTextBinding shellBinding;
 
         private TextElement(
                 int id,
+                DrawLayer layer,
                 double x,
                 double y,
                 String text,
                 int color,
-                double textScale
+                double textScale,
+                @Nullable ShellTextBinding shellBinding
         ) {
-            super(id);
+            super(id, layer);
             this.x = x;
             this.y = y;
             this.text = text;
             this.color = color;
             this.textScale = textScale;
+            this.shellBinding = shellBinding;
         }
 
         @Override
@@ -4222,22 +4561,22 @@ public class SfmDrawScreen extends Screen {
 
         @Override
         public DrawElement copy() {
-            TextElement copy = new TextElement(id(), x, y, text, color, textScale);
-            copy.setHidden(hidden());
+            TextElement copy = new TextElement(id(), layer(), x, y, text, color, textScale, shellBinding);
+            copyMetadataTo(copy);
             return copy;
         }
 
         @Override
         public DrawElement copyWithId(int id) {
-            TextElement copy = new TextElement(id, x, y, text, color, textScale);
-            copy.setHidden(hidden());
+            TextElement copy = new TextElement(id, layer(), x, y, text, color, textScale, shellBinding);
+            copyMetadataTo(copy);
             return copy;
         }
 
         @Override
         public void copyFrom(DrawElement other) {
             TextElement element = (TextElement) other;
-            setHidden(element.hidden());
+            copyMetadataFrom(element);
             x = element.x;
             y = element.y;
             text = element.text;
@@ -4268,10 +4607,11 @@ public class SfmDrawScreen extends Screen {
 
         private FreehandElement(
                 int id,
+                DrawLayer layer,
                 List<CanvasPoint> points,
                 int color
         ) {
-            super(id);
+            super(id, layer);
             this.points = new ArrayList<>(points);
             this.color = color;
         }
@@ -4293,22 +4633,22 @@ public class SfmDrawScreen extends Screen {
 
         @Override
         public DrawElement copy() {
-            FreehandElement copy = new FreehandElement(id(), points, color);
-            copy.setHidden(hidden());
+            FreehandElement copy = new FreehandElement(id(), layer(), points, color);
+            copyMetadataTo(copy);
             return copy;
         }
 
         @Override
         public DrawElement copyWithId(int id) {
-            FreehandElement copy = new FreehandElement(id, points, color);
-            copy.setHidden(hidden());
+            FreehandElement copy = new FreehandElement(id, layer(), points, color);
+            copyMetadataTo(copy);
             return copy;
         }
 
         @Override
         public void copyFrom(DrawElement other) {
             FreehandElement element = (FreehandElement) other;
-            setHidden(element.hidden());
+            copyMetadataFrom(element);
             points = new ArrayList<>(element.points);
         }
 
@@ -4718,21 +5058,25 @@ public class SfmDrawScreen extends Screen {
     }
 
     private enum DrawLayer {
-        ELEMENTS(1, IdeLocalizationKeys.IDE_DRAW_LAYER_ELEMENTS.getString(), 0xFF7FD7FF),
-        CHROME(2, IdeLocalizationKeys.IDE_DRAW_LAYER_CHROME.getString(), 0xFFE8A652);
+        ELEMENTS(1, true, IdeLocalizationKeys.IDE_DRAW_LAYER_ELEMENTS.getString(), 0xFF7FD7FF),
+        SHELL(2, true, IdeLocalizationKeys.IDE_DRAW_LAYER_SHELL.getString(), 0xFFD998FF),
+        CHROME(3, false, IdeLocalizationKeys.IDE_DRAW_LAYER_CHROME.getString(), 0xFFE8A652);
 
         private static final DrawLayer[] VALUES = values();
 
         private final int index;
+        private final boolean canvasLayer;
         private final String label;
         private final int color;
 
         DrawLayer(
                 int index,
+            boolean canvasLayer,
                 String label,
                 int color
         ) {
             this.index = index;
+            this.canvasLayer = canvasLayer;
             this.label = label;
             this.color = color;
         }
@@ -4749,9 +5093,68 @@ public class SfmDrawScreen extends Screen {
             return color;
         }
 
+        public boolean canvasLayer() {
+            return canvasLayer;
+        }
+
         public int index() {
             return index;
         }
+    }
+
+    private enum ShellTextBinding {
+        DIMENSION(-196.0D, -168.0D, "dimension: --"),
+        PLAYER_X(-196.0D, -152.0D, "player.x: --"),
+        PLAYER_Y(-196.0D, -136.0D, "player.y: --"),
+        PLAYER_Z(-196.0D, -120.0D, "player.z: --"),
+        LOOK_YAW(-196.0D, -104.0D, "look.yaw: --"),
+        LOOK_PITCH(-196.0D, -88.0D, "look.pitch: --");
+
+        private static final ShellTextBinding[] VALUES = values();
+
+        private final double defaultX;
+        private final double defaultY;
+        private final String placeholderText;
+
+        ShellTextBinding(
+                double defaultX,
+                double defaultY,
+                String placeholderText
+        ) {
+            this.defaultX = defaultX;
+            this.defaultY = defaultY;
+            this.placeholderText = placeholderText;
+        }
+
+        public double defaultX() {
+            return defaultX;
+        }
+
+        public double defaultY() {
+            return defaultY;
+        }
+
+        public String placeholderText() {
+            return placeholderText;
+        }
+
+        public String resolve(SfmDrawScreen screen) {
+            if (screen.minecraft == null || screen.minecraft.player == null) {
+                return placeholderText;
+            }
+            var player = screen.minecraft.player;
+            return switch (this) {
+                case DIMENSION -> "dimension: " + player.level.dimension().location();
+                case PLAYER_X -> "player.x: " + screen.formatShellNumber(player.getX());
+                case PLAYER_Y -> "player.y: " + screen.formatShellNumber(player.getY());
+                case PLAYER_Z -> "player.z: " + screen.formatShellNumber(player.getZ());
+                case LOOK_YAW -> "look.yaw: " + screen.formatShellNumber(player.getYRot());
+                case LOOK_PITCH -> "look.pitch: " + screen.formatShellNumber(player.getXRot());
+            };
+        }
+    }
+
+    private record SelectionComponent(Set<Integer> elementIds, CanvasBounds bounds) {
     }
 
     private enum ChromeWidget {
@@ -4875,3 +5278,4 @@ public class SfmDrawScreen extends Screen {
         }
     }
 }
+

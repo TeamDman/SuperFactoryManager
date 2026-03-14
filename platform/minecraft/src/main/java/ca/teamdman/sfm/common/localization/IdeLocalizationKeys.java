@@ -307,6 +307,10 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.draw.layer.elements",
             "Elements"
     );
+    public static final LocalizationEntry IDE_DRAW_LAYER_SHELL = new LocalizationEntry(
+            "gui.sfm.ide.draw.layer.shell",
+            "Shell"
+    );
     public static final LocalizationEntry IDE_DRAW_LAYER_CHROME = new LocalizationEntry(
             "gui.sfm.ide.draw.layer.chrome",
             "Chrome"
