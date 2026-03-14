@@ -134,6 +134,18 @@
 >
 > While a multi-segment arrow is in progress, the active arrow-tool status text SHOULD indicate that anchor placement is underway.
 
+> r[draw.tool.arrow.line-selects-anchors]
+>
+> Clicking an arrow's line with the cursor tool MUST select that arrow's anchors so the whole arrow can be repositioned by dragging the resulting anchor selection.
+
+> r[draw.tool.arrow.anchors.selectable]
+>
+> Arrow anchors MUST be individually selectable and draggable.
+
+> r[draw.tool.arrow.anchors.render-when-selected]
+>
+> When any part of an arrow is selected, the draw screen MUST render all anchors of that arrow so each anchor can be grabbed and repositioned.
+
 > r[draw.tool.text.create]
 >
 > A text tool MUST create text elements anchored in canvas space.
@@ -180,9 +192,17 @@
 >
 > The cursor tool MUST support marquee selection across multiple elements.
 
+> r[draw.tool.cursor.marquee.partial-arrow-anchors]
+>
+> Marquee selection MUST be able to select arrow anchors without requiring the entire arrow to be selected.
+
 > r[draw.tool.cursor.transform_selection]
 >
 > Selected elements MUST support moving and resizing from the cursor tool.
+
+> r[draw.tool.cursor.transform_selection.mixed-elements-and-arrow-anchors]
+>
+> The active selection MUST be able to contain both normal elements and individual arrow anchors so they can be moved together while unselected arrow anchors remain fixed.
 
 > r[draw.tool.cursor.transform_selection.drag-snap]
 >

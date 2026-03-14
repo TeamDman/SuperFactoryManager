@@ -60,6 +60,7 @@ public class SfmDrawScreen extends Screen {
 
     private final List<DrawElement> elements = new ArrayList<>();
     private final Set<Integer> selectedElementIds = new LinkedHashSet<>();
+    private final Set<ArrowAnchorReference> selectedArrowAnchors = new LinkedHashSet<>();
 
     private DrawTool activeTool = DrawTool.CURSOR;
     private DrawLayer activeLayer = DrawLayer.ELEMENTS;
@@ -879,7 +880,7 @@ public class SfmDrawScreen extends Screen {
             if (!shouldRenderElement(element)) {
                 continue;
             }
-            boolean selected = selectedElementIds.contains(element.id());
+            boolean selected = isElementSelected(element);
             boolean hidden = element.hidden();
             if (element instanceof RectangleElement rectangleElement) {
                 drawRectangleElement(poseStack, rectangleElement, selected, hidden);
@@ -944,7 +945,7 @@ public class SfmDrawScreen extends Screen {
         ScreenRect screenBounds = canvasBoundsToScreenRect(selectionBounds);
         drawScreenRectOutline(poseStack, screenBounds, 0xFFF6E27F);
 
-        if (activeTool == DrawTool.CURSOR && moveSelectionDrag == null) {
+        if (activeTool == DrawTool.CURSOR && moveSelectionDrag == null && canResizeCurrentSelection()) {
             // r[impl draw.tool.cursor.transform_selection.handles-hidden-during-move]
             for (SelectionHandle handle : SelectionHandle.VALUES) {
                 ScreenPoint handlePoint = selectionHandlePoint(screenBounds, handle);
@@ -959,7 +960,32 @@ public class SfmDrawScreen extends Screen {
             }
         }
 
+        drawSelectedArrowAnchors(poseStack);
+
         drawMarqueeOverlay(poseStack);
+    }
+
+    private void drawSelectedArrowAnchors(PoseStack poseStack) {
+        // r[impl draw.tool.arrow.anchors.render-when-selected]
+        for (DrawElement element : elements) {
+            if (!(element instanceof ArrowElement arrowElement) || !arrowHasVisibleAnchors(arrowElement)) {
+                continue;
+            }
+            for (int index = 0; index < arrowElement.points.size(); index++) {
+                CanvasPoint point = arrowElement.points.get(index);
+                ScreenPoint screenPoint = canvasToScreen(point);
+                boolean selected = isArrowAnchorSelected(arrowElement.id(), index);
+                int color = selected ? 0xFFF6E27F : 0xCC9BD1FF;
+                fill(
+                        poseStack,
+                        (int) Math.round(screenPoint.x()) - HANDLE_HALF_SIZE,
+                        (int) Math.round(screenPoint.y()) - HANDLE_HALF_SIZE,
+                        (int) Math.round(screenPoint.x()) + HANDLE_HALF_SIZE + 1,
+                        (int) Math.round(screenPoint.y()) + HANDLE_HALF_SIZE + 1,
+                        color
+                );
+            }
+        }
     }
 
     private void drawCursorSelectionModifierIndicator(
@@ -1226,7 +1252,7 @@ public class SfmDrawScreen extends Screen {
             if (elementBottom <= elementTop) {
                 elementBottom = elementTop + 2;
             }
-            fill(poseStack, elementLeft, elementTop, elementRight, elementBottom, renderColor(selectedElementIds.contains(element.id()) ? 0xAAF6E27F : 0x8877C8FF, hidden || element.hidden()));
+            fill(poseStack, elementLeft, elementTop, elementRight, elementBottom, renderColor(isElementSelected(element) ? 0xAAF6E27F : 0x8877C8FF, hidden || element.hidden()));
         }
 
         CanvasBounds visibleBounds = visibleCanvasBounds();
@@ -1638,7 +1664,27 @@ public class SfmDrawScreen extends Screen {
     ) {
         SelectionMode selectionMode = selectionMode();
         CanvasBounds selectionBounds = currentSelectionBounds();
-        if (selectionMode == SelectionMode.REPLACE && projection == null && selectionBounds != null) {
+        @Nullable ArrowAnchorReference hitArrowAnchor = findVisibleArrowAnchorAt(canvasPoint);
+        if (hitArrowAnchor != null) {
+            if (selectionMode == SelectionMode.ADD) {
+                selectedArrowAnchors.add(hitArrowAnchor);
+                return;
+            }
+            if (selectionMode == SelectionMode.SUBTRACT) {
+                selectedArrowAnchors.remove(hitArrowAnchor);
+                return;
+            }
+            // r[impl draw.tool.arrow.anchors.selectable]
+            selectOnlyArrowAnchor(hitArrowAnchor);
+            CanvasBounds anchorSelectionBounds = currentSelectionBounds();
+            if (anchorSelectionBounds != null) {
+                moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), canvasPoint, projection, anchorSelectionBounds);
+            }
+            duplicateSelectionPendingOnDrag = false;
+            return;
+        }
+
+        if (selectionMode == SelectionMode.REPLACE && projection == null && selectionBounds != null && canResizeCurrentSelection()) {
             SelectionHandle handle = findSelectionHandle(mouseX, mouseY, selectionBounds);
             if (handle != null) {
                 resizeSelectionDrag = new ResizeSelectionDrag(selectionSnapshot(), selectionBounds, handle, projection);
@@ -1649,12 +1695,31 @@ public class SfmDrawScreen extends Screen {
         if (selectionMode == SelectionMode.REPLACE && selectionBounds != null && selectionBounds.contains(canvasPoint)) {
             // r[impl draw.tool.cursor.duplicate_selection.alt-drag]
             duplicateSelectionPendingOnDrag = hasAltDown();
-            moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection, selectionBounds);
+            moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), canvasPoint, projection, selectionBounds);
             return;
         }
 
         int hitElementId = findTopElementAt(canvasPoint);
         if (hitElementId >= 0) {
+            DrawElement hitElement = findElementById(hitElementId);
+            if (hitElement instanceof ArrowElement arrowElement) {
+                if (selectionMode == SelectionMode.ADD) {
+                    addArrowAnchorsToSelection(arrowElement);
+                    return;
+                }
+                if (selectionMode == SelectionMode.SUBTRACT) {
+                    removeArrowAnchorsFromSelection(arrowElement);
+                    return;
+                }
+                // r[impl draw.tool.arrow.line-selects-anchors]
+                selectOnlyArrow(arrowElement);
+                CanvasBounds arrowSelectionBounds = currentSelectionBounds();
+                if (arrowSelectionBounds != null) {
+                    moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), canvasPoint, projection, arrowSelectionBounds);
+                }
+                duplicateSelectionPendingOnDrag = false;
+                return;
+            }
             if (selectionMode == SelectionMode.ADD) {
                 selectedElementIds.add(hitElementId);
                 return;
@@ -1670,7 +1735,7 @@ public class SfmDrawScreen extends Screen {
             duplicateSelectionPendingOnDrag = hasAltDown();
             CanvasBounds moveBounds = currentSelectionBounds();
             if (moveBounds != null) {
-                moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection, moveBounds);
+                moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), canvasPoint, projection, moveBounds);
             }
             return;
         }
@@ -1688,7 +1753,7 @@ public class SfmDrawScreen extends Screen {
             CanvasBounds duplicatedSelectionBounds = currentSelectionBounds();
             moveSelectionDrag = duplicatedSelectionBounds == null
                     ? null
-                    : new MoveSelectionDrag(selectionSnapshot(), drag.startPoint(), drag.projection(), duplicatedSelectionBounds);
+                    : new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), drag.startPoint(), drag.projection(), duplicatedSelectionBounds);
             duplicateSelectionPendingOnDrag = false;
             drag = moveSelectionDrag;
             if (drag == null) {
@@ -1706,6 +1771,14 @@ public class SfmDrawScreen extends Screen {
             }
             element.copyFrom(snapshot.elementCopy());
             element.translate(dx, dy);
+        }
+        // r[impl draw.tool.cursor.transform_selection.mixed-elements-and-arrow-anchors]
+        for (ArrowAnchorSnapshot anchorSnapshot : drag.anchorSnapshots()) {
+            DrawElement element = findElementById(anchorSnapshot.arrowId());
+            if (!(element instanceof ArrowElement arrowElement) || !arrowElement.hasPointIndex(anchorSnapshot.anchorIndex())) {
+                continue;
+            }
+            arrowElement.points.set(anchorSnapshot.anchorIndex(), new CanvasPoint(anchorSnapshot.originalPoint().x() + dx, anchorSnapshot.originalPoint().y() + dy));
         }
     }
 
@@ -1748,25 +1821,48 @@ public class SfmDrawScreen extends Screen {
 
         if (marqueeBounds.width() < 1.0D && marqueeBounds.height() < 1.0D) {
             if (mode == SelectionMode.REPLACE) {
-                selectedElementIds.clear();
+                clearCanvasSelection();
             }
             return;
         }
 
         Set<Integer> hits = new LinkedHashSet<>();
+        Set<ArrowAnchorReference> arrowHits = new LinkedHashSet<>();
         for (DrawElement element : elements) {
-            if (isElementSelectable(element) && elementIntersectsSelection(element, marqueeBounds)) {
+            if (!isElementSelectable(element)) {
+                continue;
+            }
+            if (element instanceof ArrowElement arrowElement) {
+                // r[impl draw.tool.cursor.marquee.partial-arrow-anchors]
+                boolean anchorHit = false;
+                for (int index = 0; index < arrowElement.points.size(); index++) {
+                    if (marqueeBounds.contains(arrowElement.points.get(index))) {
+                        arrowHits.add(new ArrowAnchorReference(arrowElement.id(), index));
+                        anchorHit = true;
+                    }
+                }
+                if (!anchorHit && arrowIntersectsSelection(arrowElement, marqueeBounds)) {
+                    for (int index = 0; index < arrowElement.points.size(); index++) {
+                        arrowHits.add(new ArrowAnchorReference(arrowElement.id(), index));
+                    }
+                }
+                continue;
+            }
+            if (elementIntersectsSelection(element, marqueeBounds)) {
                 hits.add(element.id());
             }
         }
 
         if (mode == SelectionMode.REPLACE) {
-            selectedElementIds.clear();
+            clearCanvasSelection();
             selectedElementIds.addAll(hits);
+            selectedArrowAnchors.addAll(arrowHits);
         } else if (mode == SelectionMode.ADD) {
             selectedElementIds.addAll(hits);
+            selectedArrowAnchors.addAll(arrowHits);
         } else {
             selectedElementIds.removeAll(hits);
+            selectedArrowAnchors.removeAll(arrowHits);
         }
     }
 
@@ -1838,7 +1934,7 @@ public class SfmDrawScreen extends Screen {
                 if (draftInteraction.points().size() >= 2) {
                     FreehandElement element = new FreehandElement(nextElementId++, List.copyOf(draftInteraction.points()), 0xFF88D498);
                     elements.add(element);
-                    selectedElementIds.clear();
+                    clearCanvasSelection();
                     resetToolAfterCreation(DrawTool.FREEHAND);
                 }
             }
@@ -1877,7 +1973,7 @@ public class SfmDrawScreen extends Screen {
         }
         textEditingElementId = -1;
         textEditingCaretIndex = 0;
-        selectedElementIds.clear();
+        clearCanvasSelection();
         resetToolAfterCreation(DrawTool.TEXT);
     }
 
@@ -1911,7 +2007,7 @@ public class SfmDrawScreen extends Screen {
 
     // r[impl draw.tool.cursor.select_all]
     private void selectAllElements() {
-        selectedElementIds.clear();
+        clearCanvasSelection();
         for (DrawElement element : elements) {
             // r[impl draw.tool.cursor.hidden-omitted-unless-revealed]
             if (isElementSelectable(element)) {
@@ -1921,7 +2017,7 @@ public class SfmDrawScreen extends Screen {
     }
 
     private void selectAllHiddenElements() {
-        selectedElementIds.clear();
+        clearCanvasSelection();
         for (DrawElement element : elements) {
             if (isElementSelectable(element) && element.hidden()) {
                 selectedElementIds.add(element.id());
@@ -2004,6 +2100,7 @@ public class SfmDrawScreen extends Screen {
         }
         elements.addAll(duplicates);
         selectedElementIds.clear();
+        selectedArrowAnchors.clear();
         selectedElementIds.addAll(newSelection);
     }
 
@@ -2107,13 +2204,30 @@ public class SfmDrawScreen extends Screen {
             return false;
         }
 
+        Set<Integer> removedElementIds = new LinkedHashSet<>(selectedElementIds);
         elements.removeIf(element -> selectedElementIds.contains(element.id()));
         if (selectedElementIds.contains(textEditingElementId)) {
             textEditingElementId = -1;
             textEditingCaretIndex = 0;
         }
-        selectedElementIds.clear();
+        selectedArrowAnchors.removeIf(reference -> removedElementIds.contains(reference.arrowId()));
+        clearCanvasSelection();
         return true;
+    }
+
+    private @Nullable ArrowAnchorReference findVisibleArrowAnchorAt(CanvasPoint point) {
+        for (int elementIndex = elements.size() - 1; elementIndex >= 0; elementIndex--) {
+            DrawElement element = elements.get(elementIndex);
+            if (!(element instanceof ArrowElement arrowElement) || !arrowHasVisibleAnchors(arrowElement)) {
+                continue;
+            }
+            for (int anchorIndex = arrowElement.points.size() - 1; anchorIndex >= 0; anchorIndex--) {
+                if (distanceSquared(point, arrowElement.points.get(anchorIndex)) <= Math.pow(8.0D / Math.max(zoom, 0.01D), 2.0D)) {
+                    return new ArrowAnchorReference(arrowElement.id(), anchorIndex);
+                }
+            }
+        }
+        return null;
     }
 
     private int findTopElementAt(CanvasPoint point) {
@@ -2231,7 +2345,7 @@ public class SfmDrawScreen extends Screen {
                 element.setHidden(newHidden);
             }
             if (newHidden && !revealHiddenElements) {
-                selectedElementIds.clear();
+                clearCanvasSelection();
             }
             return !selection.isEmpty();
         }
@@ -2363,10 +2477,50 @@ public class SfmDrawScreen extends Screen {
         return null;
     }
 
+    private void clearCanvasSelection() {
+        selectedElementIds.clear();
+        selectedArrowAnchors.clear();
+    }
+
     // r[impl draw.tool.cursor.selection]
     private void selectOnly(int id) {
-        selectedElementIds.clear();
+        clearCanvasSelection();
         selectedElementIds.add(id);
+    }
+
+    private void selectOnlyArrow(ArrowElement arrowElement) {
+        clearCanvasSelection();
+        addArrowAnchorsToSelection(arrowElement);
+    }
+
+    private void selectOnlyArrowAnchor(ArrowAnchorReference anchorReference) {
+        clearCanvasSelection();
+        selectedArrowAnchors.add(anchorReference);
+    }
+
+    private void addArrowAnchorsToSelection(ArrowElement arrowElement) {
+        for (int index = 0; index < arrowElement.points.size(); index++) {
+            selectedArrowAnchors.add(new ArrowAnchorReference(arrowElement.id(), index));
+        }
+    }
+
+    private void removeArrowAnchorsFromSelection(ArrowElement arrowElement) {
+        selectedArrowAnchors.removeIf(reference -> reference.arrowId() == arrowElement.id());
+    }
+
+    private boolean isArrowAnchorSelected(
+            int arrowId,
+            int anchorIndex
+    ) {
+        return selectedArrowAnchors.contains(new ArrowAnchorReference(arrowId, anchorIndex));
+    }
+
+    private boolean arrowHasVisibleAnchors(ArrowElement arrowElement) {
+        return selectedArrowAnchors.stream().anyMatch(reference -> reference.arrowId() == arrowElement.id());
+    }
+
+    private boolean isElementSelected(DrawElement element) {
+        return selectedElementIds.contains(element.id()) || (element instanceof ArrowElement arrowElement && arrowHasVisibleAnchors(arrowElement));
     }
 
     private void clearChromeSelection() {
@@ -2400,6 +2554,15 @@ public class SfmDrawScreen extends Screen {
             }
             bounds = bounds == null ? element.bounds(this) : bounds.expandToInclude(element.bounds(this));
         }
+        for (ArrowAnchorReference selectedArrowAnchor : selectedArrowAnchors) {
+            DrawElement element = findElementById(selectedArrowAnchor.arrowId());
+            if (!(element instanceof ArrowElement arrowElement) || !arrowElement.hasPointIndex(selectedArrowAnchor.anchorIndex())) {
+                continue;
+            }
+            CanvasPoint point = arrowElement.points.get(selectedArrowAnchor.anchorIndex());
+            CanvasBounds pointBounds = CanvasBounds.of(point.x(), point.y(), point.x(), point.y()).pad(6.0D / Math.max(zoom, 0.01D));
+            bounds = bounds == null ? pointBounds : bounds.expandToInclude(pointBounds);
+        }
         return bounds;
     }
 
@@ -2412,6 +2575,21 @@ public class SfmDrawScreen extends Screen {
             }
         }
         return snapshots;
+    }
+
+    private List<ArrowAnchorSnapshot> arrowAnchorSelectionSnapshot() {
+        List<ArrowAnchorSnapshot> snapshots = new ArrayList<>(selectedArrowAnchors.size());
+        for (ArrowAnchorReference selectedArrowAnchor : selectedArrowAnchors) {
+            DrawElement element = findElementById(selectedArrowAnchor.arrowId());
+            if (element instanceof ArrowElement arrowElement && arrowElement.hasPointIndex(selectedArrowAnchor.anchorIndex())) {
+                snapshots.add(new ArrowAnchorSnapshot(selectedArrowAnchor.arrowId(), selectedArrowAnchor.anchorIndex(), arrowElement.points.get(selectedArrowAnchor.anchorIndex())));
+            }
+        }
+        return snapshots;
+    }
+
+    private boolean canResizeCurrentSelection() {
+        return selectedArrowAnchors.isEmpty() && !selectedElementIds.isEmpty();
     }
 
     private boolean isCursorDoubleClick(
@@ -2888,7 +3066,7 @@ public class SfmDrawScreen extends Screen {
 
         if (muted) {
             if (layer == DrawLayer.ELEMENTS) {
-                selectedElementIds.clear();
+                clearCanvasSelection();
                 if (textEditingElementId >= 0) {
                     finishTextEditing();
                 }
@@ -2965,7 +3143,7 @@ public class SfmDrawScreen extends Screen {
         chromeWidgetResizeHandle = null;
         chromeWidgetResizeOriginalBounds = null;
         clearChromeSelection();
-        selectedElementIds.clear();
+        clearCanvasSelection();
         activeLayer = layer;
     }
 
@@ -3245,7 +3423,7 @@ public class SfmDrawScreen extends Screen {
         }
         if (activeLayer == DrawLayer.ELEMENTS && activeTool == DrawTool.CURSOR && selectionMode() == SelectionMode.REPLACE) {
             CanvasBounds selectionBounds = currentSelectionBounds();
-            if (selectionBounds != null) {
+            if (selectionBounds != null && canResizeCurrentSelection()) {
                 SelectionHandle handle = findSelectionHandle(mouseX, mouseY, selectionBounds);
                 if (handle != null) {
                     // r[impl draw.tool.cursor.transform_selection.handle-cursor]
@@ -3826,6 +4004,10 @@ public class SfmDrawScreen extends Screen {
             }
             points = transformed;
         }
+
+        public boolean hasPointIndex(int index) {
+            return index >= 0 && index < points.size();
+        }
     }
 
     private static final class TextElement extends DrawElement {
@@ -3980,6 +4162,19 @@ public class SfmDrawScreen extends Screen {
     ) {
     }
 
+        private record ArrowAnchorReference(
+            int arrowId,
+            int anchorIndex
+        ) {
+        }
+
+        private record ArrowAnchorSnapshot(
+            int arrowId,
+            int anchorIndex,
+            CanvasPoint originalPoint
+        ) {
+        }
+
         private record ChromeWidgetSnapshot(
             ChromeWidget widget,
             ChromeWidgetState state
@@ -4028,6 +4223,7 @@ public class SfmDrawScreen extends Screen {
 
     private record MoveSelectionDrag(
             List<ElementSnapshot> snapshots,
+            List<ArrowAnchorSnapshot> anchorSnapshots,
             CanvasPoint startPoint,
             @Nullable CameraOverlayProjection projection,
             CanvasBounds originalBounds
