@@ -420,6 +420,7 @@ public class SfmDrawScreen extends Screen {
         }
 
         CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, projectionUnderMouse);
+        CanvasPoint snappedCanvasPoint = snapCanvasPointToCurrentIncrement(canvasPoint);
 
         if (activeTool == DrawTool.CAMERA) {
             if (projectionUnderMouse != null) {
@@ -449,7 +450,7 @@ public class SfmDrawScreen extends Screen {
 
         // r[impl draw.tool.text.create]
         if (activeTool == DrawTool.TEXT) {
-            TextElement textElement = createTextElement(canvasPoint);
+            TextElement textElement = createTextElement(snappedCanvasPoint);
             if (textToolCreatesBoundText) {
                 activeTool = DrawTool.TEXT;
                 textEditingElementId = textElement.id();
@@ -459,19 +460,22 @@ public class SfmDrawScreen extends Screen {
         }
 
         if (activeTool == DrawTool.ARROW && pendingArrowAnchors.isEmpty()) {
-            draftInteraction = new DraftInteraction(activeTool, canvasPoint, canvasPoint, projectionUnderMouse);
+            // r[impl draw.tool.creation.snap]
+            draftInteraction = new DraftInteraction(activeTool, snappedCanvasPoint, snappedCanvasPoint, projectionUnderMouse);
             return true;
         }
 
         if (activeTool == DrawTool.ARROW) {
             if (pendingArrowProjection == projectionUnderMouse || (pendingArrowProjection == null && projectionUnderMouse == null)) {
-                pendingArrowAnchors.add(canvasPoint);
+                // r[impl draw.tool.creation.snap]
+                pendingArrowAnchors.add(snappedCanvasPoint);
                 pendingArrowProjection = projectionUnderMouse;
             }
             return true;
         }
 
-        draftInteraction = new DraftInteraction(activeTool, canvasPoint, canvasPoint, projectionUnderMouse);
+        // r[impl draw.tool.creation.snap]
+        draftInteraction = new DraftInteraction(activeTool, snappedCanvasPoint, snappedCanvasPoint, projectionUnderMouse);
         if (activeTool == DrawTool.FREEHAND) {
             draftInteraction.points().add(canvasPoint);
         }
@@ -538,7 +542,9 @@ public class SfmDrawScreen extends Screen {
         // r[impl draw.tool.freehand.create]
         if (draftInteraction != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, draftInteraction.projection());
-            draftInteraction.currentPoint = canvasPoint;
+            draftInteraction.currentPoint = draftInteraction.tool() == DrawTool.FREEHAND
+                    ? canvasPoint
+                    : snapCanvasPointToCurrentIncrement(canvasPoint);
             if (draftInteraction.tool() == DrawTool.FREEHAND) {
                 CanvasPoint lastPoint = draftInteraction.points().get(draftInteraction.points().size() - 1);
                 if (distanceSquared(lastPoint, canvasPoint) >= FREEHAND_STEP_DISTANCE_SQUARED / Math.max(0.0001D, zoom * zoom)) {
@@ -579,7 +585,10 @@ public class SfmDrawScreen extends Screen {
         }
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && draftInteraction != null) {
-            draftInteraction.currentPoint = screenToCanvas(mouseX, mouseY, draftInteraction.projection());
+            CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, draftInteraction.projection());
+            draftInteraction.currentPoint = draftInteraction.tool() == DrawTool.FREEHAND
+                    ? canvasPoint
+                    : snapCanvasPointToCurrentIncrement(canvasPoint);
             commitDraft();
             return true;
         }
@@ -1609,7 +1618,7 @@ public class SfmDrawScreen extends Screen {
             return false;
         }
 
-        TextElement textElement = createTextElement(canvasPoint);
+        TextElement textElement = createTextElement(snapCanvasPointToCurrentIncrement(canvasPoint));
         activeTool = DrawTool.TEXT;
         textEditingElementId = textElement.id();
         return true;
@@ -1704,7 +1713,14 @@ public class SfmDrawScreen extends Screen {
             ResizeSelectionDrag drag,
             CanvasPoint currentPoint
     ) {
-        CanvasBounds newBounds = resizedBounds(drag.originalBounds(), drag.handle(), currentPoint, 8.0D / Math.max(zoom, 0.01D));
+        // r[impl draw.tool.cursor.transform_selection.resize-snap]
+        CanvasBounds newBounds = resizedBounds(
+            drag.originalBounds(),
+            drag.handle(),
+            currentPoint,
+            8.0D / Math.max(zoom, 0.01D),
+            movementSnapIncrement()
+        );
         for (ElementSnapshot snapshot : drag.snapshots()) {
             DrawElement element = findElementById(snapshot.id());
             if (element == null) {
@@ -2152,6 +2168,14 @@ public class SfmDrawScreen extends Screen {
         return DEFAULT_MOVE_SNAP;
     }
 
+    private CanvasPoint snapCanvasPointToCurrentIncrement(CanvasPoint point) {
+        double increment = movementSnapIncrement();
+        return new CanvasPoint(
+                snapToIncrement(point.x(), increment),
+                snapToIncrement(point.y(), increment)
+        );
+    }
+
     private CanvasPoint snappedMoveDelta(
             MoveSelectionDrag drag,
             CanvasPoint currentPoint
@@ -2172,6 +2196,18 @@ public class SfmDrawScreen extends Screen {
             return Math.rint(value);
         }
         return Math.rint(value / increment) * increment;
+    }
+
+    private double snapDistance(
+            double distance,
+            double increment,
+            double minimumSize
+    ) {
+        double clampedDistance = Math.max(minimumSize, distance);
+        if (increment <= 1.0D) {
+            return Math.max(minimumSize, Math.rint(clampedDistance));
+        }
+        return Math.max(minimumSize, Math.rint(clampedDistance / increment) * increment);
     }
 
     private boolean toggleHiddennessForActiveSelection() {
@@ -3528,7 +3564,8 @@ public class SfmDrawScreen extends Screen {
             CanvasBounds originalBounds,
             SelectionHandle handle,
             CanvasPoint currentPoint,
-            double minimumSize
+            double minimumSize,
+            double snapIncrement
     ) {
         double left = originalBounds.minX();
         double top = originalBounds.minY();
@@ -3536,16 +3573,20 @@ public class SfmDrawScreen extends Screen {
         double bottom = originalBounds.maxY();
 
         if (handle.movesLeft()) {
-            left = Math.min(currentPoint.x(), right - minimumSize);
+            double snappedWidth = snapDistance(right - currentPoint.x(), snapIncrement, minimumSize);
+            left = right - snappedWidth;
         }
         if (handle.movesRight()) {
-            right = Math.max(currentPoint.x(), left + minimumSize);
+            double snappedWidth = snapDistance(currentPoint.x() - left, snapIncrement, minimumSize);
+            right = left + snappedWidth;
         }
         if (handle.movesTop()) {
-            top = Math.min(currentPoint.y(), bottom - minimumSize);
+            double snappedHeight = snapDistance(bottom - currentPoint.y(), snapIncrement, minimumSize);
+            top = bottom - snappedHeight;
         }
         if (handle.movesBottom()) {
-            bottom = Math.max(currentPoint.y(), top + minimumSize);
+            double snappedHeight = snapDistance(currentPoint.y() - top, snapIncrement, minimumSize);
+            bottom = top + snappedHeight;
         }
 
         return new CanvasBounds(left, top, right, bottom);

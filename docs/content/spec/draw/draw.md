@@ -110,6 +110,10 @@
 >
 > Number-key hotbar shortcuts SHOULD mirror the active tool shortcut behavior, including sticky-mode toggling when the same creation tool is chosen again.
 
+> r[draw.tool.creation.snap]
+>
+> Creation tools that place anchored points or drag-sized geometry SHOULD snap their creation point and drag dimensions to the active movement increment: 8 by default, 32 while `Shift` is held, and 1 while `Ctrl` is held.
+
 > r[draw.tool.rectangle.create]
 >
 > A rectangle tool MUST create rectangular canvas elements by dragging from a start point to an end point.
@@ -187,6 +191,10 @@
 > r[draw.tool.cursor.transform_selection.keyboard-nudge]
 >
 > The arrow keys MUST support nudging the active selection using the same default, `Shift`, and `Ctrl` movement increments as drag repositioning.
+
+> r[draw.tool.cursor.transform_selection.resize-snap]
+>
+> Selection resizing MUST snap the resized width and height to the same default, `Shift`, and `Ctrl` movement increments used by repositioning.
 
 > r[draw.tool.cursor.transform_selection.handles-hidden-during-move]
 >
