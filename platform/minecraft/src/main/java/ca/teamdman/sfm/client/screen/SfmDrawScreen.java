@@ -300,25 +300,6 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
-        if (layerWindowVisible && isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && layerWindowResizeBounds.contains(mouseX, mouseY)) {
-            // r[impl draw.layer-window.resize-handle]
-            // r[impl draw.layer-window.resizable]
-            layerWindowResizing = true;
-            layerWindowResizeAnchorX = (int) Math.round(mouseX);
-            layerWindowResizeAnchorY = (int) Math.round(mouseY);
-            layerWindowResizeStartWidth = layerWindowWidth;
-            layerWindowResizeStartHeight = layerWindowHeight;
-            return true;
-        }
-
-        if (layerWindowVisible && isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && layerWindowHeaderBounds().contains(mouseX, mouseY)) {
-            // r[impl draw.layer-window.draggable]
-            layerWindowDragging = true;
-            layerWindowDragOffsetX = (int) Math.round(mouseX) - layerWindowX;
-            layerWindowDragOffsetY = (int) Math.round(mouseY) - layerWindowY;
-            return true;
-        }
-
         if (layerWindowVisible && layerWindowRect.contains(mouseX, mouseY)) {
             return true;
         }
@@ -1789,7 +1770,11 @@ public class SfmDrawScreen extends Screen {
                 return true;
             }
             case LAYER_WINDOW -> {
-                return false;
+                // r[impl draw.layer-window.draggable]
+                layerWindowDragging = true;
+                layerWindowDragOffsetX = (int) Math.round(mouseX) - layerWindowX;
+                layerWindowDragOffsetY = (int) Math.round(mouseY) - layerWindowY;
+                return true;
             }
         }
         return false;
@@ -1821,7 +1806,14 @@ public class SfmDrawScreen extends Screen {
                 return true;
             }
             case LAYER_WINDOW -> {
-                return false;
+                // r[impl draw.layer-window.resize-handle]
+                // r[impl draw.layer-window.resizable]
+                layerWindowResizing = true;
+                layerWindowResizeAnchorX = (int) Math.round(mouseX);
+                layerWindowResizeAnchorY = (int) Math.round(mouseY);
+                layerWindowResizeStartWidth = layerWindowWidth;
+                layerWindowResizeStartHeight = layerWindowHeight;
+                return true;
             }
         }
         return false;
@@ -1845,6 +1837,13 @@ public class SfmDrawScreen extends Screen {
             clampCameraOverlayToScreen();
             return true;
         }
+        if (layerWindowDragging) {
+            // r[impl draw.layer-window.draggable]
+            layerWindowX = (int) Math.round(mouseX) - layerWindowDragOffsetX;
+            layerWindowY = (int) Math.round(mouseY) - layerWindowDragOffsetY;
+            clampLayerWindowToScreen();
+            return true;
+        }
         return false;
     }
 
@@ -1863,6 +1862,13 @@ public class SfmDrawScreen extends Screen {
             cameraOverlayWidth = Math.max(MINIMAP_MIN_WIDTH, cameraOverlayResizeStartWidth + (int) Math.round(mouseX) - cameraOverlayResizeAnchorX);
             cameraOverlayHeight = Math.max(MINIMAP_MIN_HEIGHT, cameraOverlayResizeStartHeight + (int) Math.round(mouseY) - cameraOverlayResizeAnchorY);
             clampCameraOverlayToScreen();
+            return true;
+        }
+        if (layerWindowResizing) {
+            // r[impl draw.layer-window.resizable]
+            layerWindowWidth = Math.max(LAYER_WINDOW_MIN_WIDTH, layerWindowResizeStartWidth + (int) Math.round(mouseX) - layerWindowResizeAnchorX);
+            layerWindowHeight = Math.max(LAYER_WINDOW_MIN_HEIGHT, layerWindowResizeStartHeight + (int) Math.round(mouseY) - layerWindowResizeAnchorY);
+            clampLayerWindowToScreen();
             return true;
         }
         return false;
@@ -1887,6 +1893,16 @@ public class SfmDrawScreen extends Screen {
         if (cameraOverlayResizing) {
             cameraOverlayResizing = false;
             clampCameraOverlayToScreen();
+            return true;
+        }
+        if (layerWindowDragging) {
+            layerWindowDragging = false;
+            clampLayerWindowToScreen();
+            return true;
+        }
+        if (layerWindowResizing) {
+            layerWindowResizing = false;
+            clampLayerWindowToScreen();
             return true;
         }
         return false;
