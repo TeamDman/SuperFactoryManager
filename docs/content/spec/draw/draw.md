@@ -130,6 +130,14 @@
 >
 > The default shortcut for selecting the layer tool SHOULD be `Tab`.
 
+> r[draw.tool.zen.exists]
+>
+> A zen action MUST exist for soloing the current layer.
+
+> r[draw.tool.zen.shortcut]
+>
+> Pressing `Z` MUST toggle zen solo mode for the current layer.
+
 # Selection and transforms
 
 > r[draw.tool.cursor.selection]
@@ -218,6 +226,26 @@
 >
 > Editable chrome widgets MUST belong to the chrome layer rather than the normal content layer.
 
+> r[draw.layer.muting.exists]
+>
+> The draw feature MUST support muting layers.
+
+> r[draw.layer.muting.affects-rendering]
+>
+> Muted layers MUST not be rendered.
+
+> r[draw.layer.muting.affects-interaction]
+>
+> Muted layers MUST not receive pointer interaction.
+
+> r[draw.layer.zen.solo-current]
+>
+> Activating zen solo mode MUST mute every layer except the current layer.
+
+> r[draw.layer.zen.toggle-restores]
+>
+> Activating zen solo mode while only the current layer is unmuted MUST unmute all layers.
+
 # Layer window
 
 > r[draw.layer-window.exists]
@@ -243,6 +271,18 @@
 > r[draw.layer-window.layer-entry-thumbnail]
 >
 > Each layer entry in the layer window MUST display a thumbnail or preview region.
+
+> r[draw.layer-window.layer-entry-mute-toggle]
+>
+> Each layer entry in the layer window MUST provide a mute toggle control.
+
+> r[draw.layer-window.layer-entry-mute-toggle.hover]
+>
+> The layer-entry mute toggle MUST have a visually distinct hover state and a cursor that indicates it can be clicked.
+
+> r[draw.layer-window.layer-entry-mute-toggle.states]
+>
+> The layer-entry mute toggle MUST have visually distinct muted and unmuted states.
 
 > r[draw.layer-window.border]
 >
@@ -449,6 +489,10 @@
 > r[draw.future.chrome-presets]
 >
 > The draw feature SHOULD support saving and restoring chrome layouts.
+
+> r[draw.future.chrome.edge-positioning.relaxed]
+>
+> Customizable chrome widgets SHOULD be placeable flush to screen edges rather than being forced away from them by large padding clamps.
 
 > r[draw.future-layer-thumbnails.live]
 >

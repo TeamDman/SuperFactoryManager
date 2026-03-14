@@ -295,6 +295,14 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.draw.layer.chrome",
             "Chrome"
     );
+    public static final LocalizationEntry IDE_DRAW_LAYER_MUTE = new LocalizationEntry(
+            "gui.sfm.ide.draw.layer.mute",
+            "Mute %s"
+    );
+    public static final LocalizationEntry IDE_DRAW_LAYER_UNMUTE = new LocalizationEntry(
+            "gui.sfm.ide.draw.layer.unmute",
+            "Unmute %s"
+    );
     public static final LocalizationEntry IDE_DRAW_TOOL_CURSOR = new LocalizationEntry(
             "gui.sfm.ide.draw.tool.cursor",
             "Cursor"
@@ -326,6 +334,10 @@ public final class IdeLocalizationKeys {
     public static final LocalizationEntry IDE_DRAW_TOOL_LAYER = new LocalizationEntry(
             "gui.sfm.ide.draw.tool.layer",
             "Layers"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_ZEN = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.zen",
+            "Zen"
     );
 
     public static List<LocalizationEntry> getEntries() {
