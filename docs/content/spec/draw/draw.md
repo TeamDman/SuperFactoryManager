@@ -118,6 +118,14 @@
 >
 > The arrow tool MUST support building a multi-segment arrow path before finalizing the arrow.
 
+> r[draw.tool.arrow.multisegment.preview]
+>
+> While a multi-segment arrow is in progress, the draw screen MUST render a dashed preview of the committed anchors and current cursor segment.
+
+> r[draw.tool.arrow.multisegment.status]
+>
+> While a multi-segment arrow is in progress, the active arrow-tool status text SHOULD indicate that anchor placement is underway.
+
 > r[draw.tool.text.create]
 >
 > A text tool MUST create text elements anchored in canvas space.
@@ -168,6 +176,10 @@
 >
 > Selected elements MUST support moving and resizing from the cursor tool.
 
+> r[draw.tool.cursor.transform_selection.handle-cursor]
+>
+> Hovering a resize handle for a rectangular selection MUST update the mouse cursor to match the handle orientation.
+
 > r[draw.tool.cursor.selection.additive]
 >
 > Holding `Shift` while using the cursor tool MUST make click and marquee selection additive.
@@ -183,6 +195,10 @@
 > r[draw.tool.cursor.duplicate_selection]
 >
 > The draw screen MUST support duplicating the current selection.
+
+> r[draw.tool.cursor.duplicate_selection.alt-drag]
+>
+> Holding `Alt` while starting a drag on a selected element SHOULD duplicate the selection and drag the duplicate.
 
 > r[draw.tool.cursor.delete_selection]
 >
@@ -237,6 +253,10 @@
 > r[draw.layer.chrome.selection-handles]
 >
 > In the chrome layer, selectable chrome widgets MUST expose the same eight resize handles used by rectangular canvas selections.
+
+> r[draw.layer.chrome-selection.marquee]
+>
+> In the chrome layer, the cursor tool MUST support marquee selection across multiple chrome widgets.
 
 > r[draw.layer.widgets-owned-by-layer]
 >

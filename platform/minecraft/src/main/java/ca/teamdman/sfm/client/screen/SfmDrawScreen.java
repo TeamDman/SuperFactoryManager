@@ -90,6 +90,7 @@ public class SfmDrawScreen extends Screen {
 
     private boolean layerWindowVisible = false;
     private ChromeWidgetState layerWindowWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, LAYER_WINDOW_DEFAULT_WIDTH, LAYER_WINDOW_DEFAULT_HEIGHT, 1.0D);
+    private final Set<ChromeWidget> selectedChromeWidgets = new LinkedHashSet<>();
     private @Nullable ChromeWidget selectedChromeWidget = null;
     private @Nullable ChromeWidget draggingChromeWidget = null;
     private int chromeWidgetDragOffsetX = 0;
@@ -123,7 +124,9 @@ public class SfmDrawScreen extends Screen {
     private @Nullable MoveSelectionDrag moveSelectionDrag = null;
     private @Nullable ResizeSelectionDrag resizeSelectionDrag = null;
     private @Nullable MarqueeSelectionDrag marqueeSelectionDrag = null;
+    private @Nullable ChromeMarqueeSelectionDrag chromeMarqueeSelectionDrag = null;
     private @Nullable CameraFrameDrag cameraFrameDrag = null;
+    private boolean duplicateSelectionPendingOnDrag = false;
 
     private long lastCursorClickAtMs = 0L;
     private double lastCursorClickX = 0.0D;
@@ -235,7 +238,7 @@ public class SfmDrawScreen extends Screen {
         }
 
         // r[impl draw.tool.cursor.duplicate_selection]
-        if (activeLayer == DrawLayer.ELEMENTS && hasControlDown() && keyCode == GLFW.GLFW_KEY_D) {
+        if (activeLayer == DrawLayer.ELEMENTS && hasAltDown() && keyCode == GLFW.GLFW_KEY_D) {
             duplicateSelection();
             return true;
         }
@@ -253,7 +256,7 @@ public class SfmDrawScreen extends Screen {
                     return element != null && element.hidden();
                 });
                 if (selectedChromeWidget != null && chromeWidgetState(selectedChromeWidget).hidden()) {
-                    selectedChromeWidget = null;
+                    clearChromeSelection();
                 }
             }
             return true;
@@ -346,11 +349,11 @@ public class SfmDrawScreen extends Screen {
         // r[impl draw.layer-window.interact-any-layer]
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && isChromeWidgetOperational(ChromeWidget.LAYER_WINDOW)) {
             if (beginChromeWidgetResize(ChromeWidget.LAYER_WINDOW, mouseX, mouseY)) {
-                selectedChromeWidget = ChromeWidget.LAYER_WINDOW;
+                selectOnlyChromeWidget(ChromeWidget.LAYER_WINDOW);
                 return true;
             }
             if (beginChromeWidgetDrag(ChromeWidget.LAYER_WINDOW, mouseX, mouseY)) {
-                selectedChromeWidget = ChromeWidget.LAYER_WINDOW;
+                selectOnlyChromeWidget(ChromeWidget.LAYER_WINDOW);
                 return true;
             }
             if (layerWindowRect.contains(mouseX, mouseY)) {
@@ -480,6 +483,11 @@ public class SfmDrawScreen extends Screen {
             if (resizeActiveChromeWidget(mouseX, mouseY)) {
                 return true;
             }
+            if (chromeMarqueeSelectionDrag != null) {
+                chromeMarqueeSelectionDrag.currentX = mouseX;
+                chromeMarqueeSelectionDrag.currentY = mouseY;
+                return true;
+            }
         }
 
         // r[impl draw.camera.pan.middle_drag]
@@ -565,6 +573,7 @@ public class SfmDrawScreen extends Screen {
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && moveSelectionDrag != null) {
             moveSelectionDrag = null;
+            duplicateSelectionPendingOnDrag = false;
             return true;
         }
 
@@ -575,6 +584,11 @@ public class SfmDrawScreen extends Screen {
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && marqueeSelectionDrag != null) {
             finalizeMarqueeSelection();
+            return true;
+        }
+
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && chromeMarqueeSelectionDrag != null) {
+            finalizeChromeMarqueeSelection();
             return true;
         }
 
@@ -685,7 +699,7 @@ public class SfmDrawScreen extends Screen {
             }
             Rect bounds = chromeWidgetBounds(widget);
             boolean hidden = chromeWidgetState(widget).hidden();
-            int outlineColor = widget == selectedChromeWidget
+            int outlineColor = isChromeWidgetSelected(widget)
                     ? 0xFFF6E27F
                     : (widget == hoveredWidget ? 0xFF9BD1FF : (hidden ? 0x55606975 : 0x66596C82));
             drawScreenRectOutline(poseStack, new ScreenRect(bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), outlineColor);
@@ -701,7 +715,7 @@ public class SfmDrawScreen extends Screen {
         }
 
         // r[impl draw.layer.chrome.selection-handles]
-        if (selectedChromeWidget != null && isChromeWidgetRendered(selectedChromeWidget)) {
+        if (selectedChromeWidget != null && selectedChromeWidgets.size() == 1 && isChromeWidgetRendered(selectedChromeWidget)) {
             ScreenRect screenBounds = toScreenRect(chromeWidgetBounds(selectedChromeWidget));
             for (SelectionHandle handle : SelectionHandle.VALUES) {
                 ScreenPoint handlePoint = selectionHandlePoint(screenBounds, handle);
@@ -714,6 +728,12 @@ public class SfmDrawScreen extends Screen {
                         0xFFF6E27F
                 );
             }
+        }
+
+        if (chromeMarqueeSelectionDrag != null) {
+            ScreenRect rect = chromeMarqueeSelectionDrag.screenRect();
+            fill(poseStack, rect.left(), rect.top(), rect.right(), rect.bottom(), 0x2288C0FF);
+            drawScreenRectOutline(poseStack, rect, 0xAA88C0FF);
         }
     }
 
@@ -870,7 +890,8 @@ public class SfmDrawScreen extends Screen {
         }
 
         if (!pendingArrowAnchors.isEmpty()) {
-            drawArrowElement(poseStack, new ArrowElement(-1, List.copyOf(pendingArrowAnchors), 0xFFE8A652), true, false);
+            // r[impl draw.tool.arrow.multisegment.preview]
+            drawPendingArrowPreview(poseStack);
         }
 
         if (cameraFrameDrag != null) {
@@ -1041,6 +1062,21 @@ public class SfmDrawScreen extends Screen {
         drawLineStrip(poseStack, screenPoints, renderColor(selected ? 0xFFF6E27F : element.color, hidden));
     }
 
+    private void drawPendingArrowPreview(PoseStack poseStack) {
+        List<CanvasPoint> previewPoints = new ArrayList<>(pendingArrowAnchors.size() + 1);
+        previewPoints.addAll(pendingArrowAnchors);
+        previewPoints.add(screenToCanvas(chromeMouseX, chromeMouseY, pendingArrowProjection));
+        if (previewPoints.size() < 2) {
+            return;
+        }
+
+        List<ScreenPoint> linePoints = new ArrayList<>(previewPoints.size());
+        for (CanvasPoint point : previewPoints) {
+            linePoints.add(projectCanvasPointToScreen(point, pendingArrowProjection));
+        }
+        drawDashedLineStrip(poseStack, linePoints, 0xFFE8A652);
+    }
+
     private void drawLineStrip(
             PoseStack poseStack,
             List<ScreenPoint> points,
@@ -1063,6 +1099,53 @@ public class SfmDrawScreen extends Screen {
         float alpha = ((color >> 24) & 0xFF) / 255.0F;
         for (ScreenPoint point : points) {
             bufferBuilder.vertex(pose, (float) point.x(), (float) point.y(), 0.0F).color(red, green, blue, alpha).endVertex();
+        }
+        tesselator.end();
+        RenderSystem.disableBlend();
+    }
+
+    private void drawDashedLineStrip(
+            PoseStack poseStack,
+            List<ScreenPoint> points,
+            int color
+    ) {
+        if (points.size() < 2) {
+            return;
+        }
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        Matrix4f pose = poseStack.last().pose();
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder bufferBuilder = tesselator.getBuilder();
+        bufferBuilder.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+        float red = ((color >> 16) & 0xFF) / 255.0F;
+        float green = ((color >> 8) & 0xFF) / 255.0F;
+        float blue = (color & 0xFF) / 255.0F;
+        float alpha = ((color >> 24) & 0xFF) / 255.0F;
+        final double dashLength = 10.0D;
+        final double gapLength = 6.0D;
+        for (int i = 1; i < points.size(); i++) {
+            ScreenPoint start = points.get(i - 1);
+            ScreenPoint end = points.get(i);
+            double dx = end.x() - start.x();
+            double dy = end.y() - start.y();
+            double length = Math.sqrt(dx * dx + dy * dy);
+            if (length <= 0.000001D) {
+                continue;
+            }
+            double ux = dx / length;
+            double uy = dy / length;
+            for (double offset = 0.0D; offset < length; offset += dashLength + gapLength) {
+                double dashEnd = Math.min(length, offset + dashLength);
+                float ax = (float) (start.x() + ux * offset);
+                float ay = (float) (start.y() + uy * offset);
+                float bx = (float) (start.x() + ux * dashEnd);
+                float by = (float) (start.y() + uy * dashEnd);
+                bufferBuilder.vertex(pose, ax, ay, 0.0F).color(red, green, blue, alpha).endVertex();
+                bufferBuilder.vertex(pose, bx, by, 0.0F).color(red, green, blue, alpha).endVertex();
+            }
         }
         tesselator.end();
         RenderSystem.disableBlend();
@@ -1320,6 +1403,10 @@ public class SfmDrawScreen extends Screen {
     }
 
     private String describeTool(DrawTool tool) {
+        if (tool == DrawTool.ARROW && !pendingArrowAnchors.isEmpty()) {
+            // r[impl draw.tool.arrow.multisegment.status]
+            return tool.label() + " [a] placing " + pendingArrowAnchors.size() + (pendingArrowAnchors.size() == 1 ? " anchor" : " anchors");
+        }
         if (tool == DrawTool.TEXT) {
             return tool.label() + " [t] " + (textToolCreatesBoundText ? "bound" : "unbound");
         }
@@ -1516,6 +1603,8 @@ public class SfmDrawScreen extends Screen {
         }
 
         if (selectionMode == SelectionMode.REPLACE && selectionBounds != null && selectionBounds.contains(canvasPoint)) {
+            // r[impl draw.tool.cursor.duplicate_selection.alt-drag]
+            duplicateSelectionPendingOnDrag = hasAltDown();
             moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection);
             return;
         }
@@ -1533,10 +1622,13 @@ public class SfmDrawScreen extends Screen {
             if (!selectedElementIds.contains(hitElementId)) {
                 selectOnly(hitElementId);
             }
+            // r[impl draw.tool.cursor.duplicate_selection.alt-drag]
+            duplicateSelectionPendingOnDrag = hasAltDown();
             moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection);
             return;
         }
 
+        duplicateSelectionPendingOnDrag = false;
         marqueeSelectionDrag = new MarqueeSelectionDrag(canvasPoint, canvasPoint, projection, selectionMode);
     }
 
@@ -1544,6 +1636,15 @@ public class SfmDrawScreen extends Screen {
             MoveSelectionDrag drag,
             CanvasPoint currentPoint
     ) {
+        if (duplicateSelectionPendingOnDrag) {
+            duplicateSelection();
+            moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), drag.startPoint(), drag.projection());
+            duplicateSelectionPendingOnDrag = false;
+            drag = moveSelectionDrag;
+            if (drag == null) {
+                return;
+            }
+        }
         double dx = currentPoint.x() - drag.startPoint().x();
         double dy = currentPoint.y() - drag.startPoint().y();
         for (ElementSnapshot snapshot : drag.snapshots()) {
@@ -1608,6 +1709,41 @@ public class SfmDrawScreen extends Screen {
         } else {
             selectedElementIds.removeAll(hits);
         }
+    }
+
+    private void finalizeChromeMarqueeSelection() {
+        if (chromeMarqueeSelectionDrag == null) {
+            return;
+        }
+
+        SelectionMode mode = chromeMarqueeSelectionDrag.mode();
+        ScreenRect marqueeRect = chromeMarqueeSelectionDrag.screenRect();
+        chromeMarqueeSelectionDrag = null;
+
+        if (marqueeRect.right() - marqueeRect.left() < 1 && marqueeRect.bottom() - marqueeRect.top() < 1) {
+            if (mode == SelectionMode.REPLACE) {
+                clearChromeSelection();
+            }
+            return;
+        }
+
+        Set<ChromeWidget> hits = new LinkedHashSet<>();
+        for (ChromeWidget widget : ChromeWidget.VALUES) {
+            if (isChromeWidgetRendered(widget) && rectsIntersect(chromeWidgetBounds(widget), marqueeRect)) {
+                hits.add(widget);
+            }
+        }
+
+        if (mode == SelectionMode.REPLACE) {
+            selectedChromeWidgets.clear();
+            selectedChromeWidgets.addAll(hits);
+        } else if (mode == SelectionMode.ADD) {
+            selectedChromeWidgets.addAll(hits);
+        } else {
+            selectedChromeWidgets.removeAll(hits);
+        }
+
+        selectedChromeWidget = selectedChromeWidgets.isEmpty() ? null : selectedChromeWidgets.iterator().next();
     }
 
     // r[impl draw.tool.rectangle.create]
@@ -1914,13 +2050,21 @@ public class SfmDrawScreen extends Screen {
             return !selection.isEmpty();
         }
 
-        if (selectedChromeWidget == null) {
+        if (selectedChromeWidgets.isEmpty()) {
             return false;
         }
-        ChromeWidgetState state = chromeWidgetState(selectedChromeWidget);
-        setChromeWidgetState(selectedChromeWidget, state.withHidden(!state.hidden()));
-        if (chromeWidgetState(selectedChromeWidget).hidden() && !revealHiddenElements) {
-            selectedChromeWidget = null;
+        int hiddenCount = 0;
+        for (ChromeWidget widget : selectedChromeWidgets) {
+            if (chromeWidgetState(widget).hidden()) {
+                hiddenCount++;
+            }
+        }
+        boolean newHidden = hiddenCount * 2 <= selectedChromeWidgets.size();
+        for (ChromeWidget widget : List.copyOf(selectedChromeWidgets)) {
+            setChromeWidgetState(widget, chromeWidgetState(widget).withHidden(newHidden));
+            if (newHidden && !revealHiddenElements) {
+                removeChromeWidgetFromSelection(widget);
+            }
         }
         return true;
     }
@@ -2039,6 +2183,28 @@ public class SfmDrawScreen extends Screen {
         selectedElementIds.add(id);
     }
 
+    private void clearChromeSelection() {
+        selectedChromeWidget = null;
+        selectedChromeWidgets.clear();
+    }
+
+    private void selectOnlyChromeWidget(ChromeWidget widget) {
+        selectedChromeWidget = widget;
+        selectedChromeWidgets.clear();
+        selectedChromeWidgets.add(widget);
+    }
+
+    private boolean isChromeWidgetSelected(ChromeWidget widget) {
+        return selectedChromeWidgets.contains(widget);
+    }
+
+    private void removeChromeWidgetFromSelection(ChromeWidget widget) {
+        selectedChromeWidgets.remove(widget);
+        if (selectedChromeWidget == widget) {
+            selectedChromeWidget = selectedChromeWidgets.isEmpty() ? null : selectedChromeWidgets.iterator().next();
+        }
+    }
+
     private @Nullable CanvasBounds currentSelectionBounds() {
         CanvasBounds bounds = null;
         for (Integer selectedElementId : selectedElementIds) {
@@ -2123,17 +2289,35 @@ public class SfmDrawScreen extends Screen {
             double mouseX,
             double mouseY
     ) {
-        if (selectedChromeWidget != null && beginChromeWidgetResize(selectedChromeWidget, mouseX, mouseY)) {
+        SelectionMode selectionMode = selectionMode();
+        if (selectionMode == SelectionMode.REPLACE
+            && selectedChromeWidget != null
+            && selectedChromeWidgets.size() == 1
+            && beginChromeWidgetResize(selectedChromeWidget, mouseX, mouseY)) {
             return true;
         }
 
         @Nullable ChromeWidget hoveredWidget = hoveredChromeWidget(mouseX, mouseY);
         if (hoveredWidget == null) {
-            selectedChromeWidget = null;
-            return false;
+            if (selectionMode == SelectionMode.REPLACE) {
+                clearChromeSelection();
+            }
+            // r[impl draw.layer.chrome-selection.marquee]
+            chromeMarqueeSelectionDrag = new ChromeMarqueeSelectionDrag(mouseX, mouseY, mouseX, mouseY, selectionMode);
+            return true;
         }
 
-        selectedChromeWidget = hoveredWidget;
+        if (selectionMode == SelectionMode.ADD) {
+            selectedChromeWidget = hoveredWidget;
+            selectedChromeWidgets.add(hoveredWidget);
+            return true;
+        }
+        if (selectionMode == SelectionMode.SUBTRACT) {
+            removeChromeWidgetFromSelection(hoveredWidget);
+            return true;
+        }
+
+        selectOnlyChromeWidget(hoveredWidget);
         return beginChromeWidgetDrag(hoveredWidget, mouseX, mouseY) || chromeWidgetBounds(hoveredWidget).contains(mouseX, mouseY);
     }
 
@@ -2169,7 +2353,7 @@ public class SfmDrawScreen extends Screen {
         }
         ChromeWidgetState state = chromeWidgetState(widget);
         draggingChromeWidget = widget;
-        selectedChromeWidget = widget;
+        selectOnlyChromeWidget(widget);
         switch (widget) {
             case HOTBAR_BAR -> {
                 // r[impl draw.chrome.hotbar.draggable]
@@ -2220,7 +2404,7 @@ public class SfmDrawScreen extends Screen {
         }
         ChromeWidgetState state = chromeWidgetState(widget);
         resizingChromeWidget = widget;
-        selectedChromeWidget = widget;
+        selectOnlyChromeWidget(widget);
         chromeWidgetResizeHandle = handle;
         chromeWidgetResizeOriginalBounds = chromeWidgetBounds(widget);
         chromeWidgetResizeAnchorX = (int) Math.round(mouseX);
@@ -2479,9 +2663,10 @@ public class SfmDrawScreen extends Screen {
                 pendingArrowAnchors.clear();
                 pendingArrowProjection = null;
             } else {
-                selectedChromeWidget = null;
+                clearChromeSelection();
                 draggingChromeWidget = null;
                 resizingChromeWidget = null;
+                chromeMarqueeSelectionDrag = null;
                 chromeWidgetResizeHandle = null;
                 chromeWidgetResizeOriginalBounds = null;
             }
@@ -2534,12 +2719,14 @@ public class SfmDrawScreen extends Screen {
         moveSelectionDrag = null;
         resizeSelectionDrag = null;
         marqueeSelectionDrag = null;
+        chromeMarqueeSelectionDrag = null;
+        duplicateSelectionPendingOnDrag = false;
         cameraFrameDrag = null;
         draggingChromeWidget = null;
         resizingChromeWidget = null;
         chromeWidgetResizeHandle = null;
         chromeWidgetResizeOriginalBounds = null;
-        selectedChromeWidget = null;
+        clearChromeSelection();
         selectedElementIds.clear();
         activeLayer = layer;
     }
@@ -2807,6 +2994,21 @@ public class SfmDrawScreen extends Screen {
             int mouseX,
             int mouseY
     ) {
+        if (resizeSelectionDrag != null) {
+            applyChromeCursor(cursorForSelectionHandle(resizeSelectionDrag.handle()));
+            return;
+        }
+        if (activeLayer == DrawLayer.ELEMENTS && activeTool == DrawTool.CURSOR && selectionMode() == SelectionMode.REPLACE) {
+            CanvasBounds selectionBounds = currentSelectionBounds();
+            if (selectionBounds != null) {
+                SelectionHandle handle = findSelectionHandle(mouseX, mouseY, selectionBounds);
+                if (handle != null) {
+                    // r[impl draw.tool.cursor.transform_selection.handle-cursor]
+                    applyChromeCursor(cursorForSelectionHandle(handle));
+                    return;
+                }
+            }
+        }
         if (resizingChromeWidget != null && chromeWidgetResizeHandle != null) {
             applyChromeCursor(cursorForSelectionHandle(chromeWidgetResizeHandle));
             return;
@@ -2834,7 +3036,7 @@ public class SfmDrawScreen extends Screen {
                 return;
             }
         }
-        if (isChromeLayerActive() && selectedChromeWidget != null && isChromeWidgetRendered(selectedChromeWidget)) {
+        if (isChromeLayerActive() && selectedChromeWidget != null && selectedChromeWidgets.size() == 1 && isChromeWidgetRendered(selectedChromeWidget)) {
             SelectionHandle handle = findChromeWidgetSelectionHandle(selectedChromeWidget, mouseX, mouseY);
             if (handle != null) {
                 applyChromeCursor(cursorForSelectionHandle(handle));
@@ -2913,6 +3115,16 @@ public class SfmDrawScreen extends Screen {
 
     private ScreenRect toScreenRect(Rect rect) {
         return new ScreenRect(rect.left(), rect.top(), rect.right(), rect.bottom());
+    }
+
+    private boolean rectsIntersect(
+            Rect rect,
+            ScreenRect other
+    ) {
+        return rect.right() >= other.left()
+               && rect.left() <= other.right()
+               && rect.bottom() >= other.top()
+               && rect.top() <= other.bottom();
     }
 
     private int renderColor(
@@ -3584,6 +3796,41 @@ public class SfmDrawScreen extends Screen {
         }
 
         public SelectionMode mode() {
+            return mode;
+        }
+    }
+
+    private static final class ChromeMarqueeSelectionDrag {
+        private final double startX;
+        private final double startY;
+        private double currentX;
+        private double currentY;
+        private final SelectionMode mode;
+
+        private ChromeMarqueeSelectionDrag(
+                double startX,
+                double startY,
+                double currentX,
+                double currentY,
+                SelectionMode mode
+        ) {
+            this.startX = startX;
+            this.startY = startY;
+            this.currentX = currentX;
+            this.currentY = currentY;
+            this.mode = mode;
+        }
+
+        private ScreenRect screenRect() {
+            return new ScreenRect(
+                    (int) Math.round(Math.min(startX, currentX)),
+                    (int) Math.round(Math.min(startY, currentY)),
+                    (int) Math.round(Math.max(startX, currentX)),
+                    (int) Math.round(Math.max(startY, currentY))
+            );
+        }
+
+        private SelectionMode mode() {
             return mode;
         }
     }
