@@ -723,6 +723,36 @@ public class SfmDrawScreen extends Screen {
         if (layerWindowVisible) {
             drawLayerWindow(poseStack, mouseX, mouseY);
         }
+        if (isChromeLayerActive()) {
+            drawChromeWidgetEditingOverlay(poseStack, mouseX, mouseY);
+        }
+    }
+
+    // r[impl draw.layer.chrome-customization-mode]
+    // r[impl draw.layer.widgets-owned-by-layer]
+    private void drawChromeWidgetEditingOverlay(
+            PoseStack poseStack,
+            int mouseX,
+            int mouseY
+    ) {
+        @Nullable ChromeWidget hoveredWidget = hoveredChromeWidget(mouseX, mouseY);
+        for (ChromeWidget widget : ChromeWidget.VALUES) {
+            if (!isChromeWidgetVisible(widget)) {
+                continue;
+            }
+            Rect bounds = chromeWidgetBounds(widget);
+            int outlineColor = widget == hoveredWidget ? 0xFFF6E27F : 0x66596C82;
+            drawScreenRectOutline(poseStack, new ScreenRect(bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), outlineColor);
+        }
+
+        if (hoveredWidget != null) {
+            Component label = hoveredWidget.label();
+            int labelWidth = font.width(label);
+            int left = mouseX + 12;
+            int top = mouseY + 10;
+            fill(poseStack, left - 4, top - 2, left + labelWidth + 4, top + 10, 0xD010141A);
+            drawString(poseStack, font, label, left, top, 0xFFF6FAFF);
+        }
     }
 
     // r[impl draw.layer-window.exists]
@@ -1804,6 +1834,34 @@ public class SfmDrawScreen extends Screen {
         return activeLayer == DrawLayer.CHROME;
     }
 
+    private boolean isChromeWidgetVisible(ChromeWidget widget) {
+        return switch (widget) {
+            case HOTBAR -> true;
+            case MINIMAP -> cameraOverlayVisible;
+            case LAYER_WINDOW -> layerWindowVisible;
+        };
+    }
+
+    private @Nullable ChromeWidget hoveredChromeWidget(
+            double mouseX,
+            double mouseY
+    ) {
+        for (ChromeWidget widget : ChromeWidget.VALUES) {
+            if (isChromeWidgetVisible(widget) && chromeWidgetBounds(widget).contains(mouseX, mouseY)) {
+                return widget;
+            }
+        }
+        return null;
+    }
+
+    private Rect chromeWidgetBounds(ChromeWidget widget) {
+        return switch (widget) {
+            case HOTBAR -> new Rect(hotbarX, hotbarY - hotbarHeaderHeight(), hotbarWidth(), hotbarHeight() + hotbarHeaderHeight());
+            case MINIMAP -> cameraOverlayBounds();
+            case LAYER_WINDOW -> layerWindowBounds();
+        };
+    }
+
     private @Nullable DrawLayer layerForHotkey(int keyCode) {
         return switch (keyCode) {
             case GLFW.GLFW_KEY_1 -> DrawLayer.ELEMENTS;
@@ -2758,6 +2816,22 @@ public class SfmDrawScreen extends Screen {
 
         public int index() {
             return index;
+        }
+    }
+
+    private enum ChromeWidget {
+        HOTBAR,
+        MINIMAP,
+        LAYER_WINDOW;
+
+        private static final ChromeWidget[] VALUES = values();
+
+        public Component label() {
+            return switch (this) {
+                case HOTBAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
+                case MINIMAP -> IdeLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent();
+                case LAYER_WINDOW -> IdeLocalizationKeys.IDE_DRAW_LAYER_WINDOW_TITLE.getComponent();
+            };
         }
     }
 
