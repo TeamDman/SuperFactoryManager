@@ -2200,12 +2200,36 @@ public class SfmDrawScreen extends Screen {
 
     // r[impl draw.tool.cursor.delete_selection]
     private boolean deleteSelectedElements() {
-        if (selectedElementIds.isEmpty()) {
+        if (selectedElementIds.isEmpty() && selectedArrowAnchors.isEmpty()) {
             return false;
         }
 
         Set<Integer> removedElementIds = new LinkedHashSet<>(selectedElementIds);
-        elements.removeIf(element -> selectedElementIds.contains(element.id()));
+        // r[impl draw.tool.arrow.anchors.delete]
+        for (DrawElement element : elements) {
+            if (!(element instanceof ArrowElement arrowElement)) {
+                continue;
+            }
+            List<Integer> selectedAnchorIndexes = new ArrayList<>();
+            for (ArrowAnchorReference selectedArrowAnchor : selectedArrowAnchors) {
+                if (selectedArrowAnchor.arrowId() == arrowElement.id() && arrowElement.hasPointIndex(selectedArrowAnchor.anchorIndex())) {
+                    selectedAnchorIndexes.add(selectedArrowAnchor.anchorIndex());
+                }
+            }
+            if (selectedAnchorIndexes.isEmpty()) {
+                continue;
+            }
+            selectedAnchorIndexes.sort(Integer::compareTo);
+            for (int index = selectedAnchorIndexes.size() - 1; index >= 0; index--) {
+                arrowElement.points.remove((int) selectedAnchorIndexes.get(index));
+            }
+            // r[impl draw.tool.arrow.destroy-when-one-anchor-remains]
+            if (arrowElement.points.size() <= 1) {
+                removedElementIds.add(arrowElement.id());
+            }
+        }
+
+        elements.removeIf(element -> removedElementIds.contains(element.id()));
         if (selectedElementIds.contains(textEditingElementId)) {
             textEditingElementId = -1;
             textEditingCaretIndex = 0;

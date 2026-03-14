@@ -146,6 +146,14 @@
 >
 > When any part of an arrow is selected, the draw screen MUST render all anchors of that arrow so each anchor can be grabbed and repositioned.
 
+> r[draw.tool.arrow.anchors.delete]
+>
+> Selected arrow anchors MUST be deletable independently of the rest of the arrow.
+
+> r[draw.tool.arrow.destroy-when-one-anchor-remains]
+>
+> If anchor deletion leaves an arrow with only one remaining anchor, the arrow MUST be destroyed.
+
 > r[draw.tool.text.create]
 >
 > A text tool MUST create text elements anchored in canvas space.
