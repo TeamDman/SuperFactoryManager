@@ -46,6 +46,10 @@
 >
 > Selecting the camera tool MUST immediately toggle the visibility of the camera/minimap overlay.
 
+> r[draw.camera.hidden-minimap-not-interactive]
+>
+> A hidden minimap MUST not transform cursor coordinates or consume pointer input.
+
 > r[draw.canvas.shared-tools]
 >
 > The same core manipulation tools MUST be usable for both document content and editable chrome content.
@@ -68,6 +72,14 @@
 >
 > The hotbar title, the hotbar bar, and the hotbar subtitle MUST be independently positionable and resizable chrome widgets.
 
+> r[draw.chrome.status.parts.independent]
+>
+> The screen title, subtitle, active-layer readout, camera-position readout, zoom readout, and cursor-position readout MUST each be composed from independently positionable and hideable chrome widgets.
+
+> r[draw.chrome.status.labels.separate-from-values]
+>
+> Label text and value text in status readouts MUST be independently manipulable so a label can be hidden without hiding its associated values.
+
 > r[draw.chrome.minimap]
 >
 > A minimap overlay MUST show scene extents, drawn content, and the current viewport rectangle.
@@ -89,6 +101,10 @@
 > r[draw.tool.creation.sticky_toggle]
 >
 > The draw screen MUST support toggling creation tools between sticky and one-shot modes.
+
+> r[draw.tool.creation.sticky_toggle.repeated-shortcut]
+>
+> Pressing the active creation tool's shortcut again SHOULD toggle sticky mode for that tool.
 
 > r[draw.tool.rectangle.create]
 >

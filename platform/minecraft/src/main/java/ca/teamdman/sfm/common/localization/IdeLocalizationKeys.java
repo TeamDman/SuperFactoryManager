@@ -287,6 +287,22 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.draw.active_layer.label",
             "Layer: %s"
     );
+    public static final LocalizationEntry IDE_DRAW_LAYER_LABEL_TEXT = new LocalizationEntry(
+            "gui.sfm.ide.draw.layer.label_text",
+            "Layer"
+    );
+    public static final LocalizationEntry IDE_DRAW_CAMERA_POSITION_LABEL = new LocalizationEntry(
+            "gui.sfm.ide.draw.camera_position.label",
+            "Cam"
+    );
+    public static final LocalizationEntry IDE_DRAW_ZOOM_LABEL = new LocalizationEntry(
+            "gui.sfm.ide.draw.zoom.label",
+            "Zoom"
+    );
+    public static final LocalizationEntry IDE_DRAW_CURSOR_LABEL = new LocalizationEntry(
+            "gui.sfm.ide.draw.cursor.label",
+            "Cursor"
+    );
     public static final LocalizationEntry IDE_DRAW_LAYER_ELEMENTS = new LocalizationEntry(
             "gui.sfm.ide.draw.layer.elements",
             "Elements"

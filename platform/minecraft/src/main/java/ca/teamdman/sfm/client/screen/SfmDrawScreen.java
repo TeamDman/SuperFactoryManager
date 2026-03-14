@@ -69,6 +69,21 @@ public class SfmDrawScreen extends Screen {
     private boolean cameraOverlayVisible = true;
     private ChromeWidgetState minimapWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, MINIMAP_WIDTH, MINIMAP_HEIGHT, 1.0D);
 
+    private ChromeWidgetState screenTitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState screenSubtitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState layerLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState layerValueWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState cameraLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState cameraXWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState cameraSeparatorWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState cameraYWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState zoomLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState zoomValueWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState cursorLabelWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState cursorXWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState cursorSeparatorWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+    private ChromeWidgetState cursorYWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+
     private ChromeWidgetState hotbarWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, HOTBAR_WIDTH, HOTBAR_HEIGHT, 1.0D);
     private ChromeWidgetState hotbarTitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
     private ChromeWidgetState hotbarSubtitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
@@ -118,6 +133,8 @@ public class SfmDrawScreen extends Screen {
     private long verticalResizeCursorHandle = 0L;
     private long diagonalResizeCursorHandle = 0L;
     private ChromeCursor activeChromeCursor = ChromeCursor.DEFAULT;
+    private double chromeMouseX = 0.0D;
+    private double chromeMouseY = 0.0D;
 
     public SfmDrawScreen() {
         super(IdeLocalizationKeys.IDE_DRAW_TITLE.getComponent());
@@ -131,21 +148,15 @@ public class SfmDrawScreen extends Screen {
         if (hotbarWidget.x() == Integer.MIN_VALUE || hotbarWidget.y() == Integer.MIN_VALUE) {
             hotbarWidget = hotbarWidget.withPosition((width - HOTBAR_WIDTH) / 2, Math.max(32, height - HOTBAR_HEIGHT - 42));
         }
-        if (hotbarTitleWidget.x() == Integer.MIN_VALUE || hotbarTitleWidget.y() == Integer.MIN_VALUE) {
-            hotbarTitleWidget = hotbarTitleWidget.withPosition(hotbarWidget.x(), Math.max(8, hotbarWidget.y() - font.lineHeight - 10));
-        }
-        if (hotbarSubtitleWidget.x() == Integer.MIN_VALUE || hotbarSubtitleWidget.y() == Integer.MIN_VALUE) {
-            hotbarSubtitleWidget = hotbarSubtitleWidget.withPosition(hotbarWidget.x(), Math.min(height - font.lineHeight - 12, hotbarWidget.y() + hotbarHeight() + 6));
-        }
         if (minimapWidget.x() == Integer.MIN_VALUE || minimapWidget.y() == Integer.MIN_VALUE) {
             minimapWidget = minimapWidget.withPosition(width - MINIMAP_WIDTH - 12, 30);
         }
         if (layerWindowWidget.x() == Integer.MIN_VALUE || layerWindowWidget.y() == Integer.MIN_VALUE) {
             layerWindowWidget = layerWindowWidget.withPosition(12, 42);
         }
+        initializeStatusChromeWidgets();
         clampHotbarToScreen();
-        clampHotbarTitleToScreen();
-        clampHotbarSubtitleToScreen();
+        clampAllTextChromeWidgetsToScreen();
         clampCameraOverlayToScreen();
         clampLayerWindowToScreen();
     }
@@ -223,12 +234,6 @@ public class SfmDrawScreen extends Screen {
             }
         }
 
-        // r[impl draw.tool.creation.sticky_toggle]
-        if (keyCode == GLFW.GLFW_KEY_Q) {
-            stickyToolMode = !stickyToolMode;
-            return true;
-        }
-
         // r[impl draw.tool.cursor.duplicate_selection]
         if (activeLayer == DrawLayer.ELEMENTS && hasControlDown() && keyCode == GLFW.GLFW_KEY_D) {
             duplicateSelection();
@@ -271,18 +276,21 @@ public class SfmDrawScreen extends Screen {
             finalizePendingArrowAnchors();
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_T) {
-            if (activeTool == DrawTool.TEXT) {
+
+        // r[impl draw.tool.creation.sticky_toggle]
+        // r[impl draw.tool.creation.sticky_toggle.repeated-shortcut]
+        @Nullable DrawTool shortcutTool = DrawTool.byKeyCode(keyCode);
+        if (shortcutTool == DrawTool.TEXT && activeTool == DrawTool.TEXT && hasShiftDown()) {
+            if (activeLayer == DrawLayer.ELEMENTS) {
                 textToolCreatesBoundText = !textToolCreatesBoundText;
-            } else {
-                activeTool = DrawTool.TEXT;
             }
             return true;
         }
-
-        // r[impl draw.chrome.hotbar.shortcuts]
-        @Nullable DrawTool shortcutTool = DrawTool.byKeyCode(keyCode);
         if (shortcutTool != null) {
+            if (shortcutTool == activeTool && supportsStickyMode(shortcutTool)) {
+                stickyToolMode = !stickyToolMode;
+                return true;
+            }
             handleHotbarToolClick(shortcutTool);
             return true;
         }
@@ -310,6 +318,8 @@ public class SfmDrawScreen extends Screen {
             double mouseY,
             int button
     ) {
+        chromeMouseX = mouseX;
+        chromeMouseY = mouseY;
 
         Rect layerWindowRect = layerWindowBounds();
         Rect layerWindowCloseBounds = layerWindowCloseButtonBounds();
@@ -367,7 +377,8 @@ public class SfmDrawScreen extends Screen {
         }
 
         Rect overlayBounds = cameraOverlayBounds();
-        @Nullable CameraOverlayProjection overlayProjection = cameraOverlayProjection();
+        // r[impl draw.camera.hidden-minimap-not-interactive]
+        @Nullable CameraOverlayProjection overlayProjection = cameraOverlayInteractionProjection();
         @Nullable CameraOverlayProjection projectionUnderMouse = overlayProjection != null && overlayProjection.mapBounds().contains(mouseX, mouseY) ? overlayProjection : null;
         if (isChromeWidgetOperational(ChromeWidget.MINIMAP) && overlayBounds.contains(mouseX, mouseY) && projectionUnderMouse == null) {
             return true;
@@ -459,6 +470,8 @@ public class SfmDrawScreen extends Screen {
             double dragX,
             double dragY
     ) {
+        chromeMouseX = mouseX;
+        chromeMouseY = mouseY;
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             if (dragActiveChromeWidget(mouseX, mouseY)) {
@@ -523,6 +536,8 @@ public class SfmDrawScreen extends Screen {
             double mouseY,
             int button
     ) {
+        chromeMouseX = mouseX;
+        chromeMouseY = mouseY;
 
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && releaseChromeWidgetInteractions()) {
             return true;
@@ -572,13 +587,15 @@ public class SfmDrawScreen extends Screen {
             double mouseY,
             double delta
     ) {
+        chromeMouseX = mouseX;
+        chromeMouseY = mouseY;
 
         if (!hasControlDown() || delta == 0.0D) {
             return super.mouseScrolled(mouseX, mouseY, delta);
         }
 
         // r[impl draw.camera.zoom.cursor]
-        @Nullable CameraOverlayProjection projection = cameraOverlayProjection();
+        @Nullable CameraOverlayProjection projection = cameraOverlayInteractionProjection();
         CanvasPoint focusPoint = projection != null && projection.mapBounds().contains(mouseX, mouseY)
                                 ? projection.screenToCanvas(mouseX, mouseY)
                                 : screenToCanvas(mouseX, mouseY, null);
@@ -603,6 +620,8 @@ public class SfmDrawScreen extends Screen {
             int mouseY,
             float partialTick
     ) {
+        chromeMouseX = mouseX;
+        chromeMouseY = mouseY;
 
         renderBackground(poseStack);
         fill(poseStack, 0, 0, width, height, 0xFF111318);
@@ -622,23 +641,23 @@ public class SfmDrawScreen extends Screen {
             int mouseX,
             int mouseY
     ) {
-        drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_TITLE.getComponent(), 12, 12, 0xF0F3F7);
-        drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_SUBTITLE.getComponent(), 12, 24, 0x9AA3B2);
-
-        Component cameraLabel = Component.literal(String.format("cam %.0f, %.0f  zoom %.2fx", cameraX, cameraY, zoom));
-        int cameraLabelWidth = font.width(cameraLabel);
-        drawString(poseStack, font, cameraLabel, width - cameraLabelWidth - 12, 12, 0xC4CBD6);
-
-        @Nullable CameraOverlayProjection overlayProjection = cameraOverlayProjection();
-        CanvasPoint cursorPoint = overlayProjection != null && overlayProjection.mapBounds().contains(mouseX, mouseY)
-                      ? overlayProjection.screenToCanvas(mouseX, mouseY)
-                      : screenToCanvas(mouseX, mouseY, null);
-        Component cursorLabel = Component.literal(String.format("cursor %.0f, %.0f", cursorPoint.x(), cursorPoint.y()));
-        int cursorLabelWidth = font.width(cursorLabel);
-        drawString(poseStack, font, cursorLabel, width - cursorLabelWidth - 12, 24, 0x9AA3B2);
+        // r[impl draw.chrome.status.parts.independent]
+        // r[impl draw.chrome.status.labels.separate-from-values]
+        drawStatusTextWidget(poseStack, ChromeWidget.SCREEN_TITLE, chromeWidgetText(ChromeWidget.SCREEN_TITLE), 0x00000000, 0xF0F3F7);
+        drawStatusTextWidget(poseStack, ChromeWidget.SCREEN_SUBTITLE, chromeWidgetText(ChromeWidget.SCREEN_SUBTITLE), 0x00000000, 0x9AA3B2);
+        drawStatusTextWidget(poseStack, ChromeWidget.ACTIVE_LAYER_LABEL, chromeWidgetText(ChromeWidget.ACTIVE_LAYER_LABEL), 0x00000000, 0xC4CBD6);
         // r[impl draw.layer.visibility.feedback]
-        Component activeLayerLabel = IdeLocalizationKeys.IDE_DRAW_ACTIVE_LAYER_LABEL.getComponent(activeLayer.labelComponent());
-        drawString(poseStack, font, activeLayerLabel, 12, 36, activeLayer.color());
+        drawStatusTextWidget(poseStack, ChromeWidget.ACTIVE_LAYER_VALUE, chromeWidgetText(ChromeWidget.ACTIVE_LAYER_VALUE), 0x00000000, activeLayer.color());
+        drawStatusTextWidget(poseStack, ChromeWidget.CAMERA_POSITION_LABEL, chromeWidgetText(ChromeWidget.CAMERA_POSITION_LABEL), 0x00000000, 0xC4CBD6);
+        drawStatusTextWidget(poseStack, ChromeWidget.CAMERA_POSITION_X, chromeWidgetText(ChromeWidget.CAMERA_POSITION_X), 0x00000000, 0xC4CBD6);
+        drawStatusTextWidget(poseStack, ChromeWidget.CAMERA_POSITION_SEPARATOR, chromeWidgetText(ChromeWidget.CAMERA_POSITION_SEPARATOR), 0x00000000, 0x8E99A9);
+        drawStatusTextWidget(poseStack, ChromeWidget.CAMERA_POSITION_Y, chromeWidgetText(ChromeWidget.CAMERA_POSITION_Y), 0x00000000, 0xC4CBD6);
+        drawStatusTextWidget(poseStack, ChromeWidget.ZOOM_LABEL, chromeWidgetText(ChromeWidget.ZOOM_LABEL), 0x00000000, 0xC4CBD6);
+        drawStatusTextWidget(poseStack, ChromeWidget.ZOOM_VALUE, chromeWidgetText(ChromeWidget.ZOOM_VALUE), 0x00000000, 0xC4CBD6);
+        drawStatusTextWidget(poseStack, ChromeWidget.CURSOR_LABEL, chromeWidgetText(ChromeWidget.CURSOR_LABEL), 0x00000000, 0x9AA3B2);
+        drawStatusTextWidget(poseStack, ChromeWidget.CURSOR_X, chromeWidgetText(ChromeWidget.CURSOR_X), 0x00000000, 0x9AA3B2);
+        drawStatusTextWidget(poseStack, ChromeWidget.CURSOR_SEPARATOR, chromeWidgetText(ChromeWidget.CURSOR_SEPARATOR), 0x00000000, 0x7A8594);
+        drawStatusTextWidget(poseStack, ChromeWidget.CURSOR_Y, chromeWidgetText(ChromeWidget.CURSOR_Y), 0x00000000, 0x9AA3B2);
 
         if (isChromeWidgetRendered(ChromeWidget.MINIMAP)) {
             drawMinimap(poseStack);
@@ -1057,7 +1076,7 @@ public class SfmDrawScreen extends Screen {
         drawScreenRectOutline(poseStack, new ScreenRect(overlayBounds.left(), overlayBounds.top(), overlayBounds.right(), overlayBounds.bottom()), renderColor(0xFF38404B, hidden));
         drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent(), overlayBounds.left() + 6, overlayBounds.top() + 6, renderColor(0xD5D9E0, hidden));
 
-        @Nullable CameraOverlayProjection projection = cameraOverlayProjection();
+        @Nullable CameraOverlayProjection projection = cameraOverlayRenderProjection();
         if (projection == null) {
             return;
         }
@@ -1251,6 +1270,27 @@ public class SfmDrawScreen extends Screen {
         );
     }
 
+    private void drawStatusTextWidget(
+            PoseStack poseStack,
+            ChromeWidget widget,
+            Component label,
+            int backgroundColor,
+            int textColor
+    ) {
+        if (!isChromeWidgetRendered(widget)) {
+            return;
+        }
+        ChromeWidgetState state = chromeWidgetState(widget);
+        drawTextChromeWidget(
+                poseStack,
+                textChromeWidgetBounds(state, label),
+                state.scale(),
+                label,
+            backgroundColor == 0 ? 0 : renderColor(backgroundColor, state.hidden()),
+                renderColor(textColor, state.hidden())
+        );
+    }
+
     private void drawTextChromeWidget(
             PoseStack poseStack,
             Rect bounds,
@@ -1294,6 +1334,96 @@ public class SfmDrawScreen extends Screen {
         }
         String stickySuffix = stickyToolMode ? " sticky" : " one-shot";
         return tool.label() + " [" + tool.shortcutGlyph().toLowerCase() + "]" + (tool == DrawTool.CURSOR || tool == DrawTool.HAND ? "" : stickySuffix);
+    }
+
+    private boolean supportsStickyMode(DrawTool tool) {
+        return switch (tool) {
+            case RECTANGLE, ARROW, TEXT, FREEHAND -> true;
+            default -> false;
+        };
+    }
+
+    private Component chromeWidgetText(ChromeWidget widget) {
+        CanvasPoint cursorPoint = currentChromeCursorPoint();
+        return switch (widget) {
+            case SCREEN_TITLE -> IdeLocalizationKeys.IDE_DRAW_TITLE.getComponent();
+            case SCREEN_SUBTITLE -> IdeLocalizationKeys.IDE_DRAW_SUBTITLE.getComponent();
+            case ACTIVE_LAYER_LABEL -> IdeLocalizationKeys.IDE_DRAW_LAYER_LABEL_TEXT.getComponent();
+            case ACTIVE_LAYER_VALUE -> activeLayer.labelComponent();
+            case CAMERA_POSITION_LABEL -> IdeLocalizationKeys.IDE_DRAW_CAMERA_POSITION_LABEL.getComponent();
+            case CAMERA_POSITION_X -> Component.literal(String.format("%.0f", cameraX));
+            case CAMERA_POSITION_SEPARATOR, CURSOR_SEPARATOR -> Component.literal(",");
+            case CAMERA_POSITION_Y -> Component.literal(String.format("%.0f", cameraY));
+            case ZOOM_LABEL -> IdeLocalizationKeys.IDE_DRAW_ZOOM_LABEL.getComponent();
+            case ZOOM_VALUE -> Component.literal(String.format("%.2fx", zoom));
+            case CURSOR_LABEL -> IdeLocalizationKeys.IDE_DRAW_CURSOR_LABEL.getComponent();
+            case CURSOR_X -> Component.literal(String.format("%.0f", cursorPoint.x()));
+            case CURSOR_Y -> Component.literal(String.format("%.0f", cursorPoint.y()));
+            case HOTBAR_TITLE -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
+            case HOTBAR_SUBTITLE -> Component.literal(describeTool(activeTool));
+            case MINIMAP -> IdeLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent();
+            case LAYER_WINDOW -> IdeLocalizationKeys.IDE_DRAW_LAYER_WINDOW_TITLE.getComponent();
+            case HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
+        };
+    }
+
+    private CanvasPoint currentChromeCursorPoint() {
+        @Nullable CameraOverlayProjection overlayProjection = cameraOverlayInteractionProjection();
+        if (overlayProjection != null && overlayProjection.mapBounds().contains(chromeMouseX, chromeMouseY)) {
+            return overlayProjection.screenToCanvas(chromeMouseX, chromeMouseY);
+        }
+        return screenToCanvas(chromeMouseX, chromeMouseY, null);
+    }
+
+    private void initializeStatusChromeWidgets() {
+        ensureChromeWidgetPosition(ChromeWidget.SCREEN_TITLE, 12, 12);
+        ensureChromeWidgetPosition(ChromeWidget.SCREEN_SUBTITLE, 12, 24);
+        ensureChromeWidgetPosition(ChromeWidget.ACTIVE_LAYER_LABEL, 12, 36);
+        ensureChromeWidgetPosition(ChromeWidget.ACTIVE_LAYER_VALUE, chromeWidgetBounds(ChromeWidget.ACTIVE_LAYER_LABEL).right() + 4, 36);
+
+        int topRowY = 12;
+        int secondRowY = 24;
+        int rightEdge = width - 12;
+
+        rightEdge = initializeRightAlignedTextWidget(ChromeWidget.ZOOM_VALUE, rightEdge, topRowY, 0);
+        rightEdge = initializeRightAlignedTextWidget(ChromeWidget.ZOOM_LABEL, rightEdge, topRowY, 4);
+        rightEdge = initializeRightAlignedTextWidget(ChromeWidget.CAMERA_POSITION_Y, rightEdge, topRowY, 12);
+        rightEdge = initializeRightAlignedTextWidget(ChromeWidget.CAMERA_POSITION_SEPARATOR, rightEdge, topRowY, 2);
+        rightEdge = initializeRightAlignedTextWidget(ChromeWidget.CAMERA_POSITION_X, rightEdge, topRowY, 2);
+        initializeRightAlignedTextWidget(ChromeWidget.CAMERA_POSITION_LABEL, rightEdge, topRowY, 4);
+
+        rightEdge = width - 12;
+        rightEdge = initializeRightAlignedTextWidget(ChromeWidget.CURSOR_Y, rightEdge, secondRowY, 0);
+        rightEdge = initializeRightAlignedTextWidget(ChromeWidget.CURSOR_SEPARATOR, rightEdge, secondRowY, 2);
+        rightEdge = initializeRightAlignedTextWidget(ChromeWidget.CURSOR_X, rightEdge, secondRowY, 2);
+        initializeRightAlignedTextWidget(ChromeWidget.CURSOR_LABEL, rightEdge, secondRowY, 4);
+
+        ensureChromeWidgetPosition(ChromeWidget.HOTBAR_TITLE, hotbarWidget.x(), Math.max(8, hotbarWidget.y() - font.lineHeight - 10));
+        ensureChromeWidgetPosition(ChromeWidget.HOTBAR_SUBTITLE, hotbarWidget.x(), Math.min(height - font.lineHeight - 12, hotbarWidget.y() + hotbarHeight() + 6));
+    }
+
+    private int initializeRightAlignedTextWidget(
+            ChromeWidget widget,
+            int rightEdge,
+            int y,
+            int gapAfter
+    ) {
+        ChromeWidgetState state = chromeWidgetState(widget);
+        Rect bounds = textChromeWidgetBounds(state, chromeWidgetText(widget));
+        int x = rightEdge - bounds.width();
+        ensureChromeWidgetPosition(widget, x, y);
+        return x - gapAfter;
+    }
+
+    private void ensureChromeWidgetPosition(
+            ChromeWidget widget,
+            int x,
+            int y
+    ) {
+        ChromeWidgetState state = chromeWidgetState(widget);
+        if (state.x() == Integer.MIN_VALUE || state.y() == Integer.MIN_VALUE) {
+            setChromeWidgetState(widget, state.withPosition(x, y));
+        }
     }
 
     private void beginPan(
@@ -1824,6 +1954,7 @@ public class SfmDrawScreen extends Screen {
                     return true;
                 }
             }
+            return false;
         }
         return false;
     }
@@ -1969,7 +2100,12 @@ public class SfmDrawScreen extends Screen {
             return false;
         }
         return switch (widget) {
-            case HOTBAR_BAR, HOTBAR_TITLE, HOTBAR_SUBTITLE -> true;
+            case SCREEN_TITLE, SCREEN_SUBTITLE,
+                 ACTIVE_LAYER_LABEL, ACTIVE_LAYER_VALUE,
+                 CAMERA_POSITION_LABEL, CAMERA_POSITION_X, CAMERA_POSITION_SEPARATOR, CAMERA_POSITION_Y,
+                 ZOOM_LABEL, ZOOM_VALUE,
+                 CURSOR_LABEL, CURSOR_X, CURSOR_SEPARATOR, CURSOR_Y,
+                 HOTBAR_BAR, HOTBAR_TITLE, HOTBAR_SUBTITLE -> true;
             case MINIMAP -> cameraOverlayVisible;
             case LAYER_WINDOW -> layerWindowVisible;
         };
@@ -2019,8 +2155,7 @@ public class SfmDrawScreen extends Screen {
         return switch (widget) {
             case HOTBAR_BAR -> new Rect(state.x(), state.y(), hotbarWidth(), hotbarHeight());
             case MINIMAP, LAYER_WINDOW -> new Rect(state.x(), state.y(), state.width(), state.height());
-            case HOTBAR_TITLE -> textChromeWidgetBounds(state, IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent());
-            case HOTBAR_SUBTITLE -> hotbarSubtitleBounds(Component.literal(describeTool(activeTool)));
+            default -> textChromeWidgetBounds(state, chromeWidgetText(widget));
         };
     }
 
@@ -2042,11 +2177,6 @@ public class SfmDrawScreen extends Screen {
                 chromeWidgetDragOffsetY = (int) Math.round(mouseY) - state.y();
                 return true;
             }
-            case HOTBAR_TITLE, HOTBAR_SUBTITLE -> {
-                chromeWidgetDragOffsetX = (int) Math.round(mouseX) - state.x();
-                chromeWidgetDragOffsetY = (int) Math.round(mouseY) - state.y();
-                return true;
-            }
             case MINIMAP -> {
                 // r[impl draw.chrome.minimap.draggable]
                 chromeWidgetDragOffsetX = (int) Math.round(mouseX) - state.x();
@@ -2059,8 +2189,12 @@ public class SfmDrawScreen extends Screen {
                 chromeWidgetDragOffsetY = (int) Math.round(mouseY) - state.y();
                 return true;
             }
+            default -> {
+                chromeWidgetDragOffsetX = (int) Math.round(mouseX) - state.x();
+                chromeWidgetDragOffsetY = (int) Math.round(mouseY) - state.y();
+                return true;
+            }
         }
-        return false;
     }
 
     private boolean beginChromeWidgetResize(
@@ -2097,10 +2231,6 @@ public class SfmDrawScreen extends Screen {
                 chromeWidgetResizeStartScale = state.scale();
                 return true;
             }
-            case HOTBAR_TITLE, HOTBAR_SUBTITLE -> {
-                chromeWidgetResizeStartScale = state.scale();
-                return true;
-            }
             case MINIMAP -> {
                 // r[impl draw.layer.chrome-customization-mode]
                 chromeWidgetResizeStartWidth = state.width();
@@ -2114,8 +2244,11 @@ public class SfmDrawScreen extends Screen {
                 chromeWidgetResizeStartHeight = state.height();
                 return true;
             }
+            default -> {
+                chromeWidgetResizeStartScale = state.scale();
+                return true;
+            }
         }
-        return false;
     }
 
     private boolean dragActiveChromeWidget(
@@ -2131,10 +2264,6 @@ public class SfmDrawScreen extends Screen {
                 moveChromeWidget(draggingChromeWidget, (int) Math.round(mouseX) - chromeWidgetDragOffsetX, (int) Math.round(mouseY) - chromeWidgetDragOffsetY);
                 return true;
             }
-            case HOTBAR_TITLE, HOTBAR_SUBTITLE -> {
-                moveChromeWidget(draggingChromeWidget, (int) Math.round(mouseX) - chromeWidgetDragOffsetX, (int) Math.round(mouseY) - chromeWidgetDragOffsetY);
-                return true;
-            }
             case MINIMAP -> {
                 // r[impl draw.chrome.minimap.draggable]
                 moveChromeWidget(draggingChromeWidget, (int) Math.round(mouseX) - chromeWidgetDragOffsetX, (int) Math.round(mouseY) - chromeWidgetDragOffsetY);
@@ -2145,8 +2274,11 @@ public class SfmDrawScreen extends Screen {
                 moveChromeWidget(draggingChromeWidget, (int) Math.round(mouseX) - chromeWidgetDragOffsetX, (int) Math.round(mouseY) - chromeWidgetDragOffsetY);
                 return true;
             }
+            default -> {
+                moveChromeWidget(draggingChromeWidget, (int) Math.round(mouseX) - chromeWidgetDragOffsetX, (int) Math.round(mouseY) - chromeWidgetDragOffsetY);
+                return true;
+            }
         }
-        return false;
     }
 
     private boolean resizeActiveChromeWidget(
@@ -2171,24 +2303,12 @@ public class SfmDrawScreen extends Screen {
 
     private boolean releaseChromeWidgetInteractions() {
         if (draggingChromeWidget != null) {
-            switch (draggingChromeWidget) {
-                case HOTBAR_BAR -> clampHotbarToScreen();
-                case HOTBAR_TITLE -> clampHotbarTitleToScreen();
-                case HOTBAR_SUBTITLE -> clampHotbarSubtitleToScreen();
-                case MINIMAP -> clampCameraOverlayToScreen();
-                case LAYER_WINDOW -> clampLayerWindowToScreen();
-            }
+            clampChromeWidgetToScreen(draggingChromeWidget);
             draggingChromeWidget = null;
             return true;
         }
         if (resizingChromeWidget != null) {
-            switch (resizingChromeWidget) {
-                case HOTBAR_BAR -> clampHotbarToScreen();
-                case HOTBAR_TITLE -> clampHotbarTitleToScreen();
-                case HOTBAR_SUBTITLE -> clampHotbarSubtitleToScreen();
-                case MINIMAP -> clampCameraOverlayToScreen();
-                case LAYER_WINDOW -> clampLayerWindowToScreen();
-            }
+            clampChromeWidgetToScreen(resizingChromeWidget);
             resizingChromeWidget = null;
             chromeWidgetResizeHandle = null;
             chromeWidgetResizeOriginalBounds = null;
@@ -2199,6 +2319,20 @@ public class SfmDrawScreen extends Screen {
 
     private ChromeWidgetState chromeWidgetState(ChromeWidget widget) {
         return switch (widget) {
+            case SCREEN_TITLE -> screenTitleWidget;
+            case SCREEN_SUBTITLE -> screenSubtitleWidget;
+            case ACTIVE_LAYER_LABEL -> layerLabelWidget;
+            case ACTIVE_LAYER_VALUE -> layerValueWidget;
+            case CAMERA_POSITION_LABEL -> cameraLabelWidget;
+            case CAMERA_POSITION_X -> cameraXWidget;
+            case CAMERA_POSITION_SEPARATOR -> cameraSeparatorWidget;
+            case CAMERA_POSITION_Y -> cameraYWidget;
+            case ZOOM_LABEL -> zoomLabelWidget;
+            case ZOOM_VALUE -> zoomValueWidget;
+            case CURSOR_LABEL -> cursorLabelWidget;
+            case CURSOR_X -> cursorXWidget;
+            case CURSOR_SEPARATOR -> cursorSeparatorWidget;
+            case CURSOR_Y -> cursorYWidget;
             case HOTBAR_BAR -> hotbarWidget;
             case HOTBAR_TITLE -> hotbarTitleWidget;
             case HOTBAR_SUBTITLE -> hotbarSubtitleWidget;
@@ -2212,6 +2346,20 @@ public class SfmDrawScreen extends Screen {
             ChromeWidgetState state
     ) {
         switch (widget) {
+            case SCREEN_TITLE -> screenTitleWidget = state;
+            case SCREEN_SUBTITLE -> screenSubtitleWidget = state;
+            case ACTIVE_LAYER_LABEL -> layerLabelWidget = state;
+            case ACTIVE_LAYER_VALUE -> layerValueWidget = state;
+            case CAMERA_POSITION_LABEL -> cameraLabelWidget = state;
+            case CAMERA_POSITION_X -> cameraXWidget = state;
+            case CAMERA_POSITION_SEPARATOR -> cameraSeparatorWidget = state;
+            case CAMERA_POSITION_Y -> cameraYWidget = state;
+            case ZOOM_LABEL -> zoomLabelWidget = state;
+            case ZOOM_VALUE -> zoomValueWidget = state;
+            case CURSOR_LABEL -> cursorLabelWidget = state;
+            case CURSOR_X -> cursorXWidget = state;
+            case CURSOR_SEPARATOR -> cursorSeparatorWidget = state;
+            case CURSOR_Y -> cursorYWidget = state;
             case HOTBAR_BAR -> hotbarWidget = state;
             case HOTBAR_TITLE -> hotbarTitleWidget = state;
             case HOTBAR_SUBTITLE -> hotbarSubtitleWidget = state;
@@ -2230,14 +2378,6 @@ public class SfmDrawScreen extends Screen {
                 hotbarWidget = hotbarWidget.withPosition(x, y);
                 clampHotbarToScreen();
             }
-            case HOTBAR_TITLE -> {
-                hotbarTitleWidget = hotbarTitleWidget.withPosition(x, y);
-                clampHotbarTitleToScreen();
-            }
-            case HOTBAR_SUBTITLE -> {
-                hotbarSubtitleWidget = hotbarSubtitleWidget.withPosition(x, y);
-                clampHotbarSubtitleToScreen();
-            }
             case MINIMAP -> {
                 minimapWidget = minimapWidget.withPosition(x, y);
                 clampCameraOverlayToScreen();
@@ -2245,6 +2385,10 @@ public class SfmDrawScreen extends Screen {
             case LAYER_WINDOW -> {
                 layerWindowWidget = layerWindowWidget.withPosition(x, y);
                 clampLayerWindowToScreen();
+            }
+            default -> {
+                setChromeWidgetState(widget, chromeWidgetState(widget).withPosition(x, y));
+                clampTextChromeWidgetToScreen(widget);
             }
         }
     }
@@ -2260,14 +2404,6 @@ public class SfmDrawScreen extends Screen {
                 hotbarWidget = hotbarWidget.withScale(scale);
                 clampHotbarToScreen();
             }
-            case HOTBAR_TITLE -> {
-                hotbarTitleWidget = hotbarTitleWidget.withScale(scale);
-                clampHotbarTitleToScreen();
-            }
-            case HOTBAR_SUBTITLE -> {
-                hotbarSubtitleWidget = hotbarSubtitleWidget.withScale(scale);
-                clampHotbarSubtitleToScreen();
-            }
             case MINIMAP -> {
                 minimapWidget = minimapWidget.withSize(width, height);
                 clampCameraOverlayToScreen();
@@ -2276,14 +2412,19 @@ public class SfmDrawScreen extends Screen {
                 layerWindowWidget = layerWindowWidget.withSize(width, height);
                 clampLayerWindowToScreen();
             }
+            default -> {
+                setChromeWidgetState(widget, chromeWidgetState(widget).withScale(scale));
+                clampTextChromeWidgetToScreen(widget);
+            }
         }
     }
 
     private Rect chromeWidgetDragBounds(ChromeWidget widget) {
         return switch (widget) {
-            case HOTBAR_BAR, HOTBAR_TITLE, HOTBAR_SUBTITLE -> chromeWidgetBounds(widget);
+            case HOTBAR_BAR -> chromeWidgetBounds(widget);
             case MINIMAP -> cameraOverlayHeaderBounds();
             case LAYER_WINDOW -> layerWindowHeaderBounds();
+            default -> chromeWidgetBounds(widget);
         };
     }
 
@@ -2291,6 +2432,7 @@ public class SfmDrawScreen extends Screen {
         return switch (widget) {
             case HOTBAR_BAR, HOTBAR_TITLE, HOTBAR_SUBTITLE, MINIMAP -> chromeWidgetBounds(widget);
             case LAYER_WINDOW -> layerWindowResizeHandleBounds();
+            default -> chromeWidgetBounds(widget);
         };
     }
 
@@ -2454,22 +2596,55 @@ public class SfmDrawScreen extends Screen {
         return new Rect(state.x(), state.y(), width, height);
     }
 
-    private void clampHotbarTitleToScreen() {
-        hotbarTitleWidget = hotbarTitleWidget.withScale(Mth.clamp(hotbarTitleWidget.scale(), TEXT_WIDGET_MIN_SCALE, TEXT_WIDGET_MAX_SCALE));
-        Rect bounds = hotbarTitleBounds();
-        hotbarTitleWidget = hotbarTitleWidget.withPosition(
-                Mth.clamp(bounds.left(), CHROME_EDGE_MARGIN, Math.max(CHROME_EDGE_MARGIN, width - bounds.width() - CHROME_EDGE_MARGIN)),
-                Mth.clamp(bounds.top(), CHROME_EDGE_MARGIN, Math.max(CHROME_EDGE_MARGIN, height - bounds.height() - CHROME_EDGE_MARGIN))
+    private boolean isTextChromeWidget(ChromeWidget widget) {
+        return switch (widget) {
+            case SCREEN_TITLE, SCREEN_SUBTITLE,
+                 ACTIVE_LAYER_LABEL, ACTIVE_LAYER_VALUE,
+                 CAMERA_POSITION_LABEL, CAMERA_POSITION_X, CAMERA_POSITION_SEPARATOR, CAMERA_POSITION_Y,
+                 ZOOM_LABEL, ZOOM_VALUE,
+                 CURSOR_LABEL, CURSOR_X, CURSOR_SEPARATOR, CURSOR_Y,
+                 HOTBAR_TITLE, HOTBAR_SUBTITLE -> true;
+            default -> false;
+        };
+    }
+
+    private void clampTextChromeWidgetToScreen(ChromeWidget widget) {
+        if (!isTextChromeWidget(widget)) {
+            return;
+        }
+        ChromeWidgetState state = chromeWidgetState(widget).withScale(Mth.clamp(chromeWidgetState(widget).scale(), TEXT_WIDGET_MIN_SCALE, TEXT_WIDGET_MAX_SCALE));
+        setChromeWidgetState(widget, state);
+        Rect bounds = chromeWidgetBounds(widget);
+        setChromeWidgetState(
+                widget,
+                chromeWidgetState(widget).withPosition(
+                        Mth.clamp(bounds.left(), CHROME_EDGE_MARGIN, Math.max(CHROME_EDGE_MARGIN, width - bounds.width() - CHROME_EDGE_MARGIN)),
+                        Mth.clamp(bounds.top(), CHROME_EDGE_MARGIN, Math.max(CHROME_EDGE_MARGIN, height - bounds.height() - CHROME_EDGE_MARGIN))
+                )
         );
     }
 
+    private void clampAllTextChromeWidgetsToScreen() {
+        for (ChromeWidget widget : ChromeWidget.VALUES) {
+            clampTextChromeWidgetToScreen(widget);
+        }
+    }
+
+    private void clampChromeWidgetToScreen(ChromeWidget widget) {
+        switch (widget) {
+            case HOTBAR_BAR -> clampHotbarToScreen();
+            case MINIMAP -> clampCameraOverlayToScreen();
+            case LAYER_WINDOW -> clampLayerWindowToScreen();
+            default -> clampTextChromeWidgetToScreen(widget);
+        }
+    }
+
+    private void clampHotbarTitleToScreen() {
+        clampTextChromeWidgetToScreen(ChromeWidget.HOTBAR_TITLE);
+    }
+
     private void clampHotbarSubtitleToScreen() {
-        hotbarSubtitleWidget = hotbarSubtitleWidget.withScale(Mth.clamp(hotbarSubtitleWidget.scale(), TEXT_WIDGET_MIN_SCALE, TEXT_WIDGET_MAX_SCALE));
-        Rect bounds = hotbarSubtitleBounds(Component.literal(describeTool(activeTool)));
-        hotbarSubtitleWidget = hotbarSubtitleWidget.withPosition(
-                Mth.clamp(bounds.left(), CHROME_EDGE_MARGIN, Math.max(CHROME_EDGE_MARGIN, width - bounds.width() - CHROME_EDGE_MARGIN)),
-                Mth.clamp(bounds.top(), CHROME_EDGE_MARGIN, Math.max(CHROME_EDGE_MARGIN, height - bounds.height() - CHROME_EDGE_MARGIN))
-        );
+        clampTextChromeWidgetToScreen(ChromeWidget.HOTBAR_SUBTITLE);
     }
 
     private Rect layerWindowBounds() {
@@ -2537,22 +2712,26 @@ public class SfmDrawScreen extends Screen {
     }
 
     private int chromeWidgetMinimumWidth(ChromeWidget widget) {
+        if (isTextChromeWidget(widget)) {
+            return 18;
+        }
         return switch (widget) {
             case HOTBAR_BAR -> Math.max(60, (int) Math.round(HOTBAR_WIDTH * HOTBAR_MIN_SCALE));
-            case HOTBAR_TITLE -> 18;
-            case HOTBAR_SUBTITLE -> 18;
             case MINIMAP -> MINIMAP_MIN_WIDTH;
             case LAYER_WINDOW -> LAYER_WINDOW_MIN_WIDTH;
+            default -> 18;
         };
     }
 
     private int chromeWidgetMinimumHeight(ChromeWidget widget) {
+        if (isTextChromeWidget(widget)) {
+            return 10;
+        }
         return switch (widget) {
             case HOTBAR_BAR -> Math.max(16, (int) Math.round(HOTBAR_HEIGHT * HOTBAR_MIN_SCALE));
-            case HOTBAR_TITLE -> 10;
-            case HOTBAR_SUBTITLE -> 10;
             case MINIMAP -> MINIMAP_MIN_HEIGHT;
             case LAYER_WINDOW -> LAYER_WINDOW_MIN_HEIGHT;
+            default -> 10;
         };
     }
 
@@ -2560,10 +2739,17 @@ public class SfmDrawScreen extends Screen {
             ChromeWidget widget,
             Rect bounds
     ) {
+        if (isTextChromeWidget(widget)) {
+            return Mth.clamp(
+                    Math.max(bounds.width() / (double) Math.max(1, chromeWidgetBounds(widget).width()), bounds.height() / (double) Math.max(1, chromeWidgetBounds(widget).height())) * chromeWidgetState(widget).scale(),
+                    TEXT_WIDGET_MIN_SCALE,
+                    TEXT_WIDGET_MAX_SCALE
+            );
+        }
         return switch (widget) {
             case HOTBAR_BAR -> Mth.clamp(Math.max(bounds.width() / (double) HOTBAR_WIDTH, bounds.height() / (double) HOTBAR_HEIGHT), HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE);
-            case HOTBAR_TITLE, HOTBAR_SUBTITLE -> Mth.clamp(Math.max(bounds.width() / (double) Math.max(1, chromeWidgetBounds(widget).width()), bounds.height() / (double) Math.max(1, chromeWidgetBounds(widget).height())) * chromeWidgetState(widget).scale(), TEXT_WIDGET_MIN_SCALE, TEXT_WIDGET_MAX_SCALE);
             case MINIMAP, LAYER_WINDOW -> 1.0D;
+            default -> 1.0D;
         };
     }
 
@@ -2837,8 +3023,16 @@ public class SfmDrawScreen extends Screen {
         );
     }
 
-    private @Nullable CameraOverlayProjection cameraOverlayProjection() {
-        if (!cameraOverlayVisible) {
+    private @Nullable CameraOverlayProjection cameraOverlayRenderProjection() {
+        return cameraOverlayProjection(true);
+    }
+
+    private @Nullable CameraOverlayProjection cameraOverlayInteractionProjection() {
+        return cameraOverlayProjection(false);
+    }
+
+    private @Nullable CameraOverlayProjection cameraOverlayProjection(boolean allowHidden) {
+        if (allowHidden ? !isChromeWidgetRendered(ChromeWidget.MINIMAP) : !isChromeWidgetOperational(ChromeWidget.MINIMAP)) {
             return null;
         }
         Rect overlayBounds = cameraOverlayBounds();
@@ -3666,6 +3860,20 @@ public class SfmDrawScreen extends Screen {
     }
 
     private enum ChromeWidget {
+        SCREEN_TITLE,
+        SCREEN_SUBTITLE,
+        ACTIVE_LAYER_LABEL,
+        ACTIVE_LAYER_VALUE,
+        CAMERA_POSITION_LABEL,
+        CAMERA_POSITION_X,
+        CAMERA_POSITION_SEPARATOR,
+        CAMERA_POSITION_Y,
+        ZOOM_LABEL,
+        ZOOM_VALUE,
+        CURSOR_LABEL,
+        CURSOR_X,
+        CURSOR_SEPARATOR,
+        CURSOR_Y,
         HOTBAR_BAR,
         HOTBAR_TITLE,
         HOTBAR_SUBTITLE,
@@ -3676,6 +3884,20 @@ public class SfmDrawScreen extends Screen {
 
         public Component label() {
             return switch (this) {
+                case SCREEN_TITLE -> Component.literal("Screen title");
+                case SCREEN_SUBTITLE -> Component.literal("Screen subtitle");
+                case ACTIVE_LAYER_LABEL -> Component.literal("Layer label");
+                case ACTIVE_LAYER_VALUE -> Component.literal("Layer value");
+                case CAMERA_POSITION_LABEL -> Component.literal("Camera label");
+                case CAMERA_POSITION_X -> Component.literal("Camera x");
+                case CAMERA_POSITION_SEPARATOR -> Component.literal("Camera separator");
+                case CAMERA_POSITION_Y -> Component.literal("Camera y");
+                case ZOOM_LABEL -> Component.literal("Zoom label");
+                case ZOOM_VALUE -> Component.literal("Zoom value");
+                case CURSOR_LABEL -> Component.literal("Cursor label");
+                case CURSOR_X -> Component.literal("Cursor x");
+                case CURSOR_SEPARATOR -> Component.literal("Cursor separator");
+                case CURSOR_Y -> Component.literal("Cursor y");
                 case HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
                 case HOTBAR_TITLE -> Component.literal("Tools title");
                 case HOTBAR_SUBTITLE -> Component.literal("Tools subtitle");
