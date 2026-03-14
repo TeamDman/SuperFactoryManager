@@ -156,6 +156,32 @@ public class SfmDrawScreen extends Screen {
         }
 
     @Override
+    protected void init() {
+        super.init();
+        initChromeCursors();
+        if (hotbarWidget.x() == Integer.MIN_VALUE || hotbarWidget.y() == Integer.MIN_VALUE) {
+            hotbarWidget = hotbarWidget.withPosition((width - HOTBAR_WIDTH) / 2, Math.max(32, height - HOTBAR_HEIGHT - 42));
+        }
+        if (minimapWidget.x() == Integer.MIN_VALUE || minimapWidget.y() == Integer.MIN_VALUE) {
+            minimapWidget = minimapWidget.withPosition(width - MINIMAP_WIDTH - 12, 30);
+        }
+        if (layerWindowWidget.x() == Integer.MIN_VALUE || layerWindowWidget.y() == Integer.MIN_VALUE) {
+            layerWindowWidget = layerWindowWidget.withPosition(12, 42);
+        }
+        initializeStatusChromeWidgets();
+        clampHotbarToScreen();
+        clampAllTextChromeWidgetsToScreen();
+        clampCameraOverlayToScreen();
+        clampLayerWindowToScreen();
+    }
+
+    @Override
+    public void onClose() {
+        releaseChromeCursors();
+        super.onClose();
+    }
+
+    @Override
     public boolean isPauseScreen() {
 
         return false;
