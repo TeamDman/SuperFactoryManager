@@ -150,6 +150,10 @@
 >
 > Selected arrow anchors MUST be deletable independently of the rest of the arrow.
 
+> r[draw.tool.arrow.anchors.hide]
+>
+> Selected arrow anchors MUST support being hidden independently so hiding can act as a reversible stand-in for deletion.
+
 > r[draw.tool.arrow.destroy-when-one-anchor-remains]
 >
 > If anchor deletion leaves an arrow with only one remaining anchor, the arrow MUST be destroyed.
