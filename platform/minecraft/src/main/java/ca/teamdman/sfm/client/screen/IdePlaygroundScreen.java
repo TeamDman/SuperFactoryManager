@@ -2260,7 +2260,7 @@ public class IdePlaygroundScreen extends Screen {
         }
 
         if (!normalized.contains(":")) {
-            return SFMIdePlaygroundActions.registry().get(SFMResourceLocation.fromSFMPath(normalized));
+            return SFMIdePlaygroundActions.registry().get(SFMResourceLocation.tryParse("sfm:"+normalized));
         }
 
         return null;
