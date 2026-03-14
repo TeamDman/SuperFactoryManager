@@ -42,6 +42,10 @@
 >
 > The camera tool MUST support dragging a frame to reposition and zoom the viewport to the framed canvas region.
 
+> r[draw.camera.tool.selection-toggles-minimap]
+>
+> Selecting the camera tool MUST immediately toggle the visibility of the camera/minimap overlay.
+
 > r[draw.canvas.shared-tools]
 >
 > The same core manipulation tools MUST be usable for both document content and editable chrome content.
@@ -59,6 +63,10 @@
 > r[draw.chrome.hotbar.shortcuts]
 >
 > The tool hotbar MUST expose keyboard shortcuts for the available tools and number-key selection for the hotbar slots.
+
+> r[draw.chrome.hotbar.parts.independent]
+>
+> The hotbar title, the hotbar bar, and the hotbar subtitle MUST be independently positionable and resizable chrome widgets.
 
 > r[draw.chrome.minimap]
 >
@@ -114,6 +122,14 @@
 >
 > Selecting the layer tool MUST make the layer window visible.
 
+> r[draw.tool.layer.toggles-layer-window]
+>
+> Selecting the layer tool while the layer window is already visible MUST hide the layer window.
+
+> r[draw.tool.layer.shortcut.tab]
+>
+> The default shortcut for selecting the layer tool SHOULD be `Tab`.
+
 # Selection and transforms
 
 > r[draw.tool.cursor.selection]
@@ -127,6 +143,18 @@
 > r[draw.tool.cursor.transform_selection]
 >
 > Selected elements MUST support moving and resizing from the cursor tool.
+
+> r[draw.tool.cursor.selection.additive]
+>
+> Holding `Shift` while using the cursor tool MUST make click and marquee selection additive.
+
+> r[draw.tool.cursor.selection.subtractive]
+>
+> Holding `Ctrl` while using the cursor tool MUST make click and marquee selection subtractive.
+
+> r[draw.tool.cursor.selection.modifier-indicator]
+>
+> While additive or subtractive selection is active, the draw screen MUST render a visible `+` or `-` cursor indicator.
 
 > r[draw.tool.cursor.duplicate_selection]
 >
@@ -182,6 +210,10 @@
 >
 > The chrome layer MUST allow the user to reposition and resize customizable interface elements.
 
+> r[draw.layer.chrome.selection-handles]
+>
+> In the chrome layer, selectable chrome widgets MUST expose the same eight resize handles used by rectangular canvas selections.
+
 > r[draw.layer.widgets-owned-by-layer]
 >
 > Editable chrome widgets MUST belong to the chrome layer rather than the normal content layer.
@@ -227,6 +259,10 @@
 > r[draw.layer-window.resizable]
 >
 > The layer window MUST be resizable by dragging its resize handle.
+
+> r[draw.layer-window.interact-any-layer]
+>
+> The layer window close, drag, and resize interactions MUST remain available regardless of the currently active layer.
 
 > r[draw.layer-window.close-priority]
 >
@@ -375,6 +411,22 @@
 > r[draw.element.layer-ownership]
 >
 > Every persisted draw element MUST belong to exactly one layer.
+
+> r[draw.element.hidden.toggle-selection]
+>
+> If a selection exists, pressing `X` MUST toggle the hidden state of that selection by making every selected item match the opposite of the selection's majority hidden state.
+
+> r[draw.element.hidden.reveal-toggle]
+>
+> If no selection exists, pressing `X` MUST toggle reveal-hidden-elements mode.
+
+> r[draw.element.hidden.dim-when-revealed]
+>
+> Hidden elements that are revealed for editing MUST be rendered in a visually dimmed state.
+
+> r[draw.tool.cursor.hidden-omitted-unless-revealed]
+>
+> Hidden elements MUST be omitted from cursor hit-testing and marquee selection unless reveal-hidden-elements mode is active.
 
 # Planned follow-ups
 
