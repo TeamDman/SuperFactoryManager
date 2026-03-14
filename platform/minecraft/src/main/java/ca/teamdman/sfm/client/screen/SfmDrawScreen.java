@@ -115,7 +115,7 @@ public class SfmDrawScreen extends Screen {
     private boolean textToolCreatesBoundText = true;
     private int textEditingElementId = -1;
     private int textEditingCaretIndex = 0;
-    private boolean stickyToolMode = true;
+    private boolean stickyToolMode = false;
 
     private final List<CanvasPoint> pendingArrowAnchors = new ArrayList<>();
     private @Nullable CameraOverlayProjection pendingArrowProjection = null;
@@ -125,6 +125,7 @@ public class SfmDrawScreen extends Screen {
     private @Nullable ResizeSelectionDrag resizeSelectionDrag = null;
     private @Nullable MarqueeSelectionDrag marqueeSelectionDrag = null;
     private @Nullable ChromeMarqueeSelectionDrag chromeMarqueeSelectionDrag = null;
+    private @Nullable MoveChromeSelectionDrag moveChromeSelectionDrag = null;
     private @Nullable CameraFrameDrag cameraFrameDrag = null;
     private boolean duplicateSelectionPendingOnDrag = false;
 
@@ -381,7 +382,7 @@ public class SfmDrawScreen extends Screen {
 
         Rect overlayBounds = cameraOverlayBounds();
         // r[impl draw.camera.hidden-minimap-not-interactive]
-        @Nullable CameraOverlayProjection overlayProjection = cameraOverlayInteractionProjection();
+        @Nullable CameraOverlayProjection overlayProjection = isChromeLayerActive() ? null : cameraOverlayInteractionProjection();
         @Nullable CameraOverlayProjection projectionUnderMouse = overlayProjection != null && overlayProjection.mapBounds().contains(mouseX, mouseY) ? overlayProjection : null;
         if (isChromeWidgetOperational(ChromeWidget.MINIMAP) && overlayBounds.contains(mouseX, mouseY) && projectionUnderMouse == null) {
             return true;
@@ -574,6 +575,15 @@ public class SfmDrawScreen extends Screen {
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && moveSelectionDrag != null) {
             moveSelectionDrag = null;
             duplicateSelectionPendingOnDrag = false;
+            return true;
+        }
+
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && moveChromeSelectionDrag != null) {
+            moveChromeSelectionDrag = null;
+            draggingChromeWidget = null;
+            for (ChromeWidget widget : selectedChromeWidgets) {
+                clampChromeWidgetToScreen(widget);
+            }
             return true;
         }
 
@@ -2290,6 +2300,7 @@ public class SfmDrawScreen extends Screen {
             double mouseY
     ) {
         SelectionMode selectionMode = selectionMode();
+        @Nullable ChromeWidget hoveredWidget = hoveredChromeWidget(mouseX, mouseY);
         if (selectionMode == SelectionMode.REPLACE
             && selectedChromeWidget != null
             && selectedChromeWidgets.size() == 1
@@ -2297,7 +2308,6 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
-        @Nullable ChromeWidget hoveredWidget = hoveredChromeWidget(mouseX, mouseY);
         if (hoveredWidget == null) {
             if (selectionMode == SelectionMode.REPLACE) {
                 clearChromeSelection();
@@ -2317,8 +2327,12 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        if (selectionMode == SelectionMode.REPLACE && isChromeWidgetSelected(hoveredWidget)) {
+            return beginChromeSelectionMove(hoveredWidget, mouseX, mouseY) || chromeWidgetBounds(hoveredWidget).contains(mouseX, mouseY);
+        }
+
         selectOnlyChromeWidget(hoveredWidget);
-        return beginChromeWidgetDrag(hoveredWidget, mouseX, mouseY) || chromeWidgetBounds(hoveredWidget).contains(mouseX, mouseY);
+        return beginChromeSelectionMove(hoveredWidget, mouseX, mouseY) || chromeWidgetBounds(hoveredWidget).contains(mouseX, mouseY);
     }
 
     private @Nullable ChromeWidget hoveredChromeWidget(
@@ -2381,6 +2395,19 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    private boolean beginChromeSelectionMove(
+            ChromeWidget widget,
+            double mouseX,
+            double mouseY
+    ) {
+        if (!isChromeWidgetRendered(widget) || !chromeWidgetDragBounds(widget).contains(mouseX, mouseY)) {
+            return false;
+        }
+        draggingChromeWidget = widget;
+        moveChromeSelectionDrag = new MoveChromeSelectionDrag(chromeSelectionSnapshot(), mouseX, mouseY);
+        return true;
+    }
+
     private boolean beginChromeWidgetResize(
             ChromeWidget widget,
             double mouseX,
@@ -2439,6 +2466,10 @@ public class SfmDrawScreen extends Screen {
             double mouseX,
             double mouseY
     ) {
+        if (moveChromeSelectionDrag != null) {
+            applyChromeSelectionMove(moveChromeSelectionDrag, mouseX, mouseY);
+            return true;
+        }
         if (draggingChromeWidget == null) {
             return false;
         }
@@ -2486,6 +2517,14 @@ public class SfmDrawScreen extends Screen {
     }
 
     private boolean releaseChromeWidgetInteractions() {
+        if (moveChromeSelectionDrag != null) {
+            for (ChromeWidget widget : selectedChromeWidgets) {
+                clampChromeWidgetToScreen(widget);
+            }
+            moveChromeSelectionDrag = null;
+            draggingChromeWidget = null;
+            return true;
+        }
         if (draggingChromeWidget != null) {
             clampChromeWidgetToScreen(draggingChromeWidget);
             draggingChromeWidget = null;
@@ -2499,6 +2538,27 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
         return false;
+    }
+
+    private List<ChromeWidgetSnapshot> chromeSelectionSnapshot() {
+        List<ChromeWidgetSnapshot> snapshots = new ArrayList<>(selectedChromeWidgets.size());
+        for (ChromeWidget widget : selectedChromeWidgets) {
+            snapshots.add(new ChromeWidgetSnapshot(widget, chromeWidgetState(widget)));
+        }
+        return snapshots;
+    }
+
+    private void applyChromeSelectionMove(
+            MoveChromeSelectionDrag drag,
+            double mouseX,
+            double mouseY
+    ) {
+        int dx = (int) Math.round(mouseX - drag.startMouseX());
+        int dy = (int) Math.round(mouseY - drag.startMouseY());
+        for (ChromeWidgetSnapshot snapshot : drag.snapshots()) {
+            setChromeWidgetState(snapshot.widget(), snapshot.state().withPosition(snapshot.state().x() + dx, snapshot.state().y() + dy));
+            clampChromeWidgetToScreen(snapshot.widget());
+        }
     }
 
     private ChromeWidgetState chromeWidgetState(ChromeWidget widget) {
@@ -2665,6 +2725,7 @@ public class SfmDrawScreen extends Screen {
             } else {
                 clearChromeSelection();
                 draggingChromeWidget = null;
+                moveChromeSelectionDrag = null;
                 resizingChromeWidget = null;
                 chromeMarqueeSelectionDrag = null;
                 chromeWidgetResizeHandle = null;
@@ -2723,6 +2784,7 @@ public class SfmDrawScreen extends Screen {
         duplicateSelectionPendingOnDrag = false;
         cameraFrameDrag = null;
         draggingChromeWidget = null;
+        moveChromeSelectionDrag = null;
         resizingChromeWidget = null;
         chromeWidgetResizeHandle = null;
         chromeWidgetResizeOriginalBounds = null;
@@ -3718,6 +3780,12 @@ public class SfmDrawScreen extends Screen {
     ) {
     }
 
+        private record ChromeWidgetSnapshot(
+            ChromeWidget widget,
+            ChromeWidgetState state
+        ) {
+        }
+
     private static final class DraftInteraction {
         private final DrawTool tool;
         private final CanvasPoint startPoint;
@@ -3772,6 +3840,13 @@ public class SfmDrawScreen extends Screen {
             @Nullable CameraOverlayProjection projection
     ) {
     }
+
+        private record MoveChromeSelectionDrag(
+            List<ChromeWidgetSnapshot> snapshots,
+            double startMouseX,
+            double startMouseY
+        ) {
+        }
 
     private static final class MarqueeSelectionDrag {
         private final CanvasPoint startPoint;
