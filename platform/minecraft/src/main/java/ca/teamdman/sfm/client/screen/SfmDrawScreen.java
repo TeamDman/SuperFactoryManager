@@ -653,8 +653,8 @@ public class SfmDrawScreen extends Screen {
         }
 
         zoom = newZoom;
-        cameraX = focusPoint.x() - (mouseX - width / 2.0D) / zoom;
-        cameraY = focusPoint.y() - (mouseY - height / 2.0D) / zoom;
+        cameraX = focusPoint.x() - (mouseX - screenCenterX()) / zoom;
+        cameraY = focusPoint.y() - (mouseY - screenCenterY()) / zoom;
         return true;
     }
 
@@ -3418,8 +3418,8 @@ public class SfmDrawScreen extends Screen {
             return projection.screenToCanvas(screenX, screenY);
         }
         return new CanvasPoint(
-                cameraX + (screenX - width / 2.0D) / zoom,
-                cameraY + (screenY - height / 2.0D) / zoom
+                cameraX + (screenX - screenCenterX()) / zoom,
+                cameraY + (screenY - screenCenterY()) / zoom
         );
     }
 
@@ -3435,11 +3435,19 @@ public class SfmDrawScreen extends Screen {
     }
 
     private double canvasToScreenX(double canvasX) {
-        return (canvasX - cameraX) * zoom + width / 2.0D;
+        return (canvasX - cameraX) * zoom + screenCenterX();
     }
 
     private double canvasToScreenY(double canvasY) {
-        return (canvasY - cameraY) * zoom + height / 2.0D;
+        return (canvasY - cameraY) * zoom + screenCenterY();
+    }
+
+    private double screenCenterX() {
+        return Math.rint(width / 2.0D);
+    }
+
+    private double screenCenterY() {
+        return Math.rint(height / 2.0D);
     }
 
     private CanvasBounds visibleCanvasBounds() {
