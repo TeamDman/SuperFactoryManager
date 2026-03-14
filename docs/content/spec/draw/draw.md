@@ -106,6 +106,10 @@
 >
 > Pressing the active creation tool's shortcut again SHOULD toggle sticky mode for that tool.
 
+> r[draw.tool.creation.sticky_toggle.hotbar-shortcut]
+>
+> Number-key hotbar shortcuts SHOULD mirror the active tool shortcut behavior, including sticky-mode toggling when the same creation tool is chosen again.
+
 > r[draw.tool.rectangle.create]
 >
 > A rectangle tool MUST create rectangular canvas elements by dragging from a start point to an end point.
@@ -175,6 +179,18 @@
 > r[draw.tool.cursor.transform_selection]
 >
 > Selected elements MUST support moving and resizing from the cursor tool.
+
+> r[draw.tool.cursor.transform_selection.drag-snap]
+>
+> Drag-repositioning a canvas selection MUST snap movement to 8-unit increments by default, to 32-unit increments while `Shift` is held, and to 1-unit increments while `Ctrl` is held.
+
+> r[draw.tool.cursor.transform_selection.keyboard-nudge]
+>
+> The arrow keys MUST support nudging the active selection using the same default, `Shift`, and `Ctrl` movement increments as drag repositioning.
+
+> r[draw.tool.cursor.transform_selection.handles-hidden-during-move]
+>
+> Selection resize handles MUST be hidden while a selected object is actively being drag-repositioned.
 
 > r[draw.tool.cursor.transform_selection.handle-cursor]
 >
@@ -495,6 +511,10 @@
 > r[draw.element.hidden.reveal-toggle]
 >
 > If no selection exists, pressing `X` MUST toggle reveal-hidden-elements mode.
+
+> r[draw.element.hidden.select-revealed]
+>
+> While reveal-hidden-elements mode is active, pressing `Shift+X` MUST select all hidden elements on the active canvas layer.
 
 > r[draw.element.hidden.dim-when-revealed]
 >

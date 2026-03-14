@@ -54,6 +54,9 @@ public class SfmDrawScreen extends Screen {
     private static final int HANDLE_HALF_SIZE = 4;
     private static final int CHROME_EDGE_MARGIN = 2;
     private static final float ARROW_STROKE_WIDTH = 2.5F;
+    private static final int DEFAULT_MOVE_SNAP = 8;
+    private static final int LARGE_MOVE_SNAP = 32;
+    private static final int SMALL_MOVE_SNAP = 1;
 
     private final List<DrawElement> elements = new ArrayList<>();
     private final Set<Integer> selectedElementIds = new LinkedHashSet<>();
@@ -233,6 +236,12 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        // r[impl draw.element.hidden.select-revealed]
+        if (activeLayer == DrawLayer.ELEMENTS && revealHiddenElements && hasShiftDown() && keyCode == GLFW.GLFW_KEY_X) {
+            selectAllHiddenElements();
+            return true;
+        }
+
         // r[impl draw.tool.cursor.delete_selection]
         if (activeLayer == DrawLayer.ELEMENTS && (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE)) {
             if (deleteSelectedElements()) {
@@ -243,6 +252,11 @@ public class SfmDrawScreen extends Screen {
         // r[impl draw.tool.cursor.duplicate_selection]
         if (activeLayer == DrawLayer.ELEMENTS && hasAltDown() && keyCode == GLFW.GLFW_KEY_D) {
             duplicateSelection();
+            return true;
+        }
+
+        // r[impl draw.tool.cursor.transform_selection.keyboard-nudge]
+        if (activeTool == DrawTool.CURSOR && nudgeActiveSelection(keyCode)) {
             return true;
         }
 
@@ -274,7 +288,7 @@ public class SfmDrawScreen extends Screen {
         // r[impl draw.chrome.hotbar.shortcuts]
         int hotbarIndex = hotbarIndexForKeyCode(keyCode);
         if (hotbarIndex >= 0 && hotbarIndex < TOOL_COUNT) {
-            handleHotbarToolClick(DrawTool.VALUES[hotbarIndex]);
+            handleToolShortcut(DrawTool.VALUES[hotbarIndex]);
             return true;
         }
 
@@ -293,11 +307,7 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
         if (shortcutTool != null) {
-            if (shortcutTool == activeTool && supportsStickyMode(shortcutTool)) {
-                stickyToolMode = !stickyToolMode;
-                return true;
-            }
-            handleHotbarToolClick(shortcutTool);
+            handleToolShortcut(shortcutTool);
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
@@ -925,7 +935,8 @@ public class SfmDrawScreen extends Screen {
         ScreenRect screenBounds = canvasBoundsToScreenRect(selectionBounds);
         drawScreenRectOutline(poseStack, screenBounds, 0xFFF6E27F);
 
-        if (activeTool == DrawTool.CURSOR) {
+        if (activeTool == DrawTool.CURSOR && moveSelectionDrag == null) {
+            // r[impl draw.tool.cursor.transform_selection.handles-hidden-during-move]
             for (SelectionHandle handle : SelectionHandle.VALUES) {
                 ScreenPoint handlePoint = selectionHandlePoint(screenBounds, handle);
                 fill(
@@ -1629,7 +1640,7 @@ public class SfmDrawScreen extends Screen {
         if (selectionMode == SelectionMode.REPLACE && selectionBounds != null && selectionBounds.contains(canvasPoint)) {
             // r[impl draw.tool.cursor.duplicate_selection.alt-drag]
             duplicateSelectionPendingOnDrag = hasAltDown();
-            moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection);
+            moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection, selectionBounds);
             return;
         }
 
@@ -1648,7 +1659,10 @@ public class SfmDrawScreen extends Screen {
             }
             // r[impl draw.tool.cursor.duplicate_selection.alt-drag]
             duplicateSelectionPendingOnDrag = hasAltDown();
-            moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection);
+            CanvasBounds moveBounds = currentSelectionBounds();
+            if (moveBounds != null) {
+                moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), canvasPoint, projection, moveBounds);
+            }
             return;
         }
 
@@ -1662,15 +1676,20 @@ public class SfmDrawScreen extends Screen {
     ) {
         if (duplicateSelectionPendingOnDrag) {
             duplicateSelection();
-            moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), drag.startPoint(), drag.projection());
+            CanvasBounds duplicatedSelectionBounds = currentSelectionBounds();
+            moveSelectionDrag = duplicatedSelectionBounds == null
+                    ? null
+                    : new MoveSelectionDrag(selectionSnapshot(), drag.startPoint(), drag.projection(), duplicatedSelectionBounds);
             duplicateSelectionPendingOnDrag = false;
             drag = moveSelectionDrag;
             if (drag == null) {
                 return;
             }
         }
-        double dx = currentPoint.x() - drag.startPoint().x();
-        double dy = currentPoint.y() - drag.startPoint().y();
+        // r[impl draw.tool.cursor.transform_selection.drag-snap]
+        CanvasPoint snappedDelta = snappedMoveDelta(drag, currentPoint);
+        double dx = snappedDelta.x();
+        double dy = snappedDelta.y();
         for (ElementSnapshot snapshot : drag.snapshots()) {
             DrawElement element = findElementById(snapshot.id());
             if (element == null) {
@@ -1865,6 +1884,15 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    private void handleToolShortcut(DrawTool tool) {
+        if (tool == activeTool && supportsStickyMode(tool)) {
+            // r[impl draw.tool.creation.sticky_toggle.hotbar-shortcut]
+            stickyToolMode = !stickyToolMode;
+            return;
+        }
+        handleHotbarToolClick(tool);
+    }
+
     // r[impl draw.tool.cursor.select_all]
     private void selectAllElements() {
         selectedElementIds.clear();
@@ -1874,6 +1902,72 @@ public class SfmDrawScreen extends Screen {
                 selectedElementIds.add(element.id());
             }
         }
+    }
+
+    private void selectAllHiddenElements() {
+        selectedElementIds.clear();
+        for (DrawElement element : elements) {
+            if (isElementSelectable(element) && element.hidden()) {
+                selectedElementIds.add(element.id());
+            }
+        }
+    }
+
+    private boolean nudgeActiveSelection(int keyCode) {
+        if (!isArrowKey(keyCode)) {
+            return false;
+        }
+        int step = movementSnapIncrement();
+        int dx = 0;
+        int dy = 0;
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_LEFT -> dx = -step;
+            case GLFW.GLFW_KEY_RIGHT -> dx = step;
+            case GLFW.GLFW_KEY_UP -> dy = -step;
+            case GLFW.GLFW_KEY_DOWN -> dy = step;
+            default -> {
+                return false;
+            }
+        }
+        if (activeLayer == DrawLayer.ELEMENTS) {
+            return nudgeSelectedElements(dx, dy);
+        }
+        if (activeLayer == DrawLayer.CHROME) {
+            return nudgeSelectedChromeWidgets(dx, dy);
+        }
+        return false;
+    }
+
+    private boolean isArrowKey(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_LEFT
+               || keyCode == GLFW.GLFW_KEY_RIGHT
+               || keyCode == GLFW.GLFW_KEY_UP
+               || keyCode == GLFW.GLFW_KEY_DOWN;
+    }
+
+    private boolean nudgeSelectedElements(int dx, int dy) {
+        if (selectedElementIds.isEmpty()) {
+            return false;
+        }
+        for (Integer selectedElementId : selectedElementIds) {
+            DrawElement element = findElementById(selectedElementId);
+            if (element != null) {
+                element.translate(dx, dy);
+            }
+        }
+        return true;
+    }
+
+    private boolean nudgeSelectedChromeWidgets(int dx, int dy) {
+        if (selectedChromeWidgets.isEmpty()) {
+            return false;
+        }
+        for (ChromeWidget widget : selectedChromeWidgets) {
+            ChromeWidgetState state = chromeWidgetState(widget);
+            moveChromeWidget(widget, state.x() + dx, state.y() + dy);
+            clampChromeWidgetToScreen(widget);
+        }
+        return true;
     }
 
     // r[impl draw.tool.cursor.duplicate_selection]
@@ -2046,6 +2140,38 @@ public class SfmDrawScreen extends Screen {
             case SUBTRACT -> "-";
             case REPLACE -> null;
         };
+    }
+
+    private int movementSnapIncrement() {
+        if (hasControlDown()) {
+            return SMALL_MOVE_SNAP;
+        }
+        if (hasShiftDown()) {
+            return LARGE_MOVE_SNAP;
+        }
+        return DEFAULT_MOVE_SNAP;
+    }
+
+    private CanvasPoint snappedMoveDelta(
+            MoveSelectionDrag drag,
+            CanvasPoint currentPoint
+    ) {
+        double rawDx = currentPoint.x() - drag.startPoint().x();
+        double rawDy = currentPoint.y() - drag.startPoint().y();
+        double increment = movementSnapIncrement();
+        double snappedDx = snapToIncrement(drag.originalBounds().minX() + rawDx, increment) - drag.originalBounds().minX();
+        double snappedDy = snapToIncrement(drag.originalBounds().minY() + rawDy, increment) - drag.originalBounds().minY();
+        return new CanvasPoint(snappedDx, snappedDy);
+    }
+
+    private double snapToIncrement(
+            double value,
+            double increment
+    ) {
+        if (increment <= 1.0D) {
+            return Math.rint(value);
+        }
+        return Math.rint(value / increment) * increment;
     }
 
     private boolean toggleHiddennessForActiveSelection() {
@@ -3854,7 +3980,8 @@ public class SfmDrawScreen extends Screen {
     private record MoveSelectionDrag(
             List<ElementSnapshot> snapshots,
             CanvasPoint startPoint,
-            @Nullable CameraOverlayProjection projection
+            @Nullable CameraOverlayProjection projection,
+            CanvasBounds originalBounds
     ) {
     }
 
