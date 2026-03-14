@@ -62,20 +62,12 @@ public class SfmDrawScreen extends Screen {
     private double cameraY = 0.0D;
     private double zoom = 1.0D;
     private boolean cameraOverlayVisible = true;
-    private int cameraOverlayX = Integer.MIN_VALUE;
-    private int cameraOverlayY = Integer.MIN_VALUE;
-    private int cameraOverlayWidth = MINIMAP_WIDTH;
-    private int cameraOverlayHeight = MINIMAP_HEIGHT;
+    private ChromeWidgetState minimapWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, MINIMAP_WIDTH, MINIMAP_HEIGHT, 1.0D);
 
-    private int hotbarX = Integer.MIN_VALUE;
-    private int hotbarY = Integer.MIN_VALUE;
-    private double hotbarScale = 1.0D;
+    private ChromeWidgetState hotbarWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, HOTBAR_WIDTH, HOTBAR_HEIGHT, 1.0D);
 
     private boolean layerWindowVisible = false;
-    private int layerWindowX = Integer.MIN_VALUE;
-    private int layerWindowY = Integer.MIN_VALUE;
-    private int layerWindowWidth = LAYER_WINDOW_DEFAULT_WIDTH;
-    private int layerWindowHeight = LAYER_WINDOW_DEFAULT_HEIGHT;
+    private ChromeWidgetState layerWindowWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, LAYER_WINDOW_DEFAULT_WIDTH, LAYER_WINDOW_DEFAULT_HEIGHT, 1.0D);
     private @Nullable ChromeWidget draggingChromeWidget = null;
     private int chromeWidgetDragOffsetX = 0;
     private int chromeWidgetDragOffsetY = 0;
@@ -119,17 +111,14 @@ public class SfmDrawScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        if (hotbarX == Integer.MIN_VALUE || hotbarY == Integer.MIN_VALUE) {
-            hotbarX = (width - HOTBAR_WIDTH) / 2;
-            hotbarY = Math.max(32, height - HOTBAR_HEIGHT - 30);
+        if (hotbarWidget.x() == Integer.MIN_VALUE || hotbarWidget.y() == Integer.MIN_VALUE) {
+            hotbarWidget = hotbarWidget.withPosition((width - HOTBAR_WIDTH) / 2, Math.max(32, height - HOTBAR_HEIGHT - 30));
         }
-        if (cameraOverlayX == Integer.MIN_VALUE || cameraOverlayY == Integer.MIN_VALUE) {
-            cameraOverlayX = width - MINIMAP_WIDTH - 12;
-            cameraOverlayY = 30;
+        if (minimapWidget.x() == Integer.MIN_VALUE || minimapWidget.y() == Integer.MIN_VALUE) {
+            minimapWidget = minimapWidget.withPosition(width - MINIMAP_WIDTH - 12, 30);
         }
-        if (layerWindowX == Integer.MIN_VALUE || layerWindowY == Integer.MIN_VALUE) {
-            layerWindowX = 12;
-            layerWindowY = 42;
+        if (layerWindowWidget.x() == Integer.MIN_VALUE || layerWindowWidget.y() == Integer.MIN_VALUE) {
+            layerWindowWidget = layerWindowWidget.withPosition(12, 42);
         }
         clampHotbarToScreen();
         clampCameraOverlayToScreen();
@@ -1053,11 +1042,11 @@ public class SfmDrawScreen extends Screen {
     ) {
         Rect headerBounds = hotbarHeaderBounds();
         fill(poseStack, headerBounds.left(), headerBounds.top(), headerBounds.right(), headerBounds.bottom(), 0xCC11161E);
-        drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent(), hotbarX + 6, hotbarY - hotbarHeaderHeight() + 2, 0xE4E8EF);
+        drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent(), hotbarWidget.x() + 6, hotbarWidget.y() - hotbarHeaderHeight() + 2, 0xE4E8EF);
 
         poseStack.pushPose();
-        poseStack.translate(hotbarX, hotbarY, 0.0D);
-        poseStack.scale((float) hotbarScale, (float) hotbarScale, 1.0F);
+        poseStack.translate(hotbarWidget.x(), hotbarWidget.y(), 0.0D);
+        poseStack.scale((float) hotbarWidget.scale(), (float) hotbarWidget.scale(), 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, AbstractWidget.WIDGETS_LOCATION);
@@ -1105,8 +1094,8 @@ public class SfmDrawScreen extends Screen {
         DrawTool describedTool = hoveredToolIndex >= 0 ? DrawTool.VALUES[hoveredToolIndex] : activeTool;
         Component label = Component.literal(describeTool(describedTool));
         int labelWidth = font.width(label);
-        int hotbarCenterX = hotbarX + hotbarWidth() / 2;
-        int hotbarBottomY = hotbarY + hotbarHeight();
+        int hotbarCenterX = hotbarWidget.x() + hotbarWidth() / 2;
+        int hotbarBottomY = hotbarWidget.y() + hotbarHeight();
         fill(poseStack, hotbarCenterX - labelWidth / 2 - 4, hotbarBottomY + 4, hotbarCenterX + labelWidth / 2 + 4, hotbarBottomY + 16, 0xCC10141A);
         drawString(poseStack, font, label, hotbarCenterX - labelWidth / 2, hotbarBottomY + 6, 0xDCE2EC);
     }
@@ -1879,9 +1868,9 @@ public class SfmDrawScreen extends Screen {
 
     private ChromeWidgetState chromeWidgetState(ChromeWidget widget) {
         return switch (widget) {
-            case HOTBAR -> new ChromeWidgetState(hotbarX, hotbarY, hotbarWidth(), hotbarHeight(), hotbarScale);
-            case MINIMAP -> new ChromeWidgetState(cameraOverlayX, cameraOverlayY, cameraOverlayWidth, cameraOverlayHeight, 1.0D);
-            case LAYER_WINDOW -> new ChromeWidgetState(layerWindowX, layerWindowY, layerWindowWidth, layerWindowHeight, 1.0D);
+            case HOTBAR -> hotbarWidget;
+            case MINIMAP -> minimapWidget;
+            case LAYER_WINDOW -> layerWindowWidget;
         };
     }
 
@@ -1892,18 +1881,15 @@ public class SfmDrawScreen extends Screen {
     ) {
         switch (widget) {
             case HOTBAR -> {
-                hotbarX = x;
-                hotbarY = y;
+                hotbarWidget = hotbarWidget.withPosition(x, y);
                 clampHotbarToScreen();
             }
             case MINIMAP -> {
-                cameraOverlayX = x;
-                cameraOverlayY = y;
+                minimapWidget = minimapWidget.withPosition(x, y);
                 clampCameraOverlayToScreen();
             }
             case LAYER_WINDOW -> {
-                layerWindowX = x;
-                layerWindowY = y;
+                layerWindowWidget = layerWindowWidget.withPosition(x, y);
                 clampLayerWindowToScreen();
             }
         }
@@ -1917,17 +1903,15 @@ public class SfmDrawScreen extends Screen {
     ) {
         switch (widget) {
             case HOTBAR -> {
-                hotbarScale = scale;
+                hotbarWidget = hotbarWidget.withScale(scale);
                 clampHotbarToScreen();
             }
             case MINIMAP -> {
-                cameraOverlayWidth = width;
-                cameraOverlayHeight = height;
+                minimapWidget = minimapWidget.withSize(width, height);
                 clampCameraOverlayToScreen();
             }
             case LAYER_WINDOW -> {
-                layerWindowWidth = width;
-                layerWindowHeight = height;
+                layerWindowWidget = layerWindowWidget.withSize(width, height);
                 clampLayerWindowToScreen();
             }
         }
@@ -1980,24 +1964,26 @@ public class SfmDrawScreen extends Screen {
     }
 
     private Rect hotbarHeaderBounds() {
-        return new Rect(hotbarX, hotbarY - hotbarHeaderHeight(), hotbarWidth(), hotbarHeaderHeight());
+        return new Rect(hotbarWidget.x(), hotbarWidget.y() - hotbarHeaderHeight(), hotbarWidth(), hotbarHeaderHeight());
     }
 
     private Rect hotbarSlotBounds(int slotIndex) {
-        int left = hotbarX + scaledHotbarUnit(slotIndex * 20 + 3);
-        int top = hotbarY + scaledHotbarUnit(3);
+        int left = hotbarWidget.x() + scaledHotbarUnit(slotIndex * 20 + 3);
+        int top = hotbarWidget.y() + scaledHotbarUnit(3);
         int size = Math.max(8, scaledHotbarUnit(16));
         return new Rect(left, top, size, size);
     }
 
     private Rect hotbarResizeHandleBounds() {
-        return new Rect(hotbarX + hotbarWidth() - HOTBAR_RESIZE_HANDLE_SIZE, hotbarY + hotbarHeight() - HOTBAR_RESIZE_HANDLE_SIZE, HOTBAR_RESIZE_HANDLE_SIZE, HOTBAR_RESIZE_HANDLE_SIZE);
+        return new Rect(hotbarWidget.x() + hotbarWidth() - HOTBAR_RESIZE_HANDLE_SIZE, hotbarWidget.y() + hotbarHeight() - HOTBAR_RESIZE_HANDLE_SIZE, HOTBAR_RESIZE_HANDLE_SIZE, HOTBAR_RESIZE_HANDLE_SIZE);
     }
 
     private void clampHotbarToScreen() {
-        hotbarScale = Mth.clamp(hotbarScale, HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE);
-        hotbarX = Mth.clamp(hotbarX, 8, Math.max(8, width - hotbarWidth() - 8));
-        hotbarY = Mth.clamp(hotbarY, hotbarHeaderHeight() + 8, Math.max(hotbarHeaderHeight() + 8, height - hotbarHeight() - 24));
+        hotbarWidget = hotbarWidget.withScale(Mth.clamp(hotbarWidget.scale(), HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE));
+        hotbarWidget = hotbarWidget.withPosition(
+                Mth.clamp(hotbarWidget.x(), 8, Math.max(8, width - hotbarWidth() - 8)),
+                Mth.clamp(hotbarWidget.y(), hotbarHeaderHeight() + 8, Math.max(hotbarHeaderHeight() + 8, height - hotbarHeight() - 24))
+        );
     }
 
     private int hotbarWidth() {
@@ -2013,11 +1999,11 @@ public class SfmDrawScreen extends Screen {
     }
 
     private int scaledHotbarUnit(int value) {
-        return Math.max(1, (int) Math.round(value * hotbarScale));
+        return Math.max(1, (int) Math.round(value * hotbarWidget.scale()));
     }
 
     private Rect layerWindowBounds() {
-        return new Rect(layerWindowX, layerWindowY, layerWindowWidth, layerWindowHeight);
+        return new Rect(layerWindowWidget.x(), layerWindowWidget.y(), layerWindowWidget.width(), layerWindowWidget.height());
     }
 
     private Rect layerWindowHeaderBounds() {
@@ -2054,17 +2040,25 @@ public class SfmDrawScreen extends Screen {
     }
 
     private void clampLayerWindowToScreen() {
-        layerWindowWidth = Mth.clamp(layerWindowWidth, LAYER_WINDOW_MIN_WIDTH, Math.max(LAYER_WINDOW_MIN_WIDTH, width - 16));
-        layerWindowHeight = Mth.clamp(layerWindowHeight, LAYER_WINDOW_MIN_HEIGHT, Math.max(LAYER_WINDOW_MIN_HEIGHT, height - 16));
-        layerWindowX = Mth.clamp(layerWindowX, 8, Math.max(8, width - layerWindowWidth - 8));
-        layerWindowY = Mth.clamp(layerWindowY, 8, Math.max(8, height - layerWindowHeight - 8));
+        layerWindowWidget = layerWindowWidget.withSize(
+            Mth.clamp(layerWindowWidget.width(), LAYER_WINDOW_MIN_WIDTH, Math.max(LAYER_WINDOW_MIN_WIDTH, width - 16)),
+            Mth.clamp(layerWindowWidget.height(), LAYER_WINDOW_MIN_HEIGHT, Math.max(LAYER_WINDOW_MIN_HEIGHT, height - 16))
+        );
+        layerWindowWidget = layerWindowWidget.withPosition(
+            Mth.clamp(layerWindowWidget.x(), 8, Math.max(8, width - layerWindowWidget.width() - 8)),
+            Mth.clamp(layerWindowWidget.y(), 8, Math.max(8, height - layerWindowWidget.height() - 8))
+        );
     }
 
     private void clampCameraOverlayToScreen() {
-        cameraOverlayWidth = Mth.clamp(cameraOverlayWidth, MINIMAP_MIN_WIDTH, Math.max(MINIMAP_MIN_WIDTH, width - 16));
-        cameraOverlayHeight = Mth.clamp(cameraOverlayHeight, MINIMAP_MIN_HEIGHT, Math.max(MINIMAP_MIN_HEIGHT, height - 16));
-        cameraOverlayX = Mth.clamp(cameraOverlayX, 8, Math.max(8, width - cameraOverlayWidth - 8));
-        cameraOverlayY = Mth.clamp(cameraOverlayY, 8, Math.max(8, height - cameraOverlayHeight - 8));
+        minimapWidget = minimapWidget.withSize(
+            Mth.clamp(minimapWidget.width(), MINIMAP_MIN_WIDTH, Math.max(MINIMAP_MIN_WIDTH, width - 16)),
+            Mth.clamp(minimapWidget.height(), MINIMAP_MIN_HEIGHT, Math.max(MINIMAP_MIN_HEIGHT, height - 16))
+        );
+        minimapWidget = minimapWidget.withPosition(
+            Mth.clamp(minimapWidget.x(), 8, Math.max(8, width - minimapWidget.width() - 8)),
+            Mth.clamp(minimapWidget.y(), 8, Math.max(8, height - minimapWidget.height() - 8))
+        );
     }
 
     private int hotbarIndexForKeyCode(int keyCode) {
@@ -2139,7 +2133,7 @@ public class SfmDrawScreen extends Screen {
     }
 
     private Rect cameraOverlayBounds() {
-        return new Rect(cameraOverlayX, cameraOverlayY, cameraOverlayWidth, cameraOverlayHeight);
+        return new Rect(minimapWidget.x(), minimapWidget.y(), minimapWidget.width(), minimapWidget.height());
     }
 
     private Rect cameraOverlayHeaderBounds() {
@@ -2826,6 +2820,23 @@ public class SfmDrawScreen extends Screen {
             int height,
             double scale
     ) {
+        private ChromeWidgetState withPosition(
+                int x,
+                int y
+        ) {
+            return new ChromeWidgetState(x, y, width, height, scale);
+        }
+
+        private ChromeWidgetState withSize(
+                int width,
+                int height
+        ) {
+            return new ChromeWidgetState(x, y, width, height, scale);
+        }
+
+        private ChromeWidgetState withScale(double scale) {
+            return new ChromeWidgetState(x, y, width, height, scale);
+        }
     }
 
     private enum SelectionHandle {
