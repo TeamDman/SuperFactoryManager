@@ -323,42 +323,15 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
-        Rect cameraHeaderBounds = cameraOverlayHeaderBounds();
-        Rect cameraResizeHandleBounds = cameraOverlayResizeHandleBounds();
-        // r[impl draw.chrome.minimap.draggable]
-        if (cameraOverlayVisible && isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraHeaderBounds.contains(mouseX, mouseY)) {
-            cameraOverlayDragging = true;
-            cameraOverlayDragOffsetX = (int) Math.round(mouseX) - cameraOverlayX;
-            cameraOverlayDragOffsetY = (int) Math.round(mouseY) - cameraOverlayY;
-            return true;
-        }
-
-        // r[impl draw.layer.chrome-customization-mode]
-        if (cameraOverlayVisible && isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraResizeHandleBounds.contains(mouseX, mouseY)) {
-            cameraOverlayResizing = true;
-            cameraOverlayResizeAnchorX = (int) Math.round(mouseX);
-            cameraOverlayResizeAnchorY = (int) Math.round(mouseY);
-            cameraOverlayResizeStartWidth = cameraOverlayWidth;
-            cameraOverlayResizeStartHeight = cameraOverlayHeight;
-            return true;
-        }
-
-        Rect hotbarHeaderBounds = hotbarHeaderBounds();
-        Rect hotbarResizeHandleBounds = hotbarResizeHandleBounds();
-        // r[impl draw.chrome.hotbar.draggable]
-        if (isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarHeaderBounds.contains(mouseX, mouseY)) {
-            hotbarDragging = true;
-            hotbarDragOffsetX = (int) Math.round(mouseX) - hotbarX;
-            hotbarDragOffsetY = (int) Math.round(mouseY) - hotbarY;
-            return true;
-        }
-
-        // r[impl draw.layer.chrome-customization-mode]
-        if (isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarResizeHandleBounds.contains(mouseX, mouseY)) {
-            hotbarResizing = true;
-            hotbarResizeAnchorX = (int) Math.round(mouseX);
-            hotbarResizeStartScale = hotbarScale;
-            return true;
+        if (isChromeLayerActive() && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            for (ChromeWidget widget : ChromeWidget.VALUES) {
+                if (beginChromeWidgetResize(widget, mouseX, mouseY)) {
+                    return true;
+                }
+                if (beginChromeWidgetDrag(widget, mouseX, mouseY)) {
+                    return true;
+                }
+            }
         }
 
         int hoveredToolIndex = hoveredToolIndex(mouseX, mouseY);
@@ -467,51 +440,13 @@ public class SfmDrawScreen extends Screen {
             double dragY
     ) {
 
-        if (layerWindowDragging && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            // r[impl draw.layer-window.draggable]
-            layerWindowX = (int) Math.round(mouseX) - layerWindowDragOffsetX;
-            layerWindowY = (int) Math.round(mouseY) - layerWindowDragOffsetY;
-            clampLayerWindowToScreen();
-            return true;
-        }
-
-        if (layerWindowResizing && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            // r[impl draw.layer-window.resizable]
-            layerWindowWidth = Math.max(LAYER_WINDOW_MIN_WIDTH, layerWindowResizeStartWidth + (int) Math.round(mouseX) - layerWindowResizeAnchorX);
-            layerWindowHeight = Math.max(LAYER_WINDOW_MIN_HEIGHT, layerWindowResizeStartHeight + (int) Math.round(mouseY) - layerWindowResizeAnchorY);
-            clampLayerWindowToScreen();
-            return true;
-        }
-
-        // r[impl draw.chrome.hotbar.draggable]
-        if (hotbarDragging && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            hotbarX = (int) Math.round(mouseX) - hotbarDragOffsetX;
-            hotbarY = (int) Math.round(mouseY) - hotbarDragOffsetY;
-            clampHotbarToScreen();
-            return true;
-        }
-
-        // r[impl draw.layer.chrome-customization-mode]
-        if (hotbarResizing && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            hotbarScale = Mth.clamp(hotbarResizeStartScale + ((int) Math.round(mouseX) - hotbarResizeAnchorX) / (double) HOTBAR_WIDTH, HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE);
-            clampHotbarToScreen();
-            return true;
-        }
-
-        // r[impl draw.chrome.minimap.draggable]
-        if (cameraOverlayDragging && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            cameraOverlayX = (int) Math.round(mouseX) - cameraOverlayDragOffsetX;
-            cameraOverlayY = (int) Math.round(mouseY) - cameraOverlayDragOffsetY;
-            clampCameraOverlayToScreen();
-            return true;
-        }
-
-        // r[impl draw.layer.chrome-customization-mode]
-        if (cameraOverlayResizing && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            cameraOverlayWidth = Math.max(MINIMAP_MIN_WIDTH, cameraOverlayResizeStartWidth + (int) Math.round(mouseX) - cameraOverlayResizeAnchorX);
-            cameraOverlayHeight = Math.max(MINIMAP_MIN_HEIGHT, cameraOverlayResizeStartHeight + (int) Math.round(mouseY) - cameraOverlayResizeAnchorY);
-            clampCameraOverlayToScreen();
-            return true;
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            if (dragActiveChromeWidget(mouseX, mouseY)) {
+                return true;
+            }
+            if (resizeActiveChromeWidget(mouseX, mouseY)) {
+                return true;
+            }
         }
 
         // r[impl draw.camera.pan.middle_drag]
@@ -569,39 +504,7 @@ public class SfmDrawScreen extends Screen {
             int button
     ) {
 
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && layerWindowDragging) {
-            layerWindowDragging = false;
-            clampLayerWindowToScreen();
-            return true;
-        }
-
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && layerWindowResizing) {
-            layerWindowResizing = false;
-            clampLayerWindowToScreen();
-            return true;
-        }
-
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarDragging) {
-            hotbarDragging = false;
-            clampHotbarToScreen();
-            return true;
-        }
-
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hotbarResizing) {
-            hotbarResizing = false;
-            clampHotbarToScreen();
-            return true;
-        }
-
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraOverlayDragging) {
-            cameraOverlayDragging = false;
-            clampCameraOverlayToScreen();
-            return true;
-        }
-
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && cameraOverlayResizing) {
-            cameraOverlayResizing = false;
-            clampCameraOverlayToScreen();
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && releaseChromeWidgetInteractions()) {
             return true;
         }
 
@@ -1859,6 +1762,149 @@ public class SfmDrawScreen extends Screen {
             case HOTBAR -> new Rect(hotbarX, hotbarY - hotbarHeaderHeight(), hotbarWidth(), hotbarHeight() + hotbarHeaderHeight());
             case MINIMAP -> cameraOverlayBounds();
             case LAYER_WINDOW -> layerWindowBounds();
+        };
+    }
+
+    private boolean beginChromeWidgetDrag(
+            ChromeWidget widget,
+            double mouseX,
+            double mouseY
+    ) {
+        if (!isChromeWidgetVisible(widget) || !chromeWidgetDragBounds(widget).contains(mouseX, mouseY)) {
+            return false;
+        }
+        switch (widget) {
+            case HOTBAR -> {
+                // r[impl draw.chrome.hotbar.draggable]
+                hotbarDragging = true;
+                hotbarDragOffsetX = (int) Math.round(mouseX) - hotbarX;
+                hotbarDragOffsetY = (int) Math.round(mouseY) - hotbarY;
+                return true;
+            }
+            case MINIMAP -> {
+                // r[impl draw.chrome.minimap.draggable]
+                cameraOverlayDragging = true;
+                cameraOverlayDragOffsetX = (int) Math.round(mouseX) - cameraOverlayX;
+                cameraOverlayDragOffsetY = (int) Math.round(mouseY) - cameraOverlayY;
+                return true;
+            }
+            case LAYER_WINDOW -> {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private boolean beginChromeWidgetResize(
+            ChromeWidget widget,
+            double mouseX,
+            double mouseY
+    ) {
+        if (!isChromeWidgetVisible(widget) || !chromeWidgetResizeBounds(widget).contains(mouseX, mouseY)) {
+            return false;
+        }
+        switch (widget) {
+            case HOTBAR -> {
+                // r[impl draw.layer.chrome-customization-mode]
+                hotbarResizing = true;
+                hotbarResizeAnchorX = (int) Math.round(mouseX);
+                hotbarResizeStartScale = hotbarScale;
+                return true;
+            }
+            case MINIMAP -> {
+                // r[impl draw.layer.chrome-customization-mode]
+                cameraOverlayResizing = true;
+                cameraOverlayResizeAnchorX = (int) Math.round(mouseX);
+                cameraOverlayResizeAnchorY = (int) Math.round(mouseY);
+                cameraOverlayResizeStartWidth = cameraOverlayWidth;
+                cameraOverlayResizeStartHeight = cameraOverlayHeight;
+                return true;
+            }
+            case LAYER_WINDOW -> {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private boolean dragActiveChromeWidget(
+            double mouseX,
+            double mouseY
+    ) {
+        if (hotbarDragging) {
+            // r[impl draw.chrome.hotbar.draggable]
+            hotbarX = (int) Math.round(mouseX) - hotbarDragOffsetX;
+            hotbarY = (int) Math.round(mouseY) - hotbarDragOffsetY;
+            clampHotbarToScreen();
+            return true;
+        }
+        if (cameraOverlayDragging) {
+            // r[impl draw.chrome.minimap.draggable]
+            cameraOverlayX = (int) Math.round(mouseX) - cameraOverlayDragOffsetX;
+            cameraOverlayY = (int) Math.round(mouseY) - cameraOverlayDragOffsetY;
+            clampCameraOverlayToScreen();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean resizeActiveChromeWidget(
+            double mouseX,
+            double mouseY
+    ) {
+        if (hotbarResizing) {
+            // r[impl draw.layer.chrome-customization-mode]
+            hotbarScale = Mth.clamp(hotbarResizeStartScale + ((int) Math.round(mouseX) - hotbarResizeAnchorX) / (double) HOTBAR_WIDTH, HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE);
+            clampHotbarToScreen();
+            return true;
+        }
+        if (cameraOverlayResizing) {
+            // r[impl draw.layer.chrome-customization-mode]
+            cameraOverlayWidth = Math.max(MINIMAP_MIN_WIDTH, cameraOverlayResizeStartWidth + (int) Math.round(mouseX) - cameraOverlayResizeAnchorX);
+            cameraOverlayHeight = Math.max(MINIMAP_MIN_HEIGHT, cameraOverlayResizeStartHeight + (int) Math.round(mouseY) - cameraOverlayResizeAnchorY);
+            clampCameraOverlayToScreen();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean releaseChromeWidgetInteractions() {
+        if (hotbarDragging) {
+            hotbarDragging = false;
+            clampHotbarToScreen();
+            return true;
+        }
+        if (hotbarResizing) {
+            hotbarResizing = false;
+            clampHotbarToScreen();
+            return true;
+        }
+        if (cameraOverlayDragging) {
+            cameraOverlayDragging = false;
+            clampCameraOverlayToScreen();
+            return true;
+        }
+        if (cameraOverlayResizing) {
+            cameraOverlayResizing = false;
+            clampCameraOverlayToScreen();
+            return true;
+        }
+        return false;
+    }
+
+    private Rect chromeWidgetDragBounds(ChromeWidget widget) {
+        return switch (widget) {
+            case HOTBAR -> hotbarHeaderBounds();
+            case MINIMAP -> cameraOverlayHeaderBounds();
+            case LAYER_WINDOW -> layerWindowHeaderBounds();
+        };
+    }
+
+    private Rect chromeWidgetResizeBounds(ChromeWidget widget) {
+        return switch (widget) {
+            case HOTBAR -> hotbarResizeHandleBounds();
+            case MINIMAP -> cameraOverlayResizeHandleBounds();
+            case LAYER_WINDOW -> layerWindowResizeHandleBounds();
         };
     }
 
