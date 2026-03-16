@@ -3503,8 +3503,8 @@ public class SfmDrawScreen extends Screen {
     private @Nullable DrawLayer layerForHotkey(int keyCode) {
         return switch (keyCode) {
             case GLFW.GLFW_KEY_1 -> DrawLayer.ELEMENTS;
-            case GLFW.GLFW_KEY_2 -> DrawLayer.SHELL;
-            case GLFW.GLFW_KEY_3 -> DrawLayer.CHROME;
+            case GLFW.GLFW_KEY_2 -> DrawLayer.CHROME;
+            case GLFW.GLFW_KEY_3 -> DrawLayer.SHELL;
             default -> null;
         };
     }
@@ -5085,8 +5085,8 @@ public class SfmDrawScreen extends Screen {
 
     private enum DrawLayer {
         ELEMENTS(1, true, IdeLocalizationKeys.IDE_DRAW_LAYER_ELEMENTS.getString(), 0xFF7FD7FF),
-        SHELL(2, true, IdeLocalizationKeys.IDE_DRAW_LAYER_SHELL.getString(), 0xFFD998FF),
-        CHROME(3, false, IdeLocalizationKeys.IDE_DRAW_LAYER_CHROME.getString(), 0xFFE8A652);
+        CHROME(2, false, IdeLocalizationKeys.IDE_DRAW_LAYER_CHROME.getString(), 0xFFE8A652),
+        SHELL(3, true, IdeLocalizationKeys.IDE_DRAW_LAYER_SHELL.getString(), 0xFFD998FF);
 
         private static final DrawLayer[] VALUES = values();
 
