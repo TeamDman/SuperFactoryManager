@@ -33,6 +33,7 @@ import java.util.Set;
 
 // r[impl draw.screen.main]
 public class SfmDrawScreen extends Screen {
+    private static final String DRAW_COMMAND_PREFIX = "/sfm draw ";
     private static final double MIN_ZOOM = 0.01D;
     private static final double MAX_ZOOM = 10.0D;
     private static final double ZOOM_STEP = 1.15D;
@@ -238,12 +239,16 @@ public class SfmDrawScreen extends Screen {
                 finishTextEditing();
                 return true;
             }
-            if (hasControlDown() && keyCode == GLFW.GLFW_KEY_A) {
+            if (Screen.isSelectAll(keyCode)) {
                 selectAllEditingText();
                 return true;
             }
             if (Screen.isCopy(keyCode)) {
                 copyEditingSelectionToClipboard();
+                return true;
+            }
+            if (Screen.isCut(keyCode)) {
+                cutEditingSelectionToClipboard();
                 return true;
             }
             if (Screen.isPaste(keyCode)) {
@@ -305,6 +310,14 @@ public class SfmDrawScreen extends Screen {
 
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && hasCanvasSelection()) {
             clearCanvasSelection();
+            return true;
+        }
+
+        if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && Screen.isCopy(keyCode) && copySelectedTextElementsToClipboard()) {
+            return true;
+        }
+
+        if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && Screen.isCut(keyCode) && cutSelectedElementsToClipboard()) {
             return true;
         }
 
@@ -2182,7 +2195,7 @@ public class SfmDrawScreen extends Screen {
             return false;
         }
         for (TextElement commandElement : commandElements) {
-            String commandText = commandElement.text.startsWith("/") ? commandElement.text.substring(1) : commandElement.text;
+            String commandText = drawCommandBody(commandElement.text);
             SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText));
         }
         finishTextEditing();
@@ -2195,7 +2208,7 @@ public class SfmDrawScreen extends Screen {
             return false;
         }
         for (TextElement commandElement : commandElements) {
-            String commandText = commandElement.text.startsWith("/") ? commandElement.text.substring(1) : commandElement.text;
+            String commandText = drawCommandBody(commandElement.text);
             SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText));
         }
         return true;
@@ -3003,8 +3016,21 @@ public class SfmDrawScreen extends Screen {
     private boolean isCommandTextElement(@Nullable TextElement textElement) {
         return textElement != null
                && textElement.shellBinding == null
-               && textElement.commandSourceElementId() < 0
                && textElement.text.startsWith("/");
+    }
+
+    private String drawCommandBody(String commandText) {
+        if (commandText.equals("/sfm draw")) {
+            return "";
+        }
+        if (commandText.startsWith(DRAW_COMMAND_PREFIX)) {
+            return commandText.substring(DRAW_COMMAND_PREFIX.length());
+        }
+        return commandText.startsWith("/") ? commandText.substring(1) : commandText;
+    }
+
+    private boolean usesExpandedDrawCommandPrefix(String commandText) {
+        return commandText.equals("/sfm draw") || commandText.startsWith(DRAW_COMMAND_PREFIX);
     }
 
     private boolean isEditingCommandText() {
@@ -3290,11 +3316,15 @@ public class SfmDrawScreen extends Screen {
     }
 
     private void selectAllEditingText() {
-        TextElement textElement = editingTextElement();
-        if (textElement == null) {
+        List<TextElement> textElements = editingTextElements();
+        if (textElements.isEmpty()) {
             return;
         }
-        setEditingSelection(textElement.text.length(), 0);
+        int maxLength = 0;
+        for (TextElement textElement : textElements) {
+            maxLength = Math.max(maxLength, textElement.text.length());
+        }
+        setEditingSelection(maxLength, 0);
     }
 
     private void copyEditingSelectionToClipboard() {
@@ -3302,19 +3332,50 @@ public class SfmDrawScreen extends Screen {
             return;
         }
         List<String> selections = new ArrayList<>();
-        int greatestChunkNewlineRun = 0;
         for (TextElement textElement : editingTextElements()) {
             int start = textEditingSelectionStart(textElement);
             int end = textEditingSelectionEnd(textElement);
-            String selection = textElement.text.substring(start, end);
-            selections.add(selection);
-            greatestChunkNewlineRun = Math.max(greatestChunkNewlineRun, greatestConsecutiveNewlines(selection));
+            selections.add(textElement.text.substring(start, end));
         }
-        if (selections.isEmpty()) {
+        copyTextChunksToClipboard(selections);
+    }
+
+    private void cutEditingSelectionToClipboard() {
+        if (!hasEditingTextSelectionRange()) {
             return;
         }
+        copyEditingSelectionToClipboard();
+        replaceEditingSelection("");
+    }
+
+    private boolean copySelectedTextElementsToClipboard() {
+        List<TextElement> textElements = selectedEditableTextElements();
+        if (textElements.isEmpty()) {
+            return false;
+        }
+        List<String> chunks = new ArrayList<>(textElements.size());
+        for (TextElement textElement : textElements) {
+            chunks.add(textElement.text);
+        }
+        copyTextChunksToClipboard(chunks);
+        return true;
+    }
+
+    private boolean cutSelectedElementsToClipboard() {
+        copySelectedTextElementsToClipboard();
+        return deleteSelectedElements();
+    }
+
+    private void copyTextChunksToClipboard(List<String> chunks) {
+        if (minecraft == null || chunks.isEmpty()) {
+            return;
+        }
+        int greatestChunkNewlineRun = 0;
+        for (String chunk : chunks) {
+            greatestChunkNewlineRun = Math.max(greatestChunkNewlineRun, greatestConsecutiveNewlines(chunk));
+        }
         String separator = "\n".repeat(greatestChunkNewlineRun + 1);
-        minecraft.keyboardHandler.setClipboard(String.join(separator, selections));
+        minecraft.keyboardHandler.setClipboard(String.join(separator, chunks));
     }
 
     private void pasteEditingClipboard(String clipboardContents) {
@@ -3402,6 +3463,7 @@ public class SfmDrawScreen extends Screen {
         for (TextElement textElement : editingTextElements()) {
             int start = textEditingSelectionStart(textElement);
             int end = textEditingSelectionEnd(textElement);
+            textElement.detachCommandSource();
             textElement.text = textElement.text.substring(0, start) + replacement + textElement.text.substring(end);
             changed = true;
         }
@@ -5589,7 +5651,7 @@ public class SfmDrawScreen extends Screen {
         private final int color;
         private double textScale;
         private final @Nullable ShellTextBinding shellBinding;
-        private final int commandSourceElementId;
+        private int commandSourceElementId;
 
         private TextElement(
                 int id,
@@ -5614,6 +5676,10 @@ public class SfmDrawScreen extends Screen {
 
         public int commandSourceElementId() {
             return commandSourceElementId;
+        }
+
+        public void detachCommandSource() {
+            commandSourceElementId = -1;
         }
 
         @Override
@@ -5913,7 +5979,6 @@ public class SfmDrawScreen extends Screen {
     }
 
     private class DrawCommandSuggestions {
-        private static final String DRAW_COMMAND_PREFIX = "/sfm draw ";
         private static final int PREFIX_ADJUSTMENT = DRAW_COMMAND_PREFIX.length() - 1;
         private static final int ROW_HEIGHT = 12;
         private static final int MAX_VISIBLE_SUGGESTIONS = 10;
@@ -6067,9 +6132,10 @@ public class SfmDrawScreen extends Screen {
 
         private List<Suggestion> mapSuggestionsToVisibleInput(Suggestions translatedSuggestions) {
             List<Suggestion> mappedSuggestions = new ArrayList<>(translatedSuggestions.getList().size());
+            int prefixAdjustment = usesExpandedDrawCommandPrefix(visibleCommand) ? 0 : PREFIX_ADJUSTMENT;
             for (Suggestion suggestion : translatedSuggestions.getList()) {
-                int mappedStart = Math.max(0, suggestion.getRange().getStart() - PREFIX_ADJUSTMENT);
-                int mappedEnd = Math.max(mappedStart, suggestion.getRange().getEnd() - PREFIX_ADJUSTMENT);
+                int mappedStart = Math.max(0, suggestion.getRange().getStart() - prefixAdjustment);
+                int mappedEnd = Math.max(mappedStart, suggestion.getRange().getEnd() - prefixAdjustment);
                 mappedSuggestions.add(new Suggestion(StringRange.between(mappedStart, mappedEnd), suggestion.getText(), suggestion.getTooltip()));
             }
             return mappedSuggestions;
@@ -6134,6 +6200,9 @@ public class SfmDrawScreen extends Screen {
         }
 
         private String translatedCommand(String commandText) {
+            if (usesExpandedDrawCommandPrefix(commandText)) {
+                return commandText;
+            }
             return commandText.startsWith("/") ? DRAW_COMMAND_PREFIX + commandText.substring(1) : commandText;
         }
 
@@ -6141,7 +6210,8 @@ public class SfmDrawScreen extends Screen {
                 int cursorIndex,
                 int translatedCommandLength
         ) {
-            return Mth.clamp(cursorIndex + PREFIX_ADJUSTMENT, 0, translatedCommandLength);
+            int adjustment = usesExpandedDrawCommandPrefix(visibleCommand) ? 0 : PREFIX_ADJUSTMENT;
+            return Mth.clamp(cursorIndex + adjustment, 0, translatedCommandLength);
         }
     }
 

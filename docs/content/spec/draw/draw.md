@@ -210,6 +210,10 @@
 >
 > Slash-prefixed draw text commands MUST be executed by translating the text after the leading slash into `/sfm draw <text>`.
 
+> r[draw.tool.text.command-style.expanded-prefix]
+>
+> Text that already begins with `/sfm draw ` MUST also be accepted and executed as a draw command without adding a second draw-command prefix.
+
 > r[draw.tool.text.command-style.suggestions]
 >
 > While editing a slash-prefixed text element, the draw screen MUST surface vanilla-style command suggestions for the translated draw command.
@@ -254,9 +258,21 @@
 >
 > Copying a shared text selection MUST join the selected content from each edited text element with a separator whose consecutive newline count is one greater than the greatest consecutive newline count present in any copied chunk.
 
+> r[draw.tool.text.edit.cut-multi]
+>
+> Cutting a shared text selection MUST copy using the same multi-selection clipboard encoding as copy, then remove the selected text from each edited text element.
+
 > r[draw.tool.text.edit.paste-multi]
 >
 > Pasting into multiple edited text elements MUST split clipboard content on the greatest consecutive newline run and distribute the resulting chunks across the edited text elements.
+
+> r[draw.tool.text.edit.select-all-max-length]
+>
+> Selecting all while shared text editing is active MUST span through the greatest text length among the edited text elements so longer mirrored texts remain fully selected.
+
+> r[draw.tool.text.command-output.edited-detaches-source]
+>
+> When command-output text is manually edited, it MUST detach from its source-command metadata so slash-prefixed edits can become ordinary executable command text.
 
 > r[draw.command.echo.exists]
 >
@@ -359,6 +375,14 @@
 > r[draw.tool.cursor.enter-text-target]
 >
 > Pressing `Enter` while the cursor tool has canvas elements selected MUST find or create editable text elements near the selected elements' midpoints, reduce the selection to those text elements, and enter text edit mode for them.
+
+> r[draw.tool.cursor.copy-selected-text]
+>
+> Pressing `Ctrl+C` while the cursor tool has text elements selected MUST copy their text using the same multi-selection clipboard encoding as shared text editing.
+
+> r[draw.tool.cursor.cut-selection]
+>
+> Pressing `Ctrl+X` while the cursor tool has a canvas selection MUST copy any selected text elements using the same encoding as copy, then delete the selected elements.
 
 > r[draw.screen.escape-closes-without-selection]
 >
