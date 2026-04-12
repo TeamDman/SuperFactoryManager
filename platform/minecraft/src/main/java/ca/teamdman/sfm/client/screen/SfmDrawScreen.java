@@ -38,6 +38,8 @@ public class SfmDrawScreen extends Screen {
     private static final int HOTBAR_RESIZE_HANDLE_SIZE = 10;
     private static final int HOTBAR_SLOT_COUNT = 9;
     private static final int TOOL_COUNT = 9;
+    private static final int AUXILIARY_HOTBAR_WIDTH = 22;
+    private static final int AUXILIARY_HOTBAR_HEIGHT = 22;
     private static final double TEXT_WIDGET_MIN_SCALE = 0.65D;
     private static final double TEXT_WIDGET_MAX_SCALE = 3.0D;
     private static final int MINIMAP_WIDTH = 150;
@@ -54,6 +56,7 @@ public class SfmDrawScreen extends Screen {
     private static final int LAYER_WINDOW_PADDING = 6;
     private static final int LAYER_WINDOW_RESIZE_HANDLE_SIZE = 10;
     private static final int HANDLE_HALF_SIZE = 4;
+    private static final int TEXT_EDIT_HANDLE_SIZE = 10;
     private static final int CHROME_EDGE_MARGIN = 2;
     private static final float ARROW_STROKE_WIDTH = 2.5F;
     private static final int DEFAULT_MOVE_SNAP = 8;
@@ -96,6 +99,7 @@ public class SfmDrawScreen extends Screen {
         private ChromeWidgetState hotbarWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, HOTBAR_WIDTH, HOTBAR_HEIGHT, 1.0D);
         private ChromeWidgetState hotbarTitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
         private ChromeWidgetState hotbarSubtitleWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, 0, 0, 1.0D);
+        private ChromeWidgetState auxiliaryHotbarWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, AUXILIARY_HOTBAR_WIDTH, AUXILIARY_HOTBAR_HEIGHT, 1.0D);
 
         private boolean layerWindowVisible = false;
         private ChromeWidgetState layerWindowWidget = new ChromeWidgetState(Integer.MIN_VALUE, Integer.MIN_VALUE, LAYER_WINDOW_DEFAULT_WIDTH, LAYER_WINDOW_DEFAULT_HEIGHT, 1.0D);
@@ -113,6 +117,7 @@ public class SfmDrawScreen extends Screen {
         private int chromeWidgetResizeStartHeight = 0;
         private double chromeWidgetResizeStartScale = 1.0D;
         private boolean revealHiddenElements = false;
+        private boolean canSelectLockedElements = false;
 
         private boolean panning = false;
         private int panButton = -1;
@@ -121,7 +126,6 @@ public class SfmDrawScreen extends Screen {
         private double panAnchorCameraX = 0.0D;
         private double panAnchorCameraY = 0.0D;
 
-        private boolean textToolCreatesBoundText = true;
         private int textEditingElementId = -1;
         private int textEditingCaretIndex = 0;
         private boolean stickyToolMode = false;
@@ -142,6 +146,7 @@ public class SfmDrawScreen extends Screen {
         private double lastCursorClickX = 0.0D;
         private double lastCursorClickY = 0.0D;
         private long handCursorHandle = 0L;
+        private long moveCursorHandle = 0L;
         private long horizontalResizeCursorHandle = 0L;
         private long verticalResizeCursorHandle = 0L;
         private long diagonalNorthWestSouthEastCursorHandle = 0L;
@@ -162,6 +167,9 @@ public class SfmDrawScreen extends Screen {
         if (hotbarWidget.x() == Integer.MIN_VALUE || hotbarWidget.y() == Integer.MIN_VALUE) {
             hotbarWidget = hotbarWidget.withPosition((width - HOTBAR_WIDTH) / 2, Math.max(32, height - HOTBAR_HEIGHT - 42));
         }
+        if (auxiliaryHotbarWidget.x() == Integer.MIN_VALUE || auxiliaryHotbarWidget.y() == Integer.MIN_VALUE) {
+            auxiliaryHotbarWidget = auxiliaryHotbarWidget.withPosition(hotbarWidget.x() + hotbarWidth() + 6, hotbarWidget.y());
+        }
         if (minimapWidget.x() == Integer.MIN_VALUE || minimapWidget.y() == Integer.MIN_VALUE) {
             minimapWidget = minimapWidget.withPosition(width - MINIMAP_WIDTH - 12, 30);
         }
@@ -170,6 +178,7 @@ public class SfmDrawScreen extends Screen {
         }
         initializeStatusChromeWidgets();
         clampHotbarToScreen();
+        clampAuxiliaryHotbarToScreen();
         clampAllTextChromeWidgetsToScreen();
         clampCameraOverlayToScreen();
         clampLayerWindowToScreen();
@@ -225,7 +234,11 @@ public class SfmDrawScreen extends Screen {
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
-                appendEditingText("\n");
+                if (hasShiftDown()) {
+                    appendEditingText("\n");
+                } else {
+                    finishTextEditing();
+                }
                 return true;
             }
             if (hasControlDown() && keyCode == GLFW.GLFW_KEY_V) {
@@ -310,15 +323,7 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
-        // r[impl draw.tool.creation.sticky_toggle]
-        // r[impl draw.tool.creation.sticky_toggle.repeated-shortcut]
         @Nullable DrawTool shortcutTool = DrawTool.byKeyCode(keyCode);
-        if (shortcutTool == DrawTool.TEXT && activeTool == DrawTool.TEXT && hasShiftDown()) {
-            if (isCanvasLayerActive()) {
-                textToolCreatesBoundText = !textToolCreatesBoundText;
-            }
-            return true;
-        }
         if (shortcutTool != null) {
             handleToolShortcut(shortcutTool);
             return true;
@@ -393,9 +398,9 @@ public class SfmDrawScreen extends Screen {
             }
         }
 
-        int hoveredToolIndex = hoveredToolIndex(mouseX, mouseY);
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hoveredToolIndex >= 0) {
-            handleHotbarToolClick(DrawTool.VALUES[hoveredToolIndex]);
+        @Nullable DrawTool hoveredToolbarTool = hoveredToolbarTool(mouseX, mouseY);
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && hoveredToolbarTool != null) {
+            handleHotbarToolClick(hoveredToolbarTool);
             return true;
         }
 
@@ -444,10 +449,28 @@ public class SfmDrawScreen extends Screen {
 
         if (textEditingElementId >= 0) {
             TextElement editingTextElement = editingTextElement();
-            if (editingTextElement != null && textElementContains(editingTextElement, canvasPoint)) {
-                placeTextCaretFromScreen(editingTextElement, mouseX, mouseY);
-            } else {
+            if (editingTextElement == null) {
                 finishTextEditing();
+                return true;
+            }
+            if (textEditingHandleBounds(editingTextElement).contains(mouseX, mouseY)) {
+                selectOnly(editingTextElement.id());
+                CanvasBounds textSelectionBounds = currentSelectionBounds();
+                if (textSelectionBounds != null) {
+                    moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), canvasPoint, projectionUnderMouse, textSelectionBounds, selectionSnapOrigin());
+                }
+                duplicateSelectionPendingOnDrag = false;
+            } else {
+                TextElement hitTextElement = editableTextElementAt(canvasPoint);
+                if (hitTextElement != null) {
+                    if (hitTextElement.id() != editingTextElement.id()) {
+                        selectOnly(hitTextElement.id());
+                        textEditingElementId = hitTextElement.id();
+                    }
+                    placeTextCaretFromScreen(hitTextElement, mouseX, mouseY);
+                } else {
+                    finishTextEditing();
+                }
             }
             return true;
         }
@@ -463,9 +486,13 @@ public class SfmDrawScreen extends Screen {
 
         // r[impl draw.tool.text.create]
         if (activeTool == DrawTool.TEXT) {
-            TextElement textElement = createTextElement(snappedCanvasPoint);
-            if (textToolCreatesBoundText) {
-                activeTool = DrawTool.TEXT;
+            TextElement hitTextElement = editableTextElementAt(canvasPoint);
+            if (hitTextElement != null) {
+                selectOnly(hitTextElement.id());
+                textEditingElementId = hitTextElement.id();
+                placeTextCaretFromScreen(hitTextElement, mouseX, mouseY);
+            } else {
+                TextElement textElement = createTextElement(snappedCanvasPoint);
                 textEditingElementId = textElement.id();
                 textEditingCaretIndex = textElement.text.length();
             }
@@ -973,6 +1000,10 @@ public class SfmDrawScreen extends Screen {
             }
         }
 
+        if (activeTool == DrawTool.TEXT && textEditingElementId >= 0 && moveSelectionDrag == null) {
+            drawTextEditingHandle(poseStack);
+        }
+
         drawSelectedArrowAnchors(poseStack);
 
         drawMarqueeOverlay(poseStack);
@@ -1100,6 +1131,10 @@ public class SfmDrawScreen extends Screen {
         int top = screenBounds.top() - 2;
         int right = screenBounds.right() + 3;
         int bottom = screenBounds.bottom() + 2;
+        if (isCommandTextElement(element)) {
+            fill(poseStack, left, top, right, bottom, renderColor(0xD9000000, hidden));
+            drawScreenRectOutline(poseStack, new ScreenRect(left, top, right, bottom), renderColor(0xFFF1F5FB, hidden));
+        }
         if (selected) {
             fill(poseStack, left, top, right, bottom, renderColor(0x33F6E27F, hidden));
         }
@@ -1382,7 +1417,7 @@ public class SfmDrawScreen extends Screen {
             RenderSystem.setShaderTexture(0, AbstractWidget.WIDGETS_LOCATION);
             blit(poseStack, 0, 0, 0, 0, HOTBAR_WIDTH, HOTBAR_HEIGHT);
 
-            if (activeTool.selectable()) {
+            if (activeTool.selectable() && activeTool.ordinal() < TOOL_COUNT) {
                 blit(poseStack, -1 + activeTool.ordinal() * 20, -1, 0, 22, 24, HOTBAR_HEIGHT);
             }
 
@@ -1416,13 +1451,47 @@ public class SfmDrawScreen extends Screen {
                 fill(poseStack, slotBounds.left(), slotBounds.top(), slotBounds.right(), slotBounds.bottom(), renderColor(0x2238A3FF, hotbarWidget.hidden()));
             }
 
-            DrawTool describedTool = hoveredToolIndex >= 0 ? DrawTool.VALUES[hoveredToolIndex] : activeTool;
-            if (isChromeWidgetRendered(ChromeWidget.HOTBAR_SUBTITLE)) {
-                drawHotbarSubtitle(poseStack, describedTool);
-            }
-        } else if (isChromeWidgetRendered(ChromeWidget.HOTBAR_SUBTITLE)) {
-            drawHotbarSubtitle(poseStack, activeTool);
         }
+
+        drawAuxiliaryHotbar(poseStack, mouseX, mouseY);
+
+        @Nullable DrawTool describedTool = hoveredAuxiliaryTool(mouseX, mouseY);
+        if (describedTool == null) {
+            int hoveredToolIndex = hoveredToolIndex(mouseX, mouseY);
+            describedTool = hoveredToolIndex >= 0 ? DrawTool.VALUES[hoveredToolIndex] : activeTool;
+        }
+        if (isChromeWidgetRendered(ChromeWidget.HOTBAR_SUBTITLE)) {
+            drawHotbarSubtitle(poseStack, describedTool);
+        }
+    }
+
+    private void drawAuxiliaryHotbar(
+            PoseStack poseStack,
+            int mouseX,
+            int mouseY
+    ) {
+        if (!isChromeWidgetRendered(ChromeWidget.AUXILIARY_HOTBAR_BAR)) {
+            return;
+        }
+
+        Rect bounds = auxiliaryHotbarBounds();
+        boolean hidden = auxiliaryHotbarWidget.hidden();
+        fill(poseStack, bounds.left(), bounds.top(), bounds.right(), bounds.bottom(), renderColor(0xCC11161E, hidden));
+        drawScreenRectOutline(poseStack, new ScreenRect(bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), renderColor(0xFF606975, hidden));
+
+        Rect slotBounds = auxiliaryHotbarSlotBounds();
+        fill(poseStack, slotBounds.left(), slotBounds.top(), slotBounds.right(), slotBounds.bottom(), renderColor(0x7710141A, hidden));
+        if (hoveredAuxiliaryTool(mouseX, mouseY) != null) {
+            fill(poseStack, slotBounds.left(), slotBounds.top(), slotBounds.right(), slotBounds.bottom(), renderColor(0x2238A3FF, hidden));
+        }
+
+        poseStack.pushPose();
+        poseStack.translate(auxiliaryHotbarWidget.x(), auxiliaryHotbarWidget.y(), 0.0D);
+        poseStack.scale((float) auxiliaryHotbarWidget.scale(), (float) auxiliaryHotbarWidget.scale(), 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, auxiliaryHotbarWidget.hidden() ? 0.35F : 1.0F);
+        drawToolIcon(poseStack, DrawTool.LOCK, 3, 3);
+        poseStack.popPose();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     private void drawHotbarSubtitle(
@@ -1494,8 +1563,15 @@ public class SfmDrawScreen extends Screen {
             // r[impl draw.tool.arrow.multisegment.status]
             return tool.label() + " [a] placing " + pendingArrowAnchors.size() + (pendingArrowAnchors.size() == 1 ? " anchor" : " anchors");
         }
-        if (tool == DrawTool.TEXT) {
-            return tool.label() + " [t] " + (textToolCreatesBoundText ? "bound" : "unbound");
+        if (tool == DrawTool.CURSOR) {
+            return tool.label() + " [" + tool.shortcutGlyph().toLowerCase(Locale.ROOT) + "] " + (canSelectLockedElements ? "select locked on" : "select locked off");
+        }
+        if (tool == DrawTool.LOCK) {
+            List<DrawElement> selectedElements = selectedLockableElements();
+            if (!selectedElements.isEmpty()) {
+                return tool.label() + " [" + tool.shortcutGlyph().toLowerCase(Locale.ROOT) + "] " + (nextLockedValueForElements(selectedElements) ? "lock selected" : "unlock selected");
+            }
+            return tool.label() + " [" + tool.shortcutGlyph().toLowerCase(Locale.ROOT) + "] " + (canSelectLockedElements ? "select locked on" : "select locked off");
         }
         if (tool == DrawTool.CAMERA) {
             return tool.label() + " [c] " + (cameraOverlayVisible ? "on" : "off");
@@ -1538,6 +1614,7 @@ public class SfmDrawScreen extends Screen {
             case MINIMAP -> IdeLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent();
             case LAYER_WINDOW -> IdeLocalizationKeys.IDE_DRAW_LAYER_WINDOW_TITLE.getComponent();
             case HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
+            case AUXILIARY_HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_AUXILIARY_TITLE.getComponent();
         };
     }
 
@@ -1617,6 +1694,10 @@ public class SfmDrawScreen extends Screen {
         if (textEditingElementId >= 0 && tool != DrawTool.TEXT) {
             finishTextEditing();
         }
+        if (tool == DrawTool.LOCK) {
+            handleLockAction();
+            return;
+        }
         // r[impl draw.tool.layer.opens-layer-window]
         // r[impl draw.tool.layer.toggles-layer-window]
         if (tool == DrawTool.LAYER) {
@@ -1637,11 +1718,11 @@ public class SfmDrawScreen extends Screen {
             toggleZenSoloFor(activeLayer);
             return;
         }
-        if (tool == DrawTool.TEXT && activeTool == DrawTool.TEXT) {
-            textToolCreatesBoundText = !textToolCreatesBoundText;
-            return;
-        }
         if (tool.selectable()) {
+            if (tool == activeTool && supportsStickyMode(tool)) {
+                stickyToolMode = !stickyToolMode;
+                return;
+            }
             activeTool = tool;
         }
     }
@@ -1656,6 +1737,7 @@ public class SfmDrawScreen extends Screen {
                 selectOnly(hitElementId);
                 activeTool = DrawTool.TEXT;
                 textEditingElementId = hitElementId;
+                textEditingCaretIndex = textElement.text.length();
                 return true;
             }
             return false;
@@ -1710,7 +1792,7 @@ public class SfmDrawScreen extends Screen {
             }
         }
 
-        if (selectionMode == SelectionMode.REPLACE && selectionBounds != null && selectionBounds.contains(canvasPoint)) {
+        if (selectionMode == SelectionMode.REPLACE && selectionBounds != null && canTransformCurrentSelection() && selectionBounds.contains(canvasPoint)) {
             // r[impl draw.tool.cursor.duplicate_selection.alt-drag]
             duplicateSelectionPendingOnDrag = hasAltDown();
             moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), canvasPoint, projection, selectionBounds, selectionSnapOrigin());
@@ -1732,7 +1814,7 @@ public class SfmDrawScreen extends Screen {
                 // r[impl draw.tool.arrow.line-selects-anchors]
                 selectOnlyArrow(arrowElement);
                 CanvasBounds arrowSelectionBounds = currentSelectionBounds();
-                if (arrowSelectionBounds != null) {
+                if (arrowSelectionBounds != null && canTransformCurrentSelection()) {
                     moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), canvasPoint, projection, arrowSelectionBounds, selectionSnapOrigin());
                 }
                 duplicateSelectionPendingOnDrag = false;
@@ -1752,7 +1834,7 @@ public class SfmDrawScreen extends Screen {
             // r[impl draw.tool.cursor.duplicate_selection.alt-drag]
             duplicateSelectionPendingOnDrag = hasAltDown();
             CanvasBounds moveBounds = currentSelectionBounds();
-            if (moveBounds != null) {
+            if (moveBounds != null && canTransformCurrentSelection()) {
                 moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), canvasPoint, projection, moveBounds, selectionSnapOrigin());
             }
             return;
@@ -2027,6 +2109,43 @@ public class SfmDrawScreen extends Screen {
             return;
         }
         handleHotbarToolClick(tool);
+    }
+
+    private boolean handleLockAction() {
+        if (!isCanvasLayerActive()) {
+            return false;
+        }
+        List<DrawElement> selectedElements = selectedLockableElements();
+        if (selectedElements.isEmpty()) {
+            canSelectLockedElements = !canSelectLockedElements;
+            return true;
+        }
+        boolean newLocked = nextLockedValueForElements(selectedElements);
+        for (DrawElement element : selectedElements) {
+            element.setLocked(newLocked);
+        }
+        return true;
+    }
+
+    private List<DrawElement> selectedLockableElements() {
+        List<DrawElement> selectedElements = new ArrayList<>();
+        for (Integer selectedId : selectedOwningElementIds()) {
+            DrawElement element = findElementById(selectedId);
+            if (element != null && element.layer() == activeLayer) {
+                selectedElements.add(element);
+            }
+        }
+        return selectedElements;
+    }
+
+    private boolean nextLockedValueForElements(List<DrawElement> selectedElements) {
+        int lockedCount = 0;
+        for (DrawElement element : selectedElements) {
+            if (element.locked()) {
+                lockedCount++;
+            }
+        }
+        return lockedCount * 2 <= selectedElements.size();
     }
 
     // r[impl draw.tool.cursor.select_all]
@@ -2361,7 +2480,7 @@ public class SfmDrawScreen extends Screen {
     private @Nullable ArrowAnchorReference findVisibleArrowAnchorAt(CanvasPoint point) {
         for (int elementIndex = elements.size() - 1; elementIndex >= 0; elementIndex--) {
             DrawElement element = elements.get(elementIndex);
-            if (!(element instanceof ArrowElement arrowElement) || !arrowHasSelectedAnchors(arrowElement)) {
+            if (!(element instanceof ArrowElement arrowElement) || !arrowHasSelectedAnchors(arrowElement) || !isElementSelectable(arrowElement)) {
                 continue;
             }
             for (int anchorIndex = arrowElement.points.size() - 1; anchorIndex >= 0; anchorIndex--) {
@@ -2394,7 +2513,17 @@ public class SfmDrawScreen extends Screen {
 
     private boolean isElementSelectable(DrawElement element) {
         // r[impl draw.tool.cursor.hidden-omitted-unless-revealed]
-        return element.layer() == activeLayer && !isLayerMuted(element.layer()) && (!element.hidden() || revealHiddenElements);
+        return element.layer() == activeLayer
+               && !isLayerMuted(element.layer())
+               && (!element.hidden() || revealHiddenElements)
+               && (!element.locked() || canSelectLockedElement(element));
+    }
+
+    private boolean canSelectLockedElement(DrawElement element) {
+        if (!element.locked()) {
+            return true;
+        }
+        return activeTool == DrawTool.CURSOR && canSelectLockedElements;
     }
 
     private SelectionMode selectionMode() {
@@ -2623,6 +2752,22 @@ public class SfmDrawScreen extends Screen {
         return textElement.bounds(this).contains(point);
     }
 
+    private @Nullable TextElement editableTextElementAt(CanvasPoint point) {
+        int hitElementId = findTopElementAt(point);
+        if (hitElementId < 0) {
+            return null;
+        }
+        DrawElement element = findElementById(hitElementId);
+        if (element instanceof TextElement textElement && textElement.shellBinding == null) {
+            return textElement;
+        }
+        return null;
+    }
+
+    private boolean isCommandTextElement(TextElement textElement) {
+        return textElement.shellBinding == null && textElement.text.startsWith("/");
+    }
+
     private void placeTextCaretFromScreen(
             TextElement textElement,
             double mouseX,
@@ -2742,7 +2887,7 @@ public class SfmDrawScreen extends Screen {
     private void addElementComponentToSelection(Set<Integer> elementIds) {
         for (Integer elementId : elementIds) {
             DrawElement element = findElementById(elementId);
-            if (element == null || element.layer() != activeLayer) {
+            if (element == null || element.layer() != activeLayer || !isElementSelectable(element)) {
                 continue;
             }
             addElementToSelection(element);
@@ -2793,7 +2938,7 @@ public class SfmDrawScreen extends Screen {
                 continue;
             }
             DrawElement element = findElementById(elementId);
-            if (element != null && element.layer() == activeLayer) {
+            if (element != null && element.layer() == activeLayer && isElementSelectable(element)) {
                 addElementToSelection(element);
             }
         }
@@ -2993,7 +3138,21 @@ public class SfmDrawScreen extends Screen {
     }
 
     private boolean canResizeCurrentSelection() {
-        return selectedArrowAnchors.isEmpty() && !selectedElementIds.isEmpty();
+        return canTransformCurrentSelection() && selectedArrowAnchors.isEmpty() && !selectedElementIds.isEmpty();
+    }
+
+    private boolean canTransformCurrentSelection() {
+        Set<Integer> selectedIds = selectedOwningElementIds();
+        if (selectedIds.isEmpty()) {
+            return false;
+        }
+        for (Integer selectedId : selectedIds) {
+            DrawElement element = findElementById(selectedId);
+            if (element == null || element.locked()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private List<SelectionComponent> selectedArrangementComponents() {
@@ -3083,6 +3242,28 @@ public class SfmDrawScreen extends Screen {
         return -1;
     }
 
+    private @Nullable DrawTool hoveredAuxiliaryTool(
+            double mouseX,
+            double mouseY
+    ) {
+        if (!isChromeWidgetOperational(ChromeWidget.AUXILIARY_HOTBAR_BAR)) {
+            return null;
+        }
+        return auxiliaryHotbarSlotBounds().contains(mouseX, mouseY) ? DrawTool.LOCK : null;
+    }
+
+    private @Nullable DrawTool hoveredToolbarTool(
+            double mouseX,
+            double mouseY
+    ) {
+        DrawTool auxiliaryTool = hoveredAuxiliaryTool(mouseX, mouseY);
+        if (auxiliaryTool != null) {
+            return auxiliaryTool;
+        }
+        int hoveredToolIndex = hoveredToolIndex(mouseX, mouseY);
+        return hoveredToolIndex >= 0 ? DrawTool.VALUES[hoveredToolIndex] : null;
+    }
+
     private boolean isChromeLayerActive() {
         return activeLayer == DrawLayer.CHROME;
     }
@@ -3097,7 +3278,7 @@ public class SfmDrawScreen extends Screen {
                  CAMERA_POSITION_LABEL, CAMERA_POSITION_X, CAMERA_POSITION_SEPARATOR, CAMERA_POSITION_Y,
                  ZOOM_LABEL, ZOOM_VALUE,
                  CURSOR_LABEL, CURSOR_X, CURSOR_SEPARATOR, CURSOR_Y,
-                 HOTBAR_BAR, HOTBAR_TITLE, HOTBAR_SUBTITLE -> true;
+                 HOTBAR_BAR, AUXILIARY_HOTBAR_BAR, HOTBAR_TITLE, HOTBAR_SUBTITLE -> true;
             case MINIMAP -> cameraOverlayVisible;
             case LAYER_WINDOW -> layerWindowVisible;
         };
@@ -3168,6 +3349,7 @@ public class SfmDrawScreen extends Screen {
         ChromeWidgetState state = chromeWidgetState(widget);
         return switch (widget) {
             case HOTBAR_BAR -> new Rect(state.x(), state.y(), hotbarWidth(), hotbarHeight());
+            case AUXILIARY_HOTBAR_BAR -> new Rect(state.x(), state.y(), auxiliaryHotbarWidth(), auxiliaryHotbarHeight());
             case MINIMAP, LAYER_WINDOW -> new Rect(state.x(), state.y(), state.width(), state.height());
             default -> textChromeWidgetBounds(state, chromeWidgetText(widget));
         };
@@ -3187,6 +3369,11 @@ public class SfmDrawScreen extends Screen {
         switch (widget) {
             case HOTBAR_BAR -> {
                 // r[impl draw.chrome.hotbar.draggable]
+                chromeWidgetDragOffsetX = (int) Math.round(mouseX) - state.x();
+                chromeWidgetDragOffsetY = (int) Math.round(mouseY) - state.y();
+                return true;
+            }
+            case AUXILIARY_HOTBAR_BAR -> {
                 chromeWidgetDragOffsetX = (int) Math.round(mouseX) - state.x();
                 chromeWidgetDragOffsetY = (int) Math.round(mouseY) - state.y();
                 return true;
@@ -3258,6 +3445,10 @@ public class SfmDrawScreen extends Screen {
                 chromeWidgetResizeStartScale = state.scale();
                 return true;
             }
+            case AUXILIARY_HOTBAR_BAR -> {
+                chromeWidgetResizeStartScale = state.scale();
+                return true;
+            }
             case MINIMAP -> {
                 // r[impl draw.layer.chrome-customization-mode]
                 chromeWidgetResizeStartWidth = state.width();
@@ -3292,6 +3483,10 @@ public class SfmDrawScreen extends Screen {
         switch (draggingChromeWidget) {
             case HOTBAR_BAR -> {
                 // r[impl draw.chrome.hotbar.draggable]
+                moveChromeWidget(draggingChromeWidget, (int) Math.round(mouseX) - chromeWidgetDragOffsetX, (int) Math.round(mouseY) - chromeWidgetDragOffsetY);
+                return true;
+            }
+            case AUXILIARY_HOTBAR_BAR -> {
                 moveChromeWidget(draggingChromeWidget, (int) Math.round(mouseX) - chromeWidgetDragOffsetX, (int) Math.round(mouseY) - chromeWidgetDragOffsetY);
                 return true;
             }
@@ -3394,6 +3589,7 @@ public class SfmDrawScreen extends Screen {
             case CURSOR_SEPARATOR -> cursorSeparatorWidget;
             case CURSOR_Y -> cursorYWidget;
             case HOTBAR_BAR -> hotbarWidget;
+            case AUXILIARY_HOTBAR_BAR -> auxiliaryHotbarWidget;
             case HOTBAR_TITLE -> hotbarTitleWidget;
             case HOTBAR_SUBTITLE -> hotbarSubtitleWidget;
             case MINIMAP -> minimapWidget;
@@ -3421,6 +3617,7 @@ public class SfmDrawScreen extends Screen {
             case CURSOR_SEPARATOR -> cursorSeparatorWidget = state;
             case CURSOR_Y -> cursorYWidget = state;
             case HOTBAR_BAR -> hotbarWidget = state;
+            case AUXILIARY_HOTBAR_BAR -> auxiliaryHotbarWidget = state;
             case HOTBAR_TITLE -> hotbarTitleWidget = state;
             case HOTBAR_SUBTITLE -> hotbarSubtitleWidget = state;
             case MINIMAP -> minimapWidget = state;
@@ -3437,6 +3634,10 @@ public class SfmDrawScreen extends Screen {
             case HOTBAR_BAR -> {
                 hotbarWidget = hotbarWidget.withPosition(x, y);
                 clampHotbarToScreen();
+            }
+            case AUXILIARY_HOTBAR_BAR -> {
+                auxiliaryHotbarWidget = auxiliaryHotbarWidget.withPosition(x, y);
+                clampAuxiliaryHotbarToScreen();
             }
             case MINIMAP -> {
                 minimapWidget = minimapWidget.withPosition(x, y);
@@ -3464,6 +3665,10 @@ public class SfmDrawScreen extends Screen {
                 hotbarWidget = hotbarWidget.withScale(scale);
                 clampHotbarToScreen();
             }
+            case AUXILIARY_HOTBAR_BAR -> {
+                auxiliaryHotbarWidget = auxiliaryHotbarWidget.withScale(scale);
+                clampAuxiliaryHotbarToScreen();
+            }
             case MINIMAP -> {
                 minimapWidget = minimapWidget.withSize(width, height);
                 clampCameraOverlayToScreen();
@@ -3482,6 +3687,7 @@ public class SfmDrawScreen extends Screen {
     private Rect chromeWidgetDragBounds(ChromeWidget widget) {
         return switch (widget) {
             case HOTBAR_BAR -> chromeWidgetBounds(widget);
+            case AUXILIARY_HOTBAR_BAR -> chromeWidgetBounds(widget);
             case MINIMAP -> cameraOverlayHeaderBounds();
             case LAYER_WINDOW -> layerWindowHeaderBounds();
             default -> chromeWidgetBounds(widget);
@@ -3490,7 +3696,7 @@ public class SfmDrawScreen extends Screen {
 
     private Rect chromeWidgetResizeBounds(ChromeWidget widget) {
         return switch (widget) {
-            case HOTBAR_BAR, HOTBAR_TITLE, HOTBAR_SUBTITLE, MINIMAP -> chromeWidgetBounds(widget);
+            case HOTBAR_BAR, AUXILIARY_HOTBAR_BAR, HOTBAR_TITLE, HOTBAR_SUBTITLE, MINIMAP -> chromeWidgetBounds(widget);
             case LAYER_WINDOW -> layerWindowResizeHandleBounds();
             default -> chromeWidgetBounds(widget);
         };
@@ -3631,6 +3837,25 @@ public class SfmDrawScreen extends Screen {
         );
     }
 
+    private Rect auxiliaryHotbarBounds() {
+        return chromeWidgetBounds(ChromeWidget.AUXILIARY_HOTBAR_BAR);
+    }
+
+    private Rect auxiliaryHotbarSlotBounds() {
+        int left = auxiliaryHotbarWidget.x() + scaledAuxiliaryHotbarUnit(3);
+        int top = auxiliaryHotbarWidget.y() + scaledAuxiliaryHotbarUnit(3);
+        int size = Math.max(8, scaledAuxiliaryHotbarUnit(16));
+        return new Rect(left, top, size, size);
+    }
+
+    private void clampAuxiliaryHotbarToScreen() {
+        auxiliaryHotbarWidget = auxiliaryHotbarWidget.withScale(Mth.clamp(auxiliaryHotbarWidget.scale(), HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE));
+        auxiliaryHotbarWidget = auxiliaryHotbarWidget.withPosition(
+                Mth.clamp(auxiliaryHotbarWidget.x(), CHROME_EDGE_MARGIN, Math.max(CHROME_EDGE_MARGIN, width - auxiliaryHotbarWidth() - CHROME_EDGE_MARGIN)),
+                Mth.clamp(auxiliaryHotbarWidget.y(), CHROME_EDGE_MARGIN, Math.max(CHROME_EDGE_MARGIN, height - auxiliaryHotbarHeight() - CHROME_EDGE_MARGIN))
+        );
+    }
+
     private int hotbarWidth() {
         return scaledHotbarUnit(HOTBAR_WIDTH);
     }
@@ -3645,6 +3870,18 @@ public class SfmDrawScreen extends Screen {
 
     private int scaledHotbarUnit(int value) {
         return Math.max(1, (int) Math.round(value * hotbarWidget.scale()));
+    }
+
+    private int auxiliaryHotbarWidth() {
+        return scaledAuxiliaryHotbarUnit(AUXILIARY_HOTBAR_WIDTH);
+    }
+
+    private int auxiliaryHotbarHeight() {
+        return scaledAuxiliaryHotbarUnit(AUXILIARY_HOTBAR_HEIGHT);
+    }
+
+    private int scaledAuxiliaryHotbarUnit(int value) {
+        return Math.max(1, (int) Math.round(value * auxiliaryHotbarWidget.scale()));
     }
 
     private Rect hotbarTitleBounds() {
@@ -3701,6 +3938,7 @@ public class SfmDrawScreen extends Screen {
     private void clampChromeWidgetToScreen(ChromeWidget widget) {
         switch (widget) {
             case HOTBAR_BAR -> clampHotbarToScreen();
+            case AUXILIARY_HOTBAR_BAR -> clampAuxiliaryHotbarToScreen();
             case MINIMAP -> clampCameraOverlayToScreen();
             case LAYER_WINDOW -> clampLayerWindowToScreen();
             default -> clampTextChromeWidgetToScreen(widget);
@@ -3785,6 +4023,7 @@ public class SfmDrawScreen extends Screen {
         }
         return switch (widget) {
             case HOTBAR_BAR -> Math.max(60, (int) Math.round(HOTBAR_WIDTH * HOTBAR_MIN_SCALE));
+            case AUXILIARY_HOTBAR_BAR -> Math.max(16, (int) Math.round(AUXILIARY_HOTBAR_WIDTH * HOTBAR_MIN_SCALE));
             case MINIMAP -> MINIMAP_MIN_WIDTH;
             case LAYER_WINDOW -> LAYER_WINDOW_MIN_WIDTH;
             default -> 18;
@@ -3797,6 +4036,7 @@ public class SfmDrawScreen extends Screen {
         }
         return switch (widget) {
             case HOTBAR_BAR -> Math.max(16, (int) Math.round(HOTBAR_HEIGHT * HOTBAR_MIN_SCALE));
+            case AUXILIARY_HOTBAR_BAR -> Math.max(16, (int) Math.round(AUXILIARY_HOTBAR_HEIGHT * HOTBAR_MIN_SCALE));
             case MINIMAP -> MINIMAP_MIN_HEIGHT;
             case LAYER_WINDOW -> LAYER_WINDOW_MIN_HEIGHT;
             default -> 10;
@@ -3816,9 +4056,32 @@ public class SfmDrawScreen extends Screen {
         }
         return switch (widget) {
             case HOTBAR_BAR -> Mth.clamp(Math.max(bounds.width() / (double) HOTBAR_WIDTH, bounds.height() / (double) HOTBAR_HEIGHT), HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE);
+            case AUXILIARY_HOTBAR_BAR -> Mth.clamp(Math.max(bounds.width() / (double) AUXILIARY_HOTBAR_WIDTH, bounds.height() / (double) AUXILIARY_HOTBAR_HEIGHT), HOTBAR_MIN_SCALE, HOTBAR_MAX_SCALE);
             case MINIMAP, LAYER_WINDOW -> 1.0D;
             default -> 1.0D;
         };
+    }
+
+    private void drawTextEditingHandle(PoseStack poseStack) {
+        TextElement textElement = editingTextElement();
+        if (textElement == null) {
+            return;
+        }
+        Rect bounds = textEditingHandleBounds(textElement);
+        fill(poseStack, bounds.left(), bounds.top(), bounds.right(), bounds.bottom(), 0xFF88D498);
+        drawScreenRectOutline(poseStack, new ScreenRect(bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), 0xFFF6FAFF);
+        fill(poseStack, bounds.left() + 2, bounds.top() + 4, bounds.right() - 2, bounds.top() + 6, 0xFF0F141A);
+        fill(poseStack, bounds.left() + 4, bounds.top() + 2, bounds.left() + 6, bounds.bottom() - 2, 0xFF0F141A);
+    }
+
+    private Rect textEditingHandleBounds(TextElement textElement) {
+        ScreenRect screenBounds = canvasBoundsToScreenRect(textElement.bounds(this));
+        return new Rect(
+                screenBounds.left() - TEXT_EDIT_HANDLE_SIZE - 2,
+                screenBounds.top() - TEXT_EDIT_HANDLE_SIZE - 2,
+                TEXT_EDIT_HANDLE_SIZE,
+                TEXT_EDIT_HANDLE_SIZE
+        );
     }
 
     private @Nullable SelectionHandle findChromeWidgetSelectionHandle(
@@ -3836,9 +4099,26 @@ public class SfmDrawScreen extends Screen {
         return null;
     }
 
+    private boolean isSelectionMoveHover(
+            int mouseX,
+            int mouseY,
+            CanvasBounds selectionBounds
+    ) {
+        @Nullable CameraOverlayProjection overlayProjection = isChromeLayerActive() ? null : cameraOverlayInteractionProjection();
+        @Nullable CameraOverlayProjection projectionUnderMouse = overlayProjection != null && overlayProjection.mapBounds().contains(mouseX, mouseY) ? overlayProjection : null;
+        if (isChromeWidgetOperational(ChromeWidget.MINIMAP) && cameraOverlayBounds().contains(mouseX, mouseY) && projectionUnderMouse == null) {
+            return false;
+        }
+        CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, projectionUnderMouse);
+        return selectionBounds.contains(canvasPoint);
+    }
+
     private void initChromeCursors() {
         if (handCursorHandle == 0L) {
             handCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_HAND_CURSOR);
+        }
+        if (moveCursorHandle == 0L) {
+            moveCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_RESIZE_ALL_CURSOR);
         }
         if (horizontalResizeCursorHandle == 0L) {
             horizontalResizeCursorHandle = GLFW.glfwCreateStandardCursor(GLFW.GLFW_HRESIZE_CURSOR);
@@ -3859,6 +4139,10 @@ public class SfmDrawScreen extends Screen {
         if (handCursorHandle != 0L) {
             GLFW.glfwDestroyCursor(handCursorHandle);
             handCursorHandle = 0L;
+        }
+        if (moveCursorHandle != 0L) {
+            GLFW.glfwDestroyCursor(moveCursorHandle);
+            moveCursorHandle = 0L;
         }
         if (horizontalResizeCursorHandle != 0L) {
             GLFW.glfwDestroyCursor(horizontalResizeCursorHandle);
@@ -3882,17 +4166,36 @@ public class SfmDrawScreen extends Screen {
             int mouseX,
             int mouseY
     ) {
+        if (moveSelectionDrag != null) {
+            applyChromeCursor(ChromeCursor.MOVE);
+            return;
+        }
         if (resizeSelectionDrag != null) {
             applyChromeCursor(cursorForSelectionHandle(resizeSelectionDrag.handle()));
             return;
         }
+        if (activeTool == DrawTool.TEXT && textEditingElementId >= 0) {
+            TextElement textElement = editingTextElement();
+            if (textElement != null && textEditingHandleBounds(textElement).contains(mouseX, mouseY)) {
+                // r[impl draw.tool.text.edit.grab-handle.cursor]
+                applyChromeCursor(ChromeCursor.MOVE);
+                return;
+            }
+        }
         if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && selectionMode() == SelectionMode.REPLACE) {
             CanvasBounds selectionBounds = currentSelectionBounds();
-            if (selectionBounds != null && canResizeCurrentSelection()) {
-                SelectionHandle handle = findSelectionHandle(mouseX, mouseY, selectionBounds);
-                if (handle != null) {
-                    // r[impl draw.tool.cursor.transform_selection.handle-cursor]
-                    applyChromeCursor(cursorForSelectionHandle(handle));
+            if (selectionBounds != null) {
+                if (canResizeCurrentSelection()) {
+                    SelectionHandle handle = findSelectionHandle(mouseX, mouseY, selectionBounds);
+                    if (handle != null) {
+                        // r[impl draw.tool.cursor.transform_selection.handle-cursor]
+                        applyChromeCursor(cursorForSelectionHandle(handle));
+                        return;
+                    }
+                }
+                if (canTransformCurrentSelection() && isSelectionMoveHover(mouseX, mouseY, selectionBounds)) {
+                    // r[impl draw.tool.cursor.transform_selection.move-cursor]
+                    applyChromeCursor(ChromeCursor.MOVE);
                     return;
                 }
             }
@@ -3963,6 +4266,7 @@ public class SfmDrawScreen extends Screen {
         long cursorHandle = switch (desired) {
             case DEFAULT -> 0L;
             case HAND -> handCursorHandle != 0L ? handCursorHandle : 0L;
+            case MOVE -> moveCursorHandle != 0L ? moveCursorHandle : 0L;
             case HORIZONTAL -> horizontalResizeCursorHandle != 0L ? horizontalResizeCursorHandle : 0L;
             case VERTICAL -> verticalResizeCursorHandle != 0L ? verticalResizeCursorHandle : 0L;
             case DIAGONAL_NORTH_WEST_SOUTH_EAST -> diagonalNorthWestSouthEastCursorHandle != 0L ? diagonalNorthWestSouthEastCursorHandle : 0L;
@@ -4307,6 +4611,7 @@ public class SfmDrawScreen extends Screen {
         private final int id;
         private DrawLayer layer;
         private boolean hidden = false;
+        private boolean locked = false;
         private Set<Integer> groupIds = new LinkedHashSet<>();
 
         protected DrawElement(
@@ -4325,6 +4630,10 @@ public class SfmDrawScreen extends Screen {
             return hidden;
         }
 
+        public boolean locked() {
+            return locked;
+        }
+
         public DrawLayer layer() {
             return layer;
         }
@@ -4337,14 +4646,20 @@ public class SfmDrawScreen extends Screen {
             this.hidden = hidden;
         }
 
+        public void setLocked(boolean locked) {
+            this.locked = locked;
+        }
+
         protected void copyMetadataTo(DrawElement copy) {
             copy.hidden = hidden;
+            copy.locked = locked;
             copy.layer = layer;
             copy.groupIds = new LinkedHashSet<>(groupIds);
         }
 
         protected void copyMetadataFrom(DrawElement other) {
             hidden = other.hidden;
+            locked = other.locked;
             layer = other.layer;
             groupIds = new LinkedHashSet<>(other.groupIds);
         }
@@ -5199,6 +5514,7 @@ public class SfmDrawScreen extends Screen {
         CURSOR_SEPARATOR,
         CURSOR_Y,
         HOTBAR_BAR,
+        AUXILIARY_HOTBAR_BAR,
         HOTBAR_TITLE,
         HOTBAR_SUBTITLE,
         MINIMAP,
@@ -5223,6 +5539,7 @@ public class SfmDrawScreen extends Screen {
                 case CURSOR_SEPARATOR -> Component.literal("Cursor separator");
                 case CURSOR_Y -> Component.literal("Cursor y");
                 case HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
+                case AUXILIARY_HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_AUXILIARY_TITLE.getComponent();
                 case HOTBAR_TITLE -> Component.literal("Tools title");
                 case HOTBAR_SUBTITLE -> Component.literal("Tools subtitle");
                 case MINIMAP -> IdeLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent();
@@ -5234,6 +5551,7 @@ public class SfmDrawScreen extends Screen {
     private enum ChromeCursor {
         DEFAULT,
         HAND,
+        MOVE,
         HORIZONTAL,
         VERTICAL,
         DIAGONAL_NORTH_WEST_SOUTH_EAST,
@@ -5250,7 +5568,8 @@ public class SfmDrawScreen extends Screen {
         CAMERA(GLFW.GLFW_KEY_C, IdeLocalizationKeys.IDE_DRAW_TOOL_CAMERA.getString(), "C", icon("camera"), true),
         // r[impl draw.tool.layer.shortcut.tab]
         LAYER(GLFW.GLFW_KEY_TAB, IdeLocalizationKeys.IDE_DRAW_TOOL_LAYER.getString(), "Tab", icon("cursor"), true),
-        ZEN(GLFW.GLFW_KEY_Z, IdeLocalizationKeys.IDE_DRAW_TOOL_ZEN.getString(), "Z", icon("camera"), false);
+        ZEN(GLFW.GLFW_KEY_Z, IdeLocalizationKeys.IDE_DRAW_TOOL_ZEN.getString(), "Z", icon("camera"), false),
+        LOCK(GLFW.GLFW_KEY_L, IdeLocalizationKeys.IDE_DRAW_TOOL_LOCK.getString(), "L", icon("lock"), false);
 
         private static final DrawTool[] VALUES = values();
 

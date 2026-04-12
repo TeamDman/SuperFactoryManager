@@ -263,6 +263,10 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.draw.hotbar.title",
             "Tools"
     );
+    public static final LocalizationEntry IDE_DRAW_HOTBAR_AUXILIARY_TITLE = new LocalizationEntry(
+            "gui.sfm.ide.draw.hotbar.auxiliary.title",
+            "Locks"
+    );
     public static final LocalizationEntry IDE_DRAW_HINTS = new LocalizationEntry(
             "gui.sfm.ide.draw.hints",
             "Ctrl+Scroll: zoom | Middle drag / Hand: pan | Drag tool strip to move"
@@ -358,6 +362,10 @@ public final class IdeLocalizationKeys {
     public static final LocalizationEntry IDE_DRAW_TOOL_ZEN = new LocalizationEntry(
             "gui.sfm.ide.draw.tool.zen",
             "Zen"
+    );
+    public static final LocalizationEntry IDE_DRAW_TOOL_LOCK = new LocalizationEntry(
+            "gui.sfm.ide.draw.tool.lock",
+            "Lock"
     );
 
     public static List<LocalizationEntry> getEntries() {

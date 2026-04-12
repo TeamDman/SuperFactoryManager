@@ -68,6 +68,14 @@
 >
 > The tool hotbar MUST expose keyboard shortcuts for the available tools and number-key selection for the hotbar slots.
 
+> r[draw.chrome.hotbar.secondary]
+>
+> The draw screen MUST provide a second screen-space toolbar for overflow draw actions when the primary hotbar is full.
+
+> r[draw.chrome.hotbar.secondary.draggable]
+>
+> The secondary toolbar MUST be independently repositionable on the chrome layer.
+
 > r[draw.chrome.hotbar.parts.independent]
 >
 > The hotbar title, the hotbar bar, and the hotbar subtitle MUST be independently positionable and resizable chrome widgets.
@@ -166,6 +174,26 @@
 >
 > Text elements MUST support inline text editing with caret placement, insertion, deletion, and finishing edit mode.
 
+> r[draw.tool.text.select-existing]
+>
+> Clicking an existing editable text element with the text tool MUST select that text element and enter inline edit mode for it.
+
+> r[draw.tool.text.edit.grab-handle]
+>
+> While editing a text element with the text tool, a grab handle MUST appear at the text element's top-left so the text element can be repositioned without leaving the text tool.
+
+> r[draw.tool.text.edit.grab-handle.cursor]
+>
+> Hovering the text-edit grab handle MUST update the mouse cursor to a four-arrow move cursor.
+
+> r[draw.tool.text.edit.enter-commits]
+>
+> Pressing `Enter` while editing text MUST commit the edit, and pressing `Shift+Enter` MUST insert a newline instead.
+
+> r[draw.tool.text.command-style.slash]
+>
+> Text elements whose content begins with `/` MUST render inside a black rectangle with a white border.
+
 > r[draw.tool.freehand.create]
 >
 > A freehand tool MUST create polyline-style strokes by sampling dragged cursor positions.
@@ -236,6 +264,10 @@
 >
 > Hovering a resize handle for a rectangular selection MUST update the mouse cursor to match the handle orientation.
 
+> r[draw.tool.cursor.transform_selection.move-cursor]
+>
+> Hovering a movable selection region in the cursor tool MUST update the mouse cursor to a four-arrow move cursor, and locked selections MUST NOT show that move cursor.
+
 > r[draw.tool.cursor.selection.additive]
 >
 > Holding `Shift` while using the cursor tool MUST make click and marquee selection additive.
@@ -247,6 +279,22 @@
 > r[draw.tool.cursor.selection.modifier-indicator]
 >
 > While additive or subtractive selection is active, the draw screen MUST render a visible `+` or `-` cursor indicator.
+
+> r[draw.tool.lock.exists]
+>
+> A lock action MUST exist for toggling element locked state.
+
+> r[draw.tool.lock.shortcut]
+>
+> Pressing `L` MUST invoke the lock action.
+
+> r[draw.tool.cursor.locked.select-toggle]
+>
+> If the canvas selection is empty when the lock action is invoked, the cursor tool MUST toggle whether locked elements are selectable and reflect that mode in the cursor-tool status text.
+
+> r[draw.tool.cursor.locked.selection-toggle]
+>
+> If a canvas selection exists when the lock action is invoked, every selected owning element MUST assume the minority locked state of the selection, with ties treated as locking the full selection.
 
 > r[draw.tool.cursor.duplicate_selection]
 >
@@ -591,6 +639,18 @@
 > r[draw.tool.cursor.hidden-omitted-unless-revealed]
 >
 > Hidden elements MUST be omitted from cursor hit-testing and marquee selection unless reveal-hidden-elements mode is active.
+
+> r[draw.tool.cursor.locked-omitted-unless-enabled]
+>
+> Locked elements MUST be omitted from cursor hit-testing and marquee selection unless locked-element selection mode is enabled.
+
+> r[draw.property.locked.exists]
+>
+> A `locked` property MUST exist for draw elements.
+
+> r[draw.property.locked.constraint]
+>
+> The `locked` property MUST accept boolean values.
 
 # Planned follow-ups
 
