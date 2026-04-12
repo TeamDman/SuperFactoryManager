@@ -242,6 +242,10 @@
 >
 > An `/sfm draw echo` command MUST exist and echo its message to the caller.
 
+> r[draw.command.help.exists]
+>
+> An `/sfm draw help` command MUST exist and list the available `/sfm draw` subcommands.
+
 > r[draw.tool.freehand.create]
 >
 > A freehand tool MUST create polyline-style strokes by sampling dragged cursor positions.

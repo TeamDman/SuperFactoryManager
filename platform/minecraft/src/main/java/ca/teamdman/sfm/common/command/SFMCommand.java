@@ -150,6 +150,8 @@ public class SFMCommand {
                              }));
                 command.then(Commands.literal("draw")
                                                          .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                                                         .then(Commands.literal("help")
+                                                                                   .executes(ctx -> runDrawHelp(ctx.getSource())))
                                                          .then(Commands.literal("echo")
                                                                                    .executes(ctx -> runDrawEcho(ctx.getSource(), ""))
                                                                                    .then(Commands.argument("message", StringArgumentType.greedyString())
@@ -232,6 +234,13 @@ public class SFMCommand {
 
         private static int runDrawEcho(CommandSourceStack source, String message) {
                 sendSuccess(source, () -> Component.literal(message));
+                return SINGLE_SUCCESS;
+        }
+
+        private static int runDrawHelp(CommandSourceStack source) {
+                sendSuccess(source, () -> Component.literal("SFM draw commands:"));
+                sendSuccess(source, () -> Component.literal("- /sfm draw help"));
+                sendSuccess(source, () -> Component.literal("- /sfm draw echo <message>"));
                 return SINGLE_SUCCESS;
         }
 

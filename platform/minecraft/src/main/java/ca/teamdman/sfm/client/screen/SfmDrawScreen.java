@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.net.ServerboundSfmDrawCommandPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
+import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.context.StringRange;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -139,6 +140,7 @@ public class SfmDrawScreen extends Screen {
         private int textEditingCaretIndex = 0;
         private int textEditingSelectionAnchorIndex = 0;
         private boolean stickyToolMode = false;
+        private int suppressedShortcutCodePoint = -1;
         private final DrawCommandSuggestions drawCommandSuggestions = new DrawCommandSuggestions();
 
         private final List<CanvasPoint> pendingArrowAnchors = new ArrayList<>();
@@ -364,6 +366,7 @@ public class SfmDrawScreen extends Screen {
         // r[impl draw.chrome.hotbar.shortcuts]
         int hotbarIndex = hotbarIndexForKeyCode(keyCode);
         if (hotbarIndex >= 0 && hotbarIndex < TOOL_COUNT) {
+            rememberSuppressedShortcutCharacter(keyCode, scanCode);
             handleToolShortcut(DrawTool.VALUES[hotbarIndex]);
             return true;
         }
@@ -375,6 +378,7 @@ public class SfmDrawScreen extends Screen {
 
         @Nullable DrawTool shortcutTool = DrawTool.byKeyCode(keyCode);
         if (shortcutTool != null) {
+            rememberSuppressedShortcutCharacter(keyCode, scanCode);
             handleToolShortcut(shortcutTool);
             return true;
         }
@@ -386,6 +390,14 @@ public class SfmDrawScreen extends Screen {
             char codePoint,
             int modifiers
     ) {
+
+        if (suppressedShortcutCodePoint >= 0) {
+            int suppressedCodePoint = suppressedShortcutCodePoint;
+            suppressedShortcutCodePoint = -1;
+            if (Character.toLowerCase(codePoint) == Character.toLowerCase(suppressedCodePoint)) {
+                return true;
+            }
+        }
 
         if (isTextEditing()) {
             if (!Character.isISOControl(codePoint)) {
@@ -2977,6 +2989,17 @@ public class SfmDrawScreen extends Screen {
 
     private boolean isEditingCommandText() {
         return isCommandTextElement(editingTextElement());
+    }
+
+    private void rememberSuppressedShortcutCharacter(
+            int keyCode,
+            int scanCode
+    ) {
+        suppressedShortcutCodePoint = -1;
+        String keyName = GLFW.glfwGetKeyName(keyCode, scanCode);
+        if (keyName != null && keyName.length() == 1) {
+            suppressedShortcutCodePoint = keyName.charAt(0);
+        }
     }
 
     private boolean isTextEditing() {
@@ -5726,9 +5749,13 @@ public class SfmDrawScreen extends Screen {
             visibleCursor = textEditingCaretIndexFor(textElement);
 
             String translatedCommand = translatedCommand(visibleCommand);
+            StringReader stringReader = new StringReader(translatedCommand);
+            if (stringReader.canRead() && stringReader.peek() == '/') {
+                stringReader.skip();
+            }
             int translatedCursor = translatedCursor(visibleCursor, translatedCommand.length());
             CommandDispatcher<SharedSuggestionProvider> dispatcher = minecraft.player.connection.getCommands();
-            ParseResults<SharedSuggestionProvider> parseResults = dispatcher.parse(translatedCommand, minecraft.player.connection.getSuggestionsProvider());
+            ParseResults<SharedSuggestionProvider> parseResults = dispatcher.parse(stringReader, minecraft.player.connection.getSuggestionsProvider());
             Suggestions translatedSuggestions = dispatcher.getCompletionSuggestions(parseResults, translatedCursor).join();
 
             suggestions.clear();
