@@ -308,6 +308,18 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        if (handleKeyboardZoomShortcut(keyCode)) {
+            return true;
+        }
+
+        if (isCanvasLayerActive() && hasControlDown() && keyCode == GLFW.GLFW_KEY_F && frameCameraOnSelection()) {
+            return true;
+        }
+
+        if (activeTool == DrawTool.CAMERA && panCameraFromKey(keyCode)) {
+            return true;
+        }
+
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && hasCanvasSelection()) {
             clearCanvasSelection();
             return true;
@@ -323,6 +335,12 @@ public class SfmDrawScreen extends Screen {
 
         if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && !hasShiftDown() && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
             if (beginTextEditingForCursorSelection()) {
+                return true;
+            }
+        }
+
+        if (isCanvasLayerActive() && !hasCanvasSelection() && !hasShiftDown() && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            if ((activeTool == DrawTool.CURSOR || activeTool == DrawTool.TEXT) && beginTextEditingAtViewportCenter()) {
                 return true;
             }
         }
@@ -787,16 +805,7 @@ public class SfmDrawScreen extends Screen {
                                 : screenToCanvas(mouseX, mouseY, null);
 
         double scaleFactor = delta > 0.0D ? ZOOM_STEP : 1.0D / ZOOM_STEP;
-        double oldZoom = zoom;
-        double newZoom = Mth.clamp(oldZoom * scaleFactor, MIN_ZOOM, MAX_ZOOM);
-        if (newZoom == oldZoom) {
-            return true;
-        }
-
-        zoom = newZoom;
-        cameraX = focusPoint.x() - (mouseX - screenCenterX()) / zoom;
-        cameraY = focusPoint.y() - (mouseY - screenCenterY()) / zoom;
-        return true;
+        return zoomCamera(scaleFactor, focusPoint, mouseX, mouseY);
     }
 
     @Override
@@ -2231,11 +2240,35 @@ public class SfmDrawScreen extends Screen {
         if (bounds.width() <= 1.0D || bounds.height() <= 1.0D) {
             return;
         }
-        cameraX = (bounds.minX() + bounds.maxX()) / 2.0D;
-        cameraY = (bounds.minY() + bounds.maxY()) / 2.0D;
-        double zoomX = width / bounds.width();
-        double zoomY = height / bounds.height();
+        applyCameraFrame(bounds);
+    }
+
+    private void applyCameraFrame(CanvasBounds bounds) {
+        CanvasBounds frameBounds = normalizeCameraFrameBounds(bounds);
+        cameraX = (frameBounds.minX() + frameBounds.maxX()) / 2.0D;
+        cameraY = (frameBounds.minY() + frameBounds.maxY()) / 2.0D;
+        double zoomX = width / frameBounds.width();
+        double zoomY = height / frameBounds.height();
         zoom = Mth.clamp(Math.min(zoomX, zoomY), MIN_ZOOM, MAX_ZOOM);
+    }
+
+    private CanvasBounds normalizeCameraFrameBounds(CanvasBounds bounds) {
+        double minSpan = 16.0D / Math.max(zoom, 0.01D);
+        double minX = bounds.minX();
+        double maxX = bounds.maxX();
+        double minY = bounds.minY();
+        double maxY = bounds.maxY();
+        if (bounds.width() < minSpan) {
+            double centerX = (minX + maxX) / 2.0D;
+            minX = centerX - minSpan / 2.0D;
+            maxX = centerX + minSpan / 2.0D;
+        }
+        if (bounds.height() < minSpan) {
+            double centerY = (minY + maxY) / 2.0D;
+            minY = centerY - minSpan / 2.0D;
+            maxY = centerY + minSpan / 2.0D;
+        }
+        return CanvasBounds.of(minX, minY, maxX, maxY);
     }
 
     private void resetToolAfterCreation(DrawTool createdTool) {
@@ -2340,6 +2373,57 @@ public class SfmDrawScreen extends Screen {
             return nudgeSelectedChromeWidgets(dx, dy);
         }
         return false;
+    }
+
+    private boolean panCameraFromKey(int keyCode) {
+        int step = movementSnapIncrement();
+        int dx = 0;
+        int dy = 0;
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_H -> dx = -step;
+            case GLFW.GLFW_KEY_RIGHT, GLFW.GLFW_KEY_L -> dx = step;
+            case GLFW.GLFW_KEY_UP, GLFW.GLFW_KEY_K -> dy = -step;
+            case GLFW.GLFW_KEY_DOWN, GLFW.GLFW_KEY_J -> dy = step;
+            default -> {
+                return false;
+            }
+        }
+        cameraX += dx;
+        cameraY += dy;
+        return true;
+    }
+
+    private boolean handleKeyboardZoomShortcut(int keyCode) {
+        if (!hasControlDown()) {
+            return false;
+        }
+        if (keyCode == GLFW.GLFW_KEY_EQUAL || keyCode == GLFW.GLFW_KEY_KP_ADD) {
+            CanvasPoint focusPoint = screenToCanvas(screenCenterX(), screenCenterY(), null);
+            return zoomCamera(ZOOM_STEP, focusPoint, screenCenterX(), screenCenterY());
+        }
+        if (keyCode == GLFW.GLFW_KEY_MINUS || keyCode == GLFW.GLFW_KEY_KP_SUBTRACT) {
+            CanvasPoint focusPoint = screenToCanvas(screenCenterX(), screenCenterY(), null);
+            return zoomCamera(1.0D / ZOOM_STEP, focusPoint, screenCenterX(), screenCenterY());
+        }
+        return false;
+    }
+
+    private boolean zoomCamera(
+            double scaleFactor,
+            CanvasPoint focusPoint,
+            double screenX,
+            double screenY
+    ) {
+        double oldZoom = zoom;
+        double newZoom = Mth.clamp(oldZoom * scaleFactor, MIN_ZOOM, MAX_ZOOM);
+        if (newZoom == oldZoom) {
+            return true;
+        }
+
+        zoom = newZoom;
+        cameraX = focusPoint.x() - (screenX - screenCenterX()) / zoom;
+        cameraY = focusPoint.y() - (screenY - screenCenterY()) / zoom;
+        return true;
     }
 
     private boolean isArrowKey(int keyCode) {
@@ -3123,6 +3207,16 @@ public class SfmDrawScreen extends Screen {
         return true;
     }
 
+    private boolean beginTextEditingAtViewportCenter() {
+        CanvasPoint viewportCenter = screenToCanvas(screenCenterX(), screenCenterY(), null);
+        TextElement textTarget = editableTextElementNear(viewportCenter, activeCanvasLayer());
+        if (textTarget == null) {
+            textTarget = createTextElement(snapCanvasPointToCurrentIncrement(viewportCenter));
+        }
+        beginTextEditing(textTarget, Set.of(textTarget.id()), textTarget.text.length());
+        return true;
+    }
+
     private void refreshCommandSuggestions() {
         if (!isEditingCommandText()) {
             drawCommandSuggestions.hide();
@@ -3896,6 +3990,15 @@ public class SfmDrawScreen extends Screen {
             bounds = bounds == null ? pointBounds : bounds.expandToInclude(pointBounds);
         }
         return bounds;
+    }
+
+    private boolean frameCameraOnSelection() {
+        CanvasBounds bounds = currentSelectionBounds();
+        if (bounds == null) {
+            return false;
+        }
+        applyCameraFrame(bounds);
+        return true;
     }
 
     private List<ElementSnapshot> selectionSnapshot() {
@@ -6019,7 +6122,13 @@ public class SfmDrawScreen extends Screen {
             int translatedCursor = translatedCursor(visibleCursor, translatedCommand.length());
             CommandDispatcher<SharedSuggestionProvider> dispatcher = minecraft.player.connection.getCommands();
             ParseResults<SharedSuggestionProvider> parseResults = dispatcher.parse(stringReader, minecraft.player.connection.getSuggestionsProvider());
-            Suggestions translatedSuggestions = dispatcher.getCompletionSuggestions(parseResults, translatedCursor).join();
+            Suggestions translatedSuggestions;
+            try {
+                translatedSuggestions = dispatcher.getCompletionSuggestions(parseResults, translatedCursor).join();
+            } catch (IllegalStateException exception) {
+                hide();
+                return;
+            }
 
             suggestions.clear();
             suggestions.addAll(mapSuggestionsToVisibleInput(translatedSuggestions));
@@ -6211,7 +6320,8 @@ public class SfmDrawScreen extends Screen {
                 int translatedCommandLength
         ) {
             int adjustment = usesExpandedDrawCommandPrefix(visibleCommand) ? 0 : PREFIX_ADJUSTMENT;
-            return Mth.clamp(cursorIndex + adjustment, 0, translatedCommandLength);
+            int minimumCursor = visibleCommand.startsWith("/") ? 1 : 0;
+            return Mth.clamp(cursorIndex + adjustment, minimumCursor, translatedCommandLength);
         }
     }
 

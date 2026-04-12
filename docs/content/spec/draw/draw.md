@@ -30,6 +30,10 @@
 >
 > `Ctrl+Scroll` MUST zoom the canvas around the cursor position rather than around the screen center.
 
+> r[draw.camera.zoom.keyboard]
+>
+> `Ctrl++` and `Ctrl+-` MUST zoom the canvas in and out around the screen center.
+
 > r[draw.camera.pan.middle_drag]
 >
 > Middle mouse dragging MUST pan the canvas regardless of the active tool.
@@ -45,6 +49,10 @@
 > r[draw.camera.tool.selection-toggles-minimap]
 >
 > Selecting the camera tool MUST immediately toggle the visibility of the camera/minimap overlay.
+
+> r[draw.camera.tool.keyboard-pan]
+>
+> While the camera tool is selected, the arrow keys and `H`, `J`, `K`, `L` MUST pan the camera, with `Ctrl` using the fine movement increment and `Shift` using the coarse movement increment.
 
 > r[draw.camera.hidden-minimap-not-interactive]
 >
@@ -177,6 +185,10 @@
 > r[draw.tool.text.select-existing]
 >
 > Clicking an existing editable text element with the text tool MUST select that text element and enter inline edit mode for it.
+
+> r[draw.tool.text.enter-centers]
+>
+> Pressing `Enter` with the text tool selected and no canvas selection MUST begin editing an existing editable text element near the viewport center, or create a new centered text element and begin editing it if none is present.
 
 > r[draw.tool.text.edit.multi-selection]
 >
@@ -375,6 +387,14 @@
 > r[draw.tool.cursor.enter-text-target]
 >
 > Pressing `Enter` while the cursor tool has canvas elements selected MUST find or create editable text elements near the selected elements' midpoints, reduce the selection to those text elements, and enter text edit mode for them.
+
+> r[draw.tool.cursor.enter-text-center]
+>
+> Pressing `Enter` while the cursor tool has no canvas selection MUST begin editing an existing editable text element near the viewport center, or create a new centered text element and begin editing it if none is present.
+
+> r[draw.tool.cursor.focus-selection]
+>
+> Pressing `Ctrl+F` with a canvas selection MUST frame the camera to the bounds enclosing the selected elements.
 
 > r[draw.tool.cursor.copy-selected-text]
 >
