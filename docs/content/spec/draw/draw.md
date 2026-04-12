@@ -178,6 +178,14 @@
 >
 > Clicking an existing editable text element with the text tool MUST select that text element and enter inline edit mode for it.
 
+> r[draw.tool.text.edit.multi-selection]
+>
+> Switching to the text tool while editable text elements are selected MUST enter a shared edit mode for those selected text elements so typing, deletion, paste, and command acceptance are mirrored to each edited text element.
+
+> r[draw.tool.text.edit.multi-selection.highlight]
+>
+> Shared text editing MUST support shift-extended text selection across the edited text elements and MUST render the corresponding text highlight for each edited text element.
+
 > r[draw.tool.text.edit.grab-handle]
 >
 > While editing a text element with the text tool, a grab handle MUST appear at the text element's top-left so the text element can be repositioned without leaving the text tool.
@@ -201,6 +209,22 @@
 > r[draw.tool.text.command-style.prefix]
 >
 > Slash-prefixed draw text commands MUST be executed by translating the text after the leading slash into `/sfm draw <text>`.
+
+> r[draw.tool.text.command-style.suggestions]
+>
+> While editing a slash-prefixed text element, the draw screen MUST surface vanilla-style command suggestions for the translated draw command.
+
+> r[draw.tool.text.command-style.suggestions.translated-prefix]
+>
+> Slash-command suggestions MUST be generated against the translated `/sfm draw ` prefix while still editing the visible slash text directly.
+
+> r[draw.tool.text.command-style.suggestions.position]
+>
+> Slash-command suggestions MUST render at the edited text element rather than in a fixed screen corner.
+
+> r[draw.tool.text.command-style.tab-priority]
+>
+> While slash-command suggestions are active, `Tab` MUST be consumed by command suggestion acceptance and navigation before the draw screen treats it as a layer-tool shortcut.
 
 > r[draw.tool.text.command-output.appended]
 >
@@ -307,6 +331,10 @@
 > r[draw.tool.cursor.selection.escape-clears]
 >
 > Pressing `Escape` while a canvas selection exists MUST clear that selection instead of closing the draw screen.
+
+> r[draw.tool.cursor.enter-text-target]
+>
+> Pressing `Enter` while the cursor tool has canvas elements selected MUST find or create editable text elements near the selected elements' midpoints, reduce the selection to those text elements, and enter text edit mode for them.
 
 > r[draw.screen.escape-closes-without-selection]
 >

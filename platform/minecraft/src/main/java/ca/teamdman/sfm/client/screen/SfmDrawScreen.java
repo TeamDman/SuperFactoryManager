@@ -4,6 +4,11 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.localization.IdeLocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundSfmDrawCommandPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.ParseResults;
+import com.mojang.brigadier.context.StringRange;
+import com.mojang.brigadier.suggestion.Suggestion;
+import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Matrix4f;
@@ -11,6 +16,7 @@ import net.minecraft.Util;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -129,8 +135,11 @@ public class SfmDrawScreen extends Screen {
         private double panAnchorCameraY = 0.0D;
 
         private int textEditingElementId = -1;
+        private final Set<Integer> textEditingElementIds = new LinkedHashSet<>();
         private int textEditingCaretIndex = 0;
+        private int textEditingSelectionAnchorIndex = 0;
         private boolean stickyToolMode = false;
+        private final DrawCommandSuggestions drawCommandSuggestions = new DrawCommandSuggestions();
 
         private final List<CanvasPoint> pendingArrowAnchors = new ArrayList<>();
         private @Nullable CameraOverlayProjection pendingArrowProjection = null;
@@ -193,6 +202,11 @@ public class SfmDrawScreen extends Screen {
     }
 
     @Override
+    public void tick() {
+        super.tick();
+    }
+
+    @Override
     public boolean isPauseScreen() {
 
         return false;
@@ -205,6 +219,10 @@ public class SfmDrawScreen extends Screen {
             int modifiers
     ) {
 
+        if (isTextEditing() && isEditingCommandText() && drawCommandSuggestions.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+
         // r[impl draw.layer.switch.hotkeys]
         // r[impl draw.layer.switch.chrome]
         @Nullable DrawLayer layerFromHotkey = hasAltDown() ? layerForHotkey(keyCode) : null;
@@ -213,9 +231,13 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
-        if (textEditingElementId >= 0) {
+        if (isTextEditing()) {
             if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
                 finishTextEditing();
+                return true;
+            }
+            if (hasControlDown() && keyCode == GLFW.GLFW_KEY_A) {
+                selectAllEditingText();
                 return true;
             }
             if (hasControlDown() && keyCode == GLFW.GLFW_KEY_BACKSPACE) {
@@ -235,18 +257,16 @@ public class SfmDrawScreen extends Screen {
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_LEFT) {
-                textEditingCaretIndex = Math.max(0, textEditingCaretIndex - 1);
+                moveEditingCaretHorizontally(-1, hasShiftDown());
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_RIGHT) {
-                TextElement textElement = editingTextElement();
-                textEditingCaretIndex = Math.min(textElement != null ? textElement.text.length() : 0, textEditingCaretIndex + 1);
+                moveEditingCaretHorizontally(1, hasShiftDown());
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
-                TextElement textElement = editingTextElement();
-                if (hasShiftDown() && isCommandTextElement(textElement)) {
-                    submitEditingCommandText(textElement);
+                if (hasShiftDown() && submitEditingCommandTexts()) {
+                    return true;
                 } else if (hasShiftDown()) {
                     appendEditingText("\n");
                 } else {
@@ -264,6 +284,12 @@ public class SfmDrawScreen extends Screen {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && hasCanvasSelection()) {
             clearCanvasSelection();
             return true;
+        }
+
+        if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && !hasShiftDown() && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            if (beginTextEditingForCursorSelection()) {
+                return true;
+            }
         }
 
         if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && hasShiftDown() && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
@@ -361,7 +387,7 @@ public class SfmDrawScreen extends Screen {
             int modifiers
     ) {
 
-        if (textEditingElementId >= 0) {
+        if (isTextEditing()) {
             if (!Character.isISOControl(codePoint)) {
                 appendEditingText(String.valueOf(codePoint));
             }
@@ -378,6 +404,10 @@ public class SfmDrawScreen extends Screen {
     ) {
         chromeMouseX = mouseX;
         chromeMouseY = mouseY;
+
+        if (drawCommandSuggestions.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
 
         Rect layerWindowRect = layerWindowBounds();
         Rect layerWindowCloseBounds = layerWindowCloseButtonBounds();
@@ -471,14 +501,13 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
-        if (textEditingElementId >= 0) {
+        if (isTextEditing()) {
             TextElement editingTextElement = editingTextElement();
             if (editingTextElement == null) {
                 finishTextEditing();
                 return true;
             }
             if (textEditingHandleBounds(editingTextElement).contains(mouseX, mouseY)) {
-                selectOnly(editingTextElement.id());
                 CanvasBounds textSelectionBounds = currentSelectionBounds();
                 if (textSelectionBounds != null) {
                     moveSelectionDrag = new MoveSelectionDrag(selectionSnapshot(), arrowAnchorSelectionSnapshot(), canvasPoint, projectionUnderMouse, textSelectionBounds, selectionSnapOrigin());
@@ -487,11 +516,12 @@ public class SfmDrawScreen extends Screen {
             } else {
                 TextElement hitTextElement = editableTextElementAt(canvasPoint);
                 if (hitTextElement != null) {
-                    if (hitTextElement.id() != editingTextElement.id()) {
-                        selectOnly(hitTextElement.id());
+                    if (textEditingElementIds.contains(hitTextElement.id())) {
                         textEditingElementId = hitTextElement.id();
+                    } else {
+                        beginTextEditing(hitTextElement, Set.of(hitTextElement.id()), hitTextElement.text.length());
                     }
-                    placeTextCaretFromScreen(hitTextElement, mouseX, mouseY);
+                    placeTextCaretFromScreen(hitTextElement, mouseX, mouseY, hasShiftDown());
                 } else {
                     finishTextEditing();
                 }
@@ -512,13 +542,11 @@ public class SfmDrawScreen extends Screen {
         if (activeTool == DrawTool.TEXT) {
             TextElement hitTextElement = editableTextElementAt(canvasPoint);
             if (hitTextElement != null) {
-                selectOnly(hitTextElement.id());
-                textEditingElementId = hitTextElement.id();
-                placeTextCaretFromScreen(hitTextElement, mouseX, mouseY);
+                beginTextEditing(hitTextElement, Set.of(hitTextElement.id()), hitTextElement.text.length());
+                placeTextCaretFromScreen(hitTextElement, mouseX, mouseY, hasShiftDown());
             } else {
                 TextElement textElement = createTextElement(snappedCanvasPoint);
-                textEditingElementId = textElement.id();
-                textEditingCaretIndex = textElement.text.length();
+                beginTextEditing(textElement, Set.of(textElement.id()), textElement.text.length());
             }
             return true;
         }
@@ -699,6 +727,10 @@ public class SfmDrawScreen extends Screen {
         chromeMouseX = mouseX;
         chromeMouseY = mouseY;
 
+        if (drawCommandSuggestions.mouseScrolled(mouseX, mouseY, delta)) {
+            return true;
+        }
+
         if (!hasControlDown() || delta == 0.0D) {
             return super.mouseScrolled(mouseX, mouseY, delta);
         }
@@ -744,6 +776,9 @@ public class SfmDrawScreen extends Screen {
         drawCursorSelectionModifierIndicator(poseStack, mouseX, mouseY);
         updateChromeCursor(mouseX, mouseY);
         super.render(poseStack, mouseX, mouseY, partialTick);
+        if (isEditingCommandText()) {
+            drawCommandSuggestions.render(poseStack, mouseX, mouseY);
+        }
     }
 
     private void drawOverlayChrome(
@@ -1024,7 +1059,7 @@ public class SfmDrawScreen extends Screen {
             }
         }
 
-        if (activeTool == DrawTool.TEXT && textEditingElementId >= 0 && moveSelectionDrag == null) {
+        if (activeTool == DrawTool.TEXT && isTextEditing() && moveSelectionDrag == null) {
             drawTextEditingHandle(poseStack);
         }
 
@@ -1167,12 +1202,13 @@ public class SfmDrawScreen extends Screen {
         poseStack.translate(point.x(), point.y(), 0.0D);
         float renderScale = (float) (element.textScale * zoom);
         poseStack.scale(renderScale, renderScale, 1.0F);
+        drawTextEditingSelection(poseStack, element);
         for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
             drawString(poseStack, font, lines[lineIndex], 0, lineIndex * font.lineHeight, renderColor(element.color, hidden));
         }
 
-        if (element.id() == textEditingElementId && (Util.getMillis() / 400L) % 2L == 0L) {
-            CaretPlacement caretPlacement = caretPlacement(element, textEditingCaretIndex);
+        if (textEditingElementIds.contains(element.id()) && (Util.getMillis() / 400L) % 2L == 0L) {
+            CaretPlacement caretPlacement = caretPlacement(element, textEditingCaretIndexFor(element));
             fill(poseStack, caretPlacement.x(), caretPlacement.y() - 1, caretPlacement.x() + 1, caretPlacement.y() + font.lineHeight + 1, renderColor(0xFFF1F5FB, hidden));
         }
         poseStack.popPose();
@@ -1715,7 +1751,7 @@ public class SfmDrawScreen extends Screen {
     }
 
     private void handleHotbarToolClick(DrawTool tool) {
-        if (textEditingElementId >= 0 && tool != DrawTool.TEXT) {
+        if (isTextEditing() && tool != DrawTool.TEXT) {
             finishTextEditing();
         }
         if (tool == DrawTool.LOCK) {
@@ -1742,6 +1778,9 @@ public class SfmDrawScreen extends Screen {
             toggleZenSoloFor(activeLayer);
             return;
         }
+        if (tool == DrawTool.TEXT && beginTextEditingFromSelection()) {
+            return;
+        }
         if (tool.selectable()) {
             if (tool == activeTool && supportsStickyMode(tool)) {
                 stickyToolMode = !stickyToolMode;
@@ -1758,18 +1797,14 @@ public class SfmDrawScreen extends Screen {
         if (hitElementId >= 0) {
             DrawElement element = findElementById(hitElementId);
             if (element instanceof TextElement textElement && textElement.shellBinding == null) {
-                selectOnly(hitElementId);
-                activeTool = DrawTool.TEXT;
-                textEditingElementId = hitElementId;
-                textEditingCaretIndex = textElement.text.length();
+                beginTextEditing(textElement, Set.of(hitElementId), textElement.text.length());
                 return true;
             }
             return false;
         }
 
         TextElement textElement = createTextElement(snapCanvasPointToCurrentIncrement(canvasPoint));
-        activeTool = DrawTool.TEXT;
-        textEditingElementId = textElement.id();
+        beginTextEditing(textElement, Set.of(textElement.id()), textElement.text.length());
         return true;
     }
 
@@ -2096,21 +2131,30 @@ public class SfmDrawScreen extends Screen {
 
     // r[impl draw.tool.text.edit]
     private void finishTextEditing() {
-        TextElement textElement = editingTextElement();
-        if (textElement != null && textElement.shellBinding == null && textElement.text.isEmpty()) {
-            elements.removeIf(element -> element.id() == textElement.id());
-            selectedElementIds.remove(textElement.id());
+        Set<Integer> editedIds = new LinkedHashSet<>(textEditingElementIds);
+        for (Integer editedId : editedIds) {
+            DrawElement editedElement = findElementById(editedId);
+            if (editedElement instanceof TextElement textElement && textElement.shellBinding == null && textElement.text.isEmpty()) {
+                elements.removeIf(element -> element.id() == textElement.id());
+                selectedElementIds.remove(textElement.id());
+            }
         }
-        textEditingElementId = -1;
-        textEditingCaretIndex = 0;
+        clearTextEditingState();
         clearCanvasSelection();
         resetToolAfterCreation(DrawTool.TEXT);
     }
 
-    private void submitEditingCommandText(TextElement textElement) {
-        String commandText = textElement.text.startsWith("/") ? textElement.text.substring(1) : textElement.text;
-        SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(textElement.id(), commandText));
+    private boolean submitEditingCommandTexts() {
+        List<TextElement> commandElements = editingCommandTextElements();
+        if (commandElements.isEmpty() || commandElements.size() != textEditingElementIds.size()) {
+            return false;
+        }
+        for (TextElement commandElement : commandElements) {
+            String commandText = commandElement.text.startsWith("/") ? commandElement.text.substring(1) : commandElement.text;
+            SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText));
+        }
         finishTextEditing();
+        return true;
     }
 
     private boolean submitSelectedCommandTexts() {
@@ -2461,46 +2505,93 @@ public class SfmDrawScreen extends Screen {
         if (value == null || value.isEmpty()) {
             return;
         }
-        DrawElement element = findElementById(textEditingElementId);
-        if (element instanceof TextElement textElement) {
-            textEditingCaretIndex = Mth.clamp(textEditingCaretIndex, 0, textElement.text.length());
-            textElement.text = textElement.text.substring(0, textEditingCaretIndex) + value + textElement.text.substring(textEditingCaretIndex);
-            textEditingCaretIndex += value.length();
-        }
+        replaceEditingSelection(value);
     }
 
     private void mutateEditingTextBackspace() {
-        DrawElement element = findElementById(textEditingElementId);
-        if (element instanceof TextElement textElement && !textElement.text.isEmpty() && textEditingCaretIndex > 0) {
-            textElement.text = textElement.text.substring(0, textEditingCaretIndex - 1) + textElement.text.substring(textEditingCaretIndex);
-            textEditingCaretIndex--;
+        if (hasEditingTextSelectionRange()) {
+            replaceEditingSelection("");
+            return;
+        }
+        int newCaretIndex = textEditingCaretIndex;
+        boolean changed = false;
+        for (TextElement textElement : editingTextElements()) {
+            int caretIndex = textEditingCaretIndexFor(textElement);
+            if (caretIndex <= 0 || textElement.text.isEmpty()) {
+                continue;
+            }
+            textElement.text = textElement.text.substring(0, caretIndex - 1) + textElement.text.substring(caretIndex);
+            changed = true;
+            if (textElement.id() == textEditingElementId) {
+                newCaretIndex = caretIndex - 1;
+            }
+        }
+        if (changed) {
+            setEditingSelection(newCaretIndex, newCaretIndex);
         }
     }
 
     private void mutateEditingTextBackspaceWord() {
-        DrawElement element = findElementById(textEditingElementId);
-        if (!(element instanceof TextElement textElement) || textElement.text.isEmpty() || textEditingCaretIndex <= 0) {
+        if (hasEditingTextSelectionRange()) {
+            replaceEditingSelection("");
             return;
         }
-        int start = contiguousTextClassStart(textElement.text, textEditingCaretIndex - 1);
-        textElement.text = textElement.text.substring(0, start) + textElement.text.substring(textEditingCaretIndex);
-        textEditingCaretIndex = start;
+        int newCaretIndex = textEditingCaretIndex;
+        boolean changed = false;
+        for (TextElement textElement : editingTextElements()) {
+            int caretIndex = textEditingCaretIndexFor(textElement);
+            if (textElement.text.isEmpty() || caretIndex <= 0) {
+                continue;
+            }
+            int start = contiguousTextClassStart(textElement.text, caretIndex - 1);
+            textElement.text = textElement.text.substring(0, start) + textElement.text.substring(caretIndex);
+            changed = true;
+            if (textElement.id() == textEditingElementId) {
+                newCaretIndex = start;
+            }
+        }
+        if (changed) {
+            setEditingSelection(newCaretIndex, newCaretIndex);
+        }
     }
 
     private void mutateEditingTextDelete() {
-        DrawElement element = findElementById(textEditingElementId);
-        if (element instanceof TextElement textElement && textEditingCaretIndex >= 0 && textEditingCaretIndex < textElement.text.length()) {
-            textElement.text = textElement.text.substring(0, textEditingCaretIndex) + textElement.text.substring(textEditingCaretIndex + 1);
+        if (hasEditingTextSelectionRange()) {
+            replaceEditingSelection("");
+            return;
+        }
+        boolean changed = false;
+        for (TextElement textElement : editingTextElements()) {
+            int caretIndex = textEditingCaretIndexFor(textElement);
+            if (caretIndex < 0 || caretIndex >= textElement.text.length()) {
+                continue;
+            }
+            textElement.text = textElement.text.substring(0, caretIndex) + textElement.text.substring(caretIndex + 1);
+            changed = true;
+        }
+        if (changed) {
+            setEditingSelection(textEditingCaretIndex, textEditingCaretIndex);
         }
     }
 
     private void mutateEditingTextDeleteWord() {
-        DrawElement element = findElementById(textEditingElementId);
-        if (!(element instanceof TextElement textElement) || textEditingCaretIndex < 0 || textEditingCaretIndex >= textElement.text.length()) {
+        if (hasEditingTextSelectionRange()) {
+            replaceEditingSelection("");
             return;
         }
-        int end = contiguousTextClassEnd(textElement.text, textEditingCaretIndex);
-        textElement.text = textElement.text.substring(0, textEditingCaretIndex) + textElement.text.substring(end);
+        boolean changed = false;
+        for (TextElement textElement : editingTextElements()) {
+            int caretIndex = textEditingCaretIndexFor(textElement);
+            if (caretIndex < 0 || caretIndex >= textElement.text.length()) {
+                continue;
+            }
+            int end = contiguousTextClassEnd(textElement.text, caretIndex);
+            textElement.text = textElement.text.substring(0, caretIndex) + textElement.text.substring(end);
+            changed = true;
+        }
+        if (changed) {
+            setEditingSelection(textEditingCaretIndex, textEditingCaretIndex);
+        }
     }
 
     private int contiguousTextClassStart(String value, int index) {
@@ -2526,8 +2617,22 @@ public class SfmDrawScreen extends Screen {
     }
 
     private @Nullable TextElement editingTextElement() {
-        DrawElement element = findElementById(textEditingElementId);
-        return element instanceof TextElement textElement ? textElement : null;
+        if (textEditingElementId >= 0) {
+            DrawElement primaryElement = findElementById(textEditingElementId);
+            if (primaryElement instanceof TextElement textElement && textEditingElementIds.contains(textElement.id())) {
+                return textElement;
+            }
+        }
+        for (Integer editingId : new ArrayList<>(textEditingElementIds)) {
+            DrawElement element = findElementById(editingId);
+            if (element instanceof TextElement textElement) {
+                textEditingElementId = textElement.id();
+                return textElement;
+            }
+            textEditingElementIds.remove(editingId);
+        }
+        clearTextEditingState();
+        return null;
     }
 
     // r[impl draw.tool.cursor.delete_selection]
@@ -2562,9 +2667,14 @@ public class SfmDrawScreen extends Screen {
         }
 
         elements.removeIf(element -> removedElementIds.contains(element.id()));
-        if (selectedElementIds.contains(textEditingElementId)) {
-            textEditingElementId = -1;
-            textEditingCaretIndex = 0;
+        if (!removedElementIds.isEmpty()) {
+            textEditingElementIds.removeIf(removedElementIds::contains);
+            if (textEditingElementIds.isEmpty()) {
+                clearTextEditingState();
+            } else if (removedElementIds.contains(textEditingElementId)) {
+                textEditingElementId = textEditingElementIds.iterator().next();
+                setEditingSelection(textEditingCaretIndex, textEditingSelectionAnchorIndex);
+            }
         }
         selectedArrowAnchors.removeIf(reference -> removedElementIds.contains(reference.arrowId()));
         clearCanvasSelection();
@@ -2865,6 +2975,254 @@ public class SfmDrawScreen extends Screen {
                && textElement.text.startsWith("/");
     }
 
+    private boolean isEditingCommandText() {
+        return isCommandTextElement(editingTextElement());
+    }
+
+    private boolean isTextEditing() {
+        return textEditingElementId >= 0 && !textEditingElementIds.isEmpty();
+    }
+
+    private void clearTextEditingState() {
+        textEditingElementId = -1;
+        textEditingElementIds.clear();
+        textEditingCaretIndex = 0;
+        textEditingSelectionAnchorIndex = 0;
+        drawCommandSuggestions.hide();
+    }
+
+    private void beginTextEditing(
+            TextElement primaryTextElement,
+            Set<Integer> editingIds,
+            int caretIndex
+    ) {
+        activeTool = DrawTool.TEXT;
+        textEditingElementId = primaryTextElement.id();
+        textEditingElementIds.clear();
+        textEditingElementIds.addAll(editingIds);
+        textEditingElementIds.add(primaryTextElement.id());
+        selectedElementIds.clear();
+        selectedArrowAnchors.clear();
+        selectedElementIds.addAll(textEditingElementIds);
+        setEditingSelection(caretIndex, caretIndex);
+    }
+
+    private boolean beginTextEditingFromSelection() {
+        List<TextElement> selectedTextElements = selectedEditableTextElements();
+        if (selectedTextElements.isEmpty()) {
+            return false;
+        }
+        Set<Integer> editingIds = new LinkedHashSet<>();
+        for (TextElement textElement : selectedTextElements) {
+            editingIds.add(textElement.id());
+        }
+        TextElement primary = selectedTextElements.get(0);
+        beginTextEditing(primary, editingIds, primary.text.length());
+        return true;
+    }
+
+    private boolean beginTextEditingForCursorSelection() {
+        Set<Integer> selectedIds = selectedOwningElementIds();
+        if (selectedIds.isEmpty()) {
+            return false;
+        }
+        List<TextElement> targetTextElements = new ArrayList<>();
+        Set<Integer> targetIds = new LinkedHashSet<>();
+        for (Integer selectedId : selectedIds) {
+            DrawElement element = findElementById(selectedId);
+            if (element == null || element.layer() != activeLayer) {
+                continue;
+            }
+            TextElement textTarget;
+            if (element instanceof TextElement textElement && textElement.shellBinding == null) {
+                textTarget = textElement;
+            } else {
+                CanvasPoint midpoint = elementMidpoint(element);
+                textTarget = editableTextElementNear(midpoint, element.layer());
+                if (textTarget == null) {
+                    textTarget = createTextElement(midpoint);
+                }
+            }
+            if (targetIds.add(textTarget.id())) {
+                targetTextElements.add(textTarget);
+            }
+        }
+        if (targetTextElements.isEmpty()) {
+            return false;
+        }
+        beginTextEditing(targetTextElements.get(0), targetIds, targetTextElements.get(0).text.length());
+        return true;
+    }
+
+    private void refreshCommandSuggestions() {
+        if (!isEditingCommandText()) {
+            drawCommandSuggestions.hide();
+            return;
+        }
+        drawCommandSuggestions.refresh();
+    }
+
+    private List<TextElement> selectedEditableTextElements() {
+        List<TextElement> textElements = new ArrayList<>();
+        for (Integer selectedId : selectedOwningElementIds()) {
+            DrawElement element = findElementById(selectedId);
+            if (element instanceof TextElement textElement && textElement.shellBinding == null) {
+                textElements.add(textElement);
+            }
+        }
+        return textElements;
+    }
+
+    private @Nullable TextElement editableTextElementNear(
+            CanvasPoint point,
+            DrawLayer layer
+    ) {
+        double padding = 8.0D / Math.max(zoom, 0.01D);
+        for (int index = elements.size() - 1; index >= 0; index--) {
+            DrawElement element = elements.get(index);
+            if (!(element instanceof TextElement textElement) || textElement.shellBinding != null || textElement.layer() != layer) {
+                continue;
+            }
+            if (textElement.bounds(this).pad(padding).contains(point)) {
+                return textElement;
+            }
+        }
+        return null;
+    }
+
+    private CanvasPoint elementMidpoint(DrawElement element) {
+        CanvasBounds bounds = element.bounds(this);
+        return new CanvasPoint((bounds.minX() + bounds.maxX()) / 2.0D, (bounds.minY() + bounds.maxY()) / 2.0D);
+    }
+
+    private List<TextElement> editingTextElements() {
+        List<TextElement> textElements = new ArrayList<>(textEditingElementIds.size());
+        Set<Integer> validIds = new LinkedHashSet<>();
+        for (Integer editingId : textEditingElementIds) {
+            DrawElement element = findElementById(editingId);
+            if (element instanceof TextElement textElement) {
+                textElements.add(textElement);
+                validIds.add(editingId);
+            }
+        }
+        if (validIds.size() != textEditingElementIds.size()) {
+            textEditingElementIds.clear();
+            textEditingElementIds.addAll(validIds);
+        }
+        return textElements;
+    }
+
+    private List<TextElement> editingCommandTextElements() {
+        List<TextElement> commandElements = new ArrayList<>();
+        for (TextElement textElement : editingTextElements()) {
+            if (isCommandTextElement(textElement)) {
+                commandElements.add(textElement);
+            }
+        }
+        return commandElements;
+    }
+
+    private int textEditingCaretIndexFor(TextElement textElement) {
+        return Mth.clamp(textEditingCaretIndex, 0, textElement.text.length());
+    }
+
+    private int textEditingSelectionAnchorIndexFor(TextElement textElement) {
+        return Mth.clamp(textEditingSelectionAnchorIndex, 0, textElement.text.length());
+    }
+
+    private int textEditingSelectionStart(TextElement textElement) {
+        return Math.min(textEditingSelectionAnchorIndexFor(textElement), textEditingCaretIndexFor(textElement));
+    }
+
+    private int textEditingSelectionEnd(TextElement textElement) {
+        return Math.max(textEditingSelectionAnchorIndexFor(textElement), textEditingCaretIndexFor(textElement));
+    }
+
+    private boolean hasEditingTextSelectionRange() {
+        return textEditingSelectionAnchorIndex != textEditingCaretIndex;
+    }
+
+    private void setEditingSelection(
+            int caretIndex,
+            int anchorIndex
+    ) {
+        TextElement textElement = editingTextElement();
+        int maxIndex = textElement != null ? textElement.text.length() : Math.max(caretIndex, anchorIndex);
+        textEditingCaretIndex = Mth.clamp(caretIndex, 0, maxIndex);
+        textEditingSelectionAnchorIndex = Mth.clamp(anchorIndex, 0, maxIndex);
+        refreshCommandSuggestions();
+    }
+
+    private void moveEditingCaretHorizontally(
+            int delta,
+            boolean extendSelection
+    ) {
+        TextElement textElement = editingTextElement();
+        int maxIndex = textElement != null ? textElement.text.length() : 0;
+        int newCaret = Mth.clamp(textEditingCaretIndex + delta, 0, maxIndex);
+        setEditingSelection(newCaret, extendSelection ? textEditingSelectionAnchorIndex : newCaret);
+    }
+
+    private void selectAllEditingText() {
+        TextElement textElement = editingTextElement();
+        if (textElement == null) {
+            return;
+        }
+        setEditingSelection(textElement.text.length(), 0);
+    }
+
+    private void replaceEditingSelection(String replacement) {
+        TextElement primaryTextElement = editingTextElement();
+        if (primaryTextElement == null) {
+            return;
+        }
+        int newCaretIndex = textEditingSelectionStart(primaryTextElement) + replacement.length();
+        boolean changed = false;
+        for (TextElement textElement : editingTextElements()) {
+            int start = textEditingSelectionStart(textElement);
+            int end = textEditingSelectionEnd(textElement);
+            textElement.text = textElement.text.substring(0, start) + replacement + textElement.text.substring(end);
+            changed = true;
+        }
+        if (changed) {
+            setEditingSelection(newCaretIndex, newCaretIndex);
+        }
+    }
+
+    private void drawTextEditingSelection(
+            PoseStack poseStack,
+            TextElement textElement
+    ) {
+        if (!textEditingElementIds.contains(textElement.id()) || !hasEditingTextSelectionRange()) {
+            return;
+        }
+        int selectionStart = textEditingSelectionStart(textElement);
+        int selectionEnd = textEditingSelectionEnd(textElement);
+        if (selectionStart == selectionEnd) {
+            return;
+        }
+        String[] lines = textLines(textElement);
+        int[] lineStarts = textLineStarts(textElement);
+        for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            int lineStart = lineStarts[lineIndex];
+            int lineEnd = lineStart + lines[lineIndex].length();
+            if (selectionEnd < lineStart || selectionStart > lineEnd) {
+                continue;
+            }
+            int segmentStart = Mth.clamp(selectionStart - lineStart, 0, lines[lineIndex].length());
+            int segmentEnd = Mth.clamp(selectionEnd - lineStart, 0, lines[lineIndex].length());
+            if (segmentStart == segmentEnd && !(selectionStart < lineEnd && selectionEnd > lineEnd)) {
+                continue;
+            }
+            int startX = font.width(lines[lineIndex].substring(0, segmentStart));
+            int endX = font.width(lines[lineIndex].substring(0, segmentEnd));
+            if (selectionEnd > lineEnd && lineIndex < lines.length - 1) {
+                endX = Math.max(endX, font.width(lines[lineIndex]) + 2);
+            }
+            SFMScreenRenderUtils.renderHighlight(poseStack, startX, lineIndex * font.lineHeight, Math.max(startX + 1, endX), lineIndex * font.lineHeight + font.lineHeight);
+        }
+    }
+
     public void appendCommandOutput(
             int commandElementId,
             List<String> lines
@@ -2904,11 +3262,12 @@ public class SfmDrawScreen extends Screen {
         return insertionY;
     }
 
-    private void placeTextCaretFromScreen(
+        private void placeTextCaretFromScreen(
             TextElement textElement,
             double mouseX,
-            double mouseY
-    ) {
+            double mouseY,
+            boolean extendSelection
+        ) {
         ScreenPoint anchor = canvasToScreen(new CanvasPoint(textElement.x, textElement.y));
         double renderScale = textElement.textScale * zoom;
         double localX = (mouseX - anchor.x()) / renderScale;
@@ -2925,7 +3284,8 @@ public class SfmDrawScreen extends Screen {
                 break;
             }
         }
-        textEditingCaretIndex = lineStarts[lineIndex] + column;
+        int newCaret = lineStarts[lineIndex] + column;
+        setEditingSelection(newCaret, extendSelection ? textEditingSelectionAnchorIndex : newCaret);
     }
 
     private CaretPlacement caretPlacement(
@@ -3878,7 +4238,7 @@ public class SfmDrawScreen extends Screen {
         if (muted) {
             if (layer.canvasLayer()) {
                 clearCanvasSelection();
-                if (textEditingElementId >= 0) {
+                if (isTextEditing()) {
                     finishTextEditing();
                 }
                 moveSelectionDrag = null;
@@ -3936,7 +4296,7 @@ public class SfmDrawScreen extends Screen {
         if (activeLayer == layer) {
             return;
         }
-        if (textEditingElementId >= 0) {
+        if (isTextEditing()) {
             finishTextEditing();
         }
         draftInteraction = null;
@@ -4314,7 +4674,7 @@ public class SfmDrawScreen extends Screen {
             applyChromeCursor(cursorForSelectionHandle(resizeSelectionDrag.handle()));
             return;
         }
-        if (activeTool == DrawTool.TEXT && textEditingElementId >= 0) {
+        if (activeTool == DrawTool.TEXT && isTextEditing()) {
             TextElement textElement = editingTextElement();
             if (textElement != null && textEditingHandleBounds(textElement).contains(mouseX, mouseY)) {
                 // r[impl draw.tool.text.edit.grab-handle.cursor]
@@ -5328,6 +5688,235 @@ public class SfmDrawScreen extends Screen {
 
         public CameraOverlayProjection projection() {
             return projection;
+        }
+    }
+
+    private class DrawCommandSuggestions {
+        private static final String DRAW_COMMAND_PREFIX = "/sfm draw ";
+        private static final int PREFIX_ADJUSTMENT = DRAW_COMMAND_PREFIX.length() - 1;
+        private static final int ROW_HEIGHT = 12;
+        private static final int MAX_VISIBLE_SUGGESTIONS = 10;
+
+        private final List<Suggestion> suggestions = new ArrayList<>();
+        private boolean visible = false;
+        private int selectedIndex = 0;
+        private int scrollOffset = 0;
+        private int popupX = 0;
+        private int popupY = 0;
+        private int popupWidth = 0;
+        private int popupHeight = 0;
+        private String visibleCommand = "";
+        private int visibleCursor = 0;
+
+        public void hide() {
+            visible = false;
+            suggestions.clear();
+            selectedIndex = 0;
+            scrollOffset = 0;
+        }
+
+        public void refresh() {
+            TextElement textElement = editingTextElement();
+            if (minecraft == null || minecraft.player == null || minecraft.player.connection == null || !isCommandTextElement(textElement) || textElement == null) {
+                hide();
+                return;
+            }
+
+            visibleCommand = textElement.text;
+            visibleCursor = textEditingCaretIndexFor(textElement);
+
+            String translatedCommand = translatedCommand(visibleCommand);
+            int translatedCursor = translatedCursor(visibleCursor, translatedCommand.length());
+            CommandDispatcher<SharedSuggestionProvider> dispatcher = minecraft.player.connection.getCommands();
+            ParseResults<SharedSuggestionProvider> parseResults = dispatcher.parse(translatedCommand, minecraft.player.connection.getSuggestionsProvider());
+            Suggestions translatedSuggestions = dispatcher.getCompletionSuggestions(parseResults, translatedCursor).join();
+
+            suggestions.clear();
+            suggestions.addAll(mapSuggestionsToVisibleInput(translatedSuggestions));
+            sortSuggestions();
+            visible = !suggestions.isEmpty();
+            selectedIndex = Mth.clamp(selectedIndex, 0, Math.max(0, suggestions.size() - 1));
+            clampScrollOffset();
+            refreshPopupBounds(textElement);
+        }
+
+        public boolean keyPressed(
+                int keyCode,
+                int scanCode,
+                int modifiers
+        ) {
+            if (!visible || suggestions.isEmpty()) {
+                return false;
+            }
+            if (keyCode == GLFW.GLFW_KEY_TAB) {
+                applySelectedSuggestion();
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_UP) {
+                moveSelection(-1);
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_DOWN) {
+                moveSelection(1);
+                return true;
+            }
+            return false;
+        }
+
+        public boolean mouseClicked(
+                double mouseX,
+                double mouseY,
+                int button
+        ) {
+            if (!visible || button != GLFW.GLFW_MOUSE_BUTTON_LEFT || !contains(mouseX, mouseY)) {
+                return false;
+            }
+            if (mouseY < popupY + ROW_HEIGHT) {
+                return true;
+            }
+            int rowIndex = (int) ((mouseY - (popupY + ROW_HEIGHT)) / ROW_HEIGHT);
+            int suggestionIndex = scrollOffset + rowIndex;
+            if (suggestionIndex >= 0 && suggestionIndex < suggestions.size()) {
+                selectedIndex = suggestionIndex;
+                applySelectedSuggestion();
+            }
+            return true;
+        }
+
+        public boolean mouseScrolled(
+                double mouseX,
+                double mouseY,
+                double delta
+        ) {
+            if (!visible || suggestions.size() <= MAX_VISIBLE_SUGGESTIONS || !contains(mouseX, mouseY) || delta == 0.0D) {
+                return false;
+            }
+            int maxScroll = Math.max(0, suggestions.size() - MAX_VISIBLE_SUGGESTIONS);
+            scrollOffset = Mth.clamp(scrollOffset + (delta > 0.0D ? -1 : 1), 0, maxScroll);
+            selectedIndex = Mth.clamp(selectedIndex, scrollOffset, Math.min(suggestions.size() - 1, scrollOffset + MAX_VISIBLE_SUGGESTIONS - 1));
+            return true;
+        }
+
+        public void render(
+                PoseStack poseStack,
+                int mouseX,
+                int mouseY
+        ) {
+            if (!visible || suggestions.isEmpty()) {
+                return;
+            }
+            fill(poseStack, popupX, popupY, popupX + popupWidth, popupY + ROW_HEIGHT, 0xE6191D24);
+            drawScreenRectOutline(poseStack, new ScreenRect(popupX, popupY, popupX + popupWidth, popupY + popupHeight), 0xFF4E5C6B);
+            drawString(poseStack, font, DRAW_COMMAND_PREFIX, popupX + 4, popupY + 2, 0xFF8FA2B5);
+
+            int visibleCount = Math.min(MAX_VISIBLE_SUGGESTIONS, suggestions.size() - scrollOffset);
+            for (int rowIndex = 0; rowIndex < visibleCount; rowIndex++) {
+                int suggestionIndex = scrollOffset + rowIndex;
+                int rowTop = popupY + ROW_HEIGHT + rowIndex * ROW_HEIGHT;
+                int rowBottom = rowTop + ROW_HEIGHT;
+                boolean hovered = mouseX >= popupX && mouseX < popupX + popupWidth && mouseY >= rowTop && mouseY < rowBottom;
+                boolean selected = suggestionIndex == selectedIndex;
+                int background = selected ? 0xFF36506A : hovered ? 0xAA24303C : 0xD9151920;
+                fill(poseStack, popupX, rowTop, popupX + popupWidth, rowBottom, background);
+                drawString(poseStack, font, suggestions.get(suggestionIndex).getText(), popupX + 4, rowTop + 2, 0xFFF1F5FB);
+            }
+        }
+
+        private void moveSelection(int delta) {
+            selectedIndex = Mth.clamp(selectedIndex + delta, 0, suggestions.size() - 1);
+            clampScrollOffset();
+        }
+
+        private void applySelectedSuggestion() {
+            if (selectedIndex < 0 || selectedIndex >= suggestions.size()) {
+                return;
+            }
+            Suggestion suggestion = suggestions.get(selectedIndex);
+            String appliedValue = suggestion.apply(visibleCommand);
+            int newCaretIndex = suggestion.getRange().getStart() + suggestion.getText().length();
+            for (TextElement textElement : editingTextElements()) {
+                textElement.text = appliedValue;
+            }
+            setEditingSelection(newCaretIndex, newCaretIndex);
+        }
+
+        private List<Suggestion> mapSuggestionsToVisibleInput(Suggestions translatedSuggestions) {
+            List<Suggestion> mappedSuggestions = new ArrayList<>(translatedSuggestions.getList().size());
+            for (Suggestion suggestion : translatedSuggestions.getList()) {
+                int mappedStart = Math.max(0, suggestion.getRange().getStart() - PREFIX_ADJUSTMENT);
+                int mappedEnd = Math.max(mappedStart, suggestion.getRange().getEnd() - PREFIX_ADJUSTMENT);
+                mappedSuggestions.add(new Suggestion(StringRange.between(mappedStart, mappedEnd), suggestion.getText(), suggestion.getTooltip()));
+            }
+            return mappedSuggestions;
+        }
+
+        private void sortSuggestions() {
+            String activeToken = activeSuggestionToken();
+            suggestions.sort((left, right) -> {
+                String leftText = left.getText().toLowerCase(Locale.ROOT);
+                String rightText = right.getText().toLowerCase(Locale.ROOT);
+                boolean leftStartsWith = leftText.startsWith(activeToken);
+                boolean rightStartsWith = rightText.startsWith(activeToken);
+                if (leftStartsWith != rightStartsWith) {
+                    return leftStartsWith ? -1 : 1;
+                }
+                return leftText.compareTo(rightText);
+            });
+        }
+
+        private String activeSuggestionToken() {
+            int tokenStart = Math.max(0, visibleCommand.substring(0, Math.min(visibleCursor, visibleCommand.length())).lastIndexOf(' ') + 1);
+            String token = visibleCommand.substring(tokenStart, Math.min(visibleCursor, visibleCommand.length())).toLowerCase(Locale.ROOT);
+            return token.startsWith("/") ? token.substring(1) : token;
+        }
+
+        private void clampScrollOffset() {
+            if (suggestions.size() <= MAX_VISIBLE_SUGGESTIONS) {
+                scrollOffset = 0;
+                return;
+            }
+            scrollOffset = Mth.clamp(scrollOffset, 0, suggestions.size() - MAX_VISIBLE_SUGGESTIONS);
+            if (selectedIndex < scrollOffset) {
+                scrollOffset = selectedIndex;
+            }
+            if (selectedIndex >= scrollOffset + MAX_VISIBLE_SUGGESTIONS) {
+                scrollOffset = selectedIndex - MAX_VISIBLE_SUGGESTIONS + 1;
+            }
+        }
+
+        private void refreshPopupBounds(TextElement textElement) {
+            CaretPlacement caretPlacement = caretPlacement(textElement, visibleCursor);
+            ScreenPoint anchorPoint = canvasToScreen(new CanvasPoint(textElement.x, textElement.y));
+            double renderScale = textElement.textScale * zoom;
+            int x = Mth.floor(anchorPoint.x() + caretPlacement.x() * renderScale) + 4;
+            int y = Mth.floor(anchorPoint.y() + (caretPlacement.y() + font.lineHeight) * renderScale) + 4;
+
+            popupWidth = Math.max(font.width(DRAW_COMMAND_PREFIX) + 10, 72);
+            for (Suggestion suggestion : suggestions) {
+                popupWidth = Math.max(popupWidth, font.width(suggestion.getText()) + 10);
+            }
+            int visibleCount = Math.min(MAX_VISIBLE_SUGGESTIONS, suggestions.size());
+            popupHeight = ROW_HEIGHT + visibleCount * ROW_HEIGHT;
+            popupX = Mth.clamp(x, 4, Math.max(4, width - popupWidth - 4));
+            popupY = y + popupHeight > height - 4 ? Math.max(4, y - popupHeight - ROW_HEIGHT) : Math.max(4, y);
+        }
+
+        private boolean contains(
+                double mouseX,
+                double mouseY
+        ) {
+            return mouseX >= popupX && mouseX < popupX + popupWidth && mouseY >= popupY && mouseY < popupY + popupHeight;
+        }
+
+        private String translatedCommand(String commandText) {
+            return commandText.startsWith("/") ? DRAW_COMMAND_PREFIX + commandText.substring(1) : commandText;
+        }
+
+        private int translatedCursor(
+                int cursorIndex,
+                int translatedCommandLength
+        ) {
+            return Mth.clamp(cursorIndex + PREFIX_ADJUSTMENT, 0, translatedCommandLength);
         }
     }
 
