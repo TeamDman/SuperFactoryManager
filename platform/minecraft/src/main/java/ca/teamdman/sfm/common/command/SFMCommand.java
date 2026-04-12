@@ -4,8 +4,8 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.block_network.WaterNetworkManager;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
-import ca.teamdman.sfm.common.net.ClientboundManagerIdeActionPacket;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ClientboundShowChangelogPacket;
 import ca.teamdman.sfm.common.program.RegexCache;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
@@ -43,13 +43,21 @@ import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
 
 @SuppressWarnings({"LoggingSimilarMessage", "DuplicatedCode"})
 public class SFMCommand {
-    @MCVersionDependentBehaviour
-    private static void sendSuccess(CommandSourceStack commandSourceStack, Supplier<Component> componentSupplier) {
-        commandSourceStack.sendSuccess(componentSupplier.get(), true);
-    }
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry COMMAND_BUST_WATER_NETWORK_CACHE_SUCCESS = new LocalizationEntry(
+            "sfm.command.bust_water_network_cache.success",
+            "Successfully busted water network cache."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry COMMAND_BUST_CABLE_NETWORK_CACHE_SUCCESS = new LocalizationEntry(
+            "sfm.command.bust_cable_network_cache.success",
+            "Successfully busted cable network cache."
+    );
 
     @SFMSubscribeEvent
     public static void onRegisterCommand(final RegisterCommandsEvent event) {
+
         var command = Commands.literal("sfm");
         command.then(Commands.literal("bust_cable_network_cache")
                              .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
@@ -60,7 +68,7 @@ public class SFMCommand {
                                          source.getTextName()
                                  );
                                  CableNetworkManager.clear();
-                                 sendSuccess(source, LocalizationKeys.COMMAND_BUST_CABLE_NETWORK_CACHE_SUCCESS::getComponent);
+                                 sendSuccess(source, COMMAND_BUST_CABLE_NETWORK_CACHE_SUCCESS::getComponent);
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("bust_water_network_cache")
@@ -72,7 +80,7 @@ public class SFMCommand {
                                          source.getTextName()
                                  );
                                  WaterNetworkManager.clear();
-                                 sendSuccess(source, LocalizationKeys.COMMAND_BUST_WATER_NETWORK_CACHE_SUCCESS::getComponent);
+                                 sendSuccess(source, COMMAND_BUST_WATER_NETWORK_CACHE_SUCCESS::getComponent);
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("show_bad_cable_cache_entries")
@@ -148,35 +156,17 @@ public class SFMCommand {
                                  }
                                  return SINGLE_SUCCESS;
                              }));
-                command.then(Commands.literal("draw")
-                                                         .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
-                                                         .then(Commands.literal("help")
-                                                                                   .executes(ctx -> runDrawHelp(ctx.getSource())))
-                                                         .then(Commands.literal("echo")
-                                                                                   .executes(ctx -> runDrawEcho(ctx.getSource(), ""))
-                                                                                   .then(Commands.argument("message", StringArgumentType.greedyString())
-                                                                                                                 .executes(ctx -> runDrawEcho(ctx.getSource(), StringArgumentType.getString(ctx, "message"))))));
-                command.then(Commands.literal("ide")
-                                                         .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
-                                                         .then(Commands.literal("help")
-                                                                                   .executes(ctx -> runIdeHelp(ctx.getSource())))
-                                                         .then(Commands.literal("echo")
-                                                                                   .then(Commands.argument("message", StringArgumentType.greedyString())
-                                                                                                 .executes(ctx -> runIdeEcho(ctx.getSource(), StringArgumentType.getString(ctx, "message")))))
-                                                         .then(Commands.literal("toggle_right_panel")
-                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:toggle_right_panel_visibility")))
-                                                         .then(Commands.literal("show_right_panel")
-                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:show_right_panel")))
-                                                         .then(Commands.literal("hide_right_panel")
-                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:hide_right_panel")))
-                                                         .then(Commands.literal("toggle_bottom_panel")
-                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:toggle_bottom_panel_visibility")))
-                                                         .then(Commands.literal("show_bottom_panel")
-                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:show_bottom_panel")))
-                                                         .then(Commands.literal("hide_bottom_panel")
-                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:hide_bottom_panel")))
-                                                         .then(Commands.literal("focus_explorer")
-                                                                                   .executes(ctx -> runIdeAction(ctx.getSource(), "sfm:focus_explorer_panel"))));
+        command.then(Commands.literal("draw")
+                             .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                             .then(Commands.literal("help")
+                                           .executes(ctx -> runDrawHelp(ctx.getSource())))
+                             .then(Commands.literal("echo")
+                                           .executes(ctx -> runDrawEcho(ctx.getSource(), ""))
+                                           .then(Commands.argument("message", StringArgumentType.greedyString())
+                                                         .executes(ctx -> runDrawEcho(
+                                                                 ctx.getSource(),
+                                                                 StringArgumentType.getString(ctx, "message")
+                                                         )))));
         command.then(Commands.literal("kit")
                              .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
                              .executes(ctx -> giveKitToPlayers(
@@ -195,84 +185,79 @@ public class SFMCommand {
                                                .then(Commands.argument("pattern", StringArgumentType.greedyString())
                                                              .executes(ctx -> {
                                                                  var source = ctx.getSource();
-                                                                 var wildcardPattern = StringArgumentType.getString(ctx, "pattern");
+                                                                 var wildcardPattern = StringArgumentType.getString(
+                                                                         ctx,
+                                                                         "pattern"
+                                                                 );
                                                                  return runTestsByWildcard(source, wildcardPattern);
                                                              }))));
         }
         event.getDispatcher().register(command);
     }
 
-        private static int runIdeAction(CommandSourceStack source, String actionId) {
-                ServerPlayer player = source.getPlayer();
-                if (player == null) {
-                        source.sendFailure(Component.literal("/sfm ide commands are only available to players."));
-                        return 0;
-                }
-                SFMPackets.sendToPlayer(player, new ClientboundManagerIdeActionPacket(player.containerMenu.containerId, actionId));
-                sendSuccess(source, () -> Component.literal("Requested IDE action: " + actionId));
-                return SINGLE_SUCCESS;
-        }
+    @MCVersionDependentBehaviour
+    private static void sendSuccess(
+            CommandSourceStack commandSourceStack,
+            Supplier<Component> componentSupplier
+    ) {
 
-        private static int runIdeHelp(CommandSourceStack source) {
-                sendSuccess(source, () -> Component.literal("SFM IDE commands:"));
-                sendSuccess(source, () -> Component.literal("- /sfm ide help"));
-                sendSuccess(source, () -> Component.literal("- /sfm ide echo <message>"));
-                sendSuccess(source, () -> Component.literal("- /sfm ide toggle_right_panel"));
-                sendSuccess(source, () -> Component.literal("- /sfm ide show_right_panel"));
-                sendSuccess(source, () -> Component.literal("- /sfm ide hide_right_panel"));
-                sendSuccess(source, () -> Component.literal("- /sfm ide toggle_bottom_panel"));
-                sendSuccess(source, () -> Component.literal("- /sfm ide show_bottom_panel"));
-                sendSuccess(source, () -> Component.literal("- /sfm ide hide_bottom_panel"));
-                sendSuccess(source, () -> Component.literal("- /sfm ide focus_explorer"));
-                return SINGLE_SUCCESS;
-        }
+        commandSourceStack.sendSuccess(componentSupplier.get(), true);
+    }
 
-        private static int runIdeEcho(CommandSourceStack source, String message) {
-                sendSuccess(source, () -> Component.literal(message));
-                return SINGLE_SUCCESS;
-        }
+        private static int runDrawEcho(
+                        CommandSourceStack source,
+                        String message
+        ) {
 
-        private static int runDrawEcho(CommandSourceStack source, String message) {
                 sendSuccess(source, () -> Component.literal(message));
                 return SINGLE_SUCCESS;
         }
 
         private static int runDrawHelp(CommandSourceStack source) {
+
                 sendSuccess(source, () -> Component.literal("SFM draw commands:"));
                 sendSuccess(source, () -> Component.literal("- /sfm draw help"));
                 sendSuccess(source, () -> Component.literal("- /sfm draw echo <message>"));
                 return SINGLE_SUCCESS;
         }
 
-        private static int giveKitToPlayers(CommandSourceStack source, Collection<ServerPlayer> targets) {
-                List<ItemStack> kitItems = List.of(
-                                new ItemStack(SFMItems.LABEL_GUN.get()),
-                                new ItemStack(SFMItems.MANAGER.get()),
-                                new ItemStack(SFMItems.DISK.get()),
-                                new ItemStack(SFMItems.NETWORK_TOOL.get()),
-                                new ItemStack(SFMItems.CABLE.get()),
-                                new ItemStack(Items.CHEST)
-                );
+    private static int giveKitToPlayers(
+            CommandSourceStack source,
+            Collection<ServerPlayer> targets
+    ) {
 
-                CommandSourceStack giveSource = source.withPermission(Commands.LEVEL_GAMEMASTERS);
-                for (ServerPlayer target : targets) {
-                        for (ItemStack kitItem : kitItems) {
-                                var itemId = SFMWellKnownRegistries.ITEMS.getId(kitItem.getItem());
-                                if (itemId == null) {
-                                        SFM.LOGGER.warn("Skipping kit item without registry id: {}", kitItem);
-                                        continue;
-                                }
+        List<ItemStack> kitItems = List.of(
+                new ItemStack(SFMItems.LABEL_GUN.get()),
+                new ItemStack(SFMItems.MANAGER.get()),
+                new ItemStack(SFMItems.DISK.get()),
+                new ItemStack(SFMItems.NETWORK_TOOL.get()),
+                new ItemStack(SFMItems.CABLE.get()),
+                new ItemStack(Items.CHEST)
+        );
 
-                                String command = "give " + target.getScoreboardName() + " " + itemId + " " + kitItem.getCount();
-                                source.getServer().getCommands().performPrefixedCommand(giveSource, command);
-                        }
+        CommandSourceStack giveSource = source.withPermission(Commands.LEVEL_GAMEMASTERS);
+        for (ServerPlayer target : targets) {
+            for (ItemStack kitItem : kitItems) {
+                var itemId = SFMWellKnownRegistries.ITEMS.getId(kitItem.getItem());
+                if (itemId == null) {
+                    SFM.LOGGER.warn("Skipping kit item without registry id: {}", kitItem);
+                    continue;
                 }
 
-                sendSuccess(source, () -> Component.literal("Gave SFM kit to " + targets.size() + " player(s)."));
-                return targets.size();
+                String command = "give " + target.getScoreboardName() + " " + itemId + " " + kitItem.getCount();
+                source.getServer().getCommands().performPrefixedCommand(giveSource, command);
+            }
         }
 
-    private static int runTestsByWildcard(CommandSourceStack source, String wildcardPattern) {
+        sendSuccess(source, () -> Component.literal("Gave SFM kit to " + targets.size() + " player(s)."));
+        return targets.size();
+    }
+
+    private static int runTestsByWildcard(
+            CommandSourceStack source,
+            String wildcardPattern
+    ) {
+
         var matcher = RegexCache.buildPredicate(wildcardToRegex(wildcardPattern));
         List<TestFunction> matchingTests = GameTestRegistry
                 .getAllTestFunctions()
@@ -301,7 +286,12 @@ public class SFMCommand {
     }
 
     @MCVersionDependentBehaviour
-    private static void runTests(List<TestFunction> matchingTests, BlockPos startPos, ServerLevel level) {
+    private static void runTests(
+            List<TestFunction> matchingTests,
+            BlockPos startPos,
+            ServerLevel level
+    ) {
+
         GameTestRunner.runTests(
                 matchingTests,
                 startPos,
@@ -313,7 +303,8 @@ public class SFMCommand {
     }
 
     private static String wildcardToRegex(String wildcardPattern) {
-                return wildcardPattern.replace("*", ".*");
+
+        return wildcardPattern.replace("*", ".*");
     }
 
 }

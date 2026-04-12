@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.item;
 
 import ca.teamdman.sfm.client.render.FormItemExtensions;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMCreativeTabs;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -16,11 +18,19 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class FormItem extends Item {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FORM_ITEM = new LocalizationEntry(
+            () -> SFMItems.FORM.get().getDescriptionId(),
+            () -> "Printing Form"
+    );
+
     public FormItem() {
+
         super(new Item.Properties().tab(SFMCreativeTabs.MAIN));
     }
 
     public static ItemStack createFormFromReference(ItemStack stack) {
+
         var formStack = new ItemStack(SFMItems.FORM.get());
         formStack.getOrCreateTag().put("reference", stack.serializeNBT());
         formStack.setCount(stack.getCount());
@@ -43,6 +53,7 @@ public class FormItem extends Item {
     @MCVersionDependentBehaviour // 1.21 this gets replaced with RegisterClientExtensionsEvent
     @Override
     public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+
         consumer.accept(new FormItemExtensions());
     }
 
@@ -53,6 +64,7 @@ public class FormItem extends Item {
             List<Component> pTooltipComponents,
             TooltipFlag pIsAdvanced
     ) {
+
         if (pStack.hasTag()) {
             var reference = getBorrowedReferenceFromForm(pStack);
             if (!reference.isEmpty()) {
@@ -60,4 +72,5 @@ public class FormItem extends Item {
             }
         }
     }
+
 }

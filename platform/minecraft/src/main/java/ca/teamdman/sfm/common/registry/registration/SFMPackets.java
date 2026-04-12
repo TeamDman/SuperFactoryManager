@@ -43,8 +43,6 @@ public class SFMPackets {
         registerPacket(new ClientboundLabelGunUseResponsePacket.Daddy());
         registerPacket(new ClientboundLabelInspectionResultsPacket.Daddy());
         registerPacket(new ClientboundManagerGuiUpdatePacket.Daddy());
-        registerPacket(new ClientboundManagerIdeActionPacket.Daddy());
-        registerPacket(new ClientboundManagerIdeTerminalOutputPacket.Daddy());
         registerPacket(new ClientboundManagerLogLevelUpdatedPacket.Daddy());
         registerPacket(new ClientboundManagerLogsPacket.Daddy());
         registerPacket(new ClientboundSfmDrawCommandOutputPacket.Daddy());
@@ -64,8 +62,6 @@ public class SFMPackets {
         registerPacket(new ServerboundLabelGunUsePacket.Daddy());
         registerPacket(new ServerboundLabelInspectionRequestPacket.Daddy());
         registerPacket(new ServerboundManagerClearLogsPacket.Daddy());
-        registerPacket(new ServerboundManagerIdeExplorerDropPacket.Daddy());
-        registerPacket(new ServerboundManagerIdeTerminalCommandPacket.Daddy());
         registerPacket(new ServerboundManagerFixPacket.Daddy());
         registerPacket(new ServerboundManagerLogDesireUpdatePacket.Daddy());
         registerPacket(new ServerboundManagerProgramPacket.Daddy());

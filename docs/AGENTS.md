@@ -38,7 +38,7 @@ To run a command multiple versions, see `sfm-propagate-changes gradle run --help
 | **Build** | `./gradlew build` | Standard build and jar creation. Not used until the end where we produce the jar. |
 | **Build** | `./gradlew compileJava compileDatagenJava compileGameTestJava compileTestJava` | Checks for compile errors. |
 | **Launch** | `./gradlew runClient_teamy` | Starts Minecraft for testing. My config changes the default window size. |
-| **Datagen** | `./gradlew runData` | **Crucial.** Generates recipes, tags, and models. Run after modifying datagen sources. |
+| **Datagen** | `./gradlew runDatagen` | **Crucial.** Generates recipes, tags, and models. Run after modifying datagen sources. |
 | **Game Tests** | `./gradlew runGameTestServer`| Runs in-game tests. |
 | **Java Tests** | `./gradlew test`| Runs junit tests. |
 
@@ -132,7 +132,7 @@ Commit messages should contain the worktrees relevant to the work that was done 
 
 Commit messages should contain the platform relevant to the work that was done ("mod" (platform/minecraft; java), cli (platform/cli/sfm-propagate-changes), etc).
 
-Commit messages should contain an emoji in colon form - `:recycle:` instead of `♻`.
+Commit messages should contain an emoji.
 
 ## Writing Java
 

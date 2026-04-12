@@ -9,7 +9,7 @@ import ca.teamdman.sfm.common.handler.OpenContainerTracker;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
 import ca.teamdman.sfm.common.net.ClientboundManagerGuiUpdatePacket;
 import ca.teamdman.sfm.common.net.ClientboundManagerLogLevelUpdatedPacket;
@@ -48,6 +48,48 @@ import java.util.Set;
 
 public class ManagerBlockEntity extends BaseContainerBlockEntity {
     public static final int TICK_TIME_HISTORY_SIZE = 20;
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_CONTAINER = new LocalizationEntry(
+            "container.sfm.manager",
+            "Factory Manager"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_LEVEL_UPDATED = new LocalizationEntry(
+            "log.sfm.level_updated",
+            "Log level updated to %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATE_INVALID_PROGRAM = new LocalizationEntry(
+            "gui.sfm.manager.state.invalid_program",
+            "invalid program"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATE_RUNNING = new LocalizationEntry(
+            "gui.sfm.manager.state.running",
+            "running"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATE_NO_DISK = new LocalizationEntry(
+            "gui.sfm.manager.state.no_disk",
+            "missing disk"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MANAGER_GUI_STATE_NO_PROGRAM = new LocalizationEntry(
+            "gui.sfm.manager.state.no_program",
+            "no program"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_TICK_TIME_MS = new LocalizationEntry(
+            "program.sfm.tick.time",
+            "Program tick took %.2f ms"
+    );
 
     public final TranslatableLogger logger;
 
@@ -159,7 +201,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
             manager.tickTimes[manager.tickIndex] = elapsed;
             manager.tickIndex = (manager.tickIndex + 1) % manager.tickTimes.length;
             manager.logger.trace(x -> x.accept(
-                    LocalizationKeys.PROGRAM_TICK_TIME_MS.get(elapsed.toNanos() / 1_000_000f)));
+                    PROGRAM_TICK_TIME_MS.get(elapsed.toNanos() / 1_000_000f)));
 
             // Run hooks if present
             if (manager.programHooks != null) {
@@ -178,7 +220,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
                 || manager.logger.getLogLevel() == org.apache.logging.log4j.Level.INFO
             ) {
                 org.apache.logging.log4j.Level newLogLevel = org.apache.logging.log4j.Level.OFF;
-                manager.logger.info(x -> x.accept(LocalizationKeys.LOG_LEVEL_UPDATED.get(newLogLevel)));
+                manager.logger.info(x -> x.accept(LOG_LEVEL_UPDATED.get(newLogLevel)));
                 var oldLogLevel = manager.logger.getLogLevel();
                 manager.setLogLevel(newLogLevel);
                 SFM.LOGGER.debug(
@@ -340,6 +382,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
     }
 
     public void decrementRebuildWarningsCooldown() {
+
         this.automationAvoidRebuildingWarningsCooldown = Math.max(
                 0,
                 this.automationAvoidRebuildingWarningsCooldown - 1
@@ -534,7 +577,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
     @Override
     protected Component getDefaultName() {
 
-        return LocalizationKeys.MANAGER_CONTAINER.getComponent();
+        return MANAGER_CONTAINER.getComponent();
     }
 
     @Override
@@ -556,13 +599,13 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
     public enum State {
         NO_PROGRAM(
                 ChatFormatting.RED,
-                LocalizationKeys.MANAGER_GUI_STATE_NO_PROGRAM
+                MANAGER_GUI_STATE_NO_PROGRAM
         ), NO_DISK(
                 ChatFormatting.RED,
-                LocalizationKeys.MANAGER_GUI_STATE_NO_DISK
-        ), RUNNING(ChatFormatting.GREEN, LocalizationKeys.MANAGER_GUI_STATE_RUNNING), INVALID_PROGRAM(
+                MANAGER_GUI_STATE_NO_DISK
+        ), RUNNING(ChatFormatting.GREEN, MANAGER_GUI_STATE_RUNNING), INVALID_PROGRAM(
                 ChatFormatting.DARK_RED,
-                LocalizationKeys.MANAGER_GUI_STATE_INVALID_PROGRAM
+                MANAGER_GUI_STATE_INVALID_PROGRAM
         );
 
         public final ChatFormatting COLOR;

@@ -4,9 +4,10 @@ import ca.teamdman.sfm.client.ClientRayCastHelpers;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ServerboundContainerExportsInspectionRequestPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMDist;
@@ -27,12 +28,44 @@ import net.minecraftforge.client.event.ScreenEvent;
 import org.jetbrains.annotations.Nullable;
 
 public class ContainerScreenInspectorHandler {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONTAINER_INSPECTOR_NOTICE_1 = new LocalizationEntry(
+            "gui.sfm.container_inspector.notice.1",
+            "GUI slots don't always correspond to automation slots!!!"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONTAINER_INSPECTOR_NOTICE_2 = new LocalizationEntry(
+            "gui.sfm.container_inspector.notice.2",
+            "Press %s to toggle this overlay."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONTAINER_INSPECTOR_CONTAINER_SLOT_COUNT = new LocalizationEntry(
+            "gui.sfm.container_inspector.container_slot_count",
+            "Container Slots: %d"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONTAINER_INSPECTOR_INVENTORY_SLOT_COUNT = new LocalizationEntry(
+            "gui.sfm.container_inspector.inventory_slot_count",
+            "Inventory Slots: %d"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONTAINER_INSPECTOR_SHOW_EXPORTS_BUTTON = new LocalizationEntry(
+            "gui.sfm.container_inspector.show_exports_button",
+            "Export Inspector"
+    );
+
     private static boolean visible = false;
+
     private static @Nullable AbstractContainerScreen<?> lastScreen = null;
+
     private static final Button exportInspectorButton = new SFMButtonBuilder()
             .setSize(100, 20)
             .setPosition(5, 50)
-            .setText(LocalizationKeys.CONTAINER_INSPECTOR_SHOW_EXPORTS_BUTTON)
+            .setText(CONTAINER_INSPECTOR_SHOW_EXPORTS_BUTTON)
             .setOnPress((button) -> {
                 BlockEntity lookBlockEntity = ClientRayCastHelpers.getLookBlockEntity();
                 if (lastScreen != null && lookBlockEntity != null) {
@@ -46,6 +79,7 @@ public class ContainerScreenInspectorHandler {
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onMouseClick(ScreenEvent.KeyPressed.MouseButtonPressed.Pre event) {
+
         boolean shouldCapture = Minecraft.getInstance().screen instanceof AbstractContainerScreen<?>;
         if (shouldCapture && visible && exportInspectorButton.clicked(event.getMouseX(), event.getMouseY())) {
             exportInspectorButton.playDownSound(Minecraft.getInstance().getSoundManager());
@@ -56,6 +90,7 @@ public class ContainerScreenInspectorHandler {
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onGuiRender(ScreenEvent.Render.Post event) {
+
         if (!visible) return;
         if (event.getScreen() instanceof AbstractContainerScreen<?> screen) {
             lastScreen = screen;
@@ -96,7 +131,7 @@ public class ContainerScreenInspectorHandler {
 
             // draw centered notices
             {
-                var notice = LocalizationKeys.CONTAINER_INSPECTOR_NOTICE_1
+                var notice = CONTAINER_INSPECTOR_NOTICE_1
                         .getComponent()
                         .withStyle(ChatFormatting.GOLD);
                 int offset = font.width(notice) / 2;
@@ -111,7 +146,7 @@ public class ContainerScreenInspectorHandler {
                 );
             }
             {
-                var notice = LocalizationKeys.CONTAINER_INSPECTOR_NOTICE_2.getComponent(
+                var notice = CONTAINER_INSPECTOR_NOTICE_2.getComponent(
                         SFMKeyMappings.CONTAINER_INSPECTOR_KEY
                                 .get()
                                 .getTranslatedKeyMessage()
@@ -134,7 +169,7 @@ public class ContainerScreenInspectorHandler {
             SFMFontUtils.draw(
                     poseStack,
                     font,
-                    LocalizationKeys.CONTAINER_INSPECTOR_CONTAINER_SLOT_COUNT.getComponent(
+                    CONTAINER_INSPECTOR_CONTAINER_SLOT_COUNT.getComponent(
                             Component.literal(String.valueOf(containerSlotCount)).withStyle(ChatFormatting.BLUE)
                     ),
                     5,
@@ -145,7 +180,7 @@ public class ContainerScreenInspectorHandler {
             SFMFontUtils.draw(
                     poseStack,
                     font,
-                    LocalizationKeys.CONTAINER_INSPECTOR_INVENTORY_SLOT_COUNT.getComponent(
+                    CONTAINER_INSPECTOR_INVENTORY_SLOT_COUNT.getComponent(
                             Component.literal(String.valueOf(inventorySlotCount)).withStyle(ChatFormatting.YELLOW)
                     ),
                     5,
@@ -184,4 +219,5 @@ public class ContainerScreenInspectorHandler {
             }
         }
     }
+
 }

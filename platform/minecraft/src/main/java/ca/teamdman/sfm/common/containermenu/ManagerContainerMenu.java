@@ -19,7 +19,6 @@ import net.minecraft.world.item.ItemStack;
 
 import java.time.Duration;
 import java.util.ArrayDeque;
-import java.util.Collection;
 
 import static ca.teamdman.sfm.common.timing.SFMDurationNetworkUtils.readDurationArray;
 
@@ -33,7 +32,6 @@ public class ManagerContainerMenu extends AbstractContainerMenu {
     public String program;
     public ManagerBlockEntity.State state;
     public Duration[] tickTimes;
-    public final ArrayDeque<String> ideTerminalOutput = new ArrayDeque<>();
 
 
     public ManagerContainerMenu(
@@ -168,12 +166,5 @@ public class ManagerContainerMenu extends AbstractContainerMenu {
             slot.setChanged();
         }
         return result;
-    }
-
-    public void appendTerminalOutput(Collection<String> lines) {
-        ideTerminalOutput.addAll(lines);
-        while (ideTerminalOutput.size() > 200) {
-            ideTerminalOutput.removeFirst();
-        }
     }
 }

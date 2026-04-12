@@ -324,7 +324,6 @@ dependencies {
 
     compileOnly fg.deobf('mezz.jei:jei-1.19.2-forge:11.6.0.1018')
     runtimeOnly fg.deobf('mezz.jei:jei-1.19.2-forge:11.6.0.1018')
-    runtimeOnly fg.deobf("curse.maven:configured-457570:4462837") // configured
 //    runtimeOnly fg.deobf("curse.maven:jei-238222:3944627") //jei-1.19.2-forge-11.2.0.256.jar
 
 

@@ -4,9 +4,11 @@ import ca.teamdman.sfm.client.handler.NetworkToolKeyMappingHandler;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.block_network.CableNetwork;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ServerboundNetworkToolUsePacket;
 import ca.teamdman.sfm.common.registry.registration.SFMCreativeTabs;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfm.common.util.CompressedBlockPosSet;
@@ -30,6 +32,61 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public class NetworkToolItem extends Item {
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_1 = new LocalizationEntry(
+            () -> SFMItems.NETWORK_TOOL.get().getDescriptionId() + ".tooltip.1",
+            () -> "Shows cables through walls when held."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_2 = new LocalizationEntry(
+            () -> SFMItems.NETWORK_TOOL.get().getDescriptionId() + ".tooltip.2",
+            () -> "Right click a block face to view diagnostic info."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_3 = new LocalizationEntry(
+            () -> SFMItems.NETWORK_TOOL.get().getDescriptionId() + ".tooltip.3",
+            () -> "You might not need this, don't forget you can press %s in an inventory to toggle the inspector."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_4 = new LocalizationEntry(
+            () -> SFMItems.NETWORK_TOOL.get().getDescriptionId() + ".tooltip.4",
+            () -> "Place in off-hand with block in main hand and right-click cable to set facade."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_5 = new LocalizationEntry(
+            () -> SFMItems.NETWORK_TOOL.get().getDescriptionId() + ".tooltip.5",
+            () -> "Ctrl-click to facade contiguously."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_6 = new LocalizationEntry(
+            () -> SFMItems.NETWORK_TOOL.get().getDescriptionId() + ".tooltip.6",
+            () -> "Alt-click to facade matching block across the network."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_7 = new LocalizationEntry(
+            () -> SFMItems.NETWORK_TOOL.get().getDescriptionId() + ".tooltip.7",
+            () -> "Ctrl-alt-click to facade entire network."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NETWORK_TOOL_ITEM_TOOLTIP_8 = new LocalizationEntry(
+            () -> SFMItems.NETWORK_TOOL.get().getDescriptionId() + ".tooltip.8",
+            () -> "Hold %s and right-click a block to attune the tool to that position."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NETWORK_TOOL_ITEM = new LocalizationEntry(
+            () -> SFMItems.NETWORK_TOOL.get().getDescriptionId(),
+            () -> "Network Tool"
+    );
+
     public NetworkToolItem() {
 
         super(new Item.Properties().stacksTo(1).tab(SFMCreativeTabs.MAIN));
@@ -69,22 +126,22 @@ public class NetworkToolItem extends Item {
             TooltipFlag detail
     ) {
 
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_1.getComponent().withStyle(ChatFormatting.GRAY));
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_2.getComponent().withStyle(ChatFormatting.GRAY));
+        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_1.getComponent().withStyle(ChatFormatting.GRAY));
+        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_2.getComponent().withStyle(ChatFormatting.GRAY));
         lines.add(
-                LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_3
-                .getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.CONTAINER_INSPECTOR_KEY))
+                NETWORK_TOOL_ITEM_TOOLTIP_3
+                        .getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.CONTAINER_INSPECTOR_KEY))
                         .withStyle(ChatFormatting.AQUA)
         );
         lines.add(
-            LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_8
-                .getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.TOGGLE_NETWORK_TOOL_OVERLAY_KEY))
-                .withStyle(ChatFormatting.AQUA)
+                NETWORK_TOOL_ITEM_TOOLTIP_8
+                        .getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.TOGGLE_NETWORK_TOOL_OVERLAY_KEY))
+                        .withStyle(ChatFormatting.AQUA)
         );
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_4.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_5.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_6.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
-        lines.add(LocalizationKeys.NETWORK_TOOL_ITEM_TOOLTIP_7.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
+        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_4.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
+        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_5.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
+        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_6.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
+        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_7.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
     }
 
     @Override
@@ -119,7 +176,11 @@ public class NetworkToolItem extends Item {
         BlockPosSet capabilityProviderPositions = new BlockPosSet();
 
         // Find the networks and track the positions
-        for (CableNetwork cableNetwork : (Iterable<CableNetwork>) getNetworksForOverlay(pStack, pLevel, pPlayer)::iterator) {
+        for (CableNetwork cableNetwork : (Iterable<CableNetwork>) getNetworksForOverlay(
+                pStack,
+                pLevel,
+                pPlayer
+        )::iterator) {
             cablePositions.addAll(cableNetwork.getCablePositionsRaw());
             capabilityProviderPositions.addAll(cableNetwork.getCapabilityProviderPositionsRaw());
         }

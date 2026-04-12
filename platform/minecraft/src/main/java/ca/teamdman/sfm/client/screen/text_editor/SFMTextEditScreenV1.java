@@ -2,14 +2,16 @@ package ca.teamdman.sfm.client.screen.text_editor;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.ProgramTokenContextActions;
+import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.*;
+import ca.teamdman.sfm.client.screen.widget.PickList;
+import ca.teamdman.sfm.client.screen.widget.PickListItem;
+import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
-import ca.teamdman.sfm.client.widget.PickList;
-import ca.teamdman.sfm.client.widget.PickListItem;
-import ca.teamdman.sfm.client.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.config.SFMConfig;
-import ca.teamdman.sfm.common.localization.LocalizationKeys;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMComponentUtils;
 import ca.teamdman.sfm.common.util.SFMDisplayUtils;
@@ -43,11 +45,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP;
-import static ca.teamdman.sfm.common.localization.LocalizationKeys.PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP;
-
 @SuppressWarnings("NotNullFieldNotInitialized")
 public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TEXT_EDIT_SCREEN_V1_TITLE = new LocalizationEntry(
+            "gui.sfm.text_editor.v1.title",
+            "Text Editor"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry INTELLISENSE_PICK_LIST_GUI_TITLE = new LocalizationEntry(
+            "gui.sfm.title.intellisense_pick_list",
+            "Intellisense Pick List"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.text_editor.done_button.tooltip",
+            "Shift+Enter to submit"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.text_editor.config_button.tooltip",
+            "Open editor config"
+    );
+
     private final ISFMTextEditScreenOpenContext openContext;
 
     protected MyMultiLineEditBox textarea;
@@ -60,11 +83,13 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
 
     private boolean scrolledOnFirstInit = false;
 
+    private boolean suppressNextCharTypedForIntellisenseAccept = false;
+
     public SFMTextEditScreenV1(
             ISFMTextEditScreenOpenContext openContext
     ) {
 
-        super(LocalizationKeys.TEXT_EDIT_SCREEN_TITLE.getComponent());
+        super(TEXT_EDIT_SCREEN_V1_TITLE.getComponent());
         this.openContext = openContext;
     }
 
@@ -115,12 +140,17 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             int pModifiers
     ) {
 
+        boolean handled = false;
         if (pKeyCode == GLFW.GLFW_KEY_LEFT_CONTROL || pKeyCode == GLFW.GLFW_KEY_RIGHT_CONTROL) {
             // if control released => update syntax highlighting
             textarea.rebuild(Screen.hasControlDown());
-            return true;
+            handled = true;
         }
-        return false;
+        if (suppressNextCharTypedForIntellisenseAccept && isIntellisenseAcceptKey(pKeyCode, pScanCode)) {
+            suppressNextCharTypedForIntellisenseAccept = false;
+            handled = true;
+        }
+        return handled;
     }
 
     @Override
@@ -129,11 +159,11 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             int pModifiers
     ) {
 
-        if (Screen.hasControlDown() && pCodePoint == ' ') {
+        if (suppressNextCharTypedForIntellisenseAccept) {
+            suppressNextCharTypedForIntellisenseAccept = false;
             return true;
         }
-        if (!suggestedActions.isEmpty() && pCodePoint == '\\') {
-            // prevent intellisense-accept hotkey from being typed
+        if (Screen.hasControlDown() && pCodePoint == ' ') {
             return true;
         }
         return super.charTyped(pCodePoint, pModifiers);
@@ -177,24 +207,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             textarea.setScrollAmount(scrollAmount);
             return true;
         }
-        if (pKeyCode == GLFW.GLFW_KEY_BACKSLASH && !suggestedActions.isEmpty()) {
-            IntellisenseAction action = suggestedActions.getSelected();
-            assert action != null;
-
-            ManipulationResult result = action.perform(
-                    new IntellisenseContext(
-                            new ProgramBuilder(textarea.getValue()).build(),
-                            textarea.getCursorPosition(),
-                            textarea.getSelectionCursorPosition(),
-                            openContext.labelPositionHolder(),
-                            SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.intellisenseLevel.get()
-                    )
-            );
-            double scrollAmount = textarea.getScrollAmount();
-            textarea.setValue(result.content());
-            textarea.setSelectionCursorPosition(result.selectionCursorPosition());
-            textarea.setCursorPosition(result.cursorPosition());
-            textarea.setScrollAmount(scrollAmount);
+        if (isIntellisenseAcceptKey(pKeyCode, pScanCode) && acceptSelectedIntellisenseAction()) {
             return true;
         }
         if (pKeyCode == GLFW.GLFW_KEY_LEFT_CONTROL || pKeyCode == GLFW.GLFW_KEY_RIGHT_CONTROL) {
@@ -278,6 +291,46 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
     }
 
     @Override
+    public void tick() {
+
+        this.textarea.tick();
+    }
+
+    private boolean isIntellisenseAcceptKey(
+            int pKeyCode,
+            int pScanCode
+    ) {
+
+        return SFMKeyMappings.TEXT_EDITOR_ACCEPT_INTELLISENSE_KEY.get().matches(pKeyCode, pScanCode);
+    }
+
+    private boolean acceptSelectedIntellisenseAction() {
+
+        if (suggestedActions.isEmpty()) {
+            return false;
+        }
+        IntellisenseAction action = suggestedActions.getSelected();
+        assert action != null;
+
+        ManipulationResult result = action.perform(
+                new IntellisenseContext(
+                        new ProgramBuilder(textarea.getValue()).build(),
+                        textarea.getCursorPosition(),
+                        textarea.getSelectionCursorPosition(),
+                        openContext.labelPositionHolder(),
+                        SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.intellisenseLevel.get()
+                )
+        );
+        double scrollAmount = textarea.getScrollAmount();
+        textarea.setValue(result.content());
+        textarea.setSelectionCursorPosition(result.selectionCursorPosition());
+        textarea.setCursorPosition(result.cursorPosition());
+        textarea.setScrollAmount(scrollAmount);
+        suppressNextCharTypedForIntellisenseAccept = true;
+        return true;
+    }
+
+    @Override
     protected void init() {
 
         super.init();
@@ -299,7 +352,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 0,
                 180,
                 this.font.lineHeight * 6,
-                LocalizationKeys.INTELLISENSE_PICK_LIST_GUI_TITLE.getComponent(),
+                INTELLISENSE_PICK_LIST_GUI_TITLE.getComponent(),
                 new ArrayList<>()
         ));
 
@@ -359,12 +412,6 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         this.setInitialFocus(textarea);
-    }
-
-    @Override
-    public void tick() {
-
-        this.textarea.tick();
     }
 
     // TODO: enable scrolling without focus; respond to wheel events
@@ -569,6 +616,14 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             super.setScrollAmount(pScrollAmount);
         }
 
+        @Override
+        public void tick() {
+
+            super.tick();
+
+            this.cursorBlinkTick++;
+        }
+
         private void seekCursorFromPoint(
                 double mx,
                 double my
@@ -742,14 +797,6 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         @Override
-        public void tick() {
-
-            super.tick();
-
-            this.cursorBlinkTick++;
-        }
-
-        @Override
         protected void renderContents(
                 PoseStack poseStack,
                 int mx,
@@ -817,8 +864,8 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 String plainLine = componentColoured.getString();
                 int lineLength = plainLine.length();
 
-                boolean cursorOnThisLine =
-                        isCursorVisible && cursorIndex >= charCountAccum
+                boolean isCursorOnThisLine =
+                        cursorIndex >= charCountAccum
                         && cursorIndex <= charCountAccum + lineLength;
 
                 if (SFMTextEditorUtils.shouldShowLineNumbers()) {
@@ -836,7 +883,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                     );
                 }
 
-                if (cursorOnThisLine) {
+                if (isCursorOnThisLine) {
                     isCursorAtEndOfLine = cursorIndex == charCountAccum + lineLength;
                     cursorY = lineY;
                     int relativeCursorIndex = cursorIndex - charCountAccum;
@@ -865,7 +912,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                             matrix4f,
                             buffer
                     );
-                    drewCursorGlyph = true;
+                    drewCursorGlyph = isCursorVisible;
                 } else {
                     SFMFontUtils.drawInBatch(
                             componentColoured,
