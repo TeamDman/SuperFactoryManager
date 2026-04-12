@@ -148,6 +148,12 @@ public class SFMCommand {
                                  }
                                  return SINGLE_SUCCESS;
                              }));
+                command.then(Commands.literal("draw")
+                                                         .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                                                         .then(Commands.literal("echo")
+                                                                                   .executes(ctx -> runDrawEcho(ctx.getSource(), ""))
+                                                                                   .then(Commands.argument("message", StringArgumentType.greedyString())
+                                                                                                                 .executes(ctx -> runDrawEcho(ctx.getSource(), StringArgumentType.getString(ctx, "message"))))));
                 command.then(Commands.literal("ide")
                                                          .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
                                                          .then(Commands.literal("help")
@@ -220,6 +226,11 @@ public class SFMCommand {
         }
 
         private static int runIdeEcho(CommandSourceStack source, String message) {
+                sendSuccess(source, () -> Component.literal(message));
+                return SINGLE_SUCCESS;
+        }
+
+        private static int runDrawEcho(CommandSourceStack source, String message) {
                 sendSuccess(source, () -> Component.literal(message));
                 return SINGLE_SUCCESS;
         }

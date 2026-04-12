@@ -47,6 +47,7 @@ public class SFMPackets {
         registerPacket(new ClientboundManagerIdeTerminalOutputPacket.Daddy());
         registerPacket(new ClientboundManagerLogLevelUpdatedPacket.Daddy());
         registerPacket(new ClientboundManagerLogsPacket.Daddy());
+        registerPacket(new ClientboundSfmDrawCommandOutputPacket.Daddy());
         registerPacket(new ClientboundOutputInspectionResultsPacket.Daddy());
         registerPacket(new ClientboundServerConfigCommandPacket.Daddy());
         registerPacket(new ClientboundShowChangelogPacket.Daddy());
@@ -70,6 +71,7 @@ public class SFMPackets {
         registerPacket(new ServerboundManagerProgramPacket.Daddy());
         registerPacket(new ServerboundManagerRebuildPacket.Daddy());
         registerPacket(new ServerboundManagerResetPacket.Daddy());
+        registerPacket(new ServerboundSfmDrawCommandPacket.Daddy());
         registerPacket(new ServerboundManagerSetLogLevelPacket.Daddy());
         registerPacket(new ServerboundNetworkToolToggleOverlayPacket.Daddy());
         registerPacket(new ServerboundNetworkToolUsePacket.Daddy());

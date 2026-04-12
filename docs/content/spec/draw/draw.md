@@ -194,6 +194,22 @@
 >
 > Text elements whose content begins with `/` MUST render inside a black rectangle with a white border.
 
+> r[draw.tool.text.command-style.shift-enter-submits]
+>
+> Pressing `Shift+Enter` while editing a slash-prefixed text element MUST execute that text as an SFM draw command instead of inserting a newline.
+
+> r[draw.tool.text.command-style.prefix]
+>
+> Slash-prefixed draw text commands MUST be executed by translating the text after the leading slash into `/sfm draw <text>`.
+
+> r[draw.tool.text.command-output.appended]
+>
+> Output from executing a slash-prefixed draw text command MUST be appended as text elements below the command text element.
+
+> r[draw.command.echo.exists]
+>
+> An `/sfm draw echo` command MUST exist and echo its message to the caller.
+
 > r[draw.tool.freehand.create]
 >
 > A freehand tool MUST create polyline-style strokes by sampling dragged cursor positions.

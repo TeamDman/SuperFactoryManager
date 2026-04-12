@@ -2,6 +2,8 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.localization.IdeLocalizationKeys;
+import ca.teamdman.sfm.common.net.ServerboundSfmDrawCommandPacket;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Matrix4f;
@@ -234,7 +236,10 @@ public class SfmDrawScreen extends Screen {
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
-                if (hasShiftDown()) {
+                TextElement textElement = editingTextElement();
+                if (hasShiftDown() && isCommandTextElement(textElement)) {
+                    submitEditingCommandText(textElement);
+                } else if (hasShiftDown()) {
                     appendEditingText("\n");
                 } else {
                     finishTextEditing();
@@ -2064,7 +2069,7 @@ public class SfmDrawScreen extends Screen {
 
     // r[impl draw.tool.text.create]
     private TextElement createTextElement(CanvasPoint point) {
-        TextElement element = new TextElement(nextElementId++, activeCanvasLayer(), point.x(), point.y(), "", 0xFFF1F5FB, 1.0D, null);
+        TextElement element = new TextElement(nextElementId++, activeCanvasLayer(), point.x(), point.y(), "", 0xFFF1F5FB, 1.0D, null, -1);
         elements.add(element);
         selectOnly(element.id());
         return element;
@@ -2081,6 +2086,12 @@ public class SfmDrawScreen extends Screen {
         textEditingCaretIndex = 0;
         clearCanvasSelection();
         resetToolAfterCreation(DrawTool.TEXT);
+    }
+
+    private void submitEditingCommandText(TextElement textElement) {
+        String commandText = textElement.text.startsWith("/") ? textElement.text.substring(1) : textElement.text;
+        SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(textElement.id(), commandText));
+        finishTextEditing();
     }
 
     // r[impl draw.camera.frame_tool]
@@ -2766,6 +2777,45 @@ public class SfmDrawScreen extends Screen {
 
     private boolean isCommandTextElement(TextElement textElement) {
         return textElement.shellBinding == null && textElement.text.startsWith("/");
+    }
+
+    public void appendCommandOutput(
+            int commandElementId,
+            List<String> lines
+    ) {
+        DrawElement sourceElement = findElementById(commandElementId);
+        if (!(sourceElement instanceof TextElement commandElement) || !isCommandTextElement(commandElement)) {
+            return;
+        }
+        double currentY = commandOutputInsertionY(commandElementId, commandElement);
+        for (String line : lines) {
+            TextElement output = new TextElement(
+                    nextElementId++,
+                    commandElement.layer(),
+                    commandElement.x,
+                    currentY,
+                    line,
+                    0xFFE5EBF2,
+                    commandElement.textScale,
+                    null,
+                    commandElementId
+            );
+            elements.add(output);
+            currentY = output.bounds(this).maxY() + 4.0D;
+        }
+    }
+
+    private double commandOutputInsertionY(
+            int commandElementId,
+            TextElement commandElement
+    ) {
+        double insertionY = commandElement.bounds(this).maxY() + 4.0D;
+        for (DrawElement element : elements) {
+            if (element instanceof TextElement textElement && textElement.commandSourceElementId() == commandElementId) {
+                insertionY = Math.max(insertionY, textElement.bounds(this).maxY() + 4.0D);
+            }
+        }
+        return insertionY;
     }
 
     private void placeTextCaretFromScreen(
@@ -4562,7 +4612,7 @@ public class SfmDrawScreen extends Screen {
 
     private void seedShellElements() {
         for (ShellTextBinding binding : ShellTextBinding.VALUES) {
-            elements.add(new TextElement(nextElementId++, DrawLayer.SHELL, binding.defaultX(), binding.defaultY(), binding.placeholderText(), 0xFFF1F5FB, 1.0D, binding));
+            elements.add(new TextElement(nextElementId++, DrawLayer.SHELL, binding.defaultX(), binding.defaultY(), binding.placeholderText(), 0xFFF1F5FB, 1.0D, binding, -1));
         }
     }
 
@@ -4868,6 +4918,7 @@ public class SfmDrawScreen extends Screen {
         private final int color;
         private double textScale;
         private final @Nullable ShellTextBinding shellBinding;
+        private final int commandSourceElementId;
 
         private TextElement(
                 int id,
@@ -4877,7 +4928,8 @@ public class SfmDrawScreen extends Screen {
                 String text,
                 int color,
                 double textScale,
-                @Nullable ShellTextBinding shellBinding
+                @Nullable ShellTextBinding shellBinding,
+                int commandSourceElementId
         ) {
             super(id, layer);
             this.x = x;
@@ -4886,6 +4938,11 @@ public class SfmDrawScreen extends Screen {
             this.color = color;
             this.textScale = textScale;
             this.shellBinding = shellBinding;
+            this.commandSourceElementId = commandSourceElementId;
+        }
+
+        public int commandSourceElementId() {
+            return commandSourceElementId;
         }
 
         @Override
@@ -4902,14 +4959,14 @@ public class SfmDrawScreen extends Screen {
 
         @Override
         public DrawElement copy() {
-            TextElement copy = new TextElement(id(), layer(), x, y, text, color, textScale, shellBinding);
+            TextElement copy = new TextElement(id(), layer(), x, y, text, color, textScale, shellBinding, commandSourceElementId);
             copyMetadataTo(copy);
             return copy;
         }
 
         @Override
         public DrawElement copyWithId(int id) {
-            TextElement copy = new TextElement(id, layer(), x, y, text, color, textScale, shellBinding);
+            TextElement copy = new TextElement(id, layer(), x, y, text, color, textScale, shellBinding, commandSourceElementId);
             copyMetadataTo(copy);
             return copy;
         }
