@@ -230,6 +230,10 @@
 >
 > Output from executing a slash-prefixed draw text command MUST be appended as text elements below the command text element.
 
+> r[draw.tool.text.command-output.hidden-ignored]
+>
+> Hidden command-output text elements MUST NOT push later appended command output farther down when determining the next output insertion position.
+
 > r[draw.tool.text.command-style.cursor-submit]
 >
 > Pressing `Shift+Enter` while the cursor tool has slash-prefixed text elements selected MUST execute each selected command text element.
@@ -237,6 +241,22 @@
 > r[draw.tool.text.edit.word-delete]
 >
 > While editing text, `Ctrl+Backspace` and `Ctrl+Delete` MUST delete contiguous characters that share the same `\w` versus `\W` character class as the character adjacent to the caret in the deletion direction.
+
+> r[draw.tool.text.edit.word-jump]
+>
+> While editing text, `Ctrl+Left` and `Ctrl+Right` MUST move by contiguous `\w` versus `\W` character runs using the same word-boundary logic as word deletion, and `Shift` MUST extend the shared text selection while doing so.
+
+> r[draw.tool.text.edit.home-end]
+>
+> While editing text, `Home` and `End` MUST move to the current line bounds, while `Ctrl+Home` and `Ctrl+End` MUST move to the start and end of the text, with `Shift` extending the shared text selection for those moves.
+
+> r[draw.tool.text.edit.copy-multi]
+>
+> Copying a shared text selection MUST join the selected content from each edited text element with a separator whose consecutive newline count is one greater than the greatest consecutive newline count present in any copied chunk.
+
+> r[draw.tool.text.edit.paste-multi]
+>
+> Pasting into multiple edited text elements MUST split clipboard content on the greatest consecutive newline run and distribute the resulting chunks across the edited text elements.
 
 > r[draw.command.echo.exists]
 >

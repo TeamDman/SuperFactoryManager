@@ -242,6 +242,30 @@ public class SfmDrawScreen extends Screen {
                 selectAllEditingText();
                 return true;
             }
+            if (Screen.isCopy(keyCode)) {
+                copyEditingSelectionToClipboard();
+                return true;
+            }
+            if (Screen.isPaste(keyCode)) {
+                pasteEditingClipboard(minecraft != null ? minecraft.keyboardHandler.getClipboard() : "");
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_HOME) {
+                moveEditingCaretHome(hasControlDown(), hasShiftDown());
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_END) {
+                moveEditingCaretEnd(hasControlDown(), hasShiftDown());
+                return true;
+            }
+            if (hasControlDown() && keyCode == GLFW.GLFW_KEY_LEFT) {
+                moveEditingCaretWordLeft(hasShiftDown());
+                return true;
+            }
+            if (hasControlDown() && keyCode == GLFW.GLFW_KEY_RIGHT) {
+                moveEditingCaretWordRight(hasShiftDown());
+                return true;
+            }
             if (hasControlDown() && keyCode == GLFW.GLFW_KEY_BACKSPACE) {
                 mutateEditingTextBackspaceWord();
                 return true;
@@ -274,10 +298,6 @@ public class SfmDrawScreen extends Screen {
                 } else {
                     finishTextEditing();
                 }
-                return true;
-            }
-            if (hasControlDown() && keyCode == GLFW.GLFW_KEY_V) {
-                appendEditingText(minecraft != null ? minecraft.keyboardHandler.getClipboard() : "");
                 return true;
             }
             return true;
@@ -3186,12 +3206,190 @@ public class SfmDrawScreen extends Screen {
         setEditingSelection(newCaret, extendSelection ? textEditingSelectionAnchorIndex : newCaret);
     }
 
+    private void moveEditingCaretWordLeft(boolean extendSelection) {
+        TextElement textElement = editingTextElement();
+        if (textElement == null) {
+            return;
+        }
+        int newCaret;
+        if (!extendSelection && hasEditingTextSelectionRange()) {
+            newCaret = textEditingSelectionStart(textElement);
+        } else {
+            int caretIndex = textEditingCaretIndexFor(textElement);
+            newCaret = caretIndex <= 0 ? 0 : contiguousTextClassStart(textElement.text, caretIndex - 1);
+        }
+        setEditingSelection(newCaret, extendSelection ? textEditingSelectionAnchorIndex : newCaret);
+    }
+
+    private void moveEditingCaretWordRight(boolean extendSelection) {
+        TextElement textElement = editingTextElement();
+        if (textElement == null) {
+            return;
+        }
+        int newCaret;
+        if (!extendSelection && hasEditingTextSelectionRange()) {
+            newCaret = textEditingSelectionEnd(textElement);
+        } else {
+            int caretIndex = textEditingCaretIndexFor(textElement);
+            newCaret = caretIndex >= textElement.text.length() ? textElement.text.length() : contiguousTextClassEnd(textElement.text, caretIndex);
+        }
+        setEditingSelection(newCaret, extendSelection ? textEditingSelectionAnchorIndex : newCaret);
+    }
+
+    private void moveEditingCaretHome(
+            boolean documentBoundary,
+            boolean extendSelection
+    ) {
+        TextElement textElement = editingTextElement();
+        if (textElement == null) {
+            return;
+        }
+        int newCaret = documentBoundary ? 0 : lineStartForCaret(textElement, textEditingCaretIndexFor(textElement));
+        setEditingSelection(newCaret, extendSelection ? textEditingSelectionAnchorIndex : newCaret);
+    }
+
+    private void moveEditingCaretEnd(
+            boolean documentBoundary,
+            boolean extendSelection
+    ) {
+        TextElement textElement = editingTextElement();
+        if (textElement == null) {
+            return;
+        }
+        int newCaret = documentBoundary ? textElement.text.length() : lineEndForCaret(textElement, textEditingCaretIndexFor(textElement));
+        setEditingSelection(newCaret, extendSelection ? textEditingSelectionAnchorIndex : newCaret);
+    }
+
+    private int lineStartForCaret(
+            TextElement textElement,
+            int caretIndex
+    ) {
+        int[] lineStarts = textLineStarts(textElement);
+        int clampedIndex = Mth.clamp(caretIndex, 0, textElement.text.length());
+        for (int lineIndex = lineStarts.length - 1; lineIndex >= 0; lineIndex--) {
+            if (clampedIndex >= lineStarts[lineIndex]) {
+                return lineStarts[lineIndex];
+            }
+        }
+        return 0;
+    }
+
+    private int lineEndForCaret(
+            TextElement textElement,
+            int caretIndex
+    ) {
+        String[] lines = textLines(textElement);
+        int[] lineStarts = textLineStarts(textElement);
+        int clampedIndex = Mth.clamp(caretIndex, 0, textElement.text.length());
+        for (int lineIndex = lineStarts.length - 1; lineIndex >= 0; lineIndex--) {
+            if (clampedIndex >= lineStarts[lineIndex]) {
+                return lineStarts[lineIndex] + lines[lineIndex].length();
+            }
+        }
+        return 0;
+    }
+
     private void selectAllEditingText() {
         TextElement textElement = editingTextElement();
         if (textElement == null) {
             return;
         }
         setEditingSelection(textElement.text.length(), 0);
+    }
+
+    private void copyEditingSelectionToClipboard() {
+        if (!hasEditingTextSelectionRange() || minecraft == null) {
+            return;
+        }
+        List<String> selections = new ArrayList<>();
+        int greatestChunkNewlineRun = 0;
+        for (TextElement textElement : editingTextElements()) {
+            int start = textEditingSelectionStart(textElement);
+            int end = textEditingSelectionEnd(textElement);
+            String selection = textElement.text.substring(start, end);
+            selections.add(selection);
+            greatestChunkNewlineRun = Math.max(greatestChunkNewlineRun, greatestConsecutiveNewlines(selection));
+        }
+        if (selections.isEmpty()) {
+            return;
+        }
+        String separator = "\n".repeat(greatestChunkNewlineRun + 1);
+        minecraft.keyboardHandler.setClipboard(String.join(separator, selections));
+    }
+
+    private void pasteEditingClipboard(String clipboardContents) {
+        if (clipboardContents == null || clipboardContents.isEmpty()) {
+            return;
+        }
+        List<TextElement> textElements = editingTextElements();
+        if (textElements.isEmpty()) {
+            return;
+        }
+        if (textElements.size() == 1) {
+            replaceEditingSelection(clipboardContents);
+            return;
+        }
+
+        List<String> chunks = splitClipboardEditingChunks(clipboardContents);
+        if (chunks.size() != textElements.size()) {
+            replaceEditingSelection(clipboardContents);
+            return;
+        }
+
+        TextElement primaryTextElement = editingTextElement();
+        if (primaryTextElement == null) {
+            return;
+        }
+
+        int newCaretIndex = textEditingSelectionStart(primaryTextElement);
+        boolean changed = false;
+        for (int index = 0; index < textElements.size(); index++) {
+            TextElement textElement = textElements.get(index);
+            String replacement = chunks.get(index);
+            int start = textEditingSelectionStart(textElement);
+            int end = textEditingSelectionEnd(textElement);
+            textElement.text = textElement.text.substring(0, start) + replacement + textElement.text.substring(end);
+            changed = true;
+            if (textElement.id() == primaryTextElement.id()) {
+                newCaretIndex = start + replacement.length();
+            }
+        }
+        if (changed) {
+            setEditingSelection(newCaretIndex, newCaretIndex);
+        }
+    }
+
+    private List<String> splitClipboardEditingChunks(String clipboardContents) {
+        List<String> chunks = new ArrayList<>();
+        int separatorLength = greatestConsecutiveNewlines(clipboardContents);
+        if (separatorLength <= 0) {
+            chunks.add(clipboardContents);
+            return chunks;
+        }
+
+        String separator = "\n".repeat(separatorLength);
+        int start = 0;
+        int index;
+        while ((index = clipboardContents.indexOf(separator, start)) >= 0) {
+            chunks.add(clipboardContents.substring(start, index));
+            start = index + separator.length();
+        }
+        chunks.add(clipboardContents.substring(start));
+        return chunks;
+    }
+
+    private int greatestConsecutiveNewlines(String value) {
+        int greatestRun = 0;
+        int currentRun = 0;
+        for (int index = 0; index < value.length(); index++) {
+            if (value.charAt(index) == '\n') {
+                currentRun++;
+                greatestRun = Math.max(greatestRun, currentRun);
+            } else {
+                currentRun = 0;
+            }
+        }
+        return greatestRun;
     }
 
     private void replaceEditingSelection(String replacement) {
@@ -3278,7 +3476,7 @@ public class SfmDrawScreen extends Screen {
     ) {
         double insertionY = commandElement.bounds(this).maxY() + 4.0D;
         for (DrawElement element : elements) {
-            if (element instanceof TextElement textElement && textElement.commandSourceElementId() == commandElementId) {
+            if (element instanceof TextElement textElement && textElement.commandSourceElementId() == commandElementId && !textElement.hidden()) {
                 insertionY = Math.max(insertionY, textElement.bounds(this).maxY() + 4.0D);
             }
         }
