@@ -206,6 +206,14 @@
 >
 > Output from executing a slash-prefixed draw text command MUST be appended as text elements below the command text element.
 
+> r[draw.tool.text.command-style.cursor-submit]
+>
+> Pressing `Shift+Enter` while the cursor tool has slash-prefixed text elements selected MUST execute each selected command text element.
+
+> r[draw.tool.text.edit.word-delete]
+>
+> While editing text, `Ctrl+Backspace` and `Ctrl+Delete` MUST delete contiguous characters that share the same `\w` versus `\W` character class as the character adjacent to the caret in the deletion direction.
+
 > r[draw.command.echo.exists]
 >
 > An `/sfm draw echo` command MUST exist and echo its message to the caller.
@@ -295,6 +303,14 @@
 > r[draw.tool.cursor.selection.modifier-indicator]
 >
 > While additive or subtractive selection is active, the draw screen MUST render a visible `+` or `-` cursor indicator.
+
+> r[draw.tool.cursor.selection.escape-clears]
+>
+> Pressing `Escape` while a canvas selection exists MUST clear that selection instead of closing the draw screen.
+
+> r[draw.screen.escape-closes-without-selection]
+>
+> Pressing `Escape` with no canvas selection MUST close the draw screen.
 
 > r[draw.tool.lock.exists]
 >

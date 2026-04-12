@@ -218,8 +218,16 @@ public class SfmDrawScreen extends Screen {
                 finishTextEditing();
                 return true;
             }
+            if (hasControlDown() && keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+                mutateEditingTextBackspaceWord();
+                return true;
+            }
             if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
                 mutateEditingTextBackspace();
+                return true;
+            }
+            if (hasControlDown() && keyCode == GLFW.GLFW_KEY_DELETE) {
+                mutateEditingTextDeleteWord();
                 return true;
             }
             if (keyCode == GLFW.GLFW_KEY_DELETE) {
@@ -251,6 +259,17 @@ public class SfmDrawScreen extends Screen {
                 return true;
             }
             return true;
+        }
+
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE && hasCanvasSelection()) {
+            clearCanvasSelection();
+            return true;
+        }
+
+        if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && hasShiftDown() && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            if (submitSelectedCommandTexts()) {
+                return true;
+            }
         }
 
         // r[impl draw.tool.cursor.select_all]
@@ -2094,6 +2113,29 @@ public class SfmDrawScreen extends Screen {
         finishTextEditing();
     }
 
+    private boolean submitSelectedCommandTexts() {
+        List<TextElement> commandElements = selectedCommandTextElements();
+        if (commandElements.isEmpty()) {
+            return false;
+        }
+        for (TextElement commandElement : commandElements) {
+            String commandText = commandElement.text.startsWith("/") ? commandElement.text.substring(1) : commandElement.text;
+            SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText));
+        }
+        return true;
+    }
+
+    private List<TextElement> selectedCommandTextElements() {
+        List<TextElement> commandElements = new ArrayList<>();
+        for (Integer selectedId : selectedOwningElementIds()) {
+            DrawElement element = findElementById(selectedId);
+            if (element instanceof TextElement textElement && isCommandTextElement(textElement)) {
+                commandElements.add(textElement);
+            }
+        }
+        return commandElements;
+    }
+
     // r[impl draw.camera.frame_tool]
     private void applyCameraFrame(CameraFrameDrag drag) {
         CanvasBounds bounds = CanvasBounds.of(drag.startPoint.x(), drag.startPoint.y(), drag.currentPoint.x(), drag.currentPoint.y());
@@ -2435,11 +2477,52 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    private void mutateEditingTextBackspaceWord() {
+        DrawElement element = findElementById(textEditingElementId);
+        if (!(element instanceof TextElement textElement) || textElement.text.isEmpty() || textEditingCaretIndex <= 0) {
+            return;
+        }
+        int start = contiguousTextClassStart(textElement.text, textEditingCaretIndex - 1);
+        textElement.text = textElement.text.substring(0, start) + textElement.text.substring(textEditingCaretIndex);
+        textEditingCaretIndex = start;
+    }
+
     private void mutateEditingTextDelete() {
         DrawElement element = findElementById(textEditingElementId);
         if (element instanceof TextElement textElement && textEditingCaretIndex >= 0 && textEditingCaretIndex < textElement.text.length()) {
             textElement.text = textElement.text.substring(0, textEditingCaretIndex) + textElement.text.substring(textEditingCaretIndex + 1);
         }
+    }
+
+    private void mutateEditingTextDeleteWord() {
+        DrawElement element = findElementById(textEditingElementId);
+        if (!(element instanceof TextElement textElement) || textEditingCaretIndex < 0 || textEditingCaretIndex >= textElement.text.length()) {
+            return;
+        }
+        int end = contiguousTextClassEnd(textElement.text, textEditingCaretIndex);
+        textElement.text = textElement.text.substring(0, textEditingCaretIndex) + textElement.text.substring(end);
+    }
+
+    private int contiguousTextClassStart(String value, int index) {
+        boolean wordCharacter = isRegexWordCharacter(value.charAt(index));
+        int result = index;
+        while (result > 0 && isRegexWordCharacter(value.charAt(result - 1)) == wordCharacter) {
+            result--;
+        }
+        return result;
+    }
+
+    private int contiguousTextClassEnd(String value, int index) {
+        boolean wordCharacter = isRegexWordCharacter(value.charAt(index));
+        int result = index + 1;
+        while (result < value.length() && isRegexWordCharacter(value.charAt(result)) == wordCharacter) {
+            result++;
+        }
+        return result;
+    }
+
+    private boolean isRegexWordCharacter(char value) {
+        return Character.isLetterOrDigit(value) || value == '_';
     }
 
     private @Nullable TextElement editingTextElement() {
@@ -2775,8 +2858,11 @@ public class SfmDrawScreen extends Screen {
         return null;
     }
 
-    private boolean isCommandTextElement(TextElement textElement) {
-        return textElement.shellBinding == null && textElement.text.startsWith("/");
+    private boolean isCommandTextElement(@Nullable TextElement textElement) {
+        return textElement != null
+               && textElement.shellBinding == null
+               && textElement.commandSourceElementId() < 0
+               && textElement.text.startsWith("/");
     }
 
     public void appendCommandOutput(
@@ -2888,6 +2974,10 @@ public class SfmDrawScreen extends Screen {
     private void clearCanvasSelection() {
         selectedElementIds.clear();
         selectedArrowAnchors.clear();
+    }
+
+    private boolean hasCanvasSelection() {
+        return !selectedElementIds.isEmpty() || !selectedArrowAnchors.isEmpty();
     }
 
     // r[impl draw.tool.cursor.selection]
