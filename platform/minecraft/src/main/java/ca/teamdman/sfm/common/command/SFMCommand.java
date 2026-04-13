@@ -3,6 +3,8 @@ package ca.teamdman.sfm.common.command;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.block_network.WaterNetworkManager;
+import ca.teamdman.sfm.common.command.draw.CapturingDrawCommandSource;
+import ca.teamdman.sfm.common.command.draw.DrawCommandClientContext;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
@@ -13,7 +15,9 @@ import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -25,24 +29,53 @@ import net.minecraft.gametest.framework.GameTestRunner;
 import net.minecraft.gametest.framework.GameTestTicker;
 import net.minecraft.gametest.framework.TestFunction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.server.command.EnumArgument;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
 
 @SuppressWarnings({"LoggingSimilarMessage", "DuplicatedCode"})
 public class SFMCommand {
+        private static final List<String> DRAW_VEC2_SWIZZLES = List.of("x", "y", "xy", "yx");
+        private static final List<String> DRAW_VEC3_SWIZZLES = List.of(
+                        "x",
+                        "y",
+                        "z",
+                        "xy",
+                        "xz",
+                        "yx",
+                        "yz",
+                        "zx",
+                        "zy",
+                        "xyz",
+                        "xzy",
+                        "yxz",
+                        "yzx",
+                        "zxy",
+                        "zyx"
+        );
+
     @SFMLocalizationDatagen
     public static final LocalizationEntry COMMAND_BUST_WATER_NETWORK_CACHE_SUCCESS = new LocalizationEntry(
             "sfm.command.bust_water_network_cache.success",
@@ -156,17 +189,90 @@ public class SFMCommand {
                                  }
                                  return SINGLE_SUCCESS;
                              }));
-        command.then(Commands.literal("draw")
-                             .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
-                             .then(Commands.literal("help")
-                                           .executes(ctx -> runDrawHelp(ctx.getSource())))
-                             .then(Commands.literal("echo")
-                                           .executes(ctx -> runDrawEcho(ctx.getSource(), ""))
-                                           .then(Commands.argument("message", StringArgumentType.greedyString())
-                                                         .executes(ctx -> runDrawEcho(
-                                                                 ctx.getSource(),
-                                                                 StringArgumentType.getString(ctx, "message")
-                                                         )))));
+        var drawPlayerPosCommand = addSwizzleSubcommands(
+                Commands.literal("pos")
+                        .executes(ctx -> runDrawPlayerPos(ctx.getSource())),
+                DRAW_VEC3_SWIZZLES,
+                SFMCommand::runDrawPlayerPosSwizzle
+        );
+        var drawPlayerLookHitCommand = addSwizzleSubcommands(
+                Commands.literal("hit")
+                        .executes(ctx -> runDrawPlayerLookHit(ctx.getSource()))
+                        .then(Commands.literal("block")
+                                      .executes(ctx -> runDrawPlayerLookHitBlock(ctx.getSource()))),
+                DRAW_VEC3_SWIZZLES,
+                SFMCommand::runDrawPlayerLookHitSwizzle
+        );
+        var drawPlayerCommand = Commands.literal("player")
+                .executes(ctx -> runDrawPlayer(ctx.getSource()))
+                .then(drawPlayerPosCommand)
+                .then(Commands.literal("angle")
+                              .executes(ctx -> runDrawPlayerAngle(ctx.getSource())))
+                .then(Commands.literal("dimension")
+                              .executes(ctx -> runDrawPlayerDimension(ctx.getSource())))
+                .then(Commands.literal("look")
+                              .executes(ctx -> runDrawPlayerLook(ctx.getSource()))
+                              .then(Commands.literal("angle")
+                                            .executes(ctx -> runDrawPlayerLookAngle(ctx.getSource())))
+                              .then(drawPlayerLookHitCommand))
+                .then(Commands.literal("inv")
+                              .executes(ctx -> runDrawPlayerInventory(ctx.getSource(), null))
+                              .then(Commands.argument("slot", IntegerArgumentType.integer(0, 35))
+                                            .executes(ctx -> runDrawPlayerInventory(
+                                                    ctx.getSource(),
+                                                    IntegerArgumentType.getInteger(ctx, "slot")
+                                            ))))
+                .then(Commands.literal("armor")
+                              .executes(ctx -> runDrawPlayerArmor(ctx.getSource(), null))
+                              .then(Commands.argument("slot", IntegerArgumentType.integer(0, 3))
+                                            .executes(ctx -> runDrawPlayerArmor(
+                                                    ctx.getSource(),
+                                                    IntegerArgumentType.getInteger(ctx, "slot")
+                                            ))))
+                .then(Commands.literal("hand")
+                              .executes(ctx -> runDrawPlayerHands(ctx.getSource()))
+                              .then(Commands.literal("mainhand")
+                                            .executes(ctx -> runDrawPlayerHand(ctx.getSource(), InteractionHand.MAIN_HAND)))
+                              .then(Commands.literal("offhand")
+                                            .executes(ctx -> runDrawPlayerHand(ctx.getSource(), InteractionHand.OFF_HAND))));
+        var drawCameraCommand = Commands.literal("camera")
+                .then(addSwizzleSubcommands(
+                        Commands.literal("pos")
+                                .executes(ctx -> runDrawCameraPos(ctx.getSource())),
+                        DRAW_VEC2_SWIZZLES,
+                        SFMCommand::runDrawCameraPosSwizzle
+                ))
+                .then(Commands.literal("zoom")
+                              .executes(ctx -> runDrawCameraZoom(ctx.getSource())));
+        var drawMouseCommand = Commands.literal("mouse")
+                .then(addSwizzleSubcommands(
+                        Commands.literal("pos")
+                                .executes(ctx -> runDrawMousePos(ctx.getSource())),
+                        DRAW_VEC2_SWIZZLES,
+                        SFMCommand::runDrawMousePosSwizzle
+                ))
+                .then(addSwizzleSubcommands(
+                        Commands.literal("screen_pos")
+                                .executes(ctx -> runDrawMouseScreenPos(ctx.getSource())),
+                        DRAW_VEC2_SWIZZLES,
+                        SFMCommand::runDrawMouseScreenPosSwizzle
+                ));
+        command.then(
+                Commands.literal("draw")
+                        .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                        .then(Commands.literal("help")
+                                      .executes(ctx -> runDrawHelp(ctx.getSource())))
+                        .then(Commands.literal("echo")
+                                      .executes(ctx -> runDrawEcho(ctx.getSource(), ""))
+                                      .then(Commands.argument("message", StringArgumentType.greedyString())
+                                                    .executes(ctx -> runDrawEcho(
+                                                            ctx.getSource(),
+                                                            StringArgumentType.getString(ctx, "message")
+                                                    ))))
+                        .then(drawPlayerCommand)
+                        .then(drawCameraCommand)
+                        .then(drawMouseCommand)
+        );
         command.then(Commands.literal("kit")
                              .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
                              .executes(ctx -> giveKitToPlayers(
@@ -204,6 +310,18 @@ public class SFMCommand {
         commandSourceStack.sendSuccess(componentSupplier.get(), true);
     }
 
+        private static LiteralArgumentBuilder<CommandSourceStack> addSwizzleSubcommands(
+                        LiteralArgumentBuilder<CommandSourceStack> builder,
+                        List<String> swizzles,
+                        BiFunction<CommandSourceStack, String, Integer> executor
+        ) {
+                for (String swizzle : swizzles) {
+                        builder.then(Commands.literal(swizzle)
+                                                                 .executes(ctx -> executor.apply(ctx.getSource(), swizzle)));
+                }
+                return builder;
+        }
+
         private static int runDrawEcho(
                         CommandSourceStack source,
                         String message
@@ -215,10 +333,521 @@ public class SFMCommand {
 
         private static int runDrawHelp(CommandSourceStack source) {
 
-                sendSuccess(source, () -> Component.literal("SFM draw commands:"));
-                sendSuccess(source, () -> Component.literal("- /sfm draw help"));
-                sendSuccess(source, () -> Component.literal("- /sfm draw echo <message>"));
+                List<String> lines = List.of(
+                                "SFM draw commands:",
+                                "- /sfm draw help",
+                                "- /sfm draw echo <message>",
+                                "- /sfm draw player",
+                                "- /sfm draw player pos",
+                                "- /sfm draw player angle",
+                                "- /sfm draw player dimension",
+                                "- /sfm draw player look angle",
+                                "- /sfm draw player look hit",
+                                "- /sfm draw player look hit block",
+                                "- /sfm draw player inv [slot]",
+                                "- /sfm draw player armor [slot]",
+                                "- /sfm draw player hand [mainhand|offhand]",
+                                "- /sfm draw camera pos",
+                                "- /sfm draw camera zoom",
+                                "- /sfm draw mouse pos",
+                                "- /sfm draw mouse screen_pos"
+                );
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayer(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerDimension(lines, player);
+                appendPlayerPosition(lines, player);
+                appendPlayerAngle(lines, player);
+                appendPlayerLookAngle(lines, player);
+                appendPlayerLookHit(lines, player);
+                appendPlayerLookHitBlock(lines, player);
+                appendPlayerInventory(lines, player, null);
+                appendPlayerArmor(lines, player, null);
+                appendPlayerHands(lines, player);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerPos(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerPosition(lines, player);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerPosSwizzle(
+                        CommandSourceStack source,
+                        String swizzle
+        ) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                return sendDrawLines(source, List.of(formatSwizzleLine("player.pos", swizzle, player.getX(), player.getY(), player.getZ())));
+        }
+
+        private static int runDrawPlayerAngle(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerAngle(lines, player);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerDimension(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerDimension(lines, player);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerLook(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerLookAngle(lines, player);
+                appendPlayerLookHit(lines, player);
+                appendPlayerLookHitBlock(lines, player);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerLookAngle(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerLookAngle(lines, player);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerLookHit(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerLookHit(lines, player);
+                appendPlayerLookHitBlock(lines, player);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerLookHitSwizzle(
+                        CommandSourceStack source,
+                        String swizzle
+        ) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                HitResult hitResult = resolvePlayerLookHit(player);
+                Vec3 location = hitResult.getLocation();
+                return sendDrawLines(source, List.of(formatSwizzleLine("player.look.hit", swizzle, location.x, location.y, location.z)));
+        }
+
+        private static int runDrawPlayerLookHitBlock(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerLookHitBlock(lines, player);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerInventory(
+                        CommandSourceStack source,
+                        Integer slot
+        ) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerInventory(lines, player, slot);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerArmor(
+                        CommandSourceStack source,
+                        Integer slot
+        ) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerArmor(lines, player, slot);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerHands(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerHands(lines, player);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerHand(
+                        CommandSourceStack source,
+                        InteractionHand hand
+        ) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendPlayerHand(lines, player, hand);
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawCameraPos(CommandSourceStack source) {
+                DrawCommandClientContext clientContext = requireDrawClientContext(source, "/sfm draw camera pos");
+                if (clientContext == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendVector2(lines, "camera.pos", clientContext.cameraX(), clientContext.cameraY());
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawCameraPosSwizzle(
+                        CommandSourceStack source,
+                        String swizzle
+        ) {
+                DrawCommandClientContext clientContext = requireDrawClientContext(source, "/sfm draw camera pos " + swizzle);
+                if (clientContext == null) {
+                        return 0;
+                }
+
+                return sendDrawLines(source, List.of(formatSwizzleLine("camera.pos", swizzle, clientContext.cameraX(), clientContext.cameraY())));
+        }
+
+        private static int runDrawCameraZoom(CommandSourceStack source) {
+                DrawCommandClientContext clientContext = requireDrawClientContext(source, "/sfm draw camera zoom");
+                if (clientContext == null) {
+                        return 0;
+                }
+
+                return sendDrawLines(source, List.of("camera.zoom: " + formatDrawNumber(clientContext.zoom())));
+        }
+
+        private static int runDrawMousePos(CommandSourceStack source) {
+                DrawCommandClientContext clientContext = requireDrawClientContext(source, "/sfm draw mouse pos");
+                if (clientContext == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendVector2(lines, "mouse.pos", clientContext.mouseCanvasX(), clientContext.mouseCanvasY());
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawMousePosSwizzle(
+                        CommandSourceStack source,
+                        String swizzle
+        ) {
+                DrawCommandClientContext clientContext = requireDrawClientContext(source, "/sfm draw mouse pos " + swizzle);
+                if (clientContext == null) {
+                        return 0;
+                }
+
+                return sendDrawLines(source, List.of(formatSwizzleLine("mouse.pos", swizzle, clientContext.mouseCanvasX(), clientContext.mouseCanvasY())));
+        }
+
+        private static int runDrawMouseScreenPos(CommandSourceStack source) {
+                DrawCommandClientContext clientContext = requireDrawClientContext(source, "/sfm draw mouse screen_pos");
+                if (clientContext == null) {
+                        return 0;
+                }
+
+                List<String> lines = new ArrayList<>();
+                appendVector2(lines, "mouse.screen_pos", clientContext.mouseScreenX(), clientContext.mouseScreenY());
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawMouseScreenPosSwizzle(
+                        CommandSourceStack source,
+                        String swizzle
+        ) {
+                DrawCommandClientContext clientContext = requireDrawClientContext(source, "/sfm draw mouse screen_pos " + swizzle);
+                if (clientContext == null) {
+                        return 0;
+                }
+
+                return sendDrawLines(source, List.of(formatSwizzleLine("mouse.screen_pos", swizzle, clientContext.mouseScreenX(), clientContext.mouseScreenY())));
+        }
+
+        private static ServerPlayer requireDrawPlayer(CommandSourceStack source) {
+                ServerPlayer player = source.getPlayer();
+                if (player != null) {
+                        return player;
+                }
+
+                source.sendFailure(Component.literal("/sfm draw player requires a player source."));
+                return null;
+        }
+
+        private static DrawCommandClientContext requireDrawClientContext(
+                        CommandSourceStack source,
+                        String commandName
+        ) {
+                if (source.source instanceof CapturingDrawCommandSource capture) {
+                        DrawCommandClientContext clientContext = capture.getClientContext();
+                        if (clientContext != null) {
+                                return clientContext;
+                        }
+                }
+
+                source.sendFailure(Component.literal(commandName + " requires draw screen context."));
+                return null;
+        }
+
+        private static int sendDrawLines(
+                        CommandSourceStack source,
+                        List<String> lines
+        ) {
+                if (lines.isEmpty()) {
+                        sendSuccess(source, () -> Component.literal("(no output)"));
+                        return SINGLE_SUCCESS;
+                }
+
+                for (String line : lines) {
+                        sendSuccess(source, () -> Component.literal(line));
+                }
                 return SINGLE_SUCCESS;
+        }
+
+        private static void appendPlayerDimension(
+                        List<String> lines,
+                        ServerPlayer player
+        ) {
+                lines.add("player.dimension: " + player.level.dimension().location());
+        }
+
+        private static void appendPlayerPosition(
+                        List<String> lines,
+                        ServerPlayer player
+        ) {
+                appendVector3(lines, "player.pos", player.getX(), player.getY(), player.getZ());
+        }
+
+        private static void appendPlayerAngle(
+                        List<String> lines,
+                        ServerPlayer player
+        ) {
+                lines.add("player.angle.yaw: " + formatDrawNumber(player.getYRot()));
+                lines.add("player.angle.pitch: " + formatDrawNumber(player.getXRot()));
+        }
+
+        private static void appendPlayerLookAngle(
+                        List<String> lines,
+                        ServerPlayer player
+        ) {
+                lines.add("player.look.angle.yaw: " + formatDrawNumber(player.getYHeadRot()));
+                lines.add("player.look.angle.pitch: " + formatDrawNumber(player.getXRot()));
+        }
+
+        private static void appendPlayerLookHit(
+                        List<String> lines,
+                        ServerPlayer player
+        ) {
+                HitResult hitResult = resolvePlayerLookHit(player);
+                Vec3 location = hitResult.getLocation();
+                appendVector3(lines, "player.look.hit", location.x, location.y, location.z);
+        }
+
+        private static void appendVector2(
+                        List<String> lines,
+                        String keyPrefix,
+                        double x,
+                        double y
+        ) {
+                lines.add(keyPrefix + ".x: " + formatDrawNumber(x));
+                lines.add(keyPrefix + ".y: " + formatDrawNumber(y));
+        }
+
+        private static void appendVector3(
+                        List<String> lines,
+                        String keyPrefix,
+                        double x,
+                        double y,
+                        double z
+        ) {
+                lines.add(keyPrefix + ".x: " + formatDrawNumber(x));
+                lines.add(keyPrefix + ".y: " + formatDrawNumber(y));
+                lines.add(keyPrefix + ".z: " + formatDrawNumber(z));
+        }
+
+        private static String formatSwizzleLine(
+                        String keyPrefix,
+                        String swizzle,
+                        double x,
+                        double y
+        ) {
+                List<String> values = new ArrayList<>(swizzle.length());
+                for (int index = 0; index < swizzle.length(); index++) {
+                        char axis = swizzle.charAt(index);
+                        values.add(switch (axis) {
+                                case 'x' -> formatDrawNumber(x);
+                                case 'y' -> formatDrawNumber(y);
+                                default -> throw new IllegalArgumentException("Unsupported 2D swizzle axis: " + axis);
+                        });
+                }
+                return keyPrefix + "." + swizzle + ": " + String.join(", ", values);
+        }
+
+        private static String formatSwizzleLine(
+                        String keyPrefix,
+                        String swizzle,
+                        double x,
+                        double y,
+                        double z
+        ) {
+                List<String> values = new ArrayList<>(swizzle.length());
+                for (int index = 0; index < swizzle.length(); index++) {
+                        char axis = swizzle.charAt(index);
+                        values.add(switch (axis) {
+                                case 'x' -> formatDrawNumber(x);
+                                case 'y' -> formatDrawNumber(y);
+                                case 'z' -> formatDrawNumber(z);
+                                default -> throw new IllegalArgumentException("Unsupported 3D swizzle axis: " + axis);
+                        });
+                }
+                return keyPrefix + "." + swizzle + ": " + String.join(", ", values);
+        }
+
+        private static void appendPlayerLookHitBlock(
+                        List<String> lines,
+                        ServerPlayer player
+        ) {
+                HitResult hitResult = resolvePlayerLookHit(player);
+                String value = "(miss)";
+                if (hitResult instanceof BlockHitResult blockHitResult && hitResult.getType() == HitResult.Type.BLOCK) {
+                        ResourceLocation blockId = SFMWellKnownRegistries.BLOCKS.getId(
+                                        player.level.getBlockState(blockHitResult.getBlockPos()).getBlock()
+                        );
+                        if (blockId != null) {
+                                value = blockId.toString();
+                        }
+                }
+                lines.add("player.look.hit.block: " + value);
+        }
+
+        private static void appendPlayerInventory(
+                        List<String> lines,
+                        ServerPlayer player,
+                        Integer slot
+        ) {
+                List<ItemStack> items = player.getInventory().items;
+                if (slot != null) {
+                        lines.add("player.inv." + slot + ": " + itemId(items.get(slot)));
+                        return;
+                }
+
+                for (int index = 0; index < items.size(); index++) {
+                        lines.add("player.inv." + index + ": " + itemId(items.get(index)));
+                }
+        }
+
+        private static void appendPlayerArmor(
+                        List<String> lines,
+                        ServerPlayer player,
+                        Integer slot
+        ) {
+                if (slot != null) {
+                        lines.add("player.armor." + armorSlotKey(slot) + ": " + itemId(player.getItemBySlot(armorSlot(slot))));
+                        return;
+                }
+
+                for (int index = 0; index < 4; index++) {
+                        lines.add("player.armor." + armorSlotKey(index) + ": " + itemId(player.getItemBySlot(armorSlot(index))));
+                }
+        }
+
+        private static void appendPlayerHands(
+                        List<String> lines,
+                        ServerPlayer player
+        ) {
+                appendPlayerHand(lines, player, InteractionHand.MAIN_HAND);
+                appendPlayerHand(lines, player, InteractionHand.OFF_HAND);
+        }
+
+        private static void appendPlayerHand(
+                        List<String> lines,
+                        ServerPlayer player,
+                        InteractionHand hand
+        ) {
+                String handKey = hand == InteractionHand.MAIN_HAND ? "mainhand" : "offhand";
+                lines.add("player.hand." + handKey + ": " + itemId(player.getItemInHand(hand)));
+        }
+
+        private static String itemId(ItemStack stack) {
+                ResourceLocation itemId = SFMWellKnownRegistries.ITEMS.getId(stack.getItem());
+                return itemId == null ? "(unknown item)" : itemId.toString();
+        }
+
+        private static EquipmentSlot armorSlot(int slot) {
+                return switch (slot) {
+                        case 0 -> EquipmentSlot.HEAD;
+                        case 1 -> EquipmentSlot.CHEST;
+                        case 2 -> EquipmentSlot.LEGS;
+                        case 3 -> EquipmentSlot.FEET;
+                        default -> throw new IllegalArgumentException("Unsupported armor slot: " + slot);
+                };
+        }
+
+        private static String armorSlotKey(int slot) {
+                return switch (slot) {
+                        case 0 -> "head";
+                        case 1 -> "chest";
+                        case 2 -> "legs";
+                        case 3 -> "feet";
+                        default -> throw new IllegalArgumentException("Unsupported armor slot: " + slot);
+                };
+        }
+
+        private static HitResult resolvePlayerLookHit(ServerPlayer player) {
+                Vec3 start = player.getEyePosition();
+                Vec3 end = start.add(player.getViewVector(1.0F).scale(64.0D));
+                return player.level.clip(new ClipContext(start, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
+        }
+
+        private static String formatDrawNumber(double value) {
+                return String.format(Locale.ROOT, "%.3f", value);
         }
 
     private static int giveKitToPlayers(

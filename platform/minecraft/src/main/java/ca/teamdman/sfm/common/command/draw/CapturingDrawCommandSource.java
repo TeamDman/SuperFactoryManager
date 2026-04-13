@@ -8,6 +8,15 @@ import java.util.List;
 
 public class CapturingDrawCommandSource implements CommandSource {
     private final ArrayList<String> capturedLines = new ArrayList<>();
+    private final DrawCommandClientContext clientContext;
+
+    public CapturingDrawCommandSource() {
+        this(null);
+    }
+
+    public CapturingDrawCommandSource(DrawCommandClientContext clientContext) {
+        this.clientContext = clientContext;
+    }
 
     @Override
     public void sendSystemMessage(Component component) {
@@ -31,5 +40,9 @@ public class CapturingDrawCommandSource implements CommandSource {
 
     public List<String> getCapturedLines() {
         return capturedLines;
+    }
+
+    public DrawCommandClientContext getClientContext() {
+        return clientContext;
     }
 }

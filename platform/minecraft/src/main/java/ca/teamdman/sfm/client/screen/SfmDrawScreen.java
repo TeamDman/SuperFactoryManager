@@ -1,7 +1,8 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.localization.IdeLocalizationKeys;
+import ca.teamdman.sfm.common.command.draw.DrawCommandClientContext;
+import ca.teamdman.sfm.common.localization.SFMDrawLocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundSfmDrawCommandPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import com.mojang.brigadier.CommandDispatcher;
@@ -80,7 +81,6 @@ public class SfmDrawScreen extends Screen {
         private DrawTool activeTool = DrawTool.CURSOR;
         private DrawLayer activeLayer = DrawLayer.ELEMENTS;
         private boolean elementsLayerMuted = false;
-        private boolean shellLayerMuted = false;
         private boolean chromeLayerMuted = false;
         private int nextElementId = 1;
         private int nextGroupId = 1;
@@ -170,8 +170,7 @@ public class SfmDrawScreen extends Screen {
         private double chromeMouseY = 0.0D;
 
         public SfmDrawScreen() {
-        super(IdeLocalizationKeys.IDE_DRAW_TITLE.getComponent());
-        seedShellElements();
+        super(SFMDrawLocalizationKeys.IDE_DRAW_TITLE.getComponent());
         }
 
     @Override
@@ -820,7 +819,6 @@ public class SfmDrawScreen extends Screen {
 
         renderBackground(poseStack);
         fill(poseStack, 0, 0, width, height, 0xFF111318);
-        refreshShellElements();
         drawGrid(poseStack);
         drawOriginAxes(poseStack);
         drawElements(poseStack);
@@ -939,7 +937,7 @@ public class SfmDrawScreen extends Screen {
         fill(poseStack, bounds.left(), bounds.top(), bounds.right(), bounds.bottom(), renderColor(0xD9141820, hidden));
         fill(poseStack, headerBounds.left(), headerBounds.top(), headerBounds.right(), headerBounds.bottom(), renderColor(0xE0212630, hidden));
         drawScreenRectOutline(poseStack, new ScreenRect(bounds.left(), bounds.top(), bounds.right(), bounds.bottom()), renderColor(0xFF606975, hidden));
-        drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_LAYER_WINDOW_TITLE.getComponent(), bounds.left() + LAYER_WINDOW_PADDING, bounds.top() + 4, renderColor(0xEDF1F7, hidden));
+        drawString(poseStack, font, SFMDrawLocalizationKeys.IDE_DRAW_LAYER_WINDOW_TITLE.getComponent(), bounds.left() + LAYER_WINDOW_PADDING, bounds.top() + 4, renderColor(0xEDF1F7, hidden));
         fill(poseStack, closeBounds.left(), closeBounds.top(), closeBounds.right(), closeBounds.bottom(), renderColor(closeBounds.contains(mouseX, mouseY) ? 0xAA8F3540 : 0x66462C31, hidden));
         drawString(poseStack, font, Component.literal("x"), closeBounds.left() + 3, closeBounds.top() + 1, renderColor(0xFFF1F5FB, hidden));
 
@@ -967,9 +965,9 @@ public class SfmDrawScreen extends Screen {
             }
             fill(poseStack, muteToggleBounds.left(), muteToggleBounds.top(), muteToggleBounds.right(), muteToggleBounds.bottom(), renderColor(muteBackgroundColor, hidden));
             drawScreenRectOutline(poseStack, new ScreenRect(muteToggleBounds.left(), muteToggleBounds.top(), muteToggleBounds.right(), muteToggleBounds.bottom()), renderColor(muteHovered ? 0xFFE8EEF7 : 0xAA8E99A9, hidden));
-            Component muteLabel = muted
-                    ? IdeLocalizationKeys.IDE_DRAW_LAYER_UNMUTE.getComponent()
-                    : IdeLocalizationKeys.IDE_DRAW_LAYER_MUTE.getComponent();
+                Component muteLabel = muted
+                    ? SFMDrawLocalizationKeys.IDE_DRAW_LAYER_UNMUTE.getComponent()
+                    : SFMDrawLocalizationKeys.IDE_DRAW_LAYER_MUTE.getComponent();
             drawString(poseStack, font, Component.literal(muted ? "M" : "U"), muteToggleBounds.left() + 3, muteToggleBounds.top() + 2, renderColor(muted ? 0xFFFFD6D8 : 0xFFE5EBF2, hidden));
             if (muteHovered) {
                 int tooltipLeft = mouseX + 12;
@@ -1393,7 +1391,7 @@ public class SfmDrawScreen extends Screen {
         boolean hidden = minimapWidget.hidden();
         fill(poseStack, overlayBounds.left(), overlayBounds.top(), overlayBounds.right(), overlayBounds.bottom(), renderColor(0xCC10141A, hidden));
         drawScreenRectOutline(poseStack, new ScreenRect(overlayBounds.left(), overlayBounds.top(), overlayBounds.right(), overlayBounds.bottom()), renderColor(0xFF38404B, hidden));
-        drawString(poseStack, font, IdeLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent(), overlayBounds.left() + 6, overlayBounds.top() + 6, renderColor(0xD5D9E0, hidden));
+        drawString(poseStack, font, SFMDrawLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent(), overlayBounds.left() + 6, overlayBounds.top() + 6, renderColor(0xD5D9E0, hidden));
 
         @Nullable CameraOverlayProjection projection = cameraOverlayRenderProjection();
         if (projection == null) {
@@ -1516,7 +1514,7 @@ public class SfmDrawScreen extends Screen {
                     poseStack,
                     hotbarTitleBounds(),
                     hotbarTitleWidget.scale(),
-                    IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent(),
+                    SFMDrawLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent(),
                     renderColor(0xCC11161E, hotbarTitleWidget.hidden()),
                     renderColor(0xE4E8EF, hotbarTitleWidget.hidden())
             );
@@ -1710,25 +1708,25 @@ public class SfmDrawScreen extends Screen {
     private Component chromeWidgetText(ChromeWidget widget) {
         CanvasPoint cursorPoint = currentChromeCursorPoint();
         return switch (widget) {
-            case SCREEN_TITLE -> IdeLocalizationKeys.IDE_DRAW_TITLE.getComponent();
-            case SCREEN_SUBTITLE -> IdeLocalizationKeys.IDE_DRAW_SUBTITLE.getComponent();
-            case ACTIVE_LAYER_LABEL -> IdeLocalizationKeys.IDE_DRAW_LAYER_LABEL_TEXT.getComponent();
+            case SCREEN_TITLE -> SFMDrawLocalizationKeys.IDE_DRAW_TITLE.getComponent();
+            case SCREEN_SUBTITLE -> SFMDrawLocalizationKeys.IDE_DRAW_SUBTITLE.getComponent();
+            case ACTIVE_LAYER_LABEL -> SFMDrawLocalizationKeys.IDE_DRAW_LAYER_LABEL_TEXT.getComponent();
             case ACTIVE_LAYER_VALUE -> activeLayer.labelComponent();
-            case CAMERA_POSITION_LABEL -> IdeLocalizationKeys.IDE_DRAW_CAMERA_POSITION_LABEL.getComponent();
+            case CAMERA_POSITION_LABEL -> SFMDrawLocalizationKeys.IDE_DRAW_CAMERA_POSITION_LABEL.getComponent();
             case CAMERA_POSITION_X -> Component.literal(String.format("%.0f", cameraX));
             case CAMERA_POSITION_SEPARATOR, CURSOR_SEPARATOR -> Component.literal(",");
             case CAMERA_POSITION_Y -> Component.literal(String.format("%.0f", cameraY));
-            case ZOOM_LABEL -> IdeLocalizationKeys.IDE_DRAW_ZOOM_LABEL.getComponent();
+            case ZOOM_LABEL -> SFMDrawLocalizationKeys.IDE_DRAW_ZOOM_LABEL.getComponent();
             case ZOOM_VALUE -> Component.literal(String.format("%.2fx", zoom));
-            case CURSOR_LABEL -> IdeLocalizationKeys.IDE_DRAW_CURSOR_LABEL.getComponent();
+            case CURSOR_LABEL -> SFMDrawLocalizationKeys.IDE_DRAW_CURSOR_LABEL.getComponent();
             case CURSOR_X -> Component.literal(String.format("%.0f", cursorPoint.x()));
             case CURSOR_Y -> Component.literal(String.format("%.0f", cursorPoint.y()));
-            case HOTBAR_TITLE -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
+            case HOTBAR_TITLE -> SFMDrawLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
             case HOTBAR_SUBTITLE -> Component.literal(describeTool(activeTool));
-            case MINIMAP -> IdeLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent();
-            case LAYER_WINDOW -> IdeLocalizationKeys.IDE_DRAW_LAYER_WINDOW_TITLE.getComponent();
-            case HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
-            case AUXILIARY_HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_AUXILIARY_TITLE.getComponent();
+            case MINIMAP -> SFMDrawLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent();
+            case LAYER_WINDOW -> SFMDrawLocalizationKeys.IDE_DRAW_LAYER_WINDOW_TITLE.getComponent();
+            case HOTBAR_BAR -> SFMDrawLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
+            case AUXILIARY_HOTBAR_BAR -> SFMDrawLocalizationKeys.IDE_DRAW_HOTBAR_AUXILIARY_TITLE.getComponent();
         };
     }
 
@@ -1850,7 +1848,7 @@ public class SfmDrawScreen extends Screen {
         int hitElementId = findTopElementAt(canvasPoint);
         if (hitElementId >= 0) {
             DrawElement element = findElementById(hitElementId);
-            if (element instanceof TextElement textElement && textElement.shellBinding == null) {
+            if (element instanceof TextElement textElement) {
                 beginTextEditing(textElement, Set.of(hitElementId), textElement.text.length());
                 return true;
             }
@@ -2177,7 +2175,7 @@ public class SfmDrawScreen extends Screen {
 
     // r[impl draw.tool.text.create]
     private TextElement createTextElement(CanvasPoint point) {
-        TextElement element = new TextElement(nextElementId++, activeCanvasLayer(), point.x(), point.y(), "", 0xFFF1F5FB, 1.0D, null, -1);
+        TextElement element = new TextElement(nextElementId++, activeCanvasLayer(), point.x(), point.y(), "", 0xFFF1F5FB, 1.0D, -1);
         elements.add(element);
         selectOnly(element.id());
         return element;
@@ -2188,7 +2186,7 @@ public class SfmDrawScreen extends Screen {
         Set<Integer> editedIds = new LinkedHashSet<>(textEditingElementIds);
         for (Integer editedId : editedIds) {
             DrawElement editedElement = findElementById(editedId);
-            if (editedElement instanceof TextElement textElement && textElement.shellBinding == null && textElement.text.isEmpty()) {
+            if (editedElement instanceof TextElement textElement && textElement.text.isEmpty()) {
                 elements.removeIf(element -> element.id() == textElement.id());
                 selectedElementIds.remove(textElement.id());
             }
@@ -2205,7 +2203,7 @@ public class SfmDrawScreen extends Screen {
         }
         for (TextElement commandElement : commandElements) {
             String commandText = drawCommandBody(commandElement.text);
-            SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText));
+            SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText, captureDrawCommandClientContext()));
         }
         finishTextEditing();
         return true;
@@ -2218,9 +2216,22 @@ public class SfmDrawScreen extends Screen {
         }
         for (TextElement commandElement : commandElements) {
             String commandText = drawCommandBody(commandElement.text);
-            SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText));
+            SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText, captureDrawCommandClientContext()));
         }
         return true;
+    }
+
+    private DrawCommandClientContext captureDrawCommandClientContext() {
+        CanvasPoint mouseCanvasPoint = currentChromeCursorPoint();
+        return new DrawCommandClientContext(
+                cameraX,
+                cameraY,
+                zoom,
+                mouseCanvasPoint.x(),
+                mouseCanvasPoint.y(),
+                chromeMouseX,
+                chromeMouseY
+        );
     }
 
     private List<TextElement> selectedCommandTextElements() {
@@ -3091,16 +3102,14 @@ public class SfmDrawScreen extends Screen {
             return null;
         }
         DrawElement element = findElementById(hitElementId);
-        if (element instanceof TextElement textElement && textElement.shellBinding == null) {
+        if (element instanceof TextElement textElement) {
             return textElement;
         }
         return null;
     }
 
     private boolean isCommandTextElement(@Nullable TextElement textElement) {
-        return textElement != null
-               && textElement.shellBinding == null
-               && textElement.text.startsWith("/");
+        return textElement != null && textElement.text.startsWith("/");
     }
 
     private String drawCommandBody(String commandText) {
@@ -3187,7 +3196,7 @@ public class SfmDrawScreen extends Screen {
                 continue;
             }
             TextElement textTarget;
-            if (element instanceof TextElement textElement && textElement.shellBinding == null) {
+            if (element instanceof TextElement textElement) {
                 textTarget = textElement;
             } else {
                 CanvasPoint midpoint = elementMidpoint(element);
@@ -3229,7 +3238,7 @@ public class SfmDrawScreen extends Screen {
         List<TextElement> textElements = new ArrayList<>();
         for (Integer selectedId : selectedOwningElementIds()) {
             DrawElement element = findElementById(selectedId);
-            if (element instanceof TextElement textElement && textElement.shellBinding == null) {
+            if (element instanceof TextElement textElement) {
                 textElements.add(textElement);
             }
         }
@@ -3243,7 +3252,7 @@ public class SfmDrawScreen extends Screen {
         double padding = 8.0D / Math.max(zoom, 0.01D);
         for (int index = elements.size() - 1; index >= 0; index--) {
             DrawElement element = elements.get(index);
-            if (!(element instanceof TextElement textElement) || textElement.shellBinding != null || textElement.layer() != layer) {
+            if (!(element instanceof TextElement textElement) || textElement.layer() != layer) {
                 continue;
             }
             if (textElement.bounds(this).pad(padding).contains(point)) {
@@ -3618,7 +3627,6 @@ public class SfmDrawScreen extends Screen {
                     line,
                     0xFFE5EBF2,
                     commandElement.textScale,
-                    null,
                     commandElementId
             );
             elements.add(output);
@@ -4596,7 +4604,6 @@ public class SfmDrawScreen extends Screen {
         return switch (keyCode) {
             case GLFW.GLFW_KEY_1 -> DrawLayer.ELEMENTS;
             case GLFW.GLFW_KEY_2 -> DrawLayer.CHROME;
-            case GLFW.GLFW_KEY_3 -> DrawLayer.SHELL;
             default -> null;
         };
     }
@@ -4606,7 +4613,6 @@ public class SfmDrawScreen extends Screen {
     private boolean isLayerMuted(DrawLayer layer) {
         return switch (layer) {
             case ELEMENTS -> elementsLayerMuted;
-            case SHELL -> shellLayerMuted;
             case CHROME -> chromeLayerMuted;
         };
     }
@@ -4617,7 +4623,6 @@ public class SfmDrawScreen extends Screen {
     ) {
         switch (layer) {
             case ELEMENTS -> elementsLayerMuted = muted;
-            case SHELL -> shellLayerMuted = muted;
             case CHROME -> chromeLayerMuted = muted;
         }
 
@@ -4771,7 +4776,7 @@ public class SfmDrawScreen extends Screen {
     }
 
     private Rect hotbarTitleBounds() {
-        return textChromeWidgetBounds(hotbarTitleWidget, IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent());
+        return textChromeWidgetBounds(hotbarTitleWidget, SFMDrawLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent());
     }
 
     private Rect hotbarSubtitleBounds(Component label) {
@@ -5446,24 +5451,6 @@ public class SfmDrawScreen extends Screen {
         );
     }
 
-    private void seedShellElements() {
-        for (ShellTextBinding binding : ShellTextBinding.VALUES) {
-            elements.add(new TextElement(nextElementId++, DrawLayer.SHELL, binding.defaultX(), binding.defaultY(), binding.placeholderText(), 0xFFF1F5FB, 1.0D, binding, -1));
-        }
-    }
-
-    private void refreshShellElements() {
-        for (DrawElement element : elements) {
-            if (element instanceof TextElement textElement && textElement.shellBinding != null) {
-                textElement.text = textElement.shellBinding.resolve(this);
-            }
-        }
-    }
-
-    private String formatShellNumber(double value) {
-        return String.format(Locale.ROOT, "%.1f", value);
-    }
-
     private static double distanceSquared(
             CanvasPoint a,
             CanvasPoint b
@@ -5753,7 +5740,6 @@ public class SfmDrawScreen extends Screen {
         private String text;
         private final int color;
         private double textScale;
-        private final @Nullable ShellTextBinding shellBinding;
         private int commandSourceElementId;
 
         private TextElement(
@@ -5764,7 +5750,6 @@ public class SfmDrawScreen extends Screen {
                 String text,
                 int color,
                 double textScale,
-                @Nullable ShellTextBinding shellBinding,
                 int commandSourceElementId
         ) {
             super(id, layer);
@@ -5773,7 +5758,6 @@ public class SfmDrawScreen extends Screen {
             this.text = text;
             this.color = color;
             this.textScale = textScale;
-            this.shellBinding = shellBinding;
             this.commandSourceElementId = commandSourceElementId;
         }
 
@@ -5799,14 +5783,14 @@ public class SfmDrawScreen extends Screen {
 
         @Override
         public DrawElement copy() {
-            TextElement copy = new TextElement(id(), layer(), x, y, text, color, textScale, shellBinding, commandSourceElementId);
+            TextElement copy = new TextElement(id(), layer(), x, y, text, color, textScale, commandSourceElementId);
             copyMetadataTo(copy);
             return copy;
         }
 
         @Override
         public DrawElement copyWithId(int id) {
-            TextElement copy = new TextElement(id, layer(), x, y, text, color, textScale, shellBinding, commandSourceElementId);
+            TextElement copy = new TextElement(id, layer(), x, y, text, color, textScale, commandSourceElementId);
             copyMetadataTo(copy);
             return copy;
         }
@@ -6540,9 +6524,8 @@ public class SfmDrawScreen extends Screen {
     }
 
     private enum DrawLayer {
-        ELEMENTS(1, true, IdeLocalizationKeys.IDE_DRAW_LAYER_ELEMENTS.getString(), 0xFF7FD7FF),
-        CHROME(2, false, IdeLocalizationKeys.IDE_DRAW_LAYER_CHROME.getString(), 0xFFE8A652),
-        SHELL(3, true, IdeLocalizationKeys.IDE_DRAW_LAYER_SHELL.getString(), 0xFFD998FF);
+        ELEMENTS(1, true, SFMDrawLocalizationKeys.IDE_DRAW_LAYER_ELEMENTS.getString(), 0xFF7FD7FF),
+        CHROME(2, false, SFMDrawLocalizationKeys.IDE_DRAW_LAYER_CHROME.getString(), 0xFFE8A652);
 
         private static final DrawLayer[] VALUES = values();
 
@@ -6581,58 +6564,6 @@ public class SfmDrawScreen extends Screen {
 
         public int index() {
             return index;
-        }
-    }
-
-    private enum ShellTextBinding {
-        DIMENSION(-196.0D, -168.0D, "dimension: --"),
-        PLAYER_X(-196.0D, -152.0D, "player.x: --"),
-        PLAYER_Y(-196.0D, -136.0D, "player.y: --"),
-        PLAYER_Z(-196.0D, -120.0D, "player.z: --"),
-        LOOK_YAW(-196.0D, -104.0D, "look.yaw: --"),
-        LOOK_PITCH(-196.0D, -88.0D, "look.pitch: --");
-
-        private static final ShellTextBinding[] VALUES = values();
-
-        private final double defaultX;
-        private final double defaultY;
-        private final String placeholderText;
-
-        ShellTextBinding(
-                double defaultX,
-                double defaultY,
-                String placeholderText
-        ) {
-            this.defaultX = defaultX;
-            this.defaultY = defaultY;
-            this.placeholderText = placeholderText;
-        }
-
-        public double defaultX() {
-            return defaultX;
-        }
-
-        public double defaultY() {
-            return defaultY;
-        }
-
-        public String placeholderText() {
-            return placeholderText;
-        }
-
-        public String resolve(SfmDrawScreen screen) {
-            if (screen.minecraft == null || screen.minecraft.player == null) {
-                return placeholderText;
-            }
-            var player = screen.minecraft.player;
-            return switch (this) {
-                case DIMENSION -> "dimension: " + player.level.dimension().location();
-                case PLAYER_X -> "player.x: " + screen.formatShellNumber(player.getX());
-                case PLAYER_Y -> "player.y: " + screen.formatShellNumber(player.getY());
-                case PLAYER_Z -> "player.z: " + screen.formatShellNumber(player.getZ());
-                case LOOK_YAW -> "look.yaw: " + screen.formatShellNumber(player.getYRot());
-                case LOOK_PITCH -> "look.pitch: " + screen.formatShellNumber(player.getXRot());
-            };
         }
     }
 
@@ -6679,12 +6610,12 @@ public class SfmDrawScreen extends Screen {
                 case CURSOR_X -> Component.literal("Cursor x");
                 case CURSOR_SEPARATOR -> Component.literal("Cursor separator");
                 case CURSOR_Y -> Component.literal("Cursor y");
-                case HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
-                case AUXILIARY_HOTBAR_BAR -> IdeLocalizationKeys.IDE_DRAW_HOTBAR_AUXILIARY_TITLE.getComponent();
+                case HOTBAR_BAR -> SFMDrawLocalizationKeys.IDE_DRAW_HOTBAR_TITLE.getComponent();
+                case AUXILIARY_HOTBAR_BAR -> SFMDrawLocalizationKeys.IDE_DRAW_HOTBAR_AUXILIARY_TITLE.getComponent();
                 case HOTBAR_TITLE -> Component.literal("Tools title");
                 case HOTBAR_SUBTITLE -> Component.literal("Tools subtitle");
-                case MINIMAP -> IdeLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent();
-                case LAYER_WINDOW -> IdeLocalizationKeys.IDE_DRAW_LAYER_WINDOW_TITLE.getComponent();
+                case MINIMAP -> SFMDrawLocalizationKeys.IDE_DRAW_MINIMAP_TITLE.getComponent();
+                case LAYER_WINDOW -> SFMDrawLocalizationKeys.IDE_DRAW_LAYER_WINDOW_TITLE.getComponent();
             };
         }
     }
@@ -6700,17 +6631,17 @@ public class SfmDrawScreen extends Screen {
     }
 
     private enum DrawTool {
-        CURSOR(GLFW.GLFW_KEY_V, IdeLocalizationKeys.IDE_DRAW_TOOL_CURSOR.getString(), "V", icon("cursor"), true),
-        RECTANGLE(GLFW.GLFW_KEY_R, IdeLocalizationKeys.IDE_DRAW_TOOL_RECTANGLE.getString(), "R", icon("rectangle"), true),
-        ARROW(GLFW.GLFW_KEY_A, IdeLocalizationKeys.IDE_DRAW_TOOL_ARROW.getString(), "A", icon("arrow"), true),
-        TEXT(GLFW.GLFW_KEY_T, IdeLocalizationKeys.IDE_DRAW_TOOL_TEXT.getString(), "T", icon("text"), true),
-        FREEHAND(GLFW.GLFW_KEY_F, IdeLocalizationKeys.IDE_DRAW_TOOL_FREEHAND.getString(), "F", icon("freehand"), true),
-        HAND(GLFW.GLFW_KEY_H, IdeLocalizationKeys.IDE_DRAW_TOOL_HAND.getString(), "H", icon("hand"), true),
-        CAMERA(GLFW.GLFW_KEY_C, IdeLocalizationKeys.IDE_DRAW_TOOL_CAMERA.getString(), "C", icon("camera"), true),
+        CURSOR(GLFW.GLFW_KEY_V, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_CURSOR.getString(), "V", icon("cursor"), true),
+        RECTANGLE(GLFW.GLFW_KEY_R, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_RECTANGLE.getString(), "R", icon("rectangle"), true),
+        ARROW(GLFW.GLFW_KEY_A, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_ARROW.getString(), "A", icon("arrow"), true),
+        TEXT(GLFW.GLFW_KEY_T, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_TEXT.getString(), "T", icon("text"), true),
+        FREEHAND(GLFW.GLFW_KEY_F, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_FREEHAND.getString(), "F", icon("freehand"), true),
+        HAND(GLFW.GLFW_KEY_H, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_HAND.getString(), "H", icon("hand"), true),
+        CAMERA(GLFW.GLFW_KEY_C, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_CAMERA.getString(), "C", icon("camera"), true),
         // r[impl draw.tool.layer.shortcut.tab]
-        LAYER(GLFW.GLFW_KEY_TAB, IdeLocalizationKeys.IDE_DRAW_TOOL_LAYER.getString(), "Tab", icon("cursor"), true),
-        ZEN(GLFW.GLFW_KEY_Z, IdeLocalizationKeys.IDE_DRAW_TOOL_ZEN.getString(), "Z", icon("camera"), false),
-        LOCK(GLFW.GLFW_KEY_L, IdeLocalizationKeys.IDE_DRAW_TOOL_LOCK.getString(), "L", icon("lock"), false);
+        LAYER(GLFW.GLFW_KEY_TAB, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_LAYER.getString(), "Tab", icon("cursor"), true),
+        ZEN(GLFW.GLFW_KEY_Z, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_ZEN.getString(), "Z", icon("camera"), false),
+        LOCK(GLFW.GLFW_KEY_L, SFMDrawLocalizationKeys.IDE_DRAW_TOOL_LOCK.getString(), "L", icon("lock"), false);
 
         private static final DrawTool[] VALUES = values();
 

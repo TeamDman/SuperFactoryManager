@@ -294,6 +294,14 @@
 >
 > An `/sfm draw help` command MUST exist and list the available `/sfm draw` subcommands.
 
+> r[draw.command.player.exists]
+>
+> An `/sfm draw player` command MUST exist and emit decomposed `key: value` lines for the current player runtime state.
+
+> r[draw.command.player.filters]
+>
+> `/sfm draw player` MUST support optional filter subcommands for `pos`, `angle`, `dimension`, `look`, `inv`, `armor`, and `hand`, including deeper filters for `look angle`, `look hit`, `look hit block`, inventory slots, armor slots, and main-hand versus off-hand item ids.
+
 > r[draw.tool.freehand.create]
 >
 > A freehand tool MUST create polyline-style strokes by sampling dragged cursor positions.
@@ -473,14 +481,6 @@
 > r[draw.layer.default.elements]
 >
 > A built-in content layer for normal drawing MUST exist.
-
-> r[draw.layer.default.shell]
->
-> A built-in shell layer for runtime game-state annotations MUST exist.
-
-> r[draw.layer.default.shell.autopopulated]
->
-> The shell layer MUST be automatically populated with atomized text elements derived from live game state such as the current dimension, player position, and look direction.
 
 > r[draw.layer.default.chrome]
 >

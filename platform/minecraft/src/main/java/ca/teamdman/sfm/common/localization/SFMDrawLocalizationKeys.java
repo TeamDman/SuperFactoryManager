@@ -5,7 +5,7 @@ import ca.teamdman.sfm.SFM;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class IdeLocalizationKeys {
+public final class SFMDrawLocalizationKeys {
     public static final LocalizationEntry IDE_KEY_OPEN_DRAW = new LocalizationEntry(
             "key.sfm.ide.open_draw",
             "IDE - Open Draw"
@@ -70,10 +70,6 @@ public final class IdeLocalizationKeys {
             "gui.sfm.ide.draw.layer.elements",
             "Elements"
     );
-    public static final LocalizationEntry IDE_DRAW_LAYER_SHELL = new LocalizationEntry(
-            "gui.sfm.ide.draw.layer.shell",
-            "Shell"
-    );
     public static final LocalizationEntry IDE_DRAW_LAYER_CHROME = new LocalizationEntry(
             "gui.sfm.ide.draw.layer.chrome",
             "Chrome"
@@ -129,7 +125,7 @@ public final class IdeLocalizationKeys {
 
     public static List<LocalizationEntry> getEntries() {
         var rtn = new ArrayList<LocalizationEntry>();
-        for (var field : IdeLocalizationKeys.class.getFields()) {
+        for (var field : SFMDrawLocalizationKeys.class.getFields()) {
             if (field.getType() == LocalizationEntry.class) {
                 try {
                     rtn.add((LocalizationEntry) field.get(null));

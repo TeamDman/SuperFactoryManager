@@ -2,7 +2,7 @@ package ca.teamdman.sfm.client.registry;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
-import ca.teamdman.sfm.common.localization.IdeLocalizationKeys;
+import ca.teamdman.sfm.common.localization.SFMDrawLocalizationKeys;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.SFMDist;
@@ -251,7 +251,7 @@ public class SFMKeyMappings {
     ));
 
     public static final Lazy<KeyMapping> IDE_OPEN_DRAW_KEY = Lazy.of(() -> new KeyMapping(
-            IdeLocalizationKeys.IDE_KEY_OPEN_DRAW.key().get(),
+            SFMDrawLocalizationKeys.IDE_KEY_OPEN_DRAW.key().get(),
             KeyConflictContext.IN_GAME,
             KeyModifier.ALT,
             InputConstants.Type.KEYSYM,

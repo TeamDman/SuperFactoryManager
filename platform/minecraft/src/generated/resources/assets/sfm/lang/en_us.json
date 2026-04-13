@@ -78,7 +78,6 @@
   "gui.sfm.ide.draw.layer.elements": "Elements",
   "gui.sfm.ide.draw.layer.label_text": "Layer",
   "gui.sfm.ide.draw.layer.mute": "Mute %s",
-  "gui.sfm.ide.draw.layer.shell": "Shell",
   "gui.sfm.ide.draw.layer.unmute": "Unmute %s",
   "gui.sfm.ide.draw.layer_window.title": "Layers",
   "gui.sfm.ide.draw.minimap.title": "Camera",
