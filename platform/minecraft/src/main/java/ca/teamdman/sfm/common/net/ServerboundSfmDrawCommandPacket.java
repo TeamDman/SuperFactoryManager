@@ -100,6 +100,14 @@ public record ServerboundSfmDrawCommandPacket(
             var commandSource = sender.createCommandSourceStack().withSource(capture);
             server.getCommands().performPrefixedCommand(commandSource, "sfm draw " + rawCommand);
 
+            if (capture.getManagerProgramCard() != null) {
+                SFMPackets.sendToPlayer(
+                        sender,
+                        new ClientboundSfmDrawManagerProgramCardPacket(msg.commandElementId(), capture.getManagerProgramCard())
+                );
+                return;
+            }
+
             for (String capturedLine : capture.getCapturedLines()) {
                 String[] splitLines = capturedLine.split("\\R", -1);
                 for (String splitLine : splitLines) {

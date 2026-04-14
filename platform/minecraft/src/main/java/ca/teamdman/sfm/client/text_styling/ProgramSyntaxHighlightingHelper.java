@@ -15,10 +15,55 @@ import java.util.List;
 
 public class ProgramSyntaxHighlightingHelper {
 
+    public record StyledSegment(
+            String text,
+            ChatFormatting color,
+            boolean underlined
+    ) {
+    }
+
     public static List<MutableComponent> withSyntaxHighlighting(String programString, boolean showContextActionHints) {
+        List<MutableComponent> textComponents = new ArrayList<>();
+        for (List<StyledSegment> lineSegments : withSyntaxHighlightingSegments(programString, showContextActionHints)) {
+            MutableComponent lineComponent = Component.empty();
+            for (StyledSegment segment : lineSegments) {
+                if (!segment.text().isEmpty()) {
+                    lineComponent = lineComponent.append(Component.literal(segment.text()).withStyle(styleForSegment(segment)));
+                }
+            }
+            textComponents.add(lineComponent);
+        }
+        return textComponents;
+    }
+
+    public static List<List<StyledSegment>> withSyntaxHighlightingSegments(String programString, boolean showContextActionHints) {
+        CommonTokenStream tokens = createTokenStream(programString);
+        List<List<StyledSegment>> textSegments = new ArrayList<>();
+        List<StyledSegment> lineSegments = new ArrayList<>();
+        tokens.fill();
+        for (Token token : tokens.getTokens()) {
+            if (token.getType() == SFMLLexer.EOF) break;
+            String[] lines = token.getText().split("\n", -1);
+            for (int i = 0; i < lines.length; i++) {
+                if (i != 0) {
+                    textSegments.add(lineSegments);
+                    lineSegments = new ArrayList<>();
+                }
+                lineSegments.add(new StyledSegment(
+                        lines[i],
+                        getColour(token),
+                        showContextActionHints && ProgramTokenContextActions.hasContextAction(token)
+                ));
+            }
+        }
+        textSegments.add(lineSegments);
+        return textSegments;
+    }
+
+    private static CommonTokenStream createTokenStream(String programString) {
         SFMLLexer lexer = new SFMLLexer(CharStreams.fromString(programString));
         lexer.INCLUDE_UNUSED = true;
-        CommonTokenStream tokens = new CommonTokenStream(lexer) {
+        return new CommonTokenStream(lexer) {
             // This is a hack to make hidden tokens show up in the token stream
             @Override
             public List<Token> getHiddenTokensToRight(int tokenIndex, int channel) {
@@ -38,34 +83,20 @@ public class ProgramSyntaxHighlightingHelper {
                 }
             }
         };
-        List<MutableComponent> textComponents = new ArrayList<>();
-        MutableComponent lineComponent = Component.empty();
-        tokens.fill();
-        for (Token token : tokens.getTokens()) {
-            if (token.getType() == SFMLLexer.EOF) break;
-            // the token may contain newlines in it, so we need to split it up
-            String[] lines = token.getText().split("\n", -1);
-            for (int i = 0; i < lines.length; i++) {
-                if (i != 0) {
-                    textComponents.add(lineComponent);
-                    lineComponent = Component.empty();
-                }
-                String line = lines[i];
-                if (!line.isEmpty()) {
-                    var text = Component.literal(line).withStyle(getStyle(token, showContextActionHints));
-                    lineComponent = lineComponent.append(text);
-                }
-            }
-        }
-        textComponents.add(lineComponent);
-
-        return textComponents;
     }
 
     private static Style getStyle(Token token, boolean showContextActionHints) {
         Style style = Style.EMPTY;
         style = style.withColor(getColour(token));
         if (showContextActionHints && ProgramTokenContextActions.hasContextAction(token)) {
+            style = style.withUnderlined(true);
+        }
+        return style;
+    }
+
+    private static Style styleForSegment(StyledSegment segment) {
+        Style style = Style.EMPTY.withColor(segment.color());
+        if (segment.underlined()) {
             style = style.withUnderlined(true);
         }
         return style;

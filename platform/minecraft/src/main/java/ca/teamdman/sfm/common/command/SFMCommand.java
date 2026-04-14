@@ -3,9 +3,12 @@ package ca.teamdman.sfm.common.command;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.block_network.WaterNetworkManager;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.command.draw.CapturingDrawCommandSource;
 import ca.teamdman.sfm.common.command.draw.DrawCommandClientContext;
+import ca.teamdman.sfm.common.command.draw.DrawManagerProgramCard;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
+import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ClientboundShowChangelogPacket;
@@ -29,6 +32,7 @@ import net.minecraft.gametest.framework.GameTestRunner;
 import net.minecraft.gametest.framework.GameTestTicker;
 import net.minecraft.gametest.framework.TestFunction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -199,7 +203,9 @@ public class SFMCommand {
                 Commands.literal("hit")
                         .executes(ctx -> runDrawPlayerLookHit(ctx.getSource()))
                         .then(Commands.literal("block")
-                                      .executes(ctx -> runDrawPlayerLookHitBlock(ctx.getSource()))),
+                                      .executes(ctx -> runDrawPlayerLookHitBlock(ctx.getSource())))
+                        .then(Commands.literal("manager")
+                                      .executes(ctx -> runDrawPlayerLookHitManager(ctx.getSource()))),
                 DRAW_VEC3_SWIZZLES,
                 SFMCommand::runDrawPlayerLookHitSwizzle
         );
@@ -344,6 +350,7 @@ public class SFMCommand {
                                 "- /sfm draw player look angle",
                                 "- /sfm draw player look hit",
                                 "- /sfm draw player look hit block",
+                                "- /sfm draw player look hit manager",
                                 "- /sfm draw player inv [slot]",
                                 "- /sfm draw player armor [slot]",
                                 "- /sfm draw player hand [mainhand|offhand]",
@@ -478,6 +485,35 @@ public class SFMCommand {
                 List<String> lines = new ArrayList<>();
                 appendPlayerLookHitBlock(lines, player);
                 return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawPlayerLookHitManager(CommandSourceStack source) {
+                ServerPlayer player = requireDrawPlayer(source);
+                if (player == null) {
+                        return 0;
+                }
+
+                HitResult hitResult = resolvePlayerLookHit(player);
+                if (!(hitResult instanceof BlockHitResult blockHitResult) || hitResult.getType() != HitResult.Type.BLOCK) {
+                        return sendDrawLines(source, List.of("player.look.hit.manager: (miss)"));
+                }
+
+                if (!(player.level.getBlockEntity(blockHitResult.getBlockPos()) instanceof ManagerBlockEntity manager)) {
+                        return sendDrawLines(source, List.of("player.look.hit.manager: (not a manager)"));
+                }
+
+                ItemStack disk = manager.getDisk();
+                if (disk == null || DiskItem.getProgramString(disk).isBlank()) {
+                        return sendDrawLines(source, List.of("player.look.hit.manager: (manager has no program disk)"));
+                }
+
+                DrawManagerProgramCard card = buildDrawManagerProgramCard(manager, disk);
+                if (source.source instanceof CapturingDrawCommandSource capture) {
+                        capture.captureManagerProgramCard(card);
+                        return SINGLE_SUCCESS;
+                }
+
+                return sendDrawLines(source, summarizeDrawManagerProgramCard(card));
         }
 
         private static int runDrawPlayerInventory(
@@ -765,6 +801,139 @@ public class SFMCommand {
                         }
                 }
                 lines.add("player.look.hit.block: " + value);
+        }
+
+        private static DrawManagerProgramCard buildDrawManagerProgramCard(
+                        ManagerBlockEntity manager,
+                        ItemStack disk
+        ) {
+                String programString = DiskItem.getProgramString(disk).replace("\r", "");
+                List<String> warningLines = DiskItem.getWarnings(disk)
+                        .stream()
+                        .map(MutableComponent::create)
+                        .map(Component::getString)
+                        .toList();
+                List<String> errorLines = DiskItem.getErrors(disk)
+                        .stream()
+                        .map(MutableComponent::create)
+                        .map(Component::getString)
+                        .toList();
+
+                List<String> detailLines = new ArrayList<>();
+                int programLineCount = programString.split("\\R", -1).length;
+                detailLines.add("program.lines: " + programLineCount);
+                detailLines.add("program.chars: " + programString.length());
+
+                List<String> astLines = List.of();
+                var program = manager.getProgram();
+                if (program != null) {
+                        if (!program.name().isBlank()) {
+                                detailLines.add("program.name: " + program.name());
+                        }
+                        detailLines.add("program.triggers: " + program.triggers().size());
+                        detailLines.add("program.statements: " + program.getDescendantStatements().count());
+                        detailLines.add("labels: " + summarizeValues(program.referencedLabels(), 6));
+                        detailLines.add("resources: " + summarizeValues(
+                                program.referencedResources().stream().map(Object::toString).toList(),
+                                4
+                        ));
+                        astLines = buildAstSummaryLines(program);
+                } else {
+                        detailLines.add("program.build: failed");
+                }
+                detailLines.add("warnings: " + warningLines.size());
+                detailLines.add("errors: " + errorLines.size());
+
+                String diskName = DiskItem.getProgramName(disk);
+                if (diskName.isBlank() && program != null && !program.name().isBlank()) {
+                        diskName = program.name();
+                }
+                if (diskName.isBlank()) {
+                        diskName = "Disk";
+                }
+
+                return new DrawManagerProgramCard(
+                        manager.getBlockPos(),
+                        manager.getState(),
+                        diskName,
+                        programString,
+                        detailLines,
+                        warningLines,
+                        errorLines,
+                        astLines
+                );
+        }
+
+        private static List<String> summarizeDrawManagerProgramCard(DrawManagerProgramCard card) {
+                List<String> lines = new ArrayList<>();
+                lines.add("manager.pos: " + card.managerPos().toShortString());
+                lines.add("manager.state: " + card.state().name());
+                if (!card.diskName().isBlank()) {
+                        lines.add("disk.name: " + card.diskName());
+                }
+                lines.addAll(card.detailLines());
+                lines.add("Run this command in the draw screen to render a grouped program card.");
+                return lines;
+        }
+
+        private static List<String> buildAstSummaryLines(ca.teamdman.sfml.ast.Program program) {
+                List<String> lines = new ArrayList<>();
+                boolean truncated = appendAstSummary(lines, program, 0, program.astBuilder(), 64);
+                if (truncated) {
+                        lines.add("...");
+                }
+                return lines;
+        }
+
+        private static boolean appendAstSummary(
+                        List<String> lines,
+                        ca.teamdman.sfml.ast.ASTNode node,
+                        int depth,
+                        ca.teamdman.sfml.ast.ASTBuilder astBuilder,
+                        int maxLines
+        ) {
+                if (lines.size() >= maxLines) {
+                        return true;
+                }
+
+                String label = node.getClass().getSimpleName();
+                if (node instanceof ca.teamdman.sfml.ast.Program program && !program.name().isBlank()) {
+                        label += " \"" + program.name() + "\"";
+                }
+                String location = astBuilder.getContextForNode(node)
+                        .map(ctx -> "@" + ctx.start.getLine() + ":" + ctx.start.getCharPositionInLine())
+                        .orElse("@");
+                lines.add("  ".repeat(Math.max(0, depth)) + label + " " + location);
+                if (lines.size() >= maxLines) {
+                        return true;
+                }
+
+                for (ca.teamdman.sfml.ast.Statement statement : node.getStatements()) {
+                        if (appendAstSummary(lines, statement, depth + 1, astBuilder, maxLines)) {
+                                return true;
+                        }
+                }
+                return false;
+        }
+
+        private static String summarizeValues(
+                        Collection<?> values,
+                        int maxItems
+        ) {
+                List<String> displayValues = values.stream()
+                        .map(String::valueOf)
+                        .sorted()
+                        .toList();
+                if (displayValues.isEmpty()) {
+                        return "(none)";
+                }
+                if (displayValues.size() <= maxItems) {
+                        return String.join(", ", displayValues);
+                }
+                return String.join(", ", displayValues.subList(0, maxItems))
+                       + " +"
+                       + (displayValues.size() - maxItems)
+                       + " more";
         }
 
         private static void appendPlayerInventory(

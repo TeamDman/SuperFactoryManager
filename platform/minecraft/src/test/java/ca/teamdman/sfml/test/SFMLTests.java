@@ -504,6 +504,27 @@ public class SFMLTests {
         }
     }
 
+    @Test
+    public void syntaxHighlightingSegmentsPreserveInput() {
+        var rawInput = """
+                EVERY 20 TICKS DO
+                    INPUT FROM a
+                    OUTPUT stone TO b
+                END
+                """.stripIndent();
+        var lines = rawInput.split("\n", -1);
+
+        var colouredLines = ProgramSyntaxHighlightingHelper.withSyntaxHighlightingSegments(rawInput, false);
+        String colouredInput = colouredLines.stream()
+                .map(line -> line.stream()
+                        .map(ProgramSyntaxHighlightingHelper.StyledSegment::text)
+                        .collect(Collectors.joining()))
+                .collect(Collectors.joining("\n"));
+
+        assertEquals(rawInput, colouredInput);
+        assertEquals(lines.length, colouredLines.size());
+    }
+
 
     @Test
     public void syntaxHighlighting2() {

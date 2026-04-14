@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.command.draw.DrawCommandClientContext;
+import ca.teamdman.sfm.common.command.draw.DrawManagerProgramCard;
 import ca.teamdman.sfm.common.localization.SFMDrawLocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundSfmDrawCommandPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
@@ -14,6 +16,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Matrix4f;
+import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
@@ -73,6 +76,14 @@ public class SfmDrawScreen extends Screen {
     private static final int DEFAULT_MOVE_SNAP = 8;
     private static final int LARGE_MOVE_SNAP = 32;
     private static final int SMALL_MOVE_SNAP = 1;
+    private static final int PROGRAM_CARD_FILL_COLOR = 0xD9131B24;
+    private static final int PROGRAM_CARD_STROKE_COLOR = 0xFF5C7488;
+    private static final int PROGRAM_CARD_TITLE_COLOR = 0xFFF6E27F;
+    private static final int PROGRAM_CARD_SECTION_COLOR = 0xFF7FD7FF;
+    private static final int PROGRAM_CARD_DETAIL_COLOR = 0xFFB8C6D8;
+    private static final int PROGRAM_CARD_WARNING_COLOR = 0xFFFFD36B;
+    private static final int PROGRAM_CARD_ERROR_COLOR = 0xFFFF8C8C;
+    private static final int PROGRAM_CARD_AST_COLOR = 0xFFA8C7FF;
 
         private final List<DrawElement> elements = new ArrayList<>();
         private final Set<Integer> selectedElementIds = new LinkedHashSet<>();
@@ -2175,7 +2186,7 @@ public class SfmDrawScreen extends Screen {
 
     // r[impl draw.tool.text.create]
     private TextElement createTextElement(CanvasPoint point) {
-        TextElement element = new TextElement(nextElementId++, activeCanvasLayer(), point.x(), point.y(), "", 0xFFF1F5FB, 1.0D, -1);
+        TextElement element = new TextElement(nextElementId++, activeCanvasLayer(), point.x(), point.y(), "", 0xFFF1F5FB, 1.0D);
         elements.add(element);
         selectOnly(element.id());
         return element;
@@ -3619,19 +3630,144 @@ public class SfmDrawScreen extends Screen {
         }
         double currentY = commandOutputInsertionY(commandElementId, commandElement);
         for (String line : lines) {
-            TextElement output = new TextElement(
-                    nextElementId++,
+            TextElement output = createOutputTextElement(
                     commandElement.layer(),
                     commandElement.x,
                     currentY,
                     line,
                     0xFFE5EBF2,
                     commandElement.textScale,
-                    commandElementId
+                    commandElementId,
+                    null
             );
             elements.add(output);
             currentY = output.bounds(this).maxY() + 4.0D;
         }
+    }
+
+    public void appendManagerProgramCard(
+            int commandElementId,
+            DrawManagerProgramCard card
+    ) {
+        DrawElement sourceElement = findElementById(commandElementId);
+        if (!(sourceElement instanceof TextElement commandElement) || !isCommandTextElement(commandElement)) {
+            return;
+        }
+
+        int groupId = nextGroupId++;
+        DrawLayer layer = commandElement.layer();
+        double currentY = commandOutputInsertionY(commandElementId, commandElement);
+        double textScale = Math.max(0.9D, commandElement.textScale);
+        List<DrawElement> cardElements = new ArrayList<>();
+
+        TextElement title = createOutputTextElement(
+                layer,
+                commandElement.x,
+                currentY,
+                "Manager @ " + card.managerPos().toShortString(),
+                PROGRAM_CARD_TITLE_COLOR,
+                Math.max(1.0D, commandElement.textScale),
+                commandElementId,
+                groupId
+        );
+        cardElements.add(title);
+        currentY = title.bounds(this).maxY() + 2.0D;
+
+        String subtitleText = card.state().LOC.getComponent().getString();
+        if (!card.diskName().isBlank()) {
+            subtitleText += " | " + card.diskName();
+        }
+        TextElement subtitle = createOutputTextElement(
+                layer,
+                commandElement.x,
+                currentY,
+                subtitleText,
+                chatFormattingColor(card.state().COLOR, PROGRAM_CARD_DETAIL_COLOR),
+                textScale,
+                commandElementId,
+                groupId
+        );
+        cardElements.add(subtitle);
+        currentY = subtitle.bounds(this).maxY() + 6.0D;
+
+        currentY = appendProgramCardSection(
+                cardElements,
+                layer,
+                commandElement.x,
+                currentY,
+                commandElementId,
+                groupId,
+                "Details",
+                PROGRAM_CARD_SECTION_COLOR,
+                card.detailLines(),
+                PROGRAM_CARD_DETAIL_COLOR,
+                textScale
+        );
+        currentY = appendProgramCardSection(
+                cardElements,
+                layer,
+                commandElement.x,
+                currentY,
+                commandElementId,
+                groupId,
+                "Warnings",
+                PROGRAM_CARD_WARNING_COLOR,
+                card.warningLines(),
+                PROGRAM_CARD_WARNING_COLOR,
+                textScale
+        );
+        currentY = appendProgramCardSection(
+                cardElements,
+                layer,
+                commandElement.x,
+                currentY,
+                commandElementId,
+                groupId,
+                "Errors",
+                PROGRAM_CARD_ERROR_COLOR,
+                card.errorLines(),
+                PROGRAM_CARD_ERROR_COLOR,
+                textScale
+        );
+        currentY = appendProgramCardSection(
+                cardElements,
+                layer,
+                commandElement.x,
+                currentY,
+                commandElementId,
+                groupId,
+                "AST",
+                PROGRAM_CARD_SECTION_COLOR,
+                card.astLines(),
+                PROGRAM_CARD_AST_COLOR,
+                Math.max(0.85D, textScale)
+        );
+        currentY = appendProgramCardProgramSection(
+                cardElements,
+                layer,
+                commandElement.x,
+                currentY,
+                commandElementId,
+                groupId,
+                card.programString(),
+                textScale
+        );
+
+        CanvasBounds contentBounds = boundsOf(cardElements);
+        RectangleElement background = new RectangleElement(
+                nextElementId++,
+                layer,
+                contentBounds.minX() - 8.0D,
+                contentBounds.minY() - 6.0D,
+                contentBounds.maxX() + 8.0D,
+                contentBounds.maxY() + 8.0D,
+                PROGRAM_CARD_FILL_COLOR,
+                PROGRAM_CARD_STROKE_COLOR
+        );
+        background.groupIds().add(groupId);
+        background.setCommandSourceElementId(commandElementId);
+        elements.add(background);
+        elements.addAll(cardElements);
     }
 
     private double commandOutputInsertionY(
@@ -3640,11 +3776,171 @@ public class SfmDrawScreen extends Screen {
     ) {
         double insertionY = commandElement.bounds(this).maxY() + 4.0D;
         for (DrawElement element : elements) {
-            if (element instanceof TextElement textElement && textElement.commandSourceElementId() == commandElementId && !textElement.hidden()) {
-                insertionY = Math.max(insertionY, textElement.bounds(this).maxY() + 4.0D);
+            if (element.commandSourceElementId() == commandElementId && !element.hidden()) {
+                insertionY = Math.max(insertionY, element.bounds(this).maxY() + 4.0D);
             }
         }
         return insertionY;
+    }
+
+    private double appendProgramCardSection(
+            List<DrawElement> cardElements,
+            DrawLayer layer,
+            double x,
+            double currentY,
+            int commandSourceElementId,
+            int groupId,
+            String title,
+            int titleColor,
+            List<String> lines,
+            int lineColor,
+            double textScale
+    ) {
+        if (lines.isEmpty()) {
+            return currentY;
+        }
+
+        TextElement sectionTitle = createOutputTextElement(
+                layer,
+                x,
+                currentY,
+                title,
+                titleColor,
+                textScale,
+                commandSourceElementId,
+                groupId
+        );
+        cardElements.add(sectionTitle);
+        currentY = sectionTitle.bounds(this).maxY() + 4.0D;
+
+        for (String line : lines) {
+            TextElement lineElement = createOutputTextElement(
+                    layer,
+                    x,
+                    currentY,
+                    line,
+                    lineColor,
+                    textScale,
+                    commandSourceElementId,
+                    groupId
+            );
+            cardElements.add(lineElement);
+            currentY = lineElement.bounds(this).maxY() + 2.0D;
+        }
+
+        return currentY + 2.0D;
+    }
+
+    private double appendProgramCardProgramSection(
+            List<DrawElement> cardElements,
+            DrawLayer layer,
+            double x,
+            double currentY,
+            int commandSourceElementId,
+            int groupId,
+            String programString,
+            double textScale
+    ) {
+        if (programString.isBlank()) {
+            return currentY;
+        }
+
+        TextElement sectionTitle = createOutputTextElement(
+                layer,
+                x,
+                currentY,
+                "Program",
+                PROGRAM_CARD_SECTION_COLOR,
+                textScale,
+                commandSourceElementId,
+                groupId
+        );
+        cardElements.add(sectionTitle);
+        currentY = sectionTitle.bounds(this).maxY() + 4.0D;
+
+        List<List<ProgramSyntaxHighlightingHelper.StyledSegment>> highlightedLines = ProgramSyntaxHighlightingHelper.withSyntaxHighlightingSegments(
+                programString,
+                false
+        );
+        for (List<ProgramSyntaxHighlightingHelper.StyledSegment> highlightedLine : highlightedLines) {
+            double lineX = x;
+            double lineBottom = currentY;
+            boolean addedSegment = false;
+            for (ProgramSyntaxHighlightingHelper.StyledSegment segment : highlightedLine) {
+                if (segment.text().isEmpty()) {
+                    continue;
+                }
+                TextElement segmentElement = createOutputTextElement(
+                        layer,
+                        lineX,
+                        currentY,
+                        segment.text(),
+                        chatFormattingColor(segment.color(), 0xFFF1F5FB),
+                        textScale,
+                        commandSourceElementId,
+                        groupId
+                );
+                cardElements.add(segmentElement);
+                CanvasBounds segmentBounds = segmentElement.bounds(this);
+                lineX = segmentBounds.maxX();
+                lineBottom = Math.max(lineBottom, segmentBounds.maxY());
+                addedSegment = true;
+            }
+            if (!addedSegment) {
+                TextElement blankLine = createOutputTextElement(
+                        layer,
+                        x,
+                        currentY,
+                        "",
+                        0xFFF1F5FB,
+                        textScale,
+                        commandSourceElementId,
+                        groupId
+                );
+                cardElements.add(blankLine);
+                lineBottom = blankLine.bounds(this).maxY();
+            }
+            currentY = lineBottom + 2.0D;
+        }
+
+        return currentY + 2.0D;
+    }
+
+    private TextElement createOutputTextElement(
+            DrawLayer layer,
+            double x,
+            double y,
+            String text,
+            int color,
+            double textScale,
+            int commandSourceElementId,
+            @Nullable Integer groupId
+    ) {
+        TextElement output = new TextElement(nextElementId++, layer, x, y, text, color, textScale);
+        output.setCommandSourceElementId(commandSourceElementId);
+        if (groupId != null) {
+            output.groupIds().add(groupId);
+        }
+        return output;
+    }
+
+    private CanvasBounds boundsOf(List<DrawElement> cardElements) {
+        CanvasBounds bounds = null;
+        for (DrawElement cardElement : cardElements) {
+            bounds = bounds == null ? cardElement.bounds(this) : bounds.expandToInclude(cardElement.bounds(this));
+        }
+        return bounds == null ? CanvasBounds.of(0.0D, 0.0D, 16.0D, 16.0D) : bounds;
+    }
+
+    private int chatFormattingColor(
+            ChatFormatting formatting,
+            int fallbackColor
+    ) {
+        Integer color = formatting.getColor();
+        if (color == null) {
+            return fallbackColor;
+        }
+        return 0xFF000000 | color;
     }
 
         private void placeTextCaretFromScreen(
@@ -5485,6 +5781,7 @@ public class SfmDrawScreen extends Screen {
         private DrawLayer layer;
         private boolean hidden = false;
         private boolean locked = false;
+        private int commandSourceElementId = -1;
         private Set<Integer> groupIds = new LinkedHashSet<>();
 
         protected DrawElement(
@@ -5515,6 +5812,10 @@ public class SfmDrawScreen extends Screen {
             return groupIds;
         }
 
+        public int commandSourceElementId() {
+            return commandSourceElementId;
+        }
+
         public void setHidden(boolean hidden) {
             this.hidden = hidden;
         }
@@ -5523,10 +5824,19 @@ public class SfmDrawScreen extends Screen {
             this.locked = locked;
         }
 
+        public void setCommandSourceElementId(int commandSourceElementId) {
+            this.commandSourceElementId = commandSourceElementId;
+        }
+
+        public void detachCommandSource() {
+            commandSourceElementId = -1;
+        }
+
         protected void copyMetadataTo(DrawElement copy) {
             copy.hidden = hidden;
             copy.locked = locked;
             copy.layer = layer;
+            copy.commandSourceElementId = commandSourceElementId;
             copy.groupIds = new LinkedHashSet<>(groupIds);
         }
 
@@ -5534,6 +5844,7 @@ public class SfmDrawScreen extends Screen {
             hidden = other.hidden;
             locked = other.locked;
             layer = other.layer;
+            commandSourceElementId = other.commandSourceElementId;
             groupIds = new LinkedHashSet<>(other.groupIds);
         }
 
@@ -5740,7 +6051,6 @@ public class SfmDrawScreen extends Screen {
         private String text;
         private final int color;
         private double textScale;
-        private int commandSourceElementId;
 
         private TextElement(
                 int id,
@@ -5749,8 +6059,7 @@ public class SfmDrawScreen extends Screen {
                 double y,
                 String text,
                 int color,
-                double textScale,
-                int commandSourceElementId
+                double textScale
         ) {
             super(id, layer);
             this.x = x;
@@ -5758,15 +6067,6 @@ public class SfmDrawScreen extends Screen {
             this.text = text;
             this.color = color;
             this.textScale = textScale;
-            this.commandSourceElementId = commandSourceElementId;
-        }
-
-        public int commandSourceElementId() {
-            return commandSourceElementId;
-        }
-
-        public void detachCommandSource() {
-            commandSourceElementId = -1;
         }
 
         @Override
@@ -5783,14 +6083,14 @@ public class SfmDrawScreen extends Screen {
 
         @Override
         public DrawElement copy() {
-            TextElement copy = new TextElement(id(), layer(), x, y, text, color, textScale, commandSourceElementId);
+            TextElement copy = new TextElement(id(), layer(), x, y, text, color, textScale);
             copyMetadataTo(copy);
             return copy;
         }
 
         @Override
         public DrawElement copyWithId(int id) {
-            TextElement copy = new TextElement(id, layer(), x, y, text, color, textScale, commandSourceElementId);
+            TextElement copy = new TextElement(id, layer(), x, y, text, color, textScale);
             copyMetadataTo(copy);
             return copy;
         }

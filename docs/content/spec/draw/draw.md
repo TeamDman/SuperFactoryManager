@@ -302,6 +302,14 @@
 >
 > `/sfm draw player` MUST support optional filter subcommands for `pos`, `angle`, `dimension`, `look`, `inv`, `armor`, and `hand`, including deeper filters for `look angle`, `look hit`, `look hit block`, inventory slots, armor slots, and main-hand versus off-hand item ids.
 
+> r[draw.command.player.look.hit.manager.exists]
+>
+> An `/sfm draw player look hit manager` command MUST exist to inspect the looked-at manager block entity when it contains disk-backed program data.
+
+> r[draw.command.player.look.hit.manager.program-card]
+>
+> When `/sfm draw player look hit manager` is executed from a slash-prefixed draw text element, the draw screen MUST append a grouped inspection card containing manager metadata, warnings/errors, an AST summary, and syntax-highlighted program text.
+
 > r[draw.tool.freehand.create]
 >
 > A freehand tool MUST create polyline-style strokes by sampling dragged cursor positions.
