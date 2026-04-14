@@ -46,6 +46,7 @@ public class SFMPackets {
         registerPacket(new ClientboundManagerLogLevelUpdatedPacket.Daddy());
         registerPacket(new ClientboundManagerLogsPacket.Daddy());
         registerPacket(new ClientboundSfmDrawManagerProgramCardPacket.Daddy());
+        registerPacket(new ClientboundSfmDrawTemplateProgramCardPacket.Daddy());
         registerPacket(new ClientboundSfmDrawCommandOutputPacket.Daddy());
         registerPacket(new ClientboundOutputInspectionResultsPacket.Daddy());
         registerPacket(new ClientboundServerConfigCommandPacket.Daddy());

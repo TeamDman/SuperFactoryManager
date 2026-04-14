@@ -108,6 +108,14 @@ public record ServerboundSfmDrawCommandPacket(
                 return;
             }
 
+            if (capture.getTemplateProgramCard() != null) {
+                SFMPackets.sendToPlayer(
+                        sender,
+                        new ClientboundSfmDrawTemplateProgramCardPacket(msg.commandElementId(), capture.getTemplateProgramCard())
+                );
+                return;
+            }
+
             for (String capturedLine : capture.getCapturedLines()) {
                 String[] splitLines = capturedLine.split("\\R", -1);
                 for (String splitLine : splitLines) {

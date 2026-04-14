@@ -6,7 +6,9 @@ import ca.teamdman.sfm.common.block_network.WaterNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.command.draw.CapturingDrawCommandSource;
 import ca.teamdman.sfm.common.command.draw.DrawCommandClientContext;
+import ca.teamdman.sfm.common.command.draw.SFMDrawCommandCompletionCatalog;
 import ca.teamdman.sfm.common.command.draw.DrawManagerProgramCard;
+import ca.teamdman.sfm.common.command.draw.DrawTemplateProgramCard;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
@@ -16,13 +18,18 @@ import ca.teamdman.sfm.common.program.RegexCache;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
+import ca.teamdman.sfm.common.template.SFMDrawTemplate;
+import ca.teamdman.sfm.common.template.SFMDrawTemplateRegistry;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
+import ca.teamdman.sfml.program_builder.ProgramBuilder;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.blocks.BlockInput;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
@@ -263,6 +270,127 @@ public class SFMCommand {
                         DRAW_VEC2_SWIZZLES,
                         SFMCommand::runDrawMouseScreenPosSwizzle
                 ));
+        var drawTemplateCommand = Commands.literal("template")
+                .then(Commands.literal("list")
+                              .executes(ctx -> runDrawTemplateList(ctx.getSource())))
+                .then(Commands.literal("open")
+                              .then(Commands.argument("template", StringArgumentType.greedyString())
+                                            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                    SFMDrawTemplateRegistry.templateKeys(),
+                                                    builder
+                                            ))
+                                            .executes(ctx -> runDrawTemplateOpen(
+                                                    ctx.getSource(),
+                                                    StringArgumentType.getString(ctx, "template")
+                                            ))));
+        var drawOpenCommand = Commands.literal("open")
+                .executes(ctx -> runDrawLocalOnlyCommand(
+                        ctx.getSource(),
+                        List.of("/sfm draw open [path]")
+                ))
+                .then(Commands.argument("path", StringArgumentType.greedyString())
+                              .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                      SFMDrawCommandCompletionCatalog.canvasPathSuggestions(),
+                                      builder
+                              ))
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw open [path]")
+                              )));
+        var drawMoveCommand = Commands.literal("move")
+                .then(Commands.argument("from", StringArgumentType.string())
+                              .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                      SFMDrawCommandCompletionCatalog.canvasPathSuggestions(),
+                                      builder
+                              ))
+                              .then(Commands.argument("to", StringArgumentType.greedyString())
+                                            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                    SFMDrawCommandCompletionCatalog.canvasPathSuggestions(),
+                                                    builder
+                                            ))
+                                            .executes(ctx -> runDrawLocalOnlyCommand(
+                                                    ctx.getSource(),
+                                                    List.of("/sfm draw move <from> <to>")
+                                            ))));
+        var drawLsCommand = Commands.literal("ls")
+                .executes(ctx -> runDrawLocalOnlyCommand(
+                        ctx.getSource(),
+                        List.of("/sfm draw ls [path]")
+                ))
+                .then(Commands.argument("path", StringArgumentType.greedyString())
+                              .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                      SFMDrawCommandCompletionCatalog.browsePathSuggestions(),
+                                      builder
+                              ))
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw ls [path]")
+                              )));
+        var drawBoxCommand = Commands.literal("box")
+                .then(Commands.literal("list")
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw box list")
+                              )))
+                .then(
+                        Commands.argument("x1", DoubleArgumentType.doubleArg())
+                                .then(
+                                        Commands.argument("y1", DoubleArgumentType.doubleArg())
+                                                .then(
+                                                        Commands.argument("x2", DoubleArgumentType.doubleArg())
+                                                                .then(
+                                                                        Commands.argument("y2", DoubleArgumentType.doubleArg())
+                                                                                .executes(ctx -> runDrawLocalOnlyCommand(
+                                                                                        ctx.getSource(),
+                                                                                        List.of("/sfm draw box <x1> <y1> <x2> <y2>")
+                                                                                ))
+                                                                )
+                                                )
+                                )
+                );
+        var drawConcatenateCommand = Commands.literal("concatenate")
+                .executes(ctx -> runDrawLocalOnlyCommand(
+                        ctx.getSource(),
+                        List.of("/sfm draw concatenate @rect[x,y]", "/sfm draw concatenate @rel[dx,dy]")
+                ))
+                .then(Commands.argument("selector", StringArgumentType.greedyString())
+                              .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                      List.of("@rect[0,4]", "@rel[0,-10]"),
+                                      builder
+                              ))
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw concatenate @rect[x,y]", "/sfm draw concatenate @rel[dx,dy]")
+                              )));
+        var drawOllamaCommand = Commands.literal("ollama")
+                .executes(ctx -> runDrawLocalOnlyCommand(
+                        ctx.getSource(),
+                        List.of(
+                                "/sfm draw ollama models",
+                                "/sfm draw ollama run <model> <prompt>"
+                        )
+                ))
+                .then(Commands.literal("models")
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw ollama models")
+                              )))
+                .then(Commands.literal("list")
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw ollama models")
+                              )))
+                .then(Commands.literal("run")
+                              .then(Commands.argument("model", StringArgumentType.string())
+                                            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                    SFMDrawCommandCompletionCatalog.ollamaModelFallbacks(),
+                                                    builder
+                                            ))
+                                            .then(Commands.argument("prompt", StringArgumentType.greedyString())
+                                                          .executes(ctx -> runDrawLocalOnlyCommand(
+                                                                  ctx.getSource(),
+                                                                  List.of("/sfm draw ollama run <model> <prompt>")
+                                                          )))));
         command.then(
                 Commands.literal("draw")
                         .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
@@ -275,9 +403,16 @@ public class SFMCommand {
                                                             ctx.getSource(),
                                                             StringArgumentType.getString(ctx, "message")
                                                     ))))
+                        .then(drawOpenCommand)
+                        .then(drawMoveCommand)
+                        .then(drawLsCommand)
+                        .then(drawBoxCommand)
+                        .then(drawConcatenateCommand)
+                        .then(drawOllamaCommand)
                         .then(drawPlayerCommand)
                         .then(drawCameraCommand)
                         .then(drawMouseCommand)
+                        .then(drawTemplateCommand)
         );
         command.then(Commands.literal("kit")
                              .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
@@ -343,6 +478,14 @@ public class SFMCommand {
                                 "SFM draw commands:",
                                 "- /sfm draw help",
                                 "- /sfm draw echo <message>",
+                                "- /sfm draw open [path] (local draw screen only)",
+                                "- /sfm draw move <from> <to> (local draw screen only)",
+                                "- /sfm draw ls [path] (local draw screen only)",
+                                "- /sfm draw box list (local draw screen only)",
+                                "- /sfm draw box <x1> <y1> <x2> <y2> (local draw screen only)",
+                                "- /sfm draw concatenate @rect[x,y] | @rel[dx,dy] (local draw screen only)",
+                                "- /sfm draw ollama models (local draw screen only)",
+                                "- /sfm draw ollama run <model> <prompt> (local draw screen only)",
                                 "- /sfm draw player",
                                 "- /sfm draw player pos",
                                 "- /sfm draw player angle",
@@ -357,9 +500,59 @@ public class SFMCommand {
                                 "- /sfm draw camera pos",
                                 "- /sfm draw camera zoom",
                                 "- /sfm draw mouse pos",
-                                "- /sfm draw mouse screen_pos"
+                                "- /sfm draw mouse screen_pos",
+                                "- /sfm draw template list",
+                                "- /sfm draw template open <template>"
                 );
                 return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawLocalOnlyCommand(
+                        CommandSourceStack source,
+                        List<String> usages
+        ) {
+                List<String> lines = new ArrayList<>();
+                lines.add("draw.local: this command is client-local and is intended for slash text elements inside the SFM draw screen.");
+                lines.add("draw.local: it is registered here so chat completion and draw intellisense can discover it.");
+                for (String usage : usages) {
+                        lines.add("usage: " + usage);
+                }
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawTemplateList(CommandSourceStack source) {
+                List<SFMDrawTemplate> templates = SFMDrawTemplateRegistry.gatherAll();
+                List<String> lines = new ArrayList<>();
+                lines.add("Draw templates:");
+                if (templates.isEmpty()) {
+                        lines.add("(none found)");
+                        return sendDrawLines(source, lines);
+                }
+
+                for (SFMDrawTemplate template : templates) {
+                        lines.add("- " + template.key() + " | " + template.displayName());
+                }
+                return sendDrawLines(source, lines);
+        }
+
+        private static int runDrawTemplateOpen(
+                        CommandSourceStack source,
+                        String templateName
+        ) {
+                SFMDrawTemplate template = SFMDrawTemplateRegistry.findByName(templateName);
+                if (template == null) {
+                        return sendDrawLines(source, List.of(
+                                "template.open: not found: " + templateName,
+                                "Use /sfm draw template list to inspect available template keys."
+                        ));
+                }
+
+                DrawTemplateProgramCard card = buildDrawTemplateProgramCard(template);
+                if (source.source instanceof CapturingDrawCommandSource capture) {
+                        capture.captureTemplateProgramCard(card);
+                        return SINGLE_SUCCESS;
+                }
+                return sendDrawLines(source, summarizeDrawTemplateProgramCard(card));
         }
 
         private static int runDrawPlayer(CommandSourceStack source) {
@@ -873,6 +1066,64 @@ public class SFMCommand {
                 }
                 lines.addAll(card.detailLines());
                 lines.add("Run this command in the draw screen to render a grouped program card.");
+                return lines;
+        }
+
+        private static DrawTemplateProgramCard buildDrawTemplateProgramCard(SFMDrawTemplate template) {
+                String programString = template.programString().replace("\r", "");
+                var programBuildResult = new ProgramBuilder(programString).build();
+                List<String> warningLines = List.of();
+                List<String> errorLines = programBuildResult.metadata().errors()
+                        .stream()
+                        .map(MutableComponent::create)
+                        .map(Component::getString)
+                        .toList();
+
+                List<String> detailLines = new ArrayList<>();
+                detailLines.add("template.key: " + template.key());
+                detailLines.add("template.resource: " + template.resourcePath());
+                detailLines.add("program.lines: " + programString.split("\\R", -1).length);
+                detailLines.add("program.chars: " + programString.length());
+
+                List<String> astLines = List.of();
+                var program = programBuildResult.program();
+                if (program != null) {
+                        if (!program.name().isBlank()) {
+                                detailLines.add("program.name: " + program.name());
+                        }
+                        detailLines.add("program.triggers: " + program.triggers().size());
+                        detailLines.add("program.statements: " + program.getDescendantStatements().count());
+                        detailLines.add("labels: " + summarizeValues(program.referencedLabels(), 6));
+                        detailLines.add("resources: " + summarizeValues(
+                                program.referencedResources().stream().map(Object::toString).toList(),
+                                4
+                        ));
+                        astLines = buildAstSummaryLines(program);
+                } else {
+                        detailLines.add("program.build: failed");
+                }
+                detailLines.add("warnings: " + warningLines.size());
+                detailLines.add("errors: " + errorLines.size());
+
+                return new DrawTemplateProgramCard(
+                        template.key(),
+                        template.displayName(),
+                        programString,
+                        detailLines,
+                        warningLines,
+                        errorLines,
+                        astLines
+                );
+        }
+
+        private static List<String> summarizeDrawTemplateProgramCard(DrawTemplateProgramCard card) {
+                List<String> lines = new ArrayList<>();
+                lines.add("template.key: " + card.templateKey());
+                if (!card.displayName().isBlank()) {
+                        lines.add("template.name: " + card.displayName());
+                }
+                lines.addAll(card.detailLines());
+                lines.add("Run this command in the draw screen to render a grouped template card.");
                 return lines;
         }
 

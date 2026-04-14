@@ -122,6 +122,10 @@ public final class SFMDrawLocalizationKeys {
             "gui.sfm.ide.draw.tool.lock",
             "Lock"
     );
+    public static final LocalizationEntry IDE_DRAW_PENDING_LLM_RESPONSE = new LocalizationEntry(
+            "gui.sfm.ide.draw.pending_llm_response",
+            "Pending LLM response..."
+    );
 
     public static List<LocalizationEntry> getEntries() {
         var rtn = new ArrayList<LocalizationEntry>();

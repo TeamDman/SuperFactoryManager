@@ -1,0 +1,56 @@
+NAME "Draw: Ollama prompt concatenation"
+
+-- This template is a walkthrough for the draw screen.
+-- Open it in game with:
+-- /sfm draw template open draw_ollama_prompt_concatenation
+
+-- Goal:
+-- Build a slash command text element whose final text is:
+-- /sfm draw ollama run llama3.2 "Summarize the contents of lane A in one sentence."
+
+-- Minimal construction from an empty canvas:
+-- 1. Create a text element for the prefix:
+--    /sfm draw ollama run llama3.2 "Summarize 
+-- 2. Create a second text element immediately to the right for the parameter:
+--    the contents of lane A
+-- 3. Create a third text element immediately to the right for the suffix:
+--     in one sentence."
+-- 4. Draw one rectangle that covers all three text elements.
+--    Example:
+--    /box 32 32 620 52
+-- 5. Add a slash command text element anywhere:
+--    /concatenate @rect[40,40]
+-- 6. Running that command emits a new text element containing the full
+--    /sfm draw ollama run ... command.
+-- 7. Edit only the middle text element to change the parameter, then rerun
+--    /concatenate.
+
+-- Why this works:
+-- - concatenate captures glyphs whose bounds overlap the selected rectangle(s)
+-- - captured glyphs are ordered by Y first and X second
+-- - text on the same line becomes a single-line prompt
+-- - text on different lines produces newline-separated prompt text
+
+-- Shared-anchor variant:
+-- If you want true union-of-rectangles composition instead of one big box,
+-- make every participating box contain the same selector point.
+-- Example selector point: 8,8
+-- Then all participating boxes can be addressed with:
+-- /concatenate @rect[8,8]
+-- Keep unrelated text away from that shared anchor corridor, otherwise its
+-- glyphs can be captured too.
+
+-- Suggested shared-anchor boxes for prefix, parameter, and suffix on one line:
+-- /box 0 0 260 28
+-- /box 0 0 430 28
+-- /box 0 0 620 28
+
+-- Final step:
+-- Once the emitted text looks right, run the emitted
+-- /sfm draw ollama run ... slash command text element.
+
+EVERY 20 TICKS DO
+    -- placeholder body so the template card renders without parser errors
+    INPUT FROM a
+    OUTPUT TO b
+END

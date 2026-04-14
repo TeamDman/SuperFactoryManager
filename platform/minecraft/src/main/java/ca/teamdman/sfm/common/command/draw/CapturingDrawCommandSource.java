@@ -11,6 +11,7 @@ public class CapturingDrawCommandSource implements CommandSource {
     private final ArrayList<String> capturedLines = new ArrayList<>();
     private final DrawCommandClientContext clientContext;
     private @Nullable DrawManagerProgramCard managerProgramCard;
+    private @Nullable DrawTemplateProgramCard templateProgramCard;
 
     public CapturingDrawCommandSource() {
         this(null);
@@ -54,5 +55,13 @@ public class CapturingDrawCommandSource implements CommandSource {
 
     public @Nullable DrawManagerProgramCard getManagerProgramCard() {
         return managerProgramCard;
+    }
+
+    public void captureTemplateProgramCard(DrawTemplateProgramCard templateProgramCard) {
+        this.templateProgramCard = templateProgramCard;
+    }
+
+    public @Nullable DrawTemplateProgramCard getTemplateProgramCard() {
+        return templateProgramCard;
     }
 }

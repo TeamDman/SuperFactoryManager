@@ -1,9 +1,15 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.draw.SFMDrawCanvasDocument;
+import ca.teamdman.sfm.client.draw.SFMDrawCanvasStorage;
+import ca.teamdman.sfm.client.draw.SFMDrawLocalCommandExecutor;
+import ca.teamdman.sfm.client.draw.SFMDrawSpatialQueries;
+import ca.teamdman.sfm.client.draw.SFMDrawVirtualPath;
 import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.command.draw.DrawCommandClientContext;
 import ca.teamdman.sfm.common.command.draw.DrawManagerProgramCard;
+import ca.teamdman.sfm.common.command.draw.DrawTemplateProgramCard;
 import ca.teamdman.sfm.common.localization.SFMDrawLocalizationKeys;
 import ca.teamdman.sfm.common.net.ServerboundSfmDrawCommandPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
@@ -28,12 +34,18 @@ import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 // r[impl draw.screen.main]
 public class SfmDrawScreen extends Screen {
@@ -84,6 +96,9 @@ public class SfmDrawScreen extends Screen {
     private static final int PROGRAM_CARD_WARNING_COLOR = 0xFFFFD36B;
     private static final int PROGRAM_CARD_ERROR_COLOR = 0xFFFF8C8C;
     private static final int PROGRAM_CARD_AST_COLOR = 0xFFA8C7FF;
+    private static final int TEXT_EDGE_WHITESPACE_HIGHLIGHT_COLOR = 0x88FF5CA8;
+    private static final int RELATIVE_SELECTOR_ARROW_COLOR = 0xFF88D498;
+    private static final Pattern RELATIVE_SELECTOR_PATTERN = Pattern.compile("@rel\\[\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*,\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*\\]");
 
         private final List<DrawElement> elements = new ArrayList<>();
         private final Set<Integer> selectedElementIds = new LinkedHashSet<>();
@@ -95,6 +110,7 @@ public class SfmDrawScreen extends Screen {
         private boolean chromeLayerMuted = false;
         private int nextElementId = 1;
         private int nextGroupId = 1;
+        private @Nullable SFMDrawVirtualPath boundCanvas = null;
 
         private double cameraX = 0.0D;
         private double cameraY = 0.0D;
@@ -161,6 +177,7 @@ public class SfmDrawScreen extends Screen {
         private @Nullable DraftInteraction draftInteraction = null;
         private @Nullable MoveSelectionDrag moveSelectionDrag = null;
         private @Nullable ResizeSelectionDrag resizeSelectionDrag = null;
+        private @Nullable RelativeSelectorHeadDrag relativeSelectorHeadDrag = null;
         private @Nullable MarqueeSelectionDrag marqueeSelectionDrag = null;
         private @Nullable ChromeMarqueeSelectionDrag chromeMarqueeSelectionDrag = null;
         private @Nullable MoveChromeSelectionDrag moveChromeSelectionDrag = null;
@@ -181,7 +198,19 @@ public class SfmDrawScreen extends Screen {
         private double chromeMouseY = 0.0D;
 
         public SfmDrawScreen() {
+        this(null, null);
+        }
+
+        public SfmDrawScreen(
+            @Nullable SFMDrawVirtualPath boundCanvas,
+            @Nullable SFMDrawCanvasDocument document
+        ) {
         super(SFMDrawLocalizationKeys.IDE_DRAW_TITLE.getComponent());
+        if (boundCanvas != null && document != null) {
+            bindCanvas(boundCanvas, document);
+        } else {
+            this.boundCanvas = boundCanvas;
+        }
         }
 
     @Override
@@ -210,6 +239,11 @@ public class SfmDrawScreen extends Screen {
 
     @Override
     public void onClose() {
+        try {
+            saveBoundCanvas();
+        } catch (IOException exception) {
+            SFM.LOGGER.error("Failed to save draw canvas {}", boundCanvas == null ? "<transient>" : boundCanvas.virtualPath(), exception);
+        }
         releaseChromeCursors();
         super.onClose();
     }
@@ -335,11 +369,15 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
-        if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && Screen.isCopy(keyCode) && copySelectedTextElementsToClipboard()) {
+        if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && Screen.isCopy(keyCode) && copySelectedElementsToClipboard()) {
             return true;
         }
 
         if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && Screen.isCut(keyCode) && cutSelectedElementsToClipboard()) {
+            return true;
+        }
+
+        if (isCanvasLayerActive() && activeTool == DrawTool.CURSOR && Screen.isPaste(keyCode) && pasteSerializedElementsFromClipboard(minecraft != null ? minecraft.keyboardHandler.getClipboard() : "")) {
             return true;
         }
 
@@ -437,7 +475,7 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
-        @Nullable DrawTool shortcutTool = DrawTool.byKeyCode(keyCode);
+        @Nullable DrawTool shortcutTool = hasControlDown() ? null : DrawTool.byKeyCode(keyCode);
         if (shortcutTool != null) {
             rememberSuppressedShortcutCharacter(keyCode, scanCode);
             handleToolShortcut(shortcutTool);
@@ -574,6 +612,10 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        if (isTextEditing() && beginRelativeSelectorHeadDrag(canvasPoint)) {
+            return true;
+        }
+
         if (isTextEditing()) {
             TextElement editingTextElement = editingTextElement();
             if (editingTextElement == null) {
@@ -603,6 +645,9 @@ public class SfmDrawScreen extends Screen {
         }
 
         if (activeTool == DrawTool.CURSOR) {
+            if (beginRelativeSelectorHeadDrag(canvasPoint)) {
+                return true;
+            }
             boolean doubleClick = isCursorDoubleClick(mouseX, mouseY);
             if (doubleClick && handleCursorDoubleClick(canvasPoint)) {
                 return true;
@@ -685,6 +730,11 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        if (relativeSelectorHeadDrag != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            updateRelativeSelectorHeadDrag(screenToCanvas(mouseX, mouseY, null));
+            return true;
+        }
+
         // r[impl draw.tool.cursor.transform_selection]
         if (moveSelectionDrag != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             CanvasPoint canvasPoint = screenToCanvas(mouseX, mouseY, moveSelectionDrag.projection());
@@ -764,6 +814,11 @@ public class SfmDrawScreen extends Screen {
             return true;
         }
 
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && relativeSelectorHeadDrag != null) {
+            relativeSelectorHeadDrag = null;
+            return true;
+        }
+
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && moveChromeSelectionDrag != null) {
             moveChromeSelectionDrag = null;
             draggingChromeWidget = null;
@@ -835,6 +890,7 @@ public class SfmDrawScreen extends Screen {
         drawElements(poseStack);
         drawDraft(poseStack);
         drawSelectionOverlay(poseStack);
+        drawRelativeSelectorOverlay(poseStack);
         drawOverlayChrome(poseStack, mouseX, mouseY);
         drawCursorSelectionModifierIndicator(poseStack, mouseX, mouseY);
         updateChromeCursor(mouseX, mouseY);
@@ -1131,6 +1187,44 @@ public class SfmDrawScreen extends Screen {
         drawMarqueeOverlay(poseStack);
     }
 
+    private void drawRelativeSelectorOverlay(PoseStack poseStack) {
+        RelativeCommandSelectorOverlay overlay = activeRelativeCommandSelectorOverlay();
+        if (overlay == null) {
+            return;
+        }
+
+        ScreenPoint origin = canvasToScreen(overlay.origin());
+        ScreenPoint target = canvasToScreen(overlay.target());
+        drawLineStrip(poseStack, List.of(origin, target), RELATIVE_SELECTOR_ARROW_COLOR, ARROW_STROKE_WIDTH);
+
+        double dx = target.x() - origin.x();
+        double dy = target.y() - origin.y();
+        double length = Math.sqrt(dx * dx + dy * dy);
+        if (length >= 0.001D) {
+            double ux = dx / length;
+            double uy = dy / length;
+            double px = -uy;
+            double py = ux;
+            double headLength = 10.0D;
+            double headWidth = 5.0D;
+            ScreenPoint headA = new ScreenPoint(target.x() - ux * headLength + px * headWidth, target.y() - uy * headLength + py * headWidth);
+            ScreenPoint headB = new ScreenPoint(target.x() - ux * headLength - px * headWidth, target.y() - uy * headLength - py * headWidth);
+            drawLineStrip(poseStack, List.of(target, headA), RELATIVE_SELECTOR_ARROW_COLOR, ARROW_STROKE_WIDTH);
+            drawLineStrip(poseStack, List.of(target, headB), RELATIVE_SELECTOR_ARROW_COLOR, ARROW_STROKE_WIDTH);
+        }
+
+        boolean hovered = distanceSquared(currentChromeCursorPoint(), overlay.target()) <= Math.pow(8.0D / Math.max(zoom, 0.01D), 2.0D);
+        int handleColor = hovered || relativeSelectorHeadDrag != null ? 0xFFF6E27F : RELATIVE_SELECTOR_ARROW_COLOR;
+        fill(
+                poseStack,
+                (int) Math.round(target.x()) - HANDLE_HALF_SIZE,
+                (int) Math.round(target.y()) - HANDLE_HALF_SIZE,
+                (int) Math.round(target.x()) + HANDLE_HALF_SIZE + 1,
+                (int) Math.round(target.y()) + HANDLE_HALF_SIZE + 1,
+                handleColor
+        );
+    }
+
     private void drawSelectedArrowAnchors(PoseStack poseStack) {
         // r[impl draw.tool.arrow.anchors.render-when-selected]
         for (DrawElement element : elements) {
@@ -1266,6 +1360,7 @@ public class SfmDrawScreen extends Screen {
         float renderScale = (float) (element.textScale * zoom);
         poseStack.scale(renderScale, renderScale, 1.0F);
         drawTextEditingSelection(poseStack, element);
+        drawEdgeWhitespaceHighlights(poseStack, element, hidden);
         for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
             drawString(poseStack, font, lines[lineIndex], 0, lineIndex * font.lineHeight, renderColor(element.color, hidden));
         }
@@ -1275,6 +1370,103 @@ public class SfmDrawScreen extends Screen {
             fill(poseStack, caretPlacement.x(), caretPlacement.y() - 1, caretPlacement.x() + 1, caretPlacement.y() + font.lineHeight + 1, renderColor(0xFFF1F5FB, hidden));
         }
         poseStack.popPose();
+    }
+
+    private void drawEdgeWhitespaceHighlights(
+            PoseStack poseStack,
+            TextElement element,
+            boolean hidden
+    ) {
+        String[] lines = textLines(element);
+        for (int lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            String line = lines[lineIndex];
+            int leadingWhitespaceCount = leadingWhitespaceCount(line);
+            int trailingWhitespaceCount = trailingWhitespaceCount(line);
+            if (leadingWhitespaceCount > 0) {
+                drawWhitespaceRunHighlight(poseStack, line, 0, leadingWhitespaceCount, lineIndex, hidden);
+            }
+
+            int trailingWhitespaceStart = line.length() - trailingWhitespaceCount;
+            if (trailingWhitespaceCount > 0 && trailingWhitespaceStart > leadingWhitespaceCount) {
+                drawWhitespaceRunHighlight(poseStack, line, trailingWhitespaceStart, line.length(), lineIndex, hidden);
+            }
+        }
+        drawEdgeNewlineHighlights(poseStack, element, hidden);
+    }
+
+    private void drawEdgeNewlineHighlights(
+            PoseStack poseStack,
+            TextElement element,
+            boolean hidden
+    ) {
+        int leadingNewlineCount = leadingEdgeNewlineCount(element.text);
+        int trailingNewlineCount = trailingEdgeNewlineCount(element.text);
+        String[] lines = textLines(element);
+        for (int lineIndex = 0; lineIndex < leadingNewlineCount && lineIndex < lines.length; lineIndex++) {
+            drawEmptyLineHighlight(poseStack, lineIndex, hidden);
+        }
+        for (int offset = 0; offset < trailingNewlineCount && offset < lines.length; offset++) {
+            drawEmptyLineHighlight(poseStack, lines.length - 1 - offset, hidden);
+        }
+    }
+
+    private void drawEmptyLineHighlight(
+            PoseStack poseStack,
+            int lineIndex,
+            boolean hidden
+    ) {
+        int top = lineIndex * font.lineHeight;
+        int width = Math.max(1, font.width(" "));
+        fill(poseStack, 0, top, width, top + font.lineHeight, renderColor(TEXT_EDGE_WHITESPACE_HIGHLIGHT_COLOR, hidden));
+    }
+
+    private void drawWhitespaceRunHighlight(
+            PoseStack poseStack,
+            String line,
+            int startIndex,
+            int endIndex,
+            int lineIndex,
+            boolean hidden
+    ) {
+        int startX = font.width(line.substring(0, startIndex));
+        int endX = font.width(line.substring(0, endIndex));
+        if (endX <= startX) {
+            endX = startX + Math.max(1, font.width(" "));
+        }
+        int top = lineIndex * font.lineHeight;
+        fill(poseStack, startX, top, endX, top + font.lineHeight, renderColor(TEXT_EDGE_WHITESPACE_HIGHLIGHT_COLOR, hidden));
+    }
+
+    private int leadingWhitespaceCount(String line) {
+        int count = 0;
+        while (count < line.length() && Character.isWhitespace(line.charAt(count))) {
+            count++;
+        }
+        return count;
+    }
+
+    private int trailingWhitespaceCount(String line) {
+        int count = 0;
+        while (count < line.length() && Character.isWhitespace(line.charAt(line.length() - 1 - count))) {
+            count++;
+        }
+        return count;
+    }
+
+    private int leadingEdgeNewlineCount(String text) {
+        int count = 0;
+        while (count < text.length() && text.charAt(count) == '\n') {
+            count++;
+        }
+        return count;
+    }
+
+    private int trailingEdgeNewlineCount(String text) {
+        int count = 0;
+        while (count < text.length() && text.charAt(text.length() - 1 - count) == '\n') {
+            count++;
+        }
+        return count;
     }
 
     private void drawFreehandElement(
@@ -1719,8 +1911,10 @@ public class SfmDrawScreen extends Screen {
     private Component chromeWidgetText(ChromeWidget widget) {
         CanvasPoint cursorPoint = currentChromeCursorPoint();
         return switch (widget) {
-            case SCREEN_TITLE -> SFMDrawLocalizationKeys.IDE_DRAW_TITLE.getComponent();
-            case SCREEN_SUBTITLE -> SFMDrawLocalizationKeys.IDE_DRAW_SUBTITLE.getComponent();
+                case SCREEN_TITLE -> SFMDrawLocalizationKeys.IDE_DRAW_TITLE.getComponent();
+                case SCREEN_SUBTITLE -> boundCanvas == null
+                    ? SFMDrawLocalizationKeys.IDE_DRAW_SUBTITLE.getComponent()
+                    : Component.literal(boundCanvas.virtualPath());
             case ACTIVE_LAYER_LABEL -> SFMDrawLocalizationKeys.IDE_DRAW_LAYER_LABEL_TEXT.getComponent();
             case ACTIVE_LAYER_VALUE -> activeLayer.labelComponent();
             case CAMERA_POSITION_LABEL -> SFMDrawLocalizationKeys.IDE_DRAW_CAMERA_POSITION_LABEL.getComponent();
@@ -1964,6 +2158,47 @@ public class SfmDrawScreen extends Screen {
 
         duplicateSelectionPendingOnDrag = false;
         marqueeSelectionDrag = new MarqueeSelectionDrag(canvasPoint, canvasPoint, projection, selectionMode);
+    }
+
+    private boolean beginRelativeSelectorHeadDrag(CanvasPoint point) {
+        RelativeCommandSelectorOverlay overlay = activeRelativeCommandSelectorOverlay();
+        if (overlay == null) {
+            return false;
+        }
+        double radius = 8.0D / Math.max(zoom, 0.01D);
+        if (distanceSquared(point, overlay.target()) > radius * radius) {
+            return false;
+        }
+        relativeSelectorHeadDrag = new RelativeSelectorHeadDrag(overlay.textElementId());
+        return true;
+    }
+
+    private void updateRelativeSelectorHeadDrag(CanvasPoint currentPoint) {
+        if (relativeSelectorHeadDrag == null) {
+            return;
+        }
+        DrawElement element = findElementById(relativeSelectorHeadDrag.textElementId());
+        if (!(element instanceof TextElement textElement)) {
+            relativeSelectorHeadDrag = null;
+            return;
+        }
+        RelativeCommandSelectorOverlay overlay = relativeCommandSelectorOverlay(textElement, null);
+        if (overlay == null) {
+            relativeSelectorHeadDrag = null;
+            return;
+        }
+
+        CanvasPoint snappedPoint = snapCanvasPointToCurrentIncrement(currentPoint);
+        String replacement = formatRelativeSelectorToken(
+                Math.round(snappedPoint.x() - overlay.origin().x()),
+                Math.round(snappedPoint.y() - overlay.origin().y())
+        );
+        textElement.text = textElement.text.substring(0, overlay.tokenStart()) + replacement + textElement.text.substring(overlay.tokenEnd());
+        if (textEditingElementIds.contains(textElement.id())) {
+            textEditingCaretIndex = Math.min(textEditingCaretIndex, textElement.text.length());
+            textEditingSelectionAnchorIndex = Math.min(textEditingSelectionAnchorIndex, textElement.text.length());
+            refreshCommandSuggestions();
+        }
     }
 
     private void applyMoveSelectionDrag(
@@ -2214,6 +2449,10 @@ public class SfmDrawScreen extends Screen {
         }
         for (TextElement commandElement : commandElements) {
             String commandText = drawCommandBody(commandElement.text);
+            if (SFMDrawLocalCommandExecutor.canHandle(commandText)) {
+                finishTextEditing();
+                return SFMDrawLocalCommandExecutor.tryExecute(this, commandElement.id(), commandText);
+            }
             SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText, captureDrawCommandClientContext()));
         }
         finishTextEditing();
@@ -2227,6 +2466,10 @@ public class SfmDrawScreen extends Screen {
         }
         for (TextElement commandElement : commandElements) {
             String commandText = drawCommandBody(commandElement.text);
+            if (SFMDrawLocalCommandExecutor.canHandle(commandText)) {
+                SFMDrawLocalCommandExecutor.tryExecute(this, commandElement.id(), commandText);
+                continue;
+            }
             SFMPackets.sendToServer(new ServerboundSfmDrawCommandPacket(commandElement.id(), commandText, captureDrawCommandClientContext()));
         }
         return true;
@@ -3462,22 +3705,92 @@ public class SfmDrawScreen extends Screen {
         replaceEditingSelection("");
     }
 
-    private boolean copySelectedTextElementsToClipboard() {
-        List<TextElement> textElements = selectedEditableTextElements();
-        if (textElements.isEmpty()) {
+    private boolean copySelectedElementsToClipboard() {
+        if (minecraft == null) {
             return false;
         }
-        List<String> chunks = new ArrayList<>(textElements.size());
-        for (TextElement textElement : textElements) {
-            chunks.add(textElement.text);
+        List<SFMDrawCanvasDocument.Element> serializedElements = new ArrayList<>();
+        for (Integer selectedId : selectedOwningElementIds()) {
+            DrawElement element = findElementById(selectedId);
+            SFMDrawCanvasDocument.Element serializedElement = serializeCanvasElement(element);
+            if (serializedElement != null) {
+                serializedElements.add(serializedElement);
+            }
         }
-        copyTextChunksToClipboard(chunks);
+        if (serializedElements.isEmpty()) {
+            return false;
+        }
+        minecraft.keyboardHandler.setClipboard(SFMDrawCanvasStorage.toJson(new SFMDrawCanvasDocument(
+                SFMDrawCanvasDocument.CURRENT_VERSION,
+                0.0D,
+                0.0D,
+                1.0D,
+                activeLayer.name(),
+                false,
+                false,
+                1,
+                1,
+                serializedElements
+        )));
         return true;
     }
 
     private boolean cutSelectedElementsToClipboard() {
-        copySelectedTextElementsToClipboard();
-        return deleteSelectedElements();
+        return copySelectedElementsToClipboard() && deleteSelectedElements();
+    }
+
+    private boolean pasteSerializedElementsFromClipboard(String clipboardContents) {
+        if (clipboardContents == null || clipboardContents.isBlank()) {
+            return false;
+        }
+
+        SFMDrawCanvasDocument document;
+        try {
+            document = SFMDrawCanvasStorage.parse(clipboardContents);
+        } catch (IOException ignored) {
+            return false;
+        }
+
+        List<DrawElement> pastedElements = deserializeClipboardElements(document);
+        if (pastedElements.isEmpty()) {
+            return false;
+        }
+
+        CanvasBounds pastedBounds = boundsOf(pastedElements);
+        CanvasPoint insertionPoint = snapCanvasPointToCurrentIncrement(currentChromeCursorPoint());
+        double dx = insertionPoint.x() - pastedBounds.minX();
+        double dy = insertionPoint.y() - pastedBounds.minY();
+        for (DrawElement pastedElement : pastedElements) {
+            pastedElement.translate(dx, dy);
+            elements.add(pastedElement);
+        }
+
+        clearCanvasSelection();
+        for (DrawElement pastedElement : pastedElements) {
+            selectedElementIds.add(pastedElement.id());
+        }
+        return true;
+    }
+
+    private List<DrawElement> deserializeClipboardElements(SFMDrawCanvasDocument document) {
+        List<DrawElement> pastedElements = new ArrayList<>();
+        Map<Integer, Integer> remappedGroupIds = new LinkedHashMap<>();
+        for (SFMDrawCanvasDocument.Element serializedElement : document.elements()) {
+            DrawElement element = deserializeCanvasElement(serializedElement);
+            if (element == null) {
+                continue;
+            }
+            DrawElement pastedElement = element.copyWithId(nextElementId++);
+            pastedElement.detachCommandSource();
+            Set<Integer> newGroupIds = new LinkedHashSet<>();
+            for (Integer groupId : pastedElement.groupIds()) {
+                newGroupIds.add(remappedGroupIds.computeIfAbsent(groupId, ignored -> nextGroupId++));
+            }
+            pastedElement.groupIds().clear();
+            pastedElement.groupIds().addAll(newGroupIds);
+            pastedElements.add(pastedElement);
+        }
+        return pastedElements;
     }
 
     private void copyTextChunksToClipboard(List<String> chunks) {
@@ -3645,10 +3958,109 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    public int appendPendingLlmResponsePlaceholder(int commandElementId) {
+        DrawElement sourceElement = findElementById(commandElementId);
+        if (!(sourceElement instanceof TextElement commandElement) || !isCommandTextElement(commandElement)) {
+            return -1;
+        }
+        TextElement output = createOutputTextElement(
+                commandElement.layer(),
+                commandElement.x,
+                commandOutputInsertionY(commandElementId, commandElement),
+                SFMDrawLocalizationKeys.IDE_DRAW_PENDING_LLM_RESPONSE.getString(),
+                0xFFE5EBF2,
+                commandElement.textScale,
+                commandElementId,
+                null
+        );
+        elements.add(output);
+        return output.id();
+    }
+
+    public boolean replaceCommandOutputPlaceholder(
+            int placeholderElementId,
+            List<String> lines
+    ) {
+        DrawElement element = findElementById(placeholderElementId);
+        if (!(element instanceof TextElement placeholder)) {
+            return false;
+        }
+        if (lines == null || lines.isEmpty()) {
+            return false;
+        }
+
+        placeholder.text = lines.get(0);
+        double currentY = placeholder.bounds(this).maxY() + 4.0D;
+        for (int index = 1; index < lines.size(); index++) {
+            TextElement output = createOutputTextElement(
+                    placeholder.layer(),
+                    placeholder.x,
+                    currentY,
+                    lines.get(index),
+                    placeholder.color,
+                    placeholder.textScale,
+                    placeholder.commandSourceElementId(),
+                    null
+            );
+            elements.add(output);
+            currentY = output.bounds(this).maxY() + 4.0D;
+        }
+        return true;
+    }
+
     public void appendManagerProgramCard(
             int commandElementId,
             DrawManagerProgramCard card
     ) {
+        String subtitleText = card.state().LOC.getComponent().getString();
+        if (!card.diskName().isBlank()) {
+            subtitleText += " | " + card.diskName();
+        }
+        appendProgramCard(
+            commandElementId,
+            "Manager @ " + card.managerPos().toShortString(),
+            PROGRAM_CARD_TITLE_COLOR,
+            subtitleText,
+            chatFormattingColor(card.state().COLOR, PROGRAM_CARD_DETAIL_COLOR),
+            card.detailLines(),
+            card.warningLines(),
+            card.errorLines(),
+            card.astLines(),
+            card.programString()
+        );
+        }
+
+        public void appendTemplateProgramCard(
+            int commandElementId,
+            DrawTemplateProgramCard card
+        ) {
+        String displayName = card.displayName().isBlank() ? card.templateKey() : card.displayName();
+        appendProgramCard(
+            commandElementId,
+            "Template: " + displayName,
+            PROGRAM_CARD_TITLE_COLOR,
+            card.templateKey(),
+            PROGRAM_CARD_DETAIL_COLOR,
+            card.detailLines(),
+            card.warningLines(),
+            card.errorLines(),
+            card.astLines(),
+            card.programString()
+        );
+        }
+
+        private void appendProgramCard(
+            int commandElementId,
+            String titleText,
+            int titleColor,
+            @Nullable String subtitleText,
+            int subtitleColor,
+            List<String> detailLines,
+            List<String> warningLines,
+            List<String> errorLines,
+            List<String> astLines,
+            String programString
+        ) {
         DrawElement sourceElement = findElementById(commandElementId);
         if (!(sourceElement instanceof TextElement commandElement) || !isCommandTextElement(commandElement)) {
             return;
@@ -3664,8 +4076,8 @@ public class SfmDrawScreen extends Screen {
                 layer,
                 commandElement.x,
                 currentY,
-                "Manager @ " + card.managerPos().toShortString(),
-                PROGRAM_CARD_TITLE_COLOR,
+            titleText,
+            titleColor,
                 Math.max(1.0D, commandElement.textScale),
                 commandElementId,
                 groupId
@@ -3673,22 +4085,20 @@ public class SfmDrawScreen extends Screen {
         cardElements.add(title);
         currentY = title.bounds(this).maxY() + 2.0D;
 
-        String subtitleText = card.state().LOC.getComponent().getString();
-        if (!card.diskName().isBlank()) {
-            subtitleText += " | " + card.diskName();
-        }
-        TextElement subtitle = createOutputTextElement(
+        if (subtitleText != null && !subtitleText.isBlank()) {
+            TextElement subtitle = createOutputTextElement(
                 layer,
                 commandElement.x,
                 currentY,
                 subtitleText,
-                chatFormattingColor(card.state().COLOR, PROGRAM_CARD_DETAIL_COLOR),
+                subtitleColor,
                 textScale,
                 commandElementId,
                 groupId
-        );
-        cardElements.add(subtitle);
-        currentY = subtitle.bounds(this).maxY() + 6.0D;
+            );
+            cardElements.add(subtitle);
+            currentY = subtitle.bounds(this).maxY() + 6.0D;
+        }
 
         currentY = appendProgramCardSection(
                 cardElements,
@@ -3699,7 +4109,7 @@ public class SfmDrawScreen extends Screen {
                 groupId,
                 "Details",
                 PROGRAM_CARD_SECTION_COLOR,
-                card.detailLines(),
+            detailLines,
                 PROGRAM_CARD_DETAIL_COLOR,
                 textScale
         );
@@ -3712,7 +4122,7 @@ public class SfmDrawScreen extends Screen {
                 groupId,
                 "Warnings",
                 PROGRAM_CARD_WARNING_COLOR,
-                card.warningLines(),
+                warningLines,
                 PROGRAM_CARD_WARNING_COLOR,
                 textScale
         );
@@ -3725,7 +4135,7 @@ public class SfmDrawScreen extends Screen {
                 groupId,
                 "Errors",
                 PROGRAM_CARD_ERROR_COLOR,
-                card.errorLines(),
+                errorLines,
                 PROGRAM_CARD_ERROR_COLOR,
                 textScale
         );
@@ -3738,7 +4148,7 @@ public class SfmDrawScreen extends Screen {
                 groupId,
                 "AST",
                 PROGRAM_CARD_SECTION_COLOR,
-                card.astLines(),
+                astLines,
                 PROGRAM_CARD_AST_COLOR,
                 Math.max(0.85D, textScale)
         );
@@ -3749,7 +4159,7 @@ public class SfmDrawScreen extends Screen {
                 currentY,
                 commandElementId,
                 groupId,
-                card.programString(),
+                programString,
                 textScale
         );
 
@@ -3930,6 +4340,435 @@ public class SfmDrawScreen extends Screen {
             bounds = bounds == null ? cardElement.bounds(this) : bounds.expandToInclude(cardElement.bounds(this));
         }
         return bounds == null ? CanvasBounds.of(0.0D, 0.0D, 16.0D, 16.0D) : bounds;
+    }
+
+    public void createBox(
+            double x1,
+            double y1,
+            double x2,
+            double y2
+    ) {
+        RectangleElement element = new RectangleElement(nextElementId++, activeCanvasLayer(), x1, y1, x2, y2, 0x332FB5FF, 0xFF7FD7FF);
+        elements.add(element);
+        selectOnly(element.id());
+    }
+
+    public void appendBoxList(int commandElementId) {
+        List<String> lines = new ArrayList<>();
+        List<RectangleElement> rectangles = new ArrayList<>();
+        for (DrawElement element : elements) {
+            if (element instanceof RectangleElement rectangleElement && rectangleElement.layer().canvasLayer()) {
+                rectangles.add(rectangleElement);
+            }
+        }
+
+        lines.add("box.list: " + rectangles.size() + " rectangle(s)");
+        for (RectangleElement rectangle : rectangles) {
+            CanvasBounds bounds = rectangle.bounds(this);
+            lines.add(String.format(
+                    Locale.ROOT,
+                    "- #%d [%.2f,%.2f -> %.2f,%.2f] center %s",
+                    rectangle.id(),
+                    bounds.minX(),
+                    bounds.minY(),
+                    bounds.maxX(),
+                    bounds.maxY(),
+                    formatRectSelectorToken((bounds.minX() + bounds.maxX()) / 2.0D, (bounds.minY() + bounds.maxY()) / 2.0D)
+            ));
+        }
+        appendCommandOutput(commandElementId, lines);
+    }
+
+    public void appendConcatenatedRectRegion(
+            int commandElementId,
+            double x,
+            double y
+    ) {
+        List<SFMDrawSpatialQueries.RectangleRegion> rectangles = new ArrayList<>();
+        List<SFMDrawSpatialQueries.TextSurface> textSurfaces = new ArrayList<>();
+
+        for (DrawElement element : elements) {
+            if (element instanceof RectangleElement rectangleElement && rectangleElement.layer().canvasLayer()) {
+                rectangles.add(new SFMDrawSpatialQueries.RectangleRegion(
+                        rectangleElement.x1,
+                        rectangleElement.y1,
+                        rectangleElement.x2,
+                        rectangleElement.y2
+                ));
+            } else if (element instanceof TextElement textElement && textElement.layer().canvasLayer()) {
+                textSurfaces.add(new SFMDrawSpatialQueries.TextSurface(
+                        textElement.x,
+                        textElement.y,
+                        textElement.text,
+                        textElement.textScale
+                ));
+            }
+        }
+
+        List<SFMDrawSpatialQueries.CanvasRegion> matchedRegions = SFMDrawSpatialQueries.regionsContainingPoint(rectangles, x, y);
+        if (matchedRegions.isEmpty()) {
+            appendCommandOutput(commandElementId, List.of("concatenate: no rectangles contain point " + formatSpatialPoint(x, y)));
+            return;
+        }
+
+        String concatenated = SFMDrawSpatialQueries.concatenateFromRectPoint(
+                rectangles,
+                textSurfaces,
+                new SFMDrawSpatialQueries.TextMetrics() {
+                    @Override
+                    public int lineHeight() {
+                        return font.lineHeight;
+                    }
+
+                    @Override
+                    public int width(String text) {
+                        return font.width(text);
+                    }
+                },
+                x,
+                y
+        );
+        appendCommandOutput(commandElementId, List.of(concatenated));
+    }
+
+    public void appendConcatenatedRelativeRegion(
+            int commandElementId,
+            String selectorToken
+    ) {
+        DrawElement sourceElement = findElementById(commandElementId);
+        if (!(sourceElement instanceof TextElement textElement)) {
+            return;
+        }
+        RelativeCommandSelectorOverlay overlay = relativeCommandSelectorOverlay(textElement, selectorToken);
+        if (overlay == null) {
+            appendCommandOutput(commandElementId, List.of("concatenate: unable to resolve selector " + selectorToken));
+            return;
+        }
+        appendConcatenatedRectRegion(commandElementId, overlay.target().x(), overlay.target().y());
+    }
+
+    public void saveBoundCanvas() throws IOException {
+        if (boundCanvas == null) {
+            return;
+        }
+        SFMDrawCanvasStorage.write(boundCanvas, exportCanvasDocument());
+    }
+
+    public void bindCanvas(
+            SFMDrawVirtualPath boundCanvas,
+            SFMDrawCanvasDocument document
+    ) {
+        this.boundCanvas = boundCanvas;
+        loadCanvasDocument(document);
+    }
+
+    public void rebindCanvasPath(SFMDrawVirtualPath boundCanvas) {
+        this.boundCanvas = boundCanvas;
+    }
+
+    public boolean isBoundToVirtualPath(String virtualPath) {
+        return boundCanvas != null && boundCanvas.virtualPath().equals(virtualPath);
+    }
+
+    private SFMDrawCanvasDocument exportCanvasDocument() {
+        List<SFMDrawCanvasDocument.Element> serializedElements = new ArrayList<>(elements.size());
+        for (DrawElement element : elements) {
+            SFMDrawCanvasDocument.Element serializedElement = serializeCanvasElement(element);
+            if (serializedElement != null) {
+                serializedElements.add(serializedElement);
+            }
+        }
+
+        return new SFMDrawCanvasDocument(
+                SFMDrawCanvasDocument.CURRENT_VERSION,
+                cameraX,
+                cameraY,
+                zoom,
+                activeLayer.name(),
+                elementsLayerMuted,
+                chromeLayerMuted,
+                nextElementId,
+                nextGroupId,
+                serializedElements
+        );
+    }
+
+    private void loadCanvasDocument(SFMDrawCanvasDocument document) {
+        resetTransientCanvasState();
+        elements.clear();
+
+        cameraX = document.cameraX();
+        cameraY = document.cameraY();
+        zoom = Mth.clamp(document.zoom(), MIN_ZOOM, MAX_ZOOM);
+        activeLayer = parseDrawLayer(document.activeLayer());
+        elementsLayerMuted = document.elementsLayerMuted();
+        chromeLayerMuted = document.chromeLayerMuted();
+
+        int maxElementId = 0;
+        int maxGroupId = 0;
+        for (SFMDrawCanvasDocument.Element serializedElement : document.elements()) {
+            DrawElement element = deserializeCanvasElement(serializedElement);
+            if (element == null) {
+                continue;
+            }
+            elements.add(element);
+            maxElementId = Math.max(maxElementId, element.id());
+            for (Integer groupId : element.groupIds()) {
+                maxGroupId = Math.max(maxGroupId, groupId);
+            }
+        }
+
+        nextElementId = Math.max(Math.max(1, maxElementId + 1), document.nextElementId());
+        nextGroupId = Math.max(Math.max(1, maxGroupId + 1), document.nextGroupId());
+    }
+
+    private void resetTransientCanvasState() {
+        clearTextEditingState();
+        clearCanvasSelection();
+        clearChromeSelection();
+        pendingArrowAnchors.clear();
+        pendingArrowProjection = null;
+        draftInteraction = null;
+        moveSelectionDrag = null;
+        resizeSelectionDrag = null;
+        relativeSelectorHeadDrag = null;
+        marqueeSelectionDrag = null;
+        chromeMarqueeSelectionDrag = null;
+        moveChromeSelectionDrag = null;
+        cameraFrameDrag = null;
+        duplicateSelectionPendingOnDrag = false;
+        draggingChromeWidget = null;
+        resizingChromeWidget = null;
+        chromeWidgetResizeHandle = null;
+        chromeWidgetResizeOriginalBounds = null;
+        panning = false;
+        panButton = -1;
+        suppressedShortcutCodePoint = -1;
+    }
+
+    private @Nullable SFMDrawCanvasDocument.Element serializeCanvasElement(@Nullable DrawElement element) {
+        if (element instanceof RectangleElement rectangleElement) {
+            return SFMDrawCanvasDocument.Element.rectangle(
+                    rectangleElement.id(),
+                    rectangleElement.layer().name(),
+                    rectangleElement.hidden(),
+                    rectangleElement.locked(),
+                    rectangleElement.commandSourceElementId(),
+                    List.copyOf(rectangleElement.groupIds()),
+                    rectangleElement.x1,
+                    rectangleElement.y1,
+                    rectangleElement.x2,
+                    rectangleElement.y2,
+                    rectangleElement.fillColor,
+                    rectangleElement.strokeColor
+            );
+        }
+        if (element instanceof ArrowElement arrowElement) {
+            List<SFMDrawCanvasDocument.Point> points = new ArrayList<>(arrowElement.points.size());
+            for (CanvasPoint point : arrowElement.points) {
+                points.add(new SFMDrawCanvasDocument.Point(point.x(), point.y()));
+            }
+            return SFMDrawCanvasDocument.Element.arrow(
+                    arrowElement.id(),
+                    arrowElement.layer().name(),
+                    arrowElement.hidden(),
+                    arrowElement.locked(),
+                    arrowElement.commandSourceElementId(),
+                    List.copyOf(arrowElement.groupIds()),
+                    points,
+                    List.copyOf(arrowElement.hiddenAnchorIndexes),
+                    arrowElement.color
+            );
+        }
+        if (element instanceof TextElement textElement) {
+            return SFMDrawCanvasDocument.Element.text(
+                    textElement.id(),
+                    textElement.layer().name(),
+                    textElement.hidden(),
+                    textElement.locked(),
+                    textElement.commandSourceElementId(),
+                    List.copyOf(textElement.groupIds()),
+                    textElement.x,
+                    textElement.y,
+                    textElement.text,
+                    textElement.color,
+                    textElement.textScale
+            );
+        }
+        if (element instanceof FreehandElement freehandElement) {
+            List<SFMDrawCanvasDocument.Point> points = new ArrayList<>(freehandElement.points.size());
+            for (CanvasPoint point : freehandElement.points) {
+                points.add(new SFMDrawCanvasDocument.Point(point.x(), point.y()));
+            }
+            return SFMDrawCanvasDocument.Element.freehand(
+                    freehandElement.id(),
+                    freehandElement.layer().name(),
+                    freehandElement.hidden(),
+                    freehandElement.locked(),
+                    freehandElement.commandSourceElementId(),
+                    List.copyOf(freehandElement.groupIds()),
+                    points,
+                    freehandElement.color
+            );
+        }
+        return null;
+    }
+
+    private DrawLayer parseDrawLayer(@Nullable String layerName) {
+        if (layerName == null || layerName.isBlank()) {
+            return DrawLayer.ELEMENTS;
+        }
+        try {
+            return DrawLayer.valueOf(layerName.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return DrawLayer.ELEMENTS;
+        }
+    }
+
+    private String formatSpatialPoint(
+            double x,
+            double y
+    ) {
+        return String.format(Locale.ROOT, "%.2f,%.2f", x, y);
+    }
+
+    private String formatRectSelectorToken(
+            double x,
+            double y
+    ) {
+        return String.format(Locale.ROOT, "@rect[%d,%d]", Math.round(x), Math.round(y));
+    }
+
+    private String formatRelativeSelectorToken(
+            long dx,
+            long dy
+    ) {
+        return String.format(Locale.ROOT, "@rel[%d,%d]", dx, dy);
+    }
+
+    private @Nullable RelativeCommandSelectorOverlay activeRelativeCommandSelectorOverlay() {
+        if (isEditingCommandText()) {
+            TextElement editingElement = editingTextElement();
+            return editingElement == null ? null : relativeCommandSelectorOverlay(editingElement, null);
+        }
+
+        if (activeTool != DrawTool.CURSOR) {
+            return null;
+        }
+
+        List<TextElement> commandElements = selectedCommandTextElements();
+        if (commandElements.size() != 1) {
+            return null;
+        }
+        return relativeCommandSelectorOverlay(commandElements.get(0), null);
+    }
+
+    private @Nullable RelativeCommandSelectorOverlay relativeCommandSelectorOverlay(
+            TextElement textElement,
+            @Nullable String expectedToken
+    ) {
+        if (!isCommandTextElement(textElement) || !drawCommandBody(textElement.text).stripLeading().startsWith("concatenate")) {
+            return null;
+        }
+
+        Matcher matcher = RELATIVE_SELECTOR_PATTERN.matcher(textElement.text);
+        while (matcher.find()) {
+            String selectorToken = matcher.group();
+            if (expectedToken != null && !expectedToken.equals(selectorToken)) {
+                continue;
+            }
+
+            CaretPlacement caretPlacement = caretPlacement(textElement, matcher.start());
+            double originX = textElement.x + (caretPlacement.x() + font.width("@") / 2.0D) * textElement.textScale;
+            double originY = textElement.y + (caretPlacement.y() + font.lineHeight / 2.0D) * textElement.textScale;
+            double dx = Double.parseDouble(matcher.group(1));
+            double dy = Double.parseDouble(matcher.group(2));
+            CanvasPoint origin = new CanvasPoint(originX, originY);
+            CanvasPoint target = new CanvasPoint(origin.x() + dx, origin.y() + dy);
+            return new RelativeCommandSelectorOverlay(textElement.id(), matcher.start(), matcher.end(), selectorToken, origin, target);
+        }
+
+        return null;
+    }
+
+    private @Nullable DrawElement deserializeCanvasElement(SFMDrawCanvasDocument.Element serializedElement) {
+        DrawLayer layer = parseDrawLayer(serializedElement.layer());
+        DrawElement element = switch (serializedElement.type()) {
+            case "rectangle" -> {
+                if (serializedElement.x1() == null || serializedElement.y1() == null || serializedElement.x2() == null || serializedElement.y2() == null) {
+                    yield null;
+                }
+                yield new RectangleElement(
+                        serializedElement.id(),
+                        layer,
+                        serializedElement.x1(),
+                        serializedElement.y1(),
+                        serializedElement.x2(),
+                        serializedElement.y2(),
+                        serializedElement.fillColor() == null ? 0x332FB5FF : serializedElement.fillColor(),
+                        serializedElement.strokeColor() == null ? 0xFF7FD7FF : serializedElement.strokeColor()
+                );
+            }
+            case "arrow" -> {
+                List<CanvasPoint> points = new ArrayList<>(serializedElement.points().size());
+                for (SFMDrawCanvasDocument.Point point : serializedElement.points()) {
+                    points.add(new CanvasPoint(point.x(), point.y()));
+                }
+                if (points.isEmpty()) {
+                    yield null;
+                }
+                ArrowElement arrowElement = new ArrowElement(
+                        serializedElement.id(),
+                        layer,
+                        points,
+                        serializedElement.color() == null ? 0xFFE8A652 : serializedElement.color()
+                );
+                for (Integer hiddenAnchorIndex : serializedElement.hiddenAnchorIndexes()) {
+                    arrowElement.setAnchorHidden(hiddenAnchorIndex, true);
+                }
+                yield arrowElement;
+            }
+            case "text" -> {
+                if (serializedElement.x() == null || serializedElement.y() == null) {
+                    yield null;
+                }
+                yield new TextElement(
+                        serializedElement.id(),
+                        layer,
+                        serializedElement.x(),
+                        serializedElement.y(),
+                        serializedElement.text(),
+                        serializedElement.color() == null ? 0xFFF1F5FB : serializedElement.color(),
+                        serializedElement.textScale() == null ? 1.0D : serializedElement.textScale()
+                );
+            }
+            case "freehand" -> {
+                List<CanvasPoint> points = new ArrayList<>(serializedElement.points().size());
+                for (SFMDrawCanvasDocument.Point point : serializedElement.points()) {
+                    points.add(new CanvasPoint(point.x(), point.y()));
+                }
+                if (points.isEmpty()) {
+                    yield null;
+                }
+                yield new FreehandElement(
+                        serializedElement.id(),
+                        layer,
+                        points,
+                        serializedElement.color() == null ? 0xFF88D498 : serializedElement.color()
+                );
+            }
+            default -> null;
+        };
+
+        if (element == null) {
+            return null;
+        }
+
+        element.setHidden(serializedElement.hidden());
+        element.setLocked(serializedElement.locked());
+        element.setCommandSourceElementId(serializedElement.commandSourceElementId());
+        element.groupIds().addAll(serializedElement.groupIds());
+        return element;
     }
 
     private int chatFormattingColor(
@@ -6365,6 +7204,9 @@ public class SfmDrawScreen extends Screen {
         }
     }
 
+    private record RelativeSelectorHeadDrag(int textElementId) {
+    }
+
     private class DrawCommandSuggestions {
         private static final int PREFIX_ADJUSTMENT = DRAW_COMMAND_PREFIX.length() - 1;
         private static final int ROW_HEIGHT = 12;
@@ -6380,12 +7222,14 @@ public class SfmDrawScreen extends Screen {
         private int popupHeight = 0;
         private String visibleCommand = "";
         private int visibleCursor = 0;
+        private long suggestionRequestNonce = 0L;
 
         public void hide() {
             visible = false;
             suggestions.clear();
             selectedIndex = 0;
             scrollOffset = 0;
+            suggestionRequestNonce++;
         }
 
         public void refresh() {
@@ -6406,21 +7250,44 @@ public class SfmDrawScreen extends Screen {
             int translatedCursor = translatedCursor(visibleCursor, translatedCommand.length());
             CommandDispatcher<SharedSuggestionProvider> dispatcher = minecraft.player.connection.getCommands();
             ParseResults<SharedSuggestionProvider> parseResults = dispatcher.parse(stringReader, minecraft.player.connection.getSuggestionsProvider());
-            Suggestions translatedSuggestions;
+            long requestNonce = ++suggestionRequestNonce;
+            String requestVisibleCommand = visibleCommand;
+            int requestVisibleCursor = visibleCursor;
+
+            // Show client-local suggestions immediately; merge Brigadier suggestions when the future completes.
+            applySuggestions(textElement, null);
+
+            final CompletableFuture<Suggestions> translatedSuggestionsFuture;
             try {
-                translatedSuggestions = dispatcher.getCompletionSuggestions(parseResults, translatedCursor).join();
+                translatedSuggestionsFuture = dispatcher.getCompletionSuggestions(parseResults, translatedCursor);
             } catch (IllegalStateException exception) {
-                hide();
                 return;
             }
 
-            suggestions.clear();
-            suggestions.addAll(mapSuggestionsToVisibleInput(translatedSuggestions));
-            sortSuggestions();
-            visible = !suggestions.isEmpty();
-            selectedIndex = Mth.clamp(selectedIndex, 0, Math.max(0, suggestions.size() - 1));
-            clampScrollOffset();
-            refreshPopupBounds(textElement);
+            translatedSuggestionsFuture.whenComplete((translatedSuggestions, throwable) -> minecraft.execute(() -> {
+                if (requestNonce != suggestionRequestNonce) {
+                    return;
+                }
+
+                TextElement currentTextElement = editingTextElement();
+                if (currentTextElement == null || !isCommandTextElement(currentTextElement)) {
+                    hide();
+                    return;
+                }
+
+                visibleCommand = currentTextElement.text;
+                visibleCursor = textEditingCaretIndexFor(currentTextElement);
+                if (!visibleCommand.equals(requestVisibleCommand) || visibleCursor != requestVisibleCursor) {
+                    return;
+                }
+
+                if (throwable != null) {
+                    applySuggestions(currentTextElement, null);
+                    return;
+                }
+
+                applySuggestions(currentTextElement, translatedSuggestions);
+            }));
         }
 
         public boolean keyPressed(
@@ -6534,6 +7401,47 @@ public class SfmDrawScreen extends Screen {
             return mappedSuggestions;
         }
 
+        private void applySuggestions(
+                TextElement textElement,
+                @Nullable Suggestions translatedSuggestions
+        ) {
+            suggestions.clear();
+            if (translatedSuggestions != null) {
+                suggestions.addAll(mapSuggestionsToVisibleInput(translatedSuggestions));
+            }
+            suggestions.addAll(localSuggestionsForVisibleInput());
+            deduplicateSuggestions();
+            sortSuggestions();
+            visible = !suggestions.isEmpty();
+            selectedIndex = Mth.clamp(selectedIndex, 0, Math.max(0, suggestions.size() - 1));
+            clampScrollOffset();
+            refreshPopupBounds(textElement);
+        }
+
+        private List<Suggestion> localSuggestionsForVisibleInput() {
+            int commandBodyStart = visibleCommandBodyStart();
+            String commandBody = visibleCommand.substring(Math.min(commandBodyStart, visibleCommand.length()));
+            int commandBodyCursor = Mth.clamp(visibleCursor - commandBodyStart, 0, commandBody.length());
+            SFMDrawLocalCommandExecutor.CompletionSuggestions localSuggestions = SFMDrawLocalCommandExecutor.suggestCompletions(
+                    commandBody,
+                    commandBodyCursor,
+                    dynamicRectSelectorSuggestion()
+            );
+
+            List<Suggestion> mapped = new ArrayList<>(localSuggestions.suggestions().size());
+            int mappedStart = commandBodyStart + localSuggestions.start();
+            int mappedEnd = commandBodyStart + localSuggestions.end();
+            for (String suggestionText : localSuggestions.suggestions()) {
+                mapped.add(new Suggestion(StringRange.between(mappedStart, mappedEnd), suggestionText));
+            }
+            return mapped;
+        }
+
+        private void deduplicateSuggestions() {
+            LinkedHashSet<String> seen = new LinkedHashSet<>();
+            suggestions.removeIf(suggestion -> !seen.add(suggestion.getRange().getStart() + ":" + suggestion.getRange().getEnd() + ":" + suggestion.getText()));
+        }
+
         private void sortSuggestions() {
             String activeToken = activeSuggestionToken();
             suggestions.sort((left, right) -> {
@@ -6607,6 +7515,59 @@ public class SfmDrawScreen extends Screen {
             int minimumCursor = visibleCommand.startsWith("/") ? 1 : 0;
             return Mth.clamp(cursorIndex + adjustment, minimumCursor, translatedCommandLength);
         }
+
+        private int visibleCommandBodyStart() {
+            if (visibleCommand.equals("/sfm draw")) {
+                return visibleCommand.length();
+            }
+            if (visibleCommand.startsWith(DRAW_COMMAND_PREFIX)) {
+                return DRAW_COMMAND_PREFIX.length();
+            }
+            return visibleCommand.startsWith("/") ? 1 : 0;
+        }
+
+        private String dynamicRectSelectorSuggestion() {
+            RectangleElement selectedRectangle = singleSelectedCanvasRectangle();
+            if (selectedRectangle != null) {
+                CanvasBounds bounds = selectedRectangle.bounds(SfmDrawScreen.this);
+                return formatRectSelectorToken((bounds.minX() + bounds.maxX()) / 2.0D, (bounds.minY() + bounds.maxY()) / 2.0D);
+            }
+
+            CanvasPoint cursorPoint = currentChromeCursorPoint();
+            RectangleElement hoveredRectangle = topmostCanvasRectangleContaining(cursorPoint);
+            if (hoveredRectangle != null) {
+                CanvasBounds bounds = hoveredRectangle.bounds(SfmDrawScreen.this);
+                return formatRectSelectorToken((bounds.minX() + bounds.maxX()) / 2.0D, (bounds.minY() + bounds.maxY()) / 2.0D);
+            }
+
+            return formatRectSelectorToken(cursorPoint.x(), cursorPoint.y());
+        }
+
+        private @Nullable RectangleElement singleSelectedCanvasRectangle() {
+            RectangleElement rectangle = null;
+            int rectangleCount = 0;
+            for (Integer selectedId : selectedOwningElementIds()) {
+                DrawElement element = findElementById(selectedId);
+                if (element instanceof RectangleElement rectangleElement && rectangleElement.layer().canvasLayer()) {
+                    rectangle = rectangleElement;
+                    rectangleCount++;
+                    if (rectangleCount > 1) {
+                        return null;
+                    }
+                }
+            }
+            return rectangle;
+        }
+
+        private @Nullable RectangleElement topmostCanvasRectangleContaining(CanvasPoint point) {
+            for (int index = elements.size() - 1; index >= 0; index--) {
+                DrawElement element = elements.get(index);
+                if (element instanceof RectangleElement rectangleElement && rectangleElement.layer().canvasLayer() && rectangleElement.bounds(SfmDrawScreen.this).contains(point)) {
+                    return rectangleElement;
+                }
+            }
+            return null;
+        }
     }
 
     private record CanvasPoint(
@@ -6614,6 +7575,16 @@ public class SfmDrawScreen extends Screen {
             double y
     ) {
     }
+
+        private record RelativeCommandSelectorOverlay(
+            int textElementId,
+            int tokenStart,
+            int tokenEnd,
+            String tokenText,
+            CanvasPoint origin,
+            CanvasPoint target
+        ) {
+        }
 
     private record ScreenPoint(
             double x,
