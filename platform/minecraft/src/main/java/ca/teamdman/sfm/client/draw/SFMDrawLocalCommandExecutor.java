@@ -32,7 +32,7 @@ public final class SFMDrawLocalCommandExecutor {
             return false;
         }
         return switch (tokens.get(0)) {
-            case "open", "move", "ls", "ollama", "box", "concatenate" -> true;
+            case "open", "move", "ls", "ollama", "box", "concatenate", "reset" -> true;
             default -> false;
         };
     }
@@ -122,6 +122,15 @@ public final class SFMDrawLocalCommandExecutor {
                 }
                 yield true;
             }
+            case "reset" -> {
+                if (tokens.size() != 2 || !"chrome".equals(tokens.get(1))) {
+                    screen.appendCommandOutput(commandElementId, List.of("reset: usage: /sfm draw reset chrome"));
+                    yield true;
+                }
+                screen.resetChromeLayout();
+                screen.appendCommandOutput(commandElementId, List.of("reset.chrome: reset chrome widget positions"));
+                yield true;
+            }
             case "concatenate" -> {
                 if (tokens.size() != 2) {
                     screen.appendCommandOutput(commandElementId, List.of("concatenate: usage: /sfm draw concatenate @rect[x,y] | @rel[dx,dy]"));
@@ -192,6 +201,12 @@ public final class SFMDrawLocalCommandExecutor {
                 case "box" -> tokens.size() == 2
                     ? SFMDrawCommandCompletionCatalog.filterByPrefix(
                     List.of("list"),
+                    activeToken
+                )
+                    : List.of();
+                case "reset" -> tokens.size() == 2
+                    ? SFMDrawCommandCompletionCatalog.filterByPrefix(
+                    List.of("chrome"),
                     activeToken
                 )
                     : List.of();

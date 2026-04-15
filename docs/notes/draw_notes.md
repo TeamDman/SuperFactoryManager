@@ -48,11 +48,20 @@ Last updated: 2026-04-15
 - [x] Persist arrow binding metadata in the draw canvas document.
 - [x] Cover binding math with focused tests.
 
+### 5. History / chrome polish
+
+- [x] Keep the history-layer label legible in the layer window even while the layer is muted.
+- [x] Flip the undo-tree layout so depth flows vertically and branches fan out horizontally.
+- [x] Add `/reset chrome` to restore chrome widget positions.
+- [x] Restrict draggable origin handles to the history layer.
+- [x] Coalesce repeated zoom commits into one recent history node when zooming continuously.
+
 ## Implementation Notes
 
 - The current draw screen is still the main integration point, but the long-term state should live in dedicated draw-model helpers where possible.
 - The history layer should be rendered from the undo-tree model rather than stored as normal user-authored elements.
 - The initial origin implementation will target canvas-space layers. The chrome layer remains screen-space.
+- History keeps the only draggable origin handle; the other layers fall back to their fixed/default coordinate references.
 
 ## Verification
 
@@ -61,6 +70,7 @@ Last updated: 2026-04-15
 - [x] `./gradlew compileTestJava`
 - [x] `./gradlew test --tests "ca.teamdman.sfm.test.SFMDrawVirtualFileSystemTests" --tests "ca.teamdman.sfm.test.SFMDrawBindingUtilTests"`
 - [x] `./gradlew compileDatagenJava`
+- [x] `cd platform/minecraft && .\gradlew.bat compileJava`
 
 ## Backlog
 

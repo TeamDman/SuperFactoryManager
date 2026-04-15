@@ -15,6 +15,7 @@ public final class SFMDrawCommandCompletionCatalog {
             "ls",
             "box",
             "concatenate",
+            "reset",
             "ollama"
     );
 

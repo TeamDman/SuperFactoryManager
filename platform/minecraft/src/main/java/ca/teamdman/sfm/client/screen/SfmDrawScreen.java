@@ -106,6 +106,7 @@ public class SfmDrawScreen extends Screen {
     private static final double HISTORY_NODE_RADIUS = 18.0D;
     private static final double HISTORY_NODE_SPACING_X = 144.0D;
     private static final double HISTORY_NODE_SPACING_Y = 72.0D;
+    private static final long HISTORY_ZOOM_COALESCE_WINDOW_MS = 1_000L;
     private static final double ORIGIN_HANDLE_RADIUS = 8.0D;
     private static final double ARROW_BIND_SNAP_DISTANCE = 18.0D;
     private static final Pattern RELATIVE_SELECTOR_PATTERN = Pattern.compile("@rel\\[\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*,\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*\\]");
@@ -128,6 +129,8 @@ public class SfmDrawScreen extends Screen {
         private boolean historyTrackingSuspended = false;
         private @Nullable SFMDrawCanvasDocument.SceneSnapshot textEditingHistoryBaseline = null;
         private @Nullable SFMDrawCanvasDocument.SceneSnapshot panHistoryBaseline = null;
+        private @Nullable Integer recentZoomHistoryNodeId = null;
+        private long recentZoomHistoryNodeUpdatedAtMs = Long.MIN_VALUE;
 
         private double cameraX = 0.0D;
         private double cameraY = 0.0D;
@@ -1081,12 +1084,15 @@ public class SfmDrawScreen extends Screen {
             boolean muted = isLayerMuted(layer);
             Rect muteToggleBounds = layerEntryMuteToggleBounds(index);
             boolean muteHovered = muteToggleBounds.contains(mouseX, mouseY);
-            int backgroundColor = renderColor(layer == activeLayer ? 0x663B6EA8 : (entryBounds.contains(mouseX, mouseY) ? 0x33445B73 : 0x22202831), hidden || muted);
-            fill(poseStack, entryBounds.left(), entryBounds.top(), entryBounds.right(), entryBounds.bottom(), backgroundColor);
+            int backgroundColor = layer == activeLayer ? 0x663B6EA8 : (entryBounds.contains(mouseX, mouseY) ? 0x33445B73 : 0x22202831);
+            if (muted && layer != activeLayer) {
+                backgroundColor = entryBounds.contains(mouseX, mouseY) ? 0x2938495D : 0x181E2631;
+            }
+            fill(poseStack, entryBounds.left(), entryBounds.top(), entryBounds.right(), entryBounds.bottom(), renderColor(backgroundColor, hidden));
             // r[impl draw.layer-window.layer-entry-thumbnail]
-            fill(poseStack, entryBounds.left() + 4, entryBounds.top() + 4, entryBounds.left() + 16, entryBounds.top() + 16, renderColor(layer.color(), hidden || muted));
+            fill(poseStack, entryBounds.left() + 4, entryBounds.top() + 4, entryBounds.left() + 16, entryBounds.top() + 16, renderColor(layer.color(), hidden));
             // r[impl draw.layer-window.layer-entry-name]
-            drawString(poseStack, font, layer.labelComponent(), entryBounds.left() + 22, entryBounds.top() + 6, renderColor(layer == activeLayer ? 0xFFF6FAFF : 0xCBD3DF, hidden || muted));
+            drawString(poseStack, font, layer.labelComponent(), entryBounds.left() + 22, entryBounds.top() + 6, renderColor(layer == activeLayer ? 0xFFF6FAFF : (muted ? 0xD8E0EA : 0xCBD3DF), hidden));
 
             // r[impl draw.layer-window.layer-entry-mute-toggle.states]
             // r[impl draw.layer-window.layer-entry-mute-toggle.hover]
@@ -1155,9 +1161,11 @@ public class SfmDrawScreen extends Screen {
         int originY = (int) Math.round(canvasToScreenY(origin.y()));
         fill(poseStack, originX, 0, originX + 1, height, axisColor);
         fill(poseStack, 0, originY, width, originY + 1, axisColor);
-        int handleColor = layerOriginDrag != null && layerOriginDrag.layer() == originLayer ? HISTORY_NODE_POINTER_COLOR : originLayer.color();
-        fill(poseStack, originX - 4, originY - 4, originX + 5, originY + 5, 0xFF10141A);
-        fill(poseStack, originX - 3, originY - 3, originX + 4, originY + 4, handleColor);
+        if (originLayer == DrawLayer.HISTORY) {
+            int handleColor = layerOriginDrag != null && layerOriginDrag.layer() == originLayer ? HISTORY_NODE_POINTER_COLOR : originLayer.color();
+            fill(poseStack, originX - 4, originY - 4, originX + 5, originY + 5, 0xFF10141A);
+            fill(poseStack, originX - 3, originY - 3, originX + 4, originY + 4, handleColor);
+        }
     }
 
     private void drawUndoTree(PoseStack poseStack) {
@@ -1210,35 +1218,35 @@ public class SfmDrawScreen extends Screen {
         if (rootNode == null) {
             return layout;
         }
-        layoutHistoryNode(rootNode.id(), 0, layerOrigin(DrawLayer.HISTORY).y(), layout);
+        layoutHistoryNode(rootNode.id(), 0, layerOrigin(DrawLayer.HISTORY).x(), layout);
         return layout;
     }
 
     private double layoutHistoryNode(
             int nodeId,
             int depth,
-            double nextY,
+            double nextX,
             Map<Integer, CanvasPoint> layout
     ) {
         SFMDrawCanvasDocument.UndoNode node = undoNodeById(nodeId);
         if (node == null) {
-            return nextY;
+            return nextX;
         }
 
-        double x = layerOrigin(DrawLayer.HISTORY).x() + depth * HISTORY_NODE_SPACING_X;
+        double y = layerOrigin(DrawLayer.HISTORY).y() + depth * HISTORY_NODE_SPACING_Y;
         if (node.childIds().isEmpty()) {
-            layout.put(node.id(), new CanvasPoint(x, nextY));
-            return nextY + HISTORY_NODE_SPACING_Y;
+            layout.put(node.id(), new CanvasPoint(nextX, y));
+            return nextX + HISTORY_NODE_SPACING_X;
         }
 
-        double firstChildY = nextY;
-        double cursorY = nextY;
+        double firstChildX = nextX;
+        double cursorX = nextX;
         for (Integer childId : node.childIds()) {
-            cursorY = layoutHistoryNode(childId, depth + 1, cursorY, layout);
+            cursorX = layoutHistoryNode(childId, depth + 1, cursorX, layout);
         }
-        double lastChildY = cursorY - HISTORY_NODE_SPACING_Y;
-        layout.put(node.id(), new CanvasPoint(x, (firstChildY + lastChildY) / 2.0D));
-        return cursorY;
+        double lastChildX = cursorX - HISTORY_NODE_SPACING_X;
+        layout.put(node.id(), new CanvasPoint((firstChildX + lastChildX) / 2.0D, y));
+        return cursorX;
     }
 
     private @Nullable SFMDrawCanvasDocument.UndoNode undoRootNode() {
@@ -1261,11 +1269,11 @@ public class SfmDrawScreen extends Screen {
     }
 
     private boolean beginLayerOriginDrag(CanvasPoint point) {
-        if (activeLayer == DrawLayer.CHROME || activeTool != DrawTool.CURSOR) {
+        if (activeTool != DrawTool.CURSOR) {
             return false;
         }
         DrawLayer originLayer = activeCanvasLayer();
-        if (!originLayer.canvasLayer()) {
+        if (originLayer != DrawLayer.HISTORY) {
             return false;
         }
         double radiusSquared = Math.pow(ORIGIN_HANDLE_RADIUS / Math.max(zoom, 0.01D), 2.0D);
@@ -2161,6 +2169,55 @@ public class SfmDrawScreen extends Screen {
 
         ensureChromeWidgetPosition(ChromeWidget.HOTBAR_TITLE, hotbarWidget.x(), Math.max(8, hotbarWidget.y() - font.lineHeight - 10));
         ensureChromeWidgetPosition(ChromeWidget.HOTBAR_SUBTITLE, hotbarWidget.x(), Math.min(height - font.lineHeight - 12, hotbarWidget.y() + hotbarHeight() + 6));
+    }
+
+    public void resetChromeLayout() {
+        screenTitleWidget = screenTitleWidget.withPosition(12, 12);
+        screenSubtitleWidget = screenSubtitleWidget.withPosition(12, 24);
+        layerLabelWidget = layerLabelWidget.withPosition(12, 36);
+        layerValueWidget = layerValueWidget.withPosition(chromeWidgetBounds(ChromeWidget.ACTIVE_LAYER_LABEL).right() + 4, 36);
+
+        int topRowY = 12;
+        int secondRowY = 24;
+        int rightEdge = width - 12;
+
+        rightEdge = resetRightAlignedTextWidget(ChromeWidget.ZOOM_VALUE, rightEdge, topRowY, 0);
+        rightEdge = resetRightAlignedTextWidget(ChromeWidget.ZOOM_LABEL, rightEdge, topRowY, 4);
+        rightEdge = resetRightAlignedTextWidget(ChromeWidget.CAMERA_POSITION_Y, rightEdge, topRowY, 12);
+        rightEdge = resetRightAlignedTextWidget(ChromeWidget.CAMERA_POSITION_SEPARATOR, rightEdge, topRowY, 2);
+        rightEdge = resetRightAlignedTextWidget(ChromeWidget.CAMERA_POSITION_X, rightEdge, topRowY, 2);
+        resetRightAlignedTextWidget(ChromeWidget.CAMERA_POSITION_LABEL, rightEdge, topRowY, 4);
+
+        rightEdge = width - 12;
+        rightEdge = resetRightAlignedTextWidget(ChromeWidget.CURSOR_Y, rightEdge, secondRowY, 0);
+        rightEdge = resetRightAlignedTextWidget(ChromeWidget.CURSOR_SEPARATOR, rightEdge, secondRowY, 2);
+        rightEdge = resetRightAlignedTextWidget(ChromeWidget.CURSOR_X, rightEdge, secondRowY, 2);
+        resetRightAlignedTextWidget(ChromeWidget.CURSOR_LABEL, rightEdge, secondRowY, 4);
+
+        hotbarWidget = hotbarWidget.withPosition((width - hotbarWidth()) / 2, Math.max(32, height - hotbarHeight() - 42));
+        auxiliaryHotbarWidget = auxiliaryHotbarWidget.withPosition(hotbarWidget.x() + hotbarWidth() + 6, hotbarWidget.y());
+        minimapWidget = minimapWidget.withPosition(width - minimapWidget.width() - 12, 30);
+        layerWindowWidget = layerWindowWidget.withPosition(12, 42);
+        hotbarTitleWidget = hotbarTitleWidget.withPosition(hotbarWidget.x(), Math.max(8, hotbarWidget.y() - font.lineHeight - 10));
+        hotbarSubtitleWidget = hotbarSubtitleWidget.withPosition(hotbarWidget.x(), Math.min(height - font.lineHeight - 12, hotbarWidget.y() + hotbarHeight() + 6));
+
+        clampHotbarToScreen();
+        clampAuxiliaryHotbarToScreen();
+        clampAllTextChromeWidgetsToScreen();
+        clampCameraOverlayToScreen();
+        clampLayerWindowToScreen();
+    }
+
+    private int resetRightAlignedTextWidget(
+            ChromeWidget widget,
+            int rightEdge,
+            int y,
+            int gapAfter
+    ) {
+        Rect bounds = textChromeWidgetBounds(chromeWidgetState(widget), chromeWidgetText(widget));
+        int x = rightEdge - bounds.width();
+        setChromeWidgetState(widget, chromeWidgetState(widget).withPosition(x, y));
+        return x - gapAfter;
     }
 
     private int initializeRightAlignedTextWidget(
@@ -3126,7 +3183,12 @@ public class SfmDrawScreen extends Screen {
         if (after.equals(before)) {
             return;
         }
+        if (tryCoalesceRecentHistoryNode(label, after)) {
+            trackRecentHistoryMutation(label, undoTree.currentNodeId());
+            return;
+        }
         appendUndoTreeNode(label, after);
+        trackRecentHistoryMutation(label, undoTree.currentNodeId());
     }
 
     private void appendUndoTreeNode(
@@ -3168,6 +3230,65 @@ public class SfmDrawScreen extends Screen {
         selectedHistoryNodeId = newNodeId;
     }
 
+    private boolean tryCoalesceRecentHistoryNode(
+            String label,
+            SFMDrawCanvasDocument.SceneSnapshot snapshot
+    ) {
+        if (!"Zoom camera".equals(label) || recentZoomHistoryNodeId == null) {
+            return false;
+        }
+
+        long now = Util.getMillis();
+        if (now - recentZoomHistoryNodeUpdatedAtMs > HISTORY_ZOOM_COALESCE_WINDOW_MS) {
+            return false;
+        }
+
+        SFMDrawCanvasDocument.UndoNode currentNode = undoNodeById(undoTree.currentNodeId());
+        if (currentNode == null
+            || currentNode.id() != recentZoomHistoryNodeId
+            || !"Zoom camera".equals(currentNode.label())
+            || !currentNode.childIds().isEmpty()) {
+            return false;
+        }
+
+        List<SFMDrawCanvasDocument.UndoNode> updatedNodes = new ArrayList<>(undoTree.nodes().size());
+        for (SFMDrawCanvasDocument.UndoNode node : undoTree.nodes()) {
+            if (node.id() == currentNode.id()) {
+                updatedNodes.add(new SFMDrawCanvasDocument.UndoNode(
+                        node.id(),
+                        node.parentId(),
+                        node.label(),
+                        node.childIds(),
+                        snapshot
+                ));
+            } else {
+                updatedNodes.add(node);
+            }
+        }
+        undoTree = new SFMDrawCanvasDocument.UndoTree(undoTree.nextNodeId(), currentNode.id(), updatedNodes);
+        selectedHistoryNodeId = currentNode.id();
+        recentZoomHistoryNodeUpdatedAtMs = now;
+        return true;
+    }
+
+    private void trackRecentHistoryMutation(
+            String label,
+            int nodeId
+    ) {
+        if (!"Zoom camera".equals(label)) {
+            clearRecentHistoryMutation();
+            return;
+        }
+
+        recentZoomHistoryNodeId = nodeId;
+        recentZoomHistoryNodeUpdatedAtMs = Util.getMillis();
+    }
+
+    private void clearRecentHistoryMutation() {
+        recentZoomHistoryNodeId = null;
+        recentZoomHistoryNodeUpdatedAtMs = Long.MIN_VALUE;
+    }
+
     private boolean undoHistory() {
         SFMDrawCanvasDocument.UndoNode currentNode = undoNodeById(undoTree.currentNodeId());
         if (currentNode == null || currentNode.parentId() < 0) {
@@ -3201,6 +3322,7 @@ public class SfmDrawScreen extends Screen {
         }
         undoTree = new SFMDrawCanvasDocument.UndoTree(undoTree.nextNodeId(), nodeId, undoTree.nodes());
         selectedHistoryNodeId = nodeId;
+        clearRecentHistoryMutation();
         return true;
     }
 
@@ -3216,6 +3338,7 @@ public class SfmDrawScreen extends Screen {
     private void resetUndoTreeForCurrentScene() {
         undoTree = SFMDrawCanvasDocument.UndoTree.blank(captureSceneSnapshot());
         selectedHistoryNodeId = undoTree.currentNodeId();
+        clearRecentHistoryMutation();
     }
 
     private void ensureHistoryNodeSelection() {
@@ -5241,6 +5364,7 @@ public class SfmDrawScreen extends Screen {
             resetUndoTreeForCurrentScene();
         }
         selectedHistoryNodeId = undoTree.currentNodeId();
+        clearRecentHistoryMutation();
     }
 
     private void resetTransientCanvasState() {
