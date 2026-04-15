@@ -11,20 +11,23 @@ import java.util.Locale;
 public final class SFMDrawCommandCompletionCatalog {
     private static final List<String> LOCAL_DRAW_COMMAND_NAMES = List.of(
         "help",
+            "describe",
             "open",
             "move",
             "ls",
         "rectangle",
             "concatenate",
         "width",
-        "name",
+        "split",
+        "context_menu",
             "reset",
             "ollama"
     );
 
     private static final List<String> DRAW_HELP_USAGES = List.of(
         "/help",
-        "/help <command-or-target>",
+        "/help <command>",
+        "/describe <target>",
         "/echo <message>",
         "/open [path]",
         "/move <from> <to>",
@@ -33,7 +36,8 @@ public final class SFMDrawCommandCompletionCatalog {
         "/rectangle <x1> <y1> <x2> <y2>",
         "/concatenate <target> [delimiter]",
         "/width <target>",
-        "/name <target> [new name]",
+        "/split <target> [delimiter]",
+        "/context_menu <target>",
         "/reset chrome",
         "/ollama models",
         "/ollama run <model> <prompt>",

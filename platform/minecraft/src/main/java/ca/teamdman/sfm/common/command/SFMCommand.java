@@ -366,28 +366,44 @@ public class SFMCommand {
         var drawWidthCommand = Commands.literal("width")
                 .then(Commands.argument("target", StringArgumentType.greedyString())
                               .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
-                                      List.of("@rect[0,4]", "@relative[0,-10]"),
+                                      List.of("@rect[0,4]", "@relative[0,-10]", "@nearest[text]"),
                                       builder
                               ))
                               .executes(ctx -> runDrawLocalOnlyCommand(
                                       ctx.getSource(),
                                       List.of("/sfm draw width <target>")
                               )));
-        var drawNameCommand = Commands.literal("name")
-                .then(Commands.argument("target", StringArgumentType.string())
+        var drawDescribeCommand = Commands.literal("describe")
+                .then(Commands.argument("target", StringArgumentType.greedyString())
                               .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
-                                      List.of("@rect[0,4]", "@relative[0,-10]"),
+                                      List.of("@rect[0,4]", "@relative[0,-10]", "@nearest[text]"),
                                       builder
                               ))
                               .executes(ctx -> runDrawLocalOnlyCommand(
                                       ctx.getSource(),
-                                      List.of("/sfm draw name <target> [new name]")
+                                      List.of("/sfm draw describe <target>")
                               ))
-                              .then(Commands.argument("new_name", StringArgumentType.greedyString())
-                                            .executes(ctx -> runDrawLocalOnlyCommand(
-                                                    ctx.getSource(),
-                                                    List.of("/sfm draw name <target> [new name]")
-                                            ))));
+                );
+        var drawSplitCommand = Commands.literal("split")
+                .then(Commands.argument("args", StringArgumentType.greedyString())
+                              .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                      List.of("@rect[0,4]", "@relative[0,-10]", "@nearest[text]"),
+                                      builder
+                              ))
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw split <target> [delimiter]")
+                              )));
+        var drawContextMenuCommand = Commands.literal("context_menu")
+                .then(Commands.argument("target", StringArgumentType.greedyString())
+                              .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                      List.of("@rect[0,4]", "@relative[0,-10]", "@nearest[text]"),
+                                      builder
+                              ))
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw context_menu <target>")
+                              )));
         var drawOllamaCommand = Commands.literal("ollama")
                 .executes(ctx -> runDrawLocalOnlyCommand(
                         ctx.getSource(),
@@ -440,7 +456,9 @@ public class SFMCommand {
                         .then(drawRectangleCommand)
                         .then(drawConcatenateCommand)
                         .then(drawWidthCommand)
-                        .then(drawNameCommand)
+                        .then(drawDescribeCommand)
+                        .then(drawSplitCommand)
+                        .then(drawContextMenuCommand)
                         .then(drawOllamaCommand)
                         .then(drawPlayerCommand)
                         .then(drawCameraCommand)

@@ -8,9 +8,12 @@ Last updated: 2026-04-15
 - [x] Add persistent undo/redo backed by an undo tree with a dedicated hidden-by-default history layer.
 - [x] Make layer origins draggable so each canvas layer can use a floating origin.
 - [x] Add arrow endpoint snapping/binding so arrows stay attached when bound objects move.
-- [x] Expand slash-command targeting/help so local draw commands can target elements by selector or name.
+- [x] Expand slash-command targeting/help so local draw commands can target elements by selector, raw id, and nearby text matches.
 - [x] Make relative-selector guide arrows persistent, always visible by default, and editable like user-drawn arrows.
 - [x] Add cursor/arrow workflows for inserting new arrow control nodes.
+- [x] Rework local targeting around `/describe`, raw element ids, and `@nearest[...]` instead of hidden element names.
+- [x] Add right-click command execution and drag-to-context-menu flows for canvas elements.
+- [x] Make text entry and paste behavior cursor-local, multiline-aware, and line-oriented for plaintext pastes.
 
 ## Current Plan
 
@@ -65,9 +68,9 @@ Last updated: 2026-04-15
 - [x] Rename `@rel[...]` to `@relative[...]` in formatting, help, and suggestions while keeping old documents readable.
 - [x] Add an optional trailing delimiter parameter to `/concatenate`, defaulting to the empty string.
 - [x] Add `/width {target}` for reporting the resolved element width.
-- [x] Add `/name {target} [{new name}]` for printing and setting element names, including quoted names with spaces.
-- [x] Allow named elements to be used anywhere local target resolution already accepts selectors.
-- [x] Add `/help [topic-or-target]` locally so it can print command help or describe a resolved target element.
+- [x] Replace the temporary `/name {target}` flow with observable raw-id and `@nearest[...]` targeting.
+- [x] Allow raw element ids and `@nearest[...]` selectors anywhere local target resolution already accepts selectors.
+- [x] Keep `/help [topic]` command-only and move target inspection onto `/describe {target}`.
 - [x] Increase the top gap between a command text element and its first emitted output block.
 - [x] Make `/sfm draw help` derive its output from shared command data or the registered command tree so it cannot silently drift.
 
@@ -78,6 +81,16 @@ Last updated: 2026-04-15
 - [x] Allow the command-side end of a relative-selector arrow to slide along the command node without detaching.
 - [x] Allow double-clicking an arrow segment with the cursor tool to insert a control node.
 - [x] When arrow anchors are selected, pressing `a` should enter an insert-anchor mode that adds a control node on click.
+
+### 8. Command targeting / text interaction follow-up
+
+- [x] Replace local `/help {target}` behavior with `/describe {target}` so `/help` stays command-only.
+- [x] Drop the name-based target flow in favor of raw element ids and `@nearest[text here]` selectors.
+- [x] Add `/context_menu {target}` and `/split {target} [delimiter]` for target-specific command menus and text splitting.
+- [x] Make Enter-to-edit search near the cursor instead of the viewport center.
+- [x] Make multiline text editing honor the Up/Down arrows.
+- [x] Strip `\r` when pasting text and paste plaintext from the cursor tool as one text element per line.
+- [x] Make right-click run command text and right-click-drag create and execute `/context_menu {id}`.
 
 ## Implementation Notes
 
@@ -98,6 +111,7 @@ Last updated: 2026-04-15
 - [x] `cd platform/minecraft && .\gradlew.bat compileJava`
 - [x] `cd platform/minecraft && .\gradlew.bat compileJava test --tests "ca.teamdman.sfm.test.SFMDrawLocalCommandExecutorTests" --tests "ca.teamdman.sfm.test.SFMDrawSpatialQueriesTests" --tests "ca.teamdman.sfm.test.SFMDrawVirtualFileSystemTests"`
 - [ ] Manually exercise the new guide-arrow editing flows in-client.
+- [ ] Manually exercise the new right-click context-menu flow, cursor-local Enter-to-edit behavior, and multiline/plaintext paste behavior in-client.
 
 ## Backlog
 

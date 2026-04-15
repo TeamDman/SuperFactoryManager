@@ -40,6 +40,7 @@ public class SFMDrawLocalCommandExecutorTests {
 
         assertTrue(suggestions.suggestions().contains("@rect[1,2]"));
         assertTrue(suggestions.suggestions().contains("@relative[0,-10]"));
+        assertTrue(suggestions.suggestions().contains("@nearest[text]"));
         assertFalse(suggestions.suggestions().contains("concantenate"));
     }
 
@@ -66,6 +67,30 @@ public class SFMDrawLocalCommandExecutorTests {
     }
 
     @Test
+    public void helpSuggestionsStayCommandOnly() {
+        SFMDrawLocalCommandExecutor.CompletionSuggestions suggestions = SFMDrawLocalCommandExecutor.suggestCompletions(
+                "help @",
+                6,
+                "@rect[1,2]"
+        );
+
+        assertFalse(suggestions.suggestions().contains("@rect[1,2]"));
+        assertFalse(suggestions.suggestions().contains("@nearest[text]"));
+    }
+
+    @Test
+    public void describeSuggestionsIncludeTargetSelectors() {
+        SFMDrawLocalCommandExecutor.CompletionSuggestions suggestions = SFMDrawLocalCommandExecutor.suggestCompletions(
+                "describe ",
+                9,
+                "@rect[1,2]"
+        );
+
+        assertTrue(suggestions.suggestions().contains("@rect[1,2]"));
+        assertTrue(suggestions.suggestions().contains("@nearest[text]"));
+    }
+
+    @Test
     public void ollamaRunSuggestionsIncludeFallbackModels() {
         SFMDrawLocalCommandExecutor.CompletionSuggestions suggestions = SFMDrawLocalCommandExecutor.suggestCompletions(
                 "ollama run ",
@@ -84,5 +109,20 @@ public class SFMDrawLocalCommandExecutorTests {
     @Test
     public void relativeSelectorIsHandledAsLocalCommand() {
         assertTrue(SFMDrawLocalCommandExecutor.canHandle("concatenate @relative[0,-10]"));
+    }
+
+    @Test
+    public void nearestSelectorWithSpacesIsHandledAsLocalCommand() {
+        assertTrue(SFMDrawLocalCommandExecutor.canHandle("describe @nearest[name: joe]"));
+    }
+
+    @Test
+    public void contextMenuCommandIsHandledAsLocalCommand() {
+        assertTrue(SFMDrawLocalCommandExecutor.canHandle("context_menu 17"));
+    }
+
+    @Test
+    public void splitCommandIsHandledAsLocalCommand() {
+        assertTrue(SFMDrawLocalCommandExecutor.canHandle("split 17 \\n"));
     }
 }
