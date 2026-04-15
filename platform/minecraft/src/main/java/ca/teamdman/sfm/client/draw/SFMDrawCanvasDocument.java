@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.draw;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -11,15 +12,34 @@ public record SFMDrawCanvasDocument(
         String activeLayer,
         boolean elementsLayerMuted,
         boolean chromeLayerMuted,
+        boolean historyLayerMuted,
+        List<LayerOrigin> layerOrigins,
         int nextElementId,
         int nextGroupId,
-        List<Element> elements
+        List<Element> elements,
+        UndoTree undoTree
 ) {
-    public static final int CURRENT_VERSION = 1;
+    public static final int CURRENT_VERSION = 2;
 
     public SFMDrawCanvasDocument {
         activeLayer = Objects.requireNonNullElse(activeLayer, "ELEMENTS");
-        elements = elements == null ? List.of() : List.copyOf(elements);
+        layerOrigins = normalizeLayerOrigins(layerOrigins);
+        elements = copyElements(elements);
+        undoTree = undoTree == null
+                ? UndoTree.blank(new SceneSnapshot(
+                        cameraX,
+                        cameraY,
+                        zoom,
+                        activeLayer,
+                        elementsLayerMuted,
+                        chromeLayerMuted,
+                        historyLayerMuted,
+                        layerOrigins,
+                        nextElementId,
+                        nextGroupId,
+                        elements
+                ))
+                : undoTree;
     }
 
     public static SFMDrawCanvasDocument blank() {
@@ -31,13 +51,109 @@ public record SFMDrawCanvasDocument(
                 "ELEMENTS",
                 false,
                 false,
+                true,
+                defaultLayerOrigins(),
                 1,
                 1,
-                List.of()
+                List.of(),
+                null
         );
     }
 
-    public record Point(double x, double y) {
+    public static SFMDrawCanvasDocument clipboard(
+            String activeLayer,
+            List<Element> elements
+    ) {
+        return new SFMDrawCanvasDocument(
+                CURRENT_VERSION,
+                0.0D,
+                0.0D,
+                1.0D,
+                activeLayer,
+                false,
+                false,
+                true,
+                defaultLayerOrigins(),
+                1,
+                1,
+                elements,
+                null
+        );
+    }
+
+    public record Point(
+            double x,
+            double y
+    ) {
+    }
+
+    public record LayerOrigin(
+            String layer,
+            double x,
+            double y
+    ) {
+        public LayerOrigin {
+            layer = Objects.requireNonNullElse(layer, "ELEMENTS");
+        }
+    }
+
+    public record EndpointBinding(
+            int targetElementId,
+            double focusX,
+            double focusY
+    ) {
+    }
+
+    public record SceneSnapshot(
+            double cameraX,
+            double cameraY,
+            double zoom,
+            String activeLayer,
+            boolean elementsLayerMuted,
+            boolean chromeLayerMuted,
+            boolean historyLayerMuted,
+            List<LayerOrigin> layerOrigins,
+            int nextElementId,
+            int nextGroupId,
+            List<Element> elements
+    ) {
+        public SceneSnapshot {
+            activeLayer = Objects.requireNonNullElse(activeLayer, "ELEMENTS");
+            layerOrigins = normalizeLayerOrigins(layerOrigins);
+            elements = copyElements(elements);
+        }
+    }
+
+    public record UndoNode(
+            int id,
+            int parentId,
+            String label,
+            List<Integer> childIds,
+            SceneSnapshot snapshot
+    ) {
+        public UndoNode {
+            label = Objects.requireNonNullElse(label, "Action");
+            childIds = childIds == null ? List.of() : List.copyOf(childIds);
+            snapshot = snapshot == null ? blank().undoTree().nodes().get(0).snapshot() : snapshot;
+        }
+    }
+
+    public record UndoTree(
+            int nextNodeId,
+            int currentNodeId,
+            List<UndoNode> nodes
+    ) {
+        public UndoTree {
+            nodes = nodes == null ? List.of() : List.copyOf(nodes);
+        }
+
+        public static UndoTree blank(SceneSnapshot rootSnapshot) {
+            return new UndoTree(
+                    1,
+                    0,
+                    List.of(new UndoNode(0, -1, "Root", List.of(), rootSnapshot))
+            );
+        }
     }
 
     public record Element(
@@ -56,6 +172,8 @@ public record SFMDrawCanvasDocument(
             Integer strokeColor,
             List<Point> points,
             List<Integer> hiddenAnchorIndexes,
+            EndpointBinding startBinding,
+            EndpointBinding endBinding,
             Double x,
             Double y,
             String text,
@@ -104,6 +222,8 @@ public record SFMDrawCanvasDocument(
                     List.of(),
                     null,
                     null,
+                    null,
+                    null,
                     "",
                     null,
                     null
@@ -119,7 +239,9 @@ public record SFMDrawCanvasDocument(
                 List<Integer> groupIds,
                 List<Point> points,
                 List<Integer> hiddenAnchorIndexes,
-                int color
+                int color,
+                EndpointBinding startBinding,
+                EndpointBinding endBinding
         ) {
             return new Element(
                     "arrow",
@@ -137,6 +259,8 @@ public record SFMDrawCanvasDocument(
                     null,
                     points,
                     hiddenAnchorIndexes,
+                    startBinding,
+                    endBinding,
                     null,
                     null,
                     "",
@@ -174,6 +298,8 @@ public record SFMDrawCanvasDocument(
                     null,
                     List.of(),
                     List.of(),
+                    null,
+                    null,
                     x,
                     y,
                     text,
@@ -210,10 +336,52 @@ public record SFMDrawCanvasDocument(
                     List.of(),
                     null,
                     null,
+                    null,
+                    null,
                     "",
                     color,
                     null
             );
         }
+    }
+
+    private static List<Element> copyElements(List<Element> elements) {
+        return elements == null ? List.of() : List.copyOf(elements);
+    }
+
+    private static List<LayerOrigin> defaultLayerOrigins() {
+        return List.of(
+                new LayerOrigin("ELEMENTS", 0.0D, 0.0D),
+                new LayerOrigin("CHROME", 0.0D, 0.0D),
+                new LayerOrigin("HISTORY", 0.0D, 0.0D)
+        );
+    }
+
+    private static List<LayerOrigin> normalizeLayerOrigins(List<LayerOrigin> layerOrigins) {
+        List<LayerOrigin> normalized = new ArrayList<>();
+        List<LayerOrigin> provided = layerOrigins == null ? List.of() : layerOrigins;
+        for (LayerOrigin defaultOrigin : defaultLayerOrigins()) {
+            LayerOrigin match = null;
+            for (LayerOrigin candidate : provided) {
+                if (defaultOrigin.layer().equals(candidate.layer())) {
+                    match = candidate;
+                    break;
+                }
+            }
+            normalized.add(match == null ? defaultOrigin : match);
+        }
+        for (LayerOrigin candidate : provided) {
+            boolean alreadyPresent = false;
+            for (LayerOrigin existing : normalized) {
+                if (existing.layer().equals(candidate.layer())) {
+                    alreadyPresent = true;
+                    break;
+                }
+            }
+            if (!alreadyPresent) {
+                normalized.add(candidate);
+            }
+        }
+        return List.copyOf(normalized);
     }
 }

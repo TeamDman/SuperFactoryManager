@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.datagen;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.localization.IdeLocalizationKeys;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMDrawLocalizationKeys;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
@@ -75,7 +75,7 @@ public class SFMLanguageProviderDatagen extends MCVersionAgnosticLanguageDataGen
             add(entry.key().get(), entry.value().get());
             seen.add(entry.key().get());
         }
-        for (var entry : IdeLocalizationKeys.getEntries()) {
+        for (var entry : SFMDrawLocalizationKeys.getEntries()) {
             add(entry.key().get(), entry.value().get());
             seen.add(entry.key().get());
         }

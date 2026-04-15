@@ -60,9 +60,12 @@ public final class SFMDrawCanvasStorage {
                     getString(root, "activeLayer", "ELEMENTS"),
                     getBoolean(root, "elementsLayerMuted", false),
                     getBoolean(root, "chromeLayerMuted", false),
+                    getBoolean(root, "historyLayerMuted", true),
+                    readLayerOrigins(root.getAsJsonArray("layerOrigins")),
                     getInt(root, "nextElementId", 1),
                     getInt(root, "nextGroupId", 1),
-                    readElements(root.getAsJsonArray("elements"))
+                    readElements(root.getAsJsonArray("elements")),
+                    readUndoTree(root.getAsJsonObject("undoTree"))
             );
         } catch (JsonParseException exception) {
             throw new IOException("Failed to parse canvas file: " + sourceName, exception);
@@ -86,56 +89,119 @@ public final class SFMDrawCanvasStorage {
         root.addProperty("activeLayer", document.activeLayer());
         root.addProperty("elementsLayerMuted", document.elementsLayerMuted());
         root.addProperty("chromeLayerMuted", document.chromeLayerMuted());
+        root.addProperty("historyLayerMuted", document.historyLayerMuted());
+        root.add("layerOrigins", writeLayerOrigins(document.layerOrigins()));
         root.addProperty("nextElementId", document.nextElementId());
         root.addProperty("nextGroupId", document.nextGroupId());
-
-        JsonArray elements = new JsonArray();
-        for (SFMDrawCanvasDocument.Element element : document.elements()) {
-            JsonObject serializedElement = new JsonObject();
-            serializedElement.addProperty("type", element.type());
-            serializedElement.addProperty("id", element.id());
-            serializedElement.addProperty("layer", element.layer());
-            serializedElement.addProperty("hidden", element.hidden());
-            serializedElement.addProperty("locked", element.locked());
-            serializedElement.addProperty("commandSourceElementId", element.commandSourceElementId());
-
-            JsonArray groupIds = new JsonArray();
-            for (Integer groupId : element.groupIds()) {
-                groupIds.add(groupId);
-            }
-            serializedElement.add("groupIds", groupIds);
-
-            addNullableDouble(serializedElement, "x1", element.x1());
-            addNullableDouble(serializedElement, "y1", element.y1());
-            addNullableDouble(serializedElement, "x2", element.x2());
-            addNullableDouble(serializedElement, "y2", element.y2());
-            addNullableInt(serializedElement, "fillColor", element.fillColor());
-            addNullableInt(serializedElement, "strokeColor", element.strokeColor());
-
-            JsonArray points = new JsonArray();
-            for (SFMDrawCanvasDocument.Point point : element.points()) {
-                JsonObject serializedPoint = new JsonObject();
-                serializedPoint.addProperty("x", point.x());
-                serializedPoint.addProperty("y", point.y());
-                points.add(serializedPoint);
-            }
-            serializedElement.add("points", points);
-
-            JsonArray hiddenAnchorIndexes = new JsonArray();
-            for (Integer hiddenAnchorIndex : element.hiddenAnchorIndexes()) {
-                hiddenAnchorIndexes.add(hiddenAnchorIndex);
-            }
-            serializedElement.add("hiddenAnchorIndexes", hiddenAnchorIndexes);
-
-            addNullableDouble(serializedElement, "x", element.x());
-            addNullableDouble(serializedElement, "y", element.y());
-            serializedElement.addProperty("text", element.text());
-            addNullableInt(serializedElement, "color", element.color());
-            addNullableDouble(serializedElement, "textScale", element.textScale());
-            elements.add(serializedElement);
-        }
-        root.add("elements", elements);
+        root.add("elements", writeElements(document.elements()));
+        root.add("undoTree", writeUndoTree(document.undoTree()));
         return root;
+    }
+
+    private static JsonArray writeElements(List<SFMDrawCanvasDocument.Element> elements) {
+        JsonArray serializedElements = new JsonArray();
+        for (SFMDrawCanvasDocument.Element element : elements) {
+            serializedElements.add(writeElement(element));
+        }
+        return serializedElements;
+    }
+
+    private static JsonObject writeElement(SFMDrawCanvasDocument.Element element) {
+        JsonObject serializedElement = new JsonObject();
+        serializedElement.addProperty("type", element.type());
+        serializedElement.addProperty("id", element.id());
+        serializedElement.addProperty("layer", element.layer());
+        serializedElement.addProperty("hidden", element.hidden());
+        serializedElement.addProperty("locked", element.locked());
+        serializedElement.addProperty("commandSourceElementId", element.commandSourceElementId());
+
+        JsonArray groupIds = new JsonArray();
+        for (Integer groupId : element.groupIds()) {
+            groupIds.add(groupId);
+        }
+        serializedElement.add("groupIds", groupIds);
+
+        addNullableDouble(serializedElement, "x1", element.x1());
+        addNullableDouble(serializedElement, "y1", element.y1());
+        addNullableDouble(serializedElement, "x2", element.x2());
+        addNullableDouble(serializedElement, "y2", element.y2());
+        addNullableInt(serializedElement, "fillColor", element.fillColor());
+        addNullableInt(serializedElement, "strokeColor", element.strokeColor());
+
+        JsonArray points = new JsonArray();
+        for (SFMDrawCanvasDocument.Point point : element.points()) {
+            JsonObject serializedPoint = new JsonObject();
+            serializedPoint.addProperty("x", point.x());
+            serializedPoint.addProperty("y", point.y());
+            points.add(serializedPoint);
+        }
+        serializedElement.add("points", points);
+
+        JsonArray hiddenAnchorIndexes = new JsonArray();
+        for (Integer hiddenAnchorIndex : element.hiddenAnchorIndexes()) {
+            hiddenAnchorIndexes.add(hiddenAnchorIndex);
+        }
+        serializedElement.add("hiddenAnchorIndexes", hiddenAnchorIndexes);
+
+        addNullableBinding(serializedElement, "startBinding", element.startBinding());
+        addNullableBinding(serializedElement, "endBinding", element.endBinding());
+
+        addNullableDouble(serializedElement, "x", element.x());
+        addNullableDouble(serializedElement, "y", element.y());
+        serializedElement.addProperty("text", element.text());
+        addNullableInt(serializedElement, "color", element.color());
+        addNullableDouble(serializedElement, "textScale", element.textScale());
+        return serializedElement;
+    }
+
+    private static JsonArray writeLayerOrigins(List<SFMDrawCanvasDocument.LayerOrigin> layerOrigins) {
+        JsonArray array = new JsonArray();
+        for (SFMDrawCanvasDocument.LayerOrigin layerOrigin : layerOrigins) {
+            JsonObject serializedLayerOrigin = new JsonObject();
+            serializedLayerOrigin.addProperty("layer", layerOrigin.layer());
+            serializedLayerOrigin.addProperty("x", layerOrigin.x());
+            serializedLayerOrigin.addProperty("y", layerOrigin.y());
+            array.add(serializedLayerOrigin);
+        }
+        return array;
+    }
+
+    private static JsonObject writeUndoTree(SFMDrawCanvasDocument.UndoTree undoTree) {
+        JsonObject serializedUndoTree = new JsonObject();
+        serializedUndoTree.addProperty("nextNodeId", undoTree.nextNodeId());
+        serializedUndoTree.addProperty("currentNodeId", undoTree.currentNodeId());
+        JsonArray nodes = new JsonArray();
+        for (SFMDrawCanvasDocument.UndoNode node : undoTree.nodes()) {
+            JsonObject serializedNode = new JsonObject();
+            serializedNode.addProperty("id", node.id());
+            serializedNode.addProperty("parentId", node.parentId());
+            serializedNode.addProperty("label", node.label());
+            JsonArray childIds = new JsonArray();
+            for (Integer childId : node.childIds()) {
+                childIds.add(childId);
+            }
+            serializedNode.add("childIds", childIds);
+            serializedNode.add("snapshot", writeSceneSnapshot(node.snapshot()));
+            nodes.add(serializedNode);
+        }
+        serializedUndoTree.add("nodes", nodes);
+        return serializedUndoTree;
+    }
+
+    private static JsonObject writeSceneSnapshot(SFMDrawCanvasDocument.SceneSnapshot snapshot) {
+        JsonObject serializedSnapshot = new JsonObject();
+        serializedSnapshot.addProperty("cameraX", snapshot.cameraX());
+        serializedSnapshot.addProperty("cameraY", snapshot.cameraY());
+        serializedSnapshot.addProperty("zoom", snapshot.zoom());
+        serializedSnapshot.addProperty("activeLayer", snapshot.activeLayer());
+        serializedSnapshot.addProperty("elementsLayerMuted", snapshot.elementsLayerMuted());
+        serializedSnapshot.addProperty("chromeLayerMuted", snapshot.chromeLayerMuted());
+        serializedSnapshot.addProperty("historyLayerMuted", snapshot.historyLayerMuted());
+        serializedSnapshot.add("layerOrigins", writeLayerOrigins(snapshot.layerOrigins()));
+        serializedSnapshot.addProperty("nextElementId", snapshot.nextElementId());
+        serializedSnapshot.addProperty("nextGroupId", snapshot.nextGroupId());
+        serializedSnapshot.add("elements", writeElements(snapshot.elements()));
+        return serializedSnapshot;
     }
 
     private static List<SFMDrawCanvasDocument.Element> readElements(JsonArray elements) {
@@ -165,6 +231,8 @@ public final class SFMDrawCanvasStorage {
                     getNullableInt(serializedElement, "strokeColor"),
                     readPoints(serializedElement.getAsJsonArray("points")),
                     readIntList(serializedElement.getAsJsonArray("hiddenAnchorIndexes")),
+                    readEndpointBinding(serializedElement.getAsJsonObject("startBinding")),
+                    readEndpointBinding(serializedElement.getAsJsonObject("endBinding")),
                     getNullableDouble(serializedElement, "x"),
                     getNullableDouble(serializedElement, "y"),
                     getString(serializedElement, "text", ""),
@@ -173,6 +241,72 @@ public final class SFMDrawCanvasStorage {
             ));
         }
         return result;
+    }
+
+    private static List<SFMDrawCanvasDocument.LayerOrigin> readLayerOrigins(JsonArray layerOrigins) {
+        if (layerOrigins == null) {
+            return List.of();
+        }
+        List<SFMDrawCanvasDocument.LayerOrigin> result = new ArrayList<>(layerOrigins.size());
+        for (JsonElement layerOriginElement : layerOrigins) {
+            if (!layerOriginElement.isJsonObject()) {
+                continue;
+            }
+            JsonObject serializedLayerOrigin = layerOriginElement.getAsJsonObject();
+            result.add(new SFMDrawCanvasDocument.LayerOrigin(
+                    getString(serializedLayerOrigin, "layer", "ELEMENTS"),
+                    getDouble(serializedLayerOrigin, "x", 0.0D),
+                    getDouble(serializedLayerOrigin, "y", 0.0D)
+            ));
+        }
+        return result;
+    }
+
+    private static SFMDrawCanvasDocument.UndoTree readUndoTree(JsonObject undoTree) {
+        if (undoTree == null) {
+            return null;
+        }
+        JsonArray nodes = undoTree.getAsJsonArray("nodes");
+        List<SFMDrawCanvasDocument.UndoNode> readNodes = new ArrayList<>(nodes == null ? 0 : nodes.size());
+        if (nodes != null) {
+            for (JsonElement nodeElement : nodes) {
+                if (!nodeElement.isJsonObject()) {
+                    continue;
+                }
+                JsonObject serializedNode = nodeElement.getAsJsonObject();
+                readNodes.add(new SFMDrawCanvasDocument.UndoNode(
+                        getInt(serializedNode, "id", 0),
+                        getInt(serializedNode, "parentId", -1),
+                        getString(serializedNode, "label", "Action"),
+                        readIntList(serializedNode.getAsJsonArray("childIds")),
+                        readSceneSnapshot(serializedNode.getAsJsonObject("snapshot"))
+                ));
+            }
+        }
+        return new SFMDrawCanvasDocument.UndoTree(
+                getInt(undoTree, "nextNodeId", 1),
+                getInt(undoTree, "currentNodeId", 0),
+                readNodes
+        );
+    }
+
+    private static SFMDrawCanvasDocument.SceneSnapshot readSceneSnapshot(JsonObject serializedSnapshot) {
+        if (serializedSnapshot == null) {
+            return null;
+        }
+        return new SFMDrawCanvasDocument.SceneSnapshot(
+                getDouble(serializedSnapshot, "cameraX", 0.0D),
+                getDouble(serializedSnapshot, "cameraY", 0.0D),
+                getDouble(serializedSnapshot, "zoom", 1.0D),
+                getString(serializedSnapshot, "activeLayer", "ELEMENTS"),
+                getBoolean(serializedSnapshot, "elementsLayerMuted", false),
+                getBoolean(serializedSnapshot, "chromeLayerMuted", false),
+                getBoolean(serializedSnapshot, "historyLayerMuted", true),
+                readLayerOrigins(serializedSnapshot.getAsJsonArray("layerOrigins")),
+                getInt(serializedSnapshot, "nextElementId", 1),
+                getInt(serializedSnapshot, "nextGroupId", 1),
+                readElements(serializedSnapshot.getAsJsonArray("elements"))
+        );
     }
 
     private static List<SFMDrawCanvasDocument.Point> readPoints(JsonArray points) {
@@ -192,6 +326,17 @@ public final class SFMDrawCanvasStorage {
             ));
         }
         return result;
+    }
+
+    private static SFMDrawCanvasDocument.EndpointBinding readEndpointBinding(JsonObject serializedBinding) {
+        if (serializedBinding == null) {
+            return null;
+        }
+        return new SFMDrawCanvasDocument.EndpointBinding(
+                getInt(serializedBinding, "targetElementId", -1),
+                getDouble(serializedBinding, "focusX", 0.5D),
+                getDouble(serializedBinding, "focusY", 0.5D)
+        );
     }
 
     private static List<Integer> readIntList(JsonArray values) {
@@ -216,6 +361,21 @@ public final class SFMDrawCanvasStorage {
         if (value != null) {
             target.addProperty(key, value);
         }
+    }
+
+    private static void addNullableBinding(
+            JsonObject target,
+            String key,
+            SFMDrawCanvasDocument.EndpointBinding binding
+    ) {
+        if (binding == null) {
+            return;
+        }
+        JsonObject serializedBinding = new JsonObject();
+        serializedBinding.addProperty("targetElementId", binding.targetElementId());
+        serializedBinding.addProperty("focusX", binding.focusX());
+        serializedBinding.addProperty("focusY", binding.focusY());
+        target.add(key, serializedBinding);
     }
 
     private static void addNullableDouble(

@@ -74,6 +74,10 @@ public final class SFMDrawLocalizationKeys {
             "gui.sfm.ide.draw.layer.chrome",
             "Chrome"
     );
+    public static final LocalizationEntry IDE_DRAW_LAYER_HISTORY = new LocalizationEntry(
+            "gui.sfm.ide.draw.layer.history",
+            "History"
+    );
     public static final LocalizationEntry IDE_DRAW_LAYER_MUTE = new LocalizationEntry(
             "gui.sfm.ide.draw.layer.mute",
             "Mute %s"
