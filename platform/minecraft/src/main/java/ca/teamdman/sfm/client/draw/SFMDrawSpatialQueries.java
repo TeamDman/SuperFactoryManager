@@ -17,10 +17,23 @@ public final class SFMDrawSpatialQueries {
             double x,
             double y
     ) {
+        return concatenateFromRectPoint(rectangles, textSurfaces, textMetrics, x, y, "");
+    }
+
+    public static String concatenateFromRectPoint(
+            List<RectangleRegion> rectangles,
+            List<TextSurface> textSurfaces,
+            TextMetrics textMetrics,
+            double x,
+            double y,
+            String delimiter
+    ) {
         List<CanvasRegion> selectedRegions = regionsContainingPoint(rectangles, x, y);
         if (selectedRegions.isEmpty()) {
             return "";
         }
+
+        String normalizedDelimiter = delimiter == null ? "" : delimiter;
 
         List<CapturedGlyph> capturedGlyphs = new ArrayList<>();
         int glyphOrder = 0;
@@ -55,7 +68,7 @@ public final class SFMDrawSpatialQueries {
         double activeLineBottom = Double.NEGATIVE_INFINITY;
         for (CapturedGlyph capturedGlyph : capturedGlyphs) {
             if (activeLineTop != null && capturedGlyph.top() > activeLineBottom - LINE_EPSILON && Math.abs(capturedGlyph.top() - activeLineTop) > LINE_EPSILON) {
-                result.append('\n');
+                result.append(normalizedDelimiter);
             }
             result.append(capturedGlyph.character());
             if (activeLineTop == null || capturedGlyph.top() > activeLineBottom - LINE_EPSILON) {

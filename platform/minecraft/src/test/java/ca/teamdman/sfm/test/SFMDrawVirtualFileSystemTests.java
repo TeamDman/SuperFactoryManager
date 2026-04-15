@@ -116,6 +116,7 @@ public class SFMDrawVirtualFileSystemTests {
                                 false,
                                 -1,
                                 List.of(),
+                                "Inbox",
                                 10.0D,
                                 10.0D,
                                 30.0D,
@@ -130,6 +131,7 @@ public class SFMDrawVirtualFileSystemTests {
                                 false,
                                 -1,
                                 List.of(),
+                                "Flow",
                                 List.of(
                                         new SFMDrawCanvasDocument.Point(5.0D, 5.0D),
                                         new SFMDrawCanvasDocument.Point(25.0D, 16.0D)

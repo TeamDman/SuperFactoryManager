@@ -39,19 +39,30 @@ public class SFMDrawLocalCommandExecutorTests {
         );
 
         assertTrue(suggestions.suggestions().contains("@rect[1,2]"));
-        assertTrue(suggestions.suggestions().contains("@rel[0,-10]"));
+        assertTrue(suggestions.suggestions().contains("@relative[0,-10]"));
         assertFalse(suggestions.suggestions().contains("concantenate"));
     }
 
     @Test
-    public void boxSuggestionsIncludeListSubcommand() {
+    public void rectangleSuggestionsIncludeListSubcommand() {
         SFMDrawLocalCommandExecutor.CompletionSuggestions suggestions = SFMDrawLocalCommandExecutor.suggestCompletions(
-                "box ",
-                4,
+                "rectangle ",
+                10,
                 "@rect[1,2]"
         );
 
         assertTrue(suggestions.suggestions().contains("list"));
+    }
+
+    @Test
+    public void helpSuggestionsIncludeCommandTopics() {
+        SFMDrawLocalCommandExecutor.CompletionSuggestions suggestions = SFMDrawLocalCommandExecutor.suggestCompletions(
+                "help pla",
+                8,
+                "@rect[1,2]"
+        );
+
+        assertTrue(suggestions.suggestions().contains("player"));
     }
 
     @Test
@@ -72,6 +83,6 @@ public class SFMDrawLocalCommandExecutorTests {
 
     @Test
     public void relativeSelectorIsHandledAsLocalCommand() {
-        assertTrue(SFMDrawLocalCommandExecutor.canHandle("concatenate @rel[0,-10]"));
+        assertTrue(SFMDrawLocalCommandExecutor.canHandle("concatenate @relative[0,-10]"));
     }
 }

@@ -59,6 +59,7 @@ import net.minecraftforge.server.command.EnumArgument;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BiFunction;
@@ -326,11 +327,11 @@ public class SFMCommand {
                                       ctx.getSource(),
                                       List.of("/sfm draw ls [path]")
                               )));
-        var drawBoxCommand = Commands.literal("box")
+        var drawRectangleCommand = Commands.literal("rectangle")
                 .then(Commands.literal("list")
                               .executes(ctx -> runDrawLocalOnlyCommand(
                                       ctx.getSource(),
-                                      List.of("/sfm draw box list")
+                                      List.of("/sfm draw rectangle list")
                               )))
                 .then(
                         Commands.argument("x1", DoubleArgumentType.doubleArg())
@@ -342,7 +343,7 @@ public class SFMCommand {
                                                                         Commands.argument("y2", DoubleArgumentType.doubleArg())
                                                                                 .executes(ctx -> runDrawLocalOnlyCommand(
                                                                                         ctx.getSource(),
-                                                                                        List.of("/sfm draw box <x1> <y1> <x2> <y2>")
+                                                                                        List.of("/sfm draw rectangle <x1> <y1> <x2> <y2>")
                                                                                 ))
                                                                 )
                                                 )
@@ -351,17 +352,42 @@ public class SFMCommand {
         var drawConcatenateCommand = Commands.literal("concatenate")
                 .executes(ctx -> runDrawLocalOnlyCommand(
                         ctx.getSource(),
-                        List.of("/sfm draw concatenate @rect[x,y]", "/sfm draw concatenate @rel[dx,dy]")
+                        List.of("/sfm draw concatenate <target> [delimiter]")
                 ))
                 .then(Commands.argument("selector", StringArgumentType.greedyString())
                               .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
-                                      List.of("@rect[0,4]", "@rel[0,-10]"),
+                                      List.of("@rect[0,4]", "@relative[0,-10]"),
                                       builder
                               ))
                               .executes(ctx -> runDrawLocalOnlyCommand(
                                       ctx.getSource(),
-                                      List.of("/sfm draw concatenate @rect[x,y]", "/sfm draw concatenate @rel[dx,dy]")
+                                      List.of("/sfm draw concatenate <target> [delimiter]")
                               )));
+        var drawWidthCommand = Commands.literal("width")
+                .then(Commands.argument("target", StringArgumentType.greedyString())
+                              .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                      List.of("@rect[0,4]", "@relative[0,-10]"),
+                                      builder
+                              ))
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw width <target>")
+                              )));
+        var drawNameCommand = Commands.literal("name")
+                .then(Commands.argument("target", StringArgumentType.string())
+                              .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                      List.of("@rect[0,4]", "@relative[0,-10]"),
+                                      builder
+                              ))
+                              .executes(ctx -> runDrawLocalOnlyCommand(
+                                      ctx.getSource(),
+                                      List.of("/sfm draw name <target> [new name]")
+                              ))
+                              .then(Commands.argument("new_name", StringArgumentType.greedyString())
+                                            .executes(ctx -> runDrawLocalOnlyCommand(
+                                                    ctx.getSource(),
+                                                    List.of("/sfm draw name <target> [new name]")
+                                            ))));
         var drawOllamaCommand = Commands.literal("ollama")
                 .executes(ctx -> runDrawLocalOnlyCommand(
                         ctx.getSource(),
@@ -395,7 +421,12 @@ public class SFMCommand {
                 Commands.literal("draw")
                         .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
                         .then(Commands.literal("help")
-                                      .executes(ctx -> runDrawHelp(ctx.getSource())))
+                                      .executes(ctx -> runDrawHelp(ctx.getSource(), null))
+                                      .then(Commands.argument("topic", StringArgumentType.greedyString())
+                                                    .executes(ctx -> runDrawHelp(
+                                                            ctx.getSource(),
+                                                            StringArgumentType.getString(ctx, "topic")
+                                                    ))))
                         .then(Commands.literal("echo")
                                       .executes(ctx -> runDrawEcho(ctx.getSource(), ""))
                                       .then(Commands.argument("message", StringArgumentType.greedyString())
@@ -406,8 +437,10 @@ public class SFMCommand {
                         .then(drawOpenCommand)
                         .then(drawMoveCommand)
                         .then(drawLsCommand)
-                        .then(drawBoxCommand)
+                        .then(drawRectangleCommand)
                         .then(drawConcatenateCommand)
+                        .then(drawWidthCommand)
+                        .then(drawNameCommand)
                         .then(drawOllamaCommand)
                         .then(drawPlayerCommand)
                         .then(drawCameraCommand)
@@ -472,39 +505,44 @@ public class SFMCommand {
                 return SINGLE_SUCCESS;
         }
 
-        private static int runDrawHelp(CommandSourceStack source) {
+        private static int runDrawHelp(
+                        CommandSourceStack source,
+                        String topic
+        ) {
 
-                List<String> lines = List.of(
-                                "SFM draw commands:",
-                                "- /sfm draw help",
-                                "- /sfm draw echo <message>",
-                                "- /sfm draw open [path] (local draw screen only)",
-                                "- /sfm draw move <from> <to> (local draw screen only)",
-                                "- /sfm draw ls [path] (local draw screen only)",
-                                "- /sfm draw box list (local draw screen only)",
-                                "- /sfm draw box <x1> <y1> <x2> <y2> (local draw screen only)",
-                                "- /sfm draw concatenate @rect[x,y] | @rel[dx,dy] (local draw screen only)",
-                                "- /sfm draw ollama models (local draw screen only)",
-                                "- /sfm draw ollama run <model> <prompt> (local draw screen only)",
-                                "- /sfm draw player",
-                                "- /sfm draw player pos",
-                                "- /sfm draw player angle",
-                                "- /sfm draw player dimension",
-                                "- /sfm draw player look angle",
-                                "- /sfm draw player look hit",
-                                "- /sfm draw player look hit block",
-                                "- /sfm draw player look hit manager",
-                                "- /sfm draw player inv [slot]",
-                                "- /sfm draw player armor [slot]",
-                                "- /sfm draw player hand [mainhand|offhand]",
-                                "- /sfm draw camera pos",
-                                "- /sfm draw camera zoom",
-                                "- /sfm draw mouse pos",
-                                "- /sfm draw mouse screen_pos",
-                                "- /sfm draw template list",
-                                "- /sfm draw template open <template>"
-                );
+                List<String> lines = collectDrawHelpLines(source, topic);
+                if (lines.isEmpty()) {
+                        String normalizedTopic = SFMDrawCommandCompletionCatalog.normalizeHelpTopic(topic);
+                        lines = normalizedTopic.isBlank()
+                                ? SFMDrawCommandCompletionCatalog.drawHelpUsages()
+                                : List.of("draw.help: no matching draw command for `" + normalizedTopic + "`");
+                }
                 return sendDrawLines(source, lines);
+        }
+
+        private static List<String> collectDrawHelpLines(
+                        CommandSourceStack source,
+                        String topic
+        ) {
+                LinkedHashSet<String> usages = new LinkedHashSet<>();
+                if (source.getServer() != null) {
+                        var dispatcher = source.getServer().getCommands().getDispatcher();
+                        var sfmNode = dispatcher.getRoot().getChild("sfm");
+                        var drawNode = sfmNode == null ? null : sfmNode.getChild("draw");
+                        if (drawNode != null) {
+                                for (String usage : dispatcher.getAllUsage(drawNode, source, true)) {
+                                        if (usage == null || usage.isBlank()) {
+                                                continue;
+                                        }
+                                        usages.add("/" + usage);
+                                }
+                        }
+                }
+
+                List<String> resolvedUsages = usages.isEmpty()
+                        ? SFMDrawCommandCompletionCatalog.drawHelpUsages()
+                        : List.copyOf(usages);
+                return SFMDrawCommandCompletionCatalog.filterHelpUsages(resolvedUsages, topic);
         }
 
         private static int runDrawLocalOnlyCommand(

@@ -19,7 +19,7 @@ public record SFMDrawCanvasDocument(
         List<Element> elements,
         UndoTree undoTree
 ) {
-    public static final int CURRENT_VERSION = 2;
+    public static final int CURRENT_VERSION = 3;
 
     public SFMDrawCanvasDocument {
         activeLayer = Objects.requireNonNullElse(activeLayer, "ELEMENTS");
@@ -164,6 +164,7 @@ public record SFMDrawCanvasDocument(
             boolean locked,
             Integer commandSourceElementId,
             List<Integer> groupIds,
+            String name,
             Double x1,
             Double y1,
             Double x2,
@@ -185,6 +186,7 @@ public record SFMDrawCanvasDocument(
             layer = Objects.requireNonNullElse(layer, "ELEMENTS");
             commandSourceElementId = commandSourceElementId == null ? -1 : commandSourceElementId;
             groupIds = groupIds == null ? List.of() : List.copyOf(groupIds);
+            name = Objects.requireNonNullElse(name, "");
             points = points == null ? List.of() : List.copyOf(points);
             hiddenAnchorIndexes = hiddenAnchorIndexes == null ? List.of() : List.copyOf(hiddenAnchorIndexes);
             text = Objects.requireNonNullElse(text, "");
@@ -204,6 +206,24 @@ public record SFMDrawCanvasDocument(
                 int fillColor,
                 int strokeColor
         ) {
+            return rectangle(id, layer, hidden, locked, commandSourceElementId, groupIds, "", x1, y1, x2, y2, fillColor, strokeColor);
+        }
+
+        public static Element rectangle(
+            int id,
+            String layer,
+            boolean hidden,
+            boolean locked,
+            int commandSourceElementId,
+            List<Integer> groupIds,
+            String name,
+            double x1,
+            double y1,
+            double x2,
+            double y2,
+            int fillColor,
+            int strokeColor
+        ) {
             return new Element(
                     "rectangle",
                     id,
@@ -212,6 +232,7 @@ public record SFMDrawCanvasDocument(
                     locked,
                     commandSourceElementId,
                     groupIds,
+                name,
                     x1,
                     y1,
                     x2,
@@ -243,6 +264,23 @@ public record SFMDrawCanvasDocument(
                 EndpointBinding startBinding,
                 EndpointBinding endBinding
         ) {
+                return arrow(id, layer, hidden, locked, commandSourceElementId, groupIds, "", points, hiddenAnchorIndexes, color, startBinding, endBinding);
+            }
+
+            public static Element arrow(
+                int id,
+                String layer,
+                boolean hidden,
+                boolean locked,
+                int commandSourceElementId,
+                List<Integer> groupIds,
+                String name,
+                List<Point> points,
+                List<Integer> hiddenAnchorIndexes,
+                int color,
+                EndpointBinding startBinding,
+                EndpointBinding endBinding
+            ) {
             return new Element(
                     "arrow",
                     id,
@@ -251,6 +289,7 @@ public record SFMDrawCanvasDocument(
                     locked,
                     commandSourceElementId,
                     groupIds,
+                    name,
                     null,
                     null,
                     null,
@@ -282,6 +321,23 @@ public record SFMDrawCanvasDocument(
                 int color,
                 double textScale
         ) {
+                return text(id, layer, hidden, locked, commandSourceElementId, groupIds, "", x, y, text, color, textScale);
+            }
+
+            public static Element text(
+                int id,
+                String layer,
+                boolean hidden,
+                boolean locked,
+                int commandSourceElementId,
+                List<Integer> groupIds,
+                String name,
+                double x,
+                double y,
+                String text,
+                int color,
+                double textScale
+            ) {
             return new Element(
                     "text",
                     id,
@@ -290,6 +346,7 @@ public record SFMDrawCanvasDocument(
                     locked,
                     commandSourceElementId,
                     groupIds,
+                    name,
                     null,
                     null,
                     null,
@@ -318,6 +375,20 @@ public record SFMDrawCanvasDocument(
                 List<Point> points,
                 int color
         ) {
+                return freehand(id, layer, hidden, locked, commandSourceElementId, groupIds, "", points, color);
+            }
+
+            public static Element freehand(
+                int id,
+                String layer,
+                boolean hidden,
+                boolean locked,
+                int commandSourceElementId,
+                List<Integer> groupIds,
+                String name,
+                List<Point> points,
+                int color
+            ) {
             return new Element(
                     "freehand",
                     id,
@@ -326,6 +397,7 @@ public record SFMDrawCanvasDocument(
                     locked,
                     commandSourceElementId,
                     groupIds,
+                    name,
                     null,
                     null,
                     null,

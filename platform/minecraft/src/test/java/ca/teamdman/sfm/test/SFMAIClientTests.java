@@ -125,7 +125,7 @@ public class SFMAIClientTests {
 
     @Test
     public void localCommandTokenizerAcceptsRelativeSelectorSyntax() {
-      assertTrue(SFMDrawLocalCommandExecutor.canHandle("concatenate @rel[0,-10]"));
+      assertTrue(SFMDrawLocalCommandExecutor.canHandle("concatenate @relative[0,-10]"));
     }
 
     @Test

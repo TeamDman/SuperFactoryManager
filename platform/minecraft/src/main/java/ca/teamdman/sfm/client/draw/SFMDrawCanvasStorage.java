@@ -114,6 +114,7 @@ public final class SFMDrawCanvasStorage {
         serializedElement.addProperty("hidden", element.hidden());
         serializedElement.addProperty("locked", element.locked());
         serializedElement.addProperty("commandSourceElementId", element.commandSourceElementId());
+        serializedElement.addProperty("name", element.name());
 
         JsonArray groupIds = new JsonArray();
         for (Integer groupId : element.groupIds()) {
@@ -223,6 +224,7 @@ public final class SFMDrawCanvasStorage {
                     getBoolean(serializedElement, "locked", false),
                     getNullableInt(serializedElement, "commandSourceElementId"),
                     readIntList(serializedElement.getAsJsonArray("groupIds")),
+                    getString(serializedElement, "name", ""),
                     getNullableDouble(serializedElement, "x1"),
                     getNullableDouble(serializedElement, "y1"),
                     getNullableDouble(serializedElement, "x2"),

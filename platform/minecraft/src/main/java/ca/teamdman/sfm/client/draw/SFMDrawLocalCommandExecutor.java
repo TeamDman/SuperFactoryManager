@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 
 public final class SFMDrawLocalCommandExecutor {
     private static final Pattern RECT_POINT_SELECTOR_PATTERN = Pattern.compile("@rect\\[\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*,\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*\\]");
-    private static final Pattern RELATIVE_POINT_SELECTOR_PATTERN = Pattern.compile("@rel\\[\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*,\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*\\]");
+    private static final Pattern RELATIVE_POINT_SELECTOR_PATTERN = Pattern.compile("@(?:rel|relative)\\[\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*,\\s*(-?(?:\\d+(?:\\.\\d+)?|\\.\\d+))\\s*\\]");
     private static final long MODEL_SUGGESTION_REFRESH_INTERVAL_MS = 30_000L;
     private static final AtomicBoolean MODEL_SUGGESTION_REFRESH_IN_FLIGHT = new AtomicBoolean(false);
     private static volatile List<String> cachedOllamaModelSuggestions = List.of();
@@ -32,7 +32,7 @@ public final class SFMDrawLocalCommandExecutor {
             return false;
         }
         return switch (tokens.get(0)) {
-            case "open", "move", "ls", "ollama", "box", "concatenate", "reset" -> true;
+            case "help", "open", "move", "ls", "ollama", "rectangle", "box", "concatenate", "width", "name", "reset" -> true;
             default -> false;
         };
     }
@@ -48,6 +48,11 @@ public final class SFMDrawLocalCommandExecutor {
         }
 
         return switch (tokens.get(0)) {
+            case "help" -> {
+                String topic = tokens.size() > 1 ? String.join(" ", tokens.subList(1, tokens.size())) : null;
+                screen.appendLocalCommandHelp(commandElementId, topic);
+                yield true;
+            }
             case "open" -> {
                 if (tokens.size() > 2) {
                     screen.appendCommandOutput(commandElementId, List.of("open: usage: /sfm draw open [path]"));
@@ -98,15 +103,15 @@ public final class SFMDrawLocalCommandExecutor {
                 }
                 yield handleOllama(screen, commandElementId, tokens);
             }
-            case "box" -> {
+            case "rectangle", "box" -> {
                 if (tokens.size() == 2 && "list".equals(tokens.get(1))) {
                     screen.appendBoxList(commandElementId);
                     yield true;
                 }
                 if (tokens.size() != 5) {
                     screen.appendCommandOutput(commandElementId, List.of(
-                            "box: usage: /sfm draw box list",
-                            "box:    or: /sfm draw box <x1> <y1> <x2> <y2>"
+                            "rectangle: usage: /sfm draw rectangle list",
+                            "rectangle:    or: /sfm draw rectangle <x1> <y1> <x2> <y2>"
                     ));
                     yield true;
                 }
@@ -118,7 +123,7 @@ public final class SFMDrawLocalCommandExecutor {
                             Double.parseDouble(tokens.get(4))
                     );
                 } catch (NumberFormatException exception) {
-                    screen.appendCommandOutput(commandElementId, List.of("box: coordinates must be numbers"));
+                    screen.appendCommandOutput(commandElementId, List.of("rectangle: coordinates must be numbers"));
                 }
                 yield true;
             }
@@ -132,101 +137,127 @@ public final class SFMDrawLocalCommandExecutor {
                 yield true;
             }
             case "concatenate" -> {
-                if (tokens.size() != 2) {
-                    screen.appendCommandOutput(commandElementId, List.of("concatenate: usage: /sfm draw concatenate @rect[x,y] | @rel[dx,dy]"));
+                if (tokens.size() < 2) {
+                    screen.appendCommandOutput(commandElementId, List.of("concatenate: usage: /sfm draw concatenate <target> [delimiter]"));
                     yield true;
                 }
                 String selectorToken = tokens.get(1);
-                RectPointSelector selector = parseRectPointSelector(selectorToken);
-                if (selector != null) {
-                    screen.appendConcatenatedRectRegion(commandElementId, selector.x(), selector.y());
+                String delimiter = tokens.size() > 2 ? String.join(" ", tokens.subList(2, tokens.size())) : "";
+                if (!isSupportedTargetSelector(selectorToken) && tokens.size() > 2 && isSupportedTargetSelector(delimiter)) {
+                    screen.appendCommandOutput(commandElementId, List.of("concatenate: usage: /sfm draw concatenate <target> [delimiter]"));
                     yield true;
                 }
-                RelativePointSelector relativeSelector = parseRelativePointSelector(selectorToken);
-                if (relativeSelector != null) {
-                    screen.appendConcatenatedRelativeRegion(commandElementId, selectorToken);
+                screen.appendConcatenatedTarget(commandElementId, selectorToken, delimiter);
+                yield true;
+            }
+            case "width" -> {
+                if (tokens.size() != 2) {
+                    screen.appendCommandOutput(commandElementId, List.of("width: usage: /sfm draw width <target>"));
                     yield true;
                 }
-                screen.appendCommandOutput(commandElementId, List.of("concatenate: expected selector like @rect[0,4] or @rel[0,-10]"));
+                screen.appendTargetWidth(commandElementId, tokens.get(1));
+                yield true;
+            }
+            case "name" -> {
+                if (tokens.size() < 2) {
+                    screen.appendCommandOutput(commandElementId, List.of("name: usage: /sfm draw name <target> [new name]"));
+                    yield true;
+                }
+                String newName = tokens.size() > 2 ? String.join(" ", tokens.subList(2, tokens.size())) : null;
+                if (newName == null) {
+                    screen.appendTargetName(commandElementId, tokens.get(1));
+                } else {
+                    screen.renameTarget(commandElementId, tokens.get(1), newName);
+                }
                 yield true;
             }
             default -> false;
         };
     }
 
-            public static CompletionSuggestions suggestCompletions(
-                String commandBody,
-                int cursor,
-                String rectSelectorSuggestion
-            ) {
-            String input = commandBody == null ? "" : commandBody;
-            int safeCursor = Math.max(0, Math.min(cursor, input.length()));
-            int activeTokenStart = activeTokenStart(input, safeCursor);
-            int activeTokenEnd = activeTokenEnd(input, safeCursor);
-            boolean cursorAfterWhitespace = safeCursor == 0 || Character.isWhitespace(input.charAt(safeCursor - 1));
-            if (cursorAfterWhitespace) {
-                activeTokenStart = safeCursor;
-                activeTokenEnd = safeCursor;
-            }
+    public static CompletionSuggestions suggestCompletions(
+            String commandBody,
+            int cursor,
+            String rectSelectorSuggestion
+    ) {
+        String input = commandBody == null ? "" : commandBody;
+        int safeCursor = Math.max(0, Math.min(cursor, input.length()));
+        int activeTokenStart = activeTokenStart(input, safeCursor);
+        int activeTokenEnd = activeTokenEnd(input, safeCursor);
+        boolean cursorAfterWhitespace = safeCursor == 0 || Character.isWhitespace(input.charAt(safeCursor - 1));
+        if (cursorAfterWhitespace) {
+            activeTokenStart = safeCursor;
+            activeTokenEnd = safeCursor;
+        }
 
-            String activeToken = input.substring(activeTokenStart, activeTokenEnd);
-            List<String> tokens = tokenize(input.substring(0, safeCursor));
-            if (cursorAfterWhitespace) {
-                tokens = new ArrayList<>(tokens);
-                tokens.add("");
-            }
-            if (tokens.isEmpty()) {
-                return new CompletionSuggestions(activeTokenStart, activeTokenEnd, List.of());
-            }
+        String activeToken = input.substring(activeTokenStart, activeTokenEnd);
+        List<String> tokens = tokenize(input.substring(0, safeCursor));
+        if (cursorAfterWhitespace) {
+            tokens = new ArrayList<>(tokens);
+            tokens.add("");
+        }
+        if (tokens.isEmpty()) {
+            return new CompletionSuggestions(activeTokenStart, activeTokenEnd, List.of());
+        }
 
-            List<String> suggestions = switch (tokens.get(0)) {
-                case "open" -> tokens.size() == 2
+        List<String> targetSuggestions = targetSuggestions(rectSelectorSuggestion);
+        List<String> suggestions = switch (tokens.get(0)) {
+            case "help" -> tokens.size() == 2
+                    ? SFMDrawCommandCompletionCatalog.filterByPrefix(
+                    combineSuggestions(SFMDrawCommandCompletionCatalog.drawHelpTopics(), targetSuggestions),
+                    activeToken.startsWith("/") ? activeToken.substring(1) : activeToken
+            )
+                    : List.of();
+            case "open" -> tokens.size() == 2
                     ? SFMDrawCommandCompletionCatalog.filterByPrefix(
                     SFMDrawCommandCompletionCatalog.canvasPathSuggestions(),
                     activeToken
-                )
+            )
                     : List.of();
-                case "move" -> tokens.size() == 2 || tokens.size() == 3
+            case "move" -> tokens.size() == 2 || tokens.size() == 3
                     ? SFMDrawCommandCompletionCatalog.filterByPrefix(
                     SFMDrawCommandCompletionCatalog.canvasPathSuggestions(),
                     activeToken
-                )
+            )
                     : List.of();
-                case "ls" -> tokens.size() == 2
+            case "ls" -> tokens.size() == 2
                     ? SFMDrawCommandCompletionCatalog.filterByPrefix(
                     SFMDrawCommandCompletionCatalog.browsePathSuggestions(),
                     activeToken
-                )
+            )
                     : List.of();
-                case "box" -> tokens.size() == 2
+            case "rectangle", "box" -> tokens.size() == 2
                     ? SFMDrawCommandCompletionCatalog.filterByPrefix(
                     List.of("list"),
                     activeToken
-                )
+            )
                     : List.of();
-                case "reset" -> tokens.size() == 2
+            case "width" -> tokens.size() == 2
+                    ? SFMDrawCommandCompletionCatalog.filterByPrefix(targetSuggestions, activeToken)
+                    : List.of();
+            case "name" -> tokens.size() == 2
+                    ? SFMDrawCommandCompletionCatalog.filterByPrefix(targetSuggestions, activeToken)
+                    : List.of();
+            case "reset" -> tokens.size() == 2
                     ? SFMDrawCommandCompletionCatalog.filterByPrefix(
                     List.of("chrome"),
                     activeToken
-                )
+            )
                     : List.of();
-                case "concatenate" -> tokens.size() == 2
-                    ? SFMDrawCommandCompletionCatalog.filterByPrefix(
-                    List.of(rectSelectorSuggestion, "@rect[0,4]", "@rel[0,-10]"),
-                    activeToken
-                )
+            case "concatenate" -> tokens.size() == 2
+                    ? SFMDrawCommandCompletionCatalog.filterByPrefix(targetSuggestions, activeToken)
                     : List.of();
-                case "ollama" -> suggestOllamaCompletions(tokens, activeToken);
-                default -> tokens.size() == 1
+            case "ollama" -> suggestOllamaCompletions(tokens, activeToken);
+            default -> tokens.size() == 1
                     ? SFMDrawCommandCompletionCatalog.filterByPrefix(
                     SFMDrawCommandCompletionCatalog.localDrawCommandNames(),
                     activeToken.startsWith("/") ? activeToken.substring(1) : activeToken
-                )
+            )
                     : List.of();
-            };
+        };
 
-            return new CompletionSuggestions(activeTokenStart, activeTokenEnd, suggestions);
-            }
+        return new CompletionSuggestions(activeTokenStart, activeTokenEnd, suggestions);
+    }
 
     private static boolean handleOllama(
             SfmDrawScreen screen,
@@ -493,6 +524,25 @@ public final class SFMDrawLocalCommandExecutor {
         return index;
     }
 
+    private static List<String> targetSuggestions(String rectSelectorSuggestion) {
+        return combineSuggestions(List.of(rectSelectorSuggestion, "@rect[0,4]", "@relative[0,-10]"), List.of());
+    }
+
+    private static List<String> combineSuggestions(
+            List<String> primary,
+            List<String> secondary
+    ) {
+        LinkedHashSet<String> suggestions = new LinkedHashSet<>();
+        suggestions.addAll(primary);
+        suggestions.addAll(secondary);
+        suggestions.removeIf(value -> value == null || value.isBlank());
+        return List.copyOf(suggestions);
+    }
+
+    private static boolean isSupportedTargetSelector(String selectorToken) {
+        return parseRectPointSelector(selectorToken) != null || parseRelativePointSelector(selectorToken) != null;
+    }
+
     private static RectPointSelector parseRectPointSelector(String selectorToken) {
         Matcher matcher = RECT_POINT_SELECTOR_PATTERN.matcher(selectorToken);
         if (!matcher.matches()) {
@@ -504,16 +554,16 @@ public final class SFMDrawLocalCommandExecutor {
         );
     }
 
-            private static RelativePointSelector parseRelativePointSelector(String selectorToken) {
-            Matcher matcher = RELATIVE_POINT_SELECTOR_PATTERN.matcher(selectorToken);
-            if (!matcher.matches()) {
-                return null;
-            }
-            return new RelativePointSelector(
+    private static RelativePointSelector parseRelativePointSelector(String selectorToken) {
+        Matcher matcher = RELATIVE_POINT_SELECTOR_PATTERN.matcher(selectorToken);
+        if (!matcher.matches()) {
+            return null;
+        }
+        return new RelativePointSelector(
                 Double.parseDouble(matcher.group(1)),
                 Double.parseDouble(matcher.group(2))
-            );
-            }
+        );
+    }
 
     private record RectPointSelector(
             double x,
@@ -521,11 +571,11 @@ public final class SFMDrawLocalCommandExecutor {
     ) {
     }
 
-            private record RelativePointSelector(
-                double dx,
-                double dy
-            ) {
-            }
+        private record RelativePointSelector(
+            double dx,
+            double dy
+        ) {
+        }
 
         public record CompletionSuggestions(
             int start,

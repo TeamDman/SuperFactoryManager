@@ -46,7 +46,21 @@ public class SFMDrawSpatialQueriesTests {
                 1.0D
         );
 
-        assertEquals("ab\nef", result);
+        assertEquals("abef", result);
+    }
+
+    @Test
+    public void insertsRequestedDelimiterBetweenCapturedLines() {
+        String result = SFMDrawSpatialQueries.concatenateFromRectPoint(
+                List.of(new SFMDrawSpatialQueries.RectangleRegion(0, 0, 2, 2)),
+                List.of(new SFMDrawSpatialQueries.TextSurface(0, 0, "abcd\nefgh", 1.0D)),
+                FIXED_WIDTH_METRICS,
+                1.0D,
+                1.0D,
+                " | "
+        );
+
+        assertEquals("ab | ef", result);
     }
 
     @Test
