@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.examples.SFMExampleProgram;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -40,15 +40,15 @@ public class ExamplesScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int pMouseX, int pMouseY, float pPartialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int pMouseX, int pMouseY, float pPartialTick) {
 
         // Darken background
-        this.renderTransparentBackground(graphics);
-        this.renderTransparentBackground(graphics);
-        this.renderTransparentBackground(graphics);
+        this.extractTransparentBackground(graphics);
+        this.extractTransparentBackground(graphics);
+        this.extractTransparentBackground(graphics);
 
         // Draw widgets
-        super.render(graphics, pMouseX, pMouseY, pPartialTick);
+        super.extractRenderState(graphics, pMouseX, pMouseY, pPartialTick);
 
         // Draw the warning that informs the user that this can overwrite their program
         MutableComponent warning1 = EXAMPLES_GUI_WARNING_1.getComponent();

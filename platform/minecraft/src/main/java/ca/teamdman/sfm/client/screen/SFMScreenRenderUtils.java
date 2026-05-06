@@ -2,8 +2,8 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 
 public class SFMScreenRenderUtils {
 
@@ -21,13 +21,14 @@ public class SFMScreenRenderUtils {
     @SuppressWarnings("JavadocReference")
     @MCVersionDependentBehaviour
     public static void renderHighlight(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             int startX,
             int startY,
             int endX,
             int endY
     ) {
-        graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);
+
+        graphics.fill(RenderPipelines.GUI_TEXT_HIGHLIGHT, startX, startY, endX, endY, -16776961);
     }
 
 }

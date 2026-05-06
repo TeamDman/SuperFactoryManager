@@ -10,10 +10,11 @@ import ca.teamdman.sfm.common.net.ServerboundLabelGunPrunePacket;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -89,12 +90,10 @@ public class LabelGunScreen extends Screen {
 
     @Override
     public boolean keyPressed(
-            int key,
-            int mod1,
-            int mod2
+            KeyEvent keyEvent
     ) {
-
-        if (super.keyPressed(key, mod1, mod2)) return true;
+        if (super.keyPressed(keyEvent)) return true;
+        int key = keyEvent.key();
         if (key != GLFW.GLFW_KEY_ENTER && key != GLFW.GLFW_KEY_KP_ENTER) return false;
         onDone();
         return true;
@@ -111,20 +110,19 @@ public class LabelGunScreen extends Screen {
 
     @Override
     public void resize(
-            Minecraft mc,
             int x,
             int y
     ) {
 
         var prev = this.labelField.getValue();
-        init(mc, x, y);
-        super.resize(mc, x, y);
+        init(x, y);
+        super.resize(x, y);
         this.labelField.setValue(prev);
     }
 
     @Override
-    public void render(
-            GuiGraphics graphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor graphics,
             int mx,
             int my,
             float partialTicks
@@ -136,8 +134,8 @@ public class LabelGunScreen extends Screen {
             shouldRebuildWidgets = false;
             rebuildWidgets();
         }
-        this.renderTransparentBackground(graphics);
-        super.render(graphics, mx, my, partialTicks);
+        this.extractTransparentBackground(graphics);
+        super.extractRenderState(graphics, mx, my, partialTicks);
     }
 
     @Override

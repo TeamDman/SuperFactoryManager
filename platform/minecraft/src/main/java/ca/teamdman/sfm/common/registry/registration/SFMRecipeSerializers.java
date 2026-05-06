@@ -9,7 +9,6 @@ import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.neoforged.bus.api.IEventBus;
 
 public class SFMRecipeSerializers {
@@ -19,22 +18,22 @@ public class SFMRecipeSerializers {
                     .registry(SFMWellKnownRegistries.RECIPE_SERIALIZERS.registryKey())
                     .build();
 
-    public static final SFMRegistryObject<RecipeSerializer<?>, PrintingPressRecipe.Serializer> PRINTING_PRESS
+    public static final SFMRegistryObject<RecipeSerializer<?>, RecipeSerializer<PrintingPressRecipe>> PRINTING_PRESS
             = RECIPE_SERIALIZERS.register(
             "printing_press",
-            PrintingPressRecipe.Serializer::new
+            () -> new RecipeSerializer<>(PrintingPressRecipe.CODEC, PrintingPressRecipe.STREAM_CODEC)
     );
 
-    public static final SFMRegistryObject<RecipeSerializer<?>, SimpleCraftingRecipeSerializer<DiskResetRecipe>> DISK_RESET
+    public static final SFMRegistryObject<RecipeSerializer<?>, RecipeSerializer<DiskResetRecipe>> DISK_RESET
             = RECIPE_SERIALIZERS.register(
             "disk_reset",
-            () -> new SimpleCraftingRecipeSerializer<>(DiskResetRecipe::new)
+            () -> new RecipeSerializer<>(DiskResetRecipe.CODEC, DiskResetRecipe.STREAM_CODEC)
     );
 
-    public static final SFMRegistryObject<RecipeSerializer<?>, SimpleCraftingRecipeSerializer<LabelGunResetRecipe>> LABEL_GUN_RESET
+    public static final SFMRegistryObject<RecipeSerializer<?>, RecipeSerializer<LabelGunResetRecipe>> LABEL_GUN_RESET
             = RECIPE_SERIALIZERS.register(
             "label_gun_reset",
-            () -> new SimpleCraftingRecipeSerializer<>(LabelGunResetRecipe::new)
+            () -> new RecipeSerializer<>(LabelGunResetRecipe.CODEC, LabelGunResetRecipe.STREAM_CODEC)
     );
 
     public static void register(IEventBus bus) {

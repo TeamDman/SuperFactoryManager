@@ -21,6 +21,7 @@ import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.interfaces.ISideConfiguration;
 import mekanism.common.util.UnitDisplayUtils;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,24 +51,26 @@ public class SFMMekanismCompat {
             case ITEM -> SFMResourceTypes.ITEM.get();
             case FLUID -> SFMResourceTypes.FLUID.get();
 //            case GAS -> {
-//                ResourceLocation id = SFMResourceLocation.fromSFMPath("gas");
+//                Identifier id = SFMResourceLocation.fromSFMPath("gas");
 //                yield SFMResourceTypes.registry().get(id);
 //            }
 //            case INFUSION -> {
-//                ResourceLocation id = SFMResourceLocation.fromSFMPath("infusion");
+//                Identifier id = SFMResourceLocation.fromSFMPath("infusion");
 //                yield SFMResourceTypes.registry().get(id);
 //            }
 //            case PIGMENT -> {
-//                ResourceLocation id = SFMResourceLocation.fromSFMPath("pigment");
+//                Identifier id = SFMResourceLocation.fromSFMPath("pigment");
 //                yield SFMResourceTypes.registry().get(id);
 //            }
 //            case SLURRY -> {
-//                ResourceLocation id = SFMResourceLocation.fromSFMPath("slurry");
+//                Identifier id = SFMResourceLocation.fromSFMPath("slurry");
 //                yield SFMResourceTypes.registry().get(id);
 //            }
             case ENERGY -> SFMResourceTypes.FORGE_ENERGY.get();
             case CHEMICAL -> SFMResourceTypes.registry()
-                    .get(SFMResourceLocation.fromSFMPath("chemical"));
+                    .get(SFMResourceLocation.fromSFMPath("chemical"))
+                    .map(Holder.Reference::value)
+                    .orElse(null);
             default -> null;
         };
     }
@@ -140,7 +143,7 @@ public class SFMMekanismCompat {
                         .append("-- ")
                         .append(CONTAINER_INSPECTOR_MEKANISM_MACHINE_OUTPUTS.getStub())
                         .append("\n");
-                sb.append("INPUT ").append(resourceTypeKey.location()).append(":: FROM target ");
+                sb.append("INPUT ").append(resourceTypeKey.identifier()).append(":: FROM target ");
                 sb.append(outputSides
                                   .stream()
                                   .map(Side::fromDirection)
@@ -164,7 +167,7 @@ public class SFMMekanismCompat {
                         .append("-- ")
                         .append(CONTAINER_INSPECTOR_MEKANISM_MACHINE_INPUTS.getStub())
                         .append("\n");
-                sb.append("OUTPUT ").append(resourceTypeKey.location()).append(":: TO target ");
+                sb.append("OUTPUT ").append(resourceTypeKey.identifier()).append(":: TO target ");
                 sb.append(inputSides
                                   .stream()
                                   .map(Side::fromDirection)

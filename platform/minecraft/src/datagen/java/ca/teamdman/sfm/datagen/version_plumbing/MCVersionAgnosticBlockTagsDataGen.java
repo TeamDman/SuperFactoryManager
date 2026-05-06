@@ -14,8 +14,7 @@ public abstract class MCVersionAgnosticBlockTagsDataGen extends BlockTagsProvide
         super(
                 event.getGenerator().getPackOutput(),
                 event.getLookupProvider(),
-                modId,
-                event.getExistingFileHelper()
+                modId
         );
     }
 

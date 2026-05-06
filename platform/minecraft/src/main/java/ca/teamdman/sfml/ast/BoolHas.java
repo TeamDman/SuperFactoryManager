@@ -94,7 +94,9 @@ public record BoolHas(
                 pos,
                 (direction, cap) -> resourceType.getStacksInSlots(cap, labelAccess.slots()).forEach(stack -> {
                     if (this.resourceIdSet.getMatchingFromStack(stack) != null) {
-                        if (with.matchesStack(resourceType, stack)) {
+                        ITEM item = resourceType.stackToItem(stack);
+
+                        if (with.matchesStack(resourceType, item)) {
                             long amount = resourceType.getAmount(stack);
                             invAccumulator.addAndGet(amount);
                             overallAccumulator.addAndGet(amount);

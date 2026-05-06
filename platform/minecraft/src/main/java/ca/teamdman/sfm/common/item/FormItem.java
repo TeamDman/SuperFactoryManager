@@ -6,12 +6,15 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class FormItem extends Item {
     @SFMLocalizationDatagen
@@ -57,12 +60,15 @@ public class FormItem extends Item {
     public void appendHoverText(
             ItemStack pStack,
             TooltipContext pContext,
-            List<Component> pTooltipComponents,
+            TooltipDisplay pTooltipDisplay,
+            Consumer<Component> pTooltipComponents,
             TooltipFlag pTooltipFlag
     ) {
         var reference = getBorrowedReferenceFromForm(pStack);
         if (!reference.isEmpty()) {
-            pTooltipComponents.addAll(reference.getTooltipLines(pContext, null, pTooltipFlag));
+            for (Component component : reference.getTooltipLines(pContext, null, pTooltipFlag)) {
+                pTooltipComponents.accept(component);
+            }
         }
     }
 

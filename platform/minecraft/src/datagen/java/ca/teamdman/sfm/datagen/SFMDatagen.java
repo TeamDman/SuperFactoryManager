@@ -8,13 +8,14 @@ public class SFMDatagen {
     @SFMSubscribeEvent
     public static void onGather(GatherDataEvent event) {
         if (!DatagenModLoader.isRunningDataGen()) return;
-        if (event.includeServer()) {
-            event.getGenerator().addProvider(event.includeClient(), new SFMBlockStatesAndModelsDatagen(event));
-            event.getGenerator().addProvider(event.includeClient(), new SFMItemModelsDatagen(event));
-            event.getGenerator().addProvider(event.includeClient(), new SFMBlockTagsDatagen(event));
-            event.getGenerator().addProvider(event.includeClient(), new SFMLootTablesDatagen(event));
-            event.getGenerator().addProvider(event.includeClient(), new SFMRecipesDatagen(event));
-            event.getGenerator().addProvider(event.includeClient(), new SFMLanguageProviderDatagen(event));
-        }
+
+        event.getGenerator().addProvider(event.includeDev(), new SFMBlockStatesAndModelsDatagen(event));
+        event.getGenerator().addProvider(event.includeDev(), new SFMItemModelsDatagen(event));
+        event.getGenerator().addProvider(event.includeDev(), new SFMBlockTagsDatagen(event));
+        event.getGenerator().addProvider(event.includeDev(), new SFMLootTablesDatagen(event));
+
+        event.createProvider(SFMRecipesDatagen.Runner::new);
+
+        event.getGenerator().addProvider(event.includeDev(), new SFMLanguageProviderDatagen(event));
     }
 }

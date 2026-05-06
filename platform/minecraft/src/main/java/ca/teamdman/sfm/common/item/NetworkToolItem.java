@@ -17,10 +17,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -102,7 +104,7 @@ public class NetworkToolItem extends Item {
 
         var level = ctx.getLevel();
         Player player = ctx.getPlayer();
-        if (level.isClientSide && player != null) {
+        if (level.isClientSide() && player != null) {
             boolean pickBlock = SFMKeyMappings.isKeyDown(SFMKeyMappings.TOGGLE_NETWORK_TOOL_OVERLAY_KEY);
             ServerboundNetworkToolUsePacket msg = new ServerboundNetworkToolUsePacket(
                     ctx.getHand(),
@@ -149,13 +151,12 @@ public class NetworkToolItem extends Item {
     @Override
     public void inventoryTick(
             ItemStack pStack,
-            Level pLevel,
+            ServerLevel pLevel,
             Entity pEntity,
-            int pSlotId,
-            boolean pIsSelected
+            @Nullable EquipmentSlot slot
     ) {
 
-        if (pLevel.isClientSide) return;
+        if (pLevel.isClientSide()) return;
         if (!(pEntity instanceof Player pPlayer)) return;
         boolean isInHand = pStack == pPlayer.getMainHandItem() || pStack == pPlayer.getOffhandItem();
         if (!isInHand) return;

@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
+import net.neoforged.bus.api.IEventBus;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Method;
@@ -11,7 +12,7 @@ import java.lang.reflect.Modifier;
 import java.util.EnumSet;
 
 public class SFMAutomaticEventSubscriber {
-    /// This is called from our mod class constructor {@link SFM#SFM()}.
+    /// This is called from our mod class constructor {@link SFM#SFM(IEventBus)}  SFM}.
     /// Normal EventBusSubscriber annotation discovery happens right after constructor, so this should be fine.
     public static void attachEventBusSubscribers() {
 

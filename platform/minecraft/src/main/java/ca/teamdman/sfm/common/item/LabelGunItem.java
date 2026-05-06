@@ -23,18 +23,20 @@ import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 
 public class LabelGunItem extends Item {
@@ -210,15 +212,21 @@ public class LabelGunItem extends Item {
         setViewMode(stack, LabelGunViewMode.values()[nextOrdinal]);
     }
 
+    public static void clearAll(ItemStack stack) {
+
+        LabelPositionHolder.clear(stack);
+        LabelGunItem.setActiveLabel(stack, null);
+    }
+
     @Override
-    public InteractionResult onItemUseFirst(
+    public @NonNull InteractionResult onItemUseFirst(
             ItemStack gun,
             UseOnContext ctx
     ) {
 
         var level = ctx.getLevel();
         Player player = ctx.getPlayer();
-        if (level.isClientSide && player != null) {
+        if (level.isClientSide() && player != null) {
             boolean pickBlock = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_PICK_BLOCK_MODIFIER_KEY);
             boolean contiguous = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY);
             boolean clear = SFMKeyMappings.isKeyDown(SFMKeyMappings.LABEL_GUN_CLEAR_MODIFIER_KEY);
@@ -246,95 +254,94 @@ public class LabelGunItem extends Item {
     @Override
     public void appendHoverText(
             ItemStack stack,
-            Item.TooltipContext pContext,
-            List<Component> lines,
-            TooltipFlag pTooltipFlag
+            TooltipContext context,
+            TooltipDisplay tooltipDisplay,
+            Consumer<Component> tooltipAdder,
+            TooltipFlag detail
     ) {
-
         if (SFMItemUtils.isClientAndMoreInfoKeyPressed()) {
             Options options = Minecraft.getInstance().options;
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_CLEAR_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY),
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_PULL_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY),
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_PUSH_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_TARGET_MANAGER_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY),
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_CONTIGUOUS_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_PICK_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PICK_BLOCK_MODIFIER_KEY),
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_NEXT_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_NEXT_LABEL_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_PREVIOUS_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PREVIOUS_LABEL_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_SCROLL_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_SCROLL_MODIFIER_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_CYCLE_VIEW_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(SFMKeyMappings.CYCLE_LABEL_VIEW_KEY)
                     ).withStyle(ChatFormatting.GRAY)
             );
-            lines.add(
+            tooltipAdder.accept(
                     LABEL_GUN_ITEM_TOOLTIP_GUI_REMINDER.getComponent(
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
         } else {
-            SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(lines);
-            lines.addAll(LabelPositionHolder.from(stack).asHoverText());
+            SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(tooltipAdder);
+            LabelPositionHolder.from(stack).asHoverText().forEach(tooltipAdder);
         }
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(
+    public InteractionResult use(
             Level level,
             Player player,
             InteractionHand hand
     ) {
-
         var stack = player.getItemInHand(hand);
-        if (level.isClientSide) {
+        if (level.isClientSide()) {
             SFMScreenChangeHelpers.showLabelGunScreen(stack, hand);
         }
-        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+        return InteractionResult.SUCCESS_SERVER;
     }
 
     @Override
@@ -345,12 +352,6 @@ public class LabelGunItem extends Item {
         return LABEL_GUN_ITEM_NAME_WITH_LABEL
                 .getComponent(name)
                 .withStyle(ChatFormatting.AQUA);
-    }
-
-    public static void clearAll(ItemStack stack) {
-
-        LabelPositionHolder.clear(stack);
-        LabelGunItem.setActiveLabel(stack, null);
     }
 
     public enum LabelGunViewMode implements StringRepresentable {

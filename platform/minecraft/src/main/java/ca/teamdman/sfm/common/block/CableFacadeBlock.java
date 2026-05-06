@@ -6,8 +6,8 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -50,12 +50,9 @@ public class CableFacadeBlock extends CableBlock implements EntityBlock, IFacada
         return SFMBlockEntities.CABLE_FACADE.get().create(blockPos, blockState);
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getOcclusionShape(
-            BlockState pState,
-            BlockGetter pLevel,
-            BlockPos pPos
+            BlockState pState
     ) {
         // Translucent blocks should have no occlusion
         return pState.getValue(FacadeTransparency.FACADE_TRANSPARENCY_PROPERTY) == FacadeTransparency.TRANSLUCENT ?
@@ -63,22 +60,14 @@ public class CableFacadeBlock extends CableBlock implements EntityBlock, IFacada
                Shapes.block();
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public ItemStack getCloneItemStack(
-            LevelReader pLevel,
-            BlockPos pPos,
-            BlockState pState
-    ) {
-
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData, Player player) {
         return new ItemStack(SFMBlocks.CABLE.get());
     }
 
     @Override
     public boolean propagatesSkylightDown(
-            BlockState pState,
-            BlockGetter pLevel,
-            BlockPos pPos
+            BlockState pState
     ) {
 
         return pState.getValue(FacadeTransparency.FACADE_TRANSPARENCY_PROPERTY) == FacadeTransparency.TRANSLUCENT;

@@ -6,6 +6,7 @@ import net.neoforged.bus.api.Event;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.IModBusEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -135,11 +136,7 @@ public class SFMEventListenerMethod<T extends Event> {
         // Create consumer
         Consumer<T> consumer = createConsumer();
 
-        // Determine bus
-        EventBusSubscriber.Bus busType = getEventBusType();
-        IEventBus eventBus = SFMEventBus.getEventBus(busType);
-
-        // Register listener
+        IEventBus eventBus = NeoForge.EVENT_BUS;
         eventBus.addListener(
                 annotation.priority(),
                 annotation.receiveCanceled(),
@@ -148,18 +145,7 @@ public class SFMEventListenerMethod<T extends Event> {
         );
 
         // Log success
-        SFM.LOGGER.info("Registered bus={} listener={}", busType, consumer);
-    }
-
-    private EventBusSubscriber.Bus getEventBusType() {
-
-        EventBusSubscriber.Bus busType;
-        if (IModBusEvent.class.isAssignableFrom(eventClass)) {
-            busType = SFMEventBus.EventBusType.MOD;
-        } else {
-            busType = SFMEventBus.EventBusType.GAME;
-        }
-        return busType;
+        SFM.LOGGER.info("Registered listener={}", consumer);
     }
 
 }

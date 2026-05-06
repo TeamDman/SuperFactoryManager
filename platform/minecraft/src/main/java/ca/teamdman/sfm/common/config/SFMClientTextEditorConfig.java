@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorIntellisenseLevel;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,11 +26,11 @@ public class SFMClientTextEditorConfig {
 
     public static @NotNull ISFMTextEditorRegistration getPreferredTextEditor() {
 
-        @Nullable ResourceLocation id = SFMResourceLocation.tryParse(SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.get());
+        @Nullable Identifier id = SFMResourceLocation.tryParse(SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.get());
         if (id == null) {
             // Clobber the invalid ID
             SFMTextEditors.V1.getId().ifPresent(defaultId -> {
-                SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.set(defaultId.location().toString());
+                SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.set(defaultId.identifier().toString());
             });
             return SFMTextEditors.V1.get();
         } else {

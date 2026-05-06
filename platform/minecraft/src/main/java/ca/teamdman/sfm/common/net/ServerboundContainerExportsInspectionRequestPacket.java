@@ -17,7 +17,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -114,7 +114,7 @@ public record ServerboundContainerExportsInspectionRequestPacket(
 
                 List<ResourceLimit> resourceLimitList = new ArrayList<>();
                 slotContents.forEach((slot, stack) -> {
-                    ResourceLocation stackId = resourceType.getRegistryKeyForStack(stack);
+                    Identifier stackId = resourceType.getRegistryKeyForStack(stack);
                     ResourceIdentifier<STACK, ITEM, CAP> resourceIdentifier = new ResourceIdentifier<>(
                             resourceTypeResourceKey,
                             stackId

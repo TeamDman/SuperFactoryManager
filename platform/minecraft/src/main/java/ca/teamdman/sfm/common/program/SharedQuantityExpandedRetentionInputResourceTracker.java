@@ -8,15 +8,15 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 @SuppressWarnings("DuplicatedCode")
 public class SharedQuantityExpandedRetentionInputResourceTracker implements IInputResourceTracker {
     private final ResourceLimit resource_limit;
     private final ResourceIdSet exclusions;
-    private final Long2ObjectOpenHashMap<Int2ObjectArrayMap<Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>>>
+    private final Long2ObjectOpenHashMap<Int2ObjectArrayMap<Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<Identifier>>>>
             retention_obligations_by_pos_by_slot_by_item = new Long2ObjectOpenHashMap<>();
-    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>
+    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<Identifier>>
             retention_obligations_by_item = new Object2ObjectOpenHashMap<>();
     private long transferred = 0;
 
@@ -58,7 +58,7 @@ public class SharedQuantityExpandedRetentionInputResourceTracker implements IInp
         if (posEntry != null) {
             var resourceTypeEntry = posEntry.get(slot);
             if (resourceTypeEntry != null) {
-                ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+                Identifier item_id = resourceType.getRegistryKeyForStack(key);
                 var itemEntry = resourceTypeEntry.get(resourceType);
                 if (itemEntry != null) {
                     return itemEntry.getLong(item_id);
@@ -78,7 +78,7 @@ public class SharedQuantityExpandedRetentionInputResourceTracker implements IInp
         // don't use getOrDefault to avoid allocations
         var entry = retention_obligations_by_item.get(resourceType);
         if (entry != null) {
-            ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+            Identifier item_id = resourceType.getRegistryKeyForStack(key);
             if (entry.containsKey(item_id)) {
                 progress = entry.getLong(item_id);
             }
@@ -94,7 +94,7 @@ public class SharedQuantityExpandedRetentionInputResourceTracker implements IInp
             BlockPos pos,
             long dedicatingToObligation
     ) {
-        ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+        Identifier item_id = resourceType.getRegistryKeyForStack(key);
         retention_obligations_by_item.computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())
                 .addTo(item_id, dedicatingToObligation);
         retention_obligations_by_pos_by_slot_by_item

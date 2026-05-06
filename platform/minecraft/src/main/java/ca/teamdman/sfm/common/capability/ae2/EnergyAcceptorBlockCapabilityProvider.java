@@ -13,10 +13,10 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.extensions.ILevelExtension;
-import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
 import org.jetbrains.annotations.Nullable;
 
-public class EnergyAcceptorBlockCapabilityProvider implements SFMBlockCapabilityProvider<IEnergyStorage> {
+public class EnergyAcceptorBlockCapabilityProvider implements SFMBlockCapabilityProvider<EnergyHandler> {
     @Override
     public boolean matchesCapabilityKind(SFMBlockCapabilityKind<?> capabilityKind) {
         return SFMWellKnownCapabilities.ENERGY.equals(capabilityKind);
@@ -24,8 +24,8 @@ public class EnergyAcceptorBlockCapabilityProvider implements SFMBlockCapability
 
     @MCVersionDependentBehaviour
     @Override
-    public SFMBlockCapabilityResult<IEnergyStorage> getCapability(
-            SFMBlockCapabilityKind<IEnergyStorage> capabilityKind,
+    public SFMBlockCapabilityResult<EnergyHandler> getCapability(
+            SFMBlockCapabilityKind<EnergyHandler> capabilityKind,
             LevelAccessor level,
             BlockPos pos,
             BlockState state,
@@ -35,7 +35,7 @@ public class EnergyAcceptorBlockCapabilityProvider implements SFMBlockCapability
         if (!(level instanceof ILevelExtension capLevel)) return SFMBlockCapabilityResult.empty();
         if (!(blockEntity instanceof EnergyAcceptorBlockEntity)) return SFMBlockCapabilityResult.empty();
 
-        IEnergyStorage energyStorage = capLevel.getCapability(
+        EnergyHandler energyStorage = capLevel.getCapability(
                 capabilityKind.capabilityKind(),
                 pos,
                 state,

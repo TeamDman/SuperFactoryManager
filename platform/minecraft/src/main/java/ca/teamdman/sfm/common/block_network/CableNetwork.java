@@ -90,7 +90,7 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
     public String toString() {
 
         return "CableNetwork{level="
-               + getLevel().dimension().location()
+               + getLevel().dimension().identifier()
                + ", #cables="
                + getCableCount()
                + ", #cache="

@@ -1,14 +1,15 @@
 package ca.teamdman.sfm.common.resourcetype;
 
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.neoforged.neoforge.transfer.resource.Resource;
 
 import java.util.stream.Stream;
 
 public abstract class IntegerResourceType<CAP> extends ScalarResourceType<Integer, CAP> {
-    public IntegerResourceType(
+public IntegerResourceType(
             SFMBlockCapabilityKind<CAP> capability,
-            ResourceLocation registryKey
+            Identifier registryKey
     ) {
         super(capability, registryKey, Integer.class);
     }
@@ -29,33 +30,12 @@ public abstract class IntegerResourceType<CAP> extends ScalarResourceType<Intege
     }
 
     @Override
-    public Integer getEmptyStack() {
-        return 0;
-    }
-
-    @Override
-    public Stream<ResourceLocation> getTagsForStack(Integer integer) {
+    public Stream<Identifier> getTagsForStack(Class<Integer> integer) {
         return Stream.empty();
     }
 
     @Override
-    public Integer copy(Integer integer) {
-        return integer;
-    }
-
-    @Override
-    protected Integer setCount(
-            Integer stack,
-            long amount
-    ) {
-        return amount > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) amount;
-    }
-
-    @Override
-    public Integer withCount(
-            Integer integer,
-            long count
-    ) {
-        return count > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) count;
+    public Class<Integer> stackToItem(Integer integer) {
+        return Integer.class;
     }
 }

@@ -23,11 +23,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,6 +36,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class DiskItem extends Item {
@@ -228,14 +230,14 @@ public class DiskItem extends Item {
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(
+    public InteractionResult use(
             Level pLevel,
             Player pPlayer,
             InteractionHand pUsedHand
     ) {
 
         var stack = pPlayer.getItemInHand(pUsedHand);
-        if (pLevel.isClientSide) {
+        if (pLevel.isClientSide()) {
             SFMScreenChangeHelpers.showProgramEditScreen(new SFMTextEditScreenDiskOpenContext(
                     getProgramString(stack),
                     LabelPositionHolder.from(stack),
@@ -245,7 +247,7 @@ public class DiskItem extends Item {
                     ))
             ));
         }
-        return InteractionResultHolder.sidedSuccess(stack, pLevel.isClientSide());
+        return InteractionResult.SUCCESS;
     }
 
     @Override
@@ -264,33 +266,36 @@ public class DiskItem extends Item {
     public void appendHoverText(
             ItemStack stack,
             TooltipContext context,
-            List<Component> lines,
+            TooltipDisplay tooltipDisplay,
+            Consumer<Component> tooltipAdder,
             TooltipFlag detail
     ) {
-
         String program = DiskItem.getProgramString(stack);
         if (SFMItemUtils.isClientAndMoreInfoKeyPressed() && !program.isEmpty()) {
-            // show the program
-            lines.add(SFMItemUtils.getRainbow(getName(stack).getString().length()));
-            lines.addAll(ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false));
+            tooltipAdder.accept(SFMItemUtils.getRainbow(getName(stack).getString().length()));
+            ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false)
+                    .forEach(tooltipAdder);
         } else {
-            lines.addAll(LabelPositionHolder.from(stack).asHoverText());
+            LabelPositionHolder.from(stack).asHoverText()
+                    .forEach(tooltipAdder);
             getErrors(stack)
                     .stream()
                     .map(Component::copy)
                     .map(line -> line.withStyle(ChatFormatting.RED))
-                    .forEach(lines::add);
+                    .forEach(tooltipAdder);
             getWarnings(stack)
                     .stream()
                     .map(Component::copy)
                     .map(line -> line.withStyle(ChatFormatting.YELLOW))
-                    .forEach(lines::add);
+                    .forEach(tooltipAdder);
             if (!program.isEmpty()) {
-                SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(lines);
+                SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(tooltipAdder);
             }
         }
         if (!program.isEmpty()) {
-            lines.add(DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
+            tooltipAdder.accept(
+                    DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY)
+            );
         }
     }
 

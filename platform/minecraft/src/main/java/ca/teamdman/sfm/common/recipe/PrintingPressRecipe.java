@@ -7,15 +7,12 @@ import ca.teamdman.sfm.common.registry.registration.SFMRecipeTypes;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 
@@ -24,9 +21,7 @@ import java.util.Objects;
  */
 public record PrintingPressRecipe(
         Ingredient form,
-
         Ingredient ink,
-
         Ingredient paper
 ) implements Recipe<PrintingPressBlockEntity> {
 
@@ -35,7 +30,6 @@ public record PrintingPressRecipe(
             PrintingPressBlockEntity pContainer,
             Level pLevel
     ) {
-
         return paper.test(pContainer.getPaper())
                && ink.test(pContainer.getInk())
                && form.test(FormItem.getBorrowedReferenceFromForm(pContainer.getForm()));
@@ -44,8 +38,7 @@ public record PrintingPressRecipe(
     @MCVersionDependentBehaviour
     @Override
     public ItemStack assemble(
-            PrintingPressBlockEntity pContainer,
-            HolderLookup.Provider provider
+            PrintingPressBlockEntity pContainer
     ) {
         ItemStack rtn = FormItem.getCopiedReferenceFromForm(pContainer.getForm());
         rtn.setCount(pContainer.getPaper().getCount());
@@ -53,30 +46,35 @@ public record PrintingPressRecipe(
     }
 
     @Override
-    public boolean canCraftInDimensions(
-            int pWidth,
-            int pHeight
-    ) {
-
-        return true;
-    }
-
-    @MCVersionDependentBehaviour
-    @Override
-    public ItemStack getResultItem(HolderLookup.Provider pRegistries) {
-        return ItemStack.EMPTY;
+    public boolean showNotification() {
+        return false;
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
+    public String group() {
+        return "";
+    }
+
+    @Override
+    public RecipeSerializer<? extends Recipe<PrintingPressBlockEntity>> getSerializer() {
 
         return SFMRecipeSerializers.PRINTING_PRESS.get();
     }
 
     @Override
-    public RecipeType<?> getType() {
+    public RecipeType<? extends Recipe<PrintingPressBlockEntity>> getType() {
 
         return SFMRecipeTypes.PRINTING_PRESS.get();
+    }
+
+    @Override
+    public PlacementInfo placementInfo() {
+        return null;
+    }
+
+    @Override
+    public RecipeBookCategory recipeBookCategory() {
+        return null;
     }
 
     @MCVersionDependentBehaviour
@@ -99,7 +97,7 @@ public record PrintingPressRecipe(
     }
 
     @Override
-    public String toString() {
+    public @NonNull String toString() {
 
         return "PrintingPressRecipe[" +
                "form=" + form + ", " +
@@ -108,43 +106,18 @@ public record PrintingPressRecipe(
     }
 
     @MCVersionDependentBehaviour
-    public static class Serializer implements RecipeSerializer<PrintingPressRecipe> {
-        private final MapCodec<PrintingPressRecipe> CODEC = RecordCodecBuilder.mapCodec(builder -> builder.group(
-                Ingredient.CODEC.fieldOf("form").forGetter(PrintingPressRecipe::form),
-                Ingredient.CODEC.fieldOf("ink").forGetter(PrintingPressRecipe::ink),
-                Ingredient.CODEC.fieldOf("paper").forGetter(PrintingPressRecipe::paper)
-        ).apply(builder, PrintingPressRecipe::new));
+    public static final MapCodec<PrintingPressRecipe> CODEC = RecordCodecBuilder.mapCodec(builder -> builder.group(
+            Ingredient.CODEC.fieldOf("form").forGetter(PrintingPressRecipe::form),
+            Ingredient.CODEC.fieldOf("ink").forGetter(PrintingPressRecipe::ink),
+            Ingredient.CODEC.fieldOf("paper").forGetter(PrintingPressRecipe::paper)
+    ).apply(builder, PrintingPressRecipe::new));
 
-        private final StreamCodec<RegistryFriendlyByteBuf, PrintingPressRecipe> STREAM_CODEC = StreamCodec.of(
-                Serializer::toNetwork, Serializer::fromNetwork
-        );
-
-        @Override
-        public MapCodec<PrintingPressRecipe> codec() {
-            return CODEC;
-        }
-
-        @Override
-        public StreamCodec<RegistryFriendlyByteBuf, PrintingPressRecipe> streamCodec() {
-            return STREAM_CODEC;
-        }
-
-        public static PrintingPressRecipe fromNetwork(RegistryFriendlyByteBuf buf) {
-            Ingredient form = Ingredient.CONTENTS_STREAM_CODEC.decode(buf);
-            Ingredient ink = Ingredient.CONTENTS_STREAM_CODEC.decode(buf);
-            Ingredient paper = Ingredient.CONTENTS_STREAM_CODEC.decode(buf);
-            return new PrintingPressRecipe(form, ink, paper);
-        }
-
-        public static void toNetwork(
-                RegistryFriendlyByteBuf buf,
-                PrintingPressRecipe pRecipe
-        ) {
-            Ingredient.CONTENTS_STREAM_CODEC.encode(buf, pRecipe.form);
-            Ingredient.CONTENTS_STREAM_CODEC.encode(buf, pRecipe.ink);
-            Ingredient.CONTENTS_STREAM_CODEC.encode(buf, pRecipe.paper);
-        }
-
-    }
-
+    @MCVersionDependentBehaviour
+    public static final StreamCodec<RegistryFriendlyByteBuf, PrintingPressRecipe> STREAM_CODEC =
+            StreamCodec.composite(
+                    Ingredient.CONTENTS_STREAM_CODEC, PrintingPressRecipe::form,
+                    Ingredient.CONTENTS_STREAM_CODEC, PrintingPressRecipe::ink,
+                    Ingredient.CONTENTS_STREAM_CODEC, PrintingPressRecipe::paper,
+                    PrintingPressRecipe::new
+            );
 }

@@ -2,7 +2,7 @@ package ca.teamdman.sfm.gametest;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
@@ -13,7 +13,7 @@ import java.util.Optional;
 import static java.util.regex.Pattern.compile;
 
 public class SFMStructureGenerator {
-    public static Optional<StructureTemplate> generateStructureTemplate(ResourceLocation id) {
+    public static Optional<StructureTemplate> generateStructureTemplate(Identifier id) {
         StructureTemplate template = new StructureTemplate();
         template.setAuthor("TeamDman");
         template.size = extractSizeFromTemplateId(id);
@@ -36,7 +36,7 @@ public class SFMStructureGenerator {
     }
 
     private static Vec3i extractSizeFromTemplateId(
-            ResourceLocation id
+            Identifier id
     ) {
         int x = 1;
         int y = 1;

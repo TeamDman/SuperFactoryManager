@@ -8,7 +8,7 @@ import net.minecraft.client.ClientBrandRetriever;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
+import net.neoforged.neoforge.internal.NeoForgeVersionCheck;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -33,7 +33,7 @@ public class SFMClientDiagnostics {
             content
                     .append("-- Game Version: ")
                     .append("Minecraft ")
-                    .append(SharedConstants.getCurrentVersion().getName())
+                    .append(SharedConstants.getCurrentVersion().name())
                     .append(" (")
                     .append(Minecraft.getInstance().getLaunchedVersion())
                     .append("/")
@@ -42,7 +42,7 @@ public class SFMClientDiagnostics {
                     .append('\n');
 
             content.append("-- Forge Version: ")
-                    .append(NeoForgeVersion.getVersion())
+                    .append(NeoForgeVersionCheck.getTarget())
                     .append('\n');
 
             //noinspection CodeBlock2Expr

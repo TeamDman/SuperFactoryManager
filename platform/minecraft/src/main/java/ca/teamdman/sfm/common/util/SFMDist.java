@@ -16,7 +16,7 @@ public enum SFMDist {
     }
 
     public static SFMDist current() {
-        return SFMDist.from(FMLEnvironment.dist);
+        return SFMDist.from(FMLEnvironment.getDist());
     }
 
     public static SFMDist from(Dist dist) {

@@ -173,7 +173,7 @@
   "item.sfm.xp_goop": "经验粘浆",
   "item.sfm.xp_shard": "经验碎片",
   "item_group.sfm": "超级工厂管理器",
-  "key.categories.sfm": "超级工厂管理器",
+  "key.category.sfm.keybinds": "超级工厂管理器",
   "key.sfm.container_inspector.activation_key": "开关容器检查器",
   "key.sfm.item_inspector.activation_key": "（未完成）复制悬停选中的物品到剪贴板",
   "key.sfm.label_gun.clear_modifier": "标签枪：（修饰键）清除",

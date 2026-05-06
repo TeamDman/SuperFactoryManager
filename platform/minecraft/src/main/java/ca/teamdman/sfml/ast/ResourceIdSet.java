@@ -2,7 +2,7 @@ package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -68,7 +68,7 @@ public final class ResourceIdSet implements ASTNode {
         return getMatchingFromStack(stack) == null;
     }
 
-    public boolean anyMatchResourceLocation(ResourceLocation location) {
+    public boolean anyMatchResourceLocation(Identifier location) {
         return this.stream().anyMatch(x -> x.matchesResourceLocation(location));
     }
 

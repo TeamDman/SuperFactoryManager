@@ -73,7 +73,7 @@ public abstract class MCVersionAgnosticLootTablesDataGen extends LootTableProvid
 //    @MCVersionDependentBehaviour
 //    @Override
 //    protected void validate(
-//            Map<ResourceLocation, LootTable> map,
+//            Map<Identifier, LootTable> map,
 //            ValidationContext tracker
 //    ) {
 //        map.forEach((k, v) -> LootTables.validate(tracker, k, v));
@@ -100,7 +100,10 @@ public abstract class MCVersionAgnosticLootTablesDataGen extends LootTableProvid
                     .setRolls(ConstantValue.exactly(1))
                     .add(LootItem.lootTableItem(other.get()))
                     .when(ExplosionCondition.survivesExplosion());
-            writer.accept(block.get().getLootTable(), LootTable.lootTable().withPool(pool));
+            if (block.get().getLootTable().isPresent()) {
+                writer.accept(block.get().getLootTable().get(), LootTable.lootTable().withPool(pool));
+
+            }
         }
     }
 

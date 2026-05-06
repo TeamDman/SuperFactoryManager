@@ -17,14 +17,18 @@ import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeAccess;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.Blocks;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @JeiPlugin
@@ -47,7 +51,7 @@ public class SFMJEIPlugin implements IModPlugin {
     }
 
     @Override
-    public ResourceLocation getPluginUid() {
+    public Identifier getPluginUid() {
 
         return SFMResourceLocation.fromSFMPath(SFM.MOD_ID);
     }
@@ -64,13 +68,13 @@ public class SFMJEIPlugin implements IModPlugin {
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
 
-        registration.addRecipeCatalyst(
-                new ItemStack(SFMBlocks.PRINTING_PRESS.get()),
-                PrintingPressJEICategory.RECIPE_TYPE
+        registration.addCraftingStation(
+                PrintingPressJEICategory.RECIPE_TYPE,
+                SFMBlocks.PRINTING_PRESS.get()
         );
-        registration.addRecipeCatalyst(
-                new ItemStack(Blocks.ANVIL),
-                FallingAnvilJEICategory.RECIPE_TYPE
+        registration.addCraftingStation(
+                FallingAnvilJEICategory.RECIPE_TYPE,
+                Blocks.ANVIL
         );
     }
 
@@ -78,12 +82,12 @@ public class SFMJEIPlugin implements IModPlugin {
     public void registerRecipes(IRecipeRegistration registration) {
 
         // Acquire recipe manager
-        var level = Minecraft.getInstance().level;
-        assert level != null;
-        RecipeManager recipeManager = level.getRecipeManager();
+        assert ServerLifecycleHooks.getCurrentServer() != null;
+        RecipeManager recipeManager = ServerLifecycleHooks.getCurrentServer().getRecipeManager();
 
         // Get the list of printing press recipes from the recipe manager
-        List<RecipeHolder<PrintingPressRecipe>> printingPressRecipes = recipeManager.getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get());
+        Collection<RecipeHolder<PrintingPressRecipe>> printingPressRecipes = recipeManager.recipeMap()
+                .byType(SFMRecipeTypes.PRINTING_PRESS.get());
 
         // Create results collections
         List<PrintingPressRecipe> jeiPrintingPressRecipes = new ArrayList<>();

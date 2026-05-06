@@ -1,19 +1,21 @@
 package ca.teamdman.sfm.common.resourcetype;
 
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.resource.ResourceStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
 
 public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK, Class<STACK>, CAP> {
-    public final ResourceLocation registryKey;
+    public final Identifier registryKey;
     public final Class<STACK> item;
 
     public ScalarResourceType(
             SFMBlockCapabilityKind<CAP> capability,
-            ResourceLocation registryKey,
+            Identifier registryKey,
             Class<STACK> item
     ) {
         super(capability);
@@ -22,17 +24,17 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
     }
 
     @Override
-    public ResourceLocation getRegistryKeyForStack(STACK stack) {
+    public Identifier getRegistryKeyForStack(STACK stack) {
         return registryKey;
     }
 
     @Override
-    public ResourceLocation getRegistryKeyForItem(Class<STACK> item) {
+    public Identifier getRegistryKeyForItem(Class<STACK> item) {
         return registryKey;
     }
 
     @Override
-    public @Nullable Class<STACK> getItemFromRegistryKey(ResourceLocation location) {
+    public @Nullable Class<STACK> getItemFromRegistryKey(Identifier location) {
         if (location.equals(registryKey)) {
             return item;
         }
@@ -40,7 +42,7 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
     }
 
     @Override
-    public Set<ResourceLocation> getRegistryKeys() {
+    public Set<Identifier> getRegistryKeys() {
         return Set.of(registryKey);
     }
 
@@ -50,7 +52,7 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
     }
 
     @Override
-    public boolean registryKeyExists(ResourceLocation location) {
+    public boolean registryKeyExists(Identifier location) {
         return location.equals(registryKey);
     }
 
@@ -63,4 +65,5 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
     public boolean matchesStackType(Object o) {
         return item.isInstance(o);
     }
+
 }

@@ -7,7 +7,7 @@ import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfml.ast.Number;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -79,7 +79,7 @@ public class SFMASTUtils {
                         ResourceQuantity.IdExpansionBehaviour.NO_EXPAND
                 )
         );
-        ResourceLocation stackId = resourceType.getRegistryKeyForStack(stack);
+        Identifier stackId = resourceType.getRegistryKeyForStack(stack);
         ResourceIdentifier<STACK, ITEM, CAP> resourceIdentifier = new ResourceIdentifier<>(
                 resourceTypeResourceKey,
                 stackId

@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.containermenu;
 
 import ca.teamdman.sfm.common.blockentity.TestBarrelTankBlockEntity;
 import ca.teamdman.sfm.common.registry.registration.SFMMenus;
+import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
@@ -11,11 +12,11 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
+import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler;
 
 public class TestBarrelTankContainerMenu extends AbstractContainerMenu {
     public final Container container;
-    public final FluidTank tank;
+    public final FluidStacksResourceHandler tank;
 
     public TestBarrelTankContainerMenu(
             int windowId,
@@ -26,8 +27,7 @@ public class TestBarrelTankContainerMenu extends AbstractContainerMenu {
         super(SFMMenus.TEST_BARREL_TANK.get(), windowId);
         checkContainerSize(container, 1);
         this.container = container;
-        this.tank = new FluidTank(1000);
-        this.tank.setFluid(tankContents);
+        this.tank = new FluidStacksResourceHandler(NonNullList.of(tankContents), 1000);
 
         container.startOpen(inv.player);
         int i = -18;
@@ -66,11 +66,12 @@ public class TestBarrelTankContainerMenu extends AbstractContainerMenu {
             Inventory inventory,
             TestBarrelTankBlockEntity blockEntity
     ) {
+        FluidStacksResourceHandler tank = blockEntity.getTank();
         this(
                 containerId,
                 inventory,
                 blockEntity,
-                blockEntity.getTank().getFluid()
+                tank.getResource(0).toStack(tank.getAmountAsInt(0))
         );
     }
 
@@ -78,8 +79,9 @@ public class TestBarrelTankContainerMenu extends AbstractContainerMenu {
             TestBarrelTankBlockEntity blockEntity,
             RegistryFriendlyByteBuf buf
     ) {
-        buf.writeLong(blockEntity.getTank().getFluidAmount());
-        FluidStack.STREAM_CODEC.encode(buf, blockEntity.getTank().getFluid());
+        FluidStacksResourceHandler tank = blockEntity.getTank();
+        buf.writeLong(tank.getAmountAsLong(0));
+        FluidStack.STREAM_CODEC.encode(buf, tank.getResource(0).toStack(tank.getAmountAsInt(0)));
     }
 
     @Override

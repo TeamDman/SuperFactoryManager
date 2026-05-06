@@ -3,23 +3,28 @@ package ca.teamdman.sfm.common.recipe;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMRecipeSerializers;
-import net.minecraft.core.HolderLookup;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
-import net.minecraft.world.item.crafting.CraftingInput;
-import net.minecraft.world.item.crafting.CustomRecipe;
-import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 
 /**
- * Printing press copies a form using ink and paper.
+ * Clears all data from label guns
  */
 public class LabelGunResetRecipe extends CustomRecipe {
-    public LabelGunResetRecipe(
-            CraftingBookCategory pCategory
-    ) {
-        super(pCategory);
-    }
+    public LabelGunResetRecipe() {}
+
+    @MCVersionDependentBehaviour
+    public static final MapCodec<LabelGunResetRecipe> CODEC =
+            MapCodec.unit(LabelGunResetRecipe::new);
+
+    @MCVersionDependentBehaviour
+    public static final StreamCodec<RegistryFriendlyByteBuf, LabelGunResetRecipe> STREAM_CODEC =
+            StreamCodec.unit(new LabelGunResetRecipe());
 
     @Override
     public boolean matches(
@@ -40,8 +45,7 @@ public class LabelGunResetRecipe extends CustomRecipe {
 
     @Override
     public ItemStack assemble(
-            CraftingInput craftingInput,
-            HolderLookup.Provider provider
+            CraftingInput craftingInput
     ) {
         int foundLabelGuns = 0;
         for (int i = 0; i < craftingInput.size(); i++) {
@@ -56,15 +60,7 @@ public class LabelGunResetRecipe extends CustomRecipe {
     }
 
     @Override
-    public boolean canCraftInDimensions(
-            int pWidth,
-            int pHeight
-    ) {
-        return true;
-    }
-
-    @Override
-    public RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<? extends CustomRecipe> getSerializer() {
         return SFMRecipeSerializers.LABEL_GUN_RESET.get();
     }
 }

@@ -12,12 +12,15 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -31,11 +34,13 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.redstone.Orientation;
 import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @SuppressWarnings("deprecation")
 
@@ -86,37 +91,24 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
     }
 
     @Override
-    @SuppressWarnings("deprecation")
-    public void onRemove(
-            BlockState pState,
-            Level pLevel,
-            BlockPos pPos,
-            BlockState pNewState,
-            boolean pIsMoving
-    ) {
-
-        super.onRemove(pState, pLevel, pPos, pNewState, pIsMoving);
-
-        // Changing the active block state causes this to fire, we want to debounce this
-        // so that the neighbour method does a single update for remove+place when changing active state
-        if (!pNewState.is(pState.getBlock())) {
-            WaterNetworkManager.onWaterTankBlockRemoved(pLevel, pPos);
-        }
+    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel pLevel, BlockPos pPos, boolean movedByPiston) {
+        super.affectNeighborsAfterRemoval(state, pLevel, pPos, movedByPiston);
+        WaterNetworkManager.onWaterTankBlockRemoved(pLevel, pPos);
     }
-
 
     @Override
     public void appendHoverText(
             ItemStack pStack,
             Item.TooltipContext pContext,
-            List<Component> pTootipComponents,
+            TooltipDisplay pTooltipDisplay,
+            Consumer<Component> pTooltipComponents,
             TooltipFlag pTooltipFlag
     ) {
 
-        pTootipComponents.add(WATER_TANK_ITEM_TOOLTIP_1
+        pTooltipComponents.accept(WATER_TANK_ITEM_TOOLTIP_1
                              .getComponent()
                              .withStyle(ChatFormatting.GRAY));
-        pTootipComponents.add(WATER_TANK_ITEM_TOOLTIP_2
+        pTooltipComponents.accept(WATER_TANK_ITEM_TOOLTIP_2
                              .getComponent()
                              .withStyle(ChatFormatting.GRAY));
     }
@@ -170,17 +162,16 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void neighborChanged(
             BlockState state,
             Level level,
             BlockPos pos,
-            Block blockIn,
-            BlockPos fromPos,
+            Block block,
+            @Nullable Orientation orientation,
             boolean isMoving
     ) {
 
-        if (level.isClientSide) return;
+        if (level.isClientSide()) return;
         boolean isActive = hasWaterNeighbours(level, pos);
         if (state.getValue(IN_WATER) != isActive) {
             BlockState newState = defaultBlockState().setValue(IN_WATER, isActive);
@@ -195,7 +186,7 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
 
     @Override
     public ItemStack pickupBlock(
-            @Nullable Player player,
+            @Nullable LivingEntity player,
             LevelAccessor levelAccessor,
             BlockPos blockPos,
             BlockState blockState
@@ -212,7 +203,7 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
 
     @Override
     public boolean canPlaceLiquid(
-            @Nullable Player player,
+            @Nullable LivingEntity player,
             BlockGetter blockGetter,
             BlockPos blockPos,
             BlockState blockState,

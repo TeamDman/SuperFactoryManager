@@ -28,6 +28,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.BlockHitResult;
 import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.Nullable;
@@ -56,17 +57,16 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
         return RenderShape.MODEL;
     }
 
-    @Override
     @SuppressWarnings("deprecation")
+    @Override
     public void neighborChanged(
             BlockState state,
             Level level,
             BlockPos pos,
             Block block,
-            BlockPos neighbourPos,
-            boolean movedByPiston
+            @Nullable Orientation orientation,
+            boolean isMoving
     ) {
-
         if (!(level.getBlockEntity(pos) instanceof ManagerBlockEntity mgr)) return;
         if (!(level instanceof ServerLevel)) return;
         { // check redstone for triggers

@@ -3,7 +3,6 @@ package ca.teamdman.sfm.client.text_editor.action;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.text_editor.Cursor;
 import ca.teamdman.sfm.client.text_editor.TextEditContext;
-import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayDeque;
@@ -14,14 +13,14 @@ public class SwapCursorHeadsAndTailsAction implements ITextEditAction {
             TextEditContext context,
             KeyboardImpulse impulse
     ) {
-        SFM.LOGGER.info("got {} ({}) with {} {} {}", impulse.keyCode(),  GLFW.glfwGetKeyName(impulse.keyCode(), impulse.scanCode()),
-                Screen.hasControlDown() ? "control" : "no control",
-                Screen.hasAltDown() ? "alt" : "no alt",
-                Screen.hasShiftDown() ? "shift" : "no shift");
-        return impulse.keyCode() == GLFW.GLFW_KEY_O
-               && Screen.hasControlDown()
-               && !Screen.hasAltDown()
-               && !Screen.hasShiftDown();
+        SFM.LOGGER.info("got {} ({}) with {} {} {}", impulse.event().key(),  GLFW.glfwGetKeyName(impulse.event().key(), impulse.event().scancode()),
+                impulse.event().hasControlDown() ? "control" : "no control",
+                impulse.event().hasAltDown() ? "alt" : "no alt",
+                impulse.event().hasShiftDown() ? "shift" : "no shift");
+        return impulse.event().key() == GLFW.GLFW_KEY_O
+               && impulse.event().hasControlDown()
+               && !impulse.event().hasAltDown()
+               && !impulse.event().hasShiftDown();
     }
 
     @Override

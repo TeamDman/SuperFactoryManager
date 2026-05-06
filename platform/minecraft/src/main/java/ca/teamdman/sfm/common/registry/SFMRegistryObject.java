@@ -3,7 +3,7 @@ package ca.teamdman.sfm.common.registry;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
@@ -35,7 +35,7 @@ public class SFMRegistryObject<R, T extends R> implements Supplier<T> {
     }
 
     public @Nullable String getPath() {
-        return getId().map(ResourceKey::location).map(ResourceLocation::getPath).orElse(null);
+        return getId().map(ResourceKey::identifier).map(Identifier::getPath).orElse(null);
     }
 
     public SFMRegistryWrapper<T> getRegistry() {

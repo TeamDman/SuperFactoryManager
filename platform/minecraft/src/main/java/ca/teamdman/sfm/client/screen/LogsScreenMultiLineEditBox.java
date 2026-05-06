@@ -5,10 +5,11 @@ import ca.teamdman.sfm.client.screen.text_editor.SFMMultiLineTextRenderWidget;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.components.Whence;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -48,7 +49,12 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
                 pWidth,
                 pHeight,
                 pPlaceholder,
-                pMessage
+                pMessage,
+                -2039584,
+                true,
+                -3092272,
+                true,
+                true
         );
 
         Rect2i textRenderWidgetArea = new Rect2i(
@@ -66,13 +72,13 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
 
     public void scrollToBottom() {
 
-        this.setScrollAmount(this.getMaxScrollAmount());
+        this.setScrollAmount(this.maxScrollAmount());
     }
 
-    @Override
+    @MCVersionDependentBehaviour
     public int getScrollBarHeight() {
         // Fix #307: divide by zero exception in AbstractScrollWidget.mouseDragged
-        int rtn = super.getScrollBarHeight();
+        int rtn = this.getBottom() - this.getY();
         if (rtn == this.height) {
             return rtn - 1;
         } else {
@@ -83,11 +89,12 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
     @MCVersionDependentBehaviour
     @Override
     public boolean mouseClicked(
-            double pMouseX,
-            double pMouseY,
-            int pButton
+            MouseButtonEvent event,
+            boolean doubleClick
     ) {
-
+        int pButton = event.button();
+        double pMouseX = event.x(),
+                pMouseY = event.y();
         try {
             if (pButton == 0) {
                 this.scrollbarDragActive = false;
@@ -100,7 +107,7 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
                 // Focus the editor so the caret blinks and keys go here
                 this.setFocused(true);
 
-                boolean shiftDown = Screen.hasShiftDown();
+                boolean shiftDown = SFMWidgetUtils.hasShiftDown();
 
                 // Move cursor to the click position
                 seekCursorFromPoint(pMouseX, pMouseY);
@@ -128,11 +135,19 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
                 this.scrollbarDragActive = true;
             }
 
-            return super.mouseClicked(pMouseX, pMouseY, pButton);
+            return super.mouseClicked(event, doubleClick);
         } catch (Exception e) {
             SFM.LOGGER.error("Error in mouseClicked handler", e);
             return false;
         }
+    }
+
+    @MCVersionDependentBehaviour
+    protected boolean withinContentAreaPoint(double x, double y) {
+        return x >= (double)this.getX()
+                && x < (double)(this.getX() + this.width)
+                && y >= (double)this.getY()
+                && y < (double)(this.getY() + this.height);
     }
 
     @Override
@@ -144,40 +159,38 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
 
     @Override
     public boolean mouseReleased(
-            double mx,
-            double my,
-            int button
+            MouseButtonEvent event
     ) {
 
-        if (button == 0) {
+        if (event.button() == 0) {
             // Stop active selection on mouse up
             this.textField.setSelecting(false);
             this.scrollbarDragActive = false;
         }
-        return super.mouseReleased(mx, my, button);
+        return super.mouseReleased(event);
     }
 
     @Override
     public boolean mouseDragged(
-            double mx,
-            double my,
-            int button,
+            MouseButtonEvent event,
             double dx,
             double dy
     ) {
+        double mx = event.x(),
+                my = event.y();
         // We want to give the scrollbar priority, but we want to do our own selection logic.
-        if (this.scrollbarDragActive && super.mouseDragged(mx, my, button, dx, dy)) {
+        if (this.scrollbarDragActive && super.mouseDragged(event, dx, dy)) {
             return true;
         }
 
         try {
-            if (button == 0 && this.visible && this.withinContentAreaPoint(mx, my)) {
+            if (event.button() == 0 && this.visible && this.withinContentAreaPoint(mx, my)) {
                 if (styledTextContentLines.isEmpty()) {
                     return false;
                 }
                 // Keep selection active while dragging and update cursor
                 this.textField.setSelecting(true);
-                seekCursorFromPoint(mx, my);
+                seekCursorFromPoint(event.x(), event.y());
                 return true;
             }
         } catch (Exception e) {
@@ -189,7 +202,7 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
     }
 
     @Override
-    protected void setScrollAmount(double pScrollAmount) {
+    public void setScrollAmount(double pScrollAmount) {
 
         if (!scrollingEnabled) return;
         super.setScrollAmount(pScrollAmount);
@@ -216,14 +229,14 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
     }
 
     @Override
-    protected int getMaxScrollAmount() {
+    public int maxScrollAmount() {
 
-        return Math.max(1, super.getMaxScrollAmount()); // Fix #307: divide by zero exception
+        return Math.max(1, super.maxScrollAmount()); // Fix #307: divide by zero exception
     }
 
     @Override
-    protected void renderContents(
-            GuiGraphics pGuiGraphics,
+    public void extractWidgetRenderState(
+            GuiGraphicsExtractor pGuiGraphics,
             int mx,
             int my,
             float partialTicks
@@ -237,7 +250,7 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
         textRenderWidget.setFocused(this.isFocused());
         textRenderWidget.setScrollAmount(this.scrollAmount());
         textRenderWidget.setSelected(this.textField.getSelected());
-        textRenderWidget.render(pGuiGraphics, mx, my, partialTicks);
+        textRenderWidget.extractRenderState(pGuiGraphics, mx, my, partialTicks);
     }
 
 }

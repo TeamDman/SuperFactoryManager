@@ -22,8 +22,9 @@ import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.recipe.IFocus;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
-import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.api.recipe.types.IRecipeType;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -40,7 +41,7 @@ import java.util.stream.Stream;
 
 public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilRecipe> {
 
-    public static final RecipeType<FallingAnvilRecipe> RECIPE_TYPE = RecipeType.create(
+    public static final IRecipeType<FallingAnvilRecipe> RECIPE_TYPE = IRecipeType.create(
             SFM.MOD_ID,
             "falling_anvil",
             FallingAnvilRecipe.class
@@ -54,7 +55,7 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
     }
 
     @Override
-    public RecipeType<FallingAnvilRecipe> getRecipeType() {
+    public IRecipeType<FallingAnvilRecipe> getRecipeType() {
 
         return RECIPE_TYPE;
     }
@@ -101,8 +102,8 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
                 new ItemStack(Items.DAMAGED_ANVIL)
         );
         if (recipe instanceof FallingAnvilFormRecipe formRecipe) {
-            builder.addSlot(RecipeIngredientRole.CATALYST, 0, 0).addItemStacks(anvil);
-            builder.addSlot(RecipeIngredientRole.INPUT, 0, 18).addIngredients(formRecipe.PARENT.form());
+            builder.addSlot(RecipeIngredientRole.CRAFTING_STATION, 0, 0).addItemStacks(anvil);
+            builder.addSlot(RecipeIngredientRole.INPUT, 0, 18).add(formRecipe.PARENT.form());
             List<ItemStack> consumedCatalystBlocks = SFMWellKnownRegistries.BLOCKS.stream()
                     .filter(block -> SFMBlockTags.hasBlockTag(block, SFMBlockTags.ANVIL_PRINTING_PRESS_FORMING))
                     .map(ItemStack::new)
@@ -113,12 +114,16 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
                                   )
                     ).toList();
             builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).addItemStacks(consumedCatalystBlocks);
+
+
             builder
                     .addSlot(RecipeIngredientRole.OUTPUT, 50, 18)
-                    .addItemStacks(Arrays
-                                           .stream(formRecipe.PARENT.form().getItems())
-                                           .map(FormItem::createFormFromReference)
-                                           .toList());
+                    .addItemStacks(formRecipe.PARENT.form().getValues().stream()
+                            .map(Holder::value)
+                            .map(Item::asItem)
+                            .map(ItemStack::new)
+                            .map(FormItem::createFormFromReference)
+                            .toList());
         } else if (recipe instanceof FallingAnvilDisenchantRecipe) {
 
             // If a focus is present for an input or output item, we want to only show those enchantments
@@ -293,7 +298,7 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
 
             // Track the anvil catalyst
             builder
-                    .addSlot(RecipeIngredientRole.CATALYST, 8, 0)
+                    .addSlot(RecipeIngredientRole.CRAFTING_STATION, 8, 0)
                     .addItemStacks(anvil);
 
             // Track the obsidian catalyst
@@ -307,13 +312,13 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
                     ))
                     .toList();
             builder
-                    .addSlot(RecipeIngredientRole.CATALYST, 8, 36)
+                    .addSlot(RecipeIngredientRole.CRAFTING_STATION, 8, 36)
                     .addItemStacks(crushingCompatibleBlocks);
 
             // Track the book ingredient
             builder
                     .addSlot(RecipeIngredientRole.INPUT, 18, 18)
-                    .addItemStack(new ItemStack(Items.BOOK));
+                    .add(Items.BOOK);
 
             // Track the enchanted item input ingredient
             IRecipeSlotBuilder inputEnchantedItemSlot = builder
@@ -332,14 +337,14 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
             }
 
         } else if (recipe instanceof FallingAnvilExperienceShardRecipe) {
-            builder.addSlot(RecipeIngredientRole.CATALYST, 0, 0).addItemStacks(anvil);
-            builder.addSlot(RecipeIngredientRole.INPUT, 0, 18).addIngredients(Ingredient.of(Items.ENCHANTED_BOOK));
+            builder.addSlot(RecipeIngredientRole.CRAFTING_STATION, 0, 0).addItemStacks(anvil);
+            builder.addSlot(RecipeIngredientRole.INPUT, 0, 18).add(Ingredient.of(Items.ENCHANTED_BOOK));
             ItemStack obsidian = new ItemStack(Blocks.OBSIDIAN);
             SFMComponentUtils.appendLore(obsidian, Localization.FALLING_ANVIL_JEI_NOT_CONSUMED.getComponent());
-            builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).addItemStack(obsidian);
+            builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).add(obsidian);
             builder
                     .addSlot(RecipeIngredientRole.OUTPUT, 50, 18)
-                    .addItemStack(new ItemStack(SFMItems.EXPERIENCE_SHARD.get()));
+                    .add(SFMItems.EXPERIENCE_SHARD.get());
         }
     }
 

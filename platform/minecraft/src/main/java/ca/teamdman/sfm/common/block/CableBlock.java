@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.block;
 import ca.teamdman.sfm.client.ClientFacadeWarningHelper;
 import ca.teamdman.sfm.client.handler.NetworkToolKeyMappingHandler;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.client.screen.SFMWidgetUtils;
 import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.block_network.ICableBlock;
 import ca.teamdman.sfm.common.facade.FacadeSpreadLogic;
@@ -13,8 +14,9 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -52,25 +54,17 @@ public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
         }
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public void onRemove(
-            BlockState state,
-            Level level,
-            BlockPos pos,
-            BlockState newState,
-            boolean isMoving
-    ) {
-        // purges block entity
-        super.onRemove(state, level, pos, newState, isMoving);
+    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
 
-        if (!(newState.getBlock() instanceof ICableBlock)) {
+        if (!(state.getBlock() instanceof ICableBlock)) {
             CableNetworkManager.onCableRemoved(level, pos);
         }
     }
 
     @Override
-    protected ItemInteractionResult useItemOn(
+    protected InteractionResult useItemOn(
             ItemStack pStack,
             BlockState pState,
             Level pLevel,
@@ -84,7 +78,7 @@ public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
             if (pLevel.isClientSide() && pHand == InteractionHand.MAIN_HAND) {
                 ServerboundFacadePacket msg = new ServerboundFacadePacket(
                         pHitResult,
-                        FacadeSpreadLogic.fromParts(Screen.hasControlDown(), Screen.hasAltDown()),
+                        FacadeSpreadLogic.fromParts(SFMWidgetUtils.hasCtrlDown(), SFMWidgetUtils.hasAltDown()),
                         pPlayer.getMainHandItem(),
                         InteractionHand.MAIN_HAND
                 );
@@ -93,11 +87,11 @@ public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
                     NetworkToolKeyMappingHandler.setExternalDebounce();
                 }
                 ClientFacadeWarningHelper.sendFacadePacketFromClientWithConfirmationIfNecessary(msg);
-                return ItemInteractionResult.CONSUME;
+                return InteractionResult.CONSUME;
             }
-            return ItemInteractionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         }
-        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        return InteractionResult.PASS;
     }
 
     @Override

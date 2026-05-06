@@ -8,31 +8,42 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 public class WaterTankBlockEntity extends BlockEntity {
-
-    public final FluidTank TANK = new FluidTank(
-            0,
-            fluidStack -> false // The tank cannot be filled, only drained.
-    ) {
-        @Override
-        public FluidStack drain(
-                int maxDrain,
-                FluidAction action
-        ) {
-
-            // Return empty if inactive
-            if (getFluidAmount() == 0) return FluidStack.EMPTY;
-
-            // Return fluid stack without draining the tank
-            int drained = Math.min(maxDrain, getFluidAmount());
-            FluidStack copy = getFluid().copy();
-            copy.setAmount(drained);
-            return copy;
+    public static class WaterTankFluidHandler extends FluidStacksResourceHandler {
+        public WaterTankFluidHandler() {
+            super(1, 0);
         }
-    };
+
+        public void setCapacity(int capacity) {
+            this.capacity = capacity;
+        }
+
+        public int getCapacity() {
+            return this.capacity;
+        }
+
+        @Override
+        public boolean isValid(int index, FluidResource resource) {
+            return false;
+        }
+
+        @Override
+        public int insert(FluidResource resource, int amount, TransactionContext tx) {
+            return 0;
+        }
+
+        @Override
+        public int extract(FluidResource resource, int amount, TransactionContext tx) {
+            return resource.equals(FluidResource.of(Fluids.WATER)) ? getAmountAsInt(0) : 0;
+        }
+    }
+
+    public final WaterTankFluidHandler TANK = new WaterTankFluidHandler();
+
     private boolean active = false;
 
 
@@ -95,10 +106,11 @@ public class WaterTankBlockEntity extends BlockEntity {
     }
 
     private void updateTank() {
+        FluidResource water = FluidResource.of(Fluids.WATER);
         if (active) {
-            TANK.setFluid(new FluidStack(Fluids.WATER, TANK.getCapacity()));
+            TANK.set(0, water, TANK.getCapacityAsInt(0, water));
         } else {
-            TANK.setFluid(FluidStack.EMPTY);
+            TANK.set(0, FluidResource.EMPTY, 0);
         }
     }
 

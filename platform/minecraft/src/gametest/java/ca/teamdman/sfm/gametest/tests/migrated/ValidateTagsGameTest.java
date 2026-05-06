@@ -7,6 +7,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.util.function.BiConsumer;
 
@@ -35,7 +36,7 @@ public class ValidateTagsGameTest extends SFMGameTestDefinition {
         BiConsumer<Item, String> assertTag = (item, findTag) -> {
             boolean hasTag = SFMResourceTypes.ITEM
                     .get()
-                    .getTagsForStack(new ItemStack(item))
+                    .getTagsForStack(item)
                     .anyMatch(tag -> tag.toString().equals(findTag) || !findTag.contains(":") && tag
                             .getPath()
                             .equals(findTag));

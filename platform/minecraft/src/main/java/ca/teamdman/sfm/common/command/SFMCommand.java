@@ -24,10 +24,14 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.blocks.BlockInput;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionSet;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
@@ -38,6 +42,8 @@ import net.neoforged.neoforge.server.command.EnumArgument;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
@@ -61,7 +67,7 @@ public class SFMCommand {
 
         var command = Commands.literal("sfm");
         command.then(Commands.literal("bust_cable_network_cache")
-                             .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                             .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
                              .executes(ctx -> {
                                  CommandSourceStack source = ctx.getSource();
                                  SFM.LOGGER.info(
@@ -73,7 +79,7 @@ public class SFMCommand {
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("bust_water_network_cache")
-                             .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                             .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
                              .executes(ctx -> {
                                  CommandSourceStack source = ctx.getSource();
                                  SFM.LOGGER.info(
@@ -85,7 +91,7 @@ public class SFMCommand {
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("show_bad_cable_cache_entries")
-                             .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                             .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
                              .then(Commands.argument("block", BlockStateArgument.block(event.getBuildContext()))
                                            .executes(ctx -> {
                                                ServerLevel level = ctx.getSource().getLevel();
@@ -106,7 +112,7 @@ public class SFMCommand {
         command.then(
                 Commands.literal("config")
                         .then(Commands.literal("show")
-                                      .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                                      .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
                                       .then(Commands
                                                     .argument(
                                                             "variant",
@@ -124,7 +130,7 @@ public class SFMCommand {
                         .then(Commands.literal("edit")
                                       .then(
                                               Commands.literal(ConfigCommandVariantInput.SERVER.name())
-                                                      .requires(source -> source.hasPermission(Commands.LEVEL_OWNERS))
+                                                      .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_OWNER))
                                                       .executes(new ConfigCommand(
                                                               ConfigCommandBehaviourInput.EDIT,
                                                               ConfigCommandVariantInput.SERVER
@@ -132,7 +138,7 @@ public class SFMCommand {
                                       )
                                       .then(
                                               Commands.literal(ConfigCommandVariantInput.CLIENT.name())
-                                                      .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                                                      .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
                                                       .executes(new ConfigCommand(
                                                               ConfigCommandBehaviourInput.EDIT,
                                                               ConfigCommandVariantInput.CLIENT
@@ -141,7 +147,7 @@ public class SFMCommand {
                         )
         );
         command.then(Commands.literal("changelog")
-                             .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                             .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
                              .executes(ctx -> {
                                  ServerPlayer player = ctx.getSource().getPlayer();
                                  if (player != null) {
@@ -158,7 +164,7 @@ public class SFMCommand {
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("kit")
-                             .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                             .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
                              .executes(ctx -> giveKitToPlayers(
                                      ctx.getSource(),
                                      List.of(ctx.getSource().getPlayerOrException())
@@ -170,7 +176,7 @@ public class SFMCommand {
                                            ))));
         if (SFMEnvironmentUtils.isInIDE()) {
             command.then(Commands.literal("test")
-                                 .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                                 .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
                                  .then(Commands.literal("run")
                                                .then(Commands.argument("pattern", StringArgumentType.greedyString())
                                                              .executes(ctx -> {
@@ -184,7 +190,7 @@ public class SFMCommand {
         }
         if (SFMEnvironmentUtils.isClient()) {
             command.then(Commands.literal("export_info")
-                                 .requires(source -> source.hasPermission(Commands.LEVEL_ALL))
+                                 .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
                                  .then(Commands.argument("includeHidden", BoolArgumentType.bool())
                                                .executes(ctx -> {
                                                    boolean includeHidden = BoolArgumentType.getBool(
@@ -252,7 +258,7 @@ public class SFMCommand {
                 new ItemStack(Items.CHEST)
         );
 
-        CommandSourceStack giveSource = source.withPermission(Commands.LEVEL_GAMEMASTERS);
+        CommandSourceStack giveSource = source.withPermission(PermissionSet.ALL_PERMISSIONS); // no clue if this is right
         for (ServerPlayer target : targets) {
             for (ItemStack kitItem : kitItems) {
                 var itemId = SFMWellKnownRegistries.ITEMS.getId(kitItem.getItem());
@@ -276,10 +282,11 @@ public class SFMCommand {
     ) {
 
         var matcher = RegexCache.buildPredicate(wildcardToRegex(wildcardPattern));
-        List<TestFunction> matchingTests = GameTestRegistry
-                .getAllTestFunctions()
-                .stream()
-                .filter(testFunction -> matcher.test(testFunction.testName()))
+        List<Holder.Reference<GameTestInstance>> matchingTests = source.getServer()
+                .registryAccess()
+                .lookupOrThrow(Registries.TEST_INSTANCE)
+                .listElements()
+                .filter(ref -> matcher.test(ref.key().identifier().toString()))
                 .toList();
 
         if (matchingTests.isEmpty()) {
@@ -292,7 +299,7 @@ public class SFMCommand {
         int surfaceY = level.getHeightmapPos(Heightmap.Types.WORLD_SURFACE, sourcePos).getY();
         BlockPos startPos = new BlockPos(sourcePos.getX(), surfaceY, sourcePos.getZ() + 3);
 
-        GameTestRunner.clearMarkers(level);
+//        GameTestRunner.clearMarkers(level);
         runTests(matchingTests, startPos, level);
 
         sendSuccess(
@@ -304,7 +311,7 @@ public class SFMCommand {
 
     @MCVersionDependentBehaviour
     private static void runTests(
-            List<TestFunction> matchingTests,
+            List<Holder.Reference<GameTestInstance>> matchingTests,
             BlockPos startPos,
             ServerLevel level
     ) {

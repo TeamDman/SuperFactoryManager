@@ -6,7 +6,7 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfml.ast.Program;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +41,7 @@ public class ResourcesProgramLinter implements IProgramLinter {
                 continue;
             }
             // If it doesn't exist in the registry, add a warning
-            if (!resourceType.registryKeyExists((ResourceLocation) loc.get())) {
+            if (!resourceType.registryKeyExists((Identifier) loc.get())) {
                 tracker.add(PROGRAM_WARNING_UNKNOWN_RESOURCE_ID.get(resource));
             }
         }

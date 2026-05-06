@@ -5,14 +5,14 @@ import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimit;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 @SuppressWarnings("DuplicatedCode")
 public class ExpandedQuantitySharedRetentionOutputResourceTracker implements IOutputResourceTracker {
     private final ResourceLimit resource_limit;
     private final ResourceIdSet exclusions;
     private long retention_obligation_progress = 0;
-    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>
+    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<Identifier>>
             transferred_by_item = new Object2ObjectOpenHashMap<>();
 
     public ExpandedQuantitySharedRetentionOutputResourceTracker(
@@ -38,7 +38,7 @@ public class ExpandedQuantitySharedRetentionOutputResourceTracker implements IOu
         long transferred_for_item = 0;
         var transferred_for_resource_type = transferred_by_item.get(type);
         if (transferred_for_resource_type != null) {
-            ResourceLocation item_id = type.getRegistryKeyForStack(stack);
+            Identifier item_id = type.getRegistryKeyForStack(stack);
             transferred_for_item = transferred_for_resource_type.getLong(item_id);
         }
         if (transferred_for_item >= can_transfer) {
@@ -76,7 +76,7 @@ public class ExpandedQuantitySharedRetentionOutputResourceTracker implements IOu
         long transferred_for_item = 0;
         var transferred_for_resource_type = transferred_by_item.get(resourceType);
         if (transferred_for_resource_type != null) {
-            ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+            Identifier item_id = resourceType.getRegistryKeyForStack(key);
             transferred_for_item = transferred_for_resource_type.getLong(item_id);
         }
         long unusedQuantity = max_transfer - transferred_for_item;
@@ -93,7 +93,7 @@ public class ExpandedQuantitySharedRetentionOutputResourceTracker implements IOu
             STACK key,
             long amount
     ) {
-        ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+        Identifier item_id = resourceType.getRegistryKeyForStack(key);
         transferred_by_item.computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())
                 .addTo(item_id, amount);
         retention_obligation_progress += amount;

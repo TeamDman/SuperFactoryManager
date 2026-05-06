@@ -1,11 +1,16 @@
 package ca.teamdman.sfm.client.screen;
 
+import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import org.joml.Matrix3x2fStack;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
@@ -37,7 +42,7 @@ public class SFMWidgetUtils {
     @SuppressWarnings("unused")
     @MCVersionDependentBehaviour
     public static void renderChildTooltips(
-            PoseStack pose,
+            Matrix3x2fStack pose,
             int mx,
             int my,
             List<Renderable> renderables
@@ -48,5 +53,25 @@ public class SFMWidgetUtils {
 //                .filter(SFMExtendedButtonWithTooltip.class::isInstance)
 //                .map(SFMExtendedButtonWithTooltip.class::cast)
 //                .forEach(x -> x.renderToolTip(pose, mx, my));
+    }
+
+    /// hasShiftDown was moved to {@link KeyEvent#hasShiftDown()}
+    /// but that would require rewriting {@link SFMButtonBuilder}
+    @MCVersionDependentBehaviour
+    public static boolean hasShiftDown() {
+        Window window = Minecraft.getInstance().getWindow();
+        return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_SHIFT);
+    }
+
+    @MCVersionDependentBehaviour
+    public static boolean hasCtrlDown() {
+        Window window = Minecraft.getInstance().getWindow();
+        return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_CONTROL) || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_CONTROL);
+    }
+
+    @MCVersionDependentBehaviour
+    public static boolean hasAltDown() {
+        Window window = Minecraft.getInstance().getWindow();
+        return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_ALT) || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_ALT);
     }
 }

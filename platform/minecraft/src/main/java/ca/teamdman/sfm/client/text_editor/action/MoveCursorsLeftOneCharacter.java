@@ -3,7 +3,6 @@ package ca.teamdman.sfm.client.text_editor.action;
 import ca.teamdman.sfm.client.text_editor.Cursor;
 import ca.teamdman.sfm.client.text_editor.TextEditContext;
 import it.unimi.dsi.fastutil.ints.Int2IntFunction;
-import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayDeque;
@@ -14,7 +13,7 @@ public class MoveCursorsLeftOneCharacter implements ITextEditAction {
             TextEditContext context,
             KeyboardImpulse impulse
     ) {
-        return impulse.keyCode() == GLFW.GLFW_KEY_LEFT && !Screen.hasShiftDown() && !Screen.hasControlDown() && !Screen.hasAltDown();
+        return impulse.event().key() == GLFW.GLFW_KEY_LEFT && !impulse.event().hasShiftDown() && !impulse.event().hasControlDown() && !impulse.event().hasAltDown();
     }
 
     @Override

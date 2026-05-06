@@ -11,9 +11,10 @@ import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
 import ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.timing.SFMEpochInstant;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
@@ -21,6 +22,7 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import org.apache.logging.log4j.Level;
+import org.joml.Matrix3x2fStack;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -118,32 +120,31 @@ public class LogsScreen extends Screen {
 
     @Override
     public void resize(
-            Minecraft mc,
             int x,
             int y
     ) {
 
         var prev = this.textarea.getValue();
-        init(mc, x, y);
-        super.resize(mc, x, y);
+        init(x, y);
+        super.resize(x, y);
         this.textarea.setValue(prev);
     }
 
     @Override
-    public void render(
-            GuiGraphics pGuiGraphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor pGuiGraphics,
             int pMouseX,
             int pMouseY,
             float pPartialTick
     ) {
 
-        PoseStack poseStack = pGuiGraphics.pose();
+        Matrix3x2fStack poseStack = pGuiGraphics.pose();
 
         // render background
-        this.renderTransparentBackground(pGuiGraphics);
+        this.extractTransparentBackground(pGuiGraphics);
 
         // render widgets
-        super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+        super.extractRenderState(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
 
         // render tooltips
         SFMWidgetUtils.hideTooltipsWhenNotFocused(this, this.renderables);
@@ -292,7 +293,7 @@ public class LogsScreen extends Screen {
                 MENU.getDisk()
         ));
         clipboardBuilder.append("\n-- LOGS --\n");
-        if (hasShiftDown()) {
+        if (SFMWidgetUtils.hasShiftDown()) {
             for (TranslatableLogEvent log : MENU.logs) {
                 clipboardBuilder.append(log.level().name()).append(" ");
                 clipboardBuilder.append(log.instant().toString()).append(" ");

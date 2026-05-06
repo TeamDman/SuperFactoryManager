@@ -25,9 +25,7 @@ import com.google.common.base.Joiner;
 import net.minecraft.ChatFormatting;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.ContainerHelper;
@@ -39,8 +37,11 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.wrapper.InvWrapper;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.VanillaContainerWrapper;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
@@ -100,7 +101,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
 
     private final Duration[] tickTimes = new Duration[TICK_TIME_HISTORY_SIZE];
 
-    public IItemHandler invWrapper = new InvWrapper(this);
+    public ResourceHandler<ItemResource> invWrapper = VanillaContainerWrapper.of(this);
 
     private @Nullable Program program = null;
 
@@ -584,25 +585,23 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     protected void saveAdditional(
-            CompoundTag pTag,
-            HolderLookup.Provider pRegistries
+            ValueOutput output
     ) {
 
-        super.saveAdditional(pTag, pRegistries);
-        ContainerHelper.saveAllItems(pTag, ITEMS, pRegistries);
+        super.saveAdditional(output);
+        ContainerHelper.saveAllItems(output, ITEMS, true);
     }
 
     @Override
     protected void loadAdditional(
-            CompoundTag pTag,
-            HolderLookup.Provider pRegistries
+            ValueInput input
     ) {
 
-        super.loadAdditional(pTag, pRegistries);
-        ContainerHelper.loadAllItems(pTag, ITEMS, pRegistries);
+        super.loadAdditional(input);
+        ContainerHelper.loadAllItems(input, ITEMS);
         this.shouldRebuildProgram = true;
         if (level != null) {
-            this.tick = level.random.nextInt();
+            this.tick = level.getRandom().nextInt();
         }
     }
 
@@ -621,7 +620,6 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
 
         return new ManagerContainerMenu(windowId, inv, this);
     }
-
 
     public enum State {
         NO_PROGRAM(

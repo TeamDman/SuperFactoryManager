@@ -17,7 +17,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler;
 
 public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
     @SFMLocalizationDatagen
@@ -26,7 +28,7 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
             "Test Barrel Tank"
     );
 
-    private final FluidTank tank = new FluidTank(1000);
+    private final FluidStacksResourceHandler tank = new FluidStacksResourceHandler(1, 1000);
 
     private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
 
@@ -47,12 +49,11 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
 
     @Override
     protected void loadAdditional(
-            CompoundTag pTag,
-            HolderLookup.Provider pRegistries
+            ValueInput input
     ) {
-        super.loadAdditional(pTag, pRegistries);
+        super.loadAdditional(input);
         this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
-        ContainerHelper.loadAllItems(pTag, this.items, pRegistries);
+        ContainerHelper.loadAllItems(input, this.items);
     }
 
 
@@ -127,18 +128,17 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
         this.items = pItems;
     }
 
-    public FluidTank getTank() {
+    public FluidStacksResourceHandler getTank() {
 
         return tank;
     }
 
     @Override
     protected void saveAdditional(
-            CompoundTag pTag,
-            HolderLookup.Provider pRegistries
+            ValueOutput output
     ) {
-        super.saveAdditional(pTag, pRegistries);
-        ContainerHelper.saveAllItems(pTag, this.items, pRegistries);
+        super.saveAdditional(output);
+        ContainerHelper.saveAllItems(output, this.items, true);
     }
 
 

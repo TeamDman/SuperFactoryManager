@@ -12,14 +12,14 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.LayeredDraw;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.util.FastColor;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.client.gui.GuiLayer;
 import org.jetbrains.annotations.Nullable;
 
-public class LabelGunReminderOverlay implements LayeredDraw.Layer {
+public class LabelGunReminderOverlay implements GuiLayer {
 
 
     @SFMLocalizationDatagen
@@ -37,7 +37,7 @@ public class LabelGunReminderOverlay implements LayeredDraw.Layer {
     @SuppressWarnings("DuplicatedCode")
     @Override
     public void render(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             DeltaTracker deltaTracker
     ) {
 
@@ -73,7 +73,7 @@ public class LabelGunReminderOverlay implements LayeredDraw.Layer {
                 reminder,
                 x,
                 y,
-                FastColor.ARGB32.color(255, 172, 208, 255),
+                ARGB.color(255, 172, 208, 255),
                 true
         );
     }

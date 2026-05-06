@@ -9,6 +9,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class SFMItemUtils {
     @SFMLocalizationDatagen
@@ -17,10 +18,10 @@ public class SFMItemUtils {
             "Hold %s to know more."
     );
 
-    public static void appendMoreInfoKeyReminderTextIfOnClient(List<Component> lines) {
+    public static void appendMoreInfoKeyReminderTextIfOnClient(Consumer<Component> tooltipAdder) {
 
         if (SFMEnvironmentUtils.isClient()) {
-            lines.add(
+            tooltipAdder.accept(
                     GUI_ADVANCED_TOOLTIP_HINT.getComponent(
                                     SFMKeyMappings.MORE_INFO_TOOLTIP_KEY
                                             .get()

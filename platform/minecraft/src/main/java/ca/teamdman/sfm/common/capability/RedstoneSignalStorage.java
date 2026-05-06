@@ -1,13 +1,13 @@
 package ca.teamdman.sfm.common.capability;
 
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.IntTag;
 import net.minecraft.util.Mth;
-import net.neoforged.neoforge.common.util.INBTSerializable;
-import org.jetbrains.annotations.UnknownNullability;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 /// A container for storing "redstone units", which CAN exceed 15.
-public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerializable<IntTag> {
+public class RedstoneSignalStorage implements IRedstoneSignalStorage, ValueIOSerializable {
     public int value = 0;
     private final int maxValue;
 
@@ -19,7 +19,7 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
     @Override
     public int insert(
             int amount,
-            boolean simulate
+            TransactionContext tx
     ) {
         if (!this.canReceive()) {
             return 0; // accept nothing
@@ -34,7 +34,7 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
     @Override
     public int extract(
             int amount,
-            boolean simulate
+            TransactionContext tx
     ) {
         if (!this.canExtract()) {
             return 0; // extract nothing
@@ -57,26 +57,15 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
     }
 
     @Override
-    public boolean canExtract() {
-        return true;
+    public void serialize(ValueOutput output) {
+        output.putInt("value", this.value);
     }
 
     @Override
-    public boolean canReceive() {
-        return true;
-    }
-
-    @Override
-    public @UnknownNullability IntTag serializeNBT(HolderLookup.Provider provider) {
-        return IntTag.valueOf(this.value);
-    }
-
-    @Override
-    public void deserializeNBT(
-            HolderLookup.Provider provider,
-            IntTag nbt
+    public void deserialize(
+            ValueInput input
     ) {
-        this.value = nbt.getAsInt();
+        this.value = input.getIntOr("value", 0);
 
     }
 }

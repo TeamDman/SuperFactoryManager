@@ -5,8 +5,8 @@ import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
 import ca.teamdman.sfm.client.screen.SFMWidgetUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractScrollWidget;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractScrollArea;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.Rect2i;
@@ -22,7 +22,7 @@ import org.simmetrics.simplifiers.Simplifiers;
 import java.util.Comparator;
 import java.util.List;
 
-public class PickList<T extends PickListItem> extends AbstractScrollWidget {
+public class PickList<T extends PickListItem> extends AbstractScrollArea {
     protected final Font font;
     protected List<T> items;
     protected int selectionIndex = -1;
@@ -37,7 +37,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
             Component title,
             List<T> items
     ) {
-        super(pX, pY, pWidth, pHeight, title);
+        super(pX, pY, pWidth, pHeight, title, defaultSettings((int) (font.lineHeight / 2.0d)));
         this.font = font;
         this.items = items;
         this.clampOrUnsetSelectionIndex();
@@ -91,8 +91,8 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
     
     @Override
     @MCVersionDependentBehaviour
-    public void renderWidget(
-            GuiGraphics graphics,
+    public void extractWidgetRenderState(
+            GuiGraphicsExtractor graphics,
             int pMouseX,
             int pMouseY,
             float pPartialTick
@@ -104,7 +104,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
         // Adjust the Z-index such that the popup renders on top of the editor text
         graphics.pose().translate(0.0F, 0.0F, 400.0F);
 
-        super.renderWidget(graphics, pMouseX, pMouseY, pPartialTick);
+        super.extractWidgetRenderState(graphics, pMouseX, pMouseY, pPartialTick);
 
         graphics.pose().popPose();
     }
@@ -202,16 +202,9 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
         return (double) (this.height - this.totalInnerPadding()) / (double) getItemHeight();
     }
 
-
     @Override
-    protected double scrollRate() {
-        return this.getItemHeight() / 2.0d;
-    }
-
-
-    @Override
-    protected void renderContents(
-            GuiGraphics graphics,
+    protected void extractContents(
+            GuiGraphicsExtractor graphics,
             int mx,
             int my,
             float partialTick

@@ -81,7 +81,7 @@ public class FacadePlanner {
                 )),
                 renderBlock.defaultBlockState()
         );
-        FacadeTransparency facadeTransparency = renderBlockState.isSolidRender(level, hitPos)
+        FacadeTransparency facadeTransparency = renderBlockState.isSolidRender()
                                                 ? FacadeTransparency.OPAQUE
                                                 : FacadeTransparency.TRANSLUCENT;
         return new ApplyFacadesFacadePlan(

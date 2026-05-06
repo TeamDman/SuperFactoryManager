@@ -162,7 +162,7 @@
   "item.sfm.xp_goop": "Gosma de Experiência",
   "item.sfm.xp_shard": "Fragmento de Experiência",
   "item_group.sfm": "Super Factory Manager",
-  "key.categories.sfm": "Super Factory Manager",
+  "key.category.sfm.keybinds": "Super Factory Manager",
   "key.sfm.container_inspector.activation_key": "Alternar Inspetor de Contêiner",
   "key.sfm.item_inspector.activation_key": "(WIP) Copiar Item Sob o Cursor para Área de Transferência",
   "key.sfm.label_gun.clear_modifier": "Modificador de Limpar da Pistola de Rótulos",

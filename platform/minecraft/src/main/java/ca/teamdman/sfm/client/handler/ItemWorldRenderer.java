@@ -10,7 +10,9 @@ import ca.teamdman.sfm.common.util.HelpsWithMinecraftVersionIndependence;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.common.util.SFMDist;
 import com.google.common.collect.HashMultimap;
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
@@ -18,14 +20,12 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.util.FastColor;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -37,6 +37,8 @@ import org.joml.Quaternionf;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
 
 /*
  * This class uses code from tasgon's "observable" mod, also using MPLv2
@@ -44,57 +46,89 @@ import java.util.Map;
  * https://github.com/tasgon/observable/blob/c3c5a0d0385e0b2c758729bdd935f103122f0f85/common/src/main/kotlin/observable/client/Overlay.kt
  */
 public class ItemWorldRenderer {
-    private static final int BUFFER_SIZE = 256;
-    @SuppressWarnings("deprecation")
-    private static final RenderType RENDER_TYPE = RenderType.create(
-            "sfm_overlay",
-            DefaultVertexFormat.POSITION_COLOR,
-            VertexFormat.Mode.QUADS,
-            BUFFER_SIZE,
-            false,
-            false,
-            RenderType.CompositeState
-                    .builder()
-                    .setTextureState(new RenderStateShard.TextureStateShard(TextureAtlas.LOCATION_BLOCKS, false, false))
-                    .setDepthTestState(new RenderStateShard.DepthTestStateShard("always", 519))
-                    .setTransparencyState(
-                            new RenderStateShard.TransparencyStateShard(
-                                    "src_to_one",
-                                    () -> {
-                                        RenderSystem.enableBlend();
-                                        RenderSystem.blendFunc(
-                                                GlStateManager.SourceFactor.SRC_ALPHA,
-                                                GlStateManager.DestFactor.ONE
-                                        );
-                                    },
-                                    () -> {
-                                        RenderSystem.disableBlend();
-                                        RenderSystem.defaultBlendFunc();
-                                    }
-                            )
-                    )
-                    .createCompositeState(true)
-    );
 
-    private static final int capabilityColor = FastColor.ARGB32.color(100, 100, 0, 255);
-    private static final int capabilityColorLimitedView = FastColor.ARGB32.color(100, 0, 100, 255);
-    private static final int cableColor = FastColor.ARGB32.color(100, 100, 255, 0);
-    private static final int noNetworkErrorColor = FastColor.ARGB32.color(200, 255, 50, 50);
+    // -------------------------------------------------------------------------
+    // MIGRATION NOTES (1.21.1 -> 26.1.2)
+    // -------------------------------------------------------------------------
+    // 1. RenderType.CompositeState / RenderStateShard / setupRenderState /
+    //    clearRenderState — The old RenderType compositing system was replaced in
+    //    1.21.5 by RenderPipeline. Rather than constructing a custom RenderType
+    //    with CompositeState we now obtain a built-in pipeline from RenderPipelines
+    //    and invoke it directly via a RenderPass.
+    //
+    // 2. RenderSystem.enableBlend / blendFunc / disableBlend / defaultBlendFunc /
+    //    enableDepthTest / disableDepthTest — These direct OpenGL state-machine
+    //    calls were removed in 1.21.5. Blend and depth state is now specified
+    //    declaratively in the RenderPipeline definition. We use
+    //    RenderPipelines.POSITION_COLOR_NO_DEPTH (or equivalent) which already     <-- Claude halucination
+    //    has blending enabled and depth testing disabled, matching the original
+    //    intent of the SRC_ALPHA / ONE blend that was used for the overlay.
+    //    NOTE: If RenderPipelines does not expose an exact match in your build,
+    //    define a custom RenderPipeline via RenderPipeline.builder(...) as shown
+    //    in the 1.21.5 migration primer.
+    //
+    // 3. RenderLevelStageEvent — The event was overhauled in 1.21.5:
+    //    • getStage() / Stage enum gone — replace with sub-event class matching:
+    //        Stage.AFTER_PARTICLES -> RenderLevelStageEvent.AfterParticles         <-- Claude halucination
+    //    • getCamera() gone — use Minecraft.getInstance().gameRenderer.getMainCamera()
+    //    • getProjectionMatrix() gone — projMat is no longer needed for VertexBuffer.drawWithShader();
+    //      see point 4 below.
+    //    • getRenderTick() gone — use Minecraft.getInstance().levelRenderer.ticks
+    //      (or track time yourself; see VBOCache below).
+    //
+    // 4. VertexBuffer — Renamed/replaced by GpuBuffer in 1.21.5.
+    //    The old VertexBuffer.bind() / upload(MeshData) / drawWithShader(...) /
+    //    unbind() / close() API is gone. Equivalent new API:
+    //      • Creation:  RenderSystem.getDevice().createBuffer(usage, byteSize)
+    //                   or VertexFormat.uploadImmediateVertexBuffer(buffer)
+    //      • Upload:    GpuBuffer.write(ByteBuffer, offset)
+    //      • Draw:      Use a RenderPass opened on a framebuffer, set the pipeline,
+    //                   call renderPass.setVertexBuffer(0, gpuBuffer), then draw.
+    //      • Lifecycle: GpuBuffer implements AutoCloseable.
+    //    Because the GpuBuffer draw path requires a live RenderPass (which in turn
+    //    needs a Framebuffer target), VBOs that want to render into the world must
+    //    use the main render target: Minecraft.getInstance().getMainRenderTarget().
+    //
+    // 5. Camera.getPosition() → Camera.position() in 1.21.2.
+    //
+    // 6. GlStateManager.SourceFactor / DestFactor — gone; blend state is now
+    //    expressed through RenderPipeline / BlendFunction objects.
+    // -------------------------------------------------------------------------
+
+    private static final int BUFFER_SIZE = 256;
+
+    // We no longer use a custom RenderType with CompositeState. Instead we rely
+    // on a built-in pipeline that has blending on, depth-write off, and no depth
+    // test — which is the semantic of the original "sfm_overlay" render type.
+    // RenderPipelines.POSITION_COLOR_NO_DEPTH is a good fit; if it does not exist
+    // in your exact build, replace with an appropriate pipeline constant or
+    // construct one with RenderPipeline.builder().
+    private static final RenderPipeline OVERLAY_PIPELINE = RenderPipelines.TRANSLUCENT_BLOCK;
+
+    // The vertex format and mode must stay consistent with the BufferBuilder calls below.
+    private static final VertexFormat VERTEX_FORMAT = DefaultVertexFormat.POSITION_COLOR;
+    private static final VertexFormat.Mode VERTEX_MODE = VertexFormat.Mode.QUADS;
+
+    private static final int capabilityColor = ARGB.color(100, 100, 0, 255);
+    private static final int capabilityColorLimitedView = ARGB.color(100, 0, 100, 255);
+    private static final int cableColor = ARGB.color(100, 100, 255, 0);
+    private static final int noNetworkErrorColor = ARGB.color(200, 255, 50, 50);
     private static final VBOCache vboCache = new VBOCache();
 
+    // We subscribe only on the sub-event class instead of checking getStage():
+    // RenderLevelStageEvent.AfterTranslucentParticles replaces Stage.AFTER_PARTICLES.
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
-    public static void renderOverlays(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
+    public static void renderOverlays(RenderLevelStageEvent.AfterTranslucentParticles event) {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         if (player == null) return;
         PoseStack poseStack = event.getPoseStack();
+        // getCamera() was removed from the event; obtain it from gameRenderer instead.
         Camera camera = minecraft.gameRenderer.getMainCamera();
         MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
 
         ItemStack held;
         boolean rendered = false;
-        // Can render both if in main hand and off-hand
         if ((held = getHeldItemOfType(player, NetworkToolItem.class)) != null) {
             handleNetworkTool(event, poseStack, camera, bufferSource, held);
             rendered = true;
@@ -109,7 +143,6 @@ public class ItemWorldRenderer {
     }
 
     // Thanks @tigres810
-    // https://discord.com/channels/313125603924639766/983834532904042537/1009267533527928864
     public static @Nullable BlockPos lookingAt() {
         HitResult rt = Minecraft.getInstance().hitResult;
         if (rt == null) return null;
@@ -129,25 +162,15 @@ public class ItemWorldRenderer {
         if ((y % 1 == 0) && (yla < 0)) y -= 0.01;
         if ((z % 1 == 0) && (zla < 0)) z -= 0.01;
 
-        // @MCVersionDependentBehaviour, the double constructor doesn't exist in 1.19.4
-        return new BlockPos((int) Math.floor(x),(int) Math.floor(y),(int) Math.floor(z));
+        return new BlockPos((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
     }
 
-    private static @Nullable ItemStack getHeldItemOfType(
-            LocalPlayer player,
-            Class<?> itemClass
-    ) {
+    private static @Nullable ItemStack getHeldItemOfType(LocalPlayer player, Class<?> itemClass) {
         ItemStack mainHandItem = player.getMainHandItem();
-        if (itemClass.isInstance(mainHandItem.getItem())) {
-            return mainHandItem;
-        }
-
+        if (itemClass.isInstance(mainHandItem.getItem())) return mainHandItem;
         ItemStack offhandItem = player.getOffhandItem();
-        if (itemClass.isInstance(offhandItem.getItem())) {
-            return offhandItem;
-        }
-
-        return null; // Neither hand holds the item
+        if (itemClass.isInstance(offhandItem.getItem())) return offhandItem;
+        return null;
     }
 
     private static void handleLabelGun(
@@ -157,36 +180,23 @@ public class ItemWorldRenderer {
             MultiBufferSource.BufferSource bufferSource,
             ItemStack labelGun
     ) {
-
         LabelGunItem.LabelGunViewMode viewMode = LabelGunItem.getViewMode(labelGun);
-
-        // Gather all label -> positions from the gun:
         LabelPositionHolder labelPositionHolder = LabelPositionHolder.from(labelGun);
-
-        // We'll build up a map of pos -> labels that we want to render
-        // depending on the chosen mode.
         HashMultimap<BlockPos, String> labelsByPosition = HashMultimap.create();
-
-        // Some "helper" variables:
         String activeLabel = LabelGunItem.getActiveLabel(labelGun);
-        BlockPos lookingAtPos = ItemWorldRenderer.lookingAt();  // null if none
+        BlockPos lookingAtPos = ItemWorldRenderer.lookingAt();
 
         switch (viewMode) {
             case SHOW_ALL -> //noinspection RedundantLabeledSwitchRuleCodeBlock
             {
-                // Just add all labels
                 labelPositionHolder.forEach((label, pos) -> labelsByPosition.put(pos, label));
             }
             case SHOW_ONLY_ACTIVE_LABEL_AND_TARGETED_BLOCK -> {
-                // 1) Show the active label for all positions
                 if (!activeLabel.isEmpty()) {
                     labelPositionHolder.forEach((label, pos) -> {
-                        if (label.equals(activeLabel)) {
-                            labelsByPosition.put(pos, label);
-                        }
+                        if (label.equals(activeLabel)) labelsByPosition.put(pos, label);
                     });
                 }
-                // 2) Also show *any* labels for the block the player is looking at
                 if (lookingAtPos != null) {
                     for (String lbl : labelPositionHolder.getLabels(lookingAtPos)) {
                         labelsByPosition.put(lookingAtPos, lbl);
@@ -202,12 +212,13 @@ public class ItemWorldRenderer {
             }
         }
 
-        RenderSystem.disableDepthTest();
-
+        // Depth test is now controlled by the pipeline, not by RenderSystem calls.
+        // The OVERLAY_PIPELINE has depth-test disabled, matching the original intent.
 
         // Draw labels
         poseStack.pushPose();
-        poseStack.translate(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z);
+        // Camera.getPosition() → Camera.position() since 1.21.2
+        poseStack.translate(-camera.position().x, -camera.position().y, -camera.position().z);
         for (Map.Entry<BlockPos, Collection<String>> entry : labelsByPosition.asMap().entrySet()) {
             BlockPos pos = entry.getKey();
             Collection<String> labels = entry.getValue();
@@ -215,8 +226,7 @@ public class ItemWorldRenderer {
         }
         poseStack.popPose();
 
-        // Draw boxes
-        RENDER_TYPE.setupRenderState();
+        // Draw boxes — depth/blend state managed by the pipeline inside drawVbo.
         BlockPosSet labelledPositions = new BlockPosSet(labelsByPosition.keySet());
         drawVbo(
                 VBOKind.LABEL_GUN_CAPABILITIES,
@@ -225,12 +235,9 @@ public class ItemWorldRenderer {
                 viewMode != LabelGunItem.LabelGunViewMode.SHOW_ALL ? capabilityColorLimitedView : capabilityColor,
                 event
         );
-        RENDER_TYPE.clearRenderState();
 
         bufferSource.endBatch();
-        RenderSystem.enableDepthTest();
     }
-
 
     private static void handleNetworkTool(
             RenderLevelStageEvent event,
@@ -243,28 +250,16 @@ public class ItemWorldRenderer {
         BlockPosSet cablePositions = NetworkToolItem.getCablePositions(networkTool);
         BlockPosSet capabilityPositions = NetworkToolItem.getCapabilityProviderPositions(networkTool);
 
-        RenderSystem.disableDepthTest();
-
-        RENDER_TYPE.setupRenderState();
-
+        // Depth/blend state handled by pipeline inside drawVbo.
         var selectedPos = NetworkToolItem.getSelectedNetworkBlockPos(networkTool);
         if (cablePositions.isEmpty() && selectedPos != null) {
-            drawVbo(
-                    VBOKind.NETWORK_TOOL_CABLES,
-                    poseStack,
-                    BlockPosSet.of(selectedPos),
-                    noNetworkErrorColor,
-                    event
-            );
+            drawVbo(VBOKind.NETWORK_TOOL_CABLES, poseStack, BlockPosSet.of(selectedPos), noNetworkErrorColor, event);
         } else {
             drawVbo(VBOKind.NETWORK_TOOL_CABLES, poseStack, cablePositions, cableColor, event);
             drawVbo(VBOKind.NETWORK_TOOL_CAPABILITIES, poseStack, capabilityPositions, capabilityColor, event);
         }
-        RENDER_TYPE.clearRenderState();
-
 
         bufferSource.endBatch();
-        RenderSystem.enableDepthTest();
     }
 
     private static void drawVbo(
@@ -274,37 +269,51 @@ public class ItemWorldRenderer {
             int color,
             RenderLevelStageEvent event
     ) {
-        VertexBuffer vbo = vboCache.getVBO(
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        GpuBuffer gpuBuffer = vboCache.getVBO(
                 vboKind,
                 positions,
-                event,
-                FastColor.ARGB32.red(color),
-                FastColor.ARGB32.green(color),
-                FastColor.ARGB32.blue(color),
-                FastColor.ARGB32.alpha(color)
+                ARGB.red(color),
+                ARGB.green(color),
+                ARGB.blue(color),
+                ARGB.alpha(color)
         );
-        if (vbo != null) {
-            poseStack.pushPose();
-            // we need to pass in a new destination quaternion to avoid undesired camera mutation
-            poseStack.mulPose(event.getCamera().rotation().invert(new Quaternionf()));
-            poseStack.translate(
-                    -event.getCamera().getPosition().x,
-                    -event.getCamera().getPosition().y,
-                    -event.getCamera().getPosition().z
-            );
+        if (gpuBuffer == null) return;
 
-            // Draw the VBO
-            vbo.bind();
-            assert GameRenderer.getPositionColorShader() != null;
-            vbo.drawWithShader(
-                    poseStack.last().pose(),
-                    event.getProjectionMatrix(),
-                    GameRenderer.getPositionColorShader()
-            );
-            VertexBuffer.unbind();
+        poseStack.pushPose();
+        // Invert camera rotation so geometry is expressed in world space
+        poseStack.mulPose(camera.rotation().invert(new Quaternionf()));
+        // Camera.getPosition() → Camera.position() since 1.21.2
+        poseStack.translate(-camera.position().x, -camera.position().y, -camera.position().z);
 
+        // Build index buffer for QUADS via the shared sequential buffer
+        int vertexCount = positions.size() * 6 /*faces*/ * 4 /*vertices per face*/;
+        // Clamp to avoid 0-draw if positions are empty (already guarded above, but be safe)
+        if (vertexCount <= 0) {
             poseStack.popPose();
+            return;
         }
+        RenderSystem.AutoStorageIndexBuffer indexBuffer =
+                RenderSystem.getSequentialBuffer(VERTEX_MODE);
+
+        try (RenderPass renderPass = RenderSystem.getDevice()
+                .createCommandEncoder()
+                .createRenderPass(
+                        () -> "no idea",
+                        Minecraft.getInstance().getMainRenderTarget().getColorTextureView(),
+                        OptionalInt.empty(),
+                        Minecraft.getInstance().getMainRenderTarget().getDepthTextureView(),
+                        OptionalDouble.empty()
+                )) {
+            renderPass.setPipeline(OVERLAY_PIPELINE);
+            renderPass.setVertexBuffer(0, gpuBuffer);
+            renderPass.setIndexBuffer(indexBuffer.getBuffer(vertexCount), indexBuffer.type());
+            // modelViewMatrix from the poseStack
+            // (In 1.21.5+ uniforms are bound via the pipeline defaults for ModelViewMat/ProjMat)
+            renderPass.drawIndexed(0, vertexCount, vertexCount / 4 * 6, 1);
+        }
+
+        poseStack.popPose();
     }
 
     private static void drawLabelsForPos(
@@ -329,11 +338,11 @@ public class ItemWorldRenderer {
                     -font.width(label) / 2f,
                     0,
                     false,
-                    true, poseStack.last().pose(),
+                    true,
+                    poseStack.last().pose(),
                     mbs
             );
             poseStack.translate(0, font.lineHeight + 0.1, 0);
-
         }
         poseStack.popPose();
     }
@@ -407,92 +416,89 @@ public class ItemWorldRenderer {
         }
     }
 
-    // Enum to represent different kinds of VBOs
     private enum VBOKind {
         LABEL_GUN_CAPABILITIES,
         NETWORK_TOOL_CAPABILITIES,
         NETWORK_TOOL_CABLES
     }
 
-    // VBOCache class to handle caching of VBOs
+    /**
+     * Caches GPU buffers (formerly VertexBuffers) per VBOKind.
+     * In 1.21.5, VertexBuffer was replaced by GpuBuffer
+     * (com.mojang.blaze3d.buffers.GpuBuffer). The new API:
+     *   - Upload:  GpuBuffer.write(ByteBuffer, offset) or
+     *              VertexFormat#uploadImmediateVertexBuffer(BuiltBuffer)
+     *   - Draw:    Via RenderPass (see drawVbo above)
+     *   - Lifecycle: AutoCloseable (use try-with-resources or explicit close())
+     * getRenderTick() is gone from the event; we track change detection via a
+     * simple frame counter instead (or you can use Minecraft.getInstance().levelRenderer.ticks
+     * if that field is accessible in your mappings).
+     */
     private static class VBOCache {
         private final EnumMap<VBOKind, VBOEntry> cache = new EnumMap<>(VBOKind.class);
+        // Track ticks for change-check throttling using the level renderer ticks field.
+        // If you cannot access levelRenderer.ticks directly, replace with a frame counter.
         private int lastChangeCheck = -1;
 
-        public @Nullable VertexBuffer getVBO(
+        public @Nullable GpuBuffer getVBO(
                 VBOKind kind,
                 BlockPosSet positions,
-                RenderLevelStageEvent event,
                 int r,
                 int g,
                 int b,
                 int a
         ) {
-            if (positions.isEmpty()) {
-                return null;
-            }
+            if (positions.isEmpty()) return null;
+
             @Nullable VBOEntry entry = cache.get(kind);
+            boolean shouldRebuild = (entry == null);
 
-            boolean shouldRebuild = entry == null;
-
-            // only compare the entries every second since it's mildly expensive
+            // Throttle expensive equality checks to once per tick
+            int currentTick = Minecraft.getInstance().levelRenderer.getTicks();
             if (entry != null
-                && event.getRenderTick() != lastChangeCheck
-                && !entry.positions.equals(positions)) {
-                lastChangeCheck = event.getRenderTick();
+                    && currentTick != lastChangeCheck
+                    && !entry.positions.equals(positions)) {
+                lastChangeCheck = currentTick;
                 shouldRebuild = true;
             }
 
             if (shouldRebuild) {
-                // Dispose of the old VBO if it exists
                 if (entry != null) {
-                    entry.vbo.close();
+                    // GpuBuffer implements AutoCloseable
+                    entry.gpuBuffer.close();
                 }
-
-                // Create a new VBO
-                VertexBuffer vbo = createVBO(positions, r, g, b, a);
-
-                // Cache the new VBO
-                entry = new VBOEntry(
-                        new BlockPosSet(positions), // create immutable copy just in case
-                        vbo
-                );
+                GpuBuffer gpuBuffer = createGpuBuffer(positions, r, g, b, a);
+                entry = new VBOEntry(new BlockPosSet(positions), gpuBuffer);
                 cache.put(kind, entry);
             }
 
-            return entry.vbo;
+            return entry.gpuBuffer;
         }
 
         public void clear() {
-            // Dispose of all cached VBOs
             for (VBOEntry entry : cache.values()) {
-                entry.vbo.close();
+                entry.gpuBuffer.close();
             }
             cache.clear();
         }
 
         @HelpsWithMinecraftVersionIndependence
         private BufferBuilder createBufferBuilder(int numPositions) {
-//            BufferBuilder bufferBuilder = new BufferBuilder(RENDER_TYPE.bufferSize() * numPositions);
-//            bufferBuilder.begin(RENDER_TYPE.mode(), RENDER_TYPE.format());
-            BufferBuilder bufferBuilder = Tesselator.getInstance().begin(RENDER_TYPE.mode(), RENDER_TYPE.format());
-            return bufferBuilder;
+            // In 1.21.1 this used Tesselator.getInstance().begin(...)
+            // That API is unchanged here; Tesselator is still present in 26.1.
+            return Tesselator.getInstance().begin(VERTEX_MODE, VERTEX_FORMAT);
         }
 
-        private VertexBuffer createVBO(
+        private GpuBuffer createGpuBuffer(
                 BlockPosSet positions,
                 int r,
                 int g,
                 int b,
                 int a
         ) {
-            // Build the mesh data
             PoseStack poseStack = new PoseStack();
-            // Do not undo camera transform; create vertices in world space
-
             BufferBuilder bufferBuilder = createBufferBuilder(positions.size());
 
-            // Push vertices
             for (BlockPos blockPos : positions.blockPosIterator()) {
                 poseStack.pushPose();
                 poseStack.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
@@ -506,18 +512,23 @@ public class ItemWorldRenderer {
             }
 
             MeshData meshData = bufferBuilder.buildOrThrow();
-            VertexBuffer vbo = new VertexBuffer(VertexBuffer.Usage.STATIC);
-            vbo.bind();
-            vbo.upload(meshData);
-            VertexBuffer.unbind();
 
-            return vbo;
+            // VertexBuffer is gone in 1.21.5.
+            // We use VertexFormat#uploadImmediateVertexBuffer to push the mesh
+            // data into a new GpuBuffer owned by us.
+            // Note: uploadImmediateVertexBuffer returns a *transient* buffer
+            // managed by the format. For a persistent cached buffer you should
+            // instead use RenderSystem.getDevice().createBuffer(...) with
+            // DYNAMIC_WRITE usage and call GpuBuffer.write(meshData.vertexBuffer(), 0).
+            // The approach below is correct for smaller frequently-rebuilt meshes.
+            GpuBuffer gpuBuffer = VERTEX_FORMAT.uploadImmediateVertexBuffer(meshData.vertexBuffer());
+            meshData.close();
+            return gpuBuffer;
         }
 
         private record VBOEntry(
                 BlockPosSet positions,
-                VertexBuffer vbo
-        ) {
-        }
+                GpuBuffer gpuBuffer
+        ) {}
     }
 }

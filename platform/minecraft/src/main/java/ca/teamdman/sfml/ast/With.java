@@ -12,11 +12,11 @@ public record With(
     );
 
     @Override
-    public <STACK> boolean matchesStack(
-            ResourceType<STACK, ?, ?> resourceType,
-            STACK stack
+    public <ITEM> boolean matchesStack(
+            ResourceType<?, ITEM, ?> resourceType,
+            ITEM item
     ) {
-        boolean matches = condition.matchesStack(resourceType, stack);
+        boolean matches = condition.matchesStack(resourceType, item);
         return switch (mode) {
             case WITH -> matches;
             case WITHOUT -> !matches;

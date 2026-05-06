@@ -5,15 +5,15 @@ import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimit;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 @SuppressWarnings("DuplicatedCode")
 public class ExpandedQuantityExpandedRetentionOutputResourceTracker implements IOutputResourceTracker {
     private final ResourceLimit resource_limit;
     private final ResourceIdSet exclusions;
-    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>
+    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<Identifier>>
             retention_obligations_by_item = new Object2ObjectOpenHashMap<>();
-    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>
+    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<Identifier>>
             transferred_by_item = new Object2ObjectOpenHashMap<>();
 
     public ExpandedQuantityExpandedRetentionOutputResourceTracker(
@@ -35,7 +35,7 @@ public class ExpandedQuantityExpandedRetentionOutputResourceTracker implements I
         long transferred_for_item = 0;
         var transferred_for_resource_type = transferred_by_item.get(type);
         if (transferred_for_resource_type != null) {
-            ResourceLocation item_id = type.getRegistryKeyForStack(stack);
+            Identifier item_id = type.getRegistryKeyForStack(stack);
             transferred_for_item = transferred_for_resource_type.getLong(item_id);
         }
         if (transferred_for_item >= can_transfer) {
@@ -45,7 +45,7 @@ public class ExpandedQuantityExpandedRetentionOutputResourceTracker implements I
         long retained_for_item = 0;
         var retained_for_resource_type = retention_obligations_by_item.get(type);
         if (retained_for_resource_type != null) {
-            ResourceLocation item_id = type.getRegistryKeyForStack(stack);
+            Identifier item_id = type.getRegistryKeyForStack(stack);
             retained_for_item = retained_for_resource_type.getLong(item_id);
         }
         return retained_for_item >= max_put;
@@ -67,7 +67,7 @@ public class ExpandedQuantityExpandedRetentionOutputResourceTracker implements I
             STACK observed
     ) {
         if (matchesStack(observed)) {
-            ResourceLocation item_id = type.getRegistryKeyForStack(observed);
+            Identifier item_id = type.getRegistryKeyForStack(observed);
             retention_obligations_by_item.computeIfAbsent(type, k -> new Object2LongOpenHashMap<>())
                     .addTo(item_id, type.getAmount(observed));
         }
@@ -82,7 +82,7 @@ public class ExpandedQuantityExpandedRetentionOutputResourceTracker implements I
         long transferred_for_item = 0;
         var transferred_for_resource_type = transferred_by_item.get(resourceType);
         if (transferred_for_resource_type != null) {
-            ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+            Identifier item_id = resourceType.getRegistryKeyForStack(key);
             transferred_for_item = transferred_for_resource_type.getLong(item_id);
         }
         long unusedQuantity = max_transfer - transferred_for_item;
@@ -91,7 +91,7 @@ public class ExpandedQuantityExpandedRetentionOutputResourceTracker implements I
         long retained_for_item = 0;
         var retained_for_resource_type = retention_obligations_by_item.get(resourceType);
         if (retained_for_resource_type != null) {
-            ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+            Identifier item_id = resourceType.getRegistryKeyForStack(key);
             retained_for_item = retained_for_resource_type.getLong(item_id);
         }
         long remainingRetentionRoom = max_retain - retained_for_item;
@@ -105,7 +105,7 @@ public class ExpandedQuantityExpandedRetentionOutputResourceTracker implements I
             STACK key,
             long amount
     ) {
-        ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+        Identifier item_id = resourceType.getRegistryKeyForStack(key);
         transferred_by_item.computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())
                 .addTo(item_id, amount);
         retention_obligations_by_item.computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())

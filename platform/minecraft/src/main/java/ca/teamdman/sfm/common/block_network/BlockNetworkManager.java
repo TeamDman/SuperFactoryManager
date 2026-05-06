@@ -74,7 +74,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
         @Nullable Collection<NETWORK> networksForChunk = levelChunkPosMap.get(chunkPos);
         if (networksForChunk == null) return; // this chunk may have zero networks
         networksForChunk = new ArrayList<>(networksForChunk); // mitigate concurrent modification problems
-        long chunkPosLong = chunkPos.toLong();
+        long chunkPosLong = chunkPos.pack();
 
         @Nullable BlockPosMap<NETWORK> levelBlockPosMap = networksByLevelBlockPos.get(level);
         if (levelBlockPosMap == null) { // must exist after previous checks passed
@@ -360,13 +360,13 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
                 for (Long2ObjectMap.Entry<Set<NETWORK>> networksInChunk : networksByChunk.entrySet()) {
                     if (networksInLevel == null) {
                         throw new IllegalStateException("Networks in chunk "
-                                                        + new ChunkPos(networksInChunk.getLongKey())
+                                                        + ChunkPos.unpack(networksInChunk.getLongKey())
                                                         + " (" + networksByChunk.size() + " entries) are not in level "
                                                         + level);
                     } else if (!networksInLevel.containsAll(networksInChunk.getValue())) {
                         long chunkPosLong = networksInChunk.getLongKey();
                         throw new IllegalStateException("Networks in chunk "
-                                                        + new ChunkPos(chunkPosLong)
+                                                        + ChunkPos.unpack(chunkPosLong)
                                                         + " are not in level "
                                                         + level);
                     }
@@ -383,7 +383,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
                         throw new IllegalStateException("Network "
                                                         + network
                                                         + " is not in chunk "
-                                                        + new ChunkPos(blockPos));
+                                                        + ChunkPos.pack(blockPos));
                     }
                     if (!networksByLevel.get(level).contains(network)) {
                         throw new IllegalStateException("Network " + network + " is not in level " + level);
@@ -451,9 +451,9 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
             ChunkPosMap<Set<NETWORK>> chunkMap = entry.getValue();
             SFM.LOGGER.info("  Level {}: {} chunks", level, chunkMap.size());
             for (Long2ObjectMap.Entry<Set<NETWORK>> chunkEntry : chunkMap.entrySet()) {
-                ChunkPos chunkPos = new ChunkPos(chunkEntry.getLongKey());
+                ChunkPos chunkPos = ChunkPos.unpack(chunkEntry.getLongKey());
                 Set<NETWORK> networksInChunk = chunkEntry.getValue();
-                SFM.LOGGER.info("    Chunk [{}, {}]: {} networks", chunkPos.x, chunkPos.z, networksInChunk.size());
+                SFM.LOGGER.info("    Chunk [{}, {}]: {} networks", chunkPos.x(), chunkPos.z(), networksInChunk.size());
                 int i = 0;
                 for (NETWORK network : networksInChunk) {
                     SFM.LOGGER.info(
@@ -589,7 +589,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
                 level,
                 k -> new ChunkPosMap<>()
         );
-        networksByChunkPos.computeIfAbsent(new ChunkPos(memberBlockPos), k -> Sets.newIdentityHashSet()).add(network);
+        networksByChunkPos.computeIfAbsent(ChunkPos.pack(memberBlockPos), k -> Sets.newIdentityHashSet()).add(network);
 
         // Update the level lookup
         networksByLevel.computeIfAbsent(level, k -> Sets.newIdentityHashSet()).add(network);
@@ -670,7 +670,7 @@ public class BlockNetworkManager<LEVEL, T, NETWORK extends BlockNetwork<LEVEL, T
     ) {
 
         LEVEL level = network.level();
-        ChunkPos memberChunkPos = new ChunkPos(memberBlockPos);
+        ChunkPos memberChunkPos = ChunkPos.containing(memberBlockPos);
 
         // Remove the member from the network
         network.removeMember(memberBlockPos);

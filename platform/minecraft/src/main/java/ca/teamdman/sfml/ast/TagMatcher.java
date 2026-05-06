@@ -1,7 +1,7 @@
 package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.program.RegexCache;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +39,7 @@ public class TagMatcher implements Predicate<Object>, ASTNode {
 
     @Override
     public boolean test(Object o) {
-        if (o instanceof ResourceLocation resourceLocation) {
+        if (o instanceof Identifier resourceLocation) {
             return testResourceLocation(resourceLocation);
         } else if (o instanceof String string) {
             return testString(string);
@@ -47,7 +47,7 @@ public class TagMatcher implements Predicate<Object>, ASTNode {
         return false;
     }
 
-    public boolean testResourceLocation(ResourceLocation resourceLocation) {
+    public boolean testResourceLocation(Identifier resourceLocation) {
         return testPath(resourceLocation.getNamespace(), resourceLocation.getPath().split("/"));
     }
 

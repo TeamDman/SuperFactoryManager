@@ -9,7 +9,7 @@ import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -51,7 +51,7 @@ public class ClientExportHelper {
             JsonObject jsonObject = new JsonObject();
 
             // Add the id field
-            ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
             jsonObject.addProperty("id", id.toString());
 
             // Add the data field if it exists
@@ -62,7 +62,7 @@ public class ClientExportHelper {
 
             // Add the tags
             JsonArray tags = new JsonArray();
-            SFMResourceTypes.ITEM.get().getTagsForStack(stack).map(ResourceLocation::toString).forEach(tags::add);
+            SFMResourceTypes.ITEM.get().getTagsForStack(stack.getItem()).map(Identifier::toString).forEach(tags::add);
             jsonObject.add("tags", tags);
 
             // Add the tooltip field

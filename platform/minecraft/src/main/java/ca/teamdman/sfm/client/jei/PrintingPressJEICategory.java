@@ -11,16 +11,18 @@ import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
-import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.api.recipe.types.IRecipeType;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Arrays;
 
 public class PrintingPressJEICategory implements IRecipeCategory<PrintingPressRecipe> {
 
-    public static final RecipeType<PrintingPressRecipe> RECIPE_TYPE = RecipeType.create(
+    public static final IRecipeType<PrintingPressRecipe> RECIPE_TYPE = IRecipeType.create(
             SFM.MOD_ID,
             "printing_press",
             PrintingPressRecipe.class
@@ -37,7 +39,7 @@ public class PrintingPressJEICategory implements IRecipeCategory<PrintingPressRe
     }
 
     @Override
-    public RecipeType<PrintingPressRecipe> getRecipeType() {
+    public IRecipeType<PrintingPressRecipe> getRecipeType() {
 
         return RECIPE_TYPE;
     }
@@ -76,11 +78,14 @@ public class PrintingPressJEICategory implements IRecipeCategory<PrintingPressRe
 
         builder
                 .addSlot(RecipeIngredientRole.INPUT, 0, 0)
-                .addItemStacks(Arrays.stream(recipe.form().getItems()).map(FormItem::createFormFromReference).toList())
+                .addItemStacks(recipe.form().getValues().stream()
+                        .map(Holder::value)
+                        .map(Item::asItem)
+                        .map(ItemStack::new).map(FormItem::createFormFromReference).toList())
                 .setBackground(slot, -1, -1);
-        builder.addSlot(RecipeIngredientRole.INPUT, 0, 18).addIngredients(recipe.ink()).setBackground(slot, -1, -1);
-        builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).addIngredients(recipe.paper()).setBackground(slot, -1, -1);
-        builder.addSlot(RecipeIngredientRole.OUTPUT, 25, 18).addIngredients(recipe.form());
+        builder.addSlot(RecipeIngredientRole.INPUT, 0, 18).add(recipe.ink()).setBackground(slot, -1, -1);
+        builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).add(recipe.paper()).setBackground(slot, -1, -1);
+        builder.addSlot(RecipeIngredientRole.OUTPUT, 25, 18).add(recipe.form());
     }
 
 

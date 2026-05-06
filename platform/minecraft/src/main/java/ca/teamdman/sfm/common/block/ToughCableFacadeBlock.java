@@ -10,6 +10,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Explosion;
@@ -57,12 +58,7 @@ public class ToughCableFacadeBlock extends CableFacadeBlock implements EntityBlo
     }
 
     @Override
-    public ItemStack getCloneItemStack(
-            @MCVersionDependentBehaviour LevelReader pLevel,
-            BlockPos pPos,
-            BlockState pState
-    ) {
-
+    public ItemStack getCloneItemStack(@MCVersionDependentBehaviour LevelReader level, BlockPos pos, BlockState state, boolean includeData, Player player) {
         return new ItemStack(SFMBlocks.TOUGH_CABLE.get());
     }
 

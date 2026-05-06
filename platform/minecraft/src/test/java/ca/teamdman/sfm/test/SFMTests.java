@@ -10,7 +10,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -74,7 +74,7 @@ public class SFMTests {
 
     @Test
     public void iForgetIfICanUseResourceLocationsHere() {
-        ResourceLocation bruh = SFMResourceLocation.fromSFMPath("bruh");
+        Identifier bruh = SFMResourceLocation.fromSFMPath("bruh");
         assertEquals("sfm", bruh.getNamespace());
         assertEquals("bruh", bruh.getPath());
     }

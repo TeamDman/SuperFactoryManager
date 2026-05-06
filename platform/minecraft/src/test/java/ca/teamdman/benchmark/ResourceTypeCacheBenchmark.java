@@ -6,7 +6,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectRBTreeMap;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -26,16 +26,16 @@ import static org.openjdk.jmh.annotations.Level.Iteration;
 @Fork(value = 3, warmups = 1)
 public class ResourceTypeCacheBenchmark {
     private Int2ObjectArrayMap<String> intCache = new Int2ObjectArrayMap<>();
-    private Object2ObjectArrayMap<ResourceLocation, String> objArrayCache = new Object2ObjectArrayMap<>();
-    private Object2ObjectOpenHashMap<ResourceLocation, String> objOpenCache = new Object2ObjectOpenHashMap<>();
-    private Object2ObjectAVLTreeMap<ResourceLocation, String> objAVLCache = new Object2ObjectAVLTreeMap<>();
-    private Object2ObjectRBTreeMap<ResourceLocation, String> objRBTreeCache = new Object2ObjectRBTreeMap<>();
-    private ResourceLocation[] values;
+    private Object2ObjectArrayMap<Identifier, String> objArrayCache = new Object2ObjectArrayMap<>();
+    private Object2ObjectOpenHashMap<Identifier, String> objOpenCache = new Object2ObjectOpenHashMap<>();
+    private Object2ObjectAVLTreeMap<Identifier, String> objAVLCache = new Object2ObjectAVLTreeMap<>();
+    private Object2ObjectRBTreeMap<Identifier, String> objRBTreeCache = new Object2ObjectRBTreeMap<>();
+    private Identifier[] values;
     private Random random;
 
     @Setup()
     public void setup() {
-        values = new ResourceLocation[]{
+        values = new Identifier[]{
                 SFMResourceLocation.fromSFMPath("item"),
                 SFMResourceLocation.fromSFMPath("fluid"),
                 SFMResourceLocation.fromSFMPath("gas"),
@@ -44,7 +44,7 @@ public class ResourceTypeCacheBenchmark {
                 SFMResourceLocation.fromSFMPath("mana"),
                 SFMResourceLocation.fromSFMPath("bruh"),
                 };
-        for (ResourceLocation value : values) {
+        for (Identifier value : values) {
             intCache.put(value.hashCode(), value.toString());
             objArrayCache.put(value, value.toString());
             objOpenCache.put(value, value.toString());

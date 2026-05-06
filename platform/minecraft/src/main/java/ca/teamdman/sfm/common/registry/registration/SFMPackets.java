@@ -6,8 +6,9 @@ import ca.teamdman.sfm.common.net.*;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -29,7 +30,7 @@ public class SFMPackets {
         DADDY_MAP.put(packetDaddy.getPacketClass(), packetDaddy);
 
         // create and track the packet type
-        ResourceLocation packetId = getPacketId(packetDaddy.getPacketClass());
+        Identifier packetId = getPacketId(packetDaddy.getPacketClass());
         CustomPacketPayload.Type<SFMWrappedPacket<T>> type = new CustomPacketPayload.Type<>(packetId);
         TYPE_MAP.put(packetDaddy.getPacketClass(), type);
 
@@ -109,7 +110,7 @@ public class SFMPackets {
     public static void sendToServer(
             SFMPacket packet
     ) {
-        PacketDistributor.sendToServer(new SFMWrappedPacket<>(packet));
+        ClientPacketDistributor.sendToServer(new SFMWrappedPacket<>(packet));
     }
 
     public static void sendToPlayer(
@@ -126,8 +127,8 @@ public class SFMPackets {
         PacketDistributor.sendToPlayer(player, new SFMWrappedPacket<>(packet));
     }
 
-    private static ResourceLocation getPacketId(Class<? extends SFMPacket> clazz) {
-        return ResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, clazz.getSimpleName().toLowerCase(Locale.ROOT));
+    private static Identifier getPacketId(Class<? extends SFMPacket> clazz) {
+        return Identifier.fromNamespaceAndPath(SFM.MOD_ID, clazz.getSimpleName().toLowerCase(Locale.ROOT));
     }
 
     private record SFMWrappedPacket<T extends SFMPacket>(T inner) implements CustomPacketPayload {

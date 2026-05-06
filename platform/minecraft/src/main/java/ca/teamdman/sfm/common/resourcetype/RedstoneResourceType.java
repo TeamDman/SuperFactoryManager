@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.capability.IRedstoneSignalStorage;
 import ca.teamdman.sfm.common.capability.RedstoneSignalStorage;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalStorage> {
     public RedstoneResourceType() {
@@ -42,7 +43,7 @@ public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalSto
             IRedstoneSignalStorage redstoneCapability,
             int slot,
             long amount,
-            boolean simulate
+            TransactionContext tx
     ) {
         return 0;
     }
@@ -65,7 +66,7 @@ public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalSto
             IRedstoneSignalStorage redstoneCapability,
             int slot,
             Integer integer,
-            boolean simulate
+            TransactionContext tx
     ) {
         return 0;
     }

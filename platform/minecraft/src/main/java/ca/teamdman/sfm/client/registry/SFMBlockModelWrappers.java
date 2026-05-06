@@ -8,13 +8,11 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMDist;
 import com.google.common.collect.ImmutableList;
-import net.minecraft.client.renderer.block.BlockModelShaper;
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.event.ModelEvent;
-import net.neoforged.neoforge.client.model.BakedModelWrapper;
 
 import java.util.Map;
 import java.util.function.Function;
@@ -26,7 +24,7 @@ public class SFMBlockModelWrappers {
         record FacadeModelRelationship(
                 SFMRegistryObject<Block, ?> facadeBlock,
 
-                Function<BakedModel, BakedModelWrapper<BakedModel>> modelWrapperConstructor
+                Function<BlockStateModel, BakedModelWrapper<BlockStateModel>> modelWrapperConstructor
         ) {
         }
 
@@ -59,7 +57,7 @@ public class SFMBlockModelWrappers {
                 };
 
         // Apply the model redirection for each relationship
-        Map<ModelResourceLocation, BakedModel> models = event.getModels();
+        Map<BlockState, BlockStateModel> models = event.getBakingResult().blockStateModels();
         for (var relationship : relationships) {
             // Get the possible states for the facaded block
             ImmutableList<BlockState> possibleStates = relationship
@@ -71,7 +69,7 @@ public class SFMBlockModelWrappers {
             // Apply the model redirection for each state
             for (BlockState state : possibleStates) {
                 // Get the default model location for the state
-                ModelResourceLocation stateModelLocation = BlockModelShaper.stateToModelLocation(state);
+                Identifier stateModelLocation = BlockModelShaper.stateToModelLocation(state);
 
                 models.computeIfPresent(
                         stateModelLocation,

@@ -9,14 +9,14 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.*;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -100,23 +100,20 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
         return getState(defaultBlockState(), ctx.getLevel(), ctx.getClickedPos());
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void neighborChanged(
             BlockState state,
             Level level,
             BlockPos pos,
             Block block,
-            BlockPos fromPos,
+            @Nullable Orientation orientation,
             boolean isMoving
     ) {
-
-        super.neighborChanged(state, level, pos, block, fromPos, isMoving);
+        super.neighborChanged(state, level, pos, block, orientation, isMoving);
 
         level.setBlockAndUpdate(pos, getState(level.getBlockState(pos), level, pos));
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public VoxelShape getShape(
             BlockState state,
@@ -129,17 +126,17 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
-    public BlockState updateShape(
+    protected BlockState updateShape(
             BlockState state,
-            Direction dir,
-            BlockState facingState,
-            LevelAccessor world,
+            LevelReader level,
+            ScheduledTickAccess ticks,
             BlockPos pos,
-            BlockPos facingPos
+            Direction directionToNeighbour,
+            BlockPos neighbourPos,
+            BlockState neighbourState,
+            RandomSource random
     ) {
-
-        return getState(state, world, pos);
+        return getState(state, level, pos);
     }
 
     @Override
@@ -183,7 +180,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
 
     protected BlockState getState(
             BlockState currentState,
-            LevelAccessor level,
+            LevelReader level,
             BlockPos pos
     ) {
 
@@ -204,7 +201,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
     }
 
     protected boolean hasConnection(
-            LevelAccessor level,
+            LevelReader level,
             BlockPos pos,
             Direction direction
     ) {

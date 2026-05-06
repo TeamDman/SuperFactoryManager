@@ -10,8 +10,10 @@ import mekanism.api.chemical.Chemical;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.api.chemical.IChemicalHandler;
 import mekanism.common.capabilities.Capabilities;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 import java.util.stream.Stream;
 
@@ -46,8 +48,9 @@ public class ChemicalResourceType extends RegistryBackedResourceType<ChemicalSta
     }
 
     @Override
-    public Stream<ResourceLocation> getTagsForStack(ChemicalStack gasStack) {
-        return gasStack.getChemical().getTags().map(TagKey::location);
+    public Stream<Identifier> getTagsForStack(Chemical gasStack) {
+        //noinspected depreciation
+        return gasStack.getTags().map(TagKey::location);
     }
 
     @Override
@@ -55,9 +58,11 @@ public class ChemicalResourceType extends RegistryBackedResourceType<ChemicalSta
             IChemicalHandler handler,
             int slot,
             long amount,
-            boolean simulate
+            TransactionContext tx
     ) {
-        return handler.extractChemical(slot, amount, simulate ? Action.SIMULATE : Action.EXECUTE);
+        try (var ctx = Transaction.open(tx)) {
+            return handler.extractChemical(slot, amount, simulate ? Action.SIMULATE : Action.EXECUTE);
+        }
     }
 
     @Override
@@ -83,19 +88,16 @@ public class ChemicalResourceType extends RegistryBackedResourceType<ChemicalSta
             IChemicalHandler handler,
             int slot,
             ChemicalStack gasStack,
-            boolean simulate
+            TransactionContext tx
     ) {
-        return handler.insertChemical(slot, gasStack, simulate ? Action.SIMULATE : Action.EXECUTE);
+        try (var ctx = Transaction.open(tx)) {
+            return handler.insertChemical(slot, gasStack, simulate ? Action.SIMULATE : Action.EXECUTE);
+        }
     }
 
     @Override
     public boolean isEmpty(ChemicalStack gasStack) {
         return gasStack.isEmpty();
-    }
-
-    @Override
-    public ChemicalStack getEmptyStack() {
-        return ChemicalStack.EMPTY;
     }
 
     @Override
@@ -116,19 +118,5 @@ public class ChemicalResourceType extends RegistryBackedResourceType<ChemicalSta
     @Override
     public Chemical getItem(ChemicalStack gasStack) {
         return gasStack.getChemical();
-    }
-
-    @Override
-    public ChemicalStack copy(ChemicalStack gasStack) {
-        return gasStack.copy();
-    }
-
-    @Override
-    protected ChemicalStack setCount(
-            ChemicalStack gasStack,
-            long amount
-    ) {
-        gasStack.setAmount(amount);
-        return gasStack;
     }
 }

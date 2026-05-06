@@ -11,7 +11,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.data.ModelData;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.model.data.ModelData;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFacadeBlockEntity {
@@ -49,11 +51,10 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
 
     @Override
     protected void loadAdditional(
-            CompoundTag pTag,
-            HolderLookup.Provider pRegistries
+            ValueInput input
     ) {
-        super.loadAdditional(pTag, pRegistries);
-        FacadeData tried = FacadeData.load(level, pTag);
+        super.loadAdditional(input);
+        FacadeData tried = FacadeData.load(level, input);
         if (tried != null) {
             this.facadeData = tried;
             requestModelDataUpdate();
@@ -66,20 +67,12 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider pRegistries) {
-        CompoundTag pTag = new CompoundTag();
-        saveAdditional(pTag, pRegistries);
-        return pTag;
-    }
-
-    @Override
     protected void saveAdditional(
-            CompoundTag pTag,
-            HolderLookup.Provider pRegistries
+            ValueOutput output
     ) {
-        super.saveAdditional(pTag, pRegistries);
+        super.saveAdditional(output);
         if (facadeData != null) {
-            facadeData.save(pTag);
+            facadeData.save(output);
         }
     }
 }

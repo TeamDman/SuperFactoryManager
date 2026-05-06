@@ -8,7 +8,7 @@ import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.SharedConstants;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
-import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
+import net.neoforged.neoforge.common.NeoForgeVersion;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -37,7 +37,7 @@ public class SFMDiagnostics {
             content
                     .append("-- Game Version: ")
                     .append("Minecraft ")
-                    .append(SharedConstants.getCurrentVersion().getName())
+                    .append(SharedConstants.getCurrentVersion().name())
                     .append('\n');
 
             content.append("-- Forge Version: ")

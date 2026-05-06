@@ -3,7 +3,8 @@
 @FieldsAreNonnullByDefault
 package ca.teamdman.sfm.client.examples;
 
-import net.minecraft.FieldsAreNonnullByDefault;
-import net.minecraft.MethodsReturnNonnullByDefault;
+
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
+import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
 
 import javax.annotation.ParametersAreNonnullByDefault;

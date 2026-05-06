@@ -6,9 +6,9 @@ import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.ResourceLocationException;
+import net.minecraft.IdentifierException;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,8 +59,8 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
     }
 
     public ResourceIdentifier(
-            ResourceLocation resourceTypeKey,
-            ResourceLocation resourceKey
+            Identifier resourceTypeKey,
+            Identifier resourceKey
     ) {
         this(
                 resourceTypeKey.getNamespace(),
@@ -72,11 +72,11 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
 
     public ResourceIdentifier(
             ResourceKey<ResourceType<STACK,ITEM,CAP>> resourceTypeKey,
-            ResourceLocation resourceKey
+            Identifier resourceKey
     ) {
         this(
-                resourceTypeKey.location().getNamespace(),
-                resourceTypeKey.location().getPath(),
+                resourceTypeKey.identifier().getNamespace(),
+                resourceTypeKey.identifier().getPath(),
                 resourceKey.getNamespace(),
                 resourceKey.getPath()
         );
@@ -87,10 +87,10 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
             ResourceKey<?> resourceKey
     ) {
         this(
-                resourceTypeKey.location().getNamespace(),
-                resourceTypeKey.location().getPath(),
-                resourceKey.location().getNamespace(),
-                resourceKey.location().getPath()
+                resourceTypeKey.identifier().getNamespace(),
+                resourceTypeKey.identifier().getPath(),
+                resourceKey.identifier().getNamespace(),
+                resourceKey.identifier().getPath()
         );
     }
 
@@ -113,7 +113,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         this(SFM.MOD_ID, typeName, resourceNamespace, resourceName);
     }
 
-    public boolean matchesResourceLocation(ResourceLocation stackId) {
+    public boolean matchesResourceLocation(Identifier stackId) {
         return resourceNamePredicate.test(stackId.getPath()) && resourceNamespacePredicate.test(stackId.getNamespace());
     }
 
@@ -148,10 +148,10 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         }
     }
 
-    public Optional<ResourceLocation> getLocation() {
+    public Optional<Identifier> getLocation() {
         try {
             return Optional.of(SFMResourceLocation.fromNamespaceAndPath(resourceNamespace, resourceName));
-        } catch (ResourceLocationException e) {
+        } catch (IdentifierException e) {
             return Optional.empty();
         }
     }
@@ -197,7 +197,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
             // the mekanism resource types aren't stored in deferred register fields
             // for now, lets just not crash the game at least
             return List.of(this);
-        } catch (ResourceLocationException e) {
+        } catch (IdentifierException e) {
             // user may have ctrl+space inspection on an invalid resource identifier
             // item*::stone
             // the script should give a compile error but that doesn't prevent the inspection, so we catch here
@@ -209,7 +209,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         this.resourceTypeCache = resourceTypeCache;
     }
 
-    public ResourceLocation getResourceTypeId() {
+    public Identifier getResourceTypeId() {
         return SFMResourceLocation.fromNamespaceAndPath(resourceTypeNamespace, resourceTypeName);
     }
 

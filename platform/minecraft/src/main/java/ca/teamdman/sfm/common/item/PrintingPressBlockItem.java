@@ -9,8 +9,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class PrintingPressBlockItem extends BlockItem {
     @SFMLocalizationDatagen
@@ -28,11 +30,12 @@ public class PrintingPressBlockItem extends BlockItem {
     public void appendHoverText(
             ItemStack pStack,
             TooltipContext pContext,
-            List<Component> pTooltipComponents,
+            TooltipDisplay pTooltipDisplay,
+            Consumer<Component> pTooltipComponents,
             TooltipFlag pTooltipFlag
     ) {
-        super.appendHoverText(pStack, pContext, pTooltipComponents, pTooltipFlag);
-        pTooltipComponents.add(PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
+        super.appendHoverText(pStack, pContext, pTooltipDisplay, pTooltipComponents, pTooltipFlag);
+        pTooltipComponents.accept(PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
     }
 
 }

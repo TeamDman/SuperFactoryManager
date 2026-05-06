@@ -19,20 +19,21 @@ import ca.teamdman.sfml.ast.Program;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Inventory;
 import org.apache.logging.log4j.Level;
+import org.joml.Matrix3x2fStack;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
@@ -228,7 +229,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             "Never mind, make no changes"
     );
 
-    private static final ResourceLocation BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
+    private static final Identifier BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
             "textures/gui/container/manager.png"
     );
 
@@ -300,20 +301,18 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     @Override
     public boolean keyPressed(
-            int pKeyCode,
-            int pScanCode,
-            int pModifiers
+            KeyEvent event
     ) {
 
-        if (Screen.isPaste(pKeyCode) && clipboardPasteButton.visible) {
+        if (event.isPaste() && clipboardPasteButton.visible) {
             onClipboardPasteButtonClicked();
             return true;
-        } else if (Screen.isCopy(pKeyCode) && clipboardCopyButton.visible) {
+        } else if (event.isCopy() && clipboardCopyButton.visible) {
             onClipboardCopyButtonClicked();
             return true;
-        } else if (pKeyCode == GLFW.GLFW_KEY_E
-                   && Screen.hasControlDown()
-                   && Screen.hasShiftDown()
+        } else if (event.key() == GLFW.GLFW_KEY_E
+                   && event.hasControlDown()
+                   && event.hasShiftDown()
                    && examplesButton.visible) {
             onExamplesButtonClicked();
             return true;
@@ -322,7 +321,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             onEditButtonClicked();
             return true;
         }
-        return super.keyPressed(pKeyCode, pScanCode, pModifiers);
+        return super.keyPressed(event);
     }
 
     public ChatFormatting getMillisecondColour(float ms) {
@@ -337,16 +336,16 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     @Override
-    public void render(
-            GuiGraphics graphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor graphics,
             int mx,
             int my,
             float partialTicks
     ) {
 
-        this.renderTransparentBackground(graphics);
-        super.render(graphics, mx, my, partialTicks);
-        this.renderTooltip(graphics, mx, my);
+        this.extractTransparentBackground(graphics);
+        super.extractRenderState(graphics, mx, my, partialTicks);
+        this.extractTooltip(graphics, mx, my);
 
         updateVisibilities();
 
@@ -502,7 +501,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     private void onDiagButtonClicked() {
 
-        if (Screen.hasShiftDown() && !isReadOnly()) {
+        if (SFMWidgetUtils.hasShiftDown() && !isReadOnly()) {
             sendAttemptFix();
         } else {
             this.onSaveDiagnosticsToClipboard();
@@ -684,13 +683,13 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     @Override
-    protected void renderLabels(
-            GuiGraphics graphics,
+    protected void extractLabels(
+            GuiGraphicsExtractor graphics,
             int mx,
             int my
     ) {
-        PoseStack poseStack = graphics.pose();        // draw title
-        super.renderLabels(graphics, mx, my);
+        Matrix3x2fStack poseStack = graphics.pose();        // draw title
+        super.extractLabels(graphics, mx, my);
 
         // draw state string
         var state = menu.state;
@@ -706,13 +705,12 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
         // draw log level
         if (!menu.logLevel.equals(Level.OFF.name())) {
-            poseStack.pushPose();
+            poseStack.pushMatrix();
             poseStack.translate(
-                    titleLabelX,
-                    font.lineHeight * 1.5,
-                    0f
+                    (float)titleLabelX,
+                    (float) (font.lineHeight * 1.5)
             );
-            poseStack.scale(0.5f, 0.5f, 1f);
+            poseStack.scale(0.5f, 0.5f);
             SFMFontUtils.draw(
                     graphics,
                     this.font,
@@ -722,7 +720,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                     0,
                     false
             );
-            poseStack.popPose();
+            poseStack.popMatrix();
         }
 
         // draw status string
@@ -869,8 +867,8 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     @Override
-    protected void renderTooltip(
-            GuiGraphics pGuiGraphics,
+    protected void extractTooltip(
+            GuiGraphicsExtractor pGuiGraphics,
             int pX,
             int pY
     ) {
@@ -886,13 +884,13 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         }
         drawChildTooltips(pGuiGraphics, pX, pY);
         // render hovered item
-        super.renderTooltip(pGuiGraphics, pX, pY);
+        super.extractTooltip(pGuiGraphics, pX, pY);
     }
 
     @SuppressWarnings("unused")
     @MCVersionDependentBehaviour
     private void drawChildTooltips(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             int mx,
             int my
     ) {
@@ -905,11 +903,11 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     @Override
-    protected void renderBg(
-            GuiGraphics graphics,
-            float partialTicks,
+    public void extractBackground(
+            GuiGraphicsExtractor graphics,
             int mx,
-            int my
+            int my,
+            float partialTicks
     ) {
         if (!menu.logLevel.equals(Level.OFF.name())) {
             RenderSystem.setShaderColor(0.2f, 0.8f, 1f, 1f);

@@ -8,7 +8,7 @@ import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -37,14 +37,14 @@ public class RecipesGameTest extends SFMGameTestDefinition {
                 .getAllRecipesFor(RecipeType.CRAFTING);
 
         // We will track the SFM items whose recipes we have observed
-        Map<ResourceLocation, Object> seenSFMItemIds = new HashMap<>();
+        Map<Identifier, Object> seenSFMItemIds = new HashMap<>();
 
         // Populate the tracker
         // For each recipe
         for (RecipeHolder<CraftingRecipe> recipeHolder : craftingRecipes) {
             CraftingRecipe recipe = recipeHolder.value();
             // If the resulting item is from SFM
-            ResourceLocation resultItemId = SFMWellKnownRegistries.ITEMS.getId(recipe.getResultItem(helper.getLevel().registryAccess()).getItem());
+            Identifier resultItemId = SFMWellKnownRegistries.ITEMS.getId(recipe.getResultItem(helper.getLevel().registryAccess()).getItem());
             if (resultItemId.getNamespace().equals(SFM.MOD_ID)) {
                 // Track it as seen
                 seenSFMItemIds.put(resultItemId, recipe);
@@ -57,10 +57,10 @@ public class RecipesGameTest extends SFMGameTestDefinition {
         exemptions.put(SFMItems.FORM, "forms are acquired through falling anvil crafting");
         exemptions.put(SFMItems.BUFFER, "buffer item is WIP");
         for (var exemption : exemptions.entrySet()) {
-            var old = seenSFMItemIds.put(exemption.getKey().getId().get().location(), exemption.getValue());
+            var old = seenSFMItemIds.put(exemption.getKey().getId().get().identifier()(), exemption.getValue());
             if (old != null) {
                 helper.fail("Exempted item "
-                            + exemption.getKey().getId().get().location()
+                            + exemption.getKey().getId().get().identifier()()
                             + " was seen twice: "
                             + old
                             + " and "
@@ -74,7 +74,7 @@ public class RecipesGameTest extends SFMGameTestDefinition {
         // For each item
         for (Map.Entry<ResourceKey<Item>, Item> itemEntry : SFMWellKnownRegistries.ITEMS.entries()) {
             // If it is an SFM item
-            ResourceLocation itemId = itemEntry.getKey().location();
+            Identifier itemId = itemEntry.getKey().identifier()();
             if (!itemId.getNamespace().equals(SFM.MOD_ID)) {
                 continue;
             }

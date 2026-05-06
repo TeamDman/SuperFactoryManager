@@ -20,7 +20,7 @@ public record SFMEnchantmentKey(
             ResourceKey<Enchantment> enchantmentId
     ) {
 
-        this(registryAccess.registry(Registries.ENCHANTMENT).get().getHolderOrThrow(enchantmentId));
+        this(registryAccess.holderOrThrow(enchantmentId));
 
     }
 
@@ -33,7 +33,7 @@ public record SFMEnchantmentKey(
     @MCVersionDependentBehaviour
     public boolean canEnchant(ItemStack checkStack) {
 
-        return inner.value().canEnchant(checkStack);
+        return checkStack.supportsEnchantment(inner);
     }
 
 }

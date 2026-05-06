@@ -13,9 +13,9 @@ import ca.teamdman.sfm.common.util.SFMTranslationUtils;
 import ca.teamdman.sfml.ast.ASTBuilder;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
-import net.minecraft.ResourceLocationException;
+import net.minecraft.IdentifierException;
 import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.jetbrains.annotations.Nullable;
@@ -129,7 +129,7 @@ public class ProgramBuilder {
                 program = builder.visitProgram(context);
                 // Make sure all referenced resources are valid during compilation instead of waiting for the program to tick
                 checkResourceTypes(program, errors);
-            } catch (ResourceLocationException | IllegalArgumentException | AssertionError e) {
+            } catch (IdentifierException | IllegalArgumentException | AssertionError e) {
                 errors.add(PROGRAM_ERROR_LITERAL.get(e.getMessage()));
             } catch (Throwable t) {
                 errors.add(PROGRAM_ERROR_COMPILE_FAILED.get());
@@ -184,7 +184,7 @@ public class ProgramBuilder {
                     errors.add(PROGRAM_ERROR_UNKNOWN_RESOURCE_TYPE.get(
                             referencedResource));
                 } else {
-                    ResourceLocation resourceTypeId = Objects.requireNonNull(SFMResourceTypes
+                    Identifier resourceTypeId = Objects.requireNonNull(SFMResourceTypes
                                                                                      .registry()
                                                                                      .getId(resourceType));
                     if (disallowedResourceTypes.contains(resourceTypeId.toString())) {
@@ -192,7 +192,7 @@ public class ProgramBuilder {
                                 referencedResource));
                     }
                 }
-            } catch (ResourceLocationException e) {
+            } catch (IdentifierException e) {
                 errors.add(PROGRAM_ERROR_MALFORMED_RESOURCE_TYPE.get(
                         referencedResource));
             }

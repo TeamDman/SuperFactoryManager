@@ -12,7 +12,7 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -340,7 +340,7 @@ public class OutputStatement implements IOStatement {
         // THIS SHOULD NEVER HAPPEN
         // will void items if it does
         if (!resourceType.isEmpty(extractedRemainder)) {
-            ResourceLocation resourceTypeName = SFMResourceTypes.registry().getId(resourceType);
+            Identifier resourceTypeName = SFMResourceTypes.registry().getId(resourceType);
             String stackName = resourceType.getItem(sourceStack).toString();
             Level level = context.getManager().getLevel();
             assert level != null;
@@ -386,7 +386,7 @@ public class OutputStatement implements IOStatement {
             report.append("=== Manager ===\n");
             report
                     .append("Level: ")
-                    .append(level.dimension().location())
+                    .append(level.dimension().identifier())
                     .append(" (")
                     .append(level)
                     .append(")\n");
@@ -707,7 +707,7 @@ public class OutputStatement implements IOStatement {
                 .append(")\n");
         BlockEntity inputBlockEntity = level.getBlockEntity(slot.getPos());
         if (inputBlockEntity != null) {
-            ResourceLocation inputBlockEntityType = SFMWellKnownRegistries.BLOCK_ENTITY_TYPES.getId(inputBlockEntity.getType());
+            Identifier inputBlockEntityType = SFMWellKnownRegistries.BLOCK_ENTITY_TYPES.getId(inputBlockEntity.getType());
             report
                     .append("Block Entity: ")
                     .append(inputBlockEntity.getClass().getName())
@@ -718,7 +718,7 @@ public class OutputStatement implements IOStatement {
             report.append("Block Entity: null\n");
         }
         BlockState blockState = level.getBlockState(slot.getPos());
-        ResourceLocation blockType = SFMWellKnownRegistries.BLOCKS.getId(blockState.getBlock());
+        Identifier blockType = SFMWellKnownRegistries.BLOCKS.getId(blockState.getBlock());
         report
                 .append("Block: ")
                 .append(blockState.getBlock().getClass().getName())

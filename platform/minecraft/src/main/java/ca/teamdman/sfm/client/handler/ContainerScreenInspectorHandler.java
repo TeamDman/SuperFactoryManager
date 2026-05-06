@@ -16,7 +16,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -27,6 +27,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3x2fStack;
 
 public class ContainerScreenInspectorHandler {
     @SFMLocalizationDatagen
@@ -82,9 +83,9 @@ public class ContainerScreenInspectorHandler {
     public static void onMouseClick(ScreenEvent.KeyPressed.MouseButtonPressed.Pre event) {
 
         boolean shouldCapture = Minecraft.getInstance().screen instanceof AbstractContainerScreen<?>;
-        if (shouldCapture && visible && exportInspectorButton.clicked(event.getMouseX(), event.getMouseY())) {
+        if (shouldCapture && visible && exportInspectorButton.isMouseOver(event.getMouseX(), event.getMouseY())) {
             exportInspectorButton.playDownSound(Minecraft.getInstance().getSoundManager());
-            exportInspectorButton.onClick(event.getMouseX(), event.getMouseY());
+            exportInspectorButton.onClick(event.getMouseButtonEvent(), false);
             event.setCanceled(true);
         }
     }
@@ -98,13 +99,14 @@ public class ContainerScreenInspectorHandler {
             AbstractContainerMenu menu = screen.getMenu();
             int containerSlotCount = 0;
             int inventorySlotCount = 0;
-            GuiGraphics graphics = event.getGuiGraphics();
-            PoseStack poseStack = graphics.pose();
-            poseStack.pushPose();
-            poseStack.translate(0, 0, 350); // render text over the items but under the tooltips
+            GuiGraphicsExtractor graphics = event.getGuiGraphics();
+            graphics.nextStratum();
+
+            Matrix3x2fStack poseStack = graphics.pose();
+            poseStack.pushMatrix();
 
             // draw the button
-            exportInspectorButton.render(graphics, event.getMouseX(), event.getMouseY(), event.getPartialTick());
+            exportInspectorButton.extractRenderState(graphics, event.getMouseX(), event.getMouseY(), event.getPartialTick());
 
 
             // draw index on each slot
@@ -124,8 +126,8 @@ public class ContainerScreenInspectorHandler {
                         graphics,
                         font,
                         Component.literal(Integer.toString(slot.getSlotIndex())),
-                        screen.getGuiLeft() + slot.x,
-                        screen.getGuiTop() + slot.y,
+                        screen.getLeftPos() + slot.x,
+                        screen.getTopPos() + slot.y,
                         colour,
                         false
                 );
@@ -190,7 +192,7 @@ public class ContainerScreenInspectorHandler {
                     0xFFFFFF,
                     true
             );
-            poseStack.popPose();
+            poseStack.popMatrix();
         }
     }
 

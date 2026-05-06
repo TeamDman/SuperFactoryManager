@@ -72,7 +72,7 @@ public class BlockNetwork<LEVEL, T> {
 
     public boolean usesChunk(ChunkPos chunkPos) {
 
-        return usesChunk(chunkPos.toLong());
+        return usesChunk(chunkPos.pack());
     }
 
     public boolean usesChunk(long chunkPos) {

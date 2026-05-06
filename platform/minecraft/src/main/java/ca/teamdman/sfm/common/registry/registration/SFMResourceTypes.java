@@ -11,9 +11,10 @@ import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
 import ca.teamdman.sfm.common.resourcetype.*;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,7 +43,7 @@ public class SFMResourceTypes {
     public static final SFMRegistryObject<ResourceType<?, ?, ?>, RedstoneResourceType> REDSTONE
             = REGISTERER.register("redstone", RedstoneResourceType::new);
 
-    private static final Object2ObjectOpenHashMap<ResourceLocation, ResourceType<?, ?, ?>> DEFERRED_TYPES_BY_ID
+    private static final Object2ObjectOpenHashMap<Identifier, ResourceType<?, ?, ?>> DEFERRED_TYPES_BY_ID
             = new Object2ObjectOpenHashMap<>();
 
     static {
@@ -57,12 +58,12 @@ public class SFMResourceTypes {
     }
 
     public static @Nullable ResourceType<?, ?, ?> fastLookup(
-            ResourceLocation resourceTypeId
+            Identifier resourceTypeId
     ) {
 
         return DEFERRED_TYPES_BY_ID.computeIfAbsent(
                 resourceTypeId,
-                i -> registry().get(resourceTypeId)
+                i -> registry().get(resourceTypeId).map(Holder.Reference::value).orElse(null)
         );
     }
 

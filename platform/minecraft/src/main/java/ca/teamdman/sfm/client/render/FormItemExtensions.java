@@ -4,15 +4,15 @@ import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMDist;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
+import net.minecraft.client.renderer.special.NoDataSpecialModelRenderer;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 
 public class FormItemExtensions implements IClientItemExtensions {
-    private final BlockEntityWithoutLevelRenderer RENDERER = new FormItemRenderer();
+    private final NoDataSpecialModelRenderer RENDERER = new FormItemRenderer();
 
     @Override
-    public BlockEntityWithoutLevelRenderer getCustomRenderer() {
+    public NoDataSpecialModelRenderer getCustomRenderer() {
         return RENDERER;
     }
 

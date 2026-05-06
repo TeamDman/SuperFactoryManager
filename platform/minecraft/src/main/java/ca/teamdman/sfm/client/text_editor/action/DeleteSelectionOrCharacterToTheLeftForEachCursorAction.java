@@ -14,7 +14,7 @@ public class DeleteSelectionOrCharacterToTheLeftForEachCursorAction implements I
             TextEditContext context,
             KeyboardImpulse impulse
     ) {
-        return impulse.keyCode() == GLFW.GLFW_KEY_BACKSPACE;
+        return impulse.event().key() == GLFW.GLFW_KEY_BACKSPACE;
     }
 
     @Override

@@ -8,25 +8,27 @@ import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.special.NoDataSpecialModelRenderer;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.event.ModelEvent;
+import org.joml.Vector3fc;
 
-public class FormItemRenderer extends BlockEntityWithoutLevelRenderer {
+import java.util.function.Consumer;
 
-    private static final ModelResourceLocation BASE_MODEL = ModelResourceLocation.standalone(SFMResourceLocation.fromSFMPath("item/form_base"));
+public class FormItemRenderer implements NoDataSpecialModelRenderer {
+
+    private static final Identifier BASE_MODEL = Identifier.standalone(SFMResourceLocation.fromSFMPath("item/form_base"));
 
     public FormItemRenderer() {
         super(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
-    public static void registerModels(ModelEvent.RegisterAdditional event) {
+    public static void registerModels(ModelEvent.ModifyBakingResult event) {
         event.register(BASE_MODEL);
     }
 
@@ -75,5 +77,15 @@ public class FormItemRenderer extends BlockEntityWithoutLevelRenderer {
         }
 
         poseStack.popPose();
+    }
+
+    @Override
+    public void submit(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, int overlayCoords, boolean hasFoil, int outlineColor) {
+
+    }
+
+    @Override
+    public void getExtents(Consumer<Vector3fc> output) {
+
     }
 }

@@ -2,7 +2,7 @@ package ca.teamdman.sfm.mixins;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.gametest.SFMStructureGenerator;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,7 +16,7 @@ import java.util.Optional;
 public class StructureTemplateManagerMixin {
     @Inject(method = "get", at = @At("HEAD"), cancellable = true, remap = false)
     public void onTryLoad(
-            ResourceLocation pId,
+            Identifier pId,
             CallbackInfoReturnable<Optional<StructureTemplate>> cir
     ) {
         if (pId.getNamespace().equals(SFM.MOD_ID)) {

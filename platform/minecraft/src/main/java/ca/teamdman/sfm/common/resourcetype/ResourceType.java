@@ -12,7 +12,11 @@ import ca.teamdman.sfml.ast.*;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.Holder;
+import net.minecraft.resources.Identifier;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.resource.ResourceStack;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -104,16 +108,8 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             CAP cap,
             int slot,
             long amount,
-            boolean simulate
+            TransactionContext tx
     );
-
-    public boolean canExtract(
-            CAP capability,
-            int slot
-    ) {
-
-        return true;
-    }
 
     public abstract int getSlots(CAP handler);
 
@@ -131,21 +127,10 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             CAP cap,
             int slot,
             STACK stack,
-            boolean simulate
+            TransactionContext tx
     );
 
-    public boolean canInsert(
-            CAP capability,
-            int slot
-    ) {
-
-        return true;
-    }
-
     public abstract boolean isEmpty(STACK stack);
-
-    @SuppressWarnings("unused")
-    public abstract STACK getEmptyStack();
 
     public abstract boolean matchesStackType(Object o);
 
@@ -223,7 +208,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
         }
     }
 
-    public abstract Stream<ResourceLocation> getTagsForStack(STACK stack);
+    public abstract Stream<Identifier> getTagsForStack(ITEM stack);
 
     public Stream<STACK> getStacksInSlots(
             CAP cap,
@@ -241,35 +226,26 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
         return rtn.build();
     }
 
+    public abstract ITEM stackToItem(STACK stack);
+
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public abstract boolean registryKeyExists(ResourceLocation location);
+    public abstract boolean registryKeyExists(Identifier location);
 
-    public abstract ResourceLocation getRegistryKeyForStack(STACK stack);
+    public abstract Identifier getRegistryKeyForStack(STACK stack);
 
-    public abstract ResourceLocation getRegistryKeyForItem(ITEM item);
+    public abstract Identifier getRegistryKeyForItem(ITEM item);
 
-    public abstract @Nullable ITEM getItemFromRegistryKey(ResourceLocation location);
+    public abstract @Nullable ITEM getItemFromRegistryKey(Identifier location);
 
-    public abstract Set<ResourceLocation> getRegistryKeys();
+    public abstract Set<Identifier> getRegistryKeys();
 
     public abstract Iterable<ITEM> getItems();
 
     public abstract ITEM getItem(STACK stack);
 
-    public abstract STACK copy(STACK stack);
-
-    @SuppressWarnings("unused")
-    public STACK withCount(
-            STACK stack,
-            long count
-    ) {
-
-        return setCount(copy(stack), count);
-    }
-
     public String displayAsCode() {
 
-        ResourceLocation thisKey = SFMResourceTypes.registry().getId(this);
+        Identifier thisKey = SFMResourceTypes.registry().getId(this);
         return thisKey != null ? thisKey.toString() : "null";
     }
 
@@ -277,10 +253,5 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
 
         return CAPABILITY_KIND.getName();
     }
-
-    protected abstract STACK setCount(
-            STACK stack,
-            long amount
-    );
 
 }

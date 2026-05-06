@@ -11,7 +11,7 @@ import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -43,13 +43,13 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
     }
 
     @MCVersionDependentBehaviour
-    public @Nullable T get(ResourceLocation resourceTypeId) {
+    public Optional<Holder.Reference<T>> get(Identifier resourceTypeId) {
 
         return getInnerRegistry().get(resourceTypeId);
     }
 
     @MCVersionDependentBehaviour
-    public Set<ResourceLocation> keys() {
+    public Set<Identifier> keys() {
 
         return getInnerRegistry().keySet();
     }
@@ -67,13 +67,13 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
     public Stream<Holder.Reference<T>> holders() {
 
         if (getInnerRegistry() instanceof MappedRegistry<T> mappedRegistry) {
-            return mappedRegistry.holders();
+            return mappedRegistry.listElements();
         } else {
             return Stream.empty();
         }
     }
 
-    public @Nullable ResourceLocation getId(T value) {
+    public @Nullable Identifier getId(T value) {
 
         return getInnerRegistry().getKey(value);
     }
@@ -100,7 +100,7 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
         return registryKey;
     }
 
-    public boolean contains(ResourceLocation location) {
+    public boolean contains(Identifier location) {
 
         return getInnerRegistry().containsKey(location);
     }
@@ -116,7 +116,10 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
 
         // Look up the registry in the registry of registries
         //noinspection unchecked,rawtypes
-        maybeInner = (Registry<T>) BuiltInRegistries.REGISTRY.get((ResourceKey) registryKey);
+        BuiltInRegistries.REGISTRY.get((ResourceKey) registryKey).ifPresent((registry) -> {
+            // noinspection unchecked
+            maybeInner = (Registry<T>) registry;
+        });
         if (maybeInner != null) {
             return maybeInner;
         }
@@ -133,7 +136,7 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
         }
 
         // Grab the registry from the client registry access and cache it
-        maybeInner = level.registryAccess().registryOrThrow(registryKey);
+        maybeInner = level.registryAccess().lookupOrThrow(registryKey);
 
         // Return it
         return maybeInner;
@@ -163,9 +166,10 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
                "inner=" + maybeInner + ']';
     }
 
-    public HolderLookup.RegistryLookup<T> asHolderLookup() {
+    // TODO: this has 0 usages so maybe its not needed?
+/*    public HolderLookup.RegistryLookup<T> asHolderLookup() {
 
-        return getInnerRegistry().asLookup();
-    }
+        return getInnerRegistry().lookup();
+    }*/
 
 }

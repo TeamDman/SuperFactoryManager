@@ -6,10 +6,12 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.SFMDist;
 import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import net.neoforged.neoforge.client.settings.KeyModifier;
@@ -20,9 +22,11 @@ import java.util.function.Supplier;
 
 
 public class SFMKeyMappings {
+    public static final KeyMapping.Category SFM_KEY_CATEGORY = new KeyMapping.Category(Identifier.fromNamespaceAndPath("sfm", "keybinds"));
+
     @SFMLocalizationDatagen
-    public static final LocalizationEntry SFM_KEY_CATEGORY = new LocalizationEntry(
-            "key.categories.sfm",
+    public static final LocalizationEntry _SFM_KEY_CATEGORY = new LocalizationEntry(
+            "key.category.sfm.keybinds",
             "Super Factory Manager"
     );
 
@@ -37,7 +41,7 @@ public class SFMKeyMappings {
             KeyConflictContext.UNIVERSAL,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_LEFT_SHIFT,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -51,7 +55,7 @@ public class SFMKeyMappings {
             KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_LEFT_ALT,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -65,7 +69,7 @@ public class SFMKeyMappings {
             KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_LEFT_ALT,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -80,7 +84,7 @@ public class SFMKeyMappings {
             KeyModifier.CONTROL,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_I,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -96,7 +100,7 @@ public class SFMKeyMappings {
             InputConstants.Type.KEYSYM,
 //            GLFW.GLFW_KEY_GRAVE_ACCENT,
             InputConstants.UNKNOWN.getValue(),
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -111,7 +115,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_LEFT_ALT,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -126,7 +130,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_LEFT_CONTROL,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -141,7 +145,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_LEFT_SHIFT,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -156,7 +160,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_LEFT_SHIFT,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -171,7 +175,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             InputConstants.UNKNOWN.getValue(),
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -186,7 +190,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             InputConstants.UNKNOWN.getValue(),
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -201,7 +205,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_LEFT_SHIFT,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -216,7 +220,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_RIGHT_ALT,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -231,7 +235,7 @@ public class SFMKeyMappings {
             KeyModifier.CONTROL,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_E,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -246,7 +250,7 @@ public class SFMKeyMappings {
             KeyModifier.CONTROL,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_E,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
@@ -261,7 +265,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_BACKSLASH,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     public static KeyMapping[] getSFMKeyMappings() {
@@ -318,7 +322,7 @@ public class SFMKeyMappings {
         }
         // We cannot use keyMapping.isDown because it fails when a screen is open
         // https://github.com/mekanism/Mekanism/blob/f92b48a49e0766cd3aa78e95c9c4a47ba90402f5/src/main/java/mekanism/client/key/MekKeyHandler.java
-        long windowHandle = Minecraft.getInstance().getWindow().getWindow();
+        Window windowHandle = Minecraft.getInstance().getWindow();
         boolean keyDown = InputConstants.isKeyDown(
                 windowHandle,
                 keyMapping.getKey().getValue()

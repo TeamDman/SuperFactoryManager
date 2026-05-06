@@ -11,7 +11,7 @@ import mekanism.api.energy.IStrictEnergyHandler;
 import mekanism.api.math.FloatingLong;
 import mekanism.common.capabilities.energy.BasicEnergyContainer;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.CapabilityToken;
 import org.jetbrains.annotations.NotNull;
@@ -139,7 +139,7 @@ public class MekanismEnergyResourceType extends ScalarResourceType<FloatingLong,
     }
 
     @Override
-    public Stream<ResourceLocation> getTagsForStack(FloatingLong floatingLong) {
+    public Stream<Identifier> getTagsForStack(FloatingLong floatingLong) {
         return Stream.empty();
     }
 

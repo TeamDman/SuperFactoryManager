@@ -30,7 +30,7 @@ public class SFMPackFinders {
         var modFileInfo = ModList.get().getModFileById(SFM.MOD_ID);
         if (modFileInfo == null) return; // should not happen
 
-        Path classicRoot = modFileInfo.getFile().findResource(CLASSIC_PACK_PATH);
+        Path classicRoot = modFileInfo.getFile().getFilePath().resolve(CLASSIC_PACK_PATH);
         // Require a valid pack.mcmeta to register
         if (!Files.exists(classicRoot.resolve("pack.mcmeta"))) return;
 

@@ -3,7 +3,6 @@ package ca.teamdman.sfm.client.text_editor.action;
 import ca.teamdman.sfm.client.text_editor.Caret;
 import ca.teamdman.sfm.client.text_editor.Cursor;
 import ca.teamdman.sfm.client.text_editor.TextEditContext;
-import net.minecraft.client.gui.screens.Screen;
 
 public class SelectAllTextAction implements ITextEditAction {
     @Override
@@ -11,7 +10,7 @@ public class SelectAllTextAction implements ITextEditAction {
             TextEditContext context,
             KeyboardImpulse impulse
     ) {
-        return Screen.isSelectAll(impulse.keyCode());
+        return impulse.event().isSelectAll();
     }
 
     @Override

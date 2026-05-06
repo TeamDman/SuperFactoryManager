@@ -8,164 +8,164 @@ import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.datagen.version_plumbing.MCVersionAgnosticBlockStatesAndModelsDataGen;
+import com.mojang.math.Quadrant;
+import net.minecraft.client.data.models.BlockModelGenerators;
+import net.minecraft.client.data.models.blockstates.MultiPartGenerator;
+import net.minecraft.client.data.models.blockstates.MultiVariantGenerator;
+import net.minecraft.client.data.models.blockstates.PropertyDispatch;
+import net.minecraft.client.data.models.model.*;
+import net.minecraft.client.renderer.block.dispatch.Variant;
+import net.minecraft.client.renderer.block.dispatch.VariantMutator;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.neoforged.neoforge.client.model.generators.ConfiguredModel;
-import net.neoforged.neoforge.client.model.generators.ModelBuilder;
-import net.neoforged.neoforge.client.model.generators.ModelFile;
+
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStatesAndModelsDataGen {
     public SFMBlockStatesAndModelsDatagen(GatherDataEvent event) {
-
         super(event, SFM.MOD_ID);
     }
 
     @Override
-    protected void registerStatesAndModels() {
+    protected void populate(BlockModelGenerators blockModels) {
 
-        registerManager();
-        registerTunnelledManager();
-        registerTestBarrelTank();
-        registerCableVariants(
+        registerManager(blockModels);
+        registerTunnelledManager(blockModels);
+        registerTestBarrelTank(blockModels);
+        registerCableVariants(blockModels,
                 SFMBlocks.CABLE,
                 SFMBlocks.CABLE_FACADE,
                 SFMBlocks.FANCY_CABLE,
                 SFMBlocks.FANCY_CABLE_FACADE
 
         );
-        registerCableVariants(
+        registerCableVariants(blockModels,
                 SFMBlocks.TUNNELLED_CABLE,
                 SFMBlocks.TUNNELLED_CABLE_FACADE,
                 SFMBlocks.TUNNELLED_FANCY_CABLE,
                 SFMBlocks.TUNNELLED_FANCY_CABLE_FACADE
 
         );
-        registerCableVariants(
+        registerCableVariants(blockModels,
                 SFMBlocks.TOUGH_CABLE,
                 SFMBlocks.TOUGH_CABLE_FACADE,
                 SFMBlocks.TOUGH_FANCY_CABLE,
                 SFMBlocks.TOUGH_FANCY_CABLE_FACADE
 
         );
-        registerPrintingPress();
-        registerWaterTank();
-        registerTestBarrel();
-        registerBuffer();
+        registerPrintingPress(blockModels);
+        registerWaterTank(blockModels);
+        registerTestBarrel(blockModels);
+        registerBuffer(blockModels);
     }
 
-    private void registerTestBarrel() {
+    private void registerTestBarrel(BlockModelGenerators blockModels) {
+        Identifier barrelModel = ModelLocationUtils.getModelLocation(Blocks.BARREL);
+        Identifier barrelOpenModel = ModelLocationUtils.getModelLocation(Blocks.BARREL, "_open");
 
-        ModelFile barrelModel = models().getExistingFile(mcLoc("block/barrel"));
-        ModelFile barrelOpenModel = models().getExistingFile(mcLoc("block/barrel_open"));
+        blockModels.blockStateOutput.accept(
+                MultiVariantGenerator.dispatch(SFMBlocks.TEST_BARREL.get())
+                        .with(PropertyDispatch.initial(BlockStateProperties.OPEN)
+                                .select(false, BlockModelGenerators.plainVariant(barrelModel))
+                                .select(true, BlockModelGenerators.plainVariant(barrelOpenModel)))
+                        .with(PropertyDispatch.modify(BlockStateProperties.FACING)
+                                .generate(direction -> switch (direction) {
+                                    case UP -> BlockModelGenerators.NOP;
+                                    case DOWN -> BlockModelGenerators.X_ROT_180;
+                                    case NORTH -> BlockModelGenerators.X_ROT_90;
+                                    case SOUTH -> BlockModelGenerators.X_ROT_90.then(BlockModelGenerators.Y_ROT_180);
+                                    case WEST -> BlockModelGenerators.X_ROT_90.then(BlockModelGenerators.Y_ROT_270);
+                                    case EAST -> BlockModelGenerators.X_ROT_90.then(BlockModelGenerators.Y_ROT_90);
+                                }))
+        );
 
-        getVariantBuilder(SFMBlocks.TEST_BARREL.get())
-                .forAllStates(state -> {
-                    Direction facing = state.getValue(BlockStateProperties.FACING);
-                    boolean open = state.getValue(BlockStateProperties.OPEN);
-                    int x;
-                    int y;
-
-                    switch (facing) {
-                        case DOWN -> {
-                            x = 180;
-                            y = 0;
-                        }
-                        case NORTH -> {
-                            x = 90;
-                            y = 0;
-                        }
-                        case SOUTH -> {
-                            x = 90;
-                            y = 180;
-                        }
-                        case WEST -> {
-                            x = 90;
-                            y = 270;
-                        }
-                        case EAST -> {
-                            x = 90;
-                            y = 90;
-                        }
-                        default -> { // up
-                            x = 0;
-                            y = 0;
-                        }
-                    }
-
-                    return ConfiguredModel.builder()
-                            .modelFile(open ? barrelOpenModel : barrelModel)
-                            .rotationX(x)
-                            .rotationY(y)
-                            .build();
-                });
-    }
-
-    private void registerPrintingPress() {
-
-        simpleBlock(SFMBlocks.PRINTING_PRESS.get(), models().getExistingFile(modLoc("block/printing_press")));
-    }
-
-    private void registerTestBarrelTank() {
-
-        simpleBlock(
-                SFMBlocks.TEST_BARREL_TANK.get(), models().cubeAll(
-                        SFMBlocks.TEST_BARREL_TANK.getPath(),
-                        modLoc("block/test_barrel_tank")
-                ).texture("particle", "#all")
+        blockModels.blockStateOutput.accept(
+                MultiVariantGenerator.dispatch(SFMBlocks.TEST_BARREL.get(),
+                        BlockModelGenerators.variant(new Variant(barrelModel)))
         );
     }
 
-    private void registerTunnelledManager() {
+    private void registerPrintingPress(BlockModelGenerators blockModels) {
+        blockModels.createTrivialCube(SFMBlocks.PRINTING_PRESS.get());
+    }
 
-        simpleBlock(
-                SFMBlocks.TUNNELLED_MANAGER.get(), models().cubeBottomTop(
-                        SFMBlocks.TUNNELLED_MANAGER.getPath(),
-                        modLoc("block/tunnelled_manager_side"),
-                        modLoc("block/tunnelled_manager_bot"),
-                        modLoc("block/tunnelled_manager_top")
-                ).texture("particle", "#top")
+    private void registerTestBarrelTank(BlockModelGenerators blockModels) {
+        Block block = SFMBlocks.TEST_BARREL_TANK.get();
+        Identifier model = ModelTemplates.CUBE_ALL.create(
+                block,
+                new TextureMapping()
+                        .put(TextureSlot.ALL, TextureMapping.getBlockTexture(block))
+                        .put(TextureSlot.PARTICLE, TextureMapping.getBlockTexture(block)),
+                blockModels.modelOutput
+        );
+
+        blockModels.blockStateOutput.accept(
+                MultiVariantGenerator.dispatch(block,
+                        BlockModelGenerators.plainVariant(model)
+                )
         );
     }
 
-    private void registerManager() {
+    private void registerTunnelledManager(BlockModelGenerators blockModels) {
+        Block block = SFMBlocks.TUNNELLED_MANAGER.get();
+        Identifier model = ModelTemplates.CUBE_BOTTOM_TOP.create(
+                block,
+                new TextureMapping()
+                        .put(TextureSlot.TOP, TextureMapping.getBlockTexture(block, "_top"))
+                        .put(TextureSlot.BOTTOM, TextureMapping.getBlockTexture(block, "_bot"))
+                        .put(TextureSlot.SIDE, TextureMapping.getBlockTexture(block, "_side"))
+                        .copySlot(TextureSlot.TOP, TextureSlot.PARTICLE),
+            blockModels.modelOutput
+        );
 
-        simpleBlock(
-                SFMBlocks.MANAGER.get(), models().cubeBottomTop(
-                        SFMBlocks.MANAGER.getPath(),
-                        modLoc("block/manager_side"),
-                        modLoc("block/manager_bot"),
-                        modLoc("block/manager_top")
-                ).texture("particle", "#top")
+        blockModels.blockStateOutput.accept(
+                MultiVariantGenerator.dispatch(block,
+                        BlockModelGenerators.plainVariant(model)
+                )
         );
     }
 
-    private void registerWaterTank() {
+    private void registerManager(BlockModelGenerators blockModels) {
+        Block block = SFMBlocks.MANAGER.get();
+        Identifier model = ModelTemplates.CUBE_BOTTOM_TOP.create(
+                block,
+                new TextureMapping()
+                        .put(TextureSlot.TOP, TextureMapping.getBlockTexture(block, "_top"))
+                        .put(TextureSlot.BOTTOM, TextureMapping.getBlockTexture(block, "_bot"))
+                        .put(TextureSlot.SIDE, TextureMapping.getBlockTexture(block, "_side"))
+                        .copySlot(TextureSlot.TOP, TextureSlot.PARTICLE),
+                blockModels.modelOutput
+        );
 
-        ModelFile waterIntakeModelActive = models()
-                .cubeAll(
-                        SFMBlocks.WATER_TANK.getPath() + "_active",
-                        modLoc("block/water_intake_active")
-                );
-        ModelFile waterIntakeModelInactive = models()
-                .cubeAll(
-                        SFMBlocks.WATER_TANK.getPath() + "_inactive",
-                        modLoc("block/water_intake_inactive")
-                );
-        getVariantBuilder(SFMBlocks.WATER_TANK.get())
-                .forAllStates(state -> ConfiguredModel
-                        .builder()
-                        .modelFile(
-                                state.getValue(WaterTankBlock.IN_WATER)
-                                ? waterIntakeModelActive
-                                : waterIntakeModelInactive
+        blockModels.blockStateOutput.accept(
+                MultiVariantGenerator.dispatch(block,
+                        BlockModelGenerators.plainVariant(model)
+                )
+        );
+    }
+
+    private void registerWaterTank(BlockModelGenerators blockModels) {
+        Block block = SFMBlocks.WATER_TANK.get();
+
+        Identifier waterIntakeModelActive = this.modLocation("block/water_intake_active");
+        Identifier waterIntakeModelInactive = this.modLocation("block/water_intake_inactive");
+
+
+        blockModels.blockStateOutput.accept(
+                MultiVariantGenerator.dispatch(block)
+                        .with(PropertyDispatch.initial(WaterTankBlock.IN_WATER)
+                                .select(true, BlockModelGenerators.plainVariant(waterIntakeModelActive))
+                                .select(false, BlockModelGenerators.plainVariant(waterIntakeModelInactive))
                         )
-                        .build());
+        );
     }
 
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     private void registerCableVariants(
+            BlockModelGenerators blockModels,
             SFMRegistryObject<Block, ?> cableBlock,
             SFMRegistryObject<Block, ?> cableFacadeBlock,
             SFMRegistryObject<Block, ?> fancyCableBlock,
@@ -173,114 +173,119 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     ) {
 
         SFM.LOGGER.info("Registering cable variants for \"{}\"", cableBlock.getId().get());
-        simpleBlock(cableBlock.get());
+        blockModels.createTrivialCube(cableBlock.get());
         SFM.LOGGER.info("Registering cable facade variants for \"{}\"", cableFacadeBlock.getId().get());
-        simpleBlock(cableFacadeBlock.get(), cubeAll(cableBlock.get()));
+        blockModels.copyModel(cableBlock.get(), cableFacadeBlock.get());
         SFM.LOGGER.info("Registering fancy cable variants for \"{}\"", fancyCableBlock.getId().get());
-        registerFancyCableVariant(fancyCableBlock, fancyCableFacadeBlock);
+        registerFancyCableVariant(blockModels, fancyCableBlock, fancyCableFacadeBlock);
     }
 
     private void registerFancyCableVariant(
+            BlockModelGenerators blockModels,
             SFMRegistryObject<Block, ?> fancyCableBlock,
             SFMRegistryObject<Block, ?> fancyCableFacadeBlock
     ) {
 
-        String fancy_cable_name = fancyCableBlock.getPath();
-        var coreModel = models().withExistingParent("block/" + fancy_cable_name + "_core", "block/block")
-                .element()
-                .from(4, 4, 4)
-                .to(12, 12, 12)
-                .shade(false)
-                .allFaces((direction, faceBuilder) -> faceBuilder.uvs(8, 0, 16, 8).texture("#cable"))
-                .end()
-                .texture("cable", modLoc("block/" + fancy_cable_name))
-                .texture("particle", modLoc("block/" + fancy_cable_name));
-        var connectionModel = models()
-                .withExistingParent("block/" + fancy_cable_name + "_connection", "block/block")
-                .element()
-                .from(5, 5, 0)
-                .to(11, 11, 5)
-                .shade(false)
-                .allFaces((direction, faceBuilder) -> {
-                    switch (direction) {
-                        case NORTH:
-                        case SOUTH: {
-                            faceBuilder.uvs(9, 1, 15, 7);
-                            break;
-                        }
-                        case EAST:
-                        case WEST: {
-                            faceBuilder.uvs(0, 0, 5, 6);
-                            break;
-                        }
-                        case UP:
-                        case DOWN: {
-                            faceBuilder.uvs(0, 0, 5, 6)
-                                    .rotation(ModelBuilder.FaceRotation.CLOCKWISE_90);
-                            break;
-                        }
-                    }
+        TextureSlot CABLE_SLOT = TextureSlot.create("cable");
 
-                    faceBuilder.texture("#cable");
-                })
-                .end()
-                .texture("cable", modLoc("block/" + fancy_cable_name));
+        ModelTemplate coreTemplate = ModelTemplates.CUBE
+                .extend()
+                .ambientOcclusion(false)
+                .element(el -> el
+                        .from(4, 4, 4)
+                        .to(12, 12, 12)
+                        .allFaces((dir, face) -> face
+                                .uvs(8, 0, 16, 8)
+                                .texture(CABLE_SLOT)
+                        )
+                )
+                .requiredTextureSlot(CABLE_SLOT)
+                .build();
 
-        var multipartBuilder1 = getMultipartBuilder(fancyCableBlock.get());
-        var multipartBuilder2 = getMultipartBuilder(fancyCableFacadeBlock.get());
+        ModelTemplate connectionTemplate = ModelTemplates.CUBE
+                .extend()
+                .ambientOcclusion(false)
+                .element(el -> el
+                        .from(5, 5, 0)
+                        .to(11, 11, 5)
+                        .allFaces((dir, face) -> {
+                            switch (dir) {
+                                case NORTH, SOUTH -> face.uvs(9, 1, 15, 7);
+                                case EAST, WEST   -> face.uvs(0, 0, 5, 6);
+                                case UP, DOWN     -> face.uvs(0, 0, 5, 6)
+                                        .rotation(Quadrant.R90);
+                            }
+                            face.texture(CABLE_SLOT);
+                        })
+                )
+                .requiredTextureSlot(CABLE_SLOT)
+                .build();
 
-        // Core
-        multipartBuilder1.part()
-                .modelFile(coreModel)
-                .addModel()
-                .end();
-        multipartBuilder2.part()
-                .modelFile(coreModel)
-                .addModel()
-                .end();
+        TextureMapping cableTexture = new TextureMapping()
+                .put(CABLE_SLOT, TextureMapping.getBlockTexture(fancyCableBlock.get(), "_core"))
+                .copySlot(CABLE_SLOT, TextureSlot.PARTICLE);
 
-        // Parts (connections)
-        for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
-            var rotX = 0;
-            var rotY = 0;
+        Identifier coreModelId = coreTemplate.create(
+                Identifier.parse(fancyCableBlock.get() + "_core"),
+                cableTexture,
+                blockModels.modelOutput
+        );
+        Identifier connectionModelId = connectionTemplate.create(
+                Identifier.parse(fancyCableBlock.get() + "connection"),
+                cableTexture,
+                blockModels.modelOutput
+        );
 
-            switch (direction) {
-                case SOUTH -> rotY = 180;
-                case EAST -> rotY = 90;
-                case WEST -> rotY = 270;
-                case UP -> rotX = 270;
-                case DOWN -> rotX = 90;
+        for (Block block : new Block[]{fancyCableBlock.get(), fancyCableFacadeBlock.get()}) {
+            MultiPartGenerator generator = MultiPartGenerator.multiPart(block)
+                    .with(BlockModelGenerators.variant(new Variant(coreModelId)));
+
+            for (Direction direction : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
+                int rotX = 0;
+                int rotY = 0;
+                switch (direction) {
+                    case SOUTH -> rotY = 180;
+                    case EAST  -> rotY = 90;
+                    case WEST  -> rotY = 270;
+                    case UP    -> rotX = 270;
+                    case DOWN  -> rotX = 90;
+                }
+
+                Variant connectionVariant = new Variant(connectionModelId)
+                        .with(VariantMutator.X_ROT.withValue(Quadrant.values()[rotX / 90]))
+                        .with(VariantMutator.Y_ROT.withValue(Quadrant.values()[rotY / 90]));
+
+                generator.with(
+                        BlockModelGenerators.condition()
+                                .term(FancyCableBlock.DIRECTION_PROPERTIES.get(direction), true),
+                        BlockModelGenerators.variant(connectionVariant)
+                );
             }
 
-            multipartBuilder1.part()
-                    .modelFile(connectionModel)
-                    .rotationX(rotX)
-                    .rotationY(rotY)
-                    .uvLock(false)
-                    .addModel()
-                    .condition(FancyCableBlock.DIRECTION_PROPERTIES.get(direction), true)
-                    .end();
-            multipartBuilder2.part()
-                    .modelFile(connectionModel)
-                    .rotationX(rotX)
-                    .rotationY(rotY)
-                    .uvLock(false)
-                    .addModel()
-                    .condition(FancyCableBlock.DIRECTION_PROPERTIES.get(direction), true)
-                    .end();
+            blockModels.blockStateOutput.accept(generator);
         }
     }
 
-    private void registerBuffer() {
-        getVariantBuilder(SFMBlocks.BUFFER_BLOCK.get())
-                .forAllStates(state -> {
-                    BufferBlock.ContainedResource containedResource = state.getValue(BufferBlock.CONTAINED_RESOURCE);
-                    ModelFile modelFile = models().cubeAll(
-                            SFMBlocks.BUFFER_BLOCK.getPath() + "_" + containedResource.getSerializedName(),
-                            modLoc("block/buffer_" + containedResource.getSerializedName())
-                    );
-                    return ConfiguredModel.builder().modelFile(modelFile).build();
-                });
+    private void registerBuffer(BlockModelGenerators blockModels) {
+        Block block = SFMBlocks.BUFFER_BLOCK.get();
+
+        var dispatch = PropertyDispatch.initial(BufferBlock.CONTAINED_RESOURCE);
+
+        for (BufferBlock.ContainedResource value : BufferBlock.ContainedResource.values()) {
+            String name = value.getSerializedName();
+
+            Identifier modelId = ModelTemplates.CUBE_ALL.create(
+                    Identifier.parse(block + name),
+                    new TextureMapping().put(TextureSlot.ALL, TextureMapping.getBlockTexture(block, name)),
+                    blockModels.modelOutput
+            );
+            dispatch = dispatch.select(value, BlockModelGenerators.plainVariant(modelId));
+        }
+
+        blockModels.blockStateOutput.accept(
+                MultiVariantGenerator.dispatch(SFMBlocks.BUFFER_BLOCK.get())
+                        .with(dispatch)
+        );
 
     }
 }

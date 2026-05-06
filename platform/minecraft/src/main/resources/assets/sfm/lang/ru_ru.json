@@ -160,7 +160,7 @@
   "item.sfm.xp_goop": "Опыт-густота",
   "item.sfm.xp_shard": "Осколок опыта",
   "item_group.sfm": "Super Factory Manager",
-  "key.categories.sfm": "Super Factory Manager",
+  "key.category.sfm.keybinds": "Super Factory Manager",
   "key.sfm.container_inspector.activation_key": "Переключить инспектор контейнеров",
   "key.sfm.item_inspector.activation_key": "(WIP) Скопировать наведённый предмет в буфер обмена",
   "key.sfm.label_gun.clear_modifier": "Модификатор очистки пистолета для меток",

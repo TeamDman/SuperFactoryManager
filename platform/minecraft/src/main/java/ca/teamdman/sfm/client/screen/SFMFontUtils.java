@@ -2,21 +2,20 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FastColor;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.LightCoordsUtil;
 import org.joml.Matrix4f;
 
 public class SFMFontUtils {
     /**
      * Draws text to the screen
      *
-     * @return the width of the drawn text
      */
     @MCVersionDependentBehaviour
-    public static int drawInBatch(
+    public static void drawInBatch(
             Component text,
             Font font,
             float x,
@@ -26,7 +25,7 @@ public class SFMFontUtils {
             Matrix4f matrix4f,
             MultiBufferSource bufferSource
     ) {
-        return font.drawInBatch(
+        font.drawInBatch(
                 text,
                 x,
                 y,
@@ -36,18 +35,17 @@ public class SFMFontUtils {
                 bufferSource,
                 transparent ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL,
                 0,
-                LightTexture.FULL_BRIGHT
+                LightCoordsUtil.FULL_BRIGHT
         );
     }
 
     /**
      * Draws text to the screen
      *
-     * @return the width of the drawn text
      */
     @SuppressWarnings("UnusedReturnValue")
     @MCVersionDependentBehaviour
-    public static int drawInBatch(
+    public static void drawInBatch(
             String text,
             Font font,
             float x,
@@ -57,7 +55,7 @@ public class SFMFontUtils {
             Matrix4f matrix4f,
             MultiBufferSource bufferSource
     ) {
-        return font.drawInBatch(
+        font.drawInBatch(
                 text,
                 x,
                 y,
@@ -67,16 +65,16 @@ public class SFMFontUtils {
                 bufferSource,
                 transparent ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL,
                 0,
-                LightTexture.FULL_BRIGHT
+                LightCoordsUtil.FULL_BRIGHT
         );
     }
 
     /**
-     * @param colour See also: {@link FastColor.ARGB32#color(int, int, int, int)}
+     * @param colour See also: {@link ARGB#color(int, int, int, int)}
      */
     @MCVersionDependentBehaviour
     public static void draw(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Font font,
             Component text,
             int x,
@@ -84,15 +82,15 @@ public class SFMFontUtils {
             int colour,
             boolean shadow
     ) {
-        graphics.drawString(font, text, x, y, colour, shadow);
+        graphics.text(font, text, x, y, colour, shadow);
     }
 
     /**
-     * @param colour See also: {@link FastColor.ARGB32#color(int, int, int, int)}
+     * @param colour See also: {@link ARGB#color(int, int, int, int)}
      */
     @MCVersionDependentBehaviour
     public static void draw(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             Font font,
             String text,
             int x,
@@ -100,6 +98,6 @@ public class SFMFontUtils {
             int colour,
             boolean shadow
     ) {
-        graphics.drawString(font, text, x, y, colour, shadow);
+        graphics.text(font, text, x, y, colour, shadow);
     }
 }

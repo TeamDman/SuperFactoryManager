@@ -8,17 +8,17 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 @SuppressWarnings("DuplicatedCode")
 public class ExpandedQuantityExpandedRetentionInputResourceTracker implements IInputResourceTracker {
     private final ResourceLimit resource_limit;
     private final ResourceIdSet exclusions;
-    private final Long2ObjectOpenHashMap<Int2ObjectArrayMap<Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>>>
+    private final Long2ObjectOpenHashMap<Int2ObjectArrayMap<Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<Identifier>>>>
             retention_obligations_by_pos_by_slot_by_item = new Long2ObjectOpenHashMap<>();
-    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>
+    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<Identifier>>
             retention_obligations_by_item = new Object2ObjectOpenHashMap<>();
-    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<ResourceLocation>>
+    private final Object2ObjectOpenHashMap<ResourceType<?, ?, ?>, Object2LongOpenHashMap<Identifier>>
             transferred_by_item = new Object2ObjectOpenHashMap<>();
 
     public ExpandedQuantityExpandedRetentionInputResourceTracker(
@@ -38,7 +38,7 @@ public class ExpandedQuantityExpandedRetentionInputResourceTracker implements II
         long transferred_for_item = 0;
         var transferred_for_resource_type = transferred_by_item.get(type);
         if (transferred_for_resource_type != null) {
-            ResourceLocation item_id = type.getRegistryKeyForStack(stack);
+            Identifier item_id = type.getRegistryKeyForStack(stack);
             transferred_for_item = transferred_for_resource_type.getLong(item_id);
         }
         return transferred_for_item >= can_transfer;
@@ -65,7 +65,7 @@ public class ExpandedQuantityExpandedRetentionInputResourceTracker implements II
         if (posEntry != null) {
             var resourceTypeEntry = posEntry.get(slot);
             if (resourceTypeEntry != null) {
-                ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+                Identifier item_id = resourceType.getRegistryKeyForStack(key);
                 var itemEntry = resourceTypeEntry.get(resourceType);
                 if (itemEntry != null) {
                     return itemEntry.getLong(item_id);
@@ -85,7 +85,7 @@ public class ExpandedQuantityExpandedRetentionInputResourceTracker implements II
         // don't use getOrDefault to avoid allocations
         var retained_for_resource_type = retention_obligations_by_item.get(resourceType);
         if (retained_for_resource_type != null) {
-            ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+            Identifier item_id = resourceType.getRegistryKeyForStack(key);
             if (retained_for_resource_type.containsKey(item_id)) {
                 retained_for_item = retained_for_resource_type.getLong(item_id);
             }
@@ -102,7 +102,7 @@ public class ExpandedQuantityExpandedRetentionInputResourceTracker implements II
             BlockPos pos,
             long dedicatingToObligation
     ) {
-        ResourceLocation item_id = resourceType.getRegistryKeyForStack(key);
+        Identifier item_id = resourceType.getRegistryKeyForStack(key);
         retention_obligations_by_item.computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())
                 .addTo(item_id, dedicatingToObligation);
         retention_obligations_by_pos_by_slot_by_item
@@ -121,7 +121,7 @@ public class ExpandedQuantityExpandedRetentionInputResourceTracker implements II
         long transferred_for_item = 0;
         var transferred_for_resource_type = transferred_by_item.get(resourceType);
         if (transferred_for_resource_type != null) {
-            ResourceLocation item_id = resourceType.getRegistryKeyForStack(stack);
+            Identifier item_id = resourceType.getRegistryKeyForStack(stack);
             transferred_for_item = transferred_for_resource_type.getLong(item_id);
         }
         return max_transfer - transferred_for_item;
@@ -133,7 +133,7 @@ public class ExpandedQuantityExpandedRetentionInputResourceTracker implements II
             STACK stack,
             long amount
     ) {
-        ResourceLocation item_id = resourceType.getRegistryKeyForStack(stack);
+        Identifier item_id = resourceType.getRegistryKeyForStack(stack);
         transferred_by_item.computeIfAbsent(resourceType, k -> new Object2LongOpenHashMap<>())
                 .addTo(item_id, amount);
     }

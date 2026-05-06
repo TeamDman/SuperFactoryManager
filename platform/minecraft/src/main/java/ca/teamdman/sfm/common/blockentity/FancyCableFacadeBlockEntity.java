@@ -4,8 +4,8 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.data.ModelData;
-import net.neoforged.neoforge.client.model.data.ModelProperty;
+import net.neoforged.neoforge.model.data.ModelData;
+import net.neoforged.neoforge.model.data.ModelProperty;
 
 public class FancyCableFacadeBlockEntity extends CommonFacadeBlockEntity {
     public static final ModelProperty<Direction> FACADE_DIRECTION = new ModelProperty<>();

@@ -39,7 +39,7 @@ public class ChunkPosMap<T> {
 
     public @Nullable T get(ChunkPos chunkPos) {
 
-        return get(chunkPos.toLong());
+        return get(chunkPos.pack());
     }
 
     /// CORRECTNESS: make sure this is not a {@link BlockPos#asLong()}
@@ -50,7 +50,7 @@ public class ChunkPosMap<T> {
 
     public @Nullable T get(BlockPos blockPos) {
 
-        return inner.get(ChunkPos.asLong(blockPos));
+        return inner.get(ChunkPos.pack(blockPos));
     }
 
 
@@ -61,10 +61,10 @@ public class ChunkPosMap<T> {
 
     public @Nullable T remove(ChunkPos chunkPos) {
 
-        return remove(chunkPos.toLong());
+        return remove(chunkPos.pack());
     }
 
-    /// @param chunkPosLong Correctness: MUST come from {@link ChunkPos#asLong}, not to be confused with a {@link BlockPos#asLong()}
+    /// @param chunkPosLong Correctness: MUST come from {@link ChunkPos#pack}, not to be confused with a {@link BlockPos#asLong()}
     public @Nullable T remove(long chunkPosLong) {
 
         return inner.remove(chunkPosLong);
@@ -85,7 +85,7 @@ public class ChunkPosMap<T> {
         return inner.containsKey(key);
     }
 
-    /// @param chunkPosLong Correctness: must be from {@link ChunkPos#asLong}, not to be confused with a {@link BlockPos#asLong()}
+    /// @param chunkPosLong Correctness: must be from {@link ChunkPos#pack}, not to be confused with a {@link BlockPos#asLong()}
     public T computeIfAbsent(
             long chunkPosLong,
             Long2ObjectFunction<? extends T> mappingFunction
@@ -99,7 +99,7 @@ public class ChunkPosMap<T> {
             Long2ObjectFunction<? extends T> mappingFunction
     ) {
 
-        return computeIfAbsent(ChunkPos.asLong(memberBlockPos), mappingFunction);
+        return computeIfAbsent(ChunkPos.pack(memberBlockPos), mappingFunction);
     }
 
     public T computeIfAbsent(
@@ -107,12 +107,12 @@ public class ChunkPosMap<T> {
             Long2ObjectFunction<? extends T> mappingFunction
     ) {
 
-        return inner.computeIfAbsent(chunkPos.toLong(), mappingFunction);
+        return inner.computeIfAbsent(chunkPos.pack(), mappingFunction);
     }
 
     public @Nullable T remove(BlockPos blockPos) {
 
-        return inner.remove(ChunkPos.asLong(blockPos));
+        return inner.remove(ChunkPos.pack(blockPos));
     }
 
     public ObjectCollection<T> values() {

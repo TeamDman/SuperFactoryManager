@@ -6,13 +6,14 @@ import ca.teamdman.sfm.common.util.SFMComponentUtils;
 import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.MultilineTextField;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import org.joml.Matrix3x2fStack;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -82,14 +83,14 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
 
     // TODO: we want to store the last known cursor position then revamp the V1 editor to use this
     @Override
-    public void render(
-            GuiGraphics pGuiGraphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor pGuiGraphics,
             int pMouseX,
             int pMouseY,
             float pPartialTick
     ) {
 
-        PoseStack pPoseStack = pGuiGraphics.pose();
+        Matrix3x2fStack pPoseStack = pGuiGraphics.pose();
 
         frame++;
 

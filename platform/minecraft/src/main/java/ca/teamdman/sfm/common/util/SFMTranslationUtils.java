@@ -13,12 +13,12 @@ public class SFMTranslationUtils {
     public static TranslatableContents deserializeTranslation(CompoundTag tag) {
         var key = tag.getString("key");
         var args = tag
-                .getList("args", Tag.TAG_STRING)
+                .getList("args")
                 .stream()
                 .map(StringTag.class::cast)
-                .map(StringTag::getAsString)
+                .map(StringTag::asString)
                 .toArray();
-        return getTranslatableContents(key, args);
+        return getTranslatableContents(key.get(), args);
     }
 
     public static CompoundTag serializeTranslation(TranslatableContents contents) {

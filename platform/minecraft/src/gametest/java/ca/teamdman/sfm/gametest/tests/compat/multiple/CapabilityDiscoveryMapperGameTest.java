@@ -10,7 +10,7 @@ import mekanism.common.registries.MekanismBlocks;
 import mekanism.common.tile.TileEntityEnergyCube;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
 
 import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.getAndPrepMekTile;
 
@@ -37,7 +37,7 @@ public class CapabilityDiscoveryMapperGameTest extends SFMGameTestDefinition {
         helper.setBlock(cubePos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
         TileEntityEnergyCube cube = getAndPrepMekTile(helper, cubePos);
 
-        IEnergyStorage found = SFMBlockCapabilityDiscovery.discoverCapabilityFromLevel(
+        EnergyHandler found = SFMBlockCapabilityDiscovery.discoverCapabilityFromLevel(
                 helper.getLevel(),
                 SFMWellKnownCapabilities.ENERGY,
                 helper.absolutePos(cubePos),

@@ -4,11 +4,11 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 
 public record WithNegation(WithClause inner) implements ASTNode, WithClause, ToStringPretty {
     @Override
-    public <STACK> boolean matchesStack(
-            ResourceType<STACK, ?, ?> resourceType,
-            STACK stack
+    public <ITEM> boolean matchesStack(
+            ResourceType<?, ITEM, ?> resourceType,
+            ITEM item
     ) {
-        return !inner.matchesStack(resourceType, stack);
+        return !inner.matchesStack(resourceType, item);
     }
 
     @Override

@@ -5,7 +5,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfml.program_builder.ProgramBuildResult;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,7 +27,7 @@ public record SFMExampleProgram(
     public static List<SFMExampleProgram> gatherAll() {
 
         // Discover the example resources
-        Map<ResourceLocation, Resource> exampleResources = Minecraft.getInstance()
+        Map<Identifier, Resource> exampleResources = Minecraft.getInstance()
                 .getResourceManager()
                 .listResources("template_programs", SFMExampleProgram::isSFMLProgram);
 
@@ -35,8 +35,8 @@ public record SFMExampleProgram(
         List<SFMExampleProgram> rtn = new ArrayList<>();
 
         // Read the resources into the results collection
-        for (Map.Entry<ResourceLocation, Resource> exampleResource : exampleResources.entrySet()) {
-            ResourceLocation path = exampleResource.getKey();
+        for (Map.Entry<Identifier, Resource> exampleResource : exampleResources.entrySet()) {
+            Identifier path = exampleResource.getKey();
             Resource resource = exampleResource.getValue();
             SFMExampleProgram program = fromResource(path, resource);
             if (program != null) {
@@ -64,7 +64,7 @@ public record SFMExampleProgram(
         );
     }
 
-    public static boolean isSFMLProgram(ResourceLocation path) {
+    public static boolean isSFMLProgram(Identifier path) {
 
         return path.getPath().endsWith(".sfml") || path.getPath().endsWith(".sfm");
     }
@@ -76,7 +76,7 @@ public record SFMExampleProgram(
     }
 
     private static @Nullable SFMExampleProgram fromResource(
-            ResourceLocation path,
+            Identifier path,
             Resource resource
     ) {
 
@@ -111,7 +111,7 @@ public record SFMExampleProgram(
             // Build the replacement string
             String replacement = SFMResourceTypes.registry().keys()
                     .stream()
-                    .map(ResourceLocation::getPath)
+                    .map(Identifier::getPath)
                     .map(e -> {
                         String text = "";
                         if (disallowedResourceTypesForTransfer.contains(e))

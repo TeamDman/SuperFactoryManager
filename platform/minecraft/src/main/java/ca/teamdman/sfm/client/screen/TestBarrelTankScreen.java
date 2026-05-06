@@ -5,14 +5,14 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FastColor.ARGB32;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
@@ -20,7 +20,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import org.joml.Matrix4f;
 
 public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTankContainerMenu> {
-    private static final ResourceLocation BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
+    private static final Identifier BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
             "textures/gui/container/manager.png"
     );
 
@@ -34,23 +34,23 @@ public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTank
 
     @SuppressWarnings({"deprecation"})
     @Override
-    public void render(
-            GuiGraphics graphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor graphics,
             int mx,
             int my,
             float partialTicks
     ) {
-        this.renderTransparentBackground(graphics);
-        super.render(graphics, mx, my, partialTicks);
-        this.renderTooltip(graphics, mx, my);
+        this.extractTransparentBackground(graphics);
+        super.extractRenderState(graphics, mx, my, partialTicks);
+        this.extractTooltip(graphics, mx, my);
 
         FluidStack fluidStack = new FluidStack(Fluids.WATER, 1000);
         IClientFluidTypeExtensions fluidType = IClientFluidTypeExtensions.of(fluidStack.getFluid());
-        ResourceLocation fluidSpriteLocation = fluidType.getFlowingTexture(fluidStack);
-//        ResourceLocation fluidSpriteLocation = fluidType.getStillTexture(fluidStack);
+        Identifier fluidSpriteLocation = fluidType.getFlowingTexture(fluidStack);
+//        Identifier fluidSpriteLocation = fluidType.getStillTexture(fluidStack);
         TextureAtlasSprite fluidSprite = this.getMinecraft().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(fluidSpriteLocation);
         var fluidColour = IClientFluidTypeExtensions.of(fluidStack.getFluid()).getTintColor(fluidStack);
-        RenderSystem.setShaderColor(ARGB32.red(fluidColour)/255f, ARGB32.green(fluidColour)/255f, ARGB32.blue(fluidColour)/255f, ARGB32.alpha(fluidColour)/255f);
+        RenderSystem.setShaderColor(ARGB.red(fluidColour)/255f, ARGB.green(fluidColour)/255f, ARGB.blue(fluidColour)/255f, ARGB.alpha(fluidColour)/255f);
 
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, TextureAtlas.LOCATION_BLOCKS);
@@ -75,31 +75,31 @@ public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTank
     }
 
     @Override
-    protected void renderLabels(
-            GuiGraphics pGuiGraphics,
+    protected void extractLabels(
+            GuiGraphicsExtractor pGuiGraphics,
             int pMouseX,
             int pMouseY
     ) {
         // draw title
-        super.renderLabels(pGuiGraphics, pMouseX, pMouseY);
+        super.extractLabels(pGuiGraphics, pMouseX, pMouseY);
     }
 
     @MCVersionDependentBehaviour
     @Override
-    protected void renderTooltip(
-            GuiGraphics pGuiGraphics,
+    protected void extractTooltip(
+            GuiGraphicsExtractor pGuiGraphics,
             int mx,
             int my
     ) {
         drawChildTooltips(pGuiGraphics, mx, my);
 
         // render hovered item
-        super.renderTooltip(pGuiGraphics, mx, my);
+        super.extractTooltip(pGuiGraphics, mx, my);
     }
 
     @MCVersionDependentBehaviour
     private void drawChildTooltips(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             int mx,
             int my
     ) {
@@ -112,11 +112,11 @@ public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTank
     }
 
     @Override
-    protected void renderBg(
-            GuiGraphics guiGraphics,
-            float partialTicks,
+    public void extractBackground(
+            GuiGraphicsExtractor guiGraphics,
             int mx,
-            int my
+            int my,
+            float partialTicks
     ) {
         int i = (this.width - this.imageWidth) / 2;
         int j = (this.height - this.imageHeight) / 2;

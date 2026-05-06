@@ -5,6 +5,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
@@ -33,13 +34,8 @@ public class FancyCableFacadeBlock extends FancyCableBlock implements EntityBloc
         return SFMBlockEntities.FANCY_CABLE_FACADE.get().create(blockPos, blockState);
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public ItemStack getCloneItemStack(
-            @MCVersionDependentBehaviour LevelReader pLevel,
-            BlockPos pPos,
-            BlockState pState
-    ) {
+    public ItemStack getCloneItemStack(@MCVersionDependentBehaviour LevelReader level, BlockPos pos, BlockState state, boolean includeData, Player player) {
         return new ItemStack(SFMBlocks.FANCY_CABLE.get());
     }
 

@@ -15,7 +15,7 @@ import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfml.ast.Number;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.antlr.v4.runtime.misc.Pair;
 
 import java.util.ArrayList;
@@ -167,7 +167,7 @@ public record ServerboundOutputInspectionRequestPacket(
 
                                         // because these resource limits were generated from resource stacks
                                         // they should always be valid resource locations (not patterns)
-                                        ResourceLocation resourceLimitLocation = SFMResourceLocation.fromNamespaceAndPath(
+                                        Identifier resourceLimitLocation = SFMResourceLocation.fromNamespaceAndPath(
                                                 resourceId.resourceNamespace,
                                                 resourceId.resourceName
                                         );
@@ -265,7 +265,7 @@ public record ServerboundOutputInspectionRequestPacket(
                 new ResourceQuantity(new Number(amount), ResourceQuantity.IdExpansionBehaviour.NO_EXPAND),
                 ResourceQuantity.MAX_QUANTITY
         );
-        ResourceLocation stackId = resourceType.getRegistryKeyForStack(stack);
+        Identifier stackId = resourceType.getRegistryKeyForStack(stack);
         ResourceIdentifier<STACK, ITEM, CAP> resourceIdentifier = new ResourceIdentifier<>(
                 resourceTypeResourceKey,
                 stackId

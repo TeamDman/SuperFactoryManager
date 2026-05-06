@@ -10,6 +10,8 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 
 public record FacadeData(
@@ -17,26 +19,24 @@ public record FacadeData(
         Direction facadeDirection,
         FacadeTextureMode facadeTextureMode
 ) {
-    public void save(CompoundTag tag) {
-        CompoundTag facadeTag = new CompoundTag();
-        facadeTag.put("block_state", NbtUtils.writeBlockState(this.facadeBlockState()));
-        facadeTag.putString("direction", this.facadeDirection().getSerializedName());
-        facadeTag.putString("texture_mode", this.facadeTextureMode().getSerializedName());
-        tag.put("sfm:facade", facadeTag);
+    public void save(ValueOutput output) {
+        ValueOutput facadeOutput = output.child("sfm:facade");
+        facadeOutput.store("block_state", BlockState.CODEC, this.facadeBlockState());
+        facadeOutput.store("direction", Direction.CODEC, this.facadeDirection());
+        facadeOutput.store("texture_mode", FacadeTextureMode.CODEC, this.facadeTextureMode());
     }
 
     public static @Nullable FacadeData load(
             @Nullable Level level,
-            CompoundTag tag
+            ValueInput input
     ) {
-        if (tag.contains("sfm:facade", CompoundTag.TAG_COMPOUND)) {
-            CompoundTag facadeTag = tag.getCompound("sfm:facade");
-            BlockState facadeState = readBlockState(facadeTag.getCompound("block_state"), level);
-            Direction facadeDirection = Direction.byName(facadeTag.getString("direction"));
-            FacadeTextureMode facadeTextureMode = FacadeTextureMode.byName(facadeTag.getString("texture_mode"));
-            if (facadeTextureMode != null && facadeDirection != null) {
-                return new FacadeData(facadeState, facadeDirection, facadeTextureMode);
-            }
+        if (input.child("sfm:facade").isPresent()) {
+            ValueInput facadeTag = input.child("sfm:facade").get();
+            BlockState facadeState = facadeTag.read("block_state", BlockState.CODEC).get();
+            Direction facadeDirection = facadeTag.read("direction", Direction.CODEC).get();
+            FacadeTextureMode facadeTextureMode = facadeTag.read("texture_mode", FacadeTextureMode.CODEC).get();
+
+            return new FacadeData(facadeState, facadeDirection, facadeTextureMode);
         }
         return null;
     }
@@ -44,7 +44,7 @@ public record FacadeData(
     /**
      * See {@link net.minecraft.world.level.block.piston.MovingPistonBlock::load}
      */
-    @MCVersionDependentBehaviour
+/*    @MCVersionDependentBehaviour
     private static BlockState readBlockState(
             CompoundTag tag,
             @Nullable Level level
@@ -57,5 +57,5 @@ public record FacadeData(
                 holderGetter,
                 tag
         );
-    }
+    }*/
 }

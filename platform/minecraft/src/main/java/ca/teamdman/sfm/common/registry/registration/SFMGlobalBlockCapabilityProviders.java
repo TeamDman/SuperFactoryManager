@@ -2,7 +2,7 @@ package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.capability.BlockEntityCapabilityProvider;
-import ca.teamdman.sfm.common.capability.CauldronBlockCapabilityProvider;
+//import ca.teamdman.sfm.common.capability.CauldronBlockCapabilityProvider;
 import ca.teamdman.sfm.common.capability.RedstoneSignalCapabilityProvider;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityProvider;
 import ca.teamdman.sfm.common.capability.ae2.EnergyAcceptorBlockCapabilityProvider;
@@ -41,8 +41,8 @@ public class SFMGlobalBlockCapabilityProviders {
                     .createNewRegistry()
                     .build();
 
-    public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>
-            CAULDRON_MAPPER = REGISTERER.register("cauldron", CauldronBlockCapabilityProvider::new);
+//    public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>
+//            CAULDRON_MAPPER = REGISTERER.register("cauldron", CauldronBlockCapabilityProvider::new);
 
     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>
             BLOCK_ENTITY = REGISTERER.register("block_entity", BlockEntityCapabilityProvider::new);

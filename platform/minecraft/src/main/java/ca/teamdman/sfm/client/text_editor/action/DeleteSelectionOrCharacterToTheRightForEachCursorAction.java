@@ -14,7 +14,7 @@ public class DeleteSelectionOrCharacterToTheRightForEachCursorAction implements 
             TextEditContext context,
             KeyboardImpulse impulse
     ) {
-        return impulse.keyCode() == GLFW.GLFW_KEY_DELETE;
+        return impulse.event().key() == GLFW.GLFW_KEY_DELETE;
     }
 
     @Override

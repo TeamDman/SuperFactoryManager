@@ -3,20 +3,28 @@ package ca.teamdman.sfm.common.recipe;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMRecipeSerializers;
-import net.minecraft.core.HolderLookup;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
-import net.minecraft.world.item.crafting.CraftingInput;
-import net.minecraft.world.item.crafting.CustomRecipe;
-import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 
 /**
- * Printing press copies a form using ink and paper.
+ * Clears all data from a program disk
  */
 public class DiskResetRecipe extends CustomRecipe {
-    public DiskResetRecipe(CraftingBookCategory pGroup) {
-        super(pGroup);
+    @MCVersionDependentBehaviour
+    public static final MapCodec<DiskResetRecipe> CODEC =
+            MapCodec.unit(DiskResetRecipe::new);
+
+    @MCVersionDependentBehaviour
+    public static final StreamCodec<RegistryFriendlyByteBuf, DiskResetRecipe> STREAM_CODEC =
+            StreamCodec.unit(new DiskResetRecipe());
+
+    public DiskResetRecipe() {
+        super();
     }
 
     public int countDisks(CraftingInput input) {
@@ -43,8 +51,7 @@ public class DiskResetRecipe extends CustomRecipe {
 
     @Override
     public ItemStack assemble(
-            CraftingInput craftingInput,
-            HolderLookup.Provider provider
+            CraftingInput craftingInput
     ) {
         int foundDisks = countDisks(craftingInput);
         if (foundDisks > 0) {
@@ -55,15 +62,7 @@ public class DiskResetRecipe extends CustomRecipe {
     }
 
     @Override
-    public boolean canCraftInDimensions(
-            int pWidth,
-            int pHeight
-    ) {
-        return true;
-    }
-
-    @Override
-    public RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<? extends CustomRecipe> getSerializer() {
         return SFMRecipeSerializers.DISK_RESET.get();
     }
 }

@@ -78,14 +78,14 @@ public class SFMLanguageProviderDatagen extends MCVersionAgnosticLanguageDataGen
         SFMWellKnownRegistries.ITEMS
                 .entries()
                 .stream()
-                .filter(entry -> entry.getKey().location().getNamespace().equals(SFM.MOD_ID))
+                .filter(entry -> entry.getKey().identifier().getNamespace().equals(SFM.MOD_ID))
                 .filter(entry -> !seen.contains(entry.getValue().getDescriptionId()))
                 .map(entry -> entry.getValue().toString())
                 .forEach(unmapped::add);
         SFMWellKnownRegistries.BLOCKS
                 .entries()
                 .stream()
-                .filter(entry -> entry.getKey().location().getNamespace().equals(SFM.MOD_ID))
+                .filter(entry -> entry.getKey().identifier().getNamespace().equals(SFM.MOD_ID))
                 .filter(entry -> !seen.contains(entry.getValue().getDescriptionId()))
                 .map(entry -> entry.getValue().toString())
                 .forEach(unmapped::add);

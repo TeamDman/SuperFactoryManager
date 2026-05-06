@@ -83,7 +83,7 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
                 BlockPos phytoPos = new BlockPos(x, 3, z);
                 helper.setBlock(phytoPos, phytoBlock);
                 phytoPositions.add(phytoPos);
-                var phyto = (MachineInsolatorTile) helper.getBlockEntity(phytoPos);
+                var phyto = (MachineInsolatorTile) helper.getBlockEntity(phytoPos, MachineInsolatorTile);
                 phyto.setSideConfig(Direction.UP, MachineInsolatorTile.SideConfig.SIDE_INPUT);
                 phyto.setSideConfig(Direction.DOWN, MachineInsolatorTile.SideConfig.SIDE_OUTPUT);
             }
@@ -122,7 +122,7 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
 
         // set up the manager
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

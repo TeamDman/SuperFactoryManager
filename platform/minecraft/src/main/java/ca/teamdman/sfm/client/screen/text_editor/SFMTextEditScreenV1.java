@@ -25,11 +25,14 @@ import ca.teamdman.sfml.program_builder.ProgramBuildResult;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.components.MultilineTextField.StringView;
 import net.minecraft.client.gui.components.Whence;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -133,18 +136,16 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
 
     @Override
     public boolean keyReleased(
-            int pKeyCode,
-            int pScanCode,
-            int pModifiers
+            KeyEvent event
     ) {
 
         boolean handled = false;
-        if (pKeyCode == GLFW.GLFW_KEY_LEFT_CONTROL || pKeyCode == GLFW.GLFW_KEY_RIGHT_CONTROL) {
+        if (event.hasControlDown()) {
             // if control released => update syntax highlighting
-            textarea.rebuild(Screen.hasControlDown());
+            textarea.rebuild(event.hasControlDown());
             handled = true;
         }
-        if (suppressNextCharTypedForIntellisenseAccept && isIntellisenseAcceptKey(pKeyCode, pScanCode)) {
+        if (suppressNextCharTypedForIntellisenseAccept && isIntellisenseAcceptKey(event)) {
             suppressNextCharTypedForIntellisenseAccept = false;
             handled = true;
         }
@@ -153,25 +154,22 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
 
     @Override
     public boolean charTyped(
-            char pCodePoint,
-            int pModifiers
+            CharacterEvent event
     ) {
 
         if (suppressNextCharTypedForIntellisenseAccept) {
             suppressNextCharTypedForIntellisenseAccept = false;
             return true;
         }
-        if (Screen.hasControlDown() && pCodePoint == ' ') {
+        if (SFMWidgetUtils.hasCtrlDown() && event.codepoint() == ' ') {
             return true;
         }
-        return super.charTyped(pCodePoint, pModifiers);
+        return super.charTyped(event);
     }
 
     @Override
     public boolean keyPressed(
-            int pKeyCode,
-            int pScanCode,
-            int pModifiers
+            KeyEvent event
     ) {
         // TODO: add separate keybindings for
         // context action - hold to arm
@@ -180,11 +178,11 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         // indent - decrease
         // save and close - hold to arm
         // save and close - execute
-        if ((pKeyCode == GLFW.GLFW_KEY_ENTER || pKeyCode == GLFW.GLFW_KEY_KP_ENTER) && Screen.hasShiftDown()) {
+        if ((event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) && event.hasShiftDown()) {
             saveAndClose();
             return true;
         }
-        if (pKeyCode == GLFW.GLFW_KEY_TAB) {
+        if (event.key() == GLFW.GLFW_KEY_TAB) {
             // if tab pressed with no selection and not holding shift => insert 4 spaces
             // if tab pressed with no selection and holding shift => de-indent current line
             // if tab pressed with selection and not holding shift => de-indent lines containing selection 4 spaces
@@ -194,7 +192,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             int selectionCursor = textarea.getSelectionCursorPosition();
             double scrollAmount = textarea.getScrollAmount();
             ManipulationResult result;
-            if (Screen.hasShiftDown()) { // de-indent
+            if (event.hasShiftDown()) { // de-indent
                 result = ProgramStringManipulationUtils.deindent(content, cursor, selectionCursor);
             } else { // indent
                 result = ProgramStringManipulationUtils.indent(content, cursor, selectionCursor);
@@ -205,15 +203,15 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             textarea.setScrollAmount(scrollAmount);
             return true;
         }
-        if (isIntellisenseAcceptKey(pKeyCode, pScanCode) && acceptSelectedIntellisenseAction()) {
+        if (isIntellisenseAcceptKey(event) && acceptSelectedIntellisenseAction()) {
             return true;
         }
-        if (pKeyCode == GLFW.GLFW_KEY_LEFT_CONTROL || pKeyCode == GLFW.GLFW_KEY_RIGHT_CONTROL) {
+        if (event.key() == GLFW.GLFW_KEY_LEFT_CONTROL || event.key() == GLFW.GLFW_KEY_RIGHT_CONTROL) {
             // if control pressed => update syntax highlighting
-            textarea.rebuild(Screen.hasControlDown());
+            textarea.rebuild(event.hasControlDown());
             return true;
         }
-        if (pKeyCode == GLFW.GLFW_KEY_SLASH && Screen.hasControlDown()) {
+        if (event.key() == GLFW.GLFW_KEY_SLASH && event.hasControlDown()) {
             // toggle line comments for selected lines
             String content = textarea.getValue();
             int cursor = textarea.getCursorPosition();
@@ -224,7 +222,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             textarea.setSelectionCursorPosition(result.selectionCursorPosition());
             return true;
         }
-        if (pKeyCode == GLFW.GLFW_KEY_SPACE && Screen.hasControlDown()) {
+        if (event.key() == GLFW.GLFW_KEY_SPACE && event.hasControlDown()) {
             ProgramTokenContextActions.getContextAction(
                             textarea.getValue(),
                             textarea.getCursorPosition()
@@ -237,51 +235,50 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
         if (
                 (
-                        pKeyCode == GLFW.GLFW_KEY_UP
-                        || pKeyCode == GLFW.GLFW_KEY_DOWN
+                        event.key() == GLFW.GLFW_KEY_UP
+                        || event.key() == GLFW.GLFW_KEY_DOWN
                 )
                 && !suggestedActions.getItems().isEmpty()
         ) {
-            if (pKeyCode == GLFW.GLFW_KEY_UP) {
+            if (event.key() == GLFW.GLFW_KEY_UP) {
                 suggestedActions.selectPreviousWrapping();
             } else {
                 suggestedActions.selectNextWrapping();
             }
             return true;
         }
-        if (pKeyCode == GLFW.GLFW_KEY_ESCAPE && !suggestedActions.isEmpty()) {
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE && !suggestedActions.isEmpty()) {
             suggestedActions.clear();
             return true;
         }
-        return super.keyPressed(pKeyCode, pScanCode, pModifiers);
+        return super.keyPressed(event);
     }
 
     @Override
     public void resize(
-            Minecraft mc,
             int x,
             int y
     ) {
 
         var prev = this.textarea.getValue();
-        init(mc, x, y);
-        super.resize(mc, x, y);
+        init(x, y);
+        super.resize(x, y);
         this.textarea.setValue(prev);
     }
 
     @Override
-    public void render(
-            GuiGraphics graphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor graphics,
             int mx,
             int my,
             float partialTicks
     ) {
 
         // render background
-        this.renderTransparentBackground(graphics);
+        this.extractTransparentBackground(graphics);
 
         // render widgets
-        super.render(graphics, mx, my, partialTicks);
+        super.extractRenderState(graphics, mx, my, partialTicks);
 
         // render tooltips
         SFMWidgetUtils.hideTooltipsWhenNotFocused(this, this.renderables);
@@ -295,11 +292,10 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
     }
 
     private boolean isIntellisenseAcceptKey(
-            int pKeyCode,
-            int pScanCode
+            KeyEvent event
     ) {
 
-        return SFMKeyMappings.TEXT_EDITOR_ACCEPT_INTELLISENSE_KEY.get().matches(pKeyCode, pScanCode);
+        return SFMKeyMappings.TEXT_EDITOR_ACCEPT_INTELLISENSE_KEY.get().matches(event);
     }
 
     private boolean acceptSelectedIntellisenseAction() {
@@ -429,7 +425,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
 
         private int cursorBlinkTick = 0;
 
-        public MyMultiLineEditBox(
+        protected MyMultiLineEditBox(
                 Font pFont,
                 int pX,
                 int pY,
@@ -438,16 +434,8 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 Component pPlaceholder,
                 Component pMessage
         ) {
+            super(pFont, pX, pY, pWidth, pHeight, pPlaceholder, pMessage, -2039584, true, -3092272, true, true);
 
-            super(
-                    pFont,
-                    pX,
-                    pY,
-                    pWidth,
-                    pHeight,
-                    pPlaceholder,
-                    pMessage
-            );
             this.textField.setValueListener(this::onValueOrCursorChanged);
             this.textField.setCursorListener(() -> this.onValueOrCursorChanged(this.textField.value()));
             this.rebuild(false);
@@ -477,10 +465,10 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             this.textField.seekCursor(Whence.ABSOLUTE, cursor);
         }
 
-        @Override
+        @MCVersionDependentBehaviour
         public int getScrollBarHeight() {
             // Fix #307: divide by zero exception in AbstractScrollWidget.mouseDragged
-            int rtn = super.getScrollBarHeight();
+            int rtn = this.getBottom() - this.getY();
             if (rtn == this.height) {
                 return rtn - 1;
             } else {
@@ -489,13 +477,22 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         @MCVersionDependentBehaviour
+        protected boolean withinContentAreaPoint(double x, double y) {
+            return x >= (double)this.getX()
+                    && x < (double)(this.getX() + this.width)
+                    && y >= (double)this.getY()
+                    && y < (double)(this.getY() + this.height);
+        }
+
+        @MCVersionDependentBehaviour
         @Override
         public boolean mouseClicked(
-                double pMouseX,
-                double pMouseY,
-                int pButton
+                MouseButtonEvent event,
+                boolean doubleClick
         ) {
-
+            int pButton = event.button();
+            double pMouseX = event.x(),
+                    pMouseY = event.y();
             try {
                 if (pButton == 0) {
                     this.scrollbarDragActive = false;
@@ -507,7 +504,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                     // Focus the editor so the caret blinks and keys go here
                     this.setFocused(true);
 
-                    boolean shiftDown = Screen.hasShiftDown();
+                    boolean shiftDown = event.hasShiftDown();
                     // Move cursor to the click position
                     seekCursorFromPoint(pMouseX, pMouseY);
                     // If not extending with Shift, start a new selection anchor at the click
@@ -560,7 +557,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 if (rtn) {
                     return true;
                 } else if (this.withinContentAreaPoint(pMouseX, pMouseY) && pButton == 0) {
-                    this.textField.setSelecting(Screen.hasShiftDown());
+                    this.textField.setSelecting(event.hasShiftDown());
                     this.seekCursorScreen(pMouseX, pMouseY);
                     return true;
                 } else {
@@ -579,18 +576,18 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             return this.font.lineHeight * (content.size() + 2);
         }
 
+
         @Override
         public boolean mouseDragged(
-                double mx,
-                double my,
-                int button,
-                double dx,
-                double dy
+                MouseButtonEvent event, double dx, double dy
         ) {
+            int button = event.button();
+            double mx = event.x(),
+                    my = event.y();
             // IMPORTANT: give the scrollbar drag priority.
             // If the drag started on the scrollbar, AbstractScrollWidget will
             // consume this, and we should not start a text selection.
-            if (this.scrollbarDragActive && super.mouseDragged(mx, my, button, dx, dy)) {
+            if (this.scrollbarDragActive && super.mouseDragged(event, dx, dy)) {
                 return true;
             }
 
@@ -614,17 +611,15 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
 
         @Override
         public boolean mouseReleased(
-                double mx,
-                double my,
-                int button
+                MouseButtonEvent event
         ) {
 
-            if (button == 0) {
+            if (event.button() == 0) {
                 // Stop active selection on mouse up
                 this.textField.setSelecting(false);
                 this.scrollbarDragActive = false;
             }
-            return super.mouseReleased(mx, my, button);
+            return super.mouseReleased(event);
         }
 
         public int getSelectionCursorPosition() {
@@ -643,7 +638,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         @Override
-        protected void setScrollAmount(double pScrollAmount) {
+        public void setScrollAmount(double pScrollAmount) {
 
             if (!scrollingEnabled) return;
             super.setScrollAmount(pScrollAmount);
@@ -717,9 +712,9 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         @Override
-        protected int getMaxScrollAmount() {
+        public int maxScrollAmount() {
 
-            return Math.max(1, super.getMaxScrollAmount()); // Fix #307: divide by zero exception
+            return Math.max(1, super.maxScrollAmount()); // Fix #307: divide by zero exception
         }
 
         private void onValueOrCursorChanged(String programString) {
@@ -827,8 +822,8 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         @Override
-        protected void renderContents(
-                GuiGraphics graphics,
+        protected void extractContents(
+                GuiGraphicsExtractor graphics,
                 int mx,
                 int my,
                 float partialTicks
@@ -838,7 +833,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
 
             // rebuild the program if necessary
             if (!lastProgram.equals(this.textField.value())) {
-                rebuild(Screen.hasControlDown());
+                rebuild(SFMWidgetUtils.hasCtrlDown());
             }
 
             final List<MutableComponent> lines = content;

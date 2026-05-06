@@ -8,7 +8,7 @@ import net.minecraft.world.level.Level;
 public class SFMEntityUtils {
     @MCVersionDependentBehaviour
     public static ServerLevel getLevel(ServerPlayer player) {
-        return player.serverLevel();
+        return player.level();
     }
 
     @MCVersionDependentBehaviour

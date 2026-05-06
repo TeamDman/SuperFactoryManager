@@ -11,13 +11,13 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.LayeredDraw;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.util.FastColor;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.client.gui.GuiLayer;
 
-public class NetworkToolReminderOverlay implements LayeredDraw.Layer {
+public class NetworkToolReminderOverlay implements GuiLayer {
     @SFMLocalizationDatagen
     public static final LocalizationEntry NETWORK_TOOL_REMINDER_OVERLAY = new LocalizationEntry(
             () -> "sfm.network_tool.reminder_overlay",
@@ -26,7 +26,7 @@ public class NetworkToolReminderOverlay implements LayeredDraw.Layer {
 
     @Override
     public void render(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             DeltaTracker deltaTracker
     ) {
 
@@ -56,7 +56,7 @@ public class NetworkToolReminderOverlay implements LayeredDraw.Layer {
                 reminder,
                 x,
                 y,
-                FastColor.ARGB32.color(255, 172, 208, 255),
+                ARGB.color(255, 172, 208, 255),
                 true
         );
     }

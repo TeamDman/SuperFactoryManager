@@ -8,7 +8,7 @@ import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
@@ -114,15 +114,15 @@ public class SFMTextEditorConfigScreen extends Screen {
     }
 
     @Override
-    public void render(
-            GuiGraphics graphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor graphics,
             int pMouseX,
             int pMouseY,
             float pPartialTick
     ) {
 
-        this.renderTransparentBackground(graphics);
-        super.render(graphics, pMouseX, pMouseY, pPartialTick);
+        this.extractTransparentBackground(graphics);
+        super.extractRenderState(graphics, pMouseX, pMouseY, pPartialTick);
 
         int y = this.height / 2 - 65;
         int x = this.width / 2 - 150; // Shifted to the left for centering
@@ -245,7 +245,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                         .setText(PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_V1)
                         .setOnPress(button -> {
                             //noinspection OptionalGetWithoutIsPresent
-                            config.preferredEditor.set(SFMTextEditors.V1.getId().get().location().toString());
+                            config.preferredEditor.set(SFMTextEditors.V1.getId().get().identifier().toString());
                             updateButtonStates();
                         })
                         .build();
@@ -256,7 +256,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                         .setText(PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_V2)
                         .setOnPress(button -> {
                             //noinspection OptionalGetWithoutIsPresent
-                            config.preferredEditor.set(SFMTextEditors.V2.getId().get().location().toString());
+                            config.preferredEditor.set(SFMTextEditors.V2.getId().get().identifier().toString());
                             updateButtonStates();
                         })
                         .build();
@@ -293,9 +293,9 @@ public class SFMTextEditorConfigScreen extends Screen {
 
         String currentEditor = config.preferredEditor.get();
         //noinspection OptionalGetWithoutIsPresent
-        preferredEditorV1Button.active = !currentEditor.equals(SFMTextEditors.V1.getId().get().location().toString());
+        preferredEditorV1Button.active = !currentEditor.equals(SFMTextEditors.V1.getId().get().identifier().toString());
         //noinspection OptionalGetWithoutIsPresent
-        preferredEditorV2Button.active = !currentEditor.equals(SFMTextEditors.V2.getId().get().location().toString());
+        preferredEditorV2Button.active = !currentEditor.equals(SFMTextEditors.V2.getId().get().identifier().toString());
     }
 
 }

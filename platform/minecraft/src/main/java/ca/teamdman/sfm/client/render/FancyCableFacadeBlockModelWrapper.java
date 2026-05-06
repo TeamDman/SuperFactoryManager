@@ -3,46 +3,36 @@ package ca.teamdman.sfm.client.render;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.FancyCableFacadeBlockEntity;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
-import ca.teamdman.sfm.common.facade.FacadeTransparency;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.sprite.Material;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.ChunkRenderTypeSet;
-import net.neoforged.neoforge.client.model.BakedModelWrapper;
-import net.neoforged.neoforge.client.model.data.ModelData;
-import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
+import net.neoforged.neoforge.client.model.quad.MutableQuad;
+import net.neoforged.neoforge.model.data.ModelData;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class FancyCableFacadeBlockModelWrapper extends BakedModelWrapper<BakedModel> {
+public class FancyCableFacadeBlockModelWrapper extends DelegateBlockStateModel {
 
-    private static final ChunkRenderTypeSet SOLID = ChunkRenderTypeSet.of(RenderType.solid());
-    private static final ChunkRenderTypeSet ALL = ChunkRenderTypeSet.all();
-
-    public FancyCableFacadeBlockModelWrapper(BakedModel originalModel) {
+    public FancyCableFacadeBlockModelWrapper(BlockStateModel originalModel) {
         super(originalModel);
     }
 
     @Override
-    public List<BakedQuad> getQuads(
-            @Nullable BlockState state,
-            @Nullable Direction side,
-            RandomSource rand,
-            ModelData extraData,
-            @Nullable RenderType renderType
-    ) {
-        Minecraft minecraft = Minecraft.getInstance();
-        BlockState mimicState = extraData.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);
-        Direction mimicDirection = extraData.get(FancyCableFacadeBlockEntity.FACADE_DIRECTION);
+    public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random, List<BlockStateModelPart> parts) {
+        ModelData modelData = level.getModelData(pos);
+        BlockState mimicState = modelData.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);
+        Direction mimicDirection = modelData.get(FancyCableFacadeBlockEntity.FACADE_DIRECTION);
 
         if (SFMEnvironmentUtils.isInIDE()) {
             if (mimicDirection == null) {
@@ -50,66 +40,66 @@ public class FancyCableFacadeBlockModelWrapper extends BakedModelWrapper<BakedMo
             }
         }
 
+        if (mimicState == null || mimicDirection == null) {
+            return;
+        }
+
         // get all quads for the original model on the null-direction pass
-        if (mimicState != null && side == null && mimicDirection != null) {
-            /// the original model only uses un-culled faces so we force null side
-            /// [net.minecraft.client.resources.model.SimpleBakedModel#getQuads(BlockState, Direction, RandomSource)]
-            List<BakedQuad> originalQuads = originalModel.getQuads(state, null, rand, ModelData.EMPTY, null);
+        /// the original model only uses un-culled faces so we force null side
+        /// [net.minecraft.client.resources.model.SimpleBakedModel#getQuads(BlockState, Direction, RandomSource)]
+        List<BlockStateModelPart> originalParts = new ArrayList<>();
+        this.delegate.collectParts(level, pos, state, random, originalParts);
 
-            BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
-            BakedModel mimicModel = blockRenderer.getBlockModel(mimicState);
-            ChunkRenderTypeSet renderTypes = mimicModel.getRenderTypes(mimicState, rand, extraData);
+        BlockStateModel mimicModel = Minecraft.getInstance()
+                .getModelManager()
+                .getBlockStateModelSet()
+                .get(mimicState);
 
-            if (renderType == null || renderTypes.contains(renderType)) {
-                // Find the sprite for the mimic model
-                TextureAtlasSprite sprite = null;
-                List<BakedQuad> mimicQuads = mimicModel.getQuads(
-                        mimicState,
-                        mimicDirection,
-                        rand,
-                        ModelData.EMPTY,
-                        renderType
-                );
-                if (!mimicQuads.isEmpty()) {
-                    sprite = mimicQuads.get(0).getSprite();
-                }
-                if (sprite != null) {
-                    // we want to return the original quads with the other texture
-                    List<BakedQuad> resultQuads = new ArrayList<>(originalQuads.size());
-                    for (BakedQuad originalQuad : originalQuads) {
-                        resultQuads.add(new RetexturedBakedQuad(
-                                originalQuad,
-                                sprite
-                        ));
-                    }
-                    return resultQuads;
-                }
+        if (mimicModel == null) {
+            return;
+        }
+
+        List<BlockStateModelPart> mimicParts = new ArrayList<>();
+        mimicModel.collectParts(level, pos, mimicState, random, mimicParts);
+
+        Material.Baked material = particleMaterial(level, pos, mimicState);
+
+        for (BlockStateModelPart originalPart : originalParts) {
+            parts.add(new RetexturedBlockStateModelPart(originalPart, material));
+        }
+    }
+
+    private record RetexturedBlockStateModelPart(
+            BlockStateModelPart delegate,
+            Material.Baked material
+    ) implements BlockStateModelPart {
+
+        @Override
+        public List<BakedQuad> getQuads(@Nullable Direction direction) {
+            List<BakedQuad> original = this.delegate.getQuads(direction);
+            List<BakedQuad> result = new ArrayList<>(original.size());
+            for (BakedQuad quad : original) {
+                MutableQuad mutable = new MutableQuad();
+                mutable.setFrom(quad);
+                mutable.setSpriteAndMoveUv(material);
+                result.add(mutable.toBakedQuad());
             }
+            return result;
         }
-        return List.of();
-    }
 
-    @SuppressWarnings("DuplicatedCode")
-    @Override
-    public ChunkRenderTypeSet getRenderTypes(
-            BlockState cableBlockState,
-            RandomSource rand,
-            ModelData data
-    ) {
-        BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
-        BlockState paintBlockState = data.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);
-        if (paintBlockState == null) {
-            return cableBlockState.getValue(FacadeTransparency.FACADE_TRANSPARENCY_PROPERTY) == FacadeTransparency.TRANSLUCENT ? ALL : SOLID;
+        @Override
+        public boolean useAmbientOcclusion() {
+            return this.delegate.useAmbientOcclusion();
         }
-        BakedModel bakedModel = blockRenderer.getBlockModel(paintBlockState);
-        return bakedModel.getRenderTypes(paintBlockState, rand, ModelData.EMPTY);
-    }
 
-    @Override
-    public List<RenderType> getRenderTypes(
-            ItemStack itemStack,
-            boolean fabulous
-    ) {
-        return super.getRenderTypes(itemStack, fabulous);
+        @Override
+        public Material.Baked particleMaterial() {
+            return this.delegate.particleMaterial();
+        }
+
+        @Override
+        public int materialFlags() {
+            return this.delegate.materialFlags();
+        }
     }
 }

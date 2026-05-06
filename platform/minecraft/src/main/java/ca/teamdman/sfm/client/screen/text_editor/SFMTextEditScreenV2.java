@@ -19,13 +19,15 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.PanoramaRenderer;
+import net.minecraft.client.renderer.Panorama;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FastColor;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.IntervalSet;
@@ -61,16 +63,14 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
 
     @Override
     public boolean keyPressed(
-            int pKeyCode,
-            int pScanCode,
-            int pModifiers
+            KeyEvent event
     ) {
         // we are not calling super here because we are not using traditional widgets with tab navigation
-        if (pKeyCode == GLFW.GLFW_KEY_ESCAPE && this.shouldCloseOnEsc()) {
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE && this.shouldCloseOnEsc()) {
             this.onClose();
             return true;
         }
-        KeyboardImpulse impulse = new KeyboardImpulse(pKeyCode, pScanCode, pModifiers);
+        KeyboardImpulse impulse = new KeyboardImpulse(event);
         var matchedActions = SFMTextEditorActions
                 .getTextEditActions()
                 .filter(action -> action.matches(textEditContext, impulse)).toArray(ITextEditAction[]::new);
@@ -83,11 +83,10 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
 
     @Override
     public boolean charTyped(
-            char pCodePoint,
-            int pModifiers
+            CharacterEvent event
     ) {
 
-        String text = Character.toString(pCodePoint);
+        String text = Character.toString(event.codepoint());
         textEditContext.insertTextAtCursors(text);
         return true;
     }
@@ -98,21 +97,21 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
     }
 
     @MCVersionDependentBehaviour
-    public @Nullable PanoramaRenderer getPanorama() {
-        return PANORAMA;
+    public @Nullable Panorama getPanorama() {
+        return this.getMinecraft().gameRenderer.getPanorama();
     }
 
     @Override
-    public void render(
-            GuiGraphics pGuiGraphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor pGuiGraphics,
             int pMouseX,
             int pMouseY,
             float pPartialTick
     ) {
 
-        PanoramaRenderer panorama = getPanorama();
+        Panorama panorama = getPanorama();
         if (panorama != null) {
-            panorama.render(pGuiGraphics, this.width, this.height, 1.0F, Mth.clamp(1.0F, 0.0F, 1.0F));
+            panorama.extractRenderState(pGuiGraphics, this.width, this.height, true);
         }
 
         Matrix4f matrix4f = pGuiGraphics.pose().last().pose();
@@ -180,12 +179,12 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
                         + marginForLineNumber;
             int headY = head.lineIndex() * this.font.lineHeight;
             int tailY = tail.lineIndex() * this.font.lineHeight;
-            renderCursor(pGuiGraphics, headX, headY, FastColor.ARGB32.color(255 / 2, 255, 0, 0));
-            renderCursor(pGuiGraphics, tailX, tailY, FastColor.ARGB32.color(255 / 2, 0, 0, 255));
+            renderCursor(pGuiGraphics, headX, headY, ARGB.color(255 / 2, 255, 0, 0));
+            renderCursor(pGuiGraphics, tailX, tailY, ARGB.color(255 / 2, 0, 0, 255));
         }
 
         // Render widgets (buttons) on top of editor content
-        super.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
+        super.extractRenderState(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
     }
 
     /**
@@ -213,7 +212,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
     }
 
     protected void renderCursor(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             int x,
             int y,
             int color

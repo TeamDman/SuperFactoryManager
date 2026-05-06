@@ -7,20 +7,33 @@ import ca.teamdman.sfm.common.registry.registration.SFMRecipeTypes;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeAccess;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.transfer.CombinedResourceHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.ItemStackResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemStacksResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemUtil;
+import net.neoforged.neoforge.transfer.resource.ResourceStack;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
 
 /**
  * Accepts a paper item and a form item.
@@ -28,63 +41,80 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput {
 
-    private final ItemStackHandler FORM = new ItemStackHandler(1) {
+    private final ItemStackResourceHandler FORM = new ItemStackResourceHandler() {
+        private ItemStack item = ItemStack.EMPTY;
         @Override
-        protected void onContentsChanged(int slot) {
-            setChanged();
-            if (level != null)
-                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+        protected ItemStack getStack() {
+            return item;
         }
 
         @Override
-        public int getSlotLimit(int slot) {
+        protected void setStack(ItemStack itemStack) {
+            item = itemStack;
+        }
+
+        @Override
+        protected int getCapacity(ItemResource resource) {
             return 1;
         }
 
         @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
-            return stack.getItem() == SFMItems.FORM.get();
+        public boolean isValid(ItemResource resource) {
+            return resource.is(SFMItems.FORM.get());
         }
     };
-
-    private final ItemStackHandler INK = new ItemStackHandler(1) {
+    private final ItemStackResourceHandler INK = new ItemStackResourceHandler() {
+        private ItemStack item = ItemStack.EMPTY;
         @Override
-        protected void onContentsChanged(int slot) {
-            setChanged();
-            if (level != null)
-                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+        protected ItemStack getStack() {
+            return item;
         }
 
         @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
-            if (getLevel() == null) return false;
-            return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().ink().test(stack));
-        }
-    };
-
-    private final ItemStackHandler PAPER = new ItemStackHandler(1) {
-        @Override
-        protected void onContentsChanged(int slot) {
-            setChanged();
-            if (level != null)
-                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+        protected void setStack(ItemStack itemStack) {
+            item = itemStack;
         }
 
         @Override
-        public int getSlotLimit(int slot) {
+        protected int getCapacity(ItemResource resource) {
             return 1;
         }
 
         @Override
-        public boolean isItemValid(int slot, ItemStack stack) {
+        public boolean isValid(int index, ItemResource resource) {
             if (getLevel() == null) return false;
-            return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().paper().test(stack));
+            RecipeManager recipes = Objects.requireNonNull(getLevel().getServer()).getRecipeManager();
+            return recipes
+                    .recipeMap().byType(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().ink().test(resource.toStack()));
         }
     };
-    public final CombinedInvWrapper INVENTORY = new CombinedInvWrapper(FORM, INK, PAPER);
+    private final ItemStackResourceHandler PAPER = new ItemStackResourceHandler() {
+        private ItemStack item = ItemStack.EMPTY;
+        @Override
+        protected ItemStack getStack() {
+            return item;
+        }
 
+        @Override
+        protected void setStack(ItemStack itemStack) {
+            item = itemStack;
+        }
+
+        @Override
+        protected int getCapacity(ItemResource resource) {
+            return 1;
+        }
+
+        @Override
+        public boolean isValid(int index, ItemResource resource) {
+            if (getLevel() == null) return false;
+            RecipeManager recipes = Objects.requireNonNull(getLevel().getServer()).getRecipeManager();
+            return recipes
+                    .recipeMap().byType(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().paper().test(resource.toStack()));
+        }
+    };
+
+    public final CombinedResourceHandler<ItemResource> INVENTORY = new CombinedResourceHandler<>(FORM, INK, PAPER);
 
     public PrintingPressBlockEntity(
             BlockPos pPos, BlockState pBlockState
@@ -94,93 +124,79 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
 
     @Override
     public ItemStack getItem(int slot) {
-        return INVENTORY.getStackInSlot(slot);
+        return INVENTORY.getResource(slot).toStack(INVENTORY.getAmountAsInt(slot));
     }
 
     @Override
     public int size() {
-        return INVENTORY.getSlots();
+        return INVENTORY.size();
     }
 
 
     @Override
     protected void loadAdditional(
-            CompoundTag pTag,
-            HolderLookup.Provider pRegistries
+            ValueInput input
     ) {
-        super.loadAdditional(pTag, pRegistries);
-        readItems(pTag, pRegistries);
+        super.loadAdditional(input);
+        readItems(input);
     }
 
     @Override
     protected void saveAdditional(
-            CompoundTag pTag,
-            HolderLookup.Provider pRegistries
+            ValueOutput output
     ) {
-        super.saveAdditional(pTag, pRegistries);
-        writeItems(pTag, pRegistries);
+        super.saveAdditional(output);
+        writeItems(output);
     }
 
     private void writeItems(
-            CompoundTag tag,
-            HolderLookup.Provider pRegistries
+            ValueOutput output
     ) {
-        tag.put("form", FORM.serializeNBT(pRegistries));
-        tag.put("paper", PAPER.serializeNBT(pRegistries));
-        tag.put("ink", INK.serializeNBT(pRegistries));
+        output.putChild("form", FORM);
+        output.putChild("paper", PAPER);
+        output.putChild("ink", INK);
     }
 
     private void readItems(
-            CompoundTag tag,
-            HolderLookup.Provider pRegistries
+            ValueInput input
     ) {
-        INK.deserializeNBT(pRegistries, tag.getCompound("ink"));
-        PAPER.deserializeNBT(pRegistries, tag.getCompound("paper"));
-        FORM.deserializeNBT(pRegistries, tag.getCompound("form"));
+        input.readChild("form", FORM);
+        input.readChild("paper", PAPER);
+        input.readChild("ink", INK);
     }
 
 
     public ItemStack acceptStack(ItemStack stack) {
-        ItemStack remainder;
-        if (!stack.isEmpty()) {
-            remainder = FORM.insertItem(0, stack.copy(), false);
-            if (remainder.getCount() < stack.getCount()) {
-                stack.shrink(stack.getCount() - remainder.getCount());
-                return stack;
-            }
-            remainder = INK.insertItem(0, stack.copy(), false);
-            if (remainder.getCount() < stack.getCount()) {
-                stack.shrink(stack.getCount() - remainder.getCount());
-                return stack;
-            }
-            remainder = PAPER.insertItem(0, stack.copy(), false);
-            if (remainder.getCount() < stack.getCount()) {
-                stack.shrink(stack.getCount() - remainder.getCount());
-                return stack;
+        ItemResource resource = ItemResource.of(stack);
+        if (!resource.isEmpty()) {
+            try (var tx = Transaction.openRoot()) {
+                ItemStack remainder = ItemUtil.insertItemReturnRemaining(INVENTORY, stack, false, tx);
+
+                if (remainder.getCount() < stack.getCount()) {
+                    tx.commit();
+                    return remainder;
+                }
             }
         } else {
-            ItemStack found;
-            found = PAPER.extractItem(0, 64, false);
-            if (!found.isEmpty()) {
-                return found;
-            }
-            found = FORM.extractItem(0, 64, false);
-            if (!found.isEmpty()) {
-                return found;
-            }
-            found = INK.extractItem(0, 64, false);
-            if (!found.isEmpty()) {
-                return found;
+            try (var tx = Transaction.openRoot()) {
+                ResourceStack<ItemResource> extracted = ResourceHandlerUtil.extractFirst(INVENTORY, (_) -> true, 64, tx);
+                if (extracted != null) {
+                    return extracted.resource().toStack(extracted.amount());
+                }
             }
         }
-        return stack;
+            return stack;
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider pRegistries) {
-        var tag = super.getUpdateTag(pRegistries);
-        writeItems(tag, pRegistries);
-        return tag;
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return this.saveWithoutMetadata(registries);
+    }
+
+    @Override
+    public void handleUpdateTag(ValueInput input) {
+        super.handleUpdateTag(input);
+        readItems(input);
     }
 
     @Override
@@ -188,31 +204,21 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         return ClientboundBlockEntityDataPacket.create(this);
     }
 
-    @Override
-    public void onDataPacket(
-            Connection net,
-            ClientboundBlockEntityDataPacket pkt,
-            HolderLookup.Provider lookupProvider
-    ) {
-        super.onDataPacket(net, pkt, lookupProvider);
-        readItems(pkt.getTag(), lookupProvider);
-    }
-
     public ItemStack getPaper() {
-        return PAPER.getStackInSlot(0);
+        return PAPER.getResource(0).toStack();
     }
 
     public ItemStack getInk() {
-        return INK.getStackInSlot(0);
+        return INK.getResource(0).toStack();
     }
 
     public ItemStack getForm() {
-        return FORM.getStackInSlot(0);
+        return FORM.getResource(0).toStack();
     }
 
     public void performPrint() {
         if (getLevel() == null) return;
-        RecipeManager recipeManager = getLevel().getRecipeManager();
+        RecipeManager recipeManager = Objects.requireNonNull(getLevel().getServer()).getRecipeManager();
         recipeManager.getRecipeFor(SFMRecipeTypes.PRINTING_PRESS.get(), this, getLevel()).ifPresent(recipe -> {
             ItemStack paper = getPaper();
             ItemStack ink = getInk();
@@ -220,20 +226,36 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
             if (paper.isEmpty() || ink.isEmpty() || form.isEmpty()) {
                 return;
             }
-            paper = recipe.value().assemble(this, getLevel().registryAccess());
-            PAPER.setStackInSlot(0, paper);
-            ink.shrink(1);
-            INK.setStackInSlot(0, ink);
+            ItemStack result = recipe.value().assemble(this);
+
+            try (var tx = Transaction.openRoot()) {
+                INK.extract(ItemResource.of(ink), 1, tx);
+                PAPER.extract(ItemResource.of(paper), paper.getCount(), tx);
+
+                PAPER.insert(ItemResource.of(result), result.getCount(), tx);
+                tx.commit();
+            }
         });
     }
 
     @MCVersionDependentBehaviour
     private ItemStack assembleRecipe(PrintingPressRecipe recipe) {
         assert level != null;
-        return recipe.assemble(this, level.registryAccess());
+        return recipe.assemble(this);
     }
 
     public ItemStack[] getStacksToDrop() {
         return new ItemStack[]{getPaper(), getInk(), getForm()};
     }
+
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+//        super.preRemoveSideEffects(pos, state);
+        if (this.level != null) {
+            for (ItemStack item : getStacksToDrop()) {
+                Containers.dropItemStack(this.level, pos.getX(), pos.getY(), pos.getZ(), item);
+            }
+        }
+    }
+
 }

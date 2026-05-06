@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.common.capability.BufferBlockCapabilityProvider;
-import ca.teamdman.sfm.common.capability.CauldronBlockCapabilityProvider;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
@@ -12,7 +11,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -20,8 +18,9 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.IBlockCapabilityProvider;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.wrapper.InvWrapper;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.VanillaContainerWrapper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -34,22 +33,22 @@ public class SFMBlockCapabilities {
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
 
         event.registerBlockEntity(
-                Capabilities.ItemHandler.BLOCK,
+                Capabilities.Item.BLOCK,
                 SFMBlockEntities.PRINTING_PRESS.get(),
                 (blockEntity, direction) -> blockEntity.INVENTORY
         );
 
         event.registerBlockEntity(
-                Capabilities.FluidHandler.BLOCK,
+                Capabilities.Fluid.BLOCK,
                 SFMBlockEntities.WATER_TANK.get(),
                 (blockEntity, direction) -> blockEntity.TANK
         );
 
         event.registerBlock(
-                Capabilities.ItemHandler.BLOCK,
+                Capabilities.Item.BLOCK,
                 new IBlockCapabilityProvider<>() {
                     @Override
-                    public @Nullable IItemHandler getCapability(
+                    public @Nullable ResourceHandler<ItemResource> getCapability(
                             Level level,
                             BlockPos pos,
                             BlockState state,
@@ -58,7 +57,7 @@ public class SFMBlockCapabilities {
                     ) {
 
                         if (blockEntity instanceof BarrelBlockEntity bbe) {
-                            return new InvWrapper(bbe);
+                            return VanillaContainerWrapper.of(bbe);
                         }
                         return null;
                     }
@@ -67,10 +66,10 @@ public class SFMBlockCapabilities {
         );
 
         event.registerBlock(
-                Capabilities.ItemHandler.BLOCK,
+                Capabilities.Item.BLOCK,
                 new IBlockCapabilityProvider<>() {
                     @Override
-                    public @Nullable IItemHandler getCapability(
+                    public @Nullable ResourceHandler<ItemResource> getCapability(
                             Level level,
                             BlockPos pos,
                             BlockState state,
@@ -79,7 +78,7 @@ public class SFMBlockCapabilities {
                     ) {
 
                         if (blockEntity instanceof BarrelBlockEntity bbe) {
-                            return new InvWrapper(bbe);
+                            return VanillaContainerWrapper.of(bbe);
                         }
                         return null;
                     }
@@ -88,18 +87,18 @@ public class SFMBlockCapabilities {
         );
 
         event.registerBlockEntity(
-                Capabilities.FluidHandler.BLOCK,
+                Capabilities.Fluid.BLOCK,
                 SFMBlockEntities.TEST_BARREL_TANK.get(),
                 (blockEntity, direction) -> blockEntity.getTank()
         );
 
-        event.registerBlock(
-                Capabilities.FluidHandler.BLOCK,
+/*        event.registerBlock(
+                Capabilities.Fluid.BLOCK,
                 new CauldronBlockCapabilityProvider(),
                 Blocks.CAULDRON,
                 Blocks.LAVA_CAULDRON,
                 Blocks.WATER_CAULDRON
-        );
+        );*/
 
         event.registerBlockEntity(
                 SFMWellKnownCapabilities.ITEM_HANDLER.capabilityKind(),
