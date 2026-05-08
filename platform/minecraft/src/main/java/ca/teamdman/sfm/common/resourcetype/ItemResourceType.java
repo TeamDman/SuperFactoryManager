@@ -167,4 +167,9 @@ public class ItemResourceType extends RegistryBackedResourceType<ResourceStack<I
     public boolean isEmpty(ResourceStack<ItemResource> stack) {
         return stack.isEmpty();
     }
+
+    @Override
+    public ResourceStack<ItemResource> withCount(ResourceStack<ItemResource> stack, long amount) {
+        return new ResourceStack<>(stack.resource(), (int) Math.min(amount, Integer.MAX_VALUE));
+    }
 }

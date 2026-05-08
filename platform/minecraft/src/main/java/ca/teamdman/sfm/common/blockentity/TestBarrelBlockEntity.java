@@ -17,4 +17,9 @@ public class TestBarrelBlockEntity extends BarrelBlockEntity {
     public boolean isValidBlockState(BlockState blockState) {
         return SFMBlockEntities.TEST_BARREL.get().isValid(blockState);
     }
+
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+//        super.preRemoveSideEffects(pos, state);
+    }
 }

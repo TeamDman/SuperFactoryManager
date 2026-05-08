@@ -65,4 +65,6 @@ public abstract class RegistryBackedResourceType<STACK,ITEM,CAP> extends Resourc
     }
 
     public abstract STACK insert(CAP handler, int slot, STACK stack, TransactionContext tx);
+
+
 }

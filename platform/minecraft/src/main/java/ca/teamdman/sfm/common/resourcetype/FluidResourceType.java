@@ -14,6 +14,7 @@ import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.resource.ResourceStack;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 import net.neoforged.neoforge.transfer.transaction.TransactionContext;
@@ -126,5 +127,10 @@ public class FluidResourceType extends RegistryBackedResourceType<ResourceStack<
     @Override
     public boolean isEmpty(ResourceStack<FluidResource> stack) {
         return stack.isEmpty();
+    }
+
+    @Override
+    public ResourceStack<FluidResource> withCount(ResourceStack<FluidResource> stack, long amount) {
+        return new ResourceStack<>(stack.resource(), (int) Math.min(amount, Integer.MAX_VALUE));
     }
 }

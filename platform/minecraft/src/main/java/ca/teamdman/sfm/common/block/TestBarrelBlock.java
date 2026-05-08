@@ -5,6 +5,7 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.SoundType;
@@ -25,7 +26,8 @@ public class TestBarrelBlock extends BarrelBlock {
         super(BlockBehaviour.Properties.of().strength(2.5F).sound(SoundType.WOOD));
     }
 
-    @Override
+
+/*    @Override
     public void onRemove(
             BlockState pState,
             Level pLevel,
@@ -43,7 +45,7 @@ public class TestBarrelBlock extends BarrelBlock {
 
             super.onRemove(pState, pLevel, pPos, pNewState, pIsMoving);
         }
-    }
+    }*/
 
     @Override
     public @Nullable BlockEntity newBlockEntity(

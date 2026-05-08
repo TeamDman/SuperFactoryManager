@@ -6,6 +6,8 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permission;
+import net.minecraft.server.permissions.Permissions;
 
 public record ServerboundServerConfigUpdatePacket(
         String newConfig
@@ -42,7 +44,7 @@ public record ServerboundServerConfigUpdatePacket(
                 SFM.LOGGER.error("Received {} from null player", this.getPacketClass().getName());
                 return;
             }
-            if (!player.hasPermissions(Commands.LEVEL_OWNERS)) {
+            if (!player.permissions().hasPermission(Permissions.COMMANDS_OWNER)) {
                 SFM.LOGGER.fatal(
                         "Player {} tried to WRITE server config but does not have the necessary permissions, this should never happen o-o",
                         player.getName().getString()

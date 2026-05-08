@@ -11,6 +11,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import mekanism.common.registries.MekanismBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -65,7 +66,7 @@ public class MekManyLavaCauldronsGameTest extends SFMGameTestDefinition {
 
         // set up the manager
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program
@@ -90,15 +91,15 @@ public class MekManyLavaCauldronsGameTest extends SFMGameTestDefinition {
             sourceBlocks.forEach(pos -> helper.assertBlock(
                     pos,
                     Blocks.CAULDRON::equals,
-                    () -> "Cauldron did not empty"
+                    (_) -> Component.literal("Cauldron did not empty")
             ));
             int found = destBlocks
                     .stream()
                     .map(helper::absolutePos)
                     .map(pos -> helper.getLevel().getCapability(SFMWellKnownCapabilities.FLUID_HANDLER.capabilityKind(), pos, Direction.DOWN))
                     .peek(Objects::requireNonNull)
-                    .map(x -> x.getFluidInTank(0))
-                    .mapToInt(FluidStack::getAmount)
+                    .map(x -> x.getAmountAsInt(0))
+                    .mapToInt(value -> value)
                     .sum();
             assertTrue(found == 1000 * 25 * 24, "Not all fluids were moved (found " + found + ")");
 

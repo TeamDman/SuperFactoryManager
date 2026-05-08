@@ -11,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -19,6 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class TunnelledManagerBlock extends ManagerBlock {
     @SFMLocalizationDatagen
@@ -45,13 +47,14 @@ public class TunnelledManagerBlock extends ManagerBlock {
 
     @Override
     public void appendHoverText(
-            ItemStack pStack,
-            Item.TooltipContext pContext,
-            List<Component> pTooltip,
-            TooltipFlag pFlag
+            ItemStack stack,
+            Item.TooltipContext context,
+            TooltipDisplay tooltipDisplay,
+            Consumer<Component> pTooltip,
+            TooltipFlag detail
     ) {
 
-        pTooltip.add(TUNNELLED_MANAGER_ITEM_TOOLTIP
+        pTooltip.accept(TUNNELLED_MANAGER_ITEM_TOOLTIP
                              .getComponent()
                              .withStyle(ChatFormatting.GRAY));
     }

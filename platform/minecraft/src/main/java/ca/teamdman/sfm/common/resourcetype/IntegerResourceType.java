@@ -38,4 +38,9 @@ public IntegerResourceType(
     public Class<Integer> stackToItem(Integer integer) {
         return Integer.class;
     }
+
+    @Override
+    public Integer withCount(Integer integer, long count) {
+        return (int)count;
+    }
 }

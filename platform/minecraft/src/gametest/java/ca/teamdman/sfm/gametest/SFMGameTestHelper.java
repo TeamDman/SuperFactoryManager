@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.gametest;
 
+import ca.teamdman.sfm.common.blockentity.CableFacadeBlockEntity;
+import ca.teamdman.sfm.common.blockentity.CommonFacadeBlockEntity;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
@@ -28,12 +30,12 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
-import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.neoforged.neoforge.energy.IEnergyStorage;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -86,7 +88,7 @@ public class SFMGameTestHelper extends GameTestHelper {
         return found.unwrap();
     }
 
-    public IFluidHandler getFluidHandler(
+    public ResourceHandler<FluidResource> getFluidHandler(
             BlockPos pos,
             @Nullable Direction direction
     ) {
@@ -98,7 +100,7 @@ public class SFMGameTestHelper extends GameTestHelper {
         );
     }
 
-    public IItemHandler getItemHandler(
+    public ResourceHandler<ItemResource> getItemHandler(
             BlockPos pos,
             @Nullable Direction direction
     ) {
@@ -115,11 +117,11 @@ public class SFMGameTestHelper extends GameTestHelper {
             Component... text
     ) {
 
-        BlockEntity blockEntity = getBlockEntity(signPos);
-        if (!(blockEntity instanceof SignBlockEntity signBlockEntity)) {
+        SignBlockEntity signBlockEntity = getBlockEntity(signPos, SignBlockEntity.class);
+/*        if (!(blockEntity instanceof SignBlockEntity signBlockEntity)) {
             fail("Block entity was not an instance of SignBlockEntity, got " + blockEntity, signPos);
             return;
-        }
+        }*/
         if (text.length > 4) {
             fail("Text array was too long, max length is 4, got " + text.length, signPos);
             return;
@@ -132,7 +134,7 @@ public class SFMGameTestHelper extends GameTestHelper {
         signBlockEntity.setText(newText, true);
     }
 
-    public IEnergyStorage getEnergyStorage(
+    public EnergyHandler getEnergyStorage(
             BlockPos pos,
             @Nullable Direction direction
     ) {
@@ -144,7 +146,7 @@ public class SFMGameTestHelper extends GameTestHelper {
         );
     }
 
-    public IItemHandler getItemHandler(
+    public ResourceHandler<ItemResource> getItemHandler(
             BlockPos pos
     ) {
 
@@ -198,10 +200,10 @@ public class SFMGameTestHelper extends GameTestHelper {
             positions.add(manager.getBlockPos());
             BlockPos failurePos = positions.get(0);
             throw new GameTestAssertPosException(
-                    "Condition failed: " + exprString,
+                    Component.literal("Condition failed: " + exprString),
                     failurePos,
                     relativePos(failurePos),
-                    this.getTick()
+                    ((int) this.getTick())
             );
         }
     }
@@ -209,7 +211,7 @@ public class SFMGameTestHelper extends GameTestHelper {
     @Override
     public BlockPos relativePos(BlockPos pPos) {
 
-        BlockPos blockpos = this.testInfo.getStructureBlockPos();
+        BlockPos blockpos = this.testInfo.getTestOrigin();
         Rotation rotation = this.testInfo.getRotation(); //.getRotated(Rotation.CLOCKWISE_180); // causes problems idk
         BlockPos blockpos1 = StructureTemplate.transform(pPos, Mirror.NONE, rotation, blockpos);
         return blockpos1.subtract(blockpos);
@@ -220,7 +222,7 @@ public class SFMGameTestHelper extends GameTestHelper {
             BlockState mimicBlockState
     ) {
 
-        if (!(getBlockEntity(localBlockPos) instanceof IFacadeBlockEntity facadeBlockEntity)) {
+        if (!(getBlockEntity(localBlockPos, CommonFacadeBlockEntity.class) instanceof IFacadeBlockEntity facadeBlockEntity)) {
             fail("Block entity was not a facade", localBlockPos);
             return;
         }

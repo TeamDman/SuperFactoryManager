@@ -7,13 +7,17 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -56,6 +60,26 @@ public class PrintingPressBlock extends BaseEntityBlock implements EntityBlock {
     }
 
     @Override
+    protected BlockState updateShape(
+            BlockState state,
+            LevelReader pLevel,
+            ScheduledTickAccess ticks,
+            BlockPos pPos,
+            Direction directionToNeighbour,
+            BlockPos neighbourPos,
+            BlockState neighbourState,
+            RandomSource random
+    ) {
+        if (!pLevel.isClientSide()
+                && neighbourPos.getY() == pPos.getY() + 1
+                && pLevel.getBlockState(neighbourPos).getBlock() == Blocks.PISTON_HEAD
+                && pLevel.getBlockEntity(pPos) instanceof PrintingPressBlockEntity blockEntity) {
+            blockEntity.performPrint();
+        }
+        return super.updateShape(state, pLevel, ticks, pPos, directionToNeighbour, neighbourPos, neighbourState, random);
+    }
+
+/*    @Override
     protected void neighborChanged(
             BlockState pState,
             Level pLevel,
@@ -71,7 +95,7 @@ public class PrintingPressBlock extends BaseEntityBlock implements EntityBlock {
             && pLevel.getBlockEntity(pPos) instanceof PrintingPressBlockEntity blockEntity) {
             blockEntity.performPrint();
         }
-    }
+    }*/
 
     @Override
     protected MapCodec<WaterTankBlock> codec() {

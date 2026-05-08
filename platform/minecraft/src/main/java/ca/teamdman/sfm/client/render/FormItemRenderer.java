@@ -7,10 +7,12 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.special.NoDataSpecialModelRenderer;
+import net.minecraft.client.renderer.special.SpecialModelRenderer;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -21,7 +23,7 @@ import java.util.function.Consumer;
 
 public class FormItemRenderer implements NoDataSpecialModelRenderer {
 
-    private static final Identifier BASE_MODEL = Identifier.standalone(SFMResourceLocation.fromSFMPath("item/form_base"));
+    private static final Identifier BASE_MODEL = SFMResourceLocation.fromSFMPath("item/form_base");
 
     public FormItemRenderer() {
         super(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
@@ -79,13 +81,18 @@ public class FormItemRenderer implements NoDataSpecialModelRenderer {
         poseStack.popPose();
     }
 
-    @Override
-    public void submit(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, int overlayCoords, boolean hasFoil, int outlineColor) {
+    public record Unbaked() implements SpecialModelRenderer.Unbaked {
 
-    }
+        public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
 
-    @Override
-    public void getExtents(Consumer<Vector3fc> output) {
+        @Override
+        public MapCodec<Unbaked> type() {
+            return MAP_CODEC;
+        }
 
+        @Override
+        public SpecialModelRenderer<?> bake(SpecialModelRenderer.BakingContext ctx) {
+            return new FormItemRenderer();
+        }
     }
 }

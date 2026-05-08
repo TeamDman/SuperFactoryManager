@@ -27,12 +27,14 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.stream.Stream;
 
@@ -124,28 +126,29 @@ public class NetworkToolItem extends Item {
 
     @Override
     public void appendHoverText(
-            ItemStack pStack,
-            TooltipContext pContext,
-            List<Component> lines,
-            TooltipFlag pTooltipFlag
+            ItemStack stack,
+            TooltipContext context,
+            TooltipDisplay tooltipDisplay,
+            Consumer<Component> lines,
+            TooltipFlag detail
     ) {
 
-        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_1.getComponent().withStyle(ChatFormatting.GRAY));
-        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_2.getComponent().withStyle(ChatFormatting.GRAY));
-        lines.add(
+        lines.accept(NETWORK_TOOL_ITEM_TOOLTIP_1.getComponent().withStyle(ChatFormatting.GRAY));
+        lines.accept(NETWORK_TOOL_ITEM_TOOLTIP_2.getComponent().withStyle(ChatFormatting.GRAY));
+        lines.accept(
                 NETWORK_TOOL_ITEM_TOOLTIP_3
                         .getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.CONTAINER_INSPECTOR_KEY))
                         .withStyle(ChatFormatting.AQUA)
         );
-        lines.add(
+        lines.accept(
                 NETWORK_TOOL_ITEM_TOOLTIP_8
                         .getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.TOGGLE_NETWORK_TOOL_OVERLAY_KEY))
                         .withStyle(ChatFormatting.AQUA)
         );
-        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_4.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
-        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_5.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
-        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_6.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
-        lines.add(NETWORK_TOOL_ITEM_TOOLTIP_7.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
+        lines.accept(NETWORK_TOOL_ITEM_TOOLTIP_4.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
+        lines.accept(NETWORK_TOOL_ITEM_TOOLTIP_5.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
+        lines.accept(NETWORK_TOOL_ITEM_TOOLTIP_6.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
+        lines.accept(NETWORK_TOOL_ITEM_TOOLTIP_7.getComponent().withStyle(ChatFormatting.LIGHT_PURPLE));
     }
 
     @Override

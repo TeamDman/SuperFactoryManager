@@ -25,6 +25,7 @@ import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class FallingAnvilHandler {
@@ -280,9 +281,7 @@ public class FallingAnvilHandler {
     ) {
 
         // Gather the printing press recipes
-        List<RecipeHolder<PrintingPressRecipe>> recipes = level
-                .getRecipeManager()
-                .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get());
+        Collection<RecipeHolder<PrintingPressRecipe>> recipes = level.getServer().getRecipeManager().recipeMap().byType(SFMRecipeTypes.PRINTING_PRESS.get());
 
         // Mark the block for consumption only if work is done
         boolean consumeBlock = false;

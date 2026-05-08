@@ -243,6 +243,12 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
 
     public abstract ITEM getItem(STACK stack);
 
+    @SuppressWarnings("unused")
+    public abstract STACK withCount(
+            STACK stack,
+            long count
+    );
+
     public String displayAsCode() {
 
         Identifier thisKey = SFMResourceTypes.registry().getId(this);
@@ -253,5 +259,4 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
 
         return CAPABILITY_KIND.getName();
     }
-
 }

@@ -115,23 +115,10 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
     }
 
     @Override
-    @SuppressWarnings("deprecation")
-    public void onRemove(
-            BlockState state,
-            Level level,
-            BlockPos pos,
-            BlockState newState,
-            boolean isMoving
-    ) {
-
-        if (!state.is(newState.getBlock())) {
-            if (level.getBlockEntity(pos) instanceof Container container) {
-                Containers.dropContents(level, pos, container);
-                level.updateNeighbourForOutputSignal(pos, this);
-            }
-            CableNetworkManager.onCableRemoved(level, pos);
-            super.onRemove(state, level, pos, newState, isMoving);
-        }
+    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+        level.updateNeighbourForOutputSignal(pos, this);
+        CableNetworkManager.onCableRemoved(level, pos);
     }
 
     @Override

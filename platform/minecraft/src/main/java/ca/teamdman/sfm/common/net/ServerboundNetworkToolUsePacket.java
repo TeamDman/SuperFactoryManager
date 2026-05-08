@@ -17,6 +17,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permission;
+import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -191,7 +193,7 @@ public record ServerboundNetworkToolUsePacket(
                 }
 
                 if (entity != null) {
-                    if (player.hasPermissions(2)) {
+                    if (player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
                         payload.append("---- (op only) nbt data ----\n");
                         payload.append(entity.saveWithoutMetadata(level.registryAccess())).append("\n");
                     }

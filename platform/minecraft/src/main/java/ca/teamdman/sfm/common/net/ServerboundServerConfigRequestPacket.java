@@ -8,6 +8,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permissions;
 
 public record ServerboundServerConfigRequestPacket(
         ConfigCommandBehaviourInput requestingEditMode
@@ -41,7 +42,7 @@ public record ServerboundServerConfigRequestPacket(
                 SFM.LOGGER.error("Received {} from null player", this.getPacketClass().getName());
                 return;
             }
-            if (!player.hasPermissions(Commands.LEVEL_OWNERS)
+            if (!player.permissions().hasPermission(Permissions.COMMANDS_OWNER)
                 && msg.requestingEditMode() == ConfigCommandBehaviourInput.EDIT) {
                 SFM.LOGGER.warn(
                         "Player {} tried to request server config for editing but does not have the necessary permissions, this should never happen o-o",

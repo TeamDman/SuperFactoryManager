@@ -20,7 +20,7 @@ public class SFMBlockPosUtils {
     }
 
     public static Stream<BlockPos> get3DNeighbours(BlockPos pos) {
-        return Arrays.stream(SFMDirections.DIRECTIONS_WITHOUT_NULL).map(d -> pos.offset(d.getNormal()));
+        return Arrays.stream(SFMDirections.DIRECTIONS_WITHOUT_NULL).map(d -> pos.offset(d.getUnitVec3i()));
     }
 
 

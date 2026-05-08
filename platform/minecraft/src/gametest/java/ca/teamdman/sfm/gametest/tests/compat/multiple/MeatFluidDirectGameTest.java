@@ -54,7 +54,7 @@ public class MeatFluidDirectGameTest extends SFMGameTestDefinition {
 
         // set up the tanks
         helper.setBlock(rightTankPos, MekanismBlocks.BASIC_FLUID_TANK.getBlock());
-        TileEntityFluidTank rightTank = (TileEntityFluidTank) helper.getBlockEntity(rightTankPos);
+        TileEntityFluidTank rightTank = (TileEntityFluidTank) helper.getBlockEntity(rightTankPos, TileEntityFluidTank.class);
         assert rightTank != null;
         IExtendedFluidTank fluidTank = rightTank.getFluidTank(0, Direction.DOWN);
         assert fluidTank != null;

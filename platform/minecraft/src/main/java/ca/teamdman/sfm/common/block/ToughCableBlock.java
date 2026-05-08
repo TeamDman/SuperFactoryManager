@@ -8,8 +8,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 
-import java.util.List; 
+import java.util.List;
+import java.util.function.Consumer;
 
 public class ToughCableBlock extends CableBlock {
     @SFMLocalizationDatagen
@@ -31,13 +33,14 @@ public class ToughCableBlock extends CableBlock {
 
     @Override
     public void appendHoverText(
-            ItemStack pStack,
-            Item.TooltipContext pContext,
-            List<Component> pTooltip,
-            TooltipFlag pFlag
+            ItemStack stack,
+            Item.TooltipContext context,
+            TooltipDisplay tooltipDisplay,
+            Consumer<Component> pTooltip,
+            TooltipFlag detail
     ) {
 
-        pTooltip.add(TOUGH_CABLE_ITEM_TOOLTIP
+        pTooltip.accept(TOUGH_CABLE_ITEM_TOOLTIP
                              .getComponent()
                              .withStyle(ChatFormatting.GRAY));
     }
