@@ -2,7 +2,7 @@ package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
-import ca.teamdman.sfm.common.compat.SFMMekanismCompat;
+//import ca.teamdman.sfm.common.compat.SFMMekanismCompat;
 import ca.teamdman.sfm.common.compat.SFMModCompat;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
@@ -40,17 +40,17 @@ public class SFMResourceTypes {
     public static final SFMRegistryObject<ResourceType<?, ?, ?>, ForgeEnergyResourceType> FORGE_ENERGY
             = REGISTERER.register("forge_energy", ForgeEnergyResourceType::new);
 
-    public static final SFMRegistryObject<ResourceType<?, ?, ?>, RedstoneResourceType> REDSTONE
-            = REGISTERER.register("redstone", RedstoneResourceType::new);
+/*    public static final SFMRegistryObject<ResourceType<?, ?, ?>, RedstoneResourceType> REDSTONE
+            = REGISTERER.register("redstone", RedstoneResourceType::new);*/
 
     private static final Object2ObjectOpenHashMap<Identifier, ResourceType<?, ?, ?>> DEFERRED_TYPES_BY_ID
             = new Object2ObjectOpenHashMap<>();
 
-    static {
+/*    static {
         if (SFMModCompat.isMekanismLoaded()) {
             SFMMekanismCompat.registerResourceTypes(REGISTERER);
         }
-    }
+    }*/
 
     public static int getResourceTypeCount() {
 

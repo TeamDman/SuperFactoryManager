@@ -34,6 +34,13 @@ public class ForgeEnergyResourceType extends IntegerResourceType<EnergyHandler> 
             return extracted;
         }
     }
+
+    @Override
+    public boolean canExtract(EnergyHandler capability, int slot) {
+        try (var ctx = Transaction.openRoot()) {
+            return capability.extract(1, ctx) > 0;
+        }
+    }
     @Override
     public int getSlots(EnergyHandler handler) {
         return 1;

@@ -32,6 +32,7 @@ import net.minecraft.util.Mth;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.IntervalSet;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3x2fStack;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
@@ -114,10 +115,10 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
             panorama.extractRenderState(pGuiGraphics, this.width, this.height, true);
         }
 
-        Matrix4f matrix4f = pGuiGraphics.pose().last().pose();
+        Matrix3x2fStack matrix4f = pGuiGraphics.pose();
         LinkedList<StringBuilder> lines = textEditContext.lines();
         int numLines = lines.size();
-        MultiBufferSource.BufferSource buffer = pGuiGraphics.bufferSource();
+        MultiBufferSource.BufferSource buffer = minecraft.renderBuffers().bufferSource();
         boolean shouldShowLineNumbers = shouldShowLineNumbers();
         int marginForLineNumber = shouldShowLineNumbers() ? this.font.width("000") + 4 : 0;
         for (int lineIndex = 0; lineIndex < numLines; lineIndex++) {

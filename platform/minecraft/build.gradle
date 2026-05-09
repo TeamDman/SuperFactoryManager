@@ -49,21 +49,25 @@ sourceSets {
         java {
 //            exclude "ca/teamdman/sfm/client/jei/**"
             exclude "ca/teamdman/sfm/common/resourcetype/exclude/**"
-//            exclude "ca/teamdman/sfm/common/compat/SFMMekanismCompat.java"
         }
         java {
             exclude "ca/teamdman/sfm/common/capability/ae2/InterfaceCapabilityProvider.java"
 //            exclude "ca/teamdman/sfm/common/capability/ae2/EnergyAcceptorBlockCapabilityProvider.java"
-//            exclude "ca/teamdman/sfm/common/program/linting/compat/mekanism"
         }
         java {
             exclude "ca/teamdman/sfm/common/block/BatteryBlock.java"
             exclude "ca/teamdman/sfm/common/blockentity/BatteryBlockEntity.java"
         }
         //// @MCVersionDependentBehaviour
-//        java {
-//            exclude "ca/teamdman/sfm/common/compat/SFMMekanismCompat.java"
-//        }
+        java {
+            exclude "ca/teamdman/sfm/common/compat/SFMMekanismCompat.java"
+            exclude "ca/teamdman/sfm/common/program/linting/compat/mekanism"
+            exclude "ca/teamdman/sfm/common/resourcetype/ChemicalResourceType.java"
+
+            exclude "ca/teamdman/sfm/common/resourcetype/RedstoneResourceType.java"
+            exclude "ca/teamdman/sfm/common/capability/RedstoneSignalStorage.java"
+            exclude "ca/teamdman/sfm/common/capability/RedstoneSignalCapabilityProvider.java"
+        }
         java {
             exclude "ca/teamdman/sfm/common/resourcetype/GasResourceType.java"
             exclude "ca/teamdman/sfm/common/resourcetype/InfuseResourceType.java"

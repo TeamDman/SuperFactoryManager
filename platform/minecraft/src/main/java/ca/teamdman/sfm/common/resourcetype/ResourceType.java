@@ -111,6 +111,14 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             TransactionContext tx
     );
 
+    public boolean canExtract(
+            CAP capability,
+            int slot
+    ) {
+
+        return true;
+    }
+
     public abstract int getSlots(CAP handler);
 
     public abstract long getMaxStackSize(STACK stack);
@@ -129,6 +137,14 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             STACK stack,
             TransactionContext tx
     );
+
+    public boolean canInsert(
+            CAP capability,
+            int slot
+    ) {
+
+        return true;
+    }
 
     public abstract boolean isEmpty(STACK stack);
 

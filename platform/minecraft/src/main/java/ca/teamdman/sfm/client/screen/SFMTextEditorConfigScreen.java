@@ -126,14 +126,14 @@ public class SFMTextEditorConfigScreen extends Screen {
 
         int y = this.height / 2 - 65;
         int x = this.width / 2 - 150; // Shifted to the left for centering
-        graphics.drawString(
+        graphics.text(
                 font,
                 PROGRAM_EDITOR_CONFIG_LINE_NUMBERS.getComponent(),
                 x,
                 y,
                 0xFFFFFF
         );
-        graphics.drawString(
+        graphics.text(
                 font,
                 PROGRAM_EDITOR_CONFIG_INTELLISENSE.getComponent(),
                 x,
@@ -141,7 +141,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                 0xFFFFFF
         );
         if (editorSelectorFeatureFlag) {
-            graphics.drawString(
+            graphics.text(
                     font,
                     PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR.getComponent(),
                     x,
@@ -149,7 +149,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                     0xFFFFFF
             );
         }
-        graphics.drawCenteredString(
+        graphics.centeredText(
                 font,
                 this.title,
                 this.width / 2,
