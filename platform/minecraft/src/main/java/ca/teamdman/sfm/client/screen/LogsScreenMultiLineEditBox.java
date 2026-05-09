@@ -126,11 +126,7 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
             boolean clickedScrollbar =
                     pButton == 0
                     && this.visible
-                    && this.scrollbarVisible()
-                    && pMouseX >= SFMWidgetUtils.getX(this) + this.width
-                    && pMouseX <= SFMWidgetUtils.getX(this) + this.width + 8
-                    && pMouseY >= SFMWidgetUtils.getY(this)
-                    && pMouseY < SFMWidgetUtils.getY(this) + this.height;
+                    && this.isOverScrollbar(pMouseX, pMouseY);
             if (clickedScrollbar) {
                 this.scrollbarDragActive = true;
             }

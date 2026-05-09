@@ -518,11 +518,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 boolean clickedScrollbar =
                         pButton == 0
                         && this.visible
-                        && this.scrollbarVisible()
-                        && pMouseX >= SFMWidgetUtils.getX(this) + this.width
-                        && pMouseX <= SFMWidgetUtils.getX(this) + this.width + 8
-                        && pMouseY >= SFMWidgetUtils.getY(this)
-                        && pMouseY < SFMWidgetUtils.getY(this) + this.height;
+                        && this.isOverScrollbar(pMouseX, pMouseY);
                 if (clickedScrollbar) {
                     this.scrollbarDragActive = true;
                 }
@@ -536,11 +532,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 } else {
                     //noinspection unused
                     boolean flag = this.withinContentAreaPoint(pMouseX, pMouseY);
-                    boolean flag1 = this.scrollbarVisible()
-                                    && pMouseX >= (double) (this.getX() + this.width)
-                                    && pMouseX <= (double) (this.getX() + this.width + 8)
-                                    && pMouseY >= (double) this.getY()
-                                    && pMouseY < (double) (this.getY() + this.height);
+                    boolean flag1 = this.isOverScrollbar(pMouseX, pMouseY);
                     if (flag1 && pButton == 0) {
                         this.scrolling = true;
                         rtn = true;
@@ -880,7 +872,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             final int selectionEnd = selectedRange.endIndex();
 
             // One buffer for the entire text pass
-            MultiBufferSource.BufferSource buffer = graphics.bufferSource();
+            MultiBufferSource.BufferSource buffer = minecraft.renderBuffers().bufferSource();
 
             // Collect selection highlights rects and draw them after the text
             List<int[]> highlightRects = new ArrayList<>();

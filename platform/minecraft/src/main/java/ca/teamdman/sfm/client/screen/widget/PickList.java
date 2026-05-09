@@ -99,14 +99,15 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
     ) {
         if (items.isEmpty()) return;
 
-        graphics.pose().pushPose();
+        graphics.pose().pushMatrix();
         // Fixes https://github.com/TeamDman/SuperFactoryManager/issues/518
         // Adjust the Z-index such that the popup renders on top of the editor text
-        graphics.pose().translate(0.0F, 0.0F, 400.0F);
+        graphics.pose().translate(0.0F, 0.0F);
+        graphics.nextStratum();
 
-        super.extractWidgetRenderState(graphics, pMouseX, pMouseY, pPartialTick);
+//        super.extractWidgetRenderState(graphics, pMouseX, pMouseY, pPartialTick);
 
-        graphics.pose().popPose();
+        graphics.pose().popMatrix();
     }
 
     public void selectPreviousWrapping() {
