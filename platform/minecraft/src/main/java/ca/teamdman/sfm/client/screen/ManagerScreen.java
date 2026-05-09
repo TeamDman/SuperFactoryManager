@@ -16,8 +16,6 @@ import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import ca.teamdman.sfml.ast.Program;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -27,14 +25,14 @@ import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Inventory;
 import org.apache.logging.log4j.Level;
 import org.joml.Matrix3x2fStack;
-import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
 import java.text.DecimalFormat;
@@ -353,11 +351,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         statusCountdown -= partialTicks;
     }
 
-    @MCVersionDependentBehaviour
-    public float getBlitOffsetGood() {
-
-        return 0F;
-    }
 
     @Override
     protected void init() {
@@ -676,12 +669,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         ));
     }
 
-    @MCVersionDependentBehaviour
-    private void disableTexture() {
-
-//        RenderSystem.disableTexture(); // 1.19.2
-    }
-
     @Override
     protected void extractLabels(
             GuiGraphicsExtractor graphics,
@@ -754,47 +741,26 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         final int plotHeight = 30;
 
 
-        // Set up rendering
-        disableTexture();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        Tesselator tesselator = Tesselator.getInstance();
-        Matrix4f pose = graphics.pose().last().pose();
-        BufferBuilder bufferbuilder;
-
-
         // Draw the plot background
-        bufferbuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-        bufferbuilder.addVertex(pose, plotX, plotY, 0).setColor(0, 0, 0, 0.5f);
-        bufferbuilder.addVertex(pose, plotX + plotWidth, plotY, 0).setColor(0, 0, 0, 0.5f);
-        bufferbuilder.addVertex(pose, plotX + plotWidth, plotY + plotHeight, 0).setColor(0, 0, 0, 0.5f);
-        bufferbuilder.addVertex(pose, plotX, plotY + plotHeight, 0).setColor(0, 0, 0, 0.5f);
-        bufferbuilder.addVertex(pose, plotX, plotY, 0).setColor(0, 0, 0, 0.5f);
-        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+        graphics.outline(plotX, plotY, plotWidth, plotHeight, ARGB.color(128, 0, 0, 0));
 
-        // Draw lines for each data point
-        bufferbuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        // Draw data points
         int mouseTickTimeIndex = -1;
         for (int i = 0; i < menu.tickTimes.length; i++) {
             long y = menu.tickTimes[i].toNanos();
             float normalizedTickTime = y == 0 ? 0 : (float) (Math.log10(y) / Math.log10(yMax));
-            int plotPosY = plotY + plotHeight - (int) (normalizedTickTime * plotHeight);
+            int barHeight = (int) (normalizedTickTime * plotHeight);
+            int plotPosY = plotY + plotHeight - barHeight;
 
             int plotPosX = plotX + spaceBetweenPoints * i;
 
-            // Color the lines based on their tick times (green to red)
+            // Color based on tick times (green to red)
             var c = getMillisecondColour(y / 1_000_000f);
-            //noinspection DataFlowIssue
-            float red = ((c.getColor() >> 16) & 0xFF) / 255f;
-            float green = ((c.getColor() >> 8) & 0xFF) / 255f;
-            float blue = (c.getColor() & 0xFF) / 255f;
+            int color = c.getColor() != null ? ARGB.opaque(c.getColor()) : -1;
 
-            bufferbuilder
-                    .addVertex(pose, (float) plotPosX, (float) plotPosY, getBlitOffsetGood())
-                    .setColor(red, green, blue, 1f);
+            graphics.fill(plotPosX, plotPosY, plotPosX + 1, plotY + plotHeight, color);
 
-            // Check if the mouse is hovering over this line
+            // Check if the mouse is hovering over this data point
             if (mx - leftPos >= plotPosX - spaceBetweenPoints / 2
                 && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
                 && my - topPos >= plotY - 2
@@ -802,7 +768,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                 mouseTickTimeIndex = i;
             }
         }
-        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
 
         // Draw the tick time text
         var format = new DecimalFormat("0.000");
@@ -826,19 +791,8 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             }
 
             // draw a vertical line
-            RenderSystem.setShader(GameRenderer::getPositionColorShader);
-            tesselator = Tesselator.getInstance();
-            bufferbuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-            pose = graphics.pose().last().pose();
-
             int x = plotX + spaceBetweenPoints * mouseTickTimeIndex;
-            bufferbuilder
-                    .addVertex(pose, (float) x, (float) plotY, getBlitOffsetGood())
-                    .setColor(1f, 1f, 1f, 1f);
-            bufferbuilder
-                    .addVertex(pose, (float) x, (float) plotY + plotHeight, getBlitOffsetGood())
-                    .setColor(1f, 1f, 1f, 1f);
-            BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+            graphics.fill(x, plotY, x + 1, plotY + plotHeight, ARGB.color(255, 255, 255, 255));
         } else {
             // Draw the tick time text for peak value
             var peakTickTimeMilliseconds = peakTickTime.toNanos() / 1_000_000f; // we want decimal precision
@@ -855,15 +809,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                     false
             );
         }
-
-        // Restore stuff
-        RenderSystem.disableBlend();
-        enableTexture();
-    }
-
-    @MCVersionDependentBehaviour
-    private void enableTexture() {
-//        RenderSystem.enableTexture(); // 1.19.2
     }
 
     @Override
@@ -909,14 +854,15 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             int my,
             float partialTicks
     ) {
+        int color;
         if (!menu.logLevel.equals(Level.OFF.name())) {
-            RenderSystem.setShaderColor(0.2f, 0.8f, 1f, 1f);
+            color = ARGB.color(255, (int)(0.2f * 255), (int)(0.8f * 255), 255);
         } else {
-            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            color = -1;
         }
         int i = (this.width - this.imageWidth) / 2;
         int j = (this.height - this.imageHeight) / 2;
-        graphics.blit(BACKGROUND_TEXTURE_LOCATION, i, j, 0, 0, this.imageWidth, this.imageHeight);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND_TEXTURE_LOCATION, i, j, 0, 0, this.imageWidth, this.imageHeight, 256, 256, color);
     }
 
 }
