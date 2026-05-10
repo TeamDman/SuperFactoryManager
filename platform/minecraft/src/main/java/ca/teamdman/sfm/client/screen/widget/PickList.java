@@ -2,18 +2,17 @@ package ca.teamdman.sfm.client.screen.widget;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
-import ca.teamdman.sfm.client.screen.SFMWidgetUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractScrollArea;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
 import org.simmetrics.StringDistance;
 import org.simmetrics.builders.StringDistanceBuilder;
 import org.simmetrics.metrics.StringDistances;
@@ -84,11 +83,17 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
     }
 
     @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        boolean scrolling = this.updateScrolling(event);
+        return super.mouseClicked(event, doubleClick) || scrolling;
+    }
+
+    @Override
     @MCVersionDependentBehaviour
     protected void updateWidgetNarration(NarrationElementOutput narration) {
         narration.add(NarratedElementType.TITLE, getMessage());
     }
-    
+
     @Override
     @MCVersionDependentBehaviour
     public void extractWidgetRenderState(
@@ -97,17 +102,23 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
             int pMouseY,
             float pPartialTick
     ) {
-        if (items.isEmpty()) return;
+        if (items.isEmpty() || !this.visible) return;
 
-        graphics.pose().pushMatrix();
         // Fixes https://github.com/TeamDman/SuperFactoryManager/issues/518
         // Adjust the Z-index such that the popup renders on top of the editor text
-        graphics.pose().translate(0.0F, 0.0F);
         graphics.nextStratum();
 
-//        super.extractWidgetRenderState(graphics, pMouseX, pMouseY, pPartialTick);
+        // Render background
+        graphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 0xAA000000);
 
+        graphics.enableScissor(this.getX() + 1, this.getY() + 1, this.getX() + this.width - 1, this.getY() + this.height - 1);
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(0.0F, (float) (-this.scrollAmount()));
+        this.extractContents(graphics, pMouseX, pMouseY, pPartialTick);
         graphics.pose().popMatrix();
+        graphics.disableScissor();
+
+        this.extractScrollbar(graphics, pMouseX, pMouseY);
     }
 
     public void selectPreviousWrapping() {
@@ -151,7 +162,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
         } else {
             this.setScrollAmount(
                     this.selectionIndex * this.getItemHeight()
-                    - this.height / 2.0f + this.getItemHeight()
+                            - this.height / 2.0f + this.getItemHeight()
             );
         }
     }
@@ -189,18 +200,17 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
         }
     }
 
-    @Override
-    protected int getInnerHeight() {
-        return getItemHeight() * items.size();
+    protected int innerPadding() {
+        return 4;
+    }
+
+    protected int totalInnerPadding() {
+        return this.innerPadding() * 2;
     }
 
     @Override
-    protected boolean scrollbarVisible() {
-        return this.items.size() > this.getDisplayableItemCount();
-    }
-
-    private double getDisplayableItemCount() {
-        return (double) (this.height - this.totalInnerPadding()) / (double) getItemHeight();
+    protected int contentHeight() {
+        return getItemHeight() * items.size() + totalInnerPadding();
     }
 
     @Override
@@ -214,44 +224,38 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
 
         // Calculate which items are visible in the current viewport
         int itemHeight = getItemHeight();
-        int startIndex = (int)(scrollAmount() / itemHeight);
-        int visibleCount = (int)Math.ceil((double)height / itemHeight) + 1;
+        int startIndex = (int) (scrollAmount() / itemHeight);
+        int visibleCount = (int) Math.ceil((double) height / itemHeight) + 1;
         int endIndex = Math.min(items.size(), startIndex + visibleCount);
 
-        // Only render the visible items
-        Matrix4f matrix4f = graphics.pose().last().pose();
-        var buffer = graphics.bufferSource();
-        int lineX = SFMWidgetUtils.getX(this) + this.innerPadding();
+        int lineX = this.getX() + this.innerPadding();
         Rect2i highlight = null;
 
         // Render only the visible subset of items
         for (int i = startIndex; i < endIndex; i++) {
             PickListItem item = items.get(i);
             // Calculate the y position based on the item's position in the full list
-            int lineY = SFMWidgetUtils.getY(this) + this.innerPadding() + (i * itemHeight);
+            int lineY = this.getY() + this.innerPadding() + (i * itemHeight);
 
-            SFMFontUtils.drawInBatch(
-                    item.getComponent(),
+            SFMFontUtils.draw(
+                    graphics,
                     this.font,
+                    item.getComponent(),
                     lineX,
                     lineY,
-                    true,
-                    false,
-                    matrix4f,
-                    buffer
+                    -1,
+                    true
             );
 
             if (i == this.selectionIndex) {
                 highlight = new Rect2i(
                         lineX,
                         lineY,
-                        this.width,
+                        this.width - this.totalInnerPadding(),
                         itemHeight
                 );
             }
         }
-
-        buffer.endBatch();
 
         if (highlight != null) {
             SFMScreenRenderUtils.renderHighlight(
