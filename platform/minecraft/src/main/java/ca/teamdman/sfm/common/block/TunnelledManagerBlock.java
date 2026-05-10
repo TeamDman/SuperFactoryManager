@@ -45,9 +45,6 @@ public class TunnelledManagerBlock extends ManagerBlock {
                 .create(pos, state);
     }
 
-
-@SuppressWarnings("deprecation")
-
     @Override
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(
             Level level,

@@ -6,15 +6,9 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import net.minecraft.core.Holder;
-import net.minecraft.network.chat.Component;
+import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
-
-import java.util.List;
-import java.util.function.Consumer;
 
 public class FormItem extends Item {
     @SFMLocalizationDatagen
@@ -23,9 +17,9 @@ public class FormItem extends Item {
             () -> "Printing Form"
     );
 
-    public FormItem() {
+    public FormItem(Properties properties) {
 
-        super(new Item.Properties());
+        super(properties);
     }
 
     public static ItemStack createFormFromReference(ItemStack stack) {
@@ -48,28 +42,16 @@ public class FormItem extends Item {
 
     @MCVersionDependentBehaviour
     public static ItemStack getBorrowedReferenceFromForm(ItemStack stack) {
-        return stack.getOrDefault(SFMDataComponents.FORM_REFERENCE, ItemStackBox.EMPTY).stack();
+        return getBorrowedReferenceFromForm((DataComponentGetter) stack);
+    }
+
+    public static ItemStack getBorrowedReferenceFromForm(DataComponentGetter components) {
+        return components.getOrDefault(SFMDataComponents.FORM_REFERENCE.get(), ItemStackBox.EMPTY).stack();
     }
 
     @MCVersionDependentBehaviour
     public static ItemStack getCopiedReferenceFromForm(ItemStack stack) {
         return getBorrowedReferenceFromForm(stack).copy();
-    }
-
-    @Override
-    public void appendHoverText(
-            ItemStack pStack,
-            TooltipContext pContext,
-            TooltipDisplay pTooltipDisplay,
-            Consumer<Component> pTooltipComponents,
-            TooltipFlag pTooltipFlag
-    ) {
-        var reference = getBorrowedReferenceFromForm(pStack);
-        if (!reference.isEmpty()) {
-            for (Component component : reference.getTooltipLines(pContext, null, pTooltipFlag)) {
-                pTooltipComponents.accept(component);
-            }
-        }
     }
 
 }

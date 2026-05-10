@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen.widget;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
+import ca.teamdman.sfm.client.screen.SFMWidgetUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -13,6 +14,7 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.simmetrics.StringDistance;
 import org.simmetrics.builders.StringDistanceBuilder;
 import org.simmetrics.metrics.StringDistances;
@@ -208,7 +210,8 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
         return this.innerPadding() * 2;
     }
 
-    @Override protected int contentHeight() {
+    @Override
+    protected int contentHeight() {
         return getItemHeight() * items.size() + totalInnerPadding();
     }
 

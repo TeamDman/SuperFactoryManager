@@ -4,15 +4,7 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
-
-import java.util.List;
-import java.util.function.Consumer;
 
 public class PrintingPressBlockItem extends BlockItem {
     @SFMLocalizationDatagen
@@ -21,21 +13,8 @@ public class PrintingPressBlockItem extends BlockItem {
             () -> "Place with an air gap below a downward facing piston. Extend the piston to use."
     );
 
-    public PrintingPressBlockItem() {
+    public PrintingPressBlockItem(Properties properties) {
 
-        super(SFMBlocks.PRINTING_PRESS.get(), new Properties());
+        super(SFMBlocks.PRINTING_PRESS.get(), properties);
     }
-
-    @Override
-    public void appendHoverText(
-            ItemStack pStack,
-            TooltipContext pContext,
-            TooltipDisplay pTooltipDisplay,
-            Consumer<Component> pTooltipComponents,
-            TooltipFlag pTooltipFlag
-    ) {
-        super.appendHoverText(pStack, pContext, pTooltipDisplay, pTooltipComponents, pTooltipFlag);
-        pTooltipComponents.accept(PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
-    }
-
 }

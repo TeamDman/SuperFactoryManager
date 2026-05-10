@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.component.ItemStackBox;
+import ca.teamdman.sfm.common.component.SFMTooltipProvider;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.item.NetworkToolItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -131,6 +132,16 @@ public class SFMDataComponents {
                     .<CompressedBlockPosSet>builder()
                     .networkSynchronized(CompressedBlockPosSet.STREAM_CODEC)
                     .persistent(CompressedBlockPosSet.CODEC)
+                    .cacheEncoding()
+                    .build()
+    );
+
+    public static final Supplier<DataComponentType<SFMTooltipProvider>> SFM_TOOLTIP = DATA_COMPONENT_TYPES.register(
+            "tooltip",
+            () -> DataComponentType
+                    .<SFMTooltipProvider>builder()
+                    .networkSynchronized(SFMTooltipProvider.STREAM_CODEC)
+                    .persistent(SFMTooltipProvider.CODEC)
                     .cacheEncoding()
                     .build()
     );

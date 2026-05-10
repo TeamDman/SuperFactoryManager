@@ -11,6 +11,7 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
@@ -122,15 +123,16 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
         // TODO: make this return an immutable copy instead of mutably borrowing the cache entry
         return CACHE.computeIfAbsent(
                 stack,
-                s -> {
-                    LabelPositionHolder immutableLabelPositionHolder = stack.get(SFMDataComponents.LABEL_POSITION_HOLDER);
-                    if (immutableLabelPositionHolder == null) {
-                        return new LabelPositionHolder();
-                    }
-                    return new LabelPositionHolder(immutableLabelPositionHolder);
-                }
-
+                s -> from((DataComponentGetter) stack)
         );
+    }
+
+    public static LabelPositionHolder from(DataComponentGetter components) {
+        LabelPositionHolder immutableLabelPositionHolder = components.get(SFMDataComponents.LABEL_POSITION_HOLDER.get());
+        if (immutableLabelPositionHolder == null) {
+            return new LabelPositionHolder();
+        }
+        return new LabelPositionHolder(immutableLabelPositionHolder);
     }
 
     public static LabelPositionHolder empty() {

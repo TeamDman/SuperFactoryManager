@@ -10,12 +10,9 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
 import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
-import ca.teamdman.sfm.common.util.SFMItemUtils;
 import com.mojang.serialization.Codec;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.Options;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -26,17 +23,13 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.Locale;
-import java.util.function.Consumer;
 import java.util.function.IntFunction;
 
 public class LabelGunItem extends Item {
@@ -249,86 +242,6 @@ public class LabelGunItem extends Item {
             return InteractionResult.SUCCESS;
         }
         return InteractionResult.CONSUME;
-    }
-
-    @Override
-    public void appendHoverText(
-            ItemStack stack,
-            TooltipContext context,
-            TooltipDisplay tooltipDisplay,
-            Consumer<Component> tooltipAdder,
-            TooltipFlag detail
-    ) {
-        if (SFMItemUtils.isClientAndMoreInfoKeyPressed()) {
-            Options options = Minecraft.getInstance().options;
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(options.keyUse)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_CLEAR_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY),
-                            SFMKeyMappings.getKeyDisplay(options.keyUse)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_PULL_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY),
-                            SFMKeyMappings.getKeyDisplay(options.keyUse)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_PUSH_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(options.keyUse)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_TARGET_MANAGER_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_TARGET_MANAGER_MODIFIER_KEY),
-                            SFMKeyMappings.getKeyDisplay(options.keyUse)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_CONTIGUOUS_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_CONTIGUOUS_MODIFIER_KEY)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_PICK_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PICK_BLOCK_MODIFIER_KEY),
-                            SFMKeyMappings.getKeyDisplay(options.keyUse)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_NEXT_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_NEXT_LABEL_KEY)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_PREVIOUS_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PREVIOUS_LABEL_KEY)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_SCROLL_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_SCROLL_MODIFIER_KEY)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_CYCLE_VIEW_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.CYCLE_LABEL_VIEW_KEY)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-            tooltipAdder.accept(
-                    LABEL_GUN_ITEM_TOOLTIP_GUI_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(options.keyUse)
-                    ).withStyle(ChatFormatting.GRAY)
-            );
-        } else {
-            SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(tooltipAdder);
-            LabelPositionHolder.from(stack).asHoverText().forEach(tooltipAdder);
-        }
     }
 
     @Override

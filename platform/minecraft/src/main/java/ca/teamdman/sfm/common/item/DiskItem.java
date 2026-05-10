@@ -3,7 +3,6 @@ package ca.teamdman.sfm.common.item;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
-import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
@@ -14,10 +13,10 @@ import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
-import ca.teamdman.sfm.common.util.SFMItemUtils;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -27,8 +26,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class DiskItem extends Item {
@@ -71,14 +67,14 @@ public class DiskItem extends Item {
             "Compiling program from disk."
     );
 
-    public DiskItem() {
+    public DiskItem(Properties properties) {
 
-        super(new Item.Properties());
+        super(properties);
     }
 
     public static String getProgramString(ItemStack stack) {
 
-        return stack.getOrDefault(SFMDataComponents.PROGRAM_STRING, "");
+        return stack.getOrDefault(SFMDataComponents.PROGRAM_STRING.get(), "");
     }
 
     public static void setProgram(
@@ -87,7 +83,7 @@ public class DiskItem extends Item {
     ) {
 
         programString = programString.replaceAll("\r", "");
-        stack.set(SFMDataComponents.PROGRAM_STRING, programString);
+        stack.set(SFMDataComponents.PROGRAM_STRING.get(), programString);
     }
 
     public static void pruneIfDefault(ItemStack stack) {
@@ -162,9 +158,9 @@ public class DiskItem extends Item {
         return rtn.get();
     }
 
-    public static List<Component> getErrors(ItemStack stack) {
+    public static List<Component> getErrors(DataComponentGetter components) {
 
-        return stack.getOrDefault(SFMDataComponents.PROGRAM_ERRORS, Collections.emptyList());
+        return components.getOrDefault(SFMDataComponents.PROGRAM_ERRORS.get(), Collections.emptyList());
     }
 
     public static void setErrors(
@@ -173,16 +169,16 @@ public class DiskItem extends Item {
     ) {
 
         stack.set(
-                SFMDataComponents.PROGRAM_ERRORS, errors
+                SFMDataComponents.PROGRAM_ERRORS.get(), errors
                         .stream()
                         .map(MutableComponent::create)
                         .collect(Collectors.toList())
         );
     }
 
-    public static List<Component> getWarnings(ItemStack stack) {
+    public static List<Component> getWarnings(DataComponentGetter components) {
 
-        return stack.getOrDefault(SFMDataComponents.PROGRAM_WARNINGS, Collections.emptyList());
+        return components.getOrDefault(SFMDataComponents.PROGRAM_WARNINGS.get(), Collections.emptyList());
     }
 
     public static void rebuildWarnings(
@@ -224,9 +220,9 @@ public class DiskItem extends Item {
         }
     }
 
-    public static String getProgramName(ItemStack stack) {
+    public static String getProgramName(DataComponentGetter components) {
 
-        return stack.getOrDefault(DataComponents.ITEM_NAME, Component.empty()).getString();
+        return components.getOrDefault(DataComponents.ITEM_NAME, Component.empty()).getString();
     }
 
     @Override
@@ -260,43 +256,6 @@ public class DiskItem extends Item {
         var name = getProgramName(stack);
         if (name.isEmpty()) return super.getName(stack);
         return Component.literal(name).withStyle(ChatFormatting.AQUA);
-    }
-
-    @Override
-    public void appendHoverText(
-            ItemStack stack,
-            TooltipContext context,
-            TooltipDisplay tooltipDisplay,
-            Consumer<Component> tooltipAdder,
-            TooltipFlag detail
-    ) {
-        String program = DiskItem.getProgramString(stack);
-        if (SFMItemUtils.isClientAndMoreInfoKeyPressed() && !program.isEmpty()) {
-            tooltipAdder.accept(SFMItemUtils.getRainbow(getName(stack).getString().length()));
-            ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false)
-                    .forEach(tooltipAdder);
-        } else {
-            LabelPositionHolder.from(stack).asHoverText()
-                    .forEach(tooltipAdder);
-            getErrors(stack)
-                    .stream()
-                    .map(Component::copy)
-                    .map(line -> line.withStyle(ChatFormatting.RED))
-                    .forEach(tooltipAdder);
-            getWarnings(stack)
-                    .stream()
-                    .map(Component::copy)
-                    .map(line -> line.withStyle(ChatFormatting.YELLOW))
-                    .forEach(tooltipAdder);
-            if (!program.isEmpty()) {
-                SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(tooltipAdder);
-            }
-        }
-        if (!program.isEmpty()) {
-            tooltipAdder.accept(
-                    DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY)
-            );
-        }
     }
 
 }

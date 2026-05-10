@@ -96,6 +96,7 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
         WaterNetworkManager.onWaterTankBlockRemoved(pLevel, pPos);
     }
 
+
     @Override
     protected MapCodec<WaterTankBlock> codec() {
         throw new NotImplementedException("This isn't used until 1.20.5 apparently");

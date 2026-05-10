@@ -36,9 +36,7 @@ public class DiskItemClientsideRegressionGameTest extends SFMGameTestDefinition 
         stack.getDisplayName();
         stack.getHoverName();
         stack.getItem().getName(stack);
-        stack
-                .getItem()
-                .appendHoverText(stack, Item.TooltipContext.EMPTY, new ArrayList<>(), TooltipFlag.Default.NORMAL);
+        stack.getTooltipLines(Item.TooltipContext.EMPTY, null, TooltipFlag.Default.NORMAL);
         Vec3 pos = helper.absoluteVec(new Vec3(0.5, 2, 0.5));
         ItemEntity itemEntity = new ItemEntity(helper.getLevel(), pos.x, pos.y, pos.z, stack, 0, 0, 0);
         helper.getLevel().addFreshEntity(itemEntity);

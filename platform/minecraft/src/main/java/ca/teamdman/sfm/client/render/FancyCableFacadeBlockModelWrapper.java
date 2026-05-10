@@ -8,17 +8,19 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
-import net.minecraft.util.TriState;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.neoforged.neoforge.client.model.quad.MutableQuad;
 import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
+import net.neoforged.neoforge.client.model.quad.MutableQuad;
 import net.neoforged.neoforge.model.data.ModelData;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,18 +91,13 @@ public class FancyCableFacadeBlockModelWrapper extends DelegateBlockStateModel {
         }
 
         @Override
-        public TriState ambientOcclusion() {
-            return this.delegate.ambientOcclusion();
-        }
-
-        @Override
         public boolean useAmbientOcclusion() {
             return this.delegate.useAmbientOcclusion();
         }
 
         @Override
         public Material.Baked particleMaterial() {
-            return material;
+            return this.delegate.particleMaterial();
         }
 
         @Override
