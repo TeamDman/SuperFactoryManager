@@ -311,8 +311,8 @@ dependencies {
     implementation "mezz.jei:jei-26.1.2-neoforge:29.5.0.26"
 
     //implementation "curse.maven:mekanism-268560:5656332" // Mekanism-1.21.1-10.7.4.60.jar
-    compileOnly "mekanism:Mekanism:26.1.2-10.8.0.86"
-    implementation "mekanism:Mekanism:26.1.2-10.8.0.86:api"
+    compileOnly "mekanism:Mekanism:1.21.1-10.7.18.84"
+    implementation "mekanism:Mekanism:1.21.1-10.7.18.84:api"
 
     //implementation "curse.maven:spark-361579:5759671" // spark-1.10.109-neoforge.jar
 
