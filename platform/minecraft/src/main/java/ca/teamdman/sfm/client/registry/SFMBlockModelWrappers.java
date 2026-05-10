@@ -9,7 +9,6 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMDist;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.event.ModelEvent;
@@ -24,7 +23,7 @@ public class SFMBlockModelWrappers {
         record FacadeModelRelationship(
                 SFMRegistryObject<Block, ?> facadeBlock,
 
-                Function<BlockStateModel, BakedModelWrapper<BlockStateModel>> modelWrapperConstructor
+                Function<BlockStateModel, BlockStateModel> modelWrapperConstructor
         ) {
         }
 
@@ -68,12 +67,9 @@ public class SFMBlockModelWrappers {
 
             // Apply the model redirection for each state
             for (BlockState state : possibleStates) {
-                // Get the default model location for the state
-                Identifier stateModelLocation = BlockModelShaper.stateToModelLocation(state);
-
                 models.computeIfPresent(
-                        stateModelLocation,
-                        (_location, model) -> relationship.modelWrapperConstructor().apply(model)
+                        state,
+                        (_state, model) -> relationship.modelWrapperConstructor().apply(model)
                 );
             }
         }
