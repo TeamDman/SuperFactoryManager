@@ -1,87 +1,93 @@
 package ca.teamdman.sfm.client.render;
 
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
-import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.item.FormItem;
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.serialization.MapCodec;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.special.NoDataSpecialModelRenderer;
+import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.special.SpecialModelRenderer;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Vector3fc;
 
 import java.util.function.Consumer;
 
-public class FormItemRenderer implements NoDataSpecialModelRenderer {
+@OnlyIn(Dist.CLIENT)
+public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.Data> {
 
-    private static final Identifier BASE_MODEL = SFMResourceLocation.fromSFMPath("item/form_base");
+    private static final Identifier BASE_MODEL_ID = SFMResourceLocation.fromSFMPath("item/form_base");
+    private final ItemModelResolver itemModelResolver;
 
-    public FormItemRenderer() {
-        super(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
+    public FormItemRenderer(ItemModelResolver itemModelResolver) {
+        this.itemModelResolver = itemModelResolver;
     }
 
-    @SFMSubscribeEvent(value = SFMDist.CLIENT)
-    public static void registerModels(ModelEvent.ModifyBakingResult event) {
-        event.register(BASE_MODEL);
-    }
-
-    // Thanks Shadows
-    // https://github.com/Shadows-of-Fire/Hostile-Neural-Networks/blob/1.18/src/main/java/shadows/hostilenetworks/client/DataModelItemStackRenderer.java#L71
-    // https://discord.com/channels/313125603924639766/915304642668290119/1029330876208795758
     @Override
-    public void renderByItem(
-            ItemStack stack,
-            @MCVersionDependentBehaviour ItemDisplayContext transformType,
+    public void submit(
+            Data data,
             PoseStack poseStack,
-            MultiBufferSource multiBuffer,
-            int packedLight,
-            int packedOverlay
+            SubmitNodeCollector submitNodeCollector,
+            int lightCoords,
+            int overlayCoords,
+            boolean hasFoil,
+            int outlineColor
     ) {
-        if (!(stack.getItem() instanceof FormItem)) return;
-        var renderer = Minecraft.getInstance().getItemRenderer();
-        var baseModel = renderer.getItemModelShaper().getModelManager().getModel(BASE_MODEL);
-        @SuppressWarnings("deprecation")
-        var renderType = ItemBlockRenderTypes.getRenderType(stack, true);
-        var buffer = ItemRenderer.getFoilBufferDirect(multiBuffer, renderType, true, stack.hasFoil());
         poseStack.pushPose();
 
-        if (transformType != ItemDisplayContext.FIXED && transformType != ItemDisplayContext.GUI) {
-            poseStack.scale(0.5F, 0.5F, 1F);
-            poseStack.translate(0.5, 0.5, 0);
-//            poseStack.mulPose(Vector3f.YP.rotationDegrees(-65));
-        }
-
-        if (SFMKeyMappings.isKeyDown(SFMKeyMappings.MORE_INFO_TOOLTIP_KEY)) {
+        if (data.showReference && !data.referenceState.isEmpty()) {
             poseStack.pushPose();
             poseStack.translate(0, 0.5f, 0.3f);
             poseStack.scale(0.5f, 0.5f, 0.5f);
-            renderer.renderModelLists(baseModel, stack, packedLight, packedOverlay, poseStack, buffer);
+
+            data.baseState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
             poseStack.popPose();
 
-            var reference = FormItem.getBorrowedReferenceFromForm(stack);
-            if (!reference.isEmpty()) {
-                var model = renderer.getItemModelShaper().getItemModel(reference.getItem());
-                if (model != null) {
-                    renderer.renderModelLists(model, stack, packedLight, packedOverlay, poseStack, buffer);
-                }
-            }
+            data.referenceState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
         } else {
-            renderer.renderModelLists(baseModel, stack, packedLight, packedOverlay, poseStack, buffer);
+            data.baseState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
         }
 
         poseStack.popPose();
     }
 
-    public record Unbaked() implements SpecialModelRenderer.Unbaked {
+    @Override
+    public void getExtents(Consumer<Vector3fc> output) {
+        // Base model extents could be retrieved here if we had a persistent baseState
+    }
+
+    @Override
+    public Data extractArgument(ItemStack stack) {
+        if (!(stack.getItem() instanceof FormItem)) return null;
+
+        ItemStack reference = FormItem.getBorrowedReferenceFromForm(stack);
+        ItemStackRenderState referenceState = new ItemStackRenderState();
+        if (!reference.isEmpty()) {
+            this.itemModelResolver.updateForTopItem(referenceState, reference, ItemDisplayContext.NONE, null, null, 0);
+        }
+
+        ItemStackRenderState baseState = new ItemStackRenderState();
+        ItemStack baseStack = stack.copy();
+        baseStack.set(DataComponents.ITEM_MODEL, BASE_MODEL_ID);
+        this.itemModelResolver.updateForTopItem(baseState, baseStack, ItemDisplayContext.NONE, null, null, 0);
+
+        return new Data(
+                referenceState,
+                baseState,
+                SFMKeyMappings.isKeyDown(SFMKeyMappings.MORE_INFO_TOOLTIP_KEY)
+        );
+    }
+
+    public record Data(ItemStackRenderState referenceState, ItemStackRenderState baseState, boolean showReference) {}
+
+    @OnlyIn(Dist.CLIENT)
+    public record Unbaked() implements SpecialModelRenderer.Unbaked<Data> {
 
         public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());
 
@@ -91,8 +97,8 @@ public class FormItemRenderer implements NoDataSpecialModelRenderer {
         }
 
         @Override
-        public SpecialModelRenderer<?> bake(SpecialModelRenderer.BakingContext ctx) {
-            return new FormItemRenderer();
+        public SpecialModelRenderer<Data> bake(SpecialModelRenderer.BakingContext ctx) {
+            return new FormItemRenderer(net.minecraft.client.Minecraft.getInstance().getItemModelResolver());
         }
     }
 }

@@ -12,6 +12,7 @@ import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
+import net.minecraft.util.TriState;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
 import net.neoforged.neoforge.model.data.ModelData;
@@ -62,7 +63,46 @@ public class FancyCableFacadeBlockModelWrapper extends DelegateBlockStateModel {
         Material.Baked material = particleMaterial(level, pos, mimicState);
 
         for (BlockStateModelPart originalPart : originalParts) {
-            parts.add(new RetexturedBakedQuad.RetexturedBlockStateModelPart(originalPart, material));
+            parts.add(new RetexturedBlockStateModelPart(originalPart, material));
+        }
+    }
+
+    private record RetexturedBlockStateModelPart(
+            BlockStateModelPart delegate,
+            Material.Baked material
+    ) implements BlockStateModelPart {
+
+        @Override
+        public List<BakedQuad> getQuads(@Nullable Direction direction) {
+            List<BakedQuad> original = this.delegate.getQuads(direction);
+            List<BakedQuad> result = new ArrayList<>(original.size());
+            for (BakedQuad quad : original) {
+                MutableQuad mutable = new MutableQuad();
+                mutable.setFrom(quad);
+                mutable.setSpriteAndMoveUv(material);
+                result.add(mutable.toBakedQuad());
+            }
+            return result;
+        }
+
+        @Override
+        public TriState ambientOcclusion() {
+            return this.delegate.ambientOcclusion();
+        }
+
+        @Override
+        public boolean useAmbientOcclusion() {
+            return this.delegate.useAmbientOcclusion();
+        }
+
+        @Override
+        public Material.Baked particleMaterial() {
+            return material;
+        }
+
+        @Override
+        public int materialFlags() {
+            return this.delegate.materialFlags();
         }
     }
 }

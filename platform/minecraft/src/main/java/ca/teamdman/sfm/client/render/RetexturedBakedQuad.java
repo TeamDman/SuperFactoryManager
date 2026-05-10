@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.render;
 
+
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
@@ -8,8 +9,8 @@ import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
+import net.minecraft.util.TriState;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
 import net.neoforged.neoforge.client.model.quad.MutableQuad;
 import org.jspecify.annotations.Nullable;
 
@@ -28,22 +29,33 @@ import java.util.List;
 // The license can be found at:
 // https://github.com/CoFH/CoFHCore/blob/dcd7bd6703418ee2e8eb2185957de83925fa89fe/README.md
 // Their don't-be-a-jerk license is compatible as far as I can tell, thanks CoFH <3
-public class RetexturedBakedQuad extends DelegateBlockStateModel {
+public class RetexturedBakedQuad implements BlockStateModel {
 
-    private final Material.Baked texture;
+    private final BlockStateModel wrapped;
+    private final Material.Baked   texture;
 
     public RetexturedBakedQuad(BlockStateModel wrapped, Material.Baked texture) {
-        super(wrapped);
+        this.wrapped = wrapped;
         this.texture = texture;
     }
 
     @Override
-    public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random, List<BlockStateModelPart> parts) {
-        List<BlockStateModelPart> originalParts = new ArrayList<>();
-        this.delegate.collectParts(level, pos, state, random, originalParts);
-        for (BlockStateModelPart originalPart : originalParts) {
-            parts.add(new RetexturedBlockStateModelPart(originalPart, texture));
+    public void collectParts(RandomSource random, List<BlockStateModelPart> output) {
+        // Deprecated but still in interface
+    }
+
+    @Override
+    public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random, List<BlockStateModelPart> output) {
+        List<BlockStateModelPart> parts = new ArrayList<>();
+        wrapped.collectParts(level, pos, state, random, parts);
+        for (BlockStateModelPart part : parts) {
+            output.add(new RetexturedBlockStateModelPart(part, texture));
         }
+    }
+
+    @Override
+    public Material.Baked particleMaterial() {
+        return texture;
     }
 
     @Override
@@ -51,17 +63,17 @@ public class RetexturedBakedQuad extends DelegateBlockStateModel {
         return texture;
     }
 
-    /**
-     * Utility method to retexture a single BakedQuad.
-     */
-    public static BakedQuad retexture(BakedQuad quad, Material.Baked material) {
-        MutableQuad mutable = new MutableQuad();
-        mutable.setFrom(quad);
-        mutable.setSpriteAndMoveUv(material);
-        return mutable.toBakedQuad();
+    @Override
+    public int materialFlags() {
+        return wrapped.materialFlags();
     }
 
-    public record RetexturedBlockStateModelPart(
+    @Override
+    public int materialFlags(BlockAndTintGetter level, BlockPos pos, BlockState state) {
+        return wrapped.materialFlags(level, pos, state);
+    }
+
+    private record RetexturedBlockStateModelPart(
             BlockStateModelPart delegate,
             Material.Baked material
     ) implements BlockStateModelPart {
@@ -69,11 +81,19 @@ public class RetexturedBakedQuad extends DelegateBlockStateModel {
         @Override
         public List<BakedQuad> getQuads(@Nullable Direction direction) {
             List<BakedQuad> original = this.delegate.getQuads(direction);
-            List<BakedQuad> result = new ArrayList<>(original.size());
+            List<BakedQuad> result   = new ArrayList<>(original.size());
             for (BakedQuad quad : original) {
-                result.add(retexture(quad, material));
+                MutableQuad mutable = new MutableQuad();
+                mutable.setFrom(quad);
+                mutable.setSpriteAndMoveUv(material);
+                result.add(mutable.toBakedQuad());
             }
             return result;
+        }
+
+        @Override
+        public TriState ambientOcclusion() {
+            return this.delegate.ambientOcclusion();
         }
 
         @Override
