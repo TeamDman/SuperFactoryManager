@@ -17,11 +17,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A BlockStateModel wrapper that replaces the texture of all its quads.
+ * Revived from 1.14
  *
- * @author Mojang (Original)
- * @author TeamDman (1.21 Port)
+ * @author Mojang
+ * Thanks tterrag!
+ *
  */
+// The original file can be found at:
+// https://github.com/CoFH/CoFHCore/blob/dcd7bd6703418ee2e8eb2185957de83925fa89fe/src/main/java/cofh/lib/client/renderer/block/model/RetexturedBakedQuad.java
+// The license can be found at:
+// https://github.com/CoFH/CoFHCore/blob/dcd7bd6703418ee2e8eb2185957de83925fa89fe/README.md
+// Their don't-be-a-jerk license is compatible as far as I can tell, thanks CoFH <3
 public class RetexturedBakedQuad extends DelegateBlockStateModel {
 
     private final Material.Baked texture;
