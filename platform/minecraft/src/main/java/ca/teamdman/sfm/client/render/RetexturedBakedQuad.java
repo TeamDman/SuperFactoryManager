@@ -17,6 +17,18 @@ import org.jspecify.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Revived from 1.14
+ *
+ * @author Mojang
+ * Thanks tterrag!
+ *
+ */
+// The original file can be found at:
+// https://github.com/CoFH/CoFHCore/blob/dcd7bd6703418ee2e8eb2185957de83925fa89fe/src/main/java/cofh/lib/client/renderer/block/model/RetexturedBakedQuad.java
+// The license can be found at:
+// https://github.com/CoFH/CoFHCore/blob/dcd7bd6703418ee2e8eb2185957de83925fa89fe/README.md
+// Their don't-be-a-jerk license is compatible as far as I can tell, thanks CoFH <3
 public class RetexturedBakedQuad implements BlockStateModel {
 
     private final BlockStateModel wrapped;
