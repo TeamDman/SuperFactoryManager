@@ -14,6 +14,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.IEventBus;
 
+import java.util.function.Supplier;
+
 public class SFMItems {
     public static final SFMDeferredRegister<Item> REGISTERER = new SFMDeferredRegisterBuilder<Item>()
             .namespace(SFM.MOD_ID)
@@ -27,7 +29,7 @@ public class SFMItems {
             = register(
             "tunnelled_manager",
             SFMBlocks.TUNNELLED_MANAGER,
-            new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_MANAGER))
+            () -> new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_MANAGER))
     );
 
     public static final SFMRegistryObject<Item, BlockItem> CABLE
@@ -39,53 +41,62 @@ public class SFMItems {
             SFMBlocks.FANCY_CABLE
     );
 
-    public static final SFMRegistryObject<Item, BlockItem> TOUGH_CABLE = register(
+    public static final SFMRegistryObject<Item, BlockItem> TOUGH_CABLE =
+            register(
             "tough_cable",
             SFMBlocks.TOUGH_CABLE,
-            new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TOUGH_CABLE))
+            () -> new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TOUGH_CABLE))
     );
 
-    public static final SFMRegistryObject<Item, BlockItem> TOUGH_FANCY_CABLE = register(
+    public static final SFMRegistryObject<Item, BlockItem> TOUGH_FANCY_CABLE =
+            register(
             "tough_fancy_cable",
-            SFMBlocks.TOUGH_FANCY_CABLE,
-            new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TOUGH_CABLE))
+            SFMBlocks.TOUGH_FANCY_CABLE
     );
 
-    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_CABLE = register(
+    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_CABLE =
+            register(
             "tunnelled_cable",
             SFMBlocks.TUNNELLED_CABLE,
-            new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_CABLE))
+            () -> new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_CABLE))
     );
 
-    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_FANCY_CABLE = register(
+    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_FANCY_CABLE =
+            register(
             "tunnelled_fancy_cable",
-            SFMBlocks.TUNNELLED_FANCY_CABLE,
-            new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_CABLE))
+            SFMBlocks.TUNNELLED_FANCY_CABLE
     );
 
     public static final SFMRegistryObject<Item, PrintingPressBlockItem> PRINTING_PRESS
             = REGISTERER.register(
             "printing_press",
-            () -> new PrintingPressBlockItem(new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.PRINTING_PRESS)))
+            () -> new PrintingPressBlockItem(
+                    new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.PRINTING_PRESS))
+            )
     );
 
     public static final SFMRegistryObject<Item, BlockItem> WATER_TANK
             = register(
             "water_tank",
             SFMBlocks.WATER_TANK,
-            new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.WATER_TANK))
+            () -> new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.WATER_TANK))
     );
 
     public static final SFMRegistryObject<Item, DiskItem> DISK
-            = REGISTERER.register("disk", () -> new DiskItem(new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.DISK))));
+            = REGISTERER.register(
+                    "disk",
+            () -> new DiskItem(
+                    new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.DISK))
+            )
+    );
 
     public static final SFMRegistryObject<Item, LabelGunItem> LABEL_GUN
             = REGISTERER.register(
             "labelgun",
             () -> new LabelGunItem(
                     new Item.Properties()
-                            .stacksTo(1)
                             .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.LABEL_GUN))
+                            .stacksTo(1)
 
             )
     );
@@ -93,11 +104,18 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, NetworkToolItem> NETWORK_TOOL
             = REGISTERER.register(
             "network_tool",
-            () -> new NetworkToolItem(new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.NETWORK_TOOL)))
+            () -> new NetworkToolItem(
+                    new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.NETWORK_TOOL))
+            )
     );
 
     public static final SFMRegistryObject<Item, FormItem> FORM
-            = REGISTERER.register("form", () -> new FormItem(new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.FORM))));
+            = REGISTERER.register(
+            "form",
+            () -> new FormItem(
+                    new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.FORM))
+            )
+    );
 
     public static final SFMRegistryObject<Item, ExperienceShardItem> EXPERIENCE_SHARD
             = REGISTERER.register(
@@ -140,6 +158,18 @@ public class SFMItems {
         return REGISTERER.register(
                 name,
                 () -> new BlockItem(block.get(), properties)
+        );
+    }
+
+    private static SFMRegistryObject<Item, BlockItem> register(
+            String name,
+            SFMRegistryObject<Block, ? extends Block> block,
+            Supplier<Item.Properties> properties
+    ) {
+
+        return REGISTERER.register(
+                name,
+                () -> new BlockItem(block.get(), properties.get())
         );
     }
 
