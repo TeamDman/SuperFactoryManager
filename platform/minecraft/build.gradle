@@ -320,7 +320,7 @@ dependencies {
     //implementation "curse.maven:zerocore-247921:6648746" // ZeroCore2-1.21.1-2.4.18.jar
 
 
-    implementation 'org.appliedenergistics:appliedenergistics2:26.1.5-alpha'
+    implementation 'org.appliedenergistics:appliedenergistics2:26.1.8-alpha'
     //compileOnly "org.appliedenergistics:appliedenergistics2:19.2.15:api"
 
     //implementation "curse.maven:building-gadgets-298187:6850515"
