@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen.text_editor;
 
+import org.joml.Matrix3x2fStack;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.ProgramTokenContextActions;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
@@ -39,7 +41,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
+
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -821,7 +823,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 float partialTicks
         ) {
 
-            Matrix4f matrix4f = graphics.pose().last().pose();
+            Matrix3x2fStack matrixStack = graphics.pose();
 
             // rebuild the program if necessary
             if (!lastProgram.equals(this.textField.value())) {
@@ -896,7 +898,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                             lineY,
                             true,
                             false,
-                            matrix4f,
+                            matrixStack,
                             buffer
                     );
                 }
@@ -915,7 +917,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                             lineY,
                             true,
                             false,
-                            matrix4f,
+                            matrixStack,
                             buffer
                     );
                     SFMTextEditScreenV1.this.suggestedActions.setXY(cursorX + 10, cursorY);
@@ -927,7 +929,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                             lineY,
                             true,
                             false,
-                            matrix4f,
+                            matrixStack,
                             buffer
                     );
                     drewCursorGlyph = isCursorVisible;
@@ -939,7 +941,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                             lineY,
                             true,
                             false,
-                            matrix4f,
+                            matrixStack,
                             buffer
                     );
                 }

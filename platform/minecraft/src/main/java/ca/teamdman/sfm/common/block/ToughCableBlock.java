@@ -32,20 +32,6 @@ public class ToughCableBlock extends CableBlock {
     }
 
     @Override
-    public void appendHoverText(
-            ItemStack stack,
-            Item.TooltipContext context,
-            TooltipDisplay tooltipDisplay,
-            Consumer<Component> pTooltip,
-            TooltipFlag detail
-    ) {
-
-        pTooltip.accept(TOUGH_CABLE_ITEM_TOOLTIP
-                             .getComponent()
-                             .withStyle(ChatFormatting.GRAY));
-    }
-
-    @Override
     public IFacadableBlock getNonFacadeBlock() {
 
         return SFMBlocks.TOUGH_CABLE.get();

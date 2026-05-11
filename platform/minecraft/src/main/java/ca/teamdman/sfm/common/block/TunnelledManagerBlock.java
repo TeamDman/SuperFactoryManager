@@ -45,19 +45,8 @@ public class TunnelledManagerBlock extends ManagerBlock {
                 .create(pos, state);
     }
 
-    @Override
-    public void appendHoverText(
-            ItemStack stack,
-            Item.TooltipContext context,
-            TooltipDisplay tooltipDisplay,
-            Consumer<Component> pTooltip,
-            TooltipFlag detail
-    ) {
 
-        pTooltip.accept(TUNNELLED_MANAGER_ITEM_TOOLTIP
-                             .getComponent()
-                             .withStyle(ChatFormatting.GRAY));
-    }
+@SuppressWarnings("deprecation")
 
     @Override
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(

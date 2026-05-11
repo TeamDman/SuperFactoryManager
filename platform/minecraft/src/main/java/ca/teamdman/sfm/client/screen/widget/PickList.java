@@ -208,12 +208,11 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
         return this.innerPadding() * 2;
     }
 
-    @Override
-    protected int contentHeight() {
+    @Override protected int contentHeight() {
         return getItemHeight() * items.size() + totalInnerPadding();
     }
 
-    @Override
+
     protected void extractContents(
             GuiGraphicsExtractor graphics,
             int mx,

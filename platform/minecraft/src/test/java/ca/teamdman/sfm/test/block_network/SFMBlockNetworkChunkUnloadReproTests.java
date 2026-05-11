@@ -55,7 +55,7 @@ public class SFMBlockNetworkChunkUnloadReproTests {
         assertNotNull(blockNetworkManager.getNetwork(testLevel, cablePosChunk1));
 
         // Simulate unloading the chunk that contains x=16.
-        blockNetworkManager.purgeChunk(testLevel, new ChunkPos(cablePosChunk1));
+        blockNetworkManager.purgeChunk(testLevel, new ChunkPos(cablePosChunk1.getX() >> 4, cablePosChunk1.getZ() >> 4));
 
         assertEquals(2, network.size());
         assertFalse(network.containsBlockPos(cablePosChunk1));

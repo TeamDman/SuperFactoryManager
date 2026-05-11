@@ -13,8 +13,9 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import net.minecraft.client.Minecraft;
 import org.joml.Matrix3x2fStack;
-import org.joml.Matrix4f;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -130,12 +131,12 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
         final int selectionEnd = selected.endIndex();
 
         // One buffer for the entire text pass
-        MultiBufferSource.BufferSource buffer = pGuiGraphics.bufferSource();
+        MultiBufferSource.BufferSource buffer = Minecraft.getInstance().renderBuffers().bufferSource();
 
         // Collect selection highlights rects and draw them after the text
         List<int[]> highlightRects = new ArrayList<>();
 
-        Matrix4f matrix4f = pPoseStack.last().pose();
+        Matrix3x2fStack matrixStack = pPoseStack;
 
         for (int line = viewLineIndexStart; line < viewLineIndexEnd; ++line) {
             var componentColoured = styledTextContentLines.get(line);
@@ -156,7 +157,7 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
                         lineY,
                         true,
                         false,
-                        matrix4f,
+                        matrixStack,
                         buffer
                 );
             }
@@ -175,7 +176,7 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
                         lineY,
                         true,
                         false,
-                        matrix4f,
+                        matrixStack,
                         buffer
                 );
 
@@ -187,7 +188,7 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
                         lineY,
                         true,
                         false,
-                        matrix4f,
+                        matrixStack,
                         buffer
                 );
                 drewCursorGlyph = true;
@@ -199,7 +200,7 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
                         lineY,
                         true,
                         false,
-                        matrix4f,
+                        matrixStack,
                         buffer
                 );
             }

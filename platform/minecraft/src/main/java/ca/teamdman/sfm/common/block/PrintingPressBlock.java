@@ -80,7 +80,7 @@ public class PrintingPressBlock extends BaseEntityBlock implements EntityBlock {
     }
 
 /*    @Override
-    protected void neighborChanged(
+    public void neighborChanged(
             BlockState pState,
             Level pLevel,
             BlockPos pPos,

@@ -41,20 +41,6 @@ public class TunnelledFancyCableBlock extends FancyCableBlock implements EntityB
     }
 
     @Override
-    public void appendHoverText(
-            ItemStack stack,
-            Item.TooltipContext context,
-            TooltipDisplay tooltipDisplay,
-            Consumer<Component> pTooltip,
-            TooltipFlag detail
-    ) {
-
-        pTooltip.accept(TunnelledCableBlock.TUNNELLED_CABLE_ITEM_TOOLTIP
-                             .getComponent()
-                             .withStyle(ChatFormatting.GRAY));
-    }
-
-    @Override
     public IFacadableBlock getNonFacadeBlock() {
 
         return SFMBlocks.TUNNELLED_FANCY_CABLE.get();

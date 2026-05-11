@@ -97,23 +97,6 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
     }
 
     @Override
-    public void appendHoverText(
-            ItemStack pStack,
-            Item.TooltipContext pContext,
-            TooltipDisplay pTooltipDisplay,
-            Consumer<Component> pTooltipComponents,
-            TooltipFlag pTooltipFlag
-    ) {
-
-        pTooltipComponents.accept(WATER_TANK_ITEM_TOOLTIP_1
-                             .getComponent()
-                             .withStyle(ChatFormatting.GRAY));
-        pTooltipComponents.accept(WATER_TANK_ITEM_TOOLTIP_2
-                             .getComponent()
-                             .withStyle(ChatFormatting.GRAY));
-    }
-
-    @Override
     protected MapCodec<WaterTankBlock> codec() {
         throw new NotImplementedException("This isn't used until 1.20.5 apparently");
     }

@@ -147,7 +147,7 @@ public class SFMScreenChangeHelpers {
         assert level != null;
         // when we add our own nbt editor would be neat to also add a button to switch between ours and ftb library's nbt editor
         // https://github.com/FTBTeam/FTB-Library/blob/09712e7ac26bda48c32f372ae23fe06d100eabc4/common/src/main/java/dev/ftb/mods/ftblibrary/FTBLibraryCommands.java#L155
-        stack.save(level.registryAccess(), tag);
+        tag.merge((CompoundTag)ItemStack.CODEC.encodeStart(net.minecraft.resources.RegistryOps.create(net.minecraft.nbt.NbtOps.INSTANCE, level.registryAccess()), stack).getOrThrow());
         if (!tag.isEmpty()) {
             String content = tag.toString();
             Minecraft minecraft = Minecraft.getInstance();

@@ -3,21 +3,14 @@ package ca.teamdman.sfm.client.screen;
 import ca.teamdman.sfm.common.containermenu.TestBarrelTankContainerMenu;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
-import org.joml.Matrix4f;
 
 public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTankContainerMenu> {
     private static final Identifier BACKGROUND_TEXTURE_LOCATION = SFMResourceLocation.fromSFMPath(
@@ -32,7 +25,6 @@ public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTank
         super(menu, inv, title);
     }
 
-    @SuppressWarnings({"deprecation"})
     @Override
     public void extractRenderState(
             GuiGraphicsExtractor graphics,
@@ -43,29 +35,6 @@ public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTank
         this.extractTransparentBackground(graphics);
         super.extractRenderState(graphics, mx, my, partialTicks);
         this.extractTooltip(graphics, mx, my);
-
-        FluidStack fluidStack = new FluidStack(Fluids.WATER, 1000);
-        IClientFluidTypeExtensions fluidType = IClientFluidTypeExtensions.of(fluidStack.getFluid());
-        Identifier fluidSpriteLocation = fluidType.getFlowingTexture(fluidStack);
-//        Identifier fluidSpriteLocation = fluidType.getStillTexture(fluidStack);
-        TextureAtlasSprite fluidSprite = this.getMinecraft().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(fluidSpriteLocation);
-        var fluidColour = IClientFluidTypeExtensions.of(fluidStack.getFluid()).getTintColor(fluidStack);
-        RenderSystem.setShaderColor(ARGB.red(fluidColour)/255f, ARGB.green(fluidColour)/255f, ARGB.blue(fluidColour)/255f, ARGB.alpha(fluidColour)/255f);
-
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderTexture(0, TextureAtlas.LOCATION_BLOCKS);
-        RenderSystem.enableBlend();
-
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder vertexBuffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        Matrix4f matrix = graphics.pose().last().pose();
-
-        vertexBuffer.addVertex(matrix, 0f, 128f, 1f).setUv(fluidSprite.getU0(), fluidSprite.getV1());
-        vertexBuffer.addVertex(matrix, 128f, 128f, 1f).setUv(fluidSprite.getU1(), fluidSprite.getV1());
-        vertexBuffer.addVertex(matrix, 128f, 0f, 1f).setUv(fluidSprite.getU1(), fluidSprite.getV0());
-        vertexBuffer.addVertex(matrix, 0f, 0f, 1f).setUv(fluidSprite.getU0(), fluidSprite.getV0());
-        BufferUploader.drawWithShader(vertexBuffer.buildOrThrow());
-        RenderSystem.disableBlend();
     }
 
 
@@ -120,6 +89,14 @@ public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTank
     ) {
         int i = (this.width - this.imageWidth) / 2;
         int j = (this.height - this.imageHeight) / 2;
-        guiGraphics.blit(BACKGROUND_TEXTURE_LOCATION, i, j, 0, 0, this.imageWidth, this.imageHeight);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND_TEXTURE_LOCATION, i, j, 0f, 0f, this.imageWidth, this.imageHeight, 256, 256);
+
+        var fluidStack = menu.tank.getResource(0).toStack(menu.tank.getAmountAsInt(0));
+        if (!fluidStack.isEmpty()) {
+            var fluidModel = this.getMinecraft().getModelManager().getFluidStateModelSet().get(fluidStack.getFluid().defaultFluidState());
+            TextureAtlasSprite fluidSprite = fluidModel.flowingMaterial().sprite();
+            int fluidColour = fluidModel.fluidTintSource() != null ? fluidModel.fluidTintSource().colorAsStack(fluidStack) : -1;
+            guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, fluidSprite, i + 80, j + 20, 16, 16, fluidColour);
+        }
     }
 }
