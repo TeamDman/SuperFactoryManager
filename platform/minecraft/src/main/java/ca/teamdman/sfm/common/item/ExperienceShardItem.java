@@ -12,9 +12,9 @@ public class ExperienceShardItem extends Item {
             () -> "Experience Shard"
     );
 
-    public ExperienceShardItem() {
+    public ExperienceShardItem(Item.Properties properties) {
 
-        super(new Item.Properties());
+        super(properties);
     }
 
 }

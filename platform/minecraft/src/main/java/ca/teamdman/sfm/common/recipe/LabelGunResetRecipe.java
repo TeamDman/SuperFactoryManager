@@ -16,15 +16,18 @@ import net.minecraft.world.level.Level;
  * Clears all data from label guns
  */
 public class LabelGunResetRecipe extends CustomRecipe {
-    public LabelGunResetRecipe() {}
+    private static final LabelGunResetRecipe INSTANCE = new LabelGunResetRecipe();
 
     @MCVersionDependentBehaviour
     public static final MapCodec<LabelGunResetRecipe> CODEC =
-            MapCodec.unit(LabelGunResetRecipe::new);
+            MapCodec.unit(INSTANCE);
 
     @MCVersionDependentBehaviour
     public static final StreamCodec<RegistryFriendlyByteBuf, LabelGunResetRecipe> STREAM_CODEC =
-            StreamCodec.unit(new LabelGunResetRecipe());
+            StreamCodec.unit(INSTANCE);
+
+    public LabelGunResetRecipe() {}
+
 
     @Override
     public boolean matches(

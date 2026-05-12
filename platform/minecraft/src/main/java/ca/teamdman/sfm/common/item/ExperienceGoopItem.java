@@ -12,9 +12,9 @@ public class ExperienceGoopItem extends Item {
             () -> "Experience Goop"
     );
 
-    public ExperienceGoopItem() {
+    public ExperienceGoopItem(Item.Properties properties) {
 
-        super(new Properties());
+        super(properties);
     }
 
 }

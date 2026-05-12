@@ -118,7 +118,8 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
         //noinspection unchecked,rawtypes
         BuiltInRegistries.REGISTRY.get((ResourceKey) registryKey).ifPresent((registry) -> {
             // noinspection unchecked
-            maybeInner = (Registry<T>) registry;
+            Holder<Registry<T>> regHolder = ((Holder<Registry<T>>) registry);
+            maybeInner = regHolder.value();
         });
         if (maybeInner != null) {
             return maybeInner;

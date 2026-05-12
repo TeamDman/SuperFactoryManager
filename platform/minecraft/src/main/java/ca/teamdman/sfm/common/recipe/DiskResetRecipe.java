@@ -15,13 +15,15 @@ import net.minecraft.world.level.Level;
  * Clears all data from a program disk
  */
 public class DiskResetRecipe extends CustomRecipe {
+    private static final DiskResetRecipe INSTANCE = new DiskResetRecipe();
+
     @MCVersionDependentBehaviour
     public static final MapCodec<DiskResetRecipe> CODEC =
-            MapCodec.unit(DiskResetRecipe::new);
+            MapCodec.unit(INSTANCE);
 
     @MCVersionDependentBehaviour
     public static final StreamCodec<RegistryFriendlyByteBuf, DiskResetRecipe> STREAM_CODEC =
-            StreamCodec.unit(new DiskResetRecipe());
+            StreamCodec.unit(INSTANCE);
 
     public DiskResetRecipe() {
         super();

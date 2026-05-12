@@ -35,6 +35,10 @@ public class TunnelledManagerBlock extends ManagerBlock {
             () -> "Tunnelled Factory Manager"
     );
 
+    public TunnelledManagerBlock(Properties properties) {
+        super(properties);
+    }
+
     @Override
     public @Nullable BlockEntity newBlockEntity(
             BlockPos pos,

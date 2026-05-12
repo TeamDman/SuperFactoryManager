@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.apache.commons.lang3.NotImplementedException;
@@ -28,9 +29,9 @@ public class TestBarrelTankBlock extends BaseEntityBlock {
             () -> "Test Barrel Tank"
     );
 
-    public TestBarrelTankBlock() {
+    public TestBarrelTankBlock(BlockBehaviour.Properties properties) {
 
-        super(Properties.of().sound(SoundType.WOOD).strength(2.5F).sound(SoundType.WOOD));
+        super(properties.sound(SoundType.WOOD).strength(2.5F).sound(SoundType.WOOD));
     }
 
     @Override

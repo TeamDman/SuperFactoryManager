@@ -9,6 +9,7 @@ import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -70,8 +71,10 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, PrintingPressBlockItem> PRINTING_PRESS
             = REGISTERER.register(
             "printing_press",
-            () -> new PrintingPressBlockItem(
-                    new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.PRINTING_PRESS))
+            registryName -> new PrintingPressBlockItem(
+                    new Item.Properties()
+                            .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+                            .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.PRINTING_PRESS))
             )
     );
 
@@ -85,16 +88,19 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, DiskItem> DISK
             = REGISTERER.register(
                     "disk",
-            () -> new DiskItem(
-                    new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.DISK))
+            registryName -> new DiskItem(
+                    new Item.Properties()
+                            .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+                            .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.DISK))
             )
     );
 
     public static final SFMRegistryObject<Item, LabelGunItem> LABEL_GUN
             = REGISTERER.register(
             "labelgun",
-            () -> new LabelGunItem(
+            registryName -> new LabelGunItem(
                     new Item.Properties()
+                            .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
                             .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.LABEL_GUN))
                             .stacksTo(1)
 
@@ -104,29 +110,39 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, NetworkToolItem> NETWORK_TOOL
             = REGISTERER.register(
             "network_tool",
-            () -> new NetworkToolItem(
-                    new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.NETWORK_TOOL))
+            registryName -> new NetworkToolItem(
+                    new Item.Properties()
+                            .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+                            .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.NETWORK_TOOL))
             )
     );
 
     public static final SFMRegistryObject<Item, FormItem> FORM
             = REGISTERER.register(
             "form",
-            () -> new FormItem(
-                    new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.FORM))
+            registryName -> new FormItem(
+                    new Item.Properties()
+                            .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+                            .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.FORM))
             )
     );
 
     public static final SFMRegistryObject<Item, ExperienceShardItem> EXPERIENCE_SHARD
             = REGISTERER.register(
             "xp_shard",
-            ExperienceShardItem::new
+            registryName -> new ExperienceShardItem(
+                    new Item.Properties()
+                            .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+            )
     );
 
     public static final SFMRegistryObject<Item, ExperienceGoopItem> EXPERIENCE_GOOP
             = REGISTERER.register(
             "xp_goop",
-            ExperienceGoopItem::new
+            registryName -> new ExperienceGoopItem(
+                    new Item.Properties()
+                            .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+            )
     );
 
     public static SFMRegistryObject<Item, BlockItem> BUFFER = null;
@@ -157,7 +173,11 @@ public class SFMItems {
 
         return REGISTERER.register(
                 name,
-                () -> new BlockItem(block.get(), properties)
+                registryName -> new BlockItem(
+                        block.get(),
+                        properties
+                                .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+                )
         );
     }
 
@@ -169,7 +189,11 @@ public class SFMItems {
 
         return REGISTERER.register(
                 name,
-                () -> new BlockItem(block.get(), properties.get())
+                registryName -> new BlockItem(
+                        block.get(),
+                        properties.get()
+                                .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+                )
         );
     }
 

@@ -35,9 +35,9 @@ public class PrintingPressBlock extends BaseEntityBlock implements EntityBlock {
             () -> "Printing Press"
     );
 
-    public PrintingPressBlock() {
+    public PrintingPressBlock(BlockBehaviour.Properties properties) {
 
-        super(BlockBehaviour.Properties.of().strength(5.0F, 6.0F).noOcclusion());
+        super(properties.strength(5.0F, 6.0F).noOcclusion());
         this.registerDefaultState(this.defaultBlockState());
     }
 

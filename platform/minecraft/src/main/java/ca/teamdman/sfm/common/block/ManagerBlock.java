@@ -42,9 +42,8 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             () -> "Factory Manager"
     );
 
-    public ManagerBlock() {
-
-        super(BlockBehaviour.Properties.of()
+    public ManagerBlock(BlockBehaviour.Properties properties) {
+        super(properties
                       .destroyTime(2)
                       .sound(SoundType.METAL));
         registerDefaultState(getStateDefinition().any().setValue(TRIGGERED, false));

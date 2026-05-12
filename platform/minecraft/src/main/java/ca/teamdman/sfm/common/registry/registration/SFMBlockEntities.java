@@ -21,7 +21,9 @@ public final class SFMBlockEntities {
     public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<TestBarrelBlockEntity>>
             TEST_BARREL = REGISTERER.register(
             "test_barrel",
-            () -> new BlockEntityType<>( TestBarrelBlockEntity::new, SFMBlocks.TEST_BARREL.get())
+            registryName -> new BlockEntityType<>(
+                    TestBarrelBlockEntity::new,
+                    SFMBlocks.TEST_BARREL.get())
     );
 
     public static void register(IEventBus bus) {

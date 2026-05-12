@@ -21,9 +21,9 @@ public class TestBarrelBlock extends BarrelBlock {
             () -> "Test Barrel"
     );
 
-    public TestBarrelBlock() {
+    public TestBarrelBlock(BlockBehaviour.Properties properties) {
 
-        super(BlockBehaviour.Properties.of().strength(2.5F).sound(SoundType.WOOD));
+        super(properties.strength(2.5F).sound(SoundType.WOOD));
     }
 
 

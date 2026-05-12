@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.registry;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.Registry;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -10,6 +11,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /// The thing that registers stuff to a registry.
@@ -71,6 +73,22 @@ public class SFMDeferredRegister<T> {
             return registerEmpty(name);
         }
         DeferredHolder<T, I> object = inner.register(name, supplier);
+        return new SFMRegistryObject<T, I>(
+                (ResourceKey<? extends Registry<I>>) registryKey,
+                object
+        );
+    }
+
+    @SuppressWarnings({"unchecked", "Convert2Diamond"})
+    public <I extends T> SFMRegistryObject<T, I> register(
+            String name,
+            Function<Identifier, ? extends I> factory
+    ) {
+
+        if (inner == null) {
+            return registerEmpty(name);
+        }
+        DeferredHolder<T, I> object = inner.register(name, factory);
         return new SFMRegistryObject<T, I>(
                 (ResourceKey<? extends Registry<I>>) registryKey,
                 object

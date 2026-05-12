@@ -66,9 +66,9 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
     );
 
 
-    public WaterTankBlock() {
+    public WaterTankBlock(BlockBehaviour.Properties properties) {
 
-        super(BlockBehaviour.Properties.of().destroyTime(2).sound(SoundType.WOOD));
+        super(properties.destroyTime(2).sound(SoundType.WOOD));
         registerDefaultState(getStateDefinition().any().setValue(IN_WATER, false));
     }
 
