@@ -136,7 +136,10 @@ public class SFMEventListenerMethod<T extends Event> {
         // Create consumer
         Consumer<T> consumer = createConsumer();
 
-        IEventBus eventBus = NeoForge.EVENT_BUS;
+        // Determine bus
+        IEventBus eventBus = getEventBus();
+
+        // Register listener
         eventBus.addListener(
                 annotation.priority(),
                 annotation.receiveCanceled(),
@@ -148,4 +151,11 @@ public class SFMEventListenerMethod<T extends Event> {
         SFM.LOGGER.info("Registered listener={}", consumer);
     }
 
+    private IEventBus getEventBus() {
+        if (IModBusEvent.class.isAssignableFrom(eventClass)) {
+            return SFMEventBus.MOD_BUS;
+        } else {
+            return SFMEventBus.GAME_BUS;
+        }
+    }
 }
