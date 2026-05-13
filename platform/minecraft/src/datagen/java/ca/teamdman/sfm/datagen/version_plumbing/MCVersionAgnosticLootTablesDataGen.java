@@ -3,6 +3,7 @@ package ca.teamdman.sfm.datagen.version_plumbing;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.data.PackOutput;
 import net.minecraft.data.loot.LootTableProvider;
 import net.minecraft.data.loot.LootTableSubProvider;
 import net.minecraft.resources.ResourceKey;
@@ -19,16 +20,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public abstract class MCVersionAgnosticLootTablesDataGen extends LootTableProvider {
     @MCVersionDependentBehaviour
     public MCVersionAgnosticLootTablesDataGen(
-            GatherDataEvent event,
-            String modId
+            PackOutput output,
+            Set<ResourceKey<LootTable>> requiredTables,
+            List<LootTableProvider.SubProviderEntry> subProviders,
+            CompletableFuture<HolderLookup.Provider> registries
     ) {
-        super(event.getGenerator().getPackOutput(), Collections.emptySet(), Collections.emptyList(), event.getLookupProvider());
+        super(output, requiredTables, subProviders, registries);
     }
 
 

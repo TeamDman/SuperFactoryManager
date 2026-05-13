@@ -15,6 +15,7 @@ import net.minecraft.world.level.Level;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Printing press copies a form using ink and paper.
@@ -24,7 +25,6 @@ public record PrintingPressRecipe(
         Ingredient ink,
         Ingredient paper
 ) implements Recipe<PrintingPressBlockEntity> {
-
     @Override
     public boolean matches(
             PrintingPressBlockEntity pContainer,
@@ -69,7 +69,7 @@ public record PrintingPressRecipe(
 
     @Override
     public PlacementInfo placementInfo() {
-        return null;
+        return PlacementInfo.NOT_PLACEABLE;
     }
 
     @Override

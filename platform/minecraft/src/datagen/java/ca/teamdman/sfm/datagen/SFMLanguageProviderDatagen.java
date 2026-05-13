@@ -6,7 +6,7 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 import ca.teamdman.sfm.datagen.version_plumbing.MCVersionAgnosticLanguageDataGen;
-import net.neoforged.neoforge.data.event.GatherDataEvent;
+import net.minecraft.data.PackOutput;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -15,9 +15,9 @@ import java.util.List;
 import java.util.Set;
 
 public class SFMLanguageProviderDatagen extends MCVersionAgnosticLanguageDataGen {
-    public SFMLanguageProviderDatagen(GatherDataEvent event) {
+    public SFMLanguageProviderDatagen(PackOutput output) {
 
-        super(event, SFM.MOD_ID, "en_us");
+        super(output, SFM.MOD_ID, "en_us");
     }
 
     public static List<LocalizationEntry> getEntries() {
@@ -71,7 +71,7 @@ public class SFMLanguageProviderDatagen extends MCVersionAgnosticLanguageDataGen
 
         Set<String> seen = new HashSet<>();
         for (var entry : getEntries()) {
-            add(entry.key().get(), entry.value().get());
+            this.add(entry.key().get(), entry.value().get());
             seen.add(entry.key().get());
         }
         List<String> unmapped = new ArrayList<>();

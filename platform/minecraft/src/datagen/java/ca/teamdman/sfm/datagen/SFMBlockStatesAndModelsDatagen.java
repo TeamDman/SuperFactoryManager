@@ -6,10 +6,12 @@ import ca.teamdman.sfm.common.block.FancyCableBlock;
 import ca.teamdman.sfm.common.block.WaterTankBlock;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import ca.teamdman.sfm.datagen.version_plumbing.MCVersionAgnosticBlockStatesAndModelsDataGen;
 import com.mojang.math.Quadrant;
 import net.minecraft.client.data.models.BlockModelGenerators;
+import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.blockstates.MultiPartGenerator;
 import net.minecraft.client.data.models.blockstates.MultiVariantGenerator;
 import net.minecraft.client.data.models.blockstates.PropertyDispatch;
@@ -17,18 +19,33 @@ import net.minecraft.client.data.models.model.*;
 import net.minecraft.client.renderer.block.dispatch.Variant;
 import net.minecraft.client.renderer.block.dispatch.VariantMutator;
 import net.minecraft.core.Direction;
+import net.minecraft.data.PackOutput;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
+import java.util.Optional;
+
 public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStatesAndModelsDataGen {
-    public SFMBlockStatesAndModelsDatagen(GatherDataEvent event) {
-        super(event, SFM.MOD_ID);
+    private static final TextureSlot CABLE_SLOT = TextureSlot.create("cable", TextureSlot.ALL);
+
+    private static final ModelTemplate FANCY_CABLE_TEMPLATE = new ModelTemplate(
+            Optional.empty(),
+            Optional.empty(),
+
+            TextureSlot.PARTICLE,
+            CABLE_SLOT
+    );
+
+    public SFMBlockStatesAndModelsDatagen(PackOutput output) {
+        super(output, SFM.MOD_ID);
     }
 
+    // Block Models
     @Override
     protected void populate(BlockModelGenerators blockModels) {
 
@@ -82,10 +99,10 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                                 }))
         );
 
-        blockModels.blockStateOutput.accept(
-                MultiVariantGenerator.dispatch(SFMBlocks.TEST_BARREL.get(),
-                        BlockModelGenerators.variant(new Variant(barrelModel)))
-        );
+//        blockModels.blockStateOutput.accept(
+//                MultiVariantGenerator.dispatch(SFMBlocks.TEST_BARREL.get(),
+//                        BlockModelGenerators.variant(new Variant(barrelModel)))
+//        );
     }
 
     private void registerPrintingPress(BlockModelGenerators blockModels) {
@@ -186,9 +203,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
             SFMRegistryObject<Block, ?> fancyCableFacadeBlock
     ) {
 
-        TextureSlot CABLE_SLOT = TextureSlot.create("cable");
-
-        ModelTemplate coreTemplate = ModelTemplates.CUBE
+        ModelTemplate coreTemplate = FANCY_CABLE_TEMPLATE
                 .extend()
                 .ambientOcclusion(false)
                 .element(el -> el
@@ -202,7 +217,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                 .requiredTextureSlot(CABLE_SLOT)
                 .build();
 
-        ModelTemplate connectionTemplate = ModelTemplates.CUBE
+        ModelTemplate connectionTemplate = FANCY_CABLE_TEMPLATE
                 .extend()
                 .ambientOcclusion(false)
                 .element(el -> el
@@ -222,16 +237,16 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                 .build();
 
         TextureMapping cableTexture = new TextureMapping()
-                .put(CABLE_SLOT, TextureMapping.getBlockTexture(fancyCableBlock.get(), "_core"))
+                .put(CABLE_SLOT, TextureMapping.getBlockTexture(fancyCableBlock.get()))
                 .copySlot(CABLE_SLOT, TextureSlot.PARTICLE);
 
         Identifier coreModelId = coreTemplate.create(
-                Identifier.parse(fancyCableBlock.get() + "_core"),
+                ModelLocationUtils.getModelLocation(fancyCableBlock.get(), "_core"),
                 cableTexture,
                 blockModels.modelOutput
         );
         Identifier connectionModelId = connectionTemplate.create(
-                Identifier.parse(fancyCableBlock.get() + "connection"),
+                ModelLocationUtils.getModelLocation(fancyCableBlock.get(), "_connection"),
                 cableTexture,
                 blockModels.modelOutput
         );
@@ -275,7 +290,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
             String name = value.getSerializedName();
 
             Identifier modelId = ModelTemplates.CUBE_ALL.create(
-                    Identifier.parse(block + name),
+                    ModelLocationUtils.getModelLocation(block, name),
                     new TextureMapping().put(TextureSlot.ALL, TextureMapping.getBlockTexture(block, name)),
                     blockModels.modelOutput
             );
@@ -287,5 +302,24 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                         .with(dispatch)
         );
 
+    }
+
+    // Item Models
+    @Override
+    protected void populate(ItemModelGenerators itemModels) {
+        basicItem(itemModels, SFMItems.DISK);
+        basicItem(itemModels, SFMItems.LABEL_GUN);
+        basicItem(itemModels, SFMItems.EXPERIENCE_GOOP);
+        basicItem(itemModels, SFMItems.EXPERIENCE_SHARD);
+        basicItem(itemModels, SFMItems.NETWORK_TOOL);
+
+        basicItem(itemModels, SFMItems.FORM);
+    }
+
+    private void basicItem(
+            ItemModelGenerators itemModels,
+            SFMRegistryObject<Item, ? extends Item> item
+    ) {
+        itemModels.generateFlatItem(item.get(), ModelTemplates.FLAT_ITEM);
     }
 }

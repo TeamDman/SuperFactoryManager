@@ -10,6 +10,7 @@ import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.model.ItemModelUtils;
 import net.minecraft.client.data.models.model.ModelTemplates;
 import net.minecraft.client.renderer.block.model.BlockModel;
+import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -17,9 +18,9 @@ import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
     public SFMItemModelsDatagen(
-            GatherDataEvent event
+            PackOutput output
     ) {
-        super(event, SFM.MOD_ID);
+        super(output, SFM.MOD_ID);
     }
 
 

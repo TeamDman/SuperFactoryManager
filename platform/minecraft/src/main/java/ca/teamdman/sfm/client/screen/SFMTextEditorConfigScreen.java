@@ -131,14 +131,14 @@ public class SFMTextEditorConfigScreen extends Screen {
                 PROGRAM_EDITOR_CONFIG_LINE_NUMBERS.getComponent(),
                 x,
                 y,
-                0xFFFFFF
+                0xFFFFFFFF
         );
         graphics.text(
                 font,
                 PROGRAM_EDITOR_CONFIG_INTELLISENSE.getComponent(),
                 x,
                 y + 50,
-                0xFFFFFF
+                0xFFFFFFFF
         );
         if (editorSelectorFeatureFlag) {
             graphics.text(
@@ -146,7 +146,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                     PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR.getComponent(),
                     x,
                     y + 100,
-                    0xFFFFFF
+                    0xFFFFFFFF
             );
         }
         graphics.centeredText(
@@ -154,7 +154,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                 this.title,
                 this.width / 2,
                 15,
-                0xFFFFFF
+                0xFFFFFFFF
         ); // Ensure title is still displayed
     }
 

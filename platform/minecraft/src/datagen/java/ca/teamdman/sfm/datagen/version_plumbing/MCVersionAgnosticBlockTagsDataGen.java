@@ -2,18 +2,22 @@ package ca.teamdman.sfm.datagen.version_plumbing;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.data.PackOutput;
 import net.neoforged.neoforge.common.data.BlockTagsProvider;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
+
+import java.util.concurrent.CompletableFuture;
 
 public abstract class MCVersionAgnosticBlockTagsDataGen extends BlockTagsProvider {
     @MCVersionDependentBehaviour
     public MCVersionAgnosticBlockTagsDataGen(
-            GatherDataEvent event,
+            PackOutput output,
+            CompletableFuture<HolderLookup.Provider> lookupProvider,
             String modId
     ) {
         super(
-                event.getGenerator().getPackOutput(),
-                event.getLookupProvider(),
+                output,
+                lookupProvider,
                 modId
         );
     }

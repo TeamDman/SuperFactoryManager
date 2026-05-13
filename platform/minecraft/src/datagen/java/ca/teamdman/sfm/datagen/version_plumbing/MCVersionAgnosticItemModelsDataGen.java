@@ -4,15 +4,16 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.data.models.BlockModelGenerators;
 import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.ModelProvider;
+import net.minecraft.data.PackOutput;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 public abstract class MCVersionAgnosticItemModelsDataGen extends ModelProvider {
     @MCVersionDependentBehaviour
     public MCVersionAgnosticItemModelsDataGen(
-            GatherDataEvent event,
+            PackOutput output,
             String modId
     ) {
-        super(event.getGenerator().getPackOutput(), modId);
+        super(output, modId);
     }
 
     @Override
@@ -21,4 +22,10 @@ public abstract class MCVersionAgnosticItemModelsDataGen extends ModelProvider {
     }
 
     protected abstract void populate(ItemModelGenerators itemModels);
+
+    @MCVersionDependentBehaviour
+    @Override
+    public String getName() {
+        return modId + " Item Models";
+    }
 }

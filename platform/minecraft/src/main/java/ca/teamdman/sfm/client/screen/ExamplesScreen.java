@@ -58,7 +58,7 @@ public class ExamplesScreen extends Screen {
                 warning1,
                 this.width / 2 - this.font.width(warning1) / 2,
                 20,
-                0xffffff,
+                0xffffffff,
                 false
         );
 
@@ -69,7 +69,7 @@ public class ExamplesScreen extends Screen {
                 warning2,
                 this.width / 2 - this.font.width(warning2) / 2,
                 36,
-                0xffffff,
+                0xffffffff,
                 false
         );
     }

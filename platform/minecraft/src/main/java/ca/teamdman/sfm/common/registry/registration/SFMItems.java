@@ -30,7 +30,8 @@ public class SFMItems {
             = register(
             "tunnelled_manager",
             SFMBlocks.TUNNELLED_MANAGER,
-            () -> new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_MANAGER))
+            () -> new Item.Properties()
+                    .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_MANAGER))
     );
 
     public static final SFMRegistryObject<Item, BlockItem> CABLE
@@ -46,7 +47,8 @@ public class SFMItems {
             register(
             "tough_cable",
             SFMBlocks.TOUGH_CABLE,
-            () -> new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TOUGH_CABLE))
+            () -> new Item.Properties()
+                    .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TOUGH_CABLE))
     );
 
     public static final SFMRegistryObject<Item, BlockItem> TOUGH_FANCY_CABLE =
@@ -59,7 +61,8 @@ public class SFMItems {
             register(
             "tunnelled_cable",
             SFMBlocks.TUNNELLED_CABLE,
-            () -> new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_CABLE))
+            () -> new Item.Properties()
+                    .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_CABLE))
     );
 
     public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_FANCY_CABLE =
@@ -73,6 +76,7 @@ public class SFMItems {
             "printing_press",
             registryName -> new PrintingPressBlockItem(
                     new Item.Properties()
+                            .useBlockDescriptionPrefix()
                             .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
                             .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.PRINTING_PRESS))
             )
@@ -82,7 +86,8 @@ public class SFMItems {
             = register(
             "water_tank",
             SFMBlocks.WATER_TANK,
-            () -> new Item.Properties().component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.WATER_TANK))
+            () -> new Item.Properties()
+                    .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.WATER_TANK))
     );
 
     public static final SFMRegistryObject<Item, DiskItem> DISK
@@ -176,6 +181,7 @@ public class SFMItems {
                 registryName -> new BlockItem(
                         block.get(),
                         properties
+                                .useBlockDescriptionPrefix()
                                 .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
                 )
         );
@@ -192,6 +198,7 @@ public class SFMItems {
                 registryName -> new BlockItem(
                         block.get(),
                         properties.get()
+                                .useBlockDescriptionPrefix()
                                 .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
                 )
         );
