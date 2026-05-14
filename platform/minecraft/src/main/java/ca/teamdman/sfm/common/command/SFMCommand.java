@@ -67,7 +67,7 @@ public class SFMCommand {
 
         var command = Commands.literal("sfm");
         command.then(Commands.literal("bust_cable_network_cache")
-                             .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
+                             .requires(Commands.hasPermission(Commands.LEVEL_ALL))
                              .executes(ctx -> {
                                  CommandSourceStack source = ctx.getSource();
                                  SFM.LOGGER.info(
@@ -79,7 +79,7 @@ public class SFMCommand {
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("bust_water_network_cache")
-                             .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
+                             .requires(Commands.hasPermission(Commands.LEVEL_ALL))
                              .executes(ctx -> {
                                  CommandSourceStack source = ctx.getSource();
                                  SFM.LOGGER.info(
@@ -91,7 +91,7 @@ public class SFMCommand {
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("show_bad_cable_cache_entries")
-                             .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
+                             .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                              .then(Commands.argument("block", BlockStateArgument.block(event.getBuildContext()))
                                            .executes(ctx -> {
                                                ServerLevel level = ctx.getSource().getLevel();
@@ -112,7 +112,7 @@ public class SFMCommand {
         command.then(
                 Commands.literal("config")
                         .then(Commands.literal("show")
-                                      .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
+                                      .requires(Commands.hasPermission(Commands.LEVEL_ALL))
                                       .then(Commands
                                                     .argument(
                                                             "variant",
@@ -130,7 +130,7 @@ public class SFMCommand {
                         .then(Commands.literal("edit")
                                       .then(
                                               Commands.literal(ConfigCommandVariantInput.SERVER.name())
-                                                      .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_OWNER))
+                                                      .requires(Commands.hasPermission(Commands.LEVEL_OWNERS))
                                                       .executes(new ConfigCommand(
                                                               ConfigCommandBehaviourInput.EDIT,
                                                               ConfigCommandVariantInput.SERVER
@@ -138,7 +138,7 @@ public class SFMCommand {
                                       )
                                       .then(
                                               Commands.literal(ConfigCommandVariantInput.CLIENT.name())
-                                                      .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
+                                                      .requires(Commands.hasPermission(Commands.LEVEL_ALL))
                                                       .executes(new ConfigCommand(
                                                               ConfigCommandBehaviourInput.EDIT,
                                                               ConfigCommandVariantInput.CLIENT
@@ -147,7 +147,7 @@ public class SFMCommand {
                         )
         );
         command.then(Commands.literal("changelog")
-                             .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
+                             .requires(Commands.hasPermission(Commands.LEVEL_ALL))
                              .executes(ctx -> {
                                  ServerPlayer player = ctx.getSource().getPlayer();
                                  if (player != null) {
@@ -164,7 +164,7 @@ public class SFMCommand {
                                  return SINGLE_SUCCESS;
                              }));
         command.then(Commands.literal("kit")
-                             .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
+                             .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                              .executes(ctx -> giveKitToPlayers(
                                      ctx.getSource(),
                                      List.of(ctx.getSource().getPlayerOrException())
@@ -176,7 +176,7 @@ public class SFMCommand {
                                            ))));
         if (SFMEnvironmentUtils.isInIDE()) {
             command.then(Commands.literal("test")
-                                 .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
+                                 .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                                  .then(Commands.literal("run")
                                                .then(Commands.argument("pattern", StringArgumentType.greedyString())
                                                              .executes(ctx -> {
@@ -190,7 +190,7 @@ public class SFMCommand {
         }
         if (SFMEnvironmentUtils.isClient()) {
             command.then(Commands.literal("export_info")
-                                 .requires(source -> source.permissions().hasPermission(Permissions.CHAT_SEND_COMMANDS))
+                                 .requires(Commands.hasPermission(Commands.LEVEL_ALL))
                                  .then(Commands.argument("includeHidden", BoolArgumentType.bool())
                                                .executes(ctx -> {
                                                    boolean includeHidden = BoolArgumentType.getBool(
