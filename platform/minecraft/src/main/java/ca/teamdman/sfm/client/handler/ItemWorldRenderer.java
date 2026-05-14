@@ -127,7 +127,7 @@ public class ItemWorldRenderer {
         Camera camera = minecraft.gameRenderer.getMainCamera();
         MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
 
-        ItemStack held;
+/*        ItemStack held;
         boolean rendered = false;
         if ((held = getHeldItemOfType(player, NetworkToolItem.class)) != null) {
             handleNetworkTool(event, poseStack, camera, bufferSource, held);
@@ -139,7 +139,7 @@ public class ItemWorldRenderer {
         }
         if (!rendered) {
             vboCache.clear();
-        }
+        }*/
     }
 
     // Thanks @tigres810
