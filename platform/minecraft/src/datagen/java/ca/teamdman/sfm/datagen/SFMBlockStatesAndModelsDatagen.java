@@ -221,7 +221,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
 
         ModelTemplate coreTemplate = FANCY_CABLE_TEMPLATE
                 .extend()
-                .ambientOcclusion(false)
+                .parent(Identifier.withDefaultNamespace("block/block"))
                 .element(el -> el
                         .from(4, 4, 4)
                         .to(12, 12, 12)
@@ -235,7 +235,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
 
         ModelTemplate connectionTemplate = FANCY_CABLE_TEMPLATE
                 .extend()
-                .ambientOcclusion(false)
+                .parent(Identifier.withDefaultNamespace("block/block"))
                 .element(el -> el
                         .from(5, 5, 0)
                         .to(11, 11, 5)
@@ -329,11 +329,16 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         basicItem(itemModels, SFMItems.EXPERIENCE_SHARD);
         basicItem(itemModels, SFMItems.NETWORK_TOOL);
 
-        basicItem(itemModels, SFMItems.FORM);
+        basicItem(itemModels, SFMItems.FORM); // Apparently do something special with this?
 
-        fancyCables(itemModels, SFMItems.FANCY_CABLE, SFMBlocks.FANCY_CABLE);
-        fancyCables(itemModels, SFMItems.TOUGH_FANCY_CABLE, SFMBlocks.TOUGH_FANCY_CABLE);
-        fancyCables(itemModels, SFMItems.TUNNELLED_FANCY_CABLE, SFMBlocks.TUNNELLED_FANCY_CABLE);
+        withParent(itemModels, SFMItems.MANAGER, SFMBlocks.MANAGER);
+        withParent(itemModels, SFMItems.TUNNELLED_MANAGER, SFMBlocks.TUNNELLED_MANAGER);
+        withParent(itemModels, SFMItems.CABLE, SFMBlocks.CABLE);
+        withParent(itemModels, SFMItems.PRINTING_PRESS, SFMBlocks.PRINTING_PRESS);
+
+        withParent(itemModels, SFMItems.FANCY_CABLE, SFMBlocks.FANCY_CABLE, "_core");
+        withParent(itemModels, SFMItems.TOUGH_FANCY_CABLE, SFMBlocks.TOUGH_FANCY_CABLE, "_core");
+        withParent(itemModels, SFMItems.TUNNELLED_FANCY_CABLE, SFMBlocks.TUNNELLED_FANCY_CABLE, "_core");
 
         withParent(itemModels, SFMItems.BUFFER, SFMBlocks.BUFFER_BLOCK, "_item");
         withParent(itemModels, SFMItems.WATER_TANK, SFMBlocks.WATER_TANK, "_active");
@@ -346,16 +351,12 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         itemModels.generateFlatItem(item.get(), ModelTemplates.FLAT_ITEM);
     }
 
-    private void fancyCables(
+    private void withParent(
             ItemModelGenerators itemModels,
             SFMRegistryObject<Item, ? extends Item> item,
             SFMRegistryObject<Block, ? extends Block> block
     ) {
-        Identifier coreModelId = ModelLocationUtils.getModelLocation(block.get(), "_core");
-        itemModels.itemModelOutput.accept(
-                item.get(),
-                ItemModelUtils.plainModel(coreModelId)
-        );
+        this.withParent(itemModels, item, block, "");
     }
 
     private void withParent(
