@@ -18,6 +18,9 @@ import net.minecraft.client.data.models.blockstates.PropertyDispatch;
 import net.minecraft.client.data.models.model.*;
 import net.minecraft.client.renderer.block.dispatch.Variant;
 import net.minecraft.client.renderer.block.dispatch.VariantMutator;
+import net.minecraft.client.renderer.block.model.BlockStateModelWrapper;
+import net.minecraft.client.renderer.item.CuboidItemModelWrapper;
+import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.core.Direction;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.Identifier;
@@ -28,6 +31,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
+import java.util.Collections;
 import java.util.Optional;
 
 public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStatesAndModelsDataGen {
@@ -167,15 +171,27 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     private void registerWaterTank(BlockModelGenerators blockModels) {
         Block block = SFMBlocks.WATER_TANK.get();
 
-        Identifier waterIntakeModelActive = this.modLocation("block/water_intake_active");
-        Identifier waterIntakeModelInactive = this.modLocation("block/water_intake_inactive");
+        Identifier activeModelId = ModelTemplates.CUBE_ALL.create(
+                ModelLocationUtils.getModelLocation(block, "_active"),
+                new TextureMapping()
+                        .put(TextureSlot.ALL, TextureMapping.getBlockTexture(block, "_active"))
+                        .copySlot(TextureSlot.ALL, TextureSlot.PARTICLE),
+                blockModels.modelOutput
+        );
 
+        Identifier inactiveModelId = ModelTemplates.CUBE_ALL.create(
+                ModelLocationUtils.getModelLocation(block, "_inactive"),
+                new TextureMapping()
+                        .put(TextureSlot.ALL, TextureMapping.getBlockTexture(block, "_inactive"))
+                        .copySlot(TextureSlot.ALL, TextureSlot.PARTICLE),
+                blockModels.modelOutput
+        );
 
         blockModels.blockStateOutput.accept(
                 MultiVariantGenerator.dispatch(block)
                         .with(PropertyDispatch.initial(WaterTankBlock.IN_WATER)
-                                .select(true, BlockModelGenerators.plainVariant(waterIntakeModelActive))
-                                .select(false, BlockModelGenerators.plainVariant(waterIntakeModelInactive))
+                                .select(true, BlockModelGenerators.plainVariant(activeModelId))
+                                .select(false, BlockModelGenerators.plainVariant(inactiveModelId))
                         )
         );
     }
@@ -183,10 +199,10 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     private void registerCableVariants(
             BlockModelGenerators blockModels,
-            SFMRegistryObject<Block, ?> cableBlock,
-            SFMRegistryObject<Block, ?> cableFacadeBlock,
-            SFMRegistryObject<Block, ?> fancyCableBlock,
-            SFMRegistryObject<Block, ?> fancyCableFacadeBlock
+            SFMRegistryObject<Block, ? extends Block> cableBlock,
+            SFMRegistryObject<Block, ? extends Block> cableFacadeBlock,
+            SFMRegistryObject<Block, ? extends Block> fancyCableBlock,
+            SFMRegistryObject<Block, ? extends Block> fancyCableFacadeBlock
     ) {
 
         SFM.LOGGER.info("Registering cable variants for \"{}\"", cableBlock.getId().get());
@@ -199,8 +215,8 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
 
     private void registerFancyCableVariant(
             BlockModelGenerators blockModels,
-            SFMRegistryObject<Block, ?> fancyCableBlock,
-            SFMRegistryObject<Block, ?> fancyCableFacadeBlock
+            SFMRegistryObject<Block, ? extends Block> fancyCableBlock,
+            SFMRegistryObject<Block, ? extends Block> fancyCableFacadeBlock
     ) {
 
         ModelTemplate coreTemplate = FANCY_CABLE_TEMPLATE
@@ -287,7 +303,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         var dispatch = PropertyDispatch.initial(BufferBlock.CONTAINED_RESOURCE);
 
         for (BufferBlock.ContainedResource value : BufferBlock.ContainedResource.values()) {
-            String name = value.getSerializedName();
+            String name = "_" + value.getSerializedName();
 
             Identifier modelId = ModelTemplates.CUBE_ALL.create(
                     ModelLocationUtils.getModelLocation(block, name),
@@ -298,7 +314,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         }
 
         blockModels.blockStateOutput.accept(
-                MultiVariantGenerator.dispatch(SFMBlocks.BUFFER_BLOCK.get())
+                MultiVariantGenerator.dispatch(block)
                         .with(dispatch)
         );
 
@@ -314,6 +330,13 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         basicItem(itemModels, SFMItems.NETWORK_TOOL);
 
         basicItem(itemModels, SFMItems.FORM);
+
+        fancyCables(itemModels, SFMItems.FANCY_CABLE, SFMBlocks.FANCY_CABLE);
+        fancyCables(itemModels, SFMItems.TOUGH_FANCY_CABLE, SFMBlocks.TOUGH_FANCY_CABLE);
+        fancyCables(itemModels, SFMItems.TUNNELLED_FANCY_CABLE, SFMBlocks.TUNNELLED_FANCY_CABLE);
+
+        withParent(itemModels, SFMItems.BUFFER, SFMBlocks.BUFFER_BLOCK, "_item");
+        withParent(itemModels, SFMItems.WATER_TANK, SFMBlocks.WATER_TANK, "_active");
     }
 
     private void basicItem(
@@ -321,5 +344,30 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
             SFMRegistryObject<Item, ? extends Item> item
     ) {
         itemModels.generateFlatItem(item.get(), ModelTemplates.FLAT_ITEM);
+    }
+
+    private void fancyCables(
+            ItemModelGenerators itemModels,
+            SFMRegistryObject<Item, ? extends Item> item,
+            SFMRegistryObject<Block, ? extends Block> block
+    ) {
+        Identifier coreModelId = ModelLocationUtils.getModelLocation(block.get(), "_core");
+        itemModels.itemModelOutput.accept(
+                item.get(),
+                ItemModelUtils.plainModel(coreModelId)
+        );
+    }
+
+    private void withParent(
+            ItemModelGenerators itemModels,
+            SFMRegistryObject<Item, ? extends Item> item,
+            SFMRegistryObject<Block, ? extends Block> block,
+            String suffix
+    ) {
+        Identifier modelLocation = ModelLocationUtils.getModelLocation(block.get(), suffix);
+        itemModels.itemModelOutput.accept(
+                item.get(),
+                ItemModelUtils.plainModel(modelLocation)
+        );
     }
 }
