@@ -208,7 +208,12 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         SFM.LOGGER.info("Registering cable variants for \"{}\"", cableBlock.getId().get());
         blockModels.createTrivialCube(cableBlock.get());
         SFM.LOGGER.info("Registering cable facade variants for \"{}\"", cableFacadeBlock.getId().get());
-        blockModels.copyModel(cableBlock.get(), cableFacadeBlock.get());
+        Identifier cableModelId = ModelLocationUtils.getModelLocation(cableBlock.get());
+        blockModels.blockStateOutput.accept(
+                MultiVariantGenerator.dispatch(cableFacadeBlock.get(),
+                        BlockModelGenerators.plainVariant(cableModelId)
+                )
+        );
         SFM.LOGGER.info("Registering fancy cable variants for \"{}\"", fancyCableBlock.getId().get());
         registerFancyCableVariant(blockModels, fancyCableBlock, fancyCableFacadeBlock);
     }
@@ -333,8 +338,8 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
 
         withParent(itemModels, SFMItems.MANAGER, SFMBlocks.MANAGER);
         withParent(itemModels, SFMItems.TUNNELLED_MANAGER, SFMBlocks.TUNNELLED_MANAGER);
-        withParent(itemModels, SFMItems.CABLE, SFMBlocks.CABLE);
         withParent(itemModels, SFMItems.PRINTING_PRESS, SFMBlocks.PRINTING_PRESS);
+        withParent(itemModels, SFMItems.CABLE, SFMBlocks.CABLE);
 
         withParent(itemModels, SFMItems.FANCY_CABLE, SFMBlocks.FANCY_CABLE, "_core");
         withParent(itemModels, SFMItems.TOUGH_FANCY_CABLE, SFMBlocks.TOUGH_FANCY_CABLE, "_core");
