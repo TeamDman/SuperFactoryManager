@@ -19,7 +19,6 @@ import org.joml.Vector3fc;
 
 import java.util.function.Consumer;
 
-@OnlyIn(Dist.CLIENT)
 public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.Data> {
 
     private static final Identifier BASE_MODEL_ID = SFMResourceLocation.fromSFMPath("item/form_base");
@@ -86,7 +85,6 @@ public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.D
 
     public record Data(ItemStackRenderState referenceState, ItemStackRenderState baseState, boolean showReference) {}
 
-    @OnlyIn(Dist.CLIENT)
     public record Unbaked() implements SpecialModelRenderer.Unbaked<Data> {
 
         public static final MapCodec<Unbaked> MAP_CODEC = MapCodec.unit(new Unbaked());

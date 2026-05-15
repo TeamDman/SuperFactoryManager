@@ -27,6 +27,7 @@ public class SFMConfirmationScreen extends ConfirmScreen {
                 confirmYes,
                 confirmNo
         );
+        this.init();
         setDelay(delay);
     }
 

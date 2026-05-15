@@ -4,6 +4,9 @@ import ca.teamdman.sfm.common.facade.FacadeData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -74,5 +77,15 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
         if (facadeData != null) {
             facadeData.save(output);
         }
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+            return saveWithoutMetadata(registries);
+    }
+
+    @Override
+    public void handleUpdateTag(ValueInput input) {
+        super.handleUpdateTag(input);
     }
 }

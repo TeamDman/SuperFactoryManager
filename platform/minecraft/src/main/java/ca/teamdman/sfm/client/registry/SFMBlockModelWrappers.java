@@ -53,7 +53,7 @@ public class SFMBlockModelWrappers {
                         SFMBlocks.TOUGH_FANCY_CABLE_FACADE,
                         FancyCableFacadeBlockModelWrapper::new
                 ),
-                };
+        };
 
         // Apply the model redirection for each relationship
         Map<BlockState, BlockStateModel> models = event.getBakingResult().blockStateModels();
