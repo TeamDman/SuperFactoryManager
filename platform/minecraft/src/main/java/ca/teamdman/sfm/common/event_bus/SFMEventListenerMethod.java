@@ -4,10 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 import net.neoforged.bus.api.Event;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.IModBusEvent;
-import net.neoforged.neoforge.common.NeoForge;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.invoke.MethodHandle;

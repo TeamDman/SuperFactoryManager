@@ -18,8 +18,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.Arrays;
-
 public class PrintingPressJEICategory implements IRecipeCategory<PrintingPressRecipe> {
 
     public static final IRecipeType<PrintingPressRecipe> RECIPE_TYPE = IRecipeType.create(

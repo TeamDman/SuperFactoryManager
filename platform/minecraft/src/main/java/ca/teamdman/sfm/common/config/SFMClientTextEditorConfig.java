@@ -10,8 +10,6 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
-
 public class SFMClientTextEditorConfig {
     public final ModConfigSpec.BooleanValue showLineNumbers;
     public final ModConfigSpec.EnumValue<SFMTextEditorIntellisenseLevel> intellisenseLevel;

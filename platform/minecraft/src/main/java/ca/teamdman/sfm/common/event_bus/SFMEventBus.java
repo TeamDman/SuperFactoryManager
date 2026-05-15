@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.common.event_bus;
 
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.UnknownNullability;
 

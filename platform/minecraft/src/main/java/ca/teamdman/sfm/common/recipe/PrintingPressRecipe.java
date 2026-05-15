@@ -15,7 +15,6 @@ import net.minecraft.world.level.Level;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Printing press copies a form using ink and paper.

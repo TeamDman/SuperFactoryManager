@@ -6,7 +6,7 @@
 @FieldsAreNonnullByDefault
 package ca.teamdman.sfm.common.program.linting.compat;
 
-import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
+import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 
 import javax.annotation.ParametersAreNonnullByDefault;

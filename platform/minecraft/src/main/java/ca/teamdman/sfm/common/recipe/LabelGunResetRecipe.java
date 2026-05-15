@@ -5,11 +5,12 @@ import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMRecipeSerializers;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.*;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.CustomRecipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
 
 /**

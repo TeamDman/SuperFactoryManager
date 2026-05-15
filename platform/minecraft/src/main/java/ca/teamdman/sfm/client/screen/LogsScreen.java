@@ -11,8 +11,6 @@ import ca.teamdman.sfm.common.net.ServerboundManagerLogDesireUpdatePacket;
 import ca.teamdman.sfm.common.net.ServerboundManagerSetLogLevelPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.timing.SFMEpochInstant;
-import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;

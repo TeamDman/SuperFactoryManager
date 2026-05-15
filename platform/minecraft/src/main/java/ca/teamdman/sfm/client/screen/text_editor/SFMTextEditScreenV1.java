@@ -1,7 +1,5 @@
 package ca.teamdman.sfm.client.screen.text_editor;
 
-import org.joml.Matrix3x2fStack;
-
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.ProgramTokenContextActions;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
@@ -25,7 +23,6 @@ import ca.teamdman.sfml.manipulation.ManipulationResult;
 import ca.teamdman.sfml.manipulation.ProgramStringManipulationUtils;
 import ca.teamdman.sfml.program_builder.ProgramBuildResult;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.MultiLineEditBox;
@@ -41,7 +38,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
-
+import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;

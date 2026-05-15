@@ -1,13 +1,10 @@
 package ca.teamdman.sfm.client.render;
 
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
-import ca.teamdman.sfm.common.facade.FacadeTransparency;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
-import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;

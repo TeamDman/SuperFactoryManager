@@ -9,7 +9,6 @@ import ca.teamdman.sfm.common.net.ServerboundLabelGunCycleViewModePacket;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunPrunePacket;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;

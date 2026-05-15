@@ -3,8 +3,8 @@ package ca.teamdman.sfm.client.screen.text_editor;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
 import ca.teamdman.sfm.common.util.SFMComponentUtils;
-import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.MultilineTextField;
@@ -13,9 +13,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import net.minecraft.client.Minecraft;
 import org.joml.Matrix3x2fStack;
-
 
 import java.util.ArrayList;
 import java.util.List;

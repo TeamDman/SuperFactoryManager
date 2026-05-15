@@ -2,11 +2,9 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.config.SFMConfigReadWriter;
-import net.minecraft.commands.Commands;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.permissions.Permission;
 import net.minecraft.server.permissions.Permissions;
 
 public record ServerboundServerConfigUpdatePacket(

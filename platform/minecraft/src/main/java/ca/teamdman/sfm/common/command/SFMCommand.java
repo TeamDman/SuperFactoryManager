@@ -31,7 +31,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionSet;
-import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
@@ -42,8 +41,6 @@ import net.neoforged.neoforge.server.command.EnumArgument;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static com.mojang.brigadier.Command.SINGLE_SUCCESS;

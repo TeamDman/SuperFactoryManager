@@ -28,12 +28,10 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Panorama;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
-import net.minecraft.util.Mth;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.IntervalSet;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
-import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.LinkedList;

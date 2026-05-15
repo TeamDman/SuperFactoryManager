@@ -8,7 +8,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.List;
 import java.util.function.Consumer;
 
 public class SFMItemUtils {

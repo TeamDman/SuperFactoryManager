@@ -3,8 +3,8 @@ package ca.teamdman.sfm.common.util;
 import ca.teamdman.sfm.SFM;
 import net.minecraft.IdentifierException;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import org.jetbrains.annotations.Nullable;
 
 public class SFMResourceLocation {

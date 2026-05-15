@@ -3,15 +3,6 @@ package ca.teamdman.sfm.common.block;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
-
-import java.util.List;
-import java.util.function.Consumer;
 
 public class ToughFancyCableBlock extends FancyCableBlock {
     @SFMLocalizationDatagen

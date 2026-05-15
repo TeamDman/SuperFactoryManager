@@ -5,7 +5,6 @@ import ca.teamdman.sfm.common.command.ConfigCommandBehaviourInput;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.config.SFMConfigReadWriter;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
-import net.minecraft.commands.Commands;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;

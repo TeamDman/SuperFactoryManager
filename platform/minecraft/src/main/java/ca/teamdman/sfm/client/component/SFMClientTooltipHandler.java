@@ -8,7 +8,6 @@ import ca.teamdman.sfm.common.block.TunnelledManagerBlock;
 import ca.teamdman.sfm.common.block.WaterTankBlock;
 import ca.teamdman.sfm.common.component.SFMTooltipType;
 import ca.teamdman.sfm.common.item.DiskItem;
-import ca.teamdman.sfm.common.item.FormItem;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.item.NetworkToolItem;
 import ca.teamdman.sfm.common.item.PrintingPressBlockItem;

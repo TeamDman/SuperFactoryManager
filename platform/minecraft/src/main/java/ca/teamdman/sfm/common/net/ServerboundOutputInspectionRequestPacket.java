@@ -14,8 +14,8 @@ import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import ca.teamdman.sfml.ast.*;
 import ca.teamdman.sfml.ast.Number;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import org.antlr.v4.runtime.misc.Pair;
 
 import java.util.ArrayList;
