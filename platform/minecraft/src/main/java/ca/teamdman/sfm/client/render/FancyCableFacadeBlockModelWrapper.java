@@ -8,17 +8,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
-import net.neoforged.neoforge.client.model.quad.MutableQuad;
-import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
-import net.neoforged.neoforge.client.model.quad.MutableQuad;
 import net.neoforged.neoforge.model.data.ModelData;
 
 import java.util.ArrayList;
@@ -61,9 +56,6 @@ public class FancyCableFacadeBlockModelWrapper extends DelegateBlockStateModel {
             return;
         }
 
-        List<BlockStateModelPart> mimicParts = new ArrayList<>();
-        mimicModel.collectParts(level, pos, mimicState, random, mimicParts);
-
         Material.Baked material = particleMaterial(level, pos, mimicState);
 
         for (BlockStateModelPart originalPart : originalParts) {
@@ -71,37 +63,19 @@ public class FancyCableFacadeBlockModelWrapper extends DelegateBlockStateModel {
         }
     }
 
-    private record RetexturedBlockStateModelPart(
-            BlockStateModelPart delegate,
-            Material.Baked material
-    ) implements BlockStateModelPart {
-
-        @Override
-        public List<BakedQuad> getQuads(@Nullable Direction direction) {
-            List<BakedQuad> original = this.delegate.getQuads(direction);
-            List<BakedQuad> result = new ArrayList<>(original.size());
-            for (BakedQuad quad : original) {
-                MutableQuad mutable = new MutableQuad();
-                mutable.setFrom(quad);
-                mutable.setSpriteAndMoveUv(material);
-                result.add(mutable.toBakedQuad());
+    @Override
+    public Material.Baked particleMaterial(BlockAndTintGetter level, BlockPos pos, BlockState state) {
+        ModelData modelData = level.getModelData(pos);
+        BlockState mimicState = modelData.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);
+        if (mimicState != null) {
+            BlockStateModel mimicModel = Minecraft.getInstance()
+                    .getModelManager()
+                    .getBlockStateModelSet()
+                    .get(mimicState);
+            if (mimicModel != null) {
+                return mimicModel.particleMaterial(level, pos, mimicState);
             }
-            return result;
         }
-
-        @Override
-        public boolean useAmbientOcclusion() {
-            return this.delegate.useAmbientOcclusion();
-        }
-
-        @Override
-        public Material.Baked particleMaterial() {
-            return this.delegate.particleMaterial();
-        }
-
-        @Override
-        public int materialFlags() {
-            return this.delegate.materialFlags();
-        }
+        return super.particleMaterial(level, pos, state);
     }
 }
