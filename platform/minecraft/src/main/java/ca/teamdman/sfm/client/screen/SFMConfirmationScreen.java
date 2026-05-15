@@ -7,6 +7,8 @@ import net.minecraft.network.chat.MutableComponent;
 /// Automatically pops the screen after a choice is made
 /// Only runs the callback if the user confirms
 public class SFMConfirmationScreen extends ConfirmScreen {
+    private final int delay;
+
     public SFMConfirmationScreen(
             Runnable callback,
             MutableComponent confirmTitle,
@@ -27,8 +29,13 @@ public class SFMConfirmationScreen extends ConfirmScreen {
                 confirmYes,
                 confirmNo
         );
-        this.init();
-        setDelay(delay);
+        this.delay = delay;
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        setDelay(this.delay);
     }
 
     public SFMConfirmationScreen(
@@ -45,6 +52,4 @@ public class SFMConfirmationScreen extends ConfirmScreen {
                 delay
         );
     }
-
-
 }
