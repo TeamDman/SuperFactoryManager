@@ -13,12 +13,17 @@ import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 public class PrintingPressBlockEntityRenderer implements BlockEntityRenderer<PrintingPressBlockEntity, PrintingPressRenderState> {
     private final ItemModelResolver itemModelResolver;
+
+    private final ItemStackRenderState scratchPaper = new ItemStackRenderState();
+    private final ItemStackRenderState scratchDye   = new ItemStackRenderState();
+    private final ItemStackRenderState scratchForm  = new ItemStackRenderState();
 
     public PrintingPressBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {
         this.itemModelResolver = ctx.itemModelResolver();
@@ -31,16 +36,23 @@ public class PrintingPressBlockEntityRenderer implements BlockEntityRenderer<Pri
 
     @Override
     public void submit(PrintingPressRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
+        int seed = (int) state.blockPos.asLong();
+
         poseStack.pushPose();
         poseStack.translate(0.5, 1, 0.6);
         rotate(poseStack);
 
-        for (var stack : new ItemStackRenderState[]{state.form, state.paper, state.dye}) {
-            if (!stack.isEmpty()) {
-                stack.submit(poseStack, submitNodeCollector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+        ItemStack[] stacks   = {state.form,  state.paper,  state.dye};
+        ItemStackRenderState[] scratch = {scratchForm, scratchPaper, scratchDye};
+
+        for (int i = 0; i < stacks.length; i++) {
+            if (!stacks[i].isEmpty()) {
+                this.itemModelResolver.updateForTopItem(scratch[i], stacks[i], ItemDisplayContext.GROUND, null, null, seed + i);
+                scratch[i].submit(poseStack, submitNodeCollector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
                 poseStack.translate(0.01, 0.01, 0.03);
             }
         }
+
         poseStack.popPose();
     }
 
@@ -53,33 +65,10 @@ public class PrintingPressBlockEntityRenderer implements BlockEntityRenderer<Pri
             @Nullable ModelFeatureRenderer.CrumblingOverlay crumblingOverlay
     ) {
         BlockEntityRenderer.super.extractRenderState(blockEntity, renderState, partialTick, cameraPos, crumblingOverlay);
-        Level level = blockEntity.getLevel();
-        int seed = (int) blockEntity.getBlockPos().asLong();
 
-        this.itemModelResolver.updateForTopItem(
-                renderState.paper,
-                blockEntity.getPaper(),
-                ItemDisplayContext.GROUND,
-                level,
-                null,
-                seed
-        );
-        this.itemModelResolver.updateForTopItem(
-                renderState.dye,
-                blockEntity.getInk(),
-                ItemDisplayContext.GROUND,
-                level,
-                null,
-                seed + 1
-        );
-        this.itemModelResolver.updateForTopItem(
-                renderState.form,
-                blockEntity.getForm(),
-                ItemDisplayContext.GROUND,
-                level,
-                null,
-                seed + 2
-        );
+        renderState.paper = blockEntity.getPaper().copy();
+        renderState.dye   = blockEntity.getInk().copy();
+        renderState.form  = blockEntity.getForm().copy();
     }
 
     @MCVersionDependentBehaviour

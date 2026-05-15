@@ -15,6 +15,7 @@ import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
@@ -80,7 +81,9 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
             if (getLevel() == null) return false;
             RecipeManager recipes = Objects.requireNonNull(getLevel().getServer()).getRecipeManager();
             return recipes
-                    .recipeMap().byType(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().ink().test(resource.toStack()));
+                    .recipeMap()
+                    .byType(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.value().ink().test(resource.toStack()));
         }
     };
     private final ItemStackResourceHandler PAPER = new ItemStackResourceHandler() {
@@ -105,11 +108,13 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
             if (getLevel() == null) return false;
             RecipeManager recipes = Objects.requireNonNull(getLevel().getServer()).getRecipeManager();
             return recipes
-                    .recipeMap().byType(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().paper().test(resource.toStack()));
+                    .recipeMap()
+                    .byType(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.value().paper().test(resource.toStack()));
         }
     };
 
-    public final CombinedResourceHandler<ItemResource> INVENTORY = new CombinedResourceHandler<>(FORM, INK, PAPER);
+    public final CombinedResourceHandler<ItemResource> INVENTORY = new CombinedResourceHandler<>(INK, PAPER, FORM);
 
     public PrintingPressBlockEntity(
             BlockPos pPos, BlockState pBlockState
@@ -127,6 +132,12 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         return INVENTORY.size();
     }
 
+    @Override
+    public void setChanged() {
+        super.setChanged();
+        if (level != null)
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+    }
 
     @Override
     protected void loadAdditional(
@@ -162,25 +173,32 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
 
 
     public ItemStack acceptStack(ItemStack stack) {
-        ItemResource resource = ItemResource.of(stack);
-        if (!resource.isEmpty()) {
-            try (var tx = Transaction.openRoot()) {
-                ItemStack remainder = ItemUtil.insertItemReturnRemaining(INVENTORY, stack, false, tx);
-
-                if (remainder.getCount() < stack.getCount()) {
-                    tx.commit();
-                    return remainder;
-                }
-            }
-        } else {
-            try (var tx = Transaction.openRoot()) {
-                ResourceStack<ItemResource> extracted = ResourceHandlerUtil.extractFirst(INVENTORY, (_) -> true, 64, tx);
+        if (stack.isEmpty()) {
+            try (var ctx = Transaction.openRoot()) {
+                ResourceStack<ItemResource> extracted = ResourceHandlerUtil.extractFirst(INVENTORY, (_) -> true, 64, ctx);
                 if (extracted != null) {
+                    ctx.commit();
+                    setChanged();
                     return extracted.resource().toStack(extracted.amount());
                 }
             }
-        }
             return stack;
+        }
+
+        ItemResource resource = ItemResource.of(stack);
+        for (ItemStackResourceHandler handler : new ItemStackResourceHandler[]{FORM, INK, PAPER}) {
+            if (handler.isValid(0, resource)) {
+                try (var ctx = Transaction.openRoot()) {
+                    ItemStack remainder = ItemUtil.insertItemReturnRemaining(handler, stack, false, ctx);
+                    if (remainder.getCount() < stack.getCount()) {
+                        ctx.commit();
+                        setChanged();
+                        return remainder;
+                    }
+                }
+            }
+        }
+        return stack;
     }
 
     @Override
@@ -229,6 +247,7 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
 
                 PAPER.insert(ItemResource.of(result), result.getCount(), tx);
                 tx.commit();
+                setChanged();
             }
         });
     }
