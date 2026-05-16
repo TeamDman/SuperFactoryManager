@@ -888,15 +888,14 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 if (SFMTextEditorUtils.shouldShowLineNumbers()) {
                     // Draw line number
                     String lineNumber = String.valueOf(line + 1);
-                    SFMFontUtils.drawInBatch(
-                            lineNumber,
+                    SFMFontUtils.draw(
+                            graphics,
                             this.font,
+                            lineNumber,
                             lineX - 2 - this.font.width(lineNumber),
                             lineY,
-                            true,
-                            false,
-                            matrixStack,
-                            buffer
+                            -1,
+                            true
                     );
                 }
 
@@ -907,39 +906,36 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                     int drawnWidthBeforeCursor = this.font.width(plainLine.substring(0, relativeCursorIndex));
                     cursorX = lineX + drawnWidthBeforeCursor;
                     // draw text before cursor
-                    SFMFontUtils.drawInBatch(
+                    SFMFontUtils.draw(
+                            graphics,
+                            this.font,
                             SFMComponentUtils.substring(componentColoured, 0, relativeCursorIndex),
-                            font,
                             lineX,
                             lineY,
-                            true,
-                            false,
-                            matrixStack,
-                            buffer
+                            -1,
+                            true
                     );
                     SFMTextEditScreenV1.this.suggestedActions.setXY(cursorX + 10, cursorY);
                     // draw text after cursor
-                    SFMFontUtils.drawInBatch(
+                    SFMFontUtils.draw(
+                            graphics,
+                            this.font,
                             SFMComponentUtils.substring(componentColoured, relativeCursorIndex, lineLength),
-                            font,
                             cursorX,
                             lineY,
-                            true,
-                            false,
-                            matrixStack,
-                            buffer
+                            -1,
+                            true
                     );
                     drewCursorGlyph = isCursorVisible;
                 } else {
-                    SFMFontUtils.drawInBatch(
+                    SFMFontUtils.draw(
+                            graphics,
+                            this.font,
                             componentColoured,
-                            font,
                             lineX,
                             lineY,
-                            true,
-                            false,
-                            matrixStack,
-                            buffer
+                            -1,
+                            true
                     );
                 }
 
