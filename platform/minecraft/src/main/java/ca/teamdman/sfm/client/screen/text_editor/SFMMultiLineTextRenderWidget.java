@@ -4,16 +4,13 @@ import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
 import ca.teamdman.sfm.common.util.SFMComponentUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.MultilineTextField;
 import net.minecraft.client.gui.components.Renderable;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,9 +85,6 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
             int pMouseY,
             float pPartialTick
     ) {
-
-        Matrix3x2fStack pPoseStack = pGuiGraphics.pose();
-
         frame++;
 
         if (styledTextContentLines.isEmpty()) {
@@ -119,7 +113,7 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
         // IMPORTANT: do not subtract (scroll % lineHeight) here.
         // The parent has already translated by -scrollAmount.
         // Draw at content-space Y positions as if there was no scrolling:
-        int lineY = area.getY() + viewLineIndexStart * lineHeight;
+        int lineY = area.getY() - (int) (scrollAmount % lineHeight);
         int charCountAccum = getLineStartIndex(viewLineIndexStart);
 
         int cursorX = 0;
@@ -128,13 +122,9 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
         final int selectionStart = selected.beginIndex();
         final int selectionEnd = selected.endIndex();
 
-        // One buffer for the entire text pass
-        MultiBufferSource.BufferSource buffer = Minecraft.getInstance().renderBuffers().bufferSource();
 
         // Collect selection highlights rects and draw them after the text
         List<int[]> highlightRects = new ArrayList<>();
-
-        Matrix3x2fStack matrixStack = pPoseStack;
 
         for (int line = viewLineIndexStart; line < viewLineIndexEnd; ++line) {
             var componentColoured = styledTextContentLines.get(line);
@@ -148,15 +138,14 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
             if (SFMTextEditorUtils.shouldShowLineNumbers()) {
                 // Draw line number
                 String lineNumber = String.valueOf(line + 1);
-                SFMFontUtils.drawInBatch(
-                        lineNumber,
+                SFMFontUtils.draw(
+                        pGuiGraphics,
                         font,
+                        lineNumber,
                         lineX - 2 - font.width(lineNumber),
                         lineY,
-                        true,
-                        false,
-                        matrixStack,
-                        buffer
+                        -1,
+                        true
                 );
             }
 
@@ -167,39 +156,36 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
                 int drawnWidthBeforeCursor = font.width(plainLine.substring(0, relativeCursorIndex));
                 cursorX = lineX + drawnWidthBeforeCursor;
                 // draw text before cursor
-                SFMFontUtils.drawInBatch(
-                        SFMComponentUtils.substring(componentColoured, 0, relativeCursorIndex),
+                SFMFontUtils.draw(
+                        pGuiGraphics,
                         font,
+                        SFMComponentUtils.substring(componentColoured, 0, relativeCursorIndex),
                         lineX,
                         lineY,
-                        true,
-                        false,
-                        matrixStack,
-                        buffer
+                        -1,
+                        true
                 );
 
                 // draw text after cursor
-                SFMFontUtils.drawInBatch(
-                        SFMComponentUtils.substring(componentColoured, relativeCursorIndex, lineLength),
+                SFMFontUtils.draw(
+                        pGuiGraphics,
                         font,
+                        SFMComponentUtils.substring(componentColoured, relativeCursorIndex, lineLength),
                         cursorX,
                         lineY,
-                        true,
-                        false,
-                        matrixStack,
-                        buffer
+                        -1,
+                        true
                 );
                 drewCursorGlyph = true;
             } else {
-                SFMFontUtils.drawInBatch(
-                        componentColoured,
+                SFMFontUtils.draw(
+                        pGuiGraphics,
                         font,
+                        componentColoured,
                         lineX,
                         lineY,
-                        true,
-                        false,
-                        matrixStack,
-                        buffer
+                        -1,
+                        true
                 );
             }
 
@@ -222,9 +208,6 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
             lineY += lineHeight;
             charCountAccum += lineLength + 1;
         }
-
-        // Flush the text batch once
-        buffer.endBatch();
 
         // Draw selection highlights after text
         for (int[] r : highlightRects) {

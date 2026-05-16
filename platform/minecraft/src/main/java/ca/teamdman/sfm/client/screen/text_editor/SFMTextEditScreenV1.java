@@ -32,13 +32,11 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -819,9 +817,6 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 int my,
                 float partialTicks
         ) {
-
-            Matrix3x2fStack matrixStack = graphics.pose();
-
             // rebuild the program if necessary
             if (!lastProgram.equals(this.textField.value())) {
                 rebuild(SFMWidgetUtils.hasCtrlDown());
@@ -870,8 +865,6 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             final int selectionStart = selectedRange.beginIndex();
             final int selectionEnd = selectedRange.endIndex();
 
-            // One buffer for the entire text pass
-            MultiBufferSource.BufferSource buffer = minecraft.renderBuffers().bufferSource();
 
             // Collect selection highlights rects and draw them after the text
             List<int[]> highlightRects = new ArrayList<>();
@@ -958,9 +951,6 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 lineY += lineHeight;
                 charCountAccum += lineLength + 1;
             }
-
-            // Flush the text batch once
-            buffer.endBatch();
 
             // Draw selection highlights after text
             for (int[] r : highlightRects) {
