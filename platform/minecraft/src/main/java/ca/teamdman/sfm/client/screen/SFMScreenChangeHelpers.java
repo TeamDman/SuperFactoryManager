@@ -35,6 +35,10 @@ public class SFMScreenChangeHelpers {
             "Copied {} characters to clipboard!"
     );
 
+/*    public static boolean isTopScreen() {
+        return Minecraft.getInstance().screen;
+    }*/
+
     public static void setOrPushScreen(Screen screen) {
 
         if (Minecraft.getInstance().screen == null) {

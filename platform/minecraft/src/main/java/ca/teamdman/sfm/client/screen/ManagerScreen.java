@@ -341,7 +341,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             float partialTicks
     ) {
 
-        this.extractTransparentBackground(graphics);
+//        this.extractTransparentBackground(graphics);
         super.extractRenderState(graphics, mx, my, partialTicks);
         this.extractTooltip(graphics, mx, my);
 
@@ -848,12 +848,10 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     }
 
     @Override
-    public void extractBackground(
-            GuiGraphicsExtractor graphics,
-            int mx,
-            int my,
-            float partialTicks
+    public void extractTransparentBackground(
+            GuiGraphicsExtractor graphics
     ) {
+        super.extractTransparentBackground(graphics);
         int color;
         if (!menu.logLevel.equals(Level.OFF.name())) {
             color = ARGB.color(255, (int)(0.2f * 255), (int)(0.8f * 255), 255);
@@ -864,5 +862,4 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         int j = (this.height - this.imageHeight) / 2;
         graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND_TEXTURE_LOCATION, i, j, 0, 0, this.imageWidth, this.imageHeight, 256, 256, color);
     }
-
 }

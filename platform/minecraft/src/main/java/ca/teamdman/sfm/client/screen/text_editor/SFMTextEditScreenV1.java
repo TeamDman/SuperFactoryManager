@@ -997,4 +997,8 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
 
     }
 
+    @Override
+    public boolean isInGameUi() {
+        return true;
+    }
 }

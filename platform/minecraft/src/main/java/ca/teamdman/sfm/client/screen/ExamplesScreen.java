@@ -44,8 +44,6 @@ public class ExamplesScreen extends Screen {
 
         // Darken background
         this.extractTransparentBackground(graphics);
-        this.extractTransparentBackground(graphics);
-        this.extractTransparentBackground(graphics);
 
         // Draw widgets
         super.extractRenderState(graphics, pMouseX, pMouseY, pPartialTick);

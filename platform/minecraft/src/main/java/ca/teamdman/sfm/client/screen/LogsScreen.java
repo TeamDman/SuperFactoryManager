@@ -309,4 +309,9 @@ public class LogsScreen extends Screen {
         Minecraft.getInstance().keyboardHandler.setClipboard(clipboardBuilder.toString());
     }
 
+    @Override
+    public boolean isInGameUi() {
+        return true;
+    }
+
 }
