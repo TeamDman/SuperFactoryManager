@@ -5,7 +5,13 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipProvider;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -13,7 +19,9 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-public class TunnelledManagerBlock extends ManagerBlock {
+import java.util.function.Consumer;
+
+public class TunnelledManagerBlock extends ManagerBlock implements TooltipProvider {
     @SFMLocalizationDatagen
     public static final LocalizationEntry TUNNELLED_MANAGER_ITEM_TOOLTIP = new LocalizationEntry(
             () -> SFMBlocks.TUNNELLED_MANAGER.get().getDescriptionId() + ".tooltip",
@@ -55,4 +63,10 @@ public class TunnelledManagerBlock extends ManagerBlock {
         );
     }
 
+    @Override
+    public void addToTooltip(Item.TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
+        consumer.accept(
+                TUNNELLED_MANAGER_ITEM_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY)
+        );
+    }
 }

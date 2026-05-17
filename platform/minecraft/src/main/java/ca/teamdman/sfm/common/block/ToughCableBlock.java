@@ -3,8 +3,16 @@ package ca.teamdman.sfm.common.block;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipProvider;
 
-public class ToughCableBlock extends CableBlock {
+import java.util.function.Consumer;
+
+public class ToughCableBlock extends CableBlock implements TooltipProvider {
     @SFMLocalizationDatagen
     public static final LocalizationEntry TOUGH_CABLE_ITEM_TOOLTIP = new LocalizationEntry(
             () -> SFMBlocks.TOUGH_CABLE.get().getDescriptionId() + ".tooltip",
@@ -34,4 +42,10 @@ public class ToughCableBlock extends CableBlock {
         return SFMBlocks.TOUGH_CABLE_FACADE.get();
     }
 
+    @Override
+    public void addToTooltip(Item.TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
+        consumer.accept(
+                TOUGH_CABLE_BLOCK.getComponent().withStyle(ChatFormatting.GRAY)
+        );
+    }
 }

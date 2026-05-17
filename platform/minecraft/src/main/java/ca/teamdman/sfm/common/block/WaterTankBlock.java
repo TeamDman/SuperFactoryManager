@@ -8,13 +8,19 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.SFMDirections;
 import com.mojang.serialization.MapCodec;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipProvider;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -33,10 +39,11 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @SuppressWarnings("deprecation")
 
-public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, BucketPickup, LiquidBlockContainer {
+public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, BucketPickup, LiquidBlockContainer, TooltipProvider {
     public static final BooleanProperty IN_WATER = BooleanProperty.create("in_water");
 
     @SFMLocalizationDatagen
@@ -206,4 +213,13 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
         builder.add(IN_WATER);
     }
 
+    @Override
+    public void addToTooltip(Item.TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
+        consumer.accept(
+                WATER_TANK_ITEM_TOOLTIP_1.getComponent().withStyle(ChatFormatting.GRAY)
+        );
+        consumer.accept(
+                WATER_TANK_ITEM_TOOLTIP_2.getComponent().withStyle(ChatFormatting.GRAY)
+        );
+    }
 }

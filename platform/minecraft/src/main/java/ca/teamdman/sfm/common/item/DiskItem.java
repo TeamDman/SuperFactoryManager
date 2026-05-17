@@ -3,6 +3,7 @@ package ca.teamdman.sfm.common.item;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
+import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
@@ -13,6 +14,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
+import ca.teamdman.sfm.common.util.SFMItemUtils;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.ChatFormatting;
@@ -26,6 +28,8 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipProvider;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,9 +37,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class DiskItem extends Item {
+public class DiskItem extends Item implements TooltipProvider {
 
     @SFMLocalizationDatagen
     public static final LocalizationEntry DISK_EDIT_IN_HAND_TOOLTIP = new LocalizationEntry(
@@ -258,4 +263,34 @@ public class DiskItem extends Item {
         return Component.literal(name).withStyle(ChatFormatting.AQUA);
     }
 
+    @Override
+    public void addToTooltip(TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
+        String program = components.getOrDefault(SFMDataComponents.PROGRAM_STRING.get(), "");
+        if (SFMItemUtils.isClientAndMoreInfoKeyPressed() && !program.isEmpty()) {
+            consumer.accept(SFMItemUtils.getRainbow(DiskItem.getProgramName(components).length()));
+            ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false)
+                    .forEach(consumer);
+        } else {
+            LabelPositionHolder.from(components).asHoverText()
+                    .forEach(consumer);
+            DiskItem.getErrors(components)
+                    .stream()
+                    .map(Component::copy)
+                    .map(line -> line.withStyle(ChatFormatting.RED))
+                    .forEach(consumer);
+            DiskItem.getWarnings(components)
+                    .stream()
+                    .map(Component::copy)
+                    .map(line -> line.withStyle(ChatFormatting.YELLOW))
+                    .forEach(consumer);
+            if (!program.isEmpty()) {
+                SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(consumer);
+            }
+        }
+        if (!program.isEmpty()) {
+            consumer.accept(
+                    DiskItem.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY)
+            );
+        }
+    }
 }

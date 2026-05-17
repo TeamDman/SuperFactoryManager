@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.handler.SFMTooltips;
 import ca.teamdman.sfm.common.component.ItemStackBox;
-import ca.teamdman.sfm.common.component.SFMTooltipProvider;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.item.NetworkToolItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -135,17 +135,6 @@ public class SFMDataComponents {
                     .cacheEncoding()
                     .build()
     );
-
-    public static final Supplier<DataComponentType<SFMTooltipProvider>> SFM_TOOLTIP = DATA_COMPONENT_TYPES.register(
-            "tooltip",
-            () -> DataComponentType
-                    .<SFMTooltipProvider>builder()
-                    .networkSynchronized(SFMTooltipProvider.STREAM_CODEC)
-                    .persistent(SFMTooltipProvider.CODEC)
-                    .cacheEncoding()
-                    .build()
-    );
-
 
     public static void register(IEventBus bus) {
         DATA_COMPONENT_TYPES.register(bus);

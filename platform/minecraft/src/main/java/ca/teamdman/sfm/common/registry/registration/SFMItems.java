@@ -1,8 +1,7 @@
 package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.component.SFMTooltipProvider;
-import ca.teamdman.sfm.common.component.SFMTooltipType;
+import ca.teamdman.sfm.client.handler.SFMTooltips;
 import ca.teamdman.sfm.common.item.*;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
@@ -29,9 +28,7 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_MANAGER
             = register(
             "tunnelled_manager",
-            SFMBlocks.TUNNELLED_MANAGER,
-            () -> new Item.Properties()
-                    .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_MANAGER))
+            SFMBlocks.TUNNELLED_MANAGER
     );
 
     public static final SFMRegistryObject<Item, BlockItem> CABLE
@@ -46,9 +43,7 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, BlockItem> TOUGH_CABLE =
             register(
             "tough_cable",
-            SFMBlocks.TOUGH_CABLE,
-            () -> new Item.Properties()
-                    .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TOUGH_CABLE))
+            SFMBlocks.TOUGH_CABLE
     );
 
     public static final SFMRegistryObject<Item, BlockItem> TOUGH_FANCY_CABLE =
@@ -60,9 +55,7 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_CABLE =
             register(
             "tunnelled_cable",
-            SFMBlocks.TUNNELLED_CABLE,
-            () -> new Item.Properties()
-                    .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.TUNNELLED_CABLE))
+            SFMBlocks.TUNNELLED_CABLE
     );
 
     public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_FANCY_CABLE =
@@ -78,16 +71,13 @@ public class SFMItems {
                     new Item.Properties()
                             .useBlockDescriptionPrefix()
                             .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
-                            .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.PRINTING_PRESS))
             )
     );
 
     public static final SFMRegistryObject<Item, BlockItem> WATER_TANK
             = register(
             "water_tank",
-            SFMBlocks.WATER_TANK,
-            () -> new Item.Properties()
-                    .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.WATER_TANK))
+            SFMBlocks.WATER_TANK
     );
 
     public static final SFMRegistryObject<Item, DiskItem> DISK
@@ -96,7 +86,6 @@ public class SFMItems {
             registryName -> new DiskItem(
                     new Item.Properties()
                             .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
-                            .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.DISK))
             )
     );
 
@@ -106,7 +95,6 @@ public class SFMItems {
             registryName -> new LabelGunItem(
                     new Item.Properties()
                             .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
-                            .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.LABEL_GUN))
                             .stacksTo(1)
 
             )
@@ -118,7 +106,6 @@ public class SFMItems {
             registryName -> new NetworkToolItem(
                     new Item.Properties()
                             .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
-                            .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.NETWORK_TOOL))
             )
     );
 
@@ -128,7 +115,6 @@ public class SFMItems {
             registryName -> new FormItem(
                     new Item.Properties()
                             .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
-                            .component(SFMDataComponents.SFM_TOOLTIP.get(), new SFMTooltipProvider(SFMTooltipType.FORM))
             )
     );
 
