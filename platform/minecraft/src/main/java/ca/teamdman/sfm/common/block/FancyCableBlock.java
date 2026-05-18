@@ -13,9 +13,13 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.*;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -25,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class FancyCableBlock extends CableBlock implements IFacadableBlock {
+public class FancyCableBlock extends CableBlock implements IFacadableBlock, SimpleWaterloggedBlock {
     public static final BooleanProperty NORTH = BooleanProperty.create("north");
 
     public static final BooleanProperty SOUTH = BooleanProperty.create("south");
@@ -62,6 +66,8 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             Direction.DOWN, DOWN
     );
 
+    private static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
+
     @SFMLocalizationDatagen
     public static final LocalizationEntry FANCY_CABLE_BLOCK = new LocalizationEntry(
             () -> SFMBlocks.FANCY_CABLE.get().getDescriptionId(),
@@ -73,6 +79,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
         super(properties);
         registerDefaultState(
                 defaultBlockState()
+                        .setValue(WATERLOGGED, false)
                         .setValue(NORTH, false)
                         .setValue(SOUTH, false)
                         .setValue(EAST, false)
@@ -96,8 +103,15 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext ctx) {
+        FluidState fluidState = ctx.getLevel().getFluidState(ctx.getClickedPos());
 
-        return getState(defaultBlockState(), ctx.getLevel(), ctx.getClickedPos());
+        return getState(defaultBlockState(), ctx.getLevel(), ctx.getClickedPos())
+                .setValue(WATERLOGGED, fluidState.is(Fluids.WATER));
+    }
+
+    @Override
+    protected FluidState getFluidState(BlockState state) {
+        return state.getValue(WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
     }
 
     @Override
@@ -136,6 +150,9 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
             BlockState neighbourState,
             RandomSource random
     ) {
+        if (state.getValue(WATERLOGGED)) {
+            ticks.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
+        }
         return getState(state, level, pos);
     }
 
@@ -176,6 +193,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock {
 
         super.createBlockStateDefinition(builder);
         builder.add(NORTH, SOUTH, EAST, WEST, UP, DOWN);
+        builder.add(WATERLOGGED);
     }
 
     protected BlockState getState(
