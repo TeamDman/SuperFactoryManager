@@ -3,7 +3,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.1.22'
+    id 'net.neoforged.gradle.userdev' version '7.1.27'
     id 'antlr'
     id 'application'
 }
