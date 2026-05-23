@@ -197,7 +197,6 @@ public class ItemWorldRenderer {
 
         // Draw labels
         poseStack.pushPose();
-        // Camera.getPosition() → Camera.position() since 1.21.2
         poseStack.translate(-camera.position().x, -camera.position().y, -camera.position().z);
         for (Map.Entry<BlockPos, Collection<String>> entry : labelsByPosition.asMap().entrySet()) {
             BlockPos pos = entry.getKey();
@@ -213,7 +212,8 @@ public class ItemWorldRenderer {
                 poseStack,
                 camera,
                 labelledPositions,
-                viewMode != LabelGunItem.LabelGunViewMode.SHOW_ALL ? capabilityColorLimitedView : capabilityColor
+                viewMode != LabelGunItem.LabelGunViewMode.SHOW_ALL ? capabilityColorLimitedView : capabilityColor,
+                event
         );
 
         bufferSource.endBatch();
@@ -232,10 +232,10 @@ public class ItemWorldRenderer {
 
         var selectedPos = NetworkToolItem.getSelectedNetworkBlockPos(networkTool);
         if (cablePositions.isEmpty() && selectedPos != null) {
-            drawVbo(VBOKind.NETWORK_TOOL_CABLES, poseStack, camera, BlockPosSet.of(selectedPos), noNetworkErrorColor);
+            drawVbo(VBOKind.NETWORK_TOOL_CABLES, poseStack, camera, BlockPosSet.of(selectedPos), noNetworkErrorColor, event);
         } else {
-            drawVbo(VBOKind.NETWORK_TOOL_CABLES, poseStack, camera, cablePositions, cableColor);
-            drawVbo(VBOKind.NETWORK_TOOL_CAPABILITIES, poseStack, camera, capabilityPositions, capabilityColor);
+            drawVbo(VBOKind.NETWORK_TOOL_CABLES, poseStack, camera, cablePositions, cableColor, event);
+            drawVbo(VBOKind.NETWORK_TOOL_CAPABILITIES, poseStack, camera, capabilityPositions, capabilityColor, event);
         }
 
         bufferSource.endBatch();
@@ -256,7 +256,8 @@ public class ItemWorldRenderer {
             PoseStack poseStack,
             Camera camera,
             BlockPosSet positions,
-            int color
+            int color,
+            RenderLevelStageEvent event
     ) {
         if (positions.isEmpty()) return;
 
@@ -265,6 +266,7 @@ public class ItemWorldRenderer {
         GpuBuffer gpuBuffer = vboCache.getVBO(
                 vboKind,
                 positions,
+                event,
                 ARGB.red(color),
                 ARGB.green(color),
                 ARGB.blue(color),
@@ -447,6 +449,7 @@ public class ItemWorldRenderer {
         public @Nullable GpuBuffer getVBO(
                 VBOKind kind,
                 BlockPosSet positions,
+                RenderLevelStageEvent event,
                 int r,
                 int g,
                 int b,
@@ -458,7 +461,7 @@ public class ItemWorldRenderer {
             boolean shouldRebuild = (entry == null);
 
             // Throttle expensive equality checks to once per render tick.
-            int currentTick = Minecraft.getInstance().levelRenderer.getTicks();
+            int currentTick = event.getLevelRenderer().getTicks();
             if (entry != null
                     && currentTick != lastChangeCheckTick
                     && !entry.positions.equals(positions)) {
