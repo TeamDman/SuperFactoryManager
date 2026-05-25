@@ -18,6 +18,9 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.StandingSignBlock;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.EnumMap;
 
@@ -139,6 +142,24 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
     ) {
 
         return (int) ((totalAmount + maxStackSize - 1) / maxStackSize);
+    }
+
+    private static void fill(
+            ResourceHandler<ItemResource> handler,
+            ItemStack template,
+            long totalCount
+    ) {
+        throw new NotImplementedException("Code currently uses IItemHandler so this isn't needed yet");
+/*        long remaining = totalCount;
+        while (remaining > 0) {
+            int maxStack = Math.min(template.getMaxStackSize(), 64);
+            int toInsert = (int) Math.min(maxStack, remaining);
+            ItemStack stack = template.copy();
+            stack.setCount(toInsert);
+            ItemStack leftover = ItemHandlerHelper.insertItemStacked(handler, stack, false);
+            assertTrue(leftover.isEmpty(), "insufficient space to store items");
+            remaining -= toInsert;
+        }*/
     }
 
     private static void fill(

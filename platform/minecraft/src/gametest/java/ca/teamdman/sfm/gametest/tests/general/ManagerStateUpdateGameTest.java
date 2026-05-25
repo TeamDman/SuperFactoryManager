@@ -25,7 +25,7 @@ public class ManagerStateUpdateGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         helper.setBlock(new BlockPos(0, 2, 0), SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(0, 2, 0));
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(0, 2, 0), ManagerBlockEntity.class);
         assert manager != null;
         assertTrue(manager.getState() == ManagerBlockEntity.State.NO_DISK, "Manager did not start with no disk");
         assertTrue(manager.getDisk() == null, "Manager did not start with no disk");

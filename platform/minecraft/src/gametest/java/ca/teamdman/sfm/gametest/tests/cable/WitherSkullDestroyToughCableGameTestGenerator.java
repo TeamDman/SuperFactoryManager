@@ -7,9 +7,10 @@ import ca.teamdman.sfm.gametest.SFMGameTestGeneratorBase;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
-import net.minecraft.world.entity.projectile.WitherSkull;
+import net.minecraft.world.entity.projectile.hurtingprojectile.WitherSkull;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -122,7 +123,7 @@ public class WitherSkullDestroyToughCableGameTestGenerator extends SFMGameTestGe
                 return;
             }
 
-            WitherBoss wither = EntityType.WITHER.create(helper.getLevel());
+            WitherBoss wither = EntityType.WITHER.create(helper.getLevel(), EntitySpawnReason.MOB_SUMMONED);
             if (wither == null) {
                 helper.fail("Failed to create wither owner for wither skull");
                 return;

@@ -41,7 +41,7 @@ public class MoveOnPulseGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         var managerPos = new BlockPos(1, 2, 1);
-        var buttonPos = managerPos.offset(Direction.NORTH.getNormal());
+        var buttonPos = managerPos.offset(Direction.NORTH.getUnitVec3i());
         var leftPos = new BlockPos(2, 2, 1);
         var rightPos = new BlockPos(0, 2, 1);
 

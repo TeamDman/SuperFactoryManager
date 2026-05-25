@@ -3,8 +3,13 @@ package ca.teamdman.sfm.gametest;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
-import net.minecraft.gametest.framework.GameTestRegistry;
-import net.minecraft.gametest.framework.TestFunction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.gametest.framework.GameTestEnvironments;
+import net.minecraft.gametest.framework.GameTestInstance;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 
 import java.util.ArrayList;
@@ -18,14 +23,15 @@ public class SFMGameTestDiscovery {
         // Discover our tests
         Collection<SFMGameTestDefinition> tests = SFMGameTestDiscovery.gatherTests().toList();
 
-        // Discover the test registry
-        Collection<TestFunction> allTestFunctions = GameTestRegistry.getAllTestFunctions();
-        Collection<String> allTestClassNames = GameTestRegistry.getAllTestClassNames();
+        Holder<TestEnvironmentDefinition<?>> env = event.registerEnvironment(
+                Identifier.fromNamespaceAndPath(SFM.MOD_ID, "default")
+        );
 
-        // Manually register the tests
         for (SFMGameTestDefinition test : tests) {
-            allTestFunctions.add(test.intoTestFunction());
-            allTestClassNames.add(test.testName());
+            event.registerTest(
+                    Identifier.fromNamespaceAndPath(SFM.MOD_ID, test.testName()),
+                    test.intoTestInstance(env)
+            );
         }
     }
 

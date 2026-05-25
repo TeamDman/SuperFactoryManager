@@ -41,7 +41,7 @@ public class OutputEmptySlotsOnlyReversedSyntaxGameTest extends SFMGameTestDefin
         // Destination: slot 0 prefilled with 1 dirt; slot 1 empty
         rightChest.insertItem(0, new ItemStack(Blocks.DIRT, 1), false);
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // Reversed syntax: TO EMPTY SLOTS IN b ... OUTPUT

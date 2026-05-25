@@ -89,7 +89,7 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
             List<String> unexpectedItems = found
                     .stream()
                     .filter(item -> !item.getItem().is(SFMItems.EXPERIENCE_SHARD.get()))
-                    .map(item -> item.getItem().getDescriptionId())
+                    .map(item -> item.getItem().getItem().getDescriptionId())
                     .collect(Collectors.toList());
             assertTrue(
                     unexpectedItems.isEmpty(),

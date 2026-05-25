@@ -41,7 +41,7 @@ public class OutputDefaultStacksWhenNoEmptyModifierGameTest extends SFMGameTestD
         // Destination: slot 0 already has 10 dirt
         rightChest.insertItem(0, new ItemStack(Blocks.DIRT, 10), false);
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // No EMPTY SLOTS IN modifier -> should stack into slot 0 first

@@ -11,12 +11,15 @@ import mekanism.common.tile.component.TileComponentConfig;
 import mekanism.common.tile.component.config.ConfigInfo;
 import mekanism.common.tile.component.config.DataType;
 import mekanism.common.tile.prefab.TileEntityConfigurableMachine;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -29,7 +32,7 @@ public class SFMGameTestMethodHelpers {
 
         if (!condition) {
             @SuppressWarnings("UnnecessaryLocalVariable")
-            var toThrow = new GameTestAssertException(message);
+            var toThrow = new GameTestAssertException(Component.literal(message), 0);
             // Uncomment below for detailed location information
             // Note that the tests fail every tick using this until they succeed, so you will see logs that make things look like tests are failing if this is uncommented
 //            SFM.LOGGER.error("Assertion failed: {}", message, toThrow);
@@ -46,10 +49,10 @@ public class SFMGameTestMethodHelpers {
                 .build()
                 .caseSuccess((program, metadata) -> rtn.set(program))
                 .caseFailure(result -> {
-                    throw new GameTestAssertException("Failed to compile program: " + result.metadata().errors()
+                    throw new GameTestAssertException(Component.literal("Failed to compile program: " + result.metadata().errors()
                             .stream()
                             .map(Object::toString)
-                            .reduce("", (a, b) -> a + "\n" + b));
+                            .reduce("", (a, b) -> a + "\n" + b)), 0);
                 });
         return rtn.get();
     }
@@ -63,21 +66,21 @@ public class SFMGameTestMethodHelpers {
         );
     }
 
-    public static IItemHandler getItemHandler(
+    public static ResourceHandler<ItemResource> getItemHandler(
             GameTestHelper helper,
             BlockPos pos
     ) {
         BlockPos worldPos = helper.absolutePos(pos);
         var found = helper
                 .getLevel()
-                .getCapability(Capabilities.ItemHandler.BLOCK, worldPos, Direction.DOWN);
+                .getCapability(Capabilities.Item.BLOCK, worldPos, Direction.DOWN);
         SFMGameTestMethodHelpers.assertTrue(found != null, "No item handler found at " + worldPos);
         return found;
     }
 
     @SuppressWarnings("unchecked")
     public static <T extends TileEntityMekanism> T getAndPrepMekTile(GameTestHelper helper, BlockPos mekanismPos) {
-        var tile = helper.getBlockEntity(mekanismPos);
+        var tile = helper.getBlockEntity(mekanismPos, TileEntityConfigurableMachine.class);
         if (tile instanceof TileEntityConfigurableMachine mek) {
             set_all_io(mek.getConfig());
             return (T) mek;

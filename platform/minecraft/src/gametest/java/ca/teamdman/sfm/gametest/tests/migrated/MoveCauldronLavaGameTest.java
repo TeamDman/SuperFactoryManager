@@ -8,6 +8,7 @@ import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 
@@ -43,7 +44,7 @@ public class MoveCauldronLavaGameTest extends SFMGameTestDefinition {
         BlockPos right = new BlockPos(0, 2, 0);
         helper.setBlock(right, Blocks.CAULDRON);
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(1, 2, 0));
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // set the labels
@@ -64,8 +65,8 @@ public class MoveCauldronLavaGameTest extends SFMGameTestDefinition {
 
         assertManagerRunning(manager);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertBlock(left, b -> b == Blocks.CAULDRON, "cauldron didn't empty");
-            helper.assertBlockState(right, s -> s.getBlock() == Blocks.LAVA_CAULDRON, () -> "cauldron didn't fill");
+            helper.assertBlock(left, b -> b == Blocks.CAULDRON, _ -> Component.literal("cauldron didn't empty"));
+            helper.assertBlockState(right, s -> s.getBlock() == Blocks.LAVA_CAULDRON, _ -> Component.literal("cauldron didn't fill"));
 
         });
     }

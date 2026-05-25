@@ -11,6 +11,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
 
@@ -67,7 +69,7 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
         }
 
         IItemHandler barrel = helper.getItemHandler(barrelPos);
-        HopperBlockEntity hopper = (HopperBlockEntity) helper.getBlockEntity(hopperPos);
+        HopperBlockEntity hopper = helper.getBlockEntity(hopperPos, HopperBlockEntity.class);
 
         hopper.setCooldown(DISABLED_COOLDOWN);
         hopper.setItem(0, new ItemStack(Blocks.DIRT, INITIAL_ITEM_COUNT));

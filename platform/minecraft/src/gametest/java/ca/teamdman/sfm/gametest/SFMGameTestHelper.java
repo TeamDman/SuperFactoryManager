@@ -32,6 +32,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.energy.EnergyHandler;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
@@ -88,7 +91,7 @@ public class SFMGameTestHelper extends GameTestHelper {
         return found.unwrap();
     }
 
-    public ResourceHandler<FluidResource> getFluidHandler(
+    public ResourceHandler<FluidResource> getFluidResourceHandler(
             BlockPos pos,
             @Nullable Direction direction
     ) {
@@ -98,6 +101,14 @@ public class SFMGameTestHelper extends GameTestHelper {
                 pos,
                 direction
         );
+    }
+
+    public IFluidHandler getFluidHandler(
+            BlockPos pos,
+            @Nullable Direction direction
+    ) {
+
+        return IFluidHandler.of(getFluidResourceHandler(pos, direction));
     }
 
     public ResourceHandler<ItemResource> getItemHandler(
@@ -134,7 +145,7 @@ public class SFMGameTestHelper extends GameTestHelper {
         signBlockEntity.setText(newText, true);
     }
 
-    public EnergyHandler getEnergyStorage(
+    public EnergyHandler getEnergyResourceHandler(
             BlockPos pos,
             @Nullable Direction direction
     ) {
@@ -146,11 +157,22 @@ public class SFMGameTestHelper extends GameTestHelper {
         );
     }
 
-    public ResourceHandler<ItemResource> getItemHandler(
+    public IEnergyStorage getEnergyStorage(
+            BlockPos pos,
+            @Nullable Direction direction
+    ) {
+        return IEnergyStorage.of(getEnergyResourceHandler(pos, direction));
+    }
+
+    public ResourceHandler<ItemResource> getItemResourceHandler(
             BlockPos pos
     ) {
 
         return getItemHandler(pos, null);
+    }
+
+    public IItemHandler getItemHandler(BlockPos pos) {
+        return IItemHandler.of(getItemResourceHandler(pos));
     }
 
     public void succeedIfManagerDidThingWithoutLagging(

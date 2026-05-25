@@ -6,8 +6,9 @@ import ca.teamdman.sfm.gametest.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.animal.Sheep;
+import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -140,7 +141,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                 return;
             }
 
-            Sheep sheep = EntityType.SHEEP.create(helper.getLevel());
+            Sheep sheep = EntityType.SHEEP.create(helper.getLevel(), EntitySpawnReason.MOB_SUMMONED);
             if (sheep == null) {
                 helper.fail("Failed to create sheep entity");
                 return;
@@ -155,7 +156,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                 return;
             }
 
-            WitherBoss wither = EntityType.WITHER.create(helper.getLevel());
+            WitherBoss wither = EntityType.WITHER.create(helper.getLevel(), EntitySpawnReason.MOB_SUMMONED);
             if (wither == null) {
                 sheep.discard();
                 helper.fail("Failed to create wither entity");

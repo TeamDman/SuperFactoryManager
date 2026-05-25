@@ -12,6 +12,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.util.List;
 import java.util.Objects;
@@ -55,7 +57,7 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
         leftChest.get().insertItem(0, new ItemStack(Blocks.DIRT, 64), false);
 
         // prepare manager
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // set program

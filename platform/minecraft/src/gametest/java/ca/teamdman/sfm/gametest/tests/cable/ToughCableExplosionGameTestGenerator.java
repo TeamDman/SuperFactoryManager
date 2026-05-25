@@ -8,6 +8,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.item.PrimedTnt;
@@ -258,7 +259,7 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
                     localPos.getY() + 2.5,
                     localPos.getZ() + 0.5
             ));
-            WitherBoss wither = EntityType.WITHER.create(helper.getLevel());
+            WitherBoss wither = EntityType.WITHER.create(helper.getLevel(), EntitySpawnReason.MOB_SUMMONED);
             assert wither != null;
             wither.moveTo(spawnVec.x, spawnVec.y, spawnVec.z, 0, 0);
             wither.makeInvulnerable(); // initialize explosion sequence

@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
 
@@ -57,7 +58,7 @@ public class MoveIfPoweredGameTest extends SFMGameTestDefinition {
         leftChest.insertItem(4, new ItemStack(Items.GOLD_INGOT, 64), false);
         leftChest.insertItem(5, new ItemStack(Items.GOLD_NUGGET, 64), false);
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager.setProgram("""
                                        EVERY 20 TICKS DO

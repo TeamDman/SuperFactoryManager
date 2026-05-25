@@ -17,6 +17,8 @@ import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.util.List;
 import java.util.Objects;
@@ -51,7 +53,7 @@ public class CircleRedstoneGameTest extends SFMGameTestDefinition {
         helper.setBlock(manager2Pos, SFMBlocks.MANAGER.get());
 
         // Set up manager1
-        ManagerBlockEntity manager1 = (ManagerBlockEntity) helper.getBlockEntity(manager1Pos);
+        ManagerBlockEntity manager1 = helper.getBlockEntity(manager1Pos, ManagerBlockEntity.class);
         manager1.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager1.setProgram("""
                                        EVERY REDSTONE PULSE DO
@@ -61,7 +63,7 @@ public class CircleRedstoneGameTest extends SFMGameTestDefinition {
                                    """.stripTrailing().stripIndent());
 
         // Set up manager2
-        ManagerBlockEntity manager2 = (ManagerBlockEntity) helper.getBlockEntity(manager2Pos);
+        ManagerBlockEntity manager2 = helper.getBlockEntity(manager2Pos, ManagerBlockEntity.class);
         manager2.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager2.setProgram("""
                                        EVERY REDSTONE PULSE DO

@@ -56,7 +56,7 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
         var target = helper.getItemHandler(targetPos);
         source.insertItem(0, new ItemStack(Blocks.DIRT, 64), false);
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         LabelPositionHolder.empty()
                 .add("a", helper.absolutePos(sourcePos))

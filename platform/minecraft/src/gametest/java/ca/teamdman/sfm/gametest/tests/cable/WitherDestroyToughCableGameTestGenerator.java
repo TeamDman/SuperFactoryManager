@@ -7,6 +7,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestGeneratorBase;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.level.block.Block;
@@ -149,7 +150,7 @@ public class WitherDestroyToughCableGameTestGenerator extends SFMGameTestGenerat
             }
 
             Vec3 witherSpawn = helper.absoluteVec(new Vec3(0.5, 3.0, 0.5));
-            WitherBoss wither = EntityType.WITHER.create(helper.getLevel());
+            WitherBoss wither = EntityType.WITHER.create(helper.getLevel(), EntitySpawnReason.MOB_SUMMONED);
             assert wither != null;
             wither.setNoAi(true);
             wither.moveTo(witherSpawn.x, witherSpawn.y, witherSpawn.z, 0, 0);

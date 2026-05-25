@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.tests.migrated;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.blockentity.TestBarrelBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
@@ -11,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.entity.TestBlockEntity;
 
 import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
 
@@ -40,9 +42,9 @@ public class HasOrGameTest extends SFMGameTestDefinition {
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var left = (Container) helper.getBlockEntity(leftPos);
-        var right = (Container) helper.getBlockEntity(rightPos);
-        var manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        var left = (Container) helper.getBlockEntity(leftPos, TestBlockEntity.class);
+        var right = (Container) helper.getBlockEntity(rightPos, TestBarrelBlockEntity.class);
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         left.setItem(0, new ItemStack(Items.DIAMOND, 64));
         left.setItem(1, new ItemStack(Items.DIAMOND, 64));
         left.setItem(2, new ItemStack(Items.IRON_INGOT, 12));

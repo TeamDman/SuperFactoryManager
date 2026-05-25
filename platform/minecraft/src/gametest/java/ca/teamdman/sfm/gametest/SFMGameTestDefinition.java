@@ -1,8 +1,12 @@
 package ca.teamdman.sfm.gametest;
 
 import ca.teamdman.sfm.SFM;
-import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.gametest.framework.TestFunction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderGetter;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.gametest.framework.*;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Rotation;
 
 import java.util.Locale;
@@ -36,16 +40,9 @@ public abstract class SFMGameTestDefinition {
         return true;
     }
 
-    public TestFunction intoTestFunction() {
-
-        String batchName = this.batchName();
+    public Consumer<GameTestHelper> intoFunctionBody() {
         String testName = this.testName();
-        String structureName = this.templateModId() + ":" + this.template();
-        Rotation rotation = Rotation.NONE;
-        int maxTicks = this.maxTicks();
-        int setupTicks = this.setupTicks();
-        boolean required = this.required();
-        Consumer<GameTestHelper> runner = (GameTestHelper helper) -> {
+        return helper -> {
             try {
                 this.run(new SFMGameTestHelper(helper));
             } catch (Exception e) {
@@ -53,15 +50,32 @@ public abstract class SFMGameTestDefinition {
                 throw e;
             }
         };
-        return new TestFunction(
-                batchName,
-                testName,
-                structureName,
-                rotation,
-                maxTicks,
-                setupTicks,
-                required,
-                runner
+    }
+
+    public GameTestInstance intoTestInstance(
+            Holder<TestEnvironmentDefinition<?>> environment
+    ) {
+        return new TestData<>(
+                environment,
+                Identifier.fromNamespaceAndPath(this.templateModId(), this.template()),
+                this.maxTicks(),
+                this.setupTicks(),
+                this.required(),
+                Rotation.NONE
+        );
+    }
+
+    public ResourceKey<Consumer<GameTestHelper>> testFunctionKey() {
+        return ResourceKey.create(
+                Registries.TEST_FUNCTION,
+                Identifier.fromNamespaceAndPath(this.templateModId(), this.testName())
+        );
+    }
+
+    public ResourceKey<GameTestInstance> testInstanceKey() {
+        return ResourceKey.create(
+                Registries.TEST_INSTANCE,
+                Identifier.fromNamespaceAndPath(this.templateModId(), this.testName())
         );
     }
 

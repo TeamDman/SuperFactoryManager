@@ -8,6 +8,7 @@ import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -81,12 +82,12 @@ public class RegressionCrashTypeMixingGameTest extends SFMGameTestDefinition {
 
         assertManagerRunning(manager);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertBlock(front, b -> b == Blocks.CAULDRON, "cauldron didn't empty");
+            helper.assertBlock(front, b -> b == Blocks.CAULDRON, _ -> Component.literal("cauldron didn't empty"));
             helper.assertBlockState(
                     back,
                     s -> s.getBlock() == Blocks.WATER_CAULDRON
                          && s.getValue(LayeredCauldronBlock.LEVEL) == 3,
-                    () -> "cauldron didn't fill"
+                    _ -> Component.literal("cauldron didn't fill")
             );
             // ensure sticks departed
             assertTrue(chest.getItem(0).getCount() == 0, "Items did not move");
