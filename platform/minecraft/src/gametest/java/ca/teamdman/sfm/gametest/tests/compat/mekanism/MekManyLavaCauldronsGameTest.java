@@ -14,7 +14,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
-import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -46,21 +45,21 @@ public class MekManyLavaCauldronsGameTest extends SFMGameTestDefinition {
         // designate positions
         var sourceBlocks = new ArrayList<BlockPos>();
         var destBlocks = new ArrayList<BlockPos>();
-        var managerPos = new BlockPos(0, 2, 0);
+        var managerPos = new BlockPos(0, 1, 0);
 
         // set up cauldrons
         for (int x = 0; x < 25; x++) {
             for (int z = 1; z < 25; z++) {
-                helper.setBlock(new BlockPos(x, 2, z), SFMBlocks.CABLE.get());
-                helper.setBlock(new BlockPos(x, 3, z), Blocks.LAVA_CAULDRON);
-                sourceBlocks.add(new BlockPos(x, 3, z));
+                helper.setBlock(new BlockPos(x, 1, z), SFMBlocks.CABLE.get());
+                helper.setBlock(new BlockPos(x, 2, z), Blocks.LAVA_CAULDRON);
+                sourceBlocks.add(new BlockPos(x, 2, z));
             }
         }
 
         // set up tanks
         for (int i = 1; i < 25; i++) {
             BlockPos tankPos = new BlockPos(i, 2, 0);
-            helper.setBlock(tankPos, MekanismBlocks.BASIC_FLUID_TANK.getBlock());
+            helper.setBlock(tankPos, MekanismBlocks.BASIC_FLUID_TANK.get());
             destBlocks.add(tankPos);
         }
 

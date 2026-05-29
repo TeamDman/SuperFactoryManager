@@ -36,8 +36,8 @@ public class FallingAnvilEnchantmentFormGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        helper.setBlock(new BlockPos(1, 2, 1), Blocks.IRON_BLOCK);
-        var pos = helper.absoluteVec(new Vec3(1.5, 3.5, 1.5));
+        helper.setBlock(new BlockPos(1, 1, 1), Blocks.IRON_BLOCK);
+        var pos = helper.absoluteVec(new Vec3(1.5, 2.5, 1.5));
         SFMEnchantmentCollection enchantments = new SFMEnchantmentCollection();
         enchantments.add(helper.createEnchantmentEntry(Enchantments.SHARPNESS, 3));
         ItemStack enchantedBookStack = enchantments.createEnchantedBook();
@@ -50,13 +50,13 @@ public class FallingAnvilEnchantmentFormGameTest extends SFMGameTestDefinition {
                         enchantedBookStack,
                         0, 0, 0
                 ));
-        helper.setBlock(new BlockPos(1, 4, 1), Blocks.ANVIL);
+        helper.setBlock(new BlockPos(1, 3, 1), Blocks.ANVIL);
         helper.runAfterDelay(20, () -> {
             List<ItemEntity> found = helper
                     .getLevel()
                     .getEntitiesOfClass(
                             ItemEntity.class,
-                            new AABB(helper.absolutePos(new BlockPos(1, 4, 1))).inflate(3)
+                            new AABB(helper.absolutePos(new BlockPos(1, 3, 1))).inflate(3)
                     );
             if (found
                     .stream()

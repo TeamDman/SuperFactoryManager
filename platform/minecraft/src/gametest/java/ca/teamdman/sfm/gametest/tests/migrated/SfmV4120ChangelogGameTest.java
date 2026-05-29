@@ -63,7 +63,7 @@ public class SfmV4120ChangelogGameTest extends SFMGameTestDefinition {
             leftChest.insertItem(i, new ItemStack(items[i], 64), false);
         }
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(1, 2, 0));
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager.setProgram("""
                                        NAME "SFM 4.12.0 change overview"

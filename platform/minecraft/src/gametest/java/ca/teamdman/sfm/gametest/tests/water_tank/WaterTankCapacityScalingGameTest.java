@@ -44,18 +44,18 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
         // Build containment walls
         // Stone walls on all sides to prevent water flow
         for (int x = 0; x < 9; x++) {
-            helper.setBlock(new BlockPos(x, 2, 0), Blocks.STONE);
-            helper.setBlock(new BlockPos(x, 2, 4), Blocks.STONE);
+            helper.setBlock(new BlockPos(x, 1, 0), Blocks.STONE);
+            helper.setBlock(new BlockPos(x, 1, 4), Blocks.STONE);
         }
         for (int z = 0; z < 5; z++) {
-            helper.setBlock(new BlockPos(0, 2, z), Blocks.STONE);
-            helper.setBlock(new BlockPos(8, 2, z), Blocks.STONE);
+            helper.setBlock(new BlockPos(0, 1, z), Blocks.STONE);
+            helper.setBlock(new BlockPos(8, 1, z), Blocks.STONE);
         }
 
         // Place 5 water tanks in a row (x=2 to x=6, z=2)
         BlockPos[] tankPositions = new BlockPos[5];
         for (int i = 0; i < 5; i++) {
-            BlockPos pos = new BlockPos(i + 2, 2, 2);
+            BlockPos pos = new BlockPos(i + 2, 1, 2);
             tankPositions[i] = pos;
             helper.setBlock(pos, SFMBlocks.WATER_TANK.get());
         }
@@ -64,8 +64,8 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
         assertAllTanksHaveCapacity(helper, tankPositions, 0, "initial state (0 active)");
 
         // Activate first tank by adding 2 water sources around it
-        helper.setBlock(new BlockPos(2, 2, 1), Blocks.WATER);  // above tank 0
-        helper.setBlock(new BlockPos(2, 2, 3), Blocks.WATER);  // below tank 0
+        helper.setBlock(new BlockPos(2, 1, 1), Blocks.WATER);  // above tank 0
+        helper.setBlock(new BlockPos(2, 1, 3), Blocks.WATER);  // below tank 0
 
         // 1 active member: capacity = 2^0 * 1000 = 1000
         assertAllTanksHaveCapacity(helper, tankPositions, 1000, "1 active member");
@@ -75,44 +75,44 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
         }
 
         // Activate second tank
-        helper.setBlock(new BlockPos(3, 2, 1), Blocks.WATER);  // above tank 1
-        helper.setBlock(new BlockPos(3, 2, 3), Blocks.WATER);  // below tank 1
+        helper.setBlock(new BlockPos(3, 1, 1), Blocks.WATER);  // above tank 1
+        helper.setBlock(new BlockPos(3, 1, 3), Blocks.WATER);  // below tank 1
 
         // 2 active members: capacity = 2^1 * 1000 = 2000
         assertAllTanksHaveCapacity(helper, tankPositions, 2000, "2 active members");
 
         // Activate third tank
-        helper.setBlock(new BlockPos(4, 2, 1), Blocks.WATER);  // above tank 2
-        helper.setBlock(new BlockPos(4, 2, 3), Blocks.WATER);  // below tank 2
+        helper.setBlock(new BlockPos(4, 1, 1), Blocks.WATER);  // above tank 2
+        helper.setBlock(new BlockPos(4, 1, 3), Blocks.WATER);  // below tank 2
 
         // 3 active members: capacity = 2^2 * 1000 = 4000
         assertAllTanksHaveCapacity(helper, tankPositions, 4000, "3 active members");
 
         // Activate fourth tank
-        helper.setBlock(new BlockPos(5, 2, 1), Blocks.WATER);  // above tank 3
-        helper.setBlock(new BlockPos(5, 2, 3), Blocks.WATER);  // below tank 3
+        helper.setBlock(new BlockPos(5, 1, 1), Blocks.WATER);  // above tank 3
+        helper.setBlock(new BlockPos(5, 1, 3), Blocks.WATER);  // below tank 3
 
         // 4 active members: capacity = 2^3 * 1000 = 8000
         assertAllTanksHaveCapacity(helper, tankPositions, 8000, "4 active members");
 
         // Activate fifth tank
-        helper.setBlock(new BlockPos(6, 2, 1), Blocks.WATER);  // above tank 4
-        helper.setBlock(new BlockPos(6, 2, 3), Blocks.WATER);  // below tank 4
+        helper.setBlock(new BlockPos(6, 1, 1), Blocks.WATER);  // above tank 4
+        helper.setBlock(new BlockPos(6, 1, 3), Blocks.WATER);  // below tank 4
 
         // 5 active members: capacity = 2^4 * 1000 = 16000
         assertAllTanksHaveCapacity(helper, tankPositions, 16000, "5 active members");
 
         // Now deactivate tanks one by one by removing water
         // Remove water from tank 4 (last one)
-        helper.setBlock(new BlockPos(6, 2, 1), Blocks.AIR);
-        helper.setBlock(new BlockPos(6, 2, 3), Blocks.AIR);
+        helper.setBlock(new BlockPos(6, 1, 1), Blocks.AIR);
+        helper.setBlock(new BlockPos(6, 1, 3), Blocks.AIR);
 
         // Back to 4 active members: capacity = 8000
         assertAllTanksHaveCapacity(helper, tankPositions, 8000, "back to 4 active members");
 
         // Remove water from tank 0 (first one)
-        helper.setBlock(new BlockPos(2, 2, 1), Blocks.AIR);
-        helper.setBlock(new BlockPos(2, 2, 3), Blocks.AIR);
+        helper.setBlock(new BlockPos(2, 1, 1), Blocks.AIR);
+        helper.setBlock(new BlockPos(2, 1, 3), Blocks.AIR);
 
         // 3 active members: capacity = 4000
         assertAllTanksHaveCapacity(helper, tankPositions, 4000, "3 active members after removing first");
@@ -127,7 +127,7 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
             String context
     ) {
         for (int i = 0; i < tankPositions.length; i++) {
-            WaterTankBlockEntity tank = (WaterTankBlockEntity) helper.getBlockEntity(tankPositions[i]);
+            WaterTankBlockEntity tank = helper.getBlockEntity(tankPositions[i], WaterTankBlockEntity.class);
             assertTrue(
                     tank != null,
                     "Tank " + i + " should exist (" + context + ")"
@@ -145,7 +145,7 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
             boolean expectedActive,
             String message
     ) {
-        WaterTankBlockEntity tank = (WaterTankBlockEntity) helper.getBlockEntity(pos);
+        WaterTankBlockEntity tank = helper.getBlockEntity(pos, WaterTankBlockEntity.class);
         assertTrue(tank != null, "Tank should exist for active check");
         assertTrue(tank.isActive() == expectedActive, message);
     }

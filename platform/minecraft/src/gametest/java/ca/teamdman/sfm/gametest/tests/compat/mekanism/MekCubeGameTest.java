@@ -45,7 +45,7 @@ public class MekCubeGameTest extends SFMGameTestDefinition {
                 .addBlock(SFMTestBlockEntitySpec.<TileEntityEnergyCube>of(
                         "a",
                         new BlockPos(1, 0, 0),
-                        MekanismBlocks.BASIC_ENERGY_CUBE.getBlock(),
+                        MekanismBlocks.BASIC_ENERGY_CUBE.get(),
                         (tileEntityCube) -> {
                             tileEntityCube.setEnergy(0, SFMMekanismCompat.createForgeEnergy(1000));
                             SFMMekanismCompat.configureExclusiveIO(
@@ -59,7 +59,7 @@ public class MekCubeGameTest extends SFMGameTestDefinition {
                 .addBlock(SFMTestBlockEntitySpec.<TileEntityEnergyCube>of(
                         "b",
                         new BlockPos(-1, 0, 0),
-                        MekanismBlocks.BASIC_ENERGY_CUBE.getBlock(),
+                        MekanismBlocks.BASIC_ENERGY_CUBE.get(),
                         (tileEntityCube) -> SFMMekanismCompat.configureExclusiveIO(
                                 tileEntityCube,
                                 TransmissionType.ENERGY,

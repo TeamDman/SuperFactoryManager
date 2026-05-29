@@ -261,7 +261,7 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
             ));
             WitherBoss wither = EntityType.WITHER.create(helper.getLevel(), EntitySpawnReason.MOB_SUMMONED);
             assert wither != null;
-            wither.moveTo(spawnVec.x, spawnVec.y, spawnVec.z, 0, 0);
+            wither.moveOrInterpolateTo(spawnVec, 0, 0);
             wither.makeInvulnerable(); // initialize explosion sequence
             helper.getLevel().addFreshEntity(wither);
 

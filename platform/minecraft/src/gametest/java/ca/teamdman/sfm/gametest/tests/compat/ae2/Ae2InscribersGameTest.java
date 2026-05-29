@@ -47,22 +47,22 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        var managerPos = new BlockPos(0, 2, 1);
+        var managerPos = new BlockPos(0, 1, 1);
 
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         for (int i = 0; i < 6; i++) {
-            helper.setBlock(new BlockPos(i + 1, 2, 1), SFMBlocks.CABLE.get());
+            helper.setBlock(new BlockPos(i + 1, 1, 1), SFMBlocks.CABLE.get());
         }
 
-        var siliconPos1 = new BlockPos(4, 3, 1);
-        var siliconPos2 = new BlockPos(5, 3, 1);
-        var siliconPos3 = new BlockPos(6, 3, 1);
-        var logicPos = new BlockPos(1, 2, 0);
-        var engineeringPos = new BlockPos(2, 2, 0);
-        var calculationPos = new BlockPos(3, 2, 0);
-        var lastPos1 = new BlockPos(1, 3, 1);
-        var lastPos2 = new BlockPos(2, 3, 1);
-        var lastPos3 = new BlockPos(3, 3, 1);
+        var siliconPos1 = new BlockPos(4, 2, 1);
+        var siliconPos2 = new BlockPos(5, 2, 1);
+        var siliconPos3 = new BlockPos(6, 2, 1);
+        var logicPos = new BlockPos(1, 1, 0);
+        var engineeringPos = new BlockPos(1, 2, 0);
+        var calculationPos = new BlockPos(2, 2, 0);
+        var lastPos1 = new BlockPos(1, 2, 1);
+        var lastPos2 = new BlockPos(2, 2, 1);
+        var lastPos3 = new BlockPos(3, 2, 1);
         helper.setBlock(siliconPos1, AEBlocks.INSCRIBER.block());
         helper.setBlock(siliconPos2, AEBlocks.INSCRIBER.block());
         helper.setBlock(siliconPos3, AEBlocks.INSCRIBER.block());
@@ -103,13 +103,13 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
                     }
                 });
 
-        var powerPos1 = new BlockPos(0, 3, 1);
+        var powerPos1 = new BlockPos(0, 2, 1);
         helper.setBlock(powerPos1, AEBlocks.CREATIVE_ENERGY_CELL.block());
-        var powerPos2 = new BlockPos(4, 2, 0);
+        var powerPos2 = new BlockPos(4, 1, 0);
         helper.setBlock(powerPos2, AEBlocks.CREATIVE_ENERGY_CELL.block());
 
-        var materialsPos = new BlockPos(6, 2, 0);
-        var resultsPos = new BlockPos(5, 2, 0);
+        var materialsPos = new BlockPos(6, 1, 0);
+        var resultsPos = new BlockPos(5, 1, 0);
         helper.setBlock(materialsPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(resultsPos, SFMBlocks.TEST_BARREL.get());
         //noinspection DataFlowIssue,OptionalGetWithoutIsPresent
@@ -127,13 +127,13 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
         materials.insertItem(8, new ItemStack(AEItems.SILICON, 64), false);
 
         // put signs on them lol
-        BlockPos inputSignPos = materialsPos.offset(0, 1, 0);
+        BlockPos inputSignPos = materialsPos.offset(0, 0, 0);
         helper.setBlock(
                 inputSignPos,
                 Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, 8)
         );
         helper.setSignText(inputSignPos, Component.literal("input"));
-        BlockPos outputSignPos = resultsPos.offset(0, 1, 0);
+        BlockPos outputSignPos = resultsPos.offset(0, 0, 0);
         helper.setBlock(
                 outputSignPos,
                 Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, 8)

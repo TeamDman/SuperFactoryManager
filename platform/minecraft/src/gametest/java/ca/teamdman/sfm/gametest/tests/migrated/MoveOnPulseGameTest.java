@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.tests.migrated;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.blockentity.TestBarrelBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
@@ -12,7 +13,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import org.apache.logging.log4j.Level;
 
 import java.util.Objects;
@@ -48,13 +48,13 @@ public class MoveOnPulseGameTest extends SFMGameTestDefinition {
         // place and fill the chests
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
-        var left = (BarrelBlockEntity) helper.getBlockEntity(leftPos);
-        var right = (BarrelBlockEntity) helper.getBlockEntity(rightPos);
+        var left = helper.getBlockEntity(leftPos, TestBarrelBlockEntity.class);
+        var right = helper.getBlockEntity(rightPos, TestBarrelBlockEntity.class);
         left.setItem(0, new ItemStack(Items.IRON_INGOT, 64));
 
         // create the manager block and add the disk
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

@@ -32,9 +32,9 @@ public class TunnelledManagerHopperGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // declare positions
-        BlockPos managerPos = new BlockPos(1, 2, 0);
-        BlockPos invPos = new BlockPos(0, 2, 0);
-        BlockPos hopperPos = new BlockPos(2, 2, 0);
+        BlockPos managerPos = new BlockPos(1, 1, 0);
+        BlockPos invPos = new BlockPos(0, 1, 0);
+        BlockPos hopperPos = new BlockPos(2, 1, 0);
 
         // set blocks
         helper.setBlock(managerPos, SFMBlocks.TUNNELLED_MANAGER.get());

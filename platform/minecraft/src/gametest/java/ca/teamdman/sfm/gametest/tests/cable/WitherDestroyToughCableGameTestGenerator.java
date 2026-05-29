@@ -153,7 +153,7 @@ public class WitherDestroyToughCableGameTestGenerator extends SFMGameTestGenerat
             WitherBoss wither = EntityType.WITHER.create(helper.getLevel(), EntitySpawnReason.MOB_SUMMONED);
             assert wither != null;
             wither.setNoAi(true);
-            wither.moveTo(witherSpawn.x, witherSpawn.y, witherSpawn.z, 0, 0);
+            wither.moveOrInterpolateTo(witherSpawn, 0, 0);
             helper.getLevel().addFreshEntity(wither);
 
             BlockState state = helper.getBlockState(targetBlockLocalPos);

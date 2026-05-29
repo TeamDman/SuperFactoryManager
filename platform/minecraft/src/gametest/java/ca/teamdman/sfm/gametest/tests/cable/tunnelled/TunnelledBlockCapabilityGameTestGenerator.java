@@ -9,8 +9,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.util.List;
 import java.util.Locale;
@@ -103,7 +101,7 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
         public void run(SFMGameTestHelper helper) {
 
             // Place the tunnelled block at the center of the test area
-            BlockPos tunnelledPos = new BlockPos(1, 2, 1);
+            BlockPos tunnelledPos = new BlockPos(1, 1, 1);
             // Place the barrel adjacent in the specified direction
             BlockPos barrelPos = tunnelledPos.relative(direction);
 
@@ -119,7 +117,7 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
             // Get the item handler from the tunnelled block, querying from the opposite face
             // (i.e., if barrel is to the EAST, we query the tunnelled block from its WEST face)
             Direction queryFace = direction.getOpposite();
-            ResourceHandler<ItemResource> tunnelledHandler = helper.getItemHandler(tunnelledPos, queryFace);
+            IItemHandler tunnelledHandler = helper.getItemHandler(tunnelledPos, queryFace);
 
             // Insert a cobblestone through the tunnelled capability
             ItemStack toInsert = new ItemStack(Blocks.COBBLESTONE, 1);

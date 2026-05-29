@@ -14,6 +14,7 @@ import mekanism.common.tile.multiblock.TileEntityInductionPort;
 import mekanism.common.util.UnitDisplayUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestAssertException;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 
@@ -43,10 +44,10 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // designate positions
-        var managerPos = new BlockPos(1, 3, 0);
-        var powerCubePos = new BlockPos(1, 2, 0);
-        var inductionBeginPos = new BlockPos(0, 2, 1);
-        var inductionInput = new BlockPos(1, 3, 1);
+        var managerPos = new BlockPos(1, 2, 0);
+        var powerCubePos = new BlockPos(1, 1, 0);
+        var inductionBeginPos = new BlockPos(0, 1, 1);
+        var inductionInput = new BlockPos(1, 2, 1);
 
         // set up induction matrix
         for (int x = 0; x < 18; x++) {
@@ -56,23 +57,23 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
                     boolean isOutside = x == 0 || x == 17 || z == 0 || z == 17 || y == 0 || y == 17;
                     Block block;
                     if (isOutside) {
-                        block = MekanismBlocks.INDUCTION_CASING.getBlock();
+                        block = MekanismBlocks.INDUCTION_CASING.get();
                     } else {
                         if (y == 1) {
-                            block = MekanismBlocks.ULTIMATE_INDUCTION_CELL.getBlock();
+                            block = MekanismBlocks.ULTIMATE_INDUCTION_CELL.get();
                         } else {
-                            block = MekanismBlocks.ULTIMATE_INDUCTION_PROVIDER.getBlock();
+                            block = MekanismBlocks.ULTIMATE_INDUCTION_PROVIDER.get();
                         }
                     }
                     helper.setBlock(inductionBeginPos.offset(x, y, z), block);
                 }
             }
         }
-        helper.setBlock(inductionInput, MekanismBlocks.INDUCTION_PORT.getBlock());
-        var inductionPort = (TileEntityInductionPort) helper.getBlockEntity(inductionInput);
+        helper.setBlock(inductionInput, MekanismBlocks.INDUCTION_PORT.get());
+        var inductionPort = helper.getBlockEntity(inductionInput, TileEntityInductionPort.class);
 
         // set up the energy source
-        helper.setBlock(powerCubePos, MekanismBlocks.CREATIVE_ENERGY_CUBE.getBlock());
+        helper.setBlock(powerCubePos, MekanismBlocks.CREATIVE_ENERGY_CUBE.get());
 
         TileEntityEnergyCube powerCube = getAndPrepMekTile(helper, powerCubePos);
         powerCube.setEnergy(0, EnergyCubeTier.CREATIVE.getMaxEnergy());
@@ -81,7 +82,7 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
 
         // set up the manager
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program
@@ -111,7 +112,7 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
         manager.setProgram(program);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             if (!inductionPort.getMultiblock().isFormed()) {
-                throw new GameTestAssertException("Induction matrix did not form");
+                throw new GameTestAssertException(Component.literal("Induction matrix did not form"), 0);
             }
 
             var expected = startingAmount + incr;

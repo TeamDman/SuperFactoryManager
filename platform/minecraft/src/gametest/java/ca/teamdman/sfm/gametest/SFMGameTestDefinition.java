@@ -2,9 +2,10 @@ package ca.teamdman.sfm.gametest;
 
 import ca.teamdman.sfm.SFM;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderGetter;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.gametest.framework.*;
+import net.minecraft.gametest.framework.FunctionGameTestInstance;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.TestData;
+import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Rotation;
@@ -15,7 +16,7 @@ import java.util.function.Consumer;
 public abstract class SFMGameTestDefinition {
     public abstract String template();
     public String templateModId() {
-        return "sfm";
+        return SFM.MOD_ID;
     }
 
     public abstract void run(SFMGameTestHelper helper);
@@ -40,42 +41,30 @@ public abstract class SFMGameTestDefinition {
         return true;
     }
 
-    public Consumer<GameTestHelper> intoFunctionBody() {
+    public void intoTestFunction(GameTestHelper helper) {
         String testName = this.testName();
-        return helper -> {
             try {
                 this.run(new SFMGameTestHelper(helper));
             } catch (Exception e) {
                 SFM.LOGGER.error("Test failed: {}", testName, e);
                 throw e;
             }
-        };
     }
 
-    public GameTestInstance intoTestInstance(
+    public FunctionGameTestInstance intoTestInstance(
+            ResourceKey<Consumer<GameTestHelper>> testFunctionKey,
             Holder<TestEnvironmentDefinition<?>> environment
     ) {
-        return new TestData<>(
-                environment,
-                Identifier.fromNamespaceAndPath(this.templateModId(), this.template()),
-                this.maxTicks(),
-                this.setupTicks(),
-                this.required(),
-                Rotation.NONE
-        );
-    }
-
-    public ResourceKey<Consumer<GameTestHelper>> testFunctionKey() {
-        return ResourceKey.create(
-                Registries.TEST_FUNCTION,
-                Identifier.fromNamespaceAndPath(this.templateModId(), this.testName())
-        );
-    }
-
-    public ResourceKey<GameTestInstance> testInstanceKey() {
-        return ResourceKey.create(
-                Registries.TEST_INSTANCE,
-                Identifier.fromNamespaceAndPath(this.templateModId(), this.testName())
+        return new FunctionGameTestInstance(
+                testFunctionKey,
+                new TestData<>(
+                        environment,
+                        Identifier.fromNamespaceAndPath(this.templateModId(), this.template()),
+                        this.maxTicks(),
+                        this.setupTicks(),
+                        this.required(),
+                        Rotation.NONE
+                )
         );
     }
 

@@ -66,7 +66,7 @@ public class ThermalFurnaceArrayGameTest extends SFMGameTestDefinition {
                 helper.setBlock(new BlockPos(x, 2, z), SFMBlocks.CABLE.get());
                 helper.setBlock(new BlockPos(x, 3, z), furnaceBlock);
                 furnacePositions.add(new BlockPos(x, 3, z));
-                var furnace = (MachineFurnaceTile) helper.getBlockEntity(new BlockPos(x, 3, z));
+                var furnace = helper.getBlockEntity(new BlockPos(x, 3, z), var.class);
                 furnace.setSideConfig(Direction.UP, MachineFurnaceTile.SideConfig.SIDE_INPUT);
                 furnace.setSideConfig(Direction.DOWN, MachineFurnaceTile.SideConfig.SIDE_OUTPUT);
             }
@@ -91,7 +91,7 @@ public class ThermalFurnaceArrayGameTest extends SFMGameTestDefinition {
 
         // set up the manager
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

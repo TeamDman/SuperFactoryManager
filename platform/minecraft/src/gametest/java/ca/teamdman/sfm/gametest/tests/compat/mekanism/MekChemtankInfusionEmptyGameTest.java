@@ -39,17 +39,17 @@ public class MekChemtankInfusionEmptyGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // designate positions
-        var leftPos = new BlockPos(2, 2, 0);
-        var rightPos = new BlockPos(0, 2, 0);
-        var managerPos = new BlockPos(1, 2, 0);
+        var leftPos = new BlockPos(2, 1, 0);
+        var rightPos = new BlockPos(0, 1, 0);
+        var managerPos = new BlockPos(1, 1, 0);
 
         // set up the world
-        helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_CHEMICAL_TANK.getBlock());
+        helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_CHEMICAL_TANK.get());
         TileEntityChemicalTank leftTank = getAndPrepMekTile(helper, leftPos);
-        helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_CHEMICAL_TANK.getBlock());
+        helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_CHEMICAL_TANK.get());
         TileEntityChemicalTank rightTank = getAndPrepMekTile(helper, rightPos);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
+        var manager = (helper.getBlockEntity(managerPos, ManagerBlockEntity.class));
 
         // set up the program
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
@@ -68,11 +68,11 @@ public class MekChemtankInfusionEmptyGameTest extends SFMGameTestDefinition {
 
 
         // ensure it can move into an empty tank
-        leftTank.getChemicalTank().setStack(new ChemicalStack(MekanismChemicals.REDSTONE.get(), 1_000_000L));
+        leftTank.getChemicalTank().setStack(new ChemicalStack(MekanismChemicals.REDSTONE, 1_000_000L));
         rightTank.getChemicalTank().setStack(ChemicalStack.EMPTY);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             assertTrue(leftTank.getChemicalTank().getStack().isEmpty(), "Contents did not depart");
-            assertTrue(rightTank.getChemicalTank().getStack().getAmount() == 1_000_000L, "Contents did not arrive");
+            assertTrue(rightTank.getChemicalTank().getStack().amount() == 1_000_000L, "Contents did not arrive");
         });
     }
 }

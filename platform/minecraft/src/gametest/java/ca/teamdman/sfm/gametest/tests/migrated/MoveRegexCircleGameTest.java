@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.tests.migrated;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.blockentity.TestBarrelBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
@@ -10,8 +11,6 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.entity.BarrelBlockEntity;
-
 
 
 /**
@@ -50,10 +49,10 @@ public class MoveRegexCircleGameTest extends SFMGameTestDefinition {
         helper.setBlock(bPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(cPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(dPos, SFMBlocks.TEST_BARREL.get());
-        var a = (BarrelBlockEntity) helper.getBlockEntity(aPos);
-        var b = (BarrelBlockEntity) helper.getBlockEntity(bPos);
-        var c = (BarrelBlockEntity) helper.getBlockEntity(cPos);
-        var d = (BarrelBlockEntity) helper.getBlockEntity(dPos);
+        var a = helper.getBlockEntity(aPos, TestBarrelBlockEntity.class);
+        var b = helper.getBlockEntity(bPos, TestBarrelBlockEntity.class);
+        var c = helper.getBlockEntity(cPos, TestBarrelBlockEntity.class);
+        var d = helper.getBlockEntity(dPos, TestBarrelBlockEntity.class);
         for (int i = 0; i < 27; i++) {
             if (i < 9) {
                 a.setItem(i, new ItemStack(Items.IRON_INGOT, 64));
@@ -66,7 +65,7 @@ public class MoveRegexCircleGameTest extends SFMGameTestDefinition {
 
         // create the manager block and add the disk
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

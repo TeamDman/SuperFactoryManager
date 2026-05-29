@@ -59,7 +59,7 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
         helper.setBlock(buttonPos, Blocks.STONE_BUTTON);
         helper.setBlock(chestPos, SFMBlocks.TEST_BARREL.get());
 
-        var printingPress = (PrintingPressBlockEntity) helper.getBlockEntity(printingPos);
+        var printingPress = helper.getBlockEntity(printingPos, PrintingPressBlockEntity.class);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
 
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(SFMItems.EXPERIENCE_GOOP.get(), 10));

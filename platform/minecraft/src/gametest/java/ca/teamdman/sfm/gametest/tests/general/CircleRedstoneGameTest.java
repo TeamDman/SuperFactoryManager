@@ -17,8 +17,6 @@ import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.util.List;
 import java.util.Objects;
@@ -42,14 +40,14 @@ public class CircleRedstoneGameTest extends SFMGameTestDefinition {
             }
         }
 
-        BlockPos barrelPos = new BlockPos(2, 2, 0);
+        BlockPos barrelPos = new BlockPos(2, 1, 0);
         helper.setBlock(barrelPos, SFMBlocks.TEST_BARREL.get());
         IItemHandler barrelHandler = helper.getItemHandler(barrelPos);
         barrelHandler.insertItem(0, new ItemStack(Items.DIRT, 64), false);
 
-        BlockPos manager1Pos = new BlockPos(1, 2, 1);
+        BlockPos manager1Pos = new BlockPos(1, 1, 1);
         helper.setBlock(manager1Pos, SFMBlocks.MANAGER.get());
-        BlockPos manager2Pos = new BlockPos(3, 2, 3);
+        BlockPos manager2Pos = new BlockPos(3, 1, 3);
         helper.setBlock(manager2Pos, SFMBlocks.MANAGER.get());
 
         // Set up manager1
@@ -93,20 +91,20 @@ public class CircleRedstoneGameTest extends SFMGameTestDefinition {
                 .setValue(RepeaterBlock.FACING, Direction.NORTH)
                 .setValue(RepeaterBlock.DELAY, 4);
 
-        helper.setBlock(new BlockPos(2, 2, 1), repeaterFacingEast);
-        helper.setBlock(new BlockPos(3, 2, 2), repeaterFacingSouth);
-        helper.setBlock(new BlockPos(2, 2, 3), repeaterFacingWest);
-        helper.setBlock(new BlockPos(1, 2, 2), repeaterFacingNorth);
+        helper.setBlock(new BlockPos(2, 1, 1), repeaterFacingEast);
+        helper.setBlock(new BlockPos(3, 1, 2), repeaterFacingSouth);
+        helper.setBlock(new BlockPos(2, 1, 3), repeaterFacingWest);
+        helper.setBlock(new BlockPos(1, 1, 2), repeaterFacingNorth);
 
         List<BlockPos> redstoneDustPositions = List.of(
-                new BlockPos(3, 2, 1),
-                new BlockPos(1, 2, 3)
+                new BlockPos(3, 1, 1),
+                new BlockPos(1, 1, 3)
         );
         for (BlockPos pos : redstoneDustPositions) {
             helper.setBlock(pos, Blocks.REDSTONE_WIRE.defaultBlockState());
         }
 
-        BlockPos buttonPos = new BlockPos(1, 2, 4);
+        BlockPos buttonPos = new BlockPos(1, 1, 4);
         BlockState buttonState = Blocks.STONE_BUTTON.defaultBlockState()
                 .setValue(ButtonBlock.FACING, Direction.NORTH)
                 .setValue(ButtonBlock.FACE, AttachFace.FLOOR);

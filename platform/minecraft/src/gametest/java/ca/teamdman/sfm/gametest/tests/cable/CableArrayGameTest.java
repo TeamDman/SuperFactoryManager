@@ -36,7 +36,7 @@ public class CableArrayGameTest extends SFMGameTestDefinition {
         for (int x = 0; x < variants.length; x++) {
             Variant v = variants[x];
             for (int z = 0; z < 3; z++) {
-                BlockPos localPos = new BlockPos(x, 2, 1 + z);
+                BlockPos localPos = new BlockPos(x, 1, 1 + z);
                 helper.setBlock(localPos, v.block);
                 var absolute = helper.absolutePos(localPos);
 

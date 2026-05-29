@@ -45,7 +45,7 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         // Center of the structure
         int cx = 5;
         int cz = 5;
-        int y = 2;
+        int y = 1;
 
         // Build containment walls (stone ring around the entire structure)
         for (int x = 2; x <= 8; x++) {
@@ -98,11 +98,11 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         // Now verify tanks are active
         // North, South, East, West should each have 2 water sources
         // Center has 0 water sources (surrounded by other tanks), so it's inactive
-        WaterTankBlockEntity centerTank = (WaterTankBlockEntity) helper.getBlockEntity(center);
-        WaterTankBlockEntity northTank = (WaterTankBlockEntity) helper.getBlockEntity(north);
-        WaterTankBlockEntity southTank = (WaterTankBlockEntity) helper.getBlockEntity(south);
-        WaterTankBlockEntity eastTank = (WaterTankBlockEntity) helper.getBlockEntity(east);
-        WaterTankBlockEntity westTank = (WaterTankBlockEntity) helper.getBlockEntity(west);
+        WaterTankBlockEntity centerTank = helper.getBlockEntity(center, WaterTankBlockEntity.class);
+        WaterTankBlockEntity northTank = helper.getBlockEntity(north, WaterTankBlockEntity.class);
+        WaterTankBlockEntity southTank = helper.getBlockEntity(south, WaterTankBlockEntity.class);
+        WaterTankBlockEntity eastTank = helper.getBlockEntity(east, WaterTankBlockEntity.class);
+        WaterTankBlockEntity westTank = helper.getBlockEntity(west, WaterTankBlockEntity.class);
 
         assertTrue(centerTank != null, "Center tank should exist");
         assertTrue(northTank != null, "North tank should exist");
@@ -132,10 +132,10 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         helper.setBlock(center, Blocks.AIR);
 
         // Refresh references
-        northTank = (WaterTankBlockEntity) helper.getBlockEntity(north);
-        southTank = (WaterTankBlockEntity) helper.getBlockEntity(south);
-        eastTank = (WaterTankBlockEntity) helper.getBlockEntity(east);
-        westTank = (WaterTankBlockEntity) helper.getBlockEntity(west);
+        northTank = helper.getBlockEntity(north, WaterTankBlockEntity.class);
+        southTank = helper.getBlockEntity(south, WaterTankBlockEntity.class);
+        eastTank = helper.getBlockEntity(east, WaterTankBlockEntity.class);
+        westTank = helper.getBlockEntity(west, WaterTankBlockEntity.class);
 
         // Each network now has 1 active member: capacity = 2^0 * 1000 = 1000
         int expectedCapacityAfterSplit = 1000;
@@ -162,8 +162,8 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         helper.runAfterDelay(1, ()->{
 
             // Refresh references
-            WaterTankBlockEntity centerTankNew = (WaterTankBlockEntity) helper.getBlockEntity(center);
-            WaterTankBlockEntity northTankNew = (WaterTankBlockEntity) helper.getBlockEntity(north);
+            WaterTankBlockEntity centerTankNew = helper.getBlockEntity(center, WaterTankBlockEntity.class);
+            WaterTankBlockEntity northTankNew = helper.getBlockEntity(north, WaterTankBlockEntity.class);
 
             // Back to 4 active members (center is still inactive): capacity = 8000
             assertTrue(

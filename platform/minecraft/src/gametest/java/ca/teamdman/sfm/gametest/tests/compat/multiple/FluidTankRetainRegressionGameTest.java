@@ -37,17 +37,17 @@ public class FluidTankRetainRegressionGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // Positions: A (tank), B (manager), C (processing unit)
-        BlockPos tankPos = new BlockPos(0, 2, 0);
-        BlockPos managerPos = new BlockPos(1, 2, 0);
-        BlockPos machinePos = new BlockPos(2, 2, 0);
+        BlockPos tankPos = new BlockPos(0, 1, 0);
+        BlockPos managerPos = new BlockPos(1, 1, 0);
+        BlockPos machinePos = new BlockPos(2, 1, 0);
 
         // Place Mekanism basic fluid tank at A
-        helper.setBlock(tankPos, BASIC_FLUID_TANK.getBlock());
+        helper.setBlock(tankPos, BASIC_FLUID_TANK.get());
         var tank = helper.getFluidHandler(tankPos, Direction.UP);
 
         // Place manager at B
         helper.setBlock(managerPos, MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(DISK.get()));
 
         // Place Industrial Foregoing latex processing unit at C

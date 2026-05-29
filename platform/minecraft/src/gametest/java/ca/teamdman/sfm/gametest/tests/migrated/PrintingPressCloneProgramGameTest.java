@@ -58,7 +58,7 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
         helper.setBlock(chestPos, SFMBlocks.TEST_BARREL.get());
 
         // Get helper objects
-        var printingPress = (PrintingPressBlockEntity) helper.getBlockEntity(printingPos);
+        var printingPress = helper.getBlockEntity(printingPos, PrintingPressBlockEntity.class);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
 
         // Place ink

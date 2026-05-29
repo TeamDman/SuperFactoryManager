@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.tests.migrated;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.blockentity.TestBarrelBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
@@ -47,7 +48,7 @@ public class RegressionCrashTypeMixingGameTest extends SFMGameTestDefinition {
         BlockPos left = new BlockPos(2, 2, 1);
         helper.setBlock(left, SFMBlocks.TEST_BARREL.get());
         // add sticks to the chest
-        Container chest = (Container) helper.getBlockEntity(left);
+        Container chest = helper.getBlockEntity(left, TestBarrelBlockEntity.class);
         chest.setItem(0, new ItemStack(Items.STICK, 64));
 
         BlockPos right = new BlockPos(0, 2, 1);
@@ -59,7 +60,7 @@ public class RegressionCrashTypeMixingGameTest extends SFMGameTestDefinition {
         BlockPos back = new BlockPos(1, 2, 0);
         helper.setBlock(back, Blocks.CAULDRON);
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // set the labels
@@ -92,7 +93,7 @@ public class RegressionCrashTypeMixingGameTest extends SFMGameTestDefinition {
             // ensure sticks departed
             assertTrue(chest.getItem(0).getCount() == 0, "Items did not move");
             // ensure sticks arrived
-            Container rightChest = (Container) helper.getBlockEntity(right);
+            Container rightChest = helper.getBlockEntity(right, TestBarrelBlockEntity.class);
             assertTrue(rightChest.getItem(0).getCount() == 64, "Items did not move");
 
 

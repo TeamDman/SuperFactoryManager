@@ -36,12 +36,7 @@ public class CableNetworkManager {
     private static final BlockNetworkManager<Level, Unit, CableNetwork> NETWORK_MANAGER = new BlockNetworkManager<>(
             CableNetwork::cableMemberFilterMapper,
             CableNetwork::new
-    ) {
-        @Override
-        protected void onChange(String changeDescription) {
-            super.onChange(changeDescription);
-        }
-    };
+    );
 
     public static Optional<CableNetwork> getOrRegisterNetworkFromManagerPosition(ManagerBlockEntity tile) {
         Level level = tile.getLevel();

@@ -148,7 +148,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
             }
             sheep.setNoAi(true);
             Vec3 sheepSpawn = helper.absoluteVec(getSheepSpawnLocalVec());
-            sheep.moveTo(sheepSpawn.x, sheepSpawn.y, sheepSpawn.z, 0, 0);
+            sheep.moveOrInterpolateTo(sheepSpawn, 0, 0);
             helper.getLevel().addFreshEntity(sheep);
 
             if (helper.getLevel().getDifficulty().equals(Difficulty.PEACEFUL)) {
@@ -163,7 +163,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                 return;
             }
             Vec3 witherSpawn = helper.absoluteVec(getWitherSpawnLocalVec());
-            wither.moveTo(witherSpawn.x, witherSpawn.y, witherSpawn.z, 0, 0);
+            wither.moveOrInterpolateTo(witherSpawn, 0, 0);
             wither.setTarget(sheep);
             wither.setAlternativeTarget(0, sheep.getId());
             wither.setAlternativeTarget(1, sheep.getId());

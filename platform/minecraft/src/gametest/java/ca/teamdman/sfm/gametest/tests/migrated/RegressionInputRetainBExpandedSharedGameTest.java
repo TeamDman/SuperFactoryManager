@@ -7,7 +7,6 @@ import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
-import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -30,9 +29,6 @@ import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 })
 @SFMGameTest
 public class RegressionInputRetainBExpandedSharedGameTest extends SFMGameTestDefinition {
-    public static final Codec<RegressionInputRetainBExpandedSharedGameTest> CODEC = Codec.unit(
-            RegressionInputRetainBExpandedSharedGameTest::new);
-
     @Override
     public String template() {
         return "7x3x3";
@@ -67,7 +63,7 @@ public class RegressionInputRetainBExpandedSharedGameTest extends SFMGameTestDef
             b3.insertItem(i, new ItemStack(Items.DIRT, 64), false);
         }
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager.setProgram("""
                                        EVERY 20 TICKS DO

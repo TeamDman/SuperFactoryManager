@@ -71,7 +71,7 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
             LevelsToShards mode = modes[index];
             int expectedShards = expectedByMode.get(mode);
 
-            BlockPos chestPos = new BlockPos(index * CHEST_SPACING + 1, 2, 1);
+            BlockPos chestPos = new BlockPos(index * CHEST_SPACING + 1, 1, 1);
 
             helper.setBlock(chestPos, SFMBlocks.TEST_BARREL.get());
             helper.setBlock(chestPos.above(), Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, 8));

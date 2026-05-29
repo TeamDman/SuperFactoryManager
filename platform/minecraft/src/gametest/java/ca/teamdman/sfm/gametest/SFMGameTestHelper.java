@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.gametest;
 
-import ca.teamdman.sfm.common.blockentity.CableFacadeBlockEntity;
 import ca.teamdman.sfm.common.blockentity.CommonFacadeBlockEntity;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
@@ -28,7 +27,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
@@ -111,7 +109,7 @@ public class SFMGameTestHelper extends GameTestHelper {
         return IFluidHandler.of(getFluidResourceHandler(pos, direction));
     }
 
-    public ResourceHandler<ItemResource> getItemHandler(
+    public ResourceHandler<ItemResource> getItemResourceHandler(
             BlockPos pos,
             @Nullable Direction direction
     ) {
@@ -121,6 +119,14 @@ public class SFMGameTestHelper extends GameTestHelper {
                 pos,
                 direction
         );
+    }
+
+    public IItemHandler getItemHandler(
+            BlockPos pos,
+            @Nullable Direction direction
+    ) {
+
+        return IItemHandler.of(getItemResourceHandler(pos, direction));
     }
 
     public void setSignText(
@@ -168,7 +174,7 @@ public class SFMGameTestHelper extends GameTestHelper {
             BlockPos pos
     ) {
 
-        return getItemHandler(pos, null);
+        return getItemResourceHandler(pos, null);
     }
 
     public IItemHandler getItemHandler(BlockPos pos) {

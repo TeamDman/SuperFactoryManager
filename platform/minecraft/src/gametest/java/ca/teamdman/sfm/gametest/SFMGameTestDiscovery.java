@@ -1,36 +1,59 @@
 package ca.teamdman.sfm.gametest;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.event_bus.SFMEventBus;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.gametest.framework.GameTestEnvironments;
-import net.minecraft.gametest.framework.GameTestInstance;
+import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class SFMGameTestDiscovery {
-    @SFMSubscribeEvent
-    public static void onRegisterGameTests(RegisterGameTestsEvent event) {
+    public static final DeferredRegister<Consumer<GameTestHelper>> SFM_TEST_FUNCTION = DeferredRegister.create(
+            BuiltInRegistries.TEST_FUNCTION,
+            SFM.MOD_ID
+    );
+
+    private static final List<SFMGameTestData> TESTS;
+    static {
         // Discover our tests
         Collection<SFMGameTestDefinition> tests = SFMGameTestDiscovery.gatherTests().toList();
 
-        Holder<TestEnvironmentDefinition<?>> env = event.registerEnvironment(
-                Identifier.fromNamespaceAndPath(SFM.MOD_ID, "default")
-        );
+        TESTS = tests.stream().map(test -> {
+            ResourceKey<Consumer<GameTestHelper>> key = ResourceKey.create(
+                    BuiltInRegistries.TEST_FUNCTION.key(),
+                    Identifier.fromNamespaceAndPath(SFM.MOD_ID, test.testName())
+            );
 
-        for (SFMGameTestDefinition test : tests) {
+            SFM.LOGGER.info("Registering SFM game test: {}", test);
+
+            SFM_TEST_FUNCTION.register(test.testName(), () -> test::intoTestFunction);
+            return new SFMGameTestData(key, test);
+        }).toList();
+
+        SFM_TEST_FUNCTION.register(SFMEventBus.MOD_BUS);
+    }
+
+    @SFMSubscribeEvent
+    public static void onRegisterGameTests(RegisterGameTestsEvent event) {
+        Holder<TestEnvironmentDefinition<?>> environment = event.registerEnvironment(Registries.TEST_ENVIRONMENT.identifier());
+
+        for (SFMGameTestData testData : TESTS) {
             event.registerTest(
-                    Identifier.fromNamespaceAndPath(SFM.MOD_ID, test.testName()),
-                    test.intoTestInstance(env)
+                    Identifier.fromNamespaceAndPath(SFM.MOD_ID, testData.definition().testName()),
+                    testData.definition().intoTestInstance(testData.functionKey(), environment)
             );
         }
     }
@@ -68,4 +91,8 @@ public class SFMGameTestDiscovery {
         return generatedTests.stream();
     }
 
+    private record SFMGameTestData(
+            ResourceKey<Consumer<GameTestHelper>> functionKey,
+            SFMGameTestDefinition definition
+    ) {}
 }

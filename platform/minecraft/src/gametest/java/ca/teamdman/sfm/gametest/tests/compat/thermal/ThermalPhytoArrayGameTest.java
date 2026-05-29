@@ -70,7 +70,7 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
 
         // set up water
         helper.setBlock(waterPos, MekanismBlocks.CREATIVE_FLUID_TANK.getBlock());
-        TileEntityFluidTank tank = (TileEntityFluidTank) helper.getBlockEntity(waterPos);
+        TileEntityFluidTank tank = helper.getBlockEntity(waterPos, TileEntityFluidTank.class);
         tank.setFluidInTank(0, new FluidStack(Fluids.WATER, Integer.MAX_VALUE));
 
         // set up phytos
@@ -83,7 +83,7 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
                 BlockPos phytoPos = new BlockPos(x, 3, z);
                 helper.setBlock(phytoPos, phytoBlock);
                 phytoPositions.add(phytoPos);
-                var phyto = (MachineInsolatorTile) helper.getBlockEntity(phytoPos, MachineInsolatorTile);
+                var phyto = helper.getBlockEntity(phytoPos, MachineInsolatorTile, var.class);
                 phyto.setSideConfig(Direction.UP, MachineInsolatorTile.SideConfig.SIDE_INPUT);
                 phyto.setSideConfig(Direction.DOWN, MachineInsolatorTile.SideConfig.SIDE_OUTPUT);
             }

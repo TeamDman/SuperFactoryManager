@@ -129,12 +129,12 @@ public class WitherSkullDestroyToughCableGameTestGenerator extends SFMGameTestGe
                 return;
             }
             wither.setNoAi(true);
-            wither.moveTo(skullSpawn.x, skullSpawn.y - 1.0, skullSpawn.z, 0, 0);
+            wither.moveOrInterpolateTo(skullSpawn.add(0, -1, 0), 0, 0);
             helper.getLevel().addFreshEntity(wither);
 
             WitherSkull witherSkull = new WitherSkull(helper.getLevel(), wither, direction);
             witherSkull.setDangerous(true);
-            witherSkull.moveTo(skullSpawn.x, skullSpawn.y, skullSpawn.z, 0, 0);
+            witherSkull.moveOrInterpolateTo(skullSpawn, 0, 0);
             witherSkull.setDeltaMovement(direction.scale(0.9));
             helper.getLevel().addFreshEntity(witherSkull);
 

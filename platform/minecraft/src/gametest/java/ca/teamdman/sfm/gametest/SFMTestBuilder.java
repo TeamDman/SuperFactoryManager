@@ -229,7 +229,7 @@ public abstract class SFMTestBuilder {
     protected abstract void setupStructure(BlockPos offset);
 
     protected void setupManager(BlockPos offset) {
-        BlockPos managerPos = new BlockPos(1, 2, 0).offset(offset);
+        BlockPos managerPos = new BlockPos(1, 1, 0).offset(offset);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         assertTrue(manager != null, "Manager not found");

@@ -12,8 +12,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import java.util.List;
 import java.util.Objects;
@@ -40,9 +38,9 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
     public void run(SFMGameTestHelper helper) {
 
         // declare positions
-        BlockPos managerPos = new BlockPos(1, 2, 0);
-        BlockPos rightPos = new BlockPos(0, 2, 0);
-        BlockPos leftPos = new BlockPos(2, 2, 0);
+        BlockPos managerPos = new BlockPos(1, 1, 0);
+        BlockPos rightPos = new BlockPos(0, 1, 0);
+        BlockPos leftPos = new BlockPos(2, 1, 0);
 
         // set blocks
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());

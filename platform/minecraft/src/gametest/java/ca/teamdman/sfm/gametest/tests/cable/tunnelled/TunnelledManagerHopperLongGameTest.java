@@ -32,14 +32,14 @@ public class TunnelledManagerHopperLongGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // declare positions
-        BlockPos invPos = new BlockPos(0, 2, 0);
-        BlockPos hopperPos = new BlockPos(7, 2, 0);
+        BlockPos invPos = new BlockPos(0, 1, 0);
+        BlockPos hopperPos = new BlockPos(7, 1, 0);
 
         // set blocks
         helper.setBlock(invPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(hopperPos, Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.WEST));
         for (int x = 1; x <= 6; x++) {
-            helper.setBlock(new BlockPos(x, 2, 0), SFMBlocks.TUNNELLED_MANAGER.get());
+            helper.setBlock(new BlockPos(x, 1, 0), SFMBlocks.TUNNELLED_MANAGER.get());
         }
 
         // get handlers

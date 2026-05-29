@@ -10,8 +10,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
-
 /**
  * Migrated from SFMCorrectnessGameTests.disk_item_clientside_regression
  */

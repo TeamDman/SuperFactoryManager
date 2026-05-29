@@ -11,8 +11,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.item.ItemResource;
 
 import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
 
@@ -55,8 +53,8 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
     @Override
     public void run(SFMGameTestHelper helper) {
 
-        BlockPos barrelPos = new BlockPos(0, 2, 0);
-        BlockPos hopperPos = new BlockPos(MANAGER_COUNT + 1, 2, 0);
+        BlockPos barrelPos = new BlockPos(0, 1, 0);
+        BlockPos hopperPos = new BlockPos(MANAGER_COUNT + 1, 1, 0);
 
         helper.setBlock(barrelPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(
@@ -163,7 +161,7 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
 
     private static BlockPos managerPos(int index) {
 
-        return new BlockPos(index + 1, 2, 0);
+        return new BlockPos(index + 1, 1, 0);
     }
 
     private static int scheduleAction(

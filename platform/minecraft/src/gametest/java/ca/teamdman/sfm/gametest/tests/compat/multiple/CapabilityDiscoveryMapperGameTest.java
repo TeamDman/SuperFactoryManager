@@ -33,8 +33,8 @@ public class CapabilityDiscoveryMapperGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        var cubePos = new BlockPos(0, 2, 0);
-        helper.setBlock(cubePos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
+        var cubePos = new BlockPos(0, 1, 0);
+        helper.setBlock(cubePos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.get());
         TileEntityEnergyCube cube = getAndPrepMekTile(helper, cubePos);
 
         EnergyHandler found = SFMBlockCapabilityDiscovery.discoverCapabilityFromLevel(

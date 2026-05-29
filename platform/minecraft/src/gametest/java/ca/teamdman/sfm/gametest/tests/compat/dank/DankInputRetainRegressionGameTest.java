@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.gametest.tests.compat.dank;
 
-import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestCountHelpers;
@@ -42,19 +41,19 @@ public class DankInputRetainRegressionGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // Declare positions
-        BlockPos dankPos = new BlockPos(2, 2, 0);
-        BlockPos managerPos = new BlockPos(1, 2, 0);
-        BlockPos chestPos = new BlockPos(0, 2, 0);
+        BlockPos dankPos = new BlockPos(2, 1, 0);
+        BlockPos managerPos = new BlockPos(1, 1, 0);
+        BlockPos chestPos = new BlockPos(0, 1, 0);
 
         // Place dank storage dock
         helper.setBlock(dankPos, ModBlocks.dock);
-        DockBlockEntity dankBlockEntity = (DockBlockEntity) helper.getBlockEntity(dankPos);
+        DockBlockEntity dankBlockEntity = helper.getBlockEntity(dankPos, DockBlockEntity.class);
         dankBlockEntity.addDank(new ItemStack(ModItems.DANKS.get(0)));
         var dankInventory = helper.getItemHandler(dankPos, Direction.DOWN); // must happen after addDank
 
         // Place manager block
         helper.setBlock(managerPos, MANAGER.get());
-        var manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        var manager = helper.getBlockEntity(managerPos, var.class);
 //        manager.setLogLevel(Level.DEBUG);
         manager.setItem(0, new ItemStack(DISK.get()));
 

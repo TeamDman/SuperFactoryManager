@@ -43,7 +43,7 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
         Direction[] directions = SFMDirections.DIRECTIONS_WITHOUT_NULL;
         for (int i = 0; i < directions.length; i++) {
             Direction dir = directions[i];
-            BlockPos pos = new BlockPos(i, 1, 0);
+            BlockPos pos = new BlockPos(i, 0, 0);
             BlockState observerState = Blocks.OBSERVER.defaultBlockState()
                     .setValue(ObserverBlock.FACING, dir);
             helper.setBlock(pos, observerState);
@@ -52,7 +52,7 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
         // Now resolve all Side variants for each observer
         for (int i = 0; i < directions.length; i++) {
             Direction facing = directions[i];
-            BlockPos pos = new BlockPos(i, 1, 0);
+            BlockPos pos = new BlockPos(i, 0, 0);
             BlockState blockState = helper.getBlockState(pos);
 
             // Verify the observer is placed correctly

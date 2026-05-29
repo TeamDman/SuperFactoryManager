@@ -47,7 +47,7 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
         placeAnvil(helper); // the anvil will naturally fall
 
         // Spawn items
-        Vec3 itemSpawnPos = helper.absoluteVec(new Vec3(1.5, 3.5, 1.5));
+        Vec3 itemSpawnPos = helper.absoluteVec(new Vec3(1.5, 2.5, 1.5));
         int bookCount = helper.getLevel().getRandom().nextIntBetweenInclusive(2, 256);
 
         spawnBookItemEntities(helper, itemSpawnPos, bookCount);
@@ -59,7 +59,7 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
 
     private static void placeAnvil(SFMGameTestHelper helper) {
 
-        helper.setBlock(new BlockPos(1, 4, 1), Blocks.ANVIL);
+        helper.setBlock(new BlockPos(1, 3, 1), Blocks.ANVIL);
     }
 
     private static void spawnEnchantedItem(

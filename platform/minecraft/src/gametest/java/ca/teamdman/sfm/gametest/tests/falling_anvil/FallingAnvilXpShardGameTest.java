@@ -47,7 +47,7 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        helper.setBlock(new BlockPos(1, 2, 1), Blocks.OBSIDIAN);
+        helper.setBlock(new BlockPos(1, 1, 1), Blocks.OBSIDIAN);
 
         RandomSource random = helper.getLevel().getRandom();
         SFMEnchantmentCollection enchantments = pickRandomEnchantments(helper, random);
@@ -57,13 +57,13 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
         long shardsPerBook = FallingAnvilHandler.getShardCountForEnchantments(config, enchantments);
         long expectedShardTotal = shardsPerBook * bookCount;
 
-        BlockPos dropPos = helper.absolutePos(new BlockPos(1, 4, 1));
+        BlockPos dropPos = helper.absolutePos(new BlockPos(1, 3, 1));
         helper
                 .getLevel()
                 .getEntitiesOfClass(ItemEntity.class, new AABB(dropPos).inflate(5))
                 .forEach(Entity::discard);
 
-        Vec3 spawnPos = helper.absoluteVec(new Vec3(1.5, 3.5, 1.5));
+        Vec3 spawnPos = helper.absoluteVec(new Vec3(1.5, 2.5, 1.5));
         ItemStack bookTemplate = enchantments.createEnchantedBook();
         for (int i = 0; i < bookCount; i++) {
             helper.getLevel().addFreshEntity(new ItemEntity(
@@ -74,15 +74,15 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
             ));
         }
 
-        helper.setBlock(new BlockPos(1, 3, 1), Blocks.AIR);
-        helper.setBlock(new BlockPos(1, 4, 1), Blocks.ANVIL);
+        helper.setBlock(new BlockPos(1, 2, 1), Blocks.AIR);
+        helper.setBlock(new BlockPos(1, 3, 1), Blocks.ANVIL);
 
         helper.runAfterDelay(20, () -> {
             List<ItemEntity> found = helper
                     .getLevel()
                     .getEntitiesOfClass(
                             ItemEntity.class,
-                            new AABB(helper.absolutePos(new BlockPos(1, 4, 1))).inflate(5)
+                            new AABB(helper.absolutePos(new BlockPos(1, 3, 1))).inflate(5)
                     );
             assertTrue(!found.isEmpty(), "expected shards to be produced");
 
