@@ -113,7 +113,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
         this(SFM.MOD_ID, typeName, resourceNamespace, resourceName);
     }
 
-    public boolean matchesResourceLocation(Identifier stackId) {
+    public boolean matchesIdentifier(Identifier stackId) {
         return resourceNamePredicate.test(stackId.getPath()) && resourceNamespacePredicate.test(stackId.getNamespace());
     }
 
@@ -181,7 +181,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
             }
             List<ResourceIdentifier<STACK, ITEM, CAP>> rtn = resourceType.getRegistryKeys()
                     .stream()
-                    .filter(this::matchesResourceLocation)
+                    .filter(this::matchesIdentifier)
                     .map(e -> new ResourceIdentifier<STACK, ITEM, CAP>(
                             resourceTypeNamespace,
                             resourceTypeName,

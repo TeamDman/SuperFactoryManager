@@ -63,11 +63,11 @@ public record ResourceLimit(
             return false;
         }
         @SuppressWarnings("unchecked")
-        ResourceType<Object, Object, ?> resourceType = (ResourceType<Object, Object, ?>) matchingIdPattern.getResourceType();
+        ResourceType<Object, ?, ?> resourceType = (ResourceType<Object, ?, ?>) matchingIdPattern.getResourceType();
         if (resourceType == null) {
             return false;
         }
-        return with.matchesStack(resourceType, resourceType.stackToItem(stack));
+        return with.matchesStack(resourceType, stack);
     }
 
     @Override

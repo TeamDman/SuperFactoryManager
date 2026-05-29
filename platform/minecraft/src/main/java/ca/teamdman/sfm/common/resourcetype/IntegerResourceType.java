@@ -2,11 +2,12 @@ package ca.teamdman.sfm.common.resourcetype;
 
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.Identifier;
 
 import java.util.stream.Stream;
 
 public abstract class IntegerResourceType<CAP> extends ScalarResourceType<Integer, CAP> {
-public IntegerResourceType(
+    public IntegerResourceType(
             SFMBlockCapabilityKind<CAP> capability,
             Identifier registryKey
     ) {
@@ -29,17 +30,33 @@ public IntegerResourceType(
     }
 
     @Override
-    public Stream<Identifier> getTagsForStack(Class<Integer> integer) {
+    public Integer getEmptyStack() {
+        return 0;
+    }
+
+    @Override
+    public Stream<Identifier> getTagsForStack(Integer integer) {
         return Stream.empty();
     }
 
     @Override
-    public Class<Integer> stackToItem(Integer integer) {
-        return Integer.class;
+    public Integer copy(Integer integer) {
+        return integer;
     }
 
     @Override
-    public Integer withCount(Integer integer, long count) {
-        return (int)count;
+    protected Integer setCount(
+            Integer stack,
+            long amount
+    ) {
+        return amount > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) amount;
+    }
+
+    @Override
+    public Integer withCount(
+            Integer integer,
+            long count
+    ) {
+        return count > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) count;
     }
 }

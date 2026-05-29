@@ -177,14 +177,14 @@ public record ServerboundOutputInspectionRequestPacket(
                                                 .stream()
                                                 .filter(outputResourceLimit -> outputResourceLimit
                                                                                        .resourceIds()
-                                                                                       .anyMatchResourceLocation(
+                                                                                       .anyMatchIdentifier(
                                                                                                resourceLimitLocation)
                                                                                && outputStatement
                                                                                        .resourceLimits()
                                                                                        .exclusions()
                                                                                        .stream()
                                                                                        .noneMatch(
-                                                                                               exclusion -> exclusion.matchesResourceLocation(
+                                                                                               exclusion -> exclusion.matchesIdentifier(
                                                                                                        resourceLimitLocation)))
                                                 .mapToLong(rl -> rl.limit().quantity().number().value())
                                                 .max()

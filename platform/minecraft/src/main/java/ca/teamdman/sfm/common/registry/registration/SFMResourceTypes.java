@@ -2,26 +2,23 @@ package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
+import ca.teamdman.sfm.common.compat.SFMMekanismCompat;
+import ca.teamdman.sfm.common.compat.SFMModCompat;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
-import ca.teamdman.sfm.common.resourcetype.FluidResourceType;
-import ca.teamdman.sfm.common.resourcetype.ForgeEnergyResourceType;
-import ca.teamdman.sfm.common.resourcetype.ItemResourceType;
-import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.resourcetype.*;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
-
-//import ca.teamdman.sfm.common.compat.SFMMekanismCompat;
 
 public class SFMResourceTypes {
     public static final ResourceKey<Registry<ResourceType<?, ?, ?>>> REGISTRY_ID
@@ -43,17 +40,17 @@ public class SFMResourceTypes {
     public static final SFMRegistryObject<ResourceType<?, ?, ?>, ForgeEnergyResourceType> FORGE_ENERGY
             = REGISTERER.register("forge_energy", ForgeEnergyResourceType::new);
 
-/*    public static final SFMRegistryObject<ResourceType<?, ?, ?>, RedstoneResourceType> REDSTONE
-            = REGISTERER.register("redstone", RedstoneResourceType::new);*/
+    public static final SFMRegistryObject<ResourceType<?, ?, ?>, RedstoneResourceType> REDSTONE
+            = REGISTERER.register("redstone", RedstoneResourceType::new);
 
     private static final Object2ObjectOpenHashMap<Identifier, ResourceType<?, ?, ?>> DEFERRED_TYPES_BY_ID
             = new Object2ObjectOpenHashMap<>();
 
-/*    static {
+    static {
         if (SFMModCompat.isMekanismLoaded()) {
             SFMMekanismCompat.registerResourceTypes(REGISTERER);
         }
-    }*/
+    }
 
     public static int getResourceTypeCount() {
 

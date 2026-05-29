@@ -5,7 +5,6 @@ import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
@@ -49,17 +48,14 @@ public abstract class RegistryBackedResourceType<STACK,ITEM,CAP> extends Resourc
     public abstract SFMRegistryWrapper<ITEM> getRegistry();
 
     @Override
-    public @Nullable ITEM getItemFromRegistryKey(Identifier location) {
-        return getRegistry().get(location).map(Holder.Reference::value).orElse(null);
+    public @Nullable ITEM getItemFromRegistryKey(Identifier identifier) {
+        return getRegistry().get(identifier).get().value();
     }
 
     @Override
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public boolean registryKeyExists(Identifier location) {
-        return getRegistry().contains(location);
+    public boolean registryKeyExists(Identifier identifier) {
+        return getRegistry().contains(identifier);
     }
-
-    public abstract STACK insert(CAP handler, int slot, STACK stack, TransactionContext tx);
-
 
 }

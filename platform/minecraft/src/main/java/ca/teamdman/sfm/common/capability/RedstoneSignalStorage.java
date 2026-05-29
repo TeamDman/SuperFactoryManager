@@ -1,10 +1,12 @@
 package ca.teamdman.sfm.common.capability;
 
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.IntTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.common.util.ValueIOSerializable;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import org.jetbrains.annotations.UnknownNullability;
 
 /// A container for storing "redstone units", which CAN exceed 15.
 public class RedstoneSignalStorage implements IRedstoneSignalStorage, ValueIOSerializable {
@@ -19,7 +21,7 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, ValueIOSer
     @Override
     public int insert(
             int amount,
-            TransactionContext tx
+            boolean simulate
     ) {
         if (!this.canReceive()) {
             return 0; // accept nothing
@@ -34,7 +36,7 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, ValueIOSer
     @Override
     public int extract(
             int amount,
-            TransactionContext tx
+            boolean simulate
     ) {
         if (!this.canExtract()) {
             return 0; // extract nothing
@@ -57,15 +59,23 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, ValueIOSer
     }
 
     @Override
+    public boolean canExtract() {
+        return true;
+    }
+
+    @Override
+    public boolean canReceive() {
+        return true;
+    }
+
+
+    @Override
     public void serialize(ValueOutput output) {
         output.putInt("value", this.value);
     }
 
     @Override
-    public void deserialize(
-            ValueInput input
-    ) {
-        this.value = input.getIntOr("value", 0);
-
+    public void deserialize(ValueInput input) {
+        input.getInt("value");
     }
 }

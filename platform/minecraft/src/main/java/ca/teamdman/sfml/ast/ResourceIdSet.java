@@ -68,8 +68,8 @@ public final class ResourceIdSet implements ASTNode {
         return getMatchingFromStack(stack) == null;
     }
 
-    public boolean anyMatchResourceLocation(Identifier location) {
-        return this.stream().anyMatch(x -> x.matchesResourceLocation(location));
+    public boolean anyMatchIdentifier(Identifier identifier) {
+        return this.stream().anyMatch(x -> x.matchesIdentifier(identifier));
     }
 
     @Override

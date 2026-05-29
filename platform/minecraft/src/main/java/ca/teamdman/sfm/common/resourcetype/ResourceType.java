@@ -13,7 +13,6 @@ import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -105,7 +104,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             CAP cap,
             int slot,
             long amount,
-            TransactionContext tx
+            boolean simulate
     );
 
     public boolean canExtract(
@@ -132,7 +131,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             CAP cap,
             int slot,
             STACK stack,
-            TransactionContext tx
+            boolean simulate
     );
 
     public boolean canInsert(
@@ -145,6 +144,9 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
 
     public abstract boolean isEmpty(STACK stack);
 
+    @SuppressWarnings("unused")
+    public abstract STACK getEmptyStack();
+
     public abstract boolean matchesStackType(Object o);
 
     public boolean matchesStack(
@@ -156,7 +158,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
         @SuppressWarnings("unchecked") STACK stack_ = (STACK) stack;
         if (isEmpty(stack_)) return false;
         var stackId = getRegistryKeyForStack(stack_);
-        return resourceId.matchesResourceLocation(stackId);
+        return resourceId.matchesIdentifier(stackId);
     }
 
     /// Checks if the provided handler is an instance of the capability associated with this resource type
@@ -221,7 +223,7 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
         }
     }
 
-    public abstract Stream<Identifier> getTagsForStack(ITEM stack);
+    public abstract Stream<Identifier> getTagsForStack(STACK stack);
 
     public Stream<STACK> getStacksInSlots(
             CAP cap,
@@ -239,8 +241,6 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
         return rtn.build();
     }
 
-    public abstract ITEM stackToItem(STACK stack);
-
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public abstract boolean registryKeyExists(Identifier location);
 
@@ -256,11 +256,16 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
 
     public abstract ITEM getItem(STACK stack);
 
+    public abstract STACK copy(STACK stack);
+
     @SuppressWarnings("unused")
-    public abstract STACK withCount(
+    public STACK withCount(
             STACK stack,
             long count
-    );
+    ) {
+
+        return setCount(copy(stack), count);
+    }
 
     public String displayAsCode() {
 
@@ -272,4 +277,10 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
 
         return CAPABILITY_KIND.getName();
     }
+
+    protected abstract STACK setCount(
+            STACK stack,
+            long amount
+    );
+
 }

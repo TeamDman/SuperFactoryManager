@@ -59,15 +59,15 @@ sourceSets {
             exclude "ca/teamdman/sfm/common/blockentity/BatteryBlockEntity.java"
         }
         //// @MCVersionDependentBehaviour
-        java {
-            exclude "ca/teamdman/sfm/common/compat/SFMMekanismCompat.java"
-            exclude "ca/teamdman/sfm/common/program/linting/compat/mekanism"
-            exclude "ca/teamdman/sfm/common/resourcetype/ChemicalResourceType.java"
-
-            exclude "ca/teamdman/sfm/common/resourcetype/RedstoneResourceType.java"
-            exclude "ca/teamdman/sfm/common/capability/RedstoneSignalStorage.java"
-            exclude "ca/teamdman/sfm/common/capability/RedstoneSignalCapabilityProvider.java"
-        }
+//        java {
+//            exclude "ca/teamdman/sfm/common/compat/SFMMekanismCompat.java"
+//            exclude "ca/teamdman/sfm/common/program/linting/compat/mekanism"
+//            exclude "ca/teamdman/sfm/common/resourcetype/ChemicalResourceType.java"
+//
+//            exclude "ca/teamdman/sfm/common/resourcetype/RedstoneResourceType.java"
+//            exclude "ca/teamdman/sfm/common/capability/RedstoneSignalStorage.java"
+//            exclude "ca/teamdman/sfm/common/capability/RedstoneSignalCapabilityProvider.java"
+//        }
         java {
             exclude "ca/teamdman/sfm/common/resourcetype/GasResourceType.java"
             exclude "ca/teamdman/sfm/common/resourcetype/InfuseResourceType.java"
@@ -75,9 +75,9 @@ sourceSets {
             exclude "ca/teamdman/sfm/common/resourcetype/PigmentResourceType.java"
             exclude "ca/teamdman/sfm/common/resourcetype/SlurryResourceType.java"
         }
-        java {
-            exclude "ca/teamdman/sfm/common/capability/CauldronBlockCapabilityProvider.java"
-        }
+//        java {
+//            exclude "ca/teamdman/sfm/common/capability/CauldronBlockCapabilityProvider.java"
+//        }
     }
     // https://docs.gradle.org/current/userguide/java_testing.html#sec:configuring_java_integration_tests
     test {

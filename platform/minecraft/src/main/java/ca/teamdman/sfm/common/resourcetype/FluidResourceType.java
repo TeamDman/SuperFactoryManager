@@ -10,16 +10,15 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler;
-import net.neoforged.neoforge.transfer.resource.ResourceStack;
-import net.neoforged.neoforge.transfer.transaction.Transaction;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 import java.util.stream.Stream;
 
-public class FluidResourceType extends RegistryBackedResourceType<ResourceStack<FluidResource>, Fluid, ResourceHandler<FluidResource>> {
+public class FluidResourceType extends RegistryBackedResourceType<FluidStack, Fluid, ResourceHandler<FluidResource>> {
     public FluidResourceType() {
         super(SFMWellKnownCapabilities.FLUID_HANDLER);
     }
@@ -30,19 +29,26 @@ public class FluidResourceType extends RegistryBackedResourceType<ResourceStack<
     }
 
     @Override
-    public Fluid getItem(ResourceStack<FluidResource> fluidStack) {
-        return fluidStack.resource().getFluid();
+    public Fluid getItem(FluidStack fluidStack) {
+        return fluidStack.getFluid();
     }
 
     @Override
-    public Stream<Identifier> getTagsForStack(Fluid fluidStack) {
+    public FluidStack copy(FluidStack fluidStack) {
+        return fluidStack.copy();
+    }
+
+    @Override
+    public Stream<Identifier> getTagsForStack(FluidStack fluidStack) {
         //noinspection deprecation
-        return fluidStack.builtInRegistryHolder().tags().map(TagKey::location);
+        return fluidStack.getFluid().builtInRegistryHolder().tags().map(TagKey::location);
     }
 
     @Override
-    public Fluid stackToItem(ResourceStack<FluidResource> fluidResourceResourceStack) {
-        return fluidResourceResourceStack.resource().getFluid();
+    protected FluidStack setCount(FluidStack fluidStack, long amount) {
+        int finalAmount = amount > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) amount;
+        fluidStack.setAmount(finalAmount);
+        return fluidStack;
     }
 
     @Override
@@ -60,30 +66,33 @@ public class FluidResourceType extends RegistryBackedResourceType<ResourceStack<
     }
 
     @Override
-    public long getAmount(ResourceStack<FluidResource> stack) {
-        return stack.amount();
+    public long getAmount(FluidStack stack) {
+        return stack.getAmount();
     }
 
     @Override
-    public ResourceStack<FluidResource> getStackInSlot(ResourceHandler<FluidResource> cap, int slot) {
-        return new ResourceStack<>(cap.getResource(slot), cap.getAmountAsInt(slot));
+    public FluidStack getStackInSlot(ResourceHandler<FluidResource> handler, int slot) {
+        return IFluidHandler.of(handler).getFluidInTank(slot);
     }
 
     @Override
-    public ResourceStack<FluidResource> extract(
-            ResourceHandler<FluidResource> handler,
+    public FluidStack extract(
+            ResourceHandler<FluidResource> _handler,
             int slot,
             long amount_long,
-            TransactionContext tx
+            boolean simulate
     ) {
-        try (var ctx = Transaction.open(tx)) {
-            var in = getStackInSlot(handler, slot);
-
-            int extracted = handler.extract(slot, in.resource(), (int) Mth.clamp(amount_long, 0, Integer.MAX_VALUE), ctx);
-            ctx.commit();
-
-            return new ResourceStack<>(in.resource(), extracted);
-        }
+        IFluidHandler handler = IFluidHandler.of(_handler);
+        var in = getStackInSlot(_handler, slot);
+        var toExtract = new FluidStack(
+                in.getFluid(),
+                (int) Mth.clamp(amount_long, Integer.MIN_VALUE, Integer.MAX_VALUE),
+                in.getComponentsPatch()
+        );
+        return handler.drain(
+                toExtract,
+                simulate ? IFluidHandler.FluidAction.SIMULATE : IFluidHandler.FluidAction.EXECUTE
+        );
     }
 
     @Override
@@ -93,42 +102,40 @@ public class FluidResourceType extends RegistryBackedResourceType<ResourceStack<
 
     @Override
     public boolean matchesCapabilityHandler(Object o) {
-        return o instanceof ResourceHandler;
+        return o instanceof IFluidHandler;
     }
 
     @Override
-    public int getSlots(ResourceHandler<FluidResource> handler) {
-        return handler.size();
+    public int getSlots(ResourceHandler<FluidResource> _handler) {
+        return IFluidHandler.of(_handler).getTanks();
     }
 
     @Override
-    public long getMaxStackSize(ResourceStack<FluidResource> fluidStack) {
+    public long getMaxStackSize(FluidStack fluidStack) {
         return Integer.MAX_VALUE;
     }
 
     @Override
-    public long getMaxStackSizeForSlot(ResourceHandler<FluidResource> iFluidHandler, int slot) {
-        return iFluidHandler.getCapacityAsLong(slot, iFluidHandler.getResource(slot));
-    }
-
-
-    @Override
-    public ResourceStack<FluidResource> insert(ResourceHandler<FluidResource> handler, int slot, ResourceStack<FluidResource> stack, TransactionContext tx) {
-        try (var ctx = Transaction.openRoot()) {
-            int inserted = handler.insert(slot, stack.resource(), stack.amount(), ctx);
-            ctx.commit();
-
-            return new ResourceStack<>(stack.resource(), stack.amount() - inserted);
-        }
+    public long getMaxStackSizeForSlot(ResourceHandler<FluidResource> _handler, int slot) {
+        return IFluidHandler.of(_handler).getTankCapacity(slot);
     }
 
     @Override
-    public boolean isEmpty(ResourceStack<FluidResource> stack) {
+    public FluidStack insert(ResourceHandler<FluidResource> _handler, int slot, FluidStack stack, boolean simulate) {
+        IFluidHandler handler = IFluidHandler.of(_handler);
+        // fluid handlers return the amount moved, not the remainder, so we have to convert
+        var inserted = handler.fill(stack, simulate ? IFluidHandler.FluidAction.SIMULATE : IFluidHandler.FluidAction.EXECUTE);
+        int remainder = stack.getAmount() - inserted;
+        return new FluidStack(stack.getFluid(), remainder, stack.getComponentsPatch());
+    }
+
+    @Override
+    public boolean isEmpty(FluidStack stack) {
         return stack.isEmpty();
     }
 
     @Override
-    public ResourceStack<FluidResource> withCount(ResourceStack<FluidResource> stack, long amount) {
-        return new ResourceStack<>(stack.resource(), (int) Math.min(amount, Integer.MAX_VALUE));
+    public FluidStack getEmptyStack() {
+        return FluidStack.EMPTY;
     }
 }

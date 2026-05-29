@@ -3,19 +3,20 @@ package ca.teamdman.sfm.common.resourcetype;
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
+import mekanism.api.Action;
 import mekanism.api.MekanismAPI;
-import mekanism.api.chemical.*;
+import mekanism.api.chemical.BasicChemicalTank;
+import mekanism.api.chemical.Chemical;
+import mekanism.api.chemical.ChemicalStack;
+import mekanism.api.chemical.IChemicalHandler;
 import mekanism.common.capabilities.Capabilities;
 import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.transfer.ResourceHandler;
-import net.neoforged.neoforge.transfer.resource.ResourceStack;
-import net.neoforged.neoforge.transfer.transaction.Transaction;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.minecraft.tags.TagKey;
 
 import java.util.stream.Stream;
 
-public class ChemicalResourceType extends RegistryBackedResourceType<ResourceStack<ChemicalResource>, Chemical, ResourceHandler<ChemicalResource>> {
-    public static final SFMBlockCapabilityKind<ResourceHandler<ChemicalResource>> CAP = new SFMBlockCapabilityKind<>(
+public class ChemicalResourceType extends RegistryBackedResourceType<ChemicalStack, Chemical, IChemicalHandler> {
+    public static final SFMBlockCapabilityKind<IChemicalHandler> CAP = new SFMBlockCapabilityKind<>(
             Capabilities.CHEMICAL.block()
     );
 
@@ -24,93 +25,77 @@ public class ChemicalResourceType extends RegistryBackedResourceType<ResourceSta
     }
 
     @Override
-    public ResourceHandler<ChemicalResource> createHandlerForBufferBlock(BufferBlockEntityContents contents) {
-        return BasicChemicalTank.create(
+    public IChemicalHandler createHandlerForBufferBlock(BufferBlockEntityContents contents) {
+        return (BasicChemicalTank) BasicChemicalTank.create(
                 contents.tier.getLongScalarMaxStackSize(),
                 null
         );
     }
 
     @Override
-    public long getAmount(ResourceStack<ChemicalResource> gasStack) {
+    public long getAmount(ChemicalStack gasStack) {
         return gasStack.amount();
     }
 
     @Override
-    public ResourceStack<ChemicalResource> getStackInSlot(
-            ResourceHandler<ChemicalResource> iChemicalHandler,
+    public ChemicalStack getStackInSlot(
+            IChemicalHandler iChemicalHandler,
             int slot
     ) {
-        return new ResourceStack<>(iChemicalHandler.getResource(slot), iChemicalHandler.getAmountAsInt(slot));
+        return iChemicalHandler.getChemicalInTank(slot);
     }
 
     @Override
-    public Stream<Identifier> getTagsForStack(Chemical gasStack) {
-//        //noinspected depreciation
-//        return gasStack.getTags().map(TagKey::location);
-        // TODO: Apparently Mekanism stores tags on a ChemicalStack
-        return Stream.empty();
+    public Stream<Identifier> getTagsForStack(ChemicalStack gasStack) {
+        return gasStack.tags().map(TagKey::location);
     }
 
     @Override
-    public Chemical stackToItem(ResourceStack<ChemicalResource> chemicalResourceResourceStack) {
-        return chemicalResourceResourceStack.resource().getChemical();
-    }
-
-    @Override
-    public ResourceStack<ChemicalResource> extract(
-            ResourceHandler<ChemicalResource> handler,
+    public ChemicalStack extract(
+            IChemicalHandler handler,
             int slot,
             long amount,
-            TransactionContext tx
+            boolean simulate
     ) {
-        try (var ctx = Transaction.open(tx)) {
-            ChemicalResource resource = handler.getResource(slot);
-            int extracted = handler.extract(slot, resource, (int)amount, ctx);
-            ctx.commit();
-
-            return new ResourceStack<>(resource, extracted);
-        }
+        return handler.extractChemical(slot, amount, simulate ? Action.SIMULATE : Action.EXECUTE);
     }
 
     @Override
-    public int getSlots(ResourceHandler<ChemicalResource> handler) {
-        return handler.size();
+    public int getSlots(IChemicalHandler handler) {
+        return handler.getChemicalTanks();
     }
 
     @Override
-    public long getMaxStackSize(ResourceStack<ChemicalResource> gasStack) {
+    public long getMaxStackSize(ChemicalStack gasStack) {
         return Long.MAX_VALUE;
     }
 
     @Override
     public long getMaxStackSizeForSlot(
-            ResourceHandler<ChemicalResource> handler,
+            IChemicalHandler handler,
             int slot
     ) {
-        return handler.getCapacityAsLong(slot, handler.getResource(slot));
+        return handler.getChemicalTankCapacity(slot);
     }
 
     @Override
-    public ResourceStack<ChemicalResource> insert(
-            ResourceHandler<ChemicalResource> handler,
+    public ChemicalStack insert(
+            IChemicalHandler handler,
             int slot,
-            ResourceStack<ChemicalResource> gasStack,
-            TransactionContext tx
+            ChemicalStack gasStack,
+            boolean simulate
     ) {
-        try (var ctx = Transaction.open(tx)) {
-            ChemicalResource resource = handler.getResource(slot);
-            int amount = gasStack.amount();
-            int inserted = handler.extract(slot, resource, amount, ctx);
-            ctx.commit();
-
-            return new ResourceStack<>(resource, amount - inserted);
-        }
+        return handler.insertChemical(slot, gasStack, simulate ? Action.SIMULATE : Action.EXECUTE);
     }
 
     @Override
-    public boolean isEmpty(ResourceStack<ChemicalResource> gasStack) {
+    public boolean isEmpty(ChemicalStack gasStack) {
         return gasStack.isEmpty();
+    }
+
+    @Override
+    public ChemicalStack getEmptyStack() {
+        return ChemicalStack.EMPTY;
     }
 
     @Override
@@ -129,12 +114,21 @@ public class ChemicalResourceType extends RegistryBackedResourceType<ResourceSta
     }
 
     @Override
-    public Chemical getItem(ResourceStack<ChemicalResource> gasStack) {
-        return gasStack.resource().getChemical();
+    public Chemical getItem(ChemicalStack gasStack) {
+        return gasStack.getChemical();
     }
 
     @Override
-    public ResourceStack<ChemicalResource> withCount(ResourceStack<ChemicalResource> stack, long amount) {
-        return new ResourceStack<>(stack.resource(), (int) Math.min(amount, Integer.MAX_VALUE));
+    public ChemicalStack copy(ChemicalStack gasStack) {
+        return gasStack.copy();
+    }
+
+    @Override
+    protected ChemicalStack setCount(
+            ChemicalStack gasStack,
+            long amount
+    ) {
+        gasStack.setAmount(amount);
+        return gasStack;
     }
 }

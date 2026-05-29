@@ -4,9 +4,9 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 
 public final class WithAlwaysTrue implements WithClause {
     @Override
-    public <ITEM> boolean matchesStack(
-            ResourceType<?, ITEM, ?> resourceType,
-            ITEM item
+    public <STACK> boolean matchesStack(
+            ResourceType<STACK, ?, ?> resourceType,
+            STACK stack
     ) {
         return true;
     }

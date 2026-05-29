@@ -4,11 +4,11 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 
 public record WithDisjunction(WithClause left, WithClause right) implements ASTNode, WithClause, ToStringPretty {
     @Override
-    public <ITEM> boolean matchesStack(
-            ResourceType<?, ITEM, ?> resourceType,
-            ITEM item
+    public <STACK> boolean matchesStack(
+            ResourceType<STACK, ?, ?> resourceType,
+            STACK stack
     ) {
-        return left.matchesStack(resourceType, item) || right.matchesStack(resourceType, item);
+        return left.matchesStack(resourceType, stack) || right.matchesStack(resourceType, stack);
     }
 
     @Override

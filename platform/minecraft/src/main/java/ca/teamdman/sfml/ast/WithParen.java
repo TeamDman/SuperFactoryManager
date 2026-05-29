@@ -4,11 +4,11 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 
 public record WithParen(WithClause inner) implements ASTNode, WithClause, ToStringPretty {
     @Override
-    public <ITEM> boolean matchesStack(
-            ResourceType<?, ITEM, ?> resourceType,
-            ITEM item
+    public <STACK> boolean matchesStack(
+            ResourceType<STACK, ?, ?> resourceType,
+            STACK stack
     ) {
-        return inner.matchesStack(resourceType, item);
+        return inner.matchesStack(resourceType, stack);
     }
 
     @Override

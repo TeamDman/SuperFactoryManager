@@ -1,12 +1,13 @@
 package ca.teamdman.sfm.common.resourcetype;
 
+import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
+import net.neoforged.neoforge.energy.EnergyStorage;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.transfer.energy.EnergyHandler;
 import net.neoforged.neoforge.transfer.energy.SimpleEnergyHandler;
-import net.neoforged.neoforge.transfer.transaction.Transaction;
-import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 public class ForgeEnergyResourceType extends IntegerResourceType<EnergyHandler> {
     public ForgeEnergyResourceType() {
@@ -18,57 +19,53 @@ public class ForgeEnergyResourceType extends IntegerResourceType<EnergyHandler> 
 
     @Override
     public Integer extract(
-            EnergyHandler handler,
+            EnergyHandler _handler,
             int slot,
             long amount,
-            TransactionContext tx
+            boolean simulate
     ) {
-        try (Transaction ctx = Transaction.open(tx)) {
-            int finalAmount = amount > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) amount;
-            int extracted = handler.extract(finalAmount, ctx);
-            ctx.commit();
-
-            return extracted;
-        }
+        IEnergyStorage handler = IEnergyStorage.of(_handler);
+        int finalAmount = amount > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) amount;
+        return handler.extractEnergy(finalAmount, simulate);
     }
 
     @Override
-    public boolean canExtract(EnergyHandler capability, int slot) {
-        try (var ctx = Transaction.openRoot()) {
-            return capability.extract(1, ctx) > 0;
-        }
+    public boolean canExtract(EnergyHandler _handler, int slot) {
+        return IEnergyStorage.of(_handler).canExtract();
     }
+
     @Override
-    public int getSlots(EnergyHandler handler) {
+    public int getSlots(EnergyHandler _handler) {
         return 1;
     }
 
     @Override
     public Integer insert(
-            EnergyHandler handler,
+            EnergyHandler _handler,
             int slot,
-            Integer amount,
-            TransactionContext tx
+            Integer stack,
+            boolean simulate
     ) {
-        try (var ctx = Transaction.open(tx)) {
-            int inserted = handler.insert(amount, ctx);
-            ctx.commit();
+        int accepted = IEnergyStorage.of(_handler).receiveEnergy(stack, simulate);
+        return stack - accepted;
+    }
 
-            return amount - inserted;
-        }
+    @Override
+    public boolean canInsert(EnergyHandler _handler, int slot) {
+        return IEnergyStorage.of(_handler).canReceive();
     }
 
     @Override
     public boolean matchesCapabilityHandler(Object o) {
-        return o instanceof EnergyHandler;
+        return o instanceof IEnergyStorage;
     }
 
     @Override
     public long getMaxStackSizeForSlot(
-            EnergyHandler iEnergyStorage,
+            EnergyHandler _handler,
             int slot
     ) {
-        int maxStackSize = iEnergyStorage.getCapacityAsInt();
+        int maxStackSize = IEnergyStorage.of(_handler).getMaxEnergyStored();
         if (maxStackSize == Integer.MAX_VALUE) {
             return Long.MAX_VALUE;
         }
@@ -76,27 +73,25 @@ public class ForgeEnergyResourceType extends IntegerResourceType<EnergyHandler> 
     }
 
     @Override
-    public SimpleEnergyHandler createHandlerForBufferBlock(BufferBlockEntityContents contents) {
+    public EnergyHandler createHandlerForBufferBlock(BufferBlockEntityContents contents) {
         return new SimpleEnergyHandler(contents.tier.getIntScalarMaxStackSize()) {
 
-/*
-            @Override
-            public boolean isValid() {
+/*            @Override
+            public boolean canReceive() {
                 boolean isValid = this.energy > 0 || contents.isEmpty();
                 if (isValid) {
                     contents.lastUsedResource = BufferBlock.ContainedResource.Energy;
                 }
                 return isValid;
-            }
-*/
+            }*/
         };
     }
 
     @Override
     public Integer getStackInSlot(
-            EnergyHandler iEnergyStorage,
+            EnergyHandler _handler,
             int slot
     ) {
-        return iEnergyStorage.getAmountAsInt();
+        return IEnergyStorage.of(_handler).getEnergyStored();
     }
 }

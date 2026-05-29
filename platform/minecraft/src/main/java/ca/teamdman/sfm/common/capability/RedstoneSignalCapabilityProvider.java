@@ -35,7 +35,7 @@ public class RedstoneSignalCapabilityProvider implements SFMBlockCapabilityProvi
             return SFMBlockCapabilityResult.of(new RedstoneSignalStorage(signal, 15));
         } catch (Throwable t) {
             return SFMBlockCapabilityResult.empty();
-//        }
+        }
     }
 
     @Override

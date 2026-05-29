@@ -13,7 +13,10 @@ import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import cofh.thermal.expansion.block.entity.machine.MachineInsolatorTile;
+import mekanism.api.Action;
+import mekanism.api.AutomationType;
 import mekanism.common.registries.MekanismBlocks;
+import mekanism.common.tile.TileEntityEnergyCube;
 import mekanism.common.tile.TileEntityFluidTank;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -21,7 +24,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.ArrayList;
 
@@ -62,14 +66,14 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
         var waterPos = new BlockPos(2, 1, 0);
 
         // set up power
-        helper.setBlock(powerPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
+        helper.setBlock(powerPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.get());
         helper
-                .getBlockEntity(powerPos)
-                .getCapability(SFMWellKnownCapabilities.ENERGY.capabilityKind(), Direction.UP)
-                .ifPresent(energy -> energy.receiveEnergy(Integer.MAX_VALUE, false));
+                .getBlockEntity(powerPos, TileEntityEnergyCube.class)
+                .getEnergyContainer()
+                .insert(Integer.MAX_VALUE, Action.EXECUTE, AutomationType.INTERNAL);
 
         // set up water
-        helper.setBlock(waterPos, MekanismBlocks.CREATIVE_FLUID_TANK.getBlock());
+        helper.setBlock(waterPos, MekanismBlocks.CREATIVE_FLUID_TANK.get());
         TileEntityFluidTank tank = helper.getBlockEntity(waterPos, TileEntityFluidTank.class);
         tank.setFluidInTank(0, new FluidStack(Fluids.WATER, Integer.MAX_VALUE));
 
@@ -81,9 +85,9 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
                 BlockPos cableBelow = new BlockPos(x, 1, z);
                 helper.setBlock(cableBelow, SFMBlocks.CABLE.get());
                 BlockPos phytoPos = new BlockPos(x, 2, z);
-                helper.setBlock(phytoPos, phytoBlock);
+                helper.setBlock(phytoPos, phytoBlock.get().value());
                 phytoPositions.add(phytoPos);
-                var phyto = helper.getBlockEntity(phytoPos, MachineInsolatorTile, var.class);
+                var phyto = helper.getBlockEntity(phytoPos, MachineInsolatorTile.class);
                 phyto.setSideConfig(Direction.UP, MachineInsolatorTile.SideConfig.SIDE_INPUT);
                 phyto.setSideConfig(Direction.DOWN, MachineInsolatorTile.SideConfig.SIDE_OUTPUT);
             }
@@ -108,11 +112,11 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
                     Items.MELON_SEEDS,
                     Items.PUMPKIN_SEEDS,
                     Items.WHEAT_SEEDS,
-                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")),
-                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")),
-                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")),
-                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")),
-                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")),
+                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")).value(),
+                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")).value(),
+                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")).value(),
+                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")).value(),
+                    SFMResourceTypes.ITEM.get().getItemFromRegistryKey(SFMResourceLocation.fromNamespaceAndPath("thermal", "phytogro")).value(),
                     };
             int slot = 0;
             for (Item item : items) {

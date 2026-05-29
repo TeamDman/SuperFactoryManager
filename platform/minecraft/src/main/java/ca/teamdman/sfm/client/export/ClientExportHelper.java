@@ -62,7 +62,7 @@ public class ClientExportHelper {
 
             // Add the tags
             JsonArray tags = new JsonArray();
-            SFMResourceTypes.ITEM.get().getTagsForStack(stack.getItem()).map(Identifier::toString).forEach(tags::add);
+            SFMResourceTypes.ITEM.get().getTagsForStack(stack).map(Identifier::toString).forEach(tags::add);
             jsonObject.add("tags", tags);
 
             // Add the tooltip field

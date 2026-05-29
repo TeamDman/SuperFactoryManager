@@ -39,15 +39,15 @@ public class TagMatcher implements Predicate<Object>, ASTNode {
 
     @Override
     public boolean test(Object o) {
-        if (o instanceof Identifier resourceLocation) {
-            return testResourceLocation(resourceLocation);
+        if (o instanceof Identifier identifier) {
+            return testIdentifier(identifier);
         } else if (o instanceof String string) {
             return testString(string);
         }
         return false;
     }
 
-    public boolean testResourceLocation(Identifier resourceLocation) {
+    public boolean testIdentifier(Identifier resourceLocation) {
         return testPath(resourceLocation.getNamespace(), resourceLocation.getPath().split("/"));
     }
 

@@ -32,8 +32,8 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
     }
 
     @Override
-    public @Nullable Class<STACK> getItemFromRegistryKey(Identifier location) {
-        if (location.equals(registryKey)) {
+    public @Nullable Class<STACK> getItemFromRegistryKey(Identifier identifier) {
+        if (identifier.equals(registryKey)) {
             return item;
         }
         return null;
@@ -50,8 +50,8 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
     }
 
     @Override
-    public boolean registryKeyExists(Identifier location) {
-        return location.equals(registryKey);
+    public boolean registryKeyExists(Identifier identifier) {
+        return identifier.equals(registryKey);
     }
 
     @Override
@@ -63,5 +63,4 @@ public abstract class ScalarResourceType<STACK, CAP> extends ResourceType<STACK,
     public boolean matchesStackType(Object o) {
         return item.isInstance(o);
     }
-
 }
