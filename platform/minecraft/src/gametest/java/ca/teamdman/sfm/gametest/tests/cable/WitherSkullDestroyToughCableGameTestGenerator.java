@@ -105,7 +105,7 @@ public class WitherSkullDestroyToughCableGameTestGenerator extends SFMGameTestGe
         @Override
         public void run(SFMGameTestHelper helper) {
 
-            BlockPos targetBlockLocalPos = new BlockPos(2, 2, 2);
+            BlockPos targetBlockLocalPos = new BlockPos(2, 1, 2);
             helper.setBlock(targetBlockLocalPos, scenario.blockSupplier.get().defaultBlockState());
             scenario.facadeState.ifPresent(mimicBlockState -> helper.setFacade(targetBlockLocalPos, mimicBlockState));
 

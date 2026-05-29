@@ -59,7 +59,7 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
 
     private static void placeAnvil(SFMGameTestHelper helper) {
 
-        helper.setBlock(new BlockPos(1, 3, 1), Blocks.ANVIL);
+        helper.setBlock(new BlockPos(1, 2, 1), Blocks.ANVIL);
     }
 
     private static void spawnEnchantedItem(
@@ -102,7 +102,7 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
             remaining -= toSpawn;
         }
 
-        BlockPos signPos = new BlockPos(1, 2, 0);
+        BlockPos signPos = new BlockPos(1, 1, 0);
         helper.setBlock(signPos, Blocks.ACACIA_WALL_SIGN);
         helper.setSignText(
                 signPos,
@@ -113,7 +113,7 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
 
     private static void placeObsidian(SFMGameTestHelper helper) {
 
-        helper.setBlock(new BlockPos(1, 2, 1), Blocks.OBSIDIAN);
+        helper.setBlock(new BlockPos(1, 1, 1), Blocks.OBSIDIAN);
     }
 
     private static void assertExpectedItemEntitiesFound(

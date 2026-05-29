@@ -38,11 +38,11 @@ public class MoveRegexCircleGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        var managerPos = new BlockPos(1, 2, 1);
-        var aPos = new BlockPos(1, 2, 0);
-        var bPos = new BlockPos(2, 2, 1);
-        var cPos = new BlockPos(1, 2, 2);
-        var dPos = new BlockPos(0, 2, 1);
+        var managerPos = new BlockPos(1, 1, 1);
+        var aPos = new BlockPos(1, 1, 0);
+        var bPos = new BlockPos(2, 1, 1);
+        var cPos = new BlockPos(1, 1, 2);
+        var dPos = new BlockPos(0, 1, 1);
 
         // place and fill the chests
         helper.setBlock(aPos, SFMBlocks.TEST_BARREL.get());

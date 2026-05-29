@@ -38,10 +38,10 @@ public class RoundRobinByBlock1GameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        BlockPos managerPos = new BlockPos(1, 2, 1);
-        BlockPos sourcePos = new BlockPos(1, 3, 1);
-        BlockPos dest1Pos = new BlockPos(2, 2, 1);
-        BlockPos dest2Pos = new BlockPos(0, 2, 1);
+        BlockPos managerPos = new BlockPos(1, 1, 1);
+        BlockPos sourcePos = new BlockPos(1, 2, 1);
+        BlockPos dest1Pos = new BlockPos(2, 1, 1);
+        BlockPos dest2Pos = new BlockPos(0, 1, 1);
 
         // set up inventories
         helper.setBlock(sourcePos, SFMBlocks.TEST_BARREL.get());

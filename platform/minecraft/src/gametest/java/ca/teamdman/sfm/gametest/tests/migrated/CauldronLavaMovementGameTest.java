@@ -38,13 +38,13 @@ public class CauldronLavaMovementGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // fill in the blocks needed for the test
-        helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.MANAGER.get());
-        BlockPos left = new BlockPos(2, 2, 0);
+        helper.setBlock(new BlockPos(1, 1, 0), SFMBlocks.MANAGER.get());
+        BlockPos left = new BlockPos(2, 1, 0);
         helper.setBlock(left, Blocks.LAVA_CAULDRON);
-        BlockPos right = new BlockPos(0, 2, 0);
+        BlockPos right = new BlockPos(0, 1, 0);
         helper.setBlock(right, Blocks.CAULDRON);
 
-        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 1, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

@@ -44,10 +44,10 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // designate positions
-        var managerPos = new BlockPos(1, 2, 0);
+        var managerPos = new BlockPos(1, 1, 0);
         var powerCubePos = new BlockPos(1, 1, 0);
         var inductionBeginPos = new BlockPos(0, 1, 1);
-        var inductionInput = new BlockPos(1, 2, 1);
+        var inductionInput = new BlockPos(1, 1, 1);
 
         // set up induction matrix
         for (int x = 0; x < 18; x++) {

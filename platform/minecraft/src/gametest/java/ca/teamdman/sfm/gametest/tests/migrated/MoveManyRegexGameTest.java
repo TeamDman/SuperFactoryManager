@@ -55,12 +55,12 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
         for (int x = 0; x < 25; x++) {
             for (int z = 0; z < 24; z++) { // make sure we have an even number to split
                 // place a cable below
-                helper.setBlock(new BlockPos(x, 2, z), SFMBlocks.CABLE.get());
+                helper.setBlock(new BlockPos(x, 1, z), SFMBlocks.CABLE.get());
                 // place the barrel on top
-                helper.setBlock(new BlockPos(x, 3, z), SFMBlocks.TEST_BARREL.get());
+                helper.setBlock(new BlockPos(x, 2, z), SFMBlocks.TEST_BARREL.get());
                 if (z % 2 == 0) {
-                    sourceBlocks.add(new BlockPos(x, 3, z));
-                    BarrelBlockEntity barrel = helper.getBlockEntity(new BlockPos(x, 3, z), BarrelBlockEntity.class);
+                    sourceBlocks.add(new BlockPos(x, 2, z));
+                    BarrelBlockEntity barrel = helper.getBlockEntity(new BlockPos(x, 2, z), BarrelBlockEntity.class);
                     for (int i = 0; i < barrel.getContainerSize(); i++) {
                         if (i % 3 == 0) {
                             barrel.setItem(i, new ItemStack(Items.IRON_INGOT, 64));
@@ -74,14 +74,14 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
                         }
                     }
                 } else {
-                    destBlocks.add(new BlockPos(x, 3, z));
+                    destBlocks.add(new BlockPos(x, 2, z));
                 }
             }
         }
 
         // create the manager block and add the disk
-        helper.setBlock(new BlockPos(0, 2, 0), SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(0, 2, 0), ManagerBlockEntity.class);
+        helper.setBlock(new BlockPos(0, 1, 0), SFMBlocks.MANAGER.get());
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(0, 1, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

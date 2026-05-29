@@ -54,13 +54,13 @@ public class FallingAnvilProgramFormGameTest extends SFMGameTestDefinition {
                         disk,
                         0, 0, 0
                 ));
-        helper.setBlock(new BlockPos(1, 3, 1), Blocks.ANVIL);
+        helper.setBlock(new BlockPos(1, 2, 1), Blocks.ANVIL);
         helper.runAfterDelay(20, () -> {
             List<ItemEntity> found = helper
                     .getLevel()
                     .getEntitiesOfClass(
                             ItemEntity.class,
-                            new AABB(helper.absolutePos(new BlockPos(1, 3, 1))).inflate(3)
+                            new AABB(helper.absolutePos(new BlockPos(1, 2, 1))).inflate(3)
                     );
             if (found.stream().anyMatch(e -> SFMItemUtils.isSameItemSameTags(e.getItem(), FormItem.createFormFromReference(disk)))) {
                 helper.succeed();

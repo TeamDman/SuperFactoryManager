@@ -48,9 +48,9 @@ public class MeatFluidDirectGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        BlockPos managerPos = new BlockPos(1, 2, 1);
-        BlockPos rightTankPos = new BlockPos(0, 2, 1);
-        BlockPos washingFactoryPos = new BlockPos(2, 2, 1);
+        BlockPos managerPos = new BlockPos(1, 1, 1);
+        BlockPos rightTankPos = new BlockPos(0, 1, 1);
+        BlockPos washingFactoryPos = new BlockPos(2, 1, 1);
 
         // set up the tanks
         helper.setBlock(rightTankPos, MekanismBlocks.BASIC_FLUID_TANK.getBlock());

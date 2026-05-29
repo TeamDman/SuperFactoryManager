@@ -45,14 +45,14 @@ public class CountExecutionPaths2GameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // place inventories
-        helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.MANAGER.get());
-        BlockPos rightPos = new BlockPos(0, 2, 0);
+        helper.setBlock(new BlockPos(1, 1, 0), SFMBlocks.MANAGER.get());
+        BlockPos rightPos = new BlockPos(0, 1, 0);
         helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
-        BlockPos leftPos = new BlockPos(2, 2, 0);
+        BlockPos leftPos = new BlockPos(2, 1, 0);
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
 
         // place manager
-        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 1, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // set the labels

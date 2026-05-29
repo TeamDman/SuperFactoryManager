@@ -44,7 +44,7 @@ public class MekCubeGameTest extends SFMGameTestDefinition {
                                     """)
                 .addBlock(SFMTestBlockEntitySpec.<TileEntityEnergyCube>of(
                         "a",
-                        new BlockPos(1, 0, 0),
+                        new BlockPos(1, -1, 0),
                         MekanismBlocks.BASIC_ENERGY_CUBE.get(),
                         (tileEntityCube) -> {
                             tileEntityCube.setEnergy(0, SFMMekanismCompat.createForgeEnergy(1000));

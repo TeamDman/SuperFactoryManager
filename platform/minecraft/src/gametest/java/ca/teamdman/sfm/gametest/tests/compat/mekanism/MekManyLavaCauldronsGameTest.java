@@ -51,14 +51,14 @@ public class MekManyLavaCauldronsGameTest extends SFMGameTestDefinition {
         for (int x = 0; x < 25; x++) {
             for (int z = 1; z < 25; z++) {
                 helper.setBlock(new BlockPos(x, 1, z), SFMBlocks.CABLE.get());
-                helper.setBlock(new BlockPos(x, 2, z), Blocks.LAVA_CAULDRON);
-                sourceBlocks.add(new BlockPos(x, 2, z));
+                helper.setBlock(new BlockPos(x, 1, z), Blocks.LAVA_CAULDRON);
+                sourceBlocks.add(new BlockPos(x, 1, z));
             }
         }
 
         // set up tanks
         for (int i = 1; i < 25; i++) {
-            BlockPos tankPos = new BlockPos(i, 2, 0);
+            BlockPos tankPos = new BlockPos(i, 1, 0);
             helper.setBlock(tankPos, MekanismBlocks.BASIC_FLUID_TANK.get());
             destBlocks.add(tankPos);
         }

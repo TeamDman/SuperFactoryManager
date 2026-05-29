@@ -34,7 +34,7 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
 
-        BlockPos chestPos = new BlockPos(0, 2, 0);
+        BlockPos chestPos = new BlockPos(0, 1, 0);
         helper.setBlock(chestPos, SFMBlocks.TEST_BARREL.get());
         var chest = helper.getItemHandler(chestPos);
 

@@ -37,18 +37,18 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
     public void run(SFMGameTestHelper helper) {
         // create a row of cables
         for (int i = 0; i < 10; i++) {
-            helper.setBlock(new BlockPos(i, 2, 0), SFMBlocks.CABLE.get());
+            helper.setBlock(new BlockPos(i, 1, 0), SFMBlocks.CABLE.get());
         }
 
         var net = CableNetworkManager
-                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(0, 2, 0)))
+                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(0, 1, 0)))
                 .get();
         // those cables should all be on the same network
         for (int i = 0; i < 10; i++) {
             assertTrue(CableNetworkManager
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
-                                       helper.absolutePos(new BlockPos(i, 2, 0))
+                                       helper.absolutePos(new BlockPos(i, 1, 0))
                                )
                                .get() == net, "Line of ten should be on same network");
         }
@@ -57,66 +57,66 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         assertTrue(net.getCableCount() == 10, "Network size should be ten");
 
         // break a block in the middle of the cable
-        helper.setBlock(new BlockPos(5, 2, 0), Blocks.AIR);
+        helper.setBlock(new BlockPos(5, 1, 0), Blocks.AIR);
         // the network should split
         net = CableNetworkManager
-                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(0, 2, 0)))
+                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(0, 1, 0)))
                 .get();
         // now we have a network of 5 cables and a network of 4 cables
         for (int i = 0; i < 5; i++) {
             assertTrue(CableNetworkManager
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
-                                       helper.absolutePos(new BlockPos(i, 2, 0))
+                                       helper.absolutePos(new BlockPos(i, 1, 0))
                                )
                                .get() == net, "Row of five should be same network after splitting");
         }
         var old = net;
         net = CableNetworkManager
-                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(6, 2, 0)))
+                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(6, 1, 0)))
                 .get();
         assertTrue(old != net, "Networks should be distinct after splitting");
         for (int i = 6; i < 10; i++) {
             assertTrue(CableNetworkManager
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
-                                       helper.absolutePos(new BlockPos(i, 2, 0))
+                                       helper.absolutePos(new BlockPos(i, 1, 0))
                                )
                                .get() == net, "Remaining row should be same network after splitting");
         }
 
         // repair the cable
-        helper.setBlock(new BlockPos(5, 2, 0), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(5, 1, 0), SFMBlocks.CABLE.get());
         // the network should merge
         net = CableNetworkManager
-                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(0, 2, 0)))
+                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(0, 1, 0)))
                 .get();
         for (int i = 0; i < 10; i++) {
             assertTrue(CableNetworkManager
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
-                                       helper.absolutePos(new BlockPos(i, 2, 0))
+                                       helper.absolutePos(new BlockPos(i, 1, 0))
                                )
                                .get() == net, "Networks should merge to same network after repairing");
         }
 
         // add cables in the corner
-        helper.setBlock(new BlockPos(0, 2, 1), SFMBlocks.CABLE.get());
-        helper.setBlock(new BlockPos(1, 2, 1), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(0, 1, 1), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(1, 1, 1), SFMBlocks.CABLE.get());
         assertTrue(CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
                                    helper.getLevel(),
-                                   helper.absolutePos(new BlockPos(0, 2, 0))
+                                   helper.absolutePos(new BlockPos(0, 1, 0))
                            )
                            .get()
                            .getCableCount() == 12, "Network should grow to twelve after adding two cables");
 
         // punch out the corner, the network should shrink by 1
-        helper.setBlock(new BlockPos(1, 2, 1), Blocks.AIR);
+        helper.setBlock(new BlockPos(1, 1, 1), Blocks.AIR);
         assertTrue(CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
                                    helper.getLevel(),
-                                   helper.absolutePos(new BlockPos(0, 2, 0))
+                                   helper.absolutePos(new BlockPos(0, 1, 0))
                            )
                            .get()
                            .getCableCount() == 11, "Network should shrink to eleven after removing a cable");
@@ -195,7 +195,7 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         assertTrue(CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
                                    helper.getLevel(),
-                                   helper.absolutePos(new BlockPos(7, 2, 7))
+                                   helper.absolutePos(new BlockPos(7, 1, 7))
                            )
                            .get()
                            .getCableCount() == 25, "Network cable count should be 25");
@@ -208,14 +208,14 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         assertTrue(CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
                                    helper.getLevel(),
-                                   helper.absolutePos(new BlockPos(7, 2, 9))
+                                   helper.absolutePos(new BlockPos(7, 1, 9))
                            )
                            .isEmpty(), "Network should not be present where the cable was removed from");
         // make sure new network of 10 is formed
         assertTrue(CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
                                    helper.getLevel(),
-                                   helper.absolutePos(new BlockPos(7, 2, 8))
+                                   helper.absolutePos(new BlockPos(7, 1, 8))
                            )
                            .get()
                            .getCableCount() == 10, "New network should be size ten");
@@ -231,7 +231,7 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         assertTrue(CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
                                    helper.getLevel(),
-                                   helper.absolutePos(new BlockPos(7, 2, 8))
+                                   helper.absolutePos(new BlockPos(7, 1, 8))
                            )
                            .get() != CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(

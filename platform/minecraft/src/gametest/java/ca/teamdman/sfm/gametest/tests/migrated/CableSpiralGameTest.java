@@ -39,7 +39,7 @@ public class CableSpiralGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        BlockPos start = new BlockPos(0, 2, 0);
+        BlockPos start = new BlockPos(0, 1, 0);
         BlockPos end = new BlockPos(12, 2, 12);
 
         var len = 24;
@@ -57,7 +57,7 @@ public class CableSpiralGameTest extends SFMGameTestDefinition {
         }
 
         // fill in the blocks needed for the test
-        helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.MANAGER.get());
+        helper.setBlock(new BlockPos(1, 1, 0), SFMBlocks.MANAGER.get());
         helper.setBlock(start, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(end, SFMBlocks.TEST_BARREL.get());
 
@@ -67,7 +67,7 @@ public class CableSpiralGameTest extends SFMGameTestDefinition {
         Container endChest = helper.getBlockEntity(end, TestBarrelBlockEntity.class);
 
 
-        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 1, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // set the labels

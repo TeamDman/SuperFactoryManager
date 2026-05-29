@@ -35,9 +35,9 @@ public class ComparisonLeGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        var leftPos = new BlockPos(2, 2, 0);
-        var rightPos = new BlockPos(0, 2, 0);
-        var managerPos = new BlockPos(1, 2, 0);
+        var leftPos = new BlockPos(2, 1, 0);
+        var rightPos = new BlockPos(0, 1, 0);
+        var managerPos = new BlockPos(1, 1, 0);
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
