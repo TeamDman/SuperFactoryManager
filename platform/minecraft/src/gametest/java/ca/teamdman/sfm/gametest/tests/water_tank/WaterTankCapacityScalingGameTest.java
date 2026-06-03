@@ -131,11 +131,11 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
             assertTrue(
                     tank != null,
                     "Tank " + i + " should exist (" + context + ")"
-            );
+            , helper.getTick());
             assertTrue(
                     tank.TANK.getCapacity() == expectedCapacity,
                     "Tank " + i + " should have capacity " + expectedCapacity + " but had " + tank.TANK.getCapacity() + " (" + context + ")"
-            );
+            , helper.getTick());
         }
     }
 
@@ -146,7 +146,7 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
             String message
     ) {
         WaterTankBlockEntity tank = helper.getBlockEntity(pos, WaterTankBlockEntity.class);
-        assertTrue(tank != null, "Tank should exist for active check");
-        assertTrue(tank.isActive() == expectedActive, message);
+        assertTrue(tank != null, "Tank should exist for active check", helper.getTick());
+        assertTrue(tank.isActive() == expectedActive, message, helper.getTick());
     }
 }

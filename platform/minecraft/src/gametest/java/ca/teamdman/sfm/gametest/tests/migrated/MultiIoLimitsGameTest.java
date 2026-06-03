@@ -64,11 +64,11 @@ public class MultiIoLimitsGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt slot 0 must move");
-            assertTrue(leftChest.getStackInSlot(1).getCount() == 64, "Dirt slot 1 must not move");
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 63, "Dirt slot 0 must arrive");
-            assertTrue(rightChest.getStackInSlot(1).getCount() == 1, "Dirt slot 1 must arrive");
-            assertTrue(rightChest.getStackInSlot(2).isEmpty(), "Dirt slot 2 must not arrive");
+            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt slot 0 must move", helper.getTick());
+            assertTrue(leftChest.getStackInSlot(1).getCount() == 64, "Dirt slot 1 must not move", helper.getTick());
+            assertTrue(rightChest.getStackInSlot(0).getCount() == 63, "Dirt slot 0 must arrive", helper.getTick());
+            assertTrue(rightChest.getStackInSlot(1).getCount() == 1, "Dirt slot 1 must arrive", helper.getTick());
+            assertTrue(rightChest.getStackInSlot(2).isEmpty(), "Dirt slot 2 must not arrive", helper.getTick());
 
         });
     }

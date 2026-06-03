@@ -63,7 +63,7 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
         for (LevelsToShards mode : modes) {
             int predicted = FallingAnvilHandler.getShardCountForEnchantments(mode, parameters.enchantments());
             int expected = FallingAnvilHandler.getShardCountForEnchantments(mode, parameters.enchantments());
-            assertTrue(predicted == expected, "unexpected shard prediction for " + mode);
+            assertTrue(predicted == expected, "unexpected shard prediction for " + mode, helper.getTick());
             expectedByMode.put(mode, predicted * parameters.bookCount());
         }
 
@@ -92,14 +92,14 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
                     parameters.bookTemplate(),
                     parameters.bookCount(),
                     "chest for " + mode + " did not receive expected book count"
-            );
+            , helper.getTick());
 
             assertCount(
                     handler,
                     SFMItems.EXPERIENCE_SHARD.get().asItem(),
                     expectedShards,
                     "chest for " + mode + " did not receive expected shard count"
-            );
+            , helper.getTick());
         }
 
         helper.succeed();
@@ -157,7 +157,7 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
             ItemStack stack = template.copy();
             stack.setCount(toInsert);
             ItemStack leftover = ItemHandlerHelper.insertItemStacked(handler, stack, false);
-            assertTrue(leftover.isEmpty(), "insufficient space to store items");
+            assertTrue(leftover.isEmpty(), "insufficient space to store items", helper.getTick());
             remaining -= toInsert;
         }*/
     }
@@ -175,7 +175,7 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
             ItemStack stack = template.copy();
             stack.setCount(toInsert);
             ItemStack leftover = ItemHandlerHelper.insertItemStacked(handler, stack, false);
-            assertTrue(leftover.isEmpty(), "insufficient space to store items");
+            assertTrue(leftover.isEmpty(), "insufficient space to store items", -1);
             remaining -= toInsert;
         }
     }

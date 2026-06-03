@@ -65,8 +65,8 @@ public class Forget2GameTest extends SFMGameTestDefinition {
                 .save(manager.getDisk());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).getCount() == 64, "Dirt should not depart");
-            assertTrue(rightChest.getStackInSlot(0).isEmpty(), "Dirt should not arrive");
+            assertTrue(leftChest.getStackInSlot(0).getCount() == 64, "Dirt should not depart", helper.getTick());
+            assertTrue(rightChest.getStackInSlot(0).isEmpty(), "Dirt should not arrive", helper.getTick());
 
         });
     }

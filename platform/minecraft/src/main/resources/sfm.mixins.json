@@ -5,6 +5,7 @@
   "refmap": "sfm.refmap.json",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+    "HopperIgnoreTunnelledManagerMixin",
     "StructureTemplateManagerMixin"
   ],
   "client": [

@@ -62,8 +62,8 @@ public class CasingRulesGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt did not move");
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "Dirt did not move");
+            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt did not move", helper.getTick());
+            assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "Dirt did not move", helper.getTick());
         });
     }
 }

@@ -86,13 +86,13 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
                             Blocks.DIRT,
                             hopperAfterInitialMove,
                             "Initial move should reduce hopper stack by one"
-                    );
+                    , helper.getTick());
                     assertCount(
                             barrel,
                             Blocks.DIRT,
                             barrelAfterInitialMove,
                             "Initial move should place one item in barrel"
-                    );
+                    , helper.getTick());
                 }
         );
         expectedHopper = hopperAfterInitialMove;
@@ -116,13 +116,13 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
                                 Blocks.DIRT,
                                 hopperNoMove,
                                 "Hopper should not move items while manager " + managerIndex + " is missing"
-                        );
+                        , helper.getTick());
                         assertCount(
                                 barrel,
                                 Blocks.DIRT,
                                 barrelNoMove,
                                 "Barrel should not receive items while manager " + managerIndex + " is missing"
-                        );
+                        , helper.getTick());
                     }
             );
 
@@ -141,13 +141,13 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
                                 Blocks.DIRT,
                                 hopperAfterRestore,
                                 "Hopper should resume moving items after restoring manager " + managerIndex
-                        );
+                        , helper.getTick());
                         assertCount(
                                 barrel,
                                 Blocks.DIRT,
                                 barrelAfterRestore,
                                 "Barrel should receive an item after restoring manager " + managerIndex
-                        );
+                        , helper.getTick());
                         if (managerIndex == MANAGER_COUNT - 1) {
                             helper.succeed();
                         }

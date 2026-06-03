@@ -67,17 +67,17 @@ public class UnusedIoWarningOutputLabelNotPresnetInInputGameTest extends SFMGame
 
         // assert expected warnings
         var warnings = DiskItem.getWarnings(Objects.requireNonNull(manager.getDisk()));
-        assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size());
+        assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size(), helper.getTick());
 
         TranslatableContents firstWarning = (TranslatableContents) warnings.getFirst().getContents();
         String expectedKey = GatherWarningsProgramBehaviour.PROGRAM_WARNING_OUTPUT_RESOURCE_TYPE_NOT_FOUND_IN_INPUTS
                 .key()
                 .get();
-        assertTrue(firstWarning.getKey().equals(expectedKey), "expected output without matching input warning");
-        assertTrue(firstWarning.getArgs().length == 3, "expected 3 arguments in warning");
-        assertTrue(firstWarning.getArgs()[0].equals("OUTPUT TO bruh"), "expected arg 0 to be \"OUTPUT TO bruh\"");
-        assertTrue(firstWarning.getArgs()[1].equals("Line 2, Column 4"), "expected arg 1 to be \"Line 2, Column 4\"");
-        assertTrue(firstWarning.getArgs()[2].equals("sfm:item"), "expected arg 2 to be \"sfm:item\"");
+        assertTrue(firstWarning.getKey().equals(expectedKey), "expected output without matching input warning", helper.getTick());
+        assertTrue(firstWarning.getArgs().length == 3, "expected 3 arguments in warning", helper.getTick());
+        assertTrue(firstWarning.getArgs()[0].equals("OUTPUT TO bruh"), "expected arg 0 to be \"OUTPUT TO bruh\"", helper.getTick());
+        assertTrue(firstWarning.getArgs()[1].equals("Line 2, Column 4"), "expected arg 1 to be \"Line 2, Column 4\"", helper.getTick());
+        assertTrue(firstWarning.getArgs()[2].equals("sfm:item"), "expected arg 2 to be \"sfm:item\"", helper.getTick());
         helper.succeed();
     }
 

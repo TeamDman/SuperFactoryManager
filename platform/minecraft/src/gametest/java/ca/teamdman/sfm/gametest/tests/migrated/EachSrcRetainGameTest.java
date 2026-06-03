@@ -67,13 +67,13 @@ public class EachSrcRetainGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // left should have 2 of each ingot
-            assertCount(leftChest, Items.IRON_INGOT, 2, "Iron did not move");
-            assertCount(leftChest, Items.GOLD_INGOT, 2, "Gold did not move");
-            assertCount(leftChest, Items.NETHERITE_INGOT, 2, "Netherite did not move");
+            assertCount(leftChest, Items.IRON_INGOT, 2, "Iron did not move", helper.getTick());
+            assertCount(leftChest, Items.GOLD_INGOT, 2, "Gold did not move", helper.getTick());
+            assertCount(leftChest, Items.NETHERITE_INGOT, 2, "Netherite did not move", helper.getTick());
             // right should have 62 of each ingot
-            assertCount(rightChest, Items.IRON_INGOT, 62, "Iron did not arrive");
-            assertCount(rightChest, Items.GOLD_INGOT, 62, "Gold did not arrive");
-            assertCount(rightChest, Items.NETHERITE_INGOT, 62, "Netherite did not arrive");
+            assertCount(rightChest, Items.IRON_INGOT, 62, "Iron did not arrive", helper.getTick());
+            assertCount(rightChest, Items.GOLD_INGOT, 62, "Gold did not arrive", helper.getTick());
+            assertCount(rightChest, Items.NETHERITE_INGOT, 62, "Netherite did not arrive", helper.getTick());
 
         });
     }

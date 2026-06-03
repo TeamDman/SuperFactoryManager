@@ -69,17 +69,17 @@ public class MoveUsingEachOrGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // left dirt count = 64-5
-            assertCount(leftChest, Items.DIRT, 64 - 5, "dirt should depart");
+            assertCount(leftChest, Items.DIRT, 64 - 5, "dirt should depart", helper.getTick());
             // left stone count = 64-5
-            assertCount(leftChest, Items.STONE, 64 - 5, "stone should depart");
+            assertCount(leftChest, Items.STONE, 64 - 5, "stone should depart", helper.getTick());
             // right dirt count = 5
-            assertCount(rightChest, Items.DIRT, 5, "dirt should arrive");
+            assertCount(rightChest, Items.DIRT, 5, "dirt should arrive", helper.getTick());
             // right stone count = 5
-            assertCount(rightChest, Items.STONE, 5, "stone should arrive");
+            assertCount(rightChest, Items.STONE, 5, "stone should arrive", helper.getTick());
             // left cobblestone count = 0
-            assertCount(leftChest, Items.COBBLESTONE, 0, "no cobblestone should remain");
+            assertCount(leftChest, Items.COBBLESTONE, 0, "no cobblestone should remain", helper.getTick());
             // right cobblestone count = 64*2
-            assertCount(rightChest, Items.COBBLESTONE, 64 * 2, "cobblestone should arrive");
+            assertCount(rightChest, Items.COBBLESTONE, 64 * 2, "cobblestone should arrive", helper.getTick());
         });
     }
 }

@@ -91,21 +91,21 @@ public class MoveManyFullGameTest extends SFMGameTestDefinition {
         assertTrue(
                 manager.getState() == ManagerBlockEntity.State.RUNNING,
                 "Program did not start running " + DiskItem.getErrors(manager.getDisk())
-        );
+        , helper.getTick());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // ensure all the source chests are full
             sourceBlocks.forEach(pos -> {
                 BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
-                    assertTrue(barrel.getItem(i).getCount() == 64, "Items did not stay");
+                    assertTrue(barrel.getItem(i).getCount() == 64, "Items did not stay", helper.getTick());
                 }
             });
             // ensure all the dest chests are full
             destBlocks.forEach(pos -> {
                 BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
-                    assertTrue(barrel.getItem(i).getCount() == 64, "Items did not arrive");
+                    assertTrue(barrel.getItem(i).getCount() == 64, "Items did not arrive", helper.getTick());
                 }
             });
 

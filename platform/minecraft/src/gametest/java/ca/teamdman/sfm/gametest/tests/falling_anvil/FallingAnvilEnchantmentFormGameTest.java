@@ -50,7 +50,7 @@ public class FallingAnvilEnchantmentFormGameTest extends SFMGameTestDefinition {
                         enchantedBookStack,
                         0, 0, 0
                 ));
-        helper.setBlock(new BlockPos(1, 2, 1), Blocks.ANVIL);
+        helper.setBlock(new BlockPos(1, 3, 1), Blocks.ANVIL);
         helper.runAfterDelay(20, () -> {
             List<ItemEntity> found = helper
                     .getLevel()

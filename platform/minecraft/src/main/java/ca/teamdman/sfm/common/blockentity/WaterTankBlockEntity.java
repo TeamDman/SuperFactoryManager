@@ -40,6 +40,16 @@ public class WaterTankBlockEntity extends BlockEntity {
         public int extract(FluidResource resource, int amount, TransactionContext tx) {
             return resource.equals(FluidResource.of(Fluids.WATER)) ? getAmountAsInt(0) : 0;
         }
+
+        @Override
+        public FluidResource getResource(int index) {
+            return FluidResource.of(Fluids.WATER);
+        }
+
+        @Override
+        public long getAmountAsLong(int index) {
+            return this.capacity;
+        }
     }
 
     public final WaterTankFluidHandler TANK = new WaterTankFluidHandler();

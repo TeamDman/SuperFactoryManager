@@ -85,7 +85,7 @@ public class SFMGameTestHelper extends GameTestHelper {
                 absolutePos(localPos),
                 direction
         );
-        SFMGameTestMethodHelpers.assertTrue(found.isPresent(), "No " + capKind.getName() + " found at " + localPos);
+        SFMGameTestMethodHelpers.assertTrue(found.isPresent(), "No " + capKind.getName() + " found at " + localPos, getTick());
         return found.unwrap();
     }
 
@@ -199,7 +199,8 @@ public class SFMGameTestHelper extends GameTestHelper {
                                     elapsed.toMillis() < 80,
                                     "Program took too long to run: took " + NumberFormat
                                             .getInstance(Locale.getDefault())
-                                            .format(elapsed.toNanos()) + "ns"
+                                            .format(elapsed.toNanos()) + "ns",
+                                    getTick()
                             );
                             SFMGameTestHelper.this.succeed();
                         }

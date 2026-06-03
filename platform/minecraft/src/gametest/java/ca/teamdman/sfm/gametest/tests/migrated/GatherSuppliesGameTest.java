@@ -218,7 +218,7 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
                         assertTrue(
                                 stack.getCount() == stack.getMaxStackSize(),
                                 "Item " + item + " is not fully stocked"
-                        );
+                        , helper.getTick());
                     }
                 }
             }

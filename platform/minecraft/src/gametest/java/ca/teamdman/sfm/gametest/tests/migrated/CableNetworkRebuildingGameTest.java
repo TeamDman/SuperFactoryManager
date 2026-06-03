@@ -36,14 +36,14 @@ public class CableNetworkRebuildingGameTest extends SFMGameTestDefinition {
                 helper.getLevel(),
                 helper.absolutePos(new BlockPos(0, 1, 0))
         );
-        assertTrue(network.isPresent(), "Network should be built");
+        assertTrue(network.isPresent(), "Network should be built", helper.getTick());
         CableNetworkManager.unregisterNetworkForTestingPurposes(network.get());
         network = CableNetworkManager.getOrRegisterNetworkFromCablePosition(
                 helper.getLevel(),
                 helper.absolutePos(new BlockPos(0, 1, 0))
         );
-        assertTrue(network.isPresent(), "Network should be rebuilt after clearing");
-        assertTrue(network.get().getCableCount() == 3, "Network rebuilding should discover 3 cables");
+        assertTrue(network.isPresent(), "Network should be rebuilt after clearing", helper.getTick());
+        assertTrue(network.get().getCableCount() == 3, "Network rebuilding should discover 3 cables", helper.getTick());
         helper.succeed();
     }
 }

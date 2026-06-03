@@ -73,14 +73,14 @@ public class DankOutputRetainGameTest extends SFMGameTestDefinition {
             assertTrue(
                     dirtCount == chest.getSlots() * 64 - 300,
                     "Expected chest to be full, sans 300 dirt"
-            );
+            , helper.getTick());
 
             var dankInventory = helper.getItemHandler(dankPos, Direction.DOWN);
             var dankCount = count(dankInventory, Items.DIRT);
             assertTrue(
                     dankCount == 300,
                     "Expected dank to have 300 dirt, but got " + dankCount
-            );
+            , helper.getTick());
         });
     }
 }

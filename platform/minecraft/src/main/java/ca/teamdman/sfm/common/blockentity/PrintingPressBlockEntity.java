@@ -72,11 +72,6 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         }
 
         @Override
-        protected int getCapacity(ItemResource resource) {
-            return 1;
-        }
-
-        @Override
         public boolean isValid(int index, ItemResource resource) {
             if (getLevel() == null) return false;
             RecipeManager recipes = Objects.requireNonNull(getLevel().getServer()).getRecipeManager();
@@ -114,7 +109,7 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         }
     };
 
-    public final CombinedResourceHandler<ItemResource> INVENTORY = new CombinedResourceHandler<>(INK, PAPER, FORM);
+    public final CombinedResourceHandler<ItemResource> INVENTORY = new CombinedResourceHandler<>(PAPER, FORM, INK);
 
     public PrintingPressBlockEntity(
             BlockPos pPos, BlockState pBlockState
@@ -222,7 +217,7 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
     }
 
     public ItemStack getInk() {
-        return INK.getResource(0).toStack();
+        return INK.getResource(0).toStack(INK.getAmountAsInt(0));
     }
 
     public ItemStack getForm() {
@@ -246,8 +241,8 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
                 PAPER.extract(ItemResource.of(paper), paper.getCount(), tx);
 
                 PAPER.insert(ItemResource.of(result), result.getCount(), tx);
-                tx.commit();
                 setChanged();
+                tx.commit();
             }
         });
     }

@@ -78,26 +78,26 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
                 List.of(
                         () -> {
                             // validate first move
-                            assertCount(leftChest, 63, "One should have departed");
-                            assertCount(rightChest, 1, "One should have arrived");
+                            assertCount(leftChest, 63, "One should have departed", helper.getTick());
+                            assertCount(rightChest, 1, "One should have arrived", helper.getTick());
                         },
                         () -> {
                             // validate second move
-                            assertCount(leftChest, 62, "Another should have departed");
-                            assertCount(rightChest, 2, "Another should have arrived");
+                            assertCount(leftChest, 62, "Another should have departed", helper.getTick());
+                            assertCount(rightChest, 2, "Another should have arrived", helper.getTick());
 
                             // break the source block
                             helper.setBlock(leftPos, Blocks.AIR);
                         },
                         () -> {
                             // validate no move after source broken
-                            assertCount(leftChest, 62, "None should depart after source is broken");
-                            assertCount(rightChest, 2, "None should arrive after source is broken");
+                            assertCount(leftChest, 62, "None should depart after source is broken", helper.getTick());
+                            assertCount(rightChest, 2, "None should arrive after source is broken", helper.getTick());
                         },
                         () -> {
                             // validate still no move
-                            assertCount(leftChest, 62, "Still none should depart after source is broken");
-                            assertCount(rightChest, 2, "Still none should arrive after source is broken");
+                            assertCount(leftChest, 62, "Still none should depart after source is broken", helper.getTick());
+                            assertCount(rightChest, 2, "Still none should arrive after source is broken", helper.getTick());
 
                             // restore source block
                             helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
@@ -106,26 +106,26 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
                         },
                         () -> {
                             // validate move after source restored
-                            assertCount(leftChest, 63, "Another departs after source restored");
-                            assertCount(rightChest, 3, "Another arrives after source restored");
+                            assertCount(leftChest, 63, "Another departs after source restored", helper.getTick());
+                            assertCount(rightChest, 3, "Another arrives after source restored", helper.getTick());
                         },
                         () -> {
                             // validate another move
-                            assertCount(leftChest, 62, "Another departs after source restored");
-                            assertCount(rightChest, 4, "Another arrives after source restored");
+                            assertCount(leftChest, 62, "Another departs after source restored", helper.getTick());
+                            assertCount(rightChest, 4, "Another arrives after source restored", helper.getTick());
 
                             // break the destination block
                             helper.setBlock(rightPos, Blocks.AIR);
                         },
                         () -> {
                             // validate no move after dest broken
-                            assertCount(leftChest, 62, "None should depart after dest is broken");
-                            assertCount(rightChest, 4, "None should arrive after dest is broken");
+                            assertCount(leftChest, 62, "None should depart after dest is broken", helper.getTick());
+                            assertCount(rightChest, 4, "None should arrive after dest is broken", helper.getTick());
                         },
                         () -> {
                             // validate still no move
-                            assertCount(leftChest, 62, "Still none should depart after dest is broken");
-                            assertCount(rightChest, 4, "Still none should arrive after dest is broken");
+                            assertCount(leftChest, 62, "Still none should depart after dest is broken", helper.getTick());
+                            assertCount(rightChest, 4, "Still none should arrive after dest is broken", helper.getTick());
 
                             // restore destination block
                             helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
@@ -133,13 +133,13 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
                         },
                         () -> {
                             // validate move after dest restored
-                            assertCount(leftChest, 61, "Another departs after dest restored");
-                            assertCount(rightChest, 1, "Another arrives after dest restored");
+                            assertCount(leftChest, 61, "Another departs after dest restored", helper.getTick());
+                            assertCount(rightChest, 1, "Another arrives after dest restored", helper.getTick());
                         },
                         () -> {
                             // validate another move
-                            assertCount(leftChest, 60, "Another departs after dest restored");
-                            assertCount(rightChest, 2, "Another arrives after dest restored");
+                            assertCount(leftChest, 60, "Another departs after dest restored", helper.getTick());
+                            assertCount(rightChest, 2, "Another arrives after dest restored", helper.getTick());
 
                             // enqueue success
                             helper.succeed();

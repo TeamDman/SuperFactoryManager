@@ -71,8 +71,8 @@ public class MekEnergyFullGameTest extends SFMGameTestDefinition {
             assertTrue(
                     left.getEnergy(0) == (EnergyCubeTier.ULTIMATE.getMaxEnergy() - (1_000)),
                     "Contents did not depart"
-            );
-            assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive");
+            , helper.getTick());
+            assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive", helper.getTick());
         });
     }
 }

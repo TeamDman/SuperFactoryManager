@@ -68,9 +68,9 @@ public class MekBinFullGameTest extends SFMGameTestDefinition {
         left.getBinSlot().setStack(new ItemStack(Items.STICK, BinTier.ULTIMATE.getStorage()));
         right.getBinSlot().setStack(new ItemStack(Items.STICK, BinTier.ULTIMATE.getStorage() - 32));
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(left.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage() - 32, "Contents did not depart");
-            assertTrue(right.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage(), "Contents did not arrive");
-            assertTrue(right.getBinSlot().getStack().getItem() == Items.STICK, "Contents wrong type");
+            assertTrue(left.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage() - 32, "Contents did not depart", helper.getTick());
+            assertTrue(right.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage(), "Contents did not arrive", helper.getTick());
+            assertTrue(right.getBinSlot().getStack().getItem() == Items.STICK, "Contents wrong type", helper.getTick());
 
         });
     }

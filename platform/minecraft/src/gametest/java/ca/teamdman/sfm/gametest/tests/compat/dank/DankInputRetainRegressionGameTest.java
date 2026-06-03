@@ -94,13 +94,13 @@ public class DankInputRetainRegressionGameTest extends SFMGameTestDefinition {
             assertTrue(
                     chestCount == expectedChest,
                     "Expected chest contain %d dirt, got %d".formatted(expectedChest, chestCount)
-            );
+            , helper.getTick());
 
             var dankCount = count(dankInventory, Items.DIRT);
             assertTrue(
                     dankCount == expectedRetain,
                     "Expected dank to retain %d dirt, got %d".formatted(expectedRetain, dankCount)
-            );
+            , helper.getTick());
         });
     }
 }

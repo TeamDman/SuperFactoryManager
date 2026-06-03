@@ -84,7 +84,7 @@ public class CountExecutionPaths3GameTest extends SFMGameTestDefinition {
 
         // ensure no warnings
         var warnings = DiskItem.getWarnings(Objects.requireNonNull(manager.getDisk()));
-        assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size());
+        assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size(), helper.getTick());
 
         // count the execution paths
         GatherWarningsProgramBehaviour simulation = new GatherWarningsProgramBehaviour(new ProblemTracker());
@@ -94,10 +94,10 @@ public class CountExecutionPaths3GameTest extends SFMGameTestDefinition {
                 0,
                 simulation
         ));
-        assertTrue(simulation.getSeenPaths().size() == 3, "expected single execution path");
-        assertTrue(simulation.getSeenPaths().get(0).history().size() == 2, "expected two elements in execution path");
-        assertTrue(simulation.getSeenPaths().get(1).history().size() == 4, "expected two elements in execution path");
-        assertTrue(simulation.getSeenPaths().get(2).history().size() == 3, "expected two elements in execution path");
+        assertTrue(simulation.getSeenPaths().size() == 3, "expected single execution path", helper.getTick());
+        assertTrue(simulation.getSeenPaths().get(0).history().size() == 2, "expected two elements in execution path", helper.getTick());
+        assertTrue(simulation.getSeenPaths().get(1).history().size() == 4, "expected two elements in execution path", helper.getTick());
+        assertTrue(simulation.getSeenPaths().get(2).history().size() == 3, "expected two elements in execution path", helper.getTick());
         helper.succeed();
     }
 }

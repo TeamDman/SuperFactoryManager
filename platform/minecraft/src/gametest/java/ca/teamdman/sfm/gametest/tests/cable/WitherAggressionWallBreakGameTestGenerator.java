@@ -191,11 +191,11 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                     SFMGameTestMethodHelpers.assertTrue(
                             wallBroken,
                             "Scenario '" + scenario.name + "' expected wall to break before success"
-                    );
+                    , helper.getTick());
                     SFMGameTestMethodHelpers.assertTrue(
                             !sheepAlive,
                             "Scenario '" + scenario.name + "' expected sheep to die before success"
-                    );
+                    , helper.getTick());
 
                     wither.discard();
                     sheep.discard();
@@ -211,11 +211,11 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                         SFMGameTestMethodHelpers.assertTrue(
                                 !wallBroken,
                                 "Scenario '" + scenario.name + "' expected wall to remain intact"
-                        );
+                        , helper.getTick());
                         SFMGameTestMethodHelpers.assertTrue(
                                 sheepAlive,
                                 "Scenario '" + scenario.name + "' expected sheep to remain alive"
-                        );
+                        , helper.getTick());
 
                         wither.discard();
                         sheep.discard();

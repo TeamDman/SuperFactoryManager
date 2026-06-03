@@ -102,7 +102,7 @@ public class FluidResourceType extends RegistryBackedResourceType<FluidStack, Fl
 
     @Override
     public boolean matchesCapabilityHandler(Object o) {
-        return o instanceof IFluidHandler;
+        return o instanceof ResourceHandler<?>;
     }
 
     @Override

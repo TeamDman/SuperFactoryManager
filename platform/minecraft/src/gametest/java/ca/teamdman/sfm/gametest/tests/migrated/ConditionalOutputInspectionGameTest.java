@@ -133,8 +133,8 @@ public class ConditionalOutputInspectionGameTest extends SFMGameTestDefinition {
         }
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).getCount() == 32, "Dirt did not depart");
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 32, "Dirt did not arrive");
+            assertTrue(leftChest.getStackInSlot(0).getCount() == 32, "Dirt did not depart", helper.getTick());
+            assertTrue(rightChest.getStackInSlot(0).getCount() == 32, "Dirt did not arrive", helper.getTick());
         });
     }
 }

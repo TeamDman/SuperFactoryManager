@@ -42,6 +42,7 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.item.VanillaContainerWrapper;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
@@ -333,7 +334,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
 
     public State getState() {
 
-        if (getDisk() == null) return State.NO_DISK;
+        if (getDisk().isEmpty()) return State.NO_DISK;
         if (getProgramString() == null) return State.NO_PROGRAM;
         if (program == null) return State.INVALID_PROGRAM;
         return State.RUNNING;
@@ -342,7 +343,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
     public @Nullable String getProgramString() {
 
         var disk = getDisk();
-        if (disk == null) {
+        if (disk.isEmpty()) {
             return null;
         }
 
@@ -362,10 +363,10 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
         return program.referencedLabels();
     }
 
-    public @Nullable ItemStack getDisk() { // TODO: make this not nullable, should be fine to return empty :P
+    public ItemStack getDisk() { // TODO: make this not nullable, should be fine to return empty :P
         var item = getItem(0);
         if (item.getItem() instanceof DiskItem) return item;
-        return null;
+        return ItemStack.EMPTY;
     }
 
     public boolean shouldRebuildWarnings() {
@@ -581,6 +582,12 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
 
         ITEMS.clear();
         ITEMS.addAll(pItems);
+    }
+
+    @Override
+    public void onTransfer(int slot, int amountChange, TransactionContext transaction) {
+        super.onTransfer(slot, amountChange, transaction);
+        rebuildProgramAndUpdateDisk();
     }
 
     @Override

@@ -10,10 +10,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.crafting.CraftingInput;
-import net.minecraft.world.item.crafting.CraftingRecipe;
-import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.*;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -45,7 +42,7 @@ public class RecipesGameTest extends SFMGameTestDefinition {
         for (RecipeHolder<CraftingRecipe> recipeHolder : craftingRecipes) {
             CraftingRecipe recipe = recipeHolder.value();
             // If the resulting item is from SFM
-            if (recipe.isSpecial()) continue;
+            if (recipe.isSpecial() || recipe instanceof ImbueRecipe) continue; // Imbue recipes throw an exception when used with .assemble(CraftingInput.EMPTY)
             Identifier resultItemId = SFMWellKnownRegistries.ITEMS.getId(recipe.assemble(CraftingInput.EMPTY).getItem());
             if (resultItemId.getNamespace().equals(SFM.MOD_ID)) {
                 // Track it as seen

@@ -76,11 +76,11 @@ public class MoveOnPulseGameTest extends SFMGameTestDefinition {
         // load the program
         manager.setProgram(program);
         manager.setLogLevel(Level.TRACE);
-        assertTrue(manager.logger.getLogLevel() == Level.TRACE, "Log level should be trace");
+        assertTrue(manager.logger.getLogLevel() == Level.TRACE, "Log level should be trace", helper.getTick());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(left.getItem(0).isEmpty(), "Iron should depart");
-            assertTrue(right.getItem(0).getCount() == 64, "Iron should arrive");
+            assertTrue(left.getItem(0).isEmpty(), "Iron should depart", helper.getTick());
+            assertTrue(right.getItem(0).getCount() == 64, "Iron should arrive", helper.getTick());
         });
 
         // create the button

@@ -42,7 +42,7 @@ public class EnchantmentCollectionWriteToToolGameTest extends SFMGameTestDefinit
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.SHARPNESS, 3));
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.UNBREAKING, 2));
 
-        assertTrue(!enchantments1.equals(enchantments2), "Enchantment collections must not be equal");
+        assertTrue(!enchantments1.equals(enchantments2), "Enchantment collections must not be equal", helper.getTick());
 
         // Create an item
         ItemStack axeStack1 = new ItemStack(Items.GOLDEN_AXE);
@@ -59,13 +59,13 @@ public class EnchantmentCollectionWriteToToolGameTest extends SFMGameTestDefinit
                         .canonicalize()
                         .equals(enchantments2.canonicalize()),
                 "Enchantment collections must be equal after writing to an item stack (EnchantedLikeATool) and reading from it (EnchantedLikeATool)"
-        );
+        , helper.getTick());
 
         enchantments2.write(axeStack2, SFMEnchantmentCollectionKind.EnchantedLikeATool);
         assertTrue(
                 SFMItemUtils.isSameItemSameTags(axeStack2, axeStack1),
                 "Item stacks must be equal after writing to an item stack (EnchantedLikeATool) and reading from it (EnchantedLikeATool)"
-        );
+        , helper.getTick());
 
 
         helper.succeed();

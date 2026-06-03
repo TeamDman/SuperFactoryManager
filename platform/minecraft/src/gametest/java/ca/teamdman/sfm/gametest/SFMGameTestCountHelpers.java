@@ -104,23 +104,26 @@ public class SFMGameTestCountHelpers {
     public static void assertCount(
             Container inventory,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
-        assertCount(inventory, (ItemLike) null, expectedCount, message);
+        assertCount(inventory, (ItemLike) null, expectedCount, message, tick);
     }
 
     public static void assertCount(
             Container inventory,
             @Nullable ItemLike item,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
         int actualCount = count(inventory, item);
         SFMGameTestMethodHelpers.assertTrue(
                 actualCount == expectedCount,
-                message + ": expected " + expectedCount + " but got " + actualCount
+                message + ": expected " + expectedCount + " but got " + actualCount,
+                tick
         );
     }
 
@@ -128,13 +131,15 @@ public class SFMGameTestCountHelpers {
             Container inventory,
             ItemStack comparisonStack,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
         int actualCount = count(inventory, comparisonStack);
         SFMGameTestMethodHelpers.assertTrue(
                 actualCount == expectedCount,
-                message + ": expected " + expectedCount + " but got " + actualCount
+                message + ": expected " + expectedCount + " but got " + actualCount,
+                tick
         );
     }
 
@@ -142,23 +147,26 @@ public class SFMGameTestCountHelpers {
     public static void assertCount(
             ResourceHandler<ItemResource> inventory,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
-        assertCount(inventory, (ItemLike) null, expectedCount, message);
+        assertCount(inventory, (ItemLike) null, expectedCount, message, tick);
     }
 
     public static void assertCount(
             ResourceHandler<ItemResource> inventory,
             @Nullable ItemLike item,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
         int actualCount = count(inventory, item);
         SFMGameTestMethodHelpers.assertTrue(
                 actualCount == expectedCount,
-                message + ": expected " + expectedCount + " but got " + actualCount
+                message + ": expected " + expectedCount + " but got " + actualCount,
+                tick
         );
     }
 
@@ -166,13 +174,15 @@ public class SFMGameTestCountHelpers {
             ResourceHandler<ItemResource> inventory,
             ItemStack comparisonStack,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
         int actualCount = count(inventory, ItemResource.of(comparisonStack));
         SFMGameTestMethodHelpers.assertTrue(
                 actualCount == expectedCount,
-                message + ": expected " + expectedCount + " but got " + actualCount
+                message + ": expected " + expectedCount + " but got " + actualCount,
+                tick
         );
     }
 
@@ -180,23 +190,26 @@ public class SFMGameTestCountHelpers {
     public static void assertCount(
             IItemHandler inventory,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
-        assertCount(inventory, (ItemLike) null, expectedCount, message);
+        assertCount(inventory, (ItemLike) null, expectedCount, message, tick);
     }
 
     public static void assertCount(
             IItemHandler inventory,
             @Nullable ItemLike item,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
         int actualCount = count(inventory, item);
         SFMGameTestMethodHelpers.assertTrue(
                 actualCount == expectedCount,
-                message + ": expected " + expectedCount + " but got " + actualCount
+                message + ": expected " + expectedCount + " but got " + actualCount,
+                tick
         );
     }
 
@@ -204,29 +217,32 @@ public class SFMGameTestCountHelpers {
             IItemHandler inventory,
             ItemStack comparisonStack,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
         int actualCount = count(inventory, comparisonStack);
         SFMGameTestMethodHelpers.assertTrue(
                 actualCount == expectedCount,
-                message + ": expected " + expectedCount + " but got " + actualCount
+                message + ": expected " + expectedCount + " but got " + actualCount,
+                tick
         );
     }
 
     public static void assertCount(
             AtomicReference<?> ref,
             int expectedCount,
-            String message
+            String message,
+            long tick
     ) {
 
         var inventory = ref.get();
         if (inventory instanceof Container container) {
-            assertCount(container, expectedCount, message);
+            assertCount(container, expectedCount, message, tick);
         } else if (inventory instanceof ResourceHandler<?> resourceHandler) {
-            assertCount((ResourceHandler<ItemResource>) resourceHandler, expectedCount, message);
+            assertCount((ResourceHandler<ItemResource>) resourceHandler, expectedCount, message, tick);
         } else if (inventory instanceof IItemHandler itemHandler) {
-            assertCount(itemHandler, expectedCount, message);
+            assertCount(itemHandler, expectedCount, message, tick);
         } else {
             throw new IllegalArgumentException("Expected either a Container, IItemHandler, or ResourceHandler<ItemResource> but got "
                                                + inventory.getClass());

@@ -67,21 +67,21 @@ public class IndustrialForegoingBlackholeFullGameTest extends SFMGameTestDefinit
                 .save(manager.getDisk());
 
         int fullCount = BlockUtils.getStackAmountByRarity(ModuleCore.SUPREME_RARITY);
-        assertTrue(fullCount > 0, "expected full count to be greater than 0");
-        assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
-        assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 1), false).isEmpty(), "couldn't prep left");
+        assertTrue(fullCount > 0, "expected full count to be greater than 0", helper.getTick());
+        assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left", helper.getTick());
+        assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 1), false).isEmpty(), "couldn't prep left", helper.getTick());
         assertTrue(
                 right.insertItem(0, new ItemStack(Items.COAL, fullCount - 2), false).isEmpty(),
                 "couldn't prep right"
-        );
-        assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 1), false).isEmpty(), "couldn't prep right");
+        , helper.getTick());
+        assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 1), false).isEmpty(), "couldn't prep right", helper.getTick());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // black hole units have voiding=true by default
             // the final insertion operation that causes the thing to fill will cause the items that don't fit to be voided
             // this test should cause a stack of 64 to be used to insert even though only 1 is needed to finish filling
-            assertTrue(left.getStackInSlot(0).getCount() == 1, "Contents did not depart properly");
-            assertTrue(right.getStackInSlot(0).getCount() == fullCount, "Contents did not arrive");
+            assertTrue(left.getStackInSlot(0).getCount() == 1, "Contents did not depart properly", helper.getTick());
+            assertTrue(right.getStackInSlot(0).getCount() == fullCount, "Contents did not arrive", helper.getTick());
         });
     }
 }

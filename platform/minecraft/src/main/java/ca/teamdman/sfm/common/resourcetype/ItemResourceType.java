@@ -90,7 +90,7 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
 
     @Override
     public boolean matchesCapabilityHandler(Object o) {
-        return o instanceof IItemHandler;
+        return o instanceof ResourceHandler<?>;
     }
 
     /**

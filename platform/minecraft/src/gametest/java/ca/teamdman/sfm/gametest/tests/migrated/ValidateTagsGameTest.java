@@ -39,7 +39,7 @@ public class ValidateTagsGameTest extends SFMGameTestDefinition {
                     .anyMatch(tag -> tag.toString().equals(findTag) || !findTag.contains(":") && tag
                             .getPath()
                             .equals(findTag));
-            assertTrue(hasTag, "Item " + item + " should have tag " + findTag);
+            assertTrue(hasTag, "Item " + item + " should have tag " + findTag, helper.getTick());
         };
 
         // Assert mineable tags

@@ -65,10 +65,10 @@ public class EachDestQuantityRetainGameTest extends SFMGameTestDefinition {
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // two of the four ingots should have moved
             // for now we assume that gold will move since it is in the higher slot
-            assertCount(leftChest, Items.IRON_INGOT, 0, "Iron moved");
-            assertCount(leftChest, Items.GOLD_INGOT, 1, "Gold did not move");
-            assertCount(rightChest, Items.IRON_INGOT, 2, "Iron arrive");
-            assertCount(rightChest, Items.GOLD_INGOT, 1, "Gold did not arrive");
+            assertCount(leftChest, Items.IRON_INGOT, 0, "Iron moved", helper.getTick());
+            assertCount(leftChest, Items.GOLD_INGOT, 1, "Gold did not move", helper.getTick());
+            assertCount(rightChest, Items.IRON_INGOT, 2, "Iron arrive", helper.getTick());
+            assertCount(rightChest, Items.GOLD_INGOT, 1, "Gold did not arrive", helper.getTick());
 
         });
     }

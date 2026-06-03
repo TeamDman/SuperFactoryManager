@@ -67,10 +67,10 @@ public class ForgetSlotGameTest extends SFMGameTestDefinition {
                 .save(manager.getDisk());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt should depart");
-            assertTrue(leftChest.getStackInSlot(1).getCount() == 64, "Iron ingots should not depart");
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "Dirt should arrive in size");
-            assertTrue(rightChest.getStackInSlot(0).getItem() == Items.DIRT, "Dirt should arrive in type");
+            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt should depart", helper.getTick());
+            assertTrue(leftChest.getStackInSlot(1).getCount() == 64, "Iron ingots should not depart", helper.getTick());
+            assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "Dirt should arrive in size", helper.getTick());
+            assertTrue(rightChest.getStackInSlot(0).getItem() == Items.DIRT, "Dirt should arrive in type", helper.getTick());
 
         });
     }

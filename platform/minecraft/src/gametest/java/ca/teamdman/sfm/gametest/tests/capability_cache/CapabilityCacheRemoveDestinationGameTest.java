@@ -72,15 +72,15 @@ public class CapabilityCacheRemoveDestinationGameTest extends SFMGameTestDefinit
                 List.of(
                         () -> {
                             // validate one item has moved
-                            assertCount(leftChest, 63, "One should have departed");
-                            assertCount(rightChest, 1, "One should have arrived");
+                            assertCount(leftChest, 63, "One should have departed", helper.getTick());
+                            assertCount(rightChest, 1, "One should have arrived", helper.getTick());
 
                             // break the destination block
                             helper.setBlock(rightPos, Blocks.AIR);
                         },
                         () -> {
                             // validate things aren't moving
-                            assertCount(leftChest, 63, "None should depart after destination is broken");
+                            assertCount(leftChest, 63, "None should depart after destination is broken", helper.getTick());
 
                             // restore destination block
                             helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
@@ -89,8 +89,8 @@ public class CapabilityCacheRemoveDestinationGameTest extends SFMGameTestDefinit
                         },
                         () -> {
                             // validate that items have resumed moving
-                            assertCount(leftChest, 62, "Another departs after dest restored");
-                            assertCount(rightChest, 2, "Another arrives after dest restored");
+                            assertCount(leftChest, 62, "Another departs after dest restored", helper.getTick());
+                            assertCount(rightChest, 2, "Another arrives after dest restored", helper.getTick());
 
                             // enqueue success
                             helper.succeed();

@@ -73,11 +73,11 @@ public class MekEnergyTenGameTest extends SFMGameTestDefinition {
                             .getEnergy(0)
                     == UnitDisplayUtils.EnergyUnit.FORGE_ENERGY.convertFrom(30),
                     "Contents did not depart"
-            );
+            , helper.getTick());
             assertTrue(
                     right.getEnergy(0) == UnitDisplayUtils.EnergyUnit.FORGE_ENERGY.convertFrom(10),
                     "Contents did not arrive"
-            );
+            , helper.getTick());
 
         });
     }

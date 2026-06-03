@@ -73,8 +73,8 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
         assertManagerRunning(manager);
 
         helper.runAfterDelay(60, () -> {
-            assertTrue(source.getStackInSlot(0).isEmpty(), "Expected source barrel to be emptied before bridge placement");
-            assertTrue(target.getStackInSlot(0).getCount() == 64, "Expected target barrel to receive moved items");
+            assertTrue(source.getStackInSlot(0).isEmpty(), "Expected source barrel to be emptied before bridge placement", helper.getTick());
+            assertTrue(target.getStackInSlot(0).getCount() == 64, "Expected target barrel to receive moved items", helper.getTick());
 
             var networkBeforeBridge = CableNetworkManager
                     .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(2, 1, 3)))
@@ -82,7 +82,7 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
             assertTrue(
                     networkBeforeBridge.getLevelCapabilityCache().size() > 0,
                     "Expected capability cache to be populated before bridge placement"
-            );
+            , helper.getTick());
             assertTrue(
                     networkBeforeBridge
                             .getLevelCapabilityCache()
@@ -93,7 +93,7 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
                             )
                     != null,
                     "Expected directional (UP) item capability cache entry before bridge placement"
-            );
+            , helper.getTick());
 
             // This is the critical placement: it touches the same existing network on two sides.
             // On buggy versions this can crash with listener double-registration during network merge.
@@ -108,7 +108,7 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
             assertTrue(
                     mergedNetwork.getCableCount() == 9,
                     "Expected ring + bridge to form a single 9-cable network"
-            );
+            , helper.getTick());
 
             helper.succeed();
         });

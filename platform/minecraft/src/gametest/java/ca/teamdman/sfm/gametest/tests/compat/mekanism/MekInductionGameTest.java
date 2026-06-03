@@ -122,7 +122,7 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
             assertTrue(
                     success,
                     "Expected energy did not match, got " + energy + " expected " + expected
-            );
+            , helper.getTick());
         });
     }
 }

@@ -27,10 +27,10 @@ public class ManagerStateUpdateGameTest extends SFMGameTestDefinition {
         helper.setBlock(new BlockPos(0, 1, 0), SFMBlocks.MANAGER.get());
         ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(0, 1, 0), ManagerBlockEntity.class);
         assert manager != null;
-        assertTrue(manager.getState() == ManagerBlockEntity.State.NO_DISK, "Manager did not start with no disk");
-        assertTrue(manager.getDisk() == null, "Manager did not start with no disk");
+        assertTrue(manager.getState() == ManagerBlockEntity.State.NO_DISK, "Manager did not start with no disk", helper.getTick());
+        assertTrue(manager.getDisk().isEmpty(), "Manager did not start with no disk", helper.getTick());
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
-        assertTrue(manager.getState() == ManagerBlockEntity.State.NO_PROGRAM, "Disk did not start with no program");
+        assertTrue(manager.getState() == ManagerBlockEntity.State.NO_PROGRAM, "Disk did not start with no program", helper.getTick());
         manager.setProgram("""
                                        EVERY 20 TICKS DO
                                            INPUT FROM a

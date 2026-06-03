@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.common.capability.BufferBlockCapabilityProvider;
+import ca.teamdman.sfm.common.capability.CauldronBlockCapabilityProvider;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
@@ -11,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -42,27 +44,6 @@ public class SFMBlockCapabilities {
                 Capabilities.Fluid.BLOCK,
                 SFMBlockEntities.WATER_TANK.get(),
                 (blockEntity, direction) -> blockEntity.TANK
-        );
-
-        event.registerBlock(
-                Capabilities.Item.BLOCK,
-                new IBlockCapabilityProvider<>() {
-                    @Override
-                    public @Nullable ResourceHandler<ItemResource> getCapability(
-                            Level level,
-                            BlockPos pos,
-                            BlockState state,
-                            @Nullable BlockEntity blockEntity,
-                            Direction context
-                    ) {
-
-                        if (blockEntity instanceof BarrelBlockEntity bbe) {
-                            return VanillaContainerWrapper.of(bbe);
-                        }
-                        return null;
-                    }
-                },
-                SFMBlocks.TEST_BARREL.get()
         );
 
         event.registerBlock(

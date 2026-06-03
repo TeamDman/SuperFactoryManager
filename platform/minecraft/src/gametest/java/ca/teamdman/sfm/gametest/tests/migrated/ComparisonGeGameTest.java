@@ -93,17 +93,17 @@ public class ComparisonGeGameTest extends SFMGameTestDefinition {
             int rightStickCount = count(right, Items.STICK);
             int rightDirtCount = count(right, Items.DIRT);
             // the diamonds should have moved from left to right
-            assertTrue(leftDiamondCount == 64 * 2, "left should have 128 diamonds");
-            assertTrue(rightDiamondCount == 0, "right should have no diamonds");
+            assertTrue(leftDiamondCount == 64 * 2, "left should have 128 diamonds", helper.getTick());
+            assertTrue(rightDiamondCount == 0, "right should have no diamonds", helper.getTick());
             // the iron should have moved from left to right
-            assertTrue(leftIronCount == 0, "left should have no iron ingots");
-            assertTrue(rightIronCount == 12, "right should have 12 iron ingots");
+            assertTrue(leftIronCount == 0, "left should have no iron ingots", helper.getTick());
+            assertTrue(rightIronCount == 12, "right should have 12 iron ingots", helper.getTick());
             // the sticks should have moved from right to left
-            assertTrue(rightStickCount == 0, "right should have no sticks");
-            assertTrue(leftStickCount == 77, "left should have 77 sticks");
+            assertTrue(rightStickCount == 0, "right should have no sticks", helper.getTick());
+            assertTrue(leftStickCount == 77, "left should have 77 sticks", helper.getTick());
             // the dirt should have moved from right to left
-            assertTrue(rightDirtCount == 0, "right should have no dirt");
-            assertTrue(leftDirtCount == 1, "left should have 1 dirt");
+            assertTrue(rightDirtCount == 0, "right should have no dirt", helper.getTick());
+            assertTrue(leftDirtCount == 1, "left should have 1 dirt", helper.getTick());
         });
     }
 }

@@ -44,13 +44,13 @@ public class InvWrapperInvestigationGameTest extends SFMGameTestDefinition {
                         + stackSize
                         + " insert param should not be modified after insertion, is now "
                         + insertParam
-                );
+                , helper.getTick());
                 assertTrue(
                         inv.getStackInSlot(0) != insertParam,
                         "stackSize="
                         + stackSize
                         + " the inventory shouldn't take ownership of the reference after insertion"
-                );
+                , helper.getTick());
                 ItemStack extractResult = inv.extractItem(0, stackSize, false);
                 assertTrue(
                         SFMItemUtils.isSameItemSameAmount(insertParam, insertParamCopy),
@@ -58,11 +58,11 @@ public class InvWrapperInvestigationGameTest extends SFMGameTestDefinition {
                         + stackSize
                         + " insert param should not be modified after extraction, is now "
                         + insertParam
-                );
+                , helper.getTick());
                 assertTrue(
                         SFMItemUtils.isSameItemSameAmount(insertParam, extractResult),
                         "stackSize=" + stackSize + " extract result should match insertion param"
-                );
+                , helper.getTick());
             }
         } catch (GameTestAssertException e) {
             helper.succeed();

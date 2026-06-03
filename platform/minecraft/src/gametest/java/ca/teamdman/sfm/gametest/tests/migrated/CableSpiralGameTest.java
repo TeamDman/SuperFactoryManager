@@ -40,7 +40,7 @@ public class CableSpiralGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         BlockPos start = new BlockPos(0, 1, 0);
-        BlockPos end = new BlockPos(12, 2, 12);
+        BlockPos end = new BlockPos(12, 1, 12);
 
         var len = 24;
         var dir = Direction.EAST;
@@ -89,9 +89,9 @@ public class CableSpiralGameTest extends SFMGameTestDefinition {
         assertManagerRunning(manager);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // ensure item arrived
-            assertTrue(endChest.getItem(0).getCount() == 64, "Items did not move");
+            assertTrue(endChest.getItem(0).getCount() == 64, "Items did not move", helper.getTick());
             // ensure item left
-            assertTrue(startChest.getItem(0).isEmpty(), "Items did not leave");
+            assertTrue(startChest.getItem(0).isEmpty(), "Items did not leave", helper.getTick());
 
         });
     }

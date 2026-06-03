@@ -103,9 +103,9 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
                     chest.insertItem(0, held, false);
 
                     // Assert ingredient transformations
-                    assertTrue(printingPress.getInk().getCount() == 9, "Ink was not consumed properly");
-                    assertTrue(printingPress.getPaper().isEmpty(), "Paper was not consumed");
-                    assertTrue(!printingPress.getForm().isEmpty(), "Form should not be consumed");
+                    assertTrue(printingPress.getInk().getCount() == 9, "Ink was not consumed properly", helper.getTick());
+                    assertTrue(printingPress.getPaper().isEmpty(), "Paper was not consumed", helper.getTick());
+                    assertTrue(!printingPress.getForm().isEmpty(), "Form should not be consumed", helper.getTick());
 
                     // Succeed test
                     helper.succeed();

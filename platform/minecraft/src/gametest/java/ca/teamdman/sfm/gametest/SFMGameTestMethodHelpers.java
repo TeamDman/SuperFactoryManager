@@ -26,12 +26,13 @@ public class SFMGameTestMethodHelpers {
 
     public static void assertTrue(
             boolean condition,
-            String message
+            String message,
+            long tick
     ) {
 
         if (!condition) {
             @SuppressWarnings("UnnecessaryLocalVariable")
-            var toThrow = new GameTestAssertException(Component.literal(message), 0);
+            var toThrow = new GameTestAssertException(Component.literal(message), (int) tick);
             // Uncomment below for detailed location information
             // Note that the tests fail every tick using this until they succeed, so you will see logs that make things look like tests are failing if this is uncommented
 //            SFM.LOGGER.error("Assertion failed: {}", message, toThrow);
@@ -58,10 +59,11 @@ public class SFMGameTestMethodHelpers {
 
     public static void assertManagerRunning(ManagerBlockEntity manager) {
 
-        SFMGameTestMethodHelpers.assertTrue(manager.getDisk() != null, "No disk in manager");
+        SFMGameTestMethodHelpers.assertTrue(!manager.getDisk().isEmpty(), "No disk in manager", manager.getTick());
         SFMGameTestMethodHelpers.assertTrue(
                 manager.getState() == ManagerBlockEntity.State.RUNNING,
-                "Program did not start running " + DiskItem.getErrors(manager.getDisk())
+                "Program did not start running " + DiskItem.getErrors(manager.getDisk()),
+                manager.getTick()
         );
     }
 
@@ -73,7 +75,7 @@ public class SFMGameTestMethodHelpers {
         var found = helper
                 .getLevel()
                 .getCapability(Capabilities.Item.BLOCK, worldPos, Direction.DOWN);
-        SFMGameTestMethodHelpers.assertTrue(found != null, "No item handler found at " + worldPos);
+        SFMGameTestMethodHelpers.assertTrue(found != null, "No item handler found at " + worldPos, helper.getTick());
         return found;
     }
 

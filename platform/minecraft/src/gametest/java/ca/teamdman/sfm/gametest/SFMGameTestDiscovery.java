@@ -11,6 +11,9 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.gametest.framework.TestEnvironmentDefinition;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.level.gamerules.GameRuleMap;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -21,6 +24,11 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class SFMGameTestDiscovery {
+    public static final ResourceKey<TestEnvironmentDefinition<?>> SFM_TEST_ENVIRONMENT = ResourceKey.create(
+            Registries.TEST_ENVIRONMENT,
+            Identifier.fromNamespaceAndPath(SFM.MOD_ID, "default")
+    );
+
     public static final DeferredRegister<Consumer<GameTestHelper>> SFM_TEST_FUNCTION = DeferredRegister.create(
             BuiltInRegistries.TEST_FUNCTION,
             SFM.MOD_ID
@@ -48,7 +56,7 @@ public class SFMGameTestDiscovery {
 
     @SFMSubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
-        Holder<TestEnvironmentDefinition<?>> environment = event.registerEnvironment(Registries.TEST_ENVIRONMENT.identifier());
+        Holder<TestEnvironmentDefinition<?>> environment = event.registerEnvironment(SFM_TEST_ENVIRONMENT.identifier());
 
         for (SFMGameTestData testData : TESTS) {
             event.registerTest(

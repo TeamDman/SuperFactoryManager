@@ -57,7 +57,7 @@ public class ForgeEnergyResourceType extends IntegerResourceType<EnergyHandler> 
 
     @Override
     public boolean matchesCapabilityHandler(Object o) {
-        return o instanceof IEnergyStorage;
+        return o instanceof EnergyHandler;
     }
 
     @Override

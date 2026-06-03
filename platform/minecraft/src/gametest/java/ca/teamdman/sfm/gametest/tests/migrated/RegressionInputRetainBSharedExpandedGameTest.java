@@ -84,9 +84,9 @@ public class RegressionInputRetainBSharedExpandedGameTest extends SFMGameTestDef
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // There should be exactly 5 dirt across all b
             // The rest should be in a
-            assertCount(a, Items.DIRT, 64 * 3 * 5 - 5, "dirt should arrive in a");
+            assertCount(a, Items.DIRT, 64 * 3 * 5 - 5, "dirt should arrive in a", helper.getTick());
             int bDirt = count(b1, Items.DIRT) + count(b2, Items.DIRT) + count(b3, Items.DIRT);
-            assertTrue(bDirt == 5, "dirt should depart from b");
+            assertTrue(bDirt == 5, "dirt should depart from b", helper.getTick());
         });
     }
 }

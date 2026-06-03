@@ -46,57 +46,57 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
         BlockState pressState = helper.getBlockState(pos);
         helper.useBlock(pos, player);
         // assert the ink was inserted
-        assertTrue(!printingPress.getInk().isEmpty(), "Ink was not inserted");
-        assertTrue(player.getMainHandItem().isEmpty(), "Ink was not taken from hand");
+        assertTrue(!printingPress.getInk().isEmpty(), "Ink was not inserted", helper.getTick());
+        assertTrue(player.getMainHandItem().isEmpty(), "Ink was not taken from hand", helper.getTick());
         // put book in player hand
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BOOK));
         // right click on printing press
         helper.useBlock(pos, player);
         // assert the book was inserted
-        assertTrue(!printingPress.getPaper().isEmpty(), "Paper was not inserted");
-        assertTrue(player.getMainHandItem().isEmpty(), "Paper was not taken from hand");
+        assertTrue(!printingPress.getPaper().isEmpty(), "Paper was not inserted", helper.getTick());
+        assertTrue(player.getMainHandItem().isEmpty(), "Paper was not taken from hand", helper.getTick());
         // put form in player hand
         var form = FormItem.createFormFromReference(new ItemStack(Items.WRITTEN_BOOK));
         player.setItemInHand(InteractionHand.MAIN_HAND, form.copy());
         // right click on printing press
         helper.useBlock(pos, player);
         // assert the form was inserted
-        assertTrue(!printingPress.getForm().isEmpty(), "Form was not inserted");
-        assertTrue(player.getMainHandItem().isEmpty(), "Form was not taken from hand");
+        assertTrue(!printingPress.getForm().isEmpty(), "Form was not inserted", helper.getTick());
+        assertTrue(player.getMainHandItem().isEmpty(), "Form was not taken from hand", helper.getTick());
 
         // pull out item
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         // right click on printing press
         helper.useBlock(pos, player);
         // assert the paper was extracted
-        assertTrue(printingPress.getPaper().isEmpty(), "Paper was not extracted");
-        assertTrue(!player.getMainHandItem().isEmpty(), "Paper was not given to player");
-        assertTrue(player.getMainHandItem().is(Items.BOOK), "Paper doesn't match");
-        assertTrue(player.getMainHandItem().getCount() == 1, "Paper wrong count");
+        assertTrue(printingPress.getPaper().isEmpty(), "Paper was not extracted", helper.getTick());
+        assertTrue(!player.getMainHandItem().isEmpty(), "Paper was not given to player", helper.getTick());
+        assertTrue(player.getMainHandItem().is(Items.BOOK), "Paper doesn't match", helper.getTick());
+        assertTrue(player.getMainHandItem().getCount() == 1, "Paper wrong count", helper.getTick());
 
         // pull out an item
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         // right click on printing press
         helper.useBlock(pos, player);
         // assert the form was extracted
-        assertTrue(printingPress.getForm().isEmpty(), "Form was not extracted");
-        assertTrue(!player.getMainHandItem().isEmpty(), "Form was not given to player");
-        assertTrue(SFMItemUtils.isSameItemSameTags(player.getMainHandItem(), form), "Form doesn't match");
+        assertTrue(printingPress.getForm().isEmpty(), "Form was not extracted", helper.getTick());
+        assertTrue(!player.getMainHandItem().isEmpty(), "Form was not given to player", helper.getTick());
+        assertTrue(SFMItemUtils.isSameItemSameTags(player.getMainHandItem(), form), "Form doesn't match", helper.getTick());
         // pull out item
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         // right click on printing press
         helper.useBlock(pos, player);
         // assert the ink was extracted
-        assertTrue(printingPress.getInk().isEmpty(), "Ink was not extracted");
-        assertTrue(!player.getMainHandItem().isEmpty(), "Ink was not given to player");
-        assertTrue(player.getMainHandItem().is(Items.BLACK_DYE), "Ink doesn't match");
-        assertTrue(player.getMainHandItem().getCount() == 23, "Ink wrong count");
+        assertTrue(printingPress.getInk().isEmpty(), "Ink was not extracted", helper.getTick());
+        assertTrue(!player.getMainHandItem().isEmpty(), "Ink was not given to player", helper.getTick());
+        assertTrue(player.getMainHandItem().is(Items.BLACK_DYE), "Ink doesn't match", helper.getTick());
+        assertTrue(player.getMainHandItem().getCount() == 23, "Ink wrong count", helper.getTick());
         // try to pull out another item
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         // right click on printing press
         helper.useBlock(pos, player);
         // assert nothing was extracted
-        assertTrue(player.getMainHandItem().isEmpty(), "Nothing should have been extracted");
+        assertTrue(player.getMainHandItem().isEmpty(), "Nothing should have been extracted", helper.getTick());
         helper.succeed();
     }
 }

@@ -38,7 +38,7 @@ public class WirelessRegressionGameTest extends SFMGameTestDefinition {
         helper.setBlock(new BlockPos(1, 1, 0), SFMBlocks.MANAGER.get());
         BlockPos rightPos = new BlockPos(0, 1, 0);
         helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
-        BlockPos leftPos = new BlockPos(2, 1, 0);
+        BlockPos leftPos = new BlockPos(2, 0, 0);
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
 
         var rightChest = helper.getItemHandler(rightPos);
@@ -62,8 +62,8 @@ public class WirelessRegressionGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(!leftChest.getStackInSlot(0).isEmpty(), "Dirt should not move");
-            assertTrue(rightChest.getStackInSlot(0).getCount() != 64, "Dirt should not move");
+            assertTrue(!leftChest.getStackInSlot(0).isEmpty(), "Dirt should not move", helper.getTick());
+            assertTrue(rightChest.getStackInSlot(0).getCount() != 64, "Dirt should not move", helper.getTick());
 
         });
     }

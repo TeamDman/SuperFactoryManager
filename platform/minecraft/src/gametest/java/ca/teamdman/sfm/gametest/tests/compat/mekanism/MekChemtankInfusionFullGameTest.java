@@ -76,11 +76,11 @@ public class MekChemtankInfusionFullGameTest extends SFMGameTestDefinition {
                         ChemicalTankTier.ULTIMATE.getStorage() - 1_000_000L
                 ));
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftTank.getChemicalTank().getStack().amount() == 1_000_000L, "Contents did not depart");
+            assertTrue(leftTank.getChemicalTank().getStack().amount() == 1_000_000L, "Contents did not depart", helper.getTick());
             assertTrue(
                     rightTank.getChemicalTank().getStack().amount() == ChemicalTankTier.ULTIMATE.getStorage(),
                     "Contents did not arrive"
-            );
+            , helper.getTick());
         });
     }
 }

@@ -104,29 +104,29 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         WaterTankBlockEntity eastTank = helper.getBlockEntity(east, WaterTankBlockEntity.class);
         WaterTankBlockEntity westTank = helper.getBlockEntity(west, WaterTankBlockEntity.class);
 
-        assertTrue(centerTank != null, "Center tank should exist");
-        assertTrue(northTank != null, "North tank should exist");
-        assertTrue(southTank != null, "South tank should exist");
-        assertTrue(eastTank != null, "East tank should exist");
-        assertTrue(westTank != null, "West tank should exist");
+        assertTrue(centerTank != null, "Center tank should exist", helper.getTick());
+        assertTrue(northTank != null, "North tank should exist", helper.getTick());
+        assertTrue(southTank != null, "South tank should exist", helper.getTick());
+        assertTrue(eastTank != null, "East tank should exist", helper.getTick());
+        assertTrue(westTank != null, "West tank should exist", helper.getTick());
 
         // Center is inactive (no water touching it directly)
-        assertTrue(!centerTank.isActive(), "Center tank should be inactive (no water touching)");
-        assertTrue(northTank.isActive(), "North tank should be active");
-        assertTrue(southTank.isActive(), "South tank should be active");
-        assertTrue(eastTank.isActive(), "East tank should be active");
-        assertTrue(westTank.isActive(), "West tank should be active");
+        assertTrue(!centerTank.isActive(), "Center tank should be inactive (no water touching)", helper.getTick());
+        assertTrue(northTank.isActive(), "North tank should be active", helper.getTick());
+        assertTrue(southTank.isActive(), "South tank should be active", helper.getTick());
+        assertTrue(eastTank.isActive(), "East tank should be active", helper.getTick());
+        assertTrue(westTank.isActive(), "West tank should be active", helper.getTick());
 
         // 4 active members in the network: capacity = 2^3 * 1000 = 8000
         int expectedCapacity = 8000;
         assertTrue(
                 centerTank.TANK.getCapacity() == expectedCapacity,
                 "Center tank should have capacity " + expectedCapacity + " but had " + centerTank.TANK.getCapacity()
-        );
+        , helper.getTick());
         assertTrue(
                 northTank.TANK.getCapacity() == expectedCapacity,
                 "North tank should have capacity " + expectedCapacity + " but had " + northTank.TANK.getCapacity()
-        );
+        , helper.getTick());
 
         // Remove the center tank - this splits into 4 networks of 1 active tank each
         helper.setBlock(center, Blocks.AIR);
@@ -142,19 +142,19 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         assertTrue(
                 northTank.TANK.getCapacity() == expectedCapacityAfterSplit,
                 "North tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + northTank.TANK.getCapacity()
-        );
+        , helper.getTick());
         assertTrue(
                 southTank.TANK.getCapacity() == expectedCapacityAfterSplit,
                 "South tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + southTank.TANK.getCapacity()
-        );
+        , helper.getTick());
         assertTrue(
                 eastTank.TANK.getCapacity() == expectedCapacityAfterSplit,
                 "East tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + eastTank.TANK.getCapacity()
-        );
+        , helper.getTick());
         assertTrue(
                 westTank.TANK.getCapacity() == expectedCapacityAfterSplit,
                 "West tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + westTank.TANK.getCapacity()
-        );
+        , helper.getTick());
 
         // Restore center tank - networks should merge back
         helper.setBlock(center, SFMBlocks.WATER_TANK.get());
@@ -169,11 +169,11 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
             assertTrue(
                     centerTankNew.TANK.getCapacity() == expectedCapacity,
                     "Center tank should have capacity " + expectedCapacity + " after merge but had " + centerTankNew.TANK.getCapacity()
-            );
+            , helper.getTick());
             assertTrue(
                     northTankNew.TANK.getCapacity() == expectedCapacity,
                     "North tank should have capacity " + expectedCapacity + " after merge but had " + northTankNew.TANK.getCapacity()
-            );
+            , helper.getTick());
 
             helper.succeed();
         });

@@ -219,11 +219,4 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
             }
         }
     }
-
-
-    private long generation = 0L;
-
-    public long getGeneration() { return generation; }
-
-    private void incrementGeneration() { generation++; }
 }
