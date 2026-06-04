@@ -727,15 +727,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             );
         }
 
-        // Find the maximum tick time for normalization
-        Duration peakTickTime = Duration.ZERO;
-        for (int i = 0; i < menu.tickTimes.length; i++) {
-            Duration candidate = menu.tickTimes[i];
-            if (candidate.compareTo(peakTickTime) > 0) {
-                peakTickTime = candidate;
-            }
-        }
-        long yMax = Long.max(peakTickTime.toNanos(), 50_000_000); // Start with max at 50 ms but allow it to grow
 
         // Constants for the plot size and position
         final int plotX = titleLabelX + 45;
@@ -744,34 +735,40 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         final int plotWidth = spaceBetweenPoints * (menu.tickTimes.length - 1);
         final int plotHeight = 30;
 
-
-        // Draw the plot background
-        graphics.outline(plotX, plotY, plotWidth, plotHeight, ARGB.color(128, 0, 0, 0));
-
-        // Draw data points
         int mouseTickTimeIndex = -1;
+
+        // Find the maximum tick time for normalization
+        Duration peakTickTime = Duration.ZERO;
         for (int i = 0; i < menu.tickTimes.length; i++) {
-            long y = menu.tickTimes[i].toNanos();
-            float normalizedTickTime = y == 0 ? 0 : (float) (Math.log10(y) / Math.log10(yMax));
-            int barHeight = (int) (normalizedTickTime * plotHeight);
-            int plotPosY = plotY + plotHeight - barHeight;
+            Duration candidate = menu.tickTimes[i];
+            if (candidate.compareTo(peakTickTime) > 0) {
+                peakTickTime = candidate;
+            }
 
             int plotPosX = plotX + spaceBetweenPoints * i;
 
-            // Color based on tick times (green to red)
-            var c = getMillisecondColour(y / 1_000_000f);
-            int color = c.getColor() != null ? ARGB.opaque(c.getColor()) : -1;
-
-            graphics.fill(plotPosX, plotPosY, plotPosX + spaceBetweenPoints, plotY + plotHeight, color);
-
-            // Check if the mouse is hovering over this data point
             if (mx - leftPos >= plotPosX - spaceBetweenPoints / 2
-                && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
-                && my - topPos >= plotY - 2
-                && my - topPos <= plotY + plotHeight + 2) {
+                    && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
+                    && my - topPos >= plotY - 2
+                    && my - topPos <= plotY + plotHeight + 2) {
                 mouseTickTimeIndex = i;
             }
         }
+        long yMax = Long.max(peakTickTime.toNanos(), 50_000_000); // Start with max at 50 ms but allow it to grow
+
+        // Draw the plot background
+        graphics.outline(plotX, plotY, plotWidth, plotHeight, ARGB.color(128, 0, 0, 0));
+        var tickTimeGraph = new TickTimeGraphRenderState(
+                menu.tickTimes,
+                plotX + leftPos,
+                plotY + topPos,
+                plotWidth,
+                plotHeight,
+                yMax,
+                spaceBetweenPoints,
+                graphics.peekScissorStack()
+        );
+        graphics.submitPictureInPictureRenderState(tickTimeGraph);
 
         // Draw the tick time text
         var format = new DecimalFormat("0.000");
