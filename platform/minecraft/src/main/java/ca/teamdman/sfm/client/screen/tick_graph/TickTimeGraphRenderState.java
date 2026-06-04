@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.screen.tick_graph;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import org.jspecify.annotations.Nullable;

@@ -95,4 +95,4 @@ side="BOTH"
 [[dependencies.${ mod_id }]]
 modId = "mekanism"
 type="optional"
-versionRange = "[10.3.2,)"
+versionRange = "[10.8.0,)"

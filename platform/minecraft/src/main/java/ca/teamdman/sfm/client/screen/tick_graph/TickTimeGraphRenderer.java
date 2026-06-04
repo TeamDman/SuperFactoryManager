@@ -5,16 +5,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.util.ARGB;
-import org.joml.Matrix3f;
-import org.joml.Matrix3fc;
-import org.joml.Matrix4f;
-import org.joml.Matrix4fc;
 import org.jspecify.annotations.NonNull;
-
-import java.time.Duration;
 
 public class TickTimeGraphRenderer extends PictureInPictureRenderer<TickTimeGraphRenderState> {
 
@@ -34,7 +27,6 @@ public class TickTimeGraphRenderer extends PictureInPictureRenderer<TickTimeGrap
 
     @Override
     protected void renderToTexture(TickTimeGraphRenderState state, @NonNull PoseStack pose) {
-        int plotWidth  = state.x1() - state.x0();
         int plotHeight = state.y1() - state.y0();
 
         VertexConsumer consumer = this.bufferSource.getBuffer(RenderTypes.lines());
@@ -51,11 +43,11 @@ public class TickTimeGraphRenderer extends PictureInPictureRenderer<TickTimeGrap
             int color = c.getColor() != null ? ARGB.opaque(c.getColor()) : -1;
 
             if (i != 0) {
-                consumer.addVertex(plotPosX, plotPosY, 0).setColor(color).setNormal(1, 0, 0).setLineWidth(10.0f);
+                consumer.addVertex(plotPosX, plotPosY, 0).setColor(color).setNormal(1, 0, 0).setLineWidth(20.0f);
             }
-            consumer.addVertex(plotPosX, plotPosY, 0).setColor(color).setNormal(1, 0, 0).setLineWidth(10.0f);
+            consumer.addVertex(plotPosX, plotPosY, 0).setColor(color).setNormal(1, 0, 0).setLineWidth(20.0f);
             if (i == state.tickTimes().length - 1) {
-                consumer.addVertex(plotPosX, plotPosY, 0).setColor(color).setNormal(1, 0, 0).setLineWidth(10.0f);
+                consumer.addVertex(plotPosX, plotPosY, 0).setColor(color).setNormal(1, 0, 0).setLineWidth(20.0f);
             }
         }
 

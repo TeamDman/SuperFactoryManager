@@ -756,16 +756,17 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         }
         long yMax = Long.max(peakTickTime.toNanos(), 50_000_000); // Start with max at 50 ms but allow it to grow
 
+        int guiScale = Minecraft.getInstance().getWindow().getGuiScale();
         // Draw the plot background
         graphics.outline(plotX, plotY, plotWidth, plotHeight, ARGB.color(128, 0, 0, 0));
         var tickTimeGraph = new TickTimeGraphRenderState(
                 menu.tickTimes,
                 plotX + leftPos,
                 plotY + topPos,
-                plotWidth,
-                plotHeight,
+                plotWidth * guiScale,
+                plotHeight * guiScale,
                 yMax,
-                spaceBetweenPoints,
+                spaceBetweenPoints * guiScale,
                 graphics.peekScissorStack()
         );
         graphics.submitPictureInPictureRenderState(tickTimeGraph);
