@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.client.screen.tick_graph.TickTimeGraphRenderState;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.common.command.ConfigCommandBehaviourInput;
@@ -21,11 +22,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
@@ -33,6 +36,7 @@ import net.minecraft.util.Util;
 import net.minecraft.world.entity.player.Inventory;
 import org.apache.logging.log4j.Level;
 import org.joml.Matrix3x2fStack;
+import org.jspecify.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.text.DecimalFormat;
@@ -322,7 +326,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         return super.keyPressed(event);
     }
 
-    public ChatFormatting getMillisecondColour(float ms) {
+    public static ChatFormatting getMillisecondColour(float ms) {
 
         if (ms <= 5) {
             return ChatFormatting.GREEN;
@@ -686,7 +690,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                 MANAGER_GUI_STATE.getComponent(state.LOC.getComponent().withStyle(state.COLOR)),
                 titleLabelX,
                 20,
-                0,
+                0xFF000000,
                 false
         );
 
@@ -704,7 +708,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                     Component.literal(menu.logLevel),
                     0,
                     0,
-                    0,
+                    0xFF000000,
                     false
             );
             poseStack.popMatrix();
@@ -718,7 +722,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                     status,
                     inventoryLabelX + font.width(playerInventoryTitle.getString()) + 5,
                     inventoryLabelY,
-                    0,
+                    0xFF000000,
                     false
             );
         }
@@ -758,7 +762,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             var c = getMillisecondColour(y / 1_000_000f);
             int color = c.getColor() != null ? ARGB.opaque(c.getColor()) : -1;
 
-            graphics.fill(plotPosX, plotPosY, plotPosX + 1, plotY + plotHeight, color);
+            graphics.fill(plotPosX, plotPosY, plotPosX + spaceBetweenPoints, plotY + plotHeight, color);
 
             // Check if the mouse is hovering over this data point
             if (mx - leftPos >= plotPosX - spaceBetweenPoints / 2
@@ -785,7 +789,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                         MANAGER_GUI_HOVERED_TICK_TIME_MS.getComponent(milliseconds),
                         titleLabelX,
                         20 + font.lineHeight,
-                        0,
+                        0xFF000000,
                         false
                 );
             }
@@ -805,7 +809,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                     MANAGER_GUI_PEAK_TICK_TIME_MS.getComponent(milliseconds),
                     titleLabelX,
                     20 + font.lineHeight,
-                    0,
+                    0xFF000000,
                     false
             );
         }
