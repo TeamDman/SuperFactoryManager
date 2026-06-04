@@ -230,13 +230,12 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
     }
 
     @Override
-    public void extractWidgetRenderState(
+    protected void extractContents(
             GuiGraphicsExtractor pGuiGraphics,
             int mx,
             int my,
             float partialTicks
     ) {
-
         if (logsScreen.shouldRebuildText()) {
             logsScreen.rebuildText();
         }
@@ -247,5 +246,4 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
         textRenderWidget.setSelected(this.textField.getSelected());
         textRenderWidget.extractRenderState(pGuiGraphics, mx, my, partialTicks);
     }
-
 }

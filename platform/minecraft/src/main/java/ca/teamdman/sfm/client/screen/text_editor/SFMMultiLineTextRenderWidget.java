@@ -113,7 +113,7 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
         // IMPORTANT: do not subtract (scroll % lineHeight) here.
         // The parent has already translated by -scrollAmount.
         // Draw at content-space Y positions as if there was no scrolling:
-        int lineY = area.getY() - (int) (scrollAmount % lineHeight);
+        int lineY = area.getY() + viewLineIndexStart * lineHeight;
         int charCountAccum = getLineStartIndex(viewLineIndexStart);
 
         int cursorX = 0;
