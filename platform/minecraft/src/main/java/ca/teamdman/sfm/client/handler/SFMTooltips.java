@@ -1,9 +1,6 @@
 package ca.teamdman.sfm.client.handler;
 
-import ca.teamdman.sfm.common.block.ToughCableBlock;
-import ca.teamdman.sfm.common.block.TunnelledCableBlock;
-import ca.teamdman.sfm.common.block.TunnelledManagerBlock;
-import ca.teamdman.sfm.common.block.WaterTankBlock;
+import ca.teamdman.sfm.common.block.*;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.item.*;
 import ca.teamdman.sfm.common.util.SFMDist;
@@ -26,7 +23,9 @@ public class SFMTooltips {
             case PrintingPressBlockItem item -> addTooltip(item, event);
             case BlockItem item when item.getBlock() instanceof WaterTankBlock block -> addTooltip(block, event);
             case BlockItem item when item.getBlock() instanceof ToughCableBlock block -> addTooltip(block, event);
+            case BlockItem item when item.getBlock() instanceof ToughFancyCableBlock block -> addTooltip(block, event);
             case BlockItem item when item.getBlock() instanceof TunnelledCableBlock block -> addTooltip(block, event);
+            case BlockItem item when item.getBlock() instanceof TunnelledFancyCableBlock block -> addTooltip(block, event);
             case BlockItem item when item.getBlock() instanceof TunnelledManagerBlock block -> addTooltip(block, event);
 
             default -> {}
