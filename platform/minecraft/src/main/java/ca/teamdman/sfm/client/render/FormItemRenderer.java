@@ -38,19 +38,19 @@ public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.D
             int outlineColor
     ) {
         poseStack.pushPose();
-        poseStack.scale(1.5F, 1.5F, 0.5F);
-        poseStack.translate(0.5, 0.5, 1);
+        poseStack.translate(0.5f, 0.5f, 0.5f);
 
         if (data.showReference && !data.referenceState.isEmpty()) {
+            data.referenceState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
+
             poseStack.pushPose();
 
-            poseStack.translate(0.3f, 0.5f, 0f);
-            poseStack.scale(0.5f, 0.5f, 0.5f);
+            poseStack.translate(-0.2f, 0.2f, 0.05f);
+            poseStack.scale(0.6f, 0.6f, 0f);
 
             data.baseState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
             poseStack.popPose();
 
-            data.referenceState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
         } else {
             data.baseState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
         }
