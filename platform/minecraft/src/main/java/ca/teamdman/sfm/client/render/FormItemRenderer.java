@@ -38,13 +38,13 @@ public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.D
             int outlineColor
     ) {
         poseStack.pushPose();
-//        poseStack.scale(0.5F, 0.5F, 1F);
-//        poseStack.translate(0.5, 0.5, 0);
+        poseStack.scale(1.5F, 1.5F, 0.5F);
+        poseStack.translate(0.5, 0.5, 1);
 
         if (data.showReference && !data.referenceState.isEmpty()) {
             poseStack.pushPose();
 
-            poseStack.translate(0, 0.5f, 0.3f);
+            poseStack.translate(0.3f, 0.5f, 0f);
             poseStack.scale(0.5f, 0.5f, 0.5f);
 
             data.baseState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
