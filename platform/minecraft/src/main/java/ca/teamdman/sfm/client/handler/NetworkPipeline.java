@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.handler;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
+import ca.teamdman.sfm.common.util.SFMDist;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
@@ -15,7 +16,7 @@ public class NetworkPipeline {
             .withDepthStencilState(Optional.empty())
             .build();
 
-    @SFMSubscribeEvent
+    @SFMSubscribeEvent(SFMDist.CLIENT)
     public static void registerPipelines(RegisterRenderPipelinesEvent event) {
         event.registerPipeline(NETWORK_PIPELINE);
     }
