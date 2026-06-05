@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.datagen;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.render.FormItemRenderer;
 import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.block.FancyCableBlock;
 import ca.teamdman.sfm.common.block.WaterTankBlock;
@@ -8,6 +9,7 @@ import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.SFMDirections;
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import ca.teamdman.sfm.datagen.version_plumbing.MCVersionAgnosticBlockStatesAndModelsDataGen;
 import com.mojang.math.Quadrant;
 import net.minecraft.client.data.models.BlockModelGenerators;
@@ -19,8 +21,10 @@ import net.minecraft.client.data.models.model.*;
 import net.minecraft.client.renderer.block.dispatch.Variant;
 import net.minecraft.client.renderer.block.dispatch.VariantMutator;
 import net.minecraft.client.renderer.block.model.BlockStateModelWrapper;
+import net.minecraft.client.renderer.item.ClientItem;
 import net.minecraft.client.renderer.item.CuboidItemModelWrapper;
 import net.minecraft.client.renderer.item.ItemModel;
+import net.minecraft.client.renderer.item.SpecialModelWrapper;
 import net.minecraft.core.Direction;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.Identifier;
@@ -32,6 +36,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStatesAndModelsDataGen {
@@ -334,7 +339,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         basicItem(itemModels, SFMItems.EXPERIENCE_SHARD);
         basicItem(itemModels, SFMItems.NETWORK_TOOL);
 
-        basicItem(itemModels, SFMItems.FORM); // Apparently do something special with this?
+        registerForm(itemModels);
 
         withParent(itemModels, SFMItems.MANAGER, SFMBlocks.MANAGER);
         withParent(itemModels, SFMItems.TUNNELLED_MANAGER, SFMBlocks.TUNNELLED_MANAGER);
@@ -355,6 +360,13 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     ) {
         itemModels.generateFlatItem(item.get(), ModelTemplates.FLAT_ITEM);
     }
+    private void basicItem(
+            ItemModelGenerators itemModels,
+            SFMRegistryObject<Item, ? extends Item> item,
+            String suffix
+    ) {
+        itemModels.createFlatItemModel(item.get(), suffix, ModelTemplates.FLAT_ITEM);
+    }
 
     private void withParent(
             ItemModelGenerators itemModels,
@@ -374,6 +386,24 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         itemModels.itemModelOutput.accept(
                 item.get(),
                 ItemModelUtils.plainModel(modelLocation)
+        );
+    }
+
+    private void registerForm(ItemModelGenerators itemModels) {
+        Item form = SFMItems.FORM.get();
+        Identifier formModelId = ModelTemplates.FLAT_ITEM.create(
+                form,
+                new TextureMapping().put(TextureSlot.LAYER0, TextureMapping.getItemTexture(form)),
+                itemModels.modelOutput
+        );
+
+        itemModels.itemModelOutput.accept(
+                form,
+                new SpecialModelWrapper.Unbaked(
+                        SFMResourceLocation.fromSFMPath("item/form"),
+                        Optional.empty(),
+                        new FormItemRenderer.Unbaked()
+                )
         );
     }
 }

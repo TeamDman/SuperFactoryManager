@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.render;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.item.FormItem;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
@@ -19,7 +20,7 @@ import java.util.function.Consumer;
 
 public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.Data> {
 
-    private static final Identifier BASE_MODEL_ID = SFMResourceLocation.fromSFMPath("item/form_base");
+    public static final Identifier BASE_MODEL_ID = SFMResourceLocation.fromSFMPath("form_base");
     private final ItemModelResolver itemModelResolver;
 
     public FormItemRenderer(ItemModelResolver itemModelResolver) {
@@ -37,9 +38,12 @@ public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.D
             int outlineColor
     ) {
         poseStack.pushPose();
+//        poseStack.scale(0.5F, 0.5F, 1F);
+//        poseStack.translate(0.5, 0.5, 0);
 
         if (data.showReference && !data.referenceState.isEmpty()) {
             poseStack.pushPose();
+
             poseStack.translate(0, 0.5f, 0.3f);
             poseStack.scale(0.5f, 0.5f, 0.5f);
 
@@ -56,23 +60,26 @@ public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.D
 
     @Override
     public void getExtents(Consumer<Vector3fc> output) {
-        // Base model extents could be retrieved here if we had a persistent baseState
+
     }
 
     @Override
     public Data extractArgument(ItemStack stack) {
-        if (!(stack.getItem() instanceof FormItem)) return null;
-
         ItemStack reference = FormItem.getBorrowedReferenceFromForm(stack);
         ItemStackRenderState referenceState = new ItemStackRenderState();
         if (!reference.isEmpty()) {
-            this.itemModelResolver.updateForTopItem(referenceState, reference, ItemDisplayContext.NONE, null, null, 0);
+            this.itemModelResolver.updateForTopItem(
+                    referenceState, reference, ItemDisplayContext.GUI, null, null, 0
+            );
         }
 
         ItemStackRenderState baseState = new ItemStackRenderState();
+        // Use a plain stack with the correct ITEM_MODEL pointing to your base model
         ItemStack baseStack = stack.copy();
         baseStack.set(DataComponents.ITEM_MODEL, BASE_MODEL_ID);
-        this.itemModelResolver.updateForTopItem(baseState, baseStack, ItemDisplayContext.NONE, null, null, 0);
+        this.itemModelResolver.updateForTopItem(
+                baseState, baseStack, ItemDisplayContext.GUI, null, null, 0
+        );
 
         return new Data(
                 referenceState,
