@@ -167,6 +167,8 @@ runs {
 
     client {
         modSource project.sourceSets.gametest
+        // IntelliJ should use the gametest module because this run includes gametest-only sources.
+        idea.primarySourceSet.set(project.sourceSets.gametest)
         // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
         systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
     }
@@ -176,6 +178,8 @@ runs {
         runType 'client'
 
         modSource project.sourceSets.gametest
+        // IntelliJ should use the gametest module because this run includes gametest-only sources.
+        idea.primarySourceSet.set(project.sourceSets.gametest)
         // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
         systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
 
@@ -189,6 +193,8 @@ runs {
 
     server {
         modSource project.sourceSets.gametest
+        // IntelliJ should use the gametest module because this run includes gametest-only sources.
+        idea.primarySourceSet.set(project.sourceSets.gametest)
         systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         argument '--nogui'
     }
@@ -198,11 +204,15 @@ runs {
     // The gametest system is also enabled by default for other run configs under the /test command.
     gameTestServer {
         modSource project.sourceSets.gametest
+        // IntelliJ should use the gametest module because this run includes gametest-only sources.
+        idea.primarySourceSet.set(project.sourceSets.gametest)
         systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
     }
 
     clientData {
         modSource project.sourceSets.datagen
+        // IntelliJ uses this source set to choose the module/classpath for the generated run config.
+        idea.primarySourceSet.set(project.sourceSets.datagen)
         // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
         // workingDirectory project.file('run-data')
 
