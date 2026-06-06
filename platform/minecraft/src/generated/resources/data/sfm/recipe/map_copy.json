@@ -1,0 +1,6 @@
+{
+  "type": "sfm:printing_press",
+  "form": "minecraft:filled_map",
+  "ink": "#c:dyes/black",
+  "paper": "minecraft:map"
+}

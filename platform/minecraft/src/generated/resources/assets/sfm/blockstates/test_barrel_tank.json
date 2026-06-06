@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "sfm:block/test_barrel_tank"
+    }
+  }
+}

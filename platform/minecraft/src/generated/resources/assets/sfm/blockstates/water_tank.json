@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "in_water=false": {
+      "model": "sfm:block/water_tank_inactive"
+    },
+    "in_water=true": {
+      "model": "sfm:block/water_tank_active"
+    }
+  }
+}
