@@ -122,6 +122,11 @@ struct LogReduction {
     build_failed: bool,
 }
 
+type GameTestFailure = (String, Option<String>);
+type BranchGameTestFailures = (String, Vec<GameTestFailure>);
+
+const STACKTRACE_LINE_BUDGET: usize = 12;
+
 impl GradleTask {
     fn from_input(input: &str) -> Self {
         match input.to_ascii_lowercase().as_str() {
@@ -247,7 +252,7 @@ fn extract_failed_gametest_reasons(output: &str) -> Vec<(String, String)> {
     reasons
 }
 
-fn print_gametest_failures(failures: &[(String, Vec<(String, Option<String>)>)]) {
+fn print_gametest_failures(failures: &[BranchGameTestFailures]) {
     if failures.is_empty() {
         return;
     }
@@ -294,9 +299,10 @@ fn format_duration(duration: Duration) -> String {
 
 fn format_log_summary(label: &str, output: &str, log_path: &Path) -> String {
     let lines = output.lines().count();
-    let bytes = fs::metadata(log_path)
-        .map(|meta| meta.len())
-        .unwrap_or_else(|_| u64::try_from(output.len()).unwrap_or(u64::MAX));
+    let bytes = fs::metadata(log_path).map_or_else(
+        |_| u64::try_from(output.len()).unwrap_or(u64::MAX),
+        |meta| meta.len(),
+    );
 
     format!("  {label}: {lines} lines ({})", format_size(bytes, DECIMAL))
 }
@@ -683,13 +689,16 @@ fn is_relevant_stack_line(line: &str) -> bool {
         || trimmed.contains("GameTest")
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "log reduction is a single state-machine pass"
+)]
 fn reduce_log_content(content: &str, stream: LogStreamKind) -> LogReduction {
     let mut state = LogModelState::Startup;
     let mut resume_state = LogModelState::Startup;
     let mut stack_lines_kept = 0_usize;
     let mut stack_lines_omitted = 0_usize;
     let mut suppress_exception_stack = false;
-    const STACKTRACE_LINE_BUDGET: usize = 12;
 
     let mut reduction = LogReduction {
         failed_tests: extract_failed_gametest_names(content),
@@ -715,7 +724,7 @@ fn reduce_log_content(content: &str, stream: LogStreamKind) -> LogReduction {
             {
                 if stack_lines_omitted > 0 {
                     reduction.important_lines.push(
-                        format!("... omitted {} stacktrace lines", stack_lines_omitted)
+                        format!("... omitted {stack_lines_omitted} stacktrace lines")
                             .dimmed()
                             .to_string(),
                     );
@@ -799,7 +808,7 @@ fn reduce_log_content(content: &str, stream: LogStreamKind) -> LogReduction {
 
     if stack_lines_omitted > 0 {
         reduction.important_lines.push(
-            format!("... omitted {} stacktrace lines", stack_lines_omitted)
+            format!("... omitted {stack_lines_omitted} stacktrace lines")
                 .dimmed()
                 .to_string(),
         );
@@ -890,19 +899,16 @@ fn find_gametest_source(test_name: &str) -> Option<PathBuf> {
     let mut exact_phrase_match = None;
 
     while let Some(dir) = pending.pop() {
-        let entries = match fs::read_dir(&dir) {
-            Ok(entries) => entries,
-            Err(_) => continue,
+        let Ok(entries) = fs::read_dir(&dir) else {
+            continue;
         };
         for entry in entries {
-            let entry = match entry {
-                Ok(entry) => entry,
-                Err(_) => continue,
+            let Ok(entry) = entry else {
+                continue;
             };
             let path = entry.path();
-            let file_type = match entry.file_type() {
-                Ok(file_type) => file_type,
-                Err(_) => continue,
+            let Ok(file_type) = entry.file_type() else {
+                continue;
             };
 
             if file_type.is_dir() {
@@ -920,9 +926,8 @@ fn find_gametest_source(test_name: &str) -> Option<PathBuf> {
                 return Some(relativize_to_repo_root(path, &repo_root));
             }
 
-            let content = match fs::read_to_string(&path) {
-                Ok(content) => content,
-                Err(_) => continue,
+            let Ok(content) = fs::read_to_string(&path) else {
+                continue;
             };
             let normalized_content = normalize_spaces(&content);
 
@@ -1147,12 +1152,12 @@ fn print_tldr_for_run(run_dir: &Path) -> eyre::Result<()> {
         printed_any = true;
         println!();
         println!("{}", pair.relative_task_dir.display().to_string().bold());
-        println!("  {}", headline);
+        println!("  {headline}");
 
         let important_lines = mem::take(&mut combined.important_lines);
         if !important_lines.is_empty() {
             let preview = truncate_tldr_summary(&important_lines.join("\n"));
-            println!("{}", preview);
+            println!("{preview}");
         }
     }
 
@@ -1561,7 +1566,7 @@ impl GradleRunCommand {
         );
 
         let mut failures: Vec<String> = Vec::new();
-        let mut gametest_failures: Vec<(String, Vec<(String, Option<String>)>)> = Vec::new();
+        let mut gametest_failures: Vec<BranchGameTestFailures> = Vec::new();
 
         for (branch_idx, wt) in worktrees.iter().enumerate() {
             let minecraft_dir = wt.path.join("platform").join("minecraft");
@@ -1676,28 +1681,28 @@ impl GradleRunCommand {
                             remaining.state = TaskState::Skipped;
                         }
 
-                        if matches!(current_task, GradleTask::RunGameTestServer) {
-                            if let Some(ref output) = err.output {
-                                let combined = format!(
-                                    "{}
+                        if matches!(current_task, GradleTask::RunGameTestServer)
+                            && let Some(ref output) = err.output
+                        {
+                            let combined = format!(
+                                "{}
 {}",
-                                    output.stdout, output.stderr
-                                );
-                                let names = extract_failed_gametest_names(&combined);
-                                let reasons = extract_failed_gametest_reasons(&combined);
-                                if !names.is_empty() {
-                                    let tests = names
-                                        .into_iter()
-                                        .map(|name| {
-                                            let reason =
-                                                reasons.iter().find_map(|(test_name, reason)| {
-                                                    (test_name == &name).then_some(reason.clone())
-                                                });
-                                            (name, reason)
-                                        })
-                                        .collect();
-                                    gametest_failures.push((wt.branch.clone(), tests));
-                                }
+                                output.stdout, output.stderr
+                            );
+                            let names = extract_failed_gametest_names(&combined);
+                            let reasons = extract_failed_gametest_reasons(&combined);
+                            if !names.is_empty() {
+                                let tests = names
+                                    .into_iter()
+                                    .map(|name| {
+                                        let reason =
+                                            reasons.iter().find_map(|(test_name, reason)| {
+                                                (test_name == &name).then_some(reason.clone())
+                                            });
+                                        (name, reason)
+                                    })
+                                    .collect();
+                                gametest_failures.push((wt.branch.clone(), tests));
                             }
                         }
 

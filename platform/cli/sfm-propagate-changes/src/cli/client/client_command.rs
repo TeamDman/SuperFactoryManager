@@ -66,10 +66,12 @@ impl ClientCommand {
     /// This function will return an error if the operation fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            ClientCommand::Add { glob } => super::client_add_command::invoke(glob),
-            ClientCommand::Remove { glob } => super::client_remove_command::invoke(glob),
+            ClientCommand::Add { glob } => super::client_add_command::invoke(&glob),
+            ClientCommand::Remove { glob } => super::client_remove_command::invoke(&glob),
             ClientCommand::List { glob } => super::client_list_command::invoke(glob),
-            ClientCommand::SetLauncher { path } => super::client_set_launcher_command::invoke(path),
+            ClientCommand::SetLauncher { path } => {
+                super::client_set_launcher_command::invoke(&path)
+            }
             ClientCommand::GetLauncher => super::client_get_launcher_command::invoke(),
             ClientCommand::Launch => super::client_launch_command::invoke(),
         }
@@ -164,7 +166,7 @@ pub(super) fn list_clients(glob_pattern: &str) -> eyre::Result<()> {
     Ok(())
 }
 
-pub(super) fn set_launcher(path: &PathBuf) -> eyre::Result<()> {
+pub(super) fn set_launcher(path: &Path) -> eyre::Result<()> {
     let canonical = dunce::canonicalize(path)
         .wrap_err_with(|| format!("Failed to canonicalize launcher path: {}", path.display()))?;
 
