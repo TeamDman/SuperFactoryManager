@@ -119,6 +119,11 @@ static void extendConfigurations(Configuration base, Configuration... configurat
     }
 }
 
+def sfmGameTestSelection = (
+        System.getProperty('sfm.gametestSelection')
+                ?: (project.findProperty('sfmGameTestSelection') as String)
+)?.trim()
+
 
 
 // Default run configurations.
@@ -182,6 +187,9 @@ runs {
     gameTestServer {
         modSource project.sourceSets.gametest
         systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        if (sfmGameTestSelection) {
+            systemProperty 'sfm.gametestSelection', sfmGameTestSelection
+        }
     }
 
     data {
