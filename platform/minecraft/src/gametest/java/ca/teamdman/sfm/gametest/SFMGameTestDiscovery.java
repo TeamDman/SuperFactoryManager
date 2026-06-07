@@ -10,13 +10,16 @@ import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class SFMGameTestDiscovery {
+    private static final String GAME_TEST_SELECTION_PROPERTY = "sfm.gametestSelection";
+
     @SFMSubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
         // Discover our tests
-        Collection<SFMGameTestDefinition> tests = SFMGameTestDiscovery.gatherTests().toList();
+        Collection<SFMGameTestDefinition> tests = filterSelectedTests(SFMGameTestDiscovery.gatherTests().toList());
 
         // Discover the test registry
         Collection<TestFunction> allTestFunctions = GameTestRegistry.getAllTestFunctions();
@@ -62,4 +65,79 @@ public class SFMGameTestDiscovery {
         return generatedTests.stream();
     }
 
+    private static Collection<SFMGameTestDefinition> filterSelectedTests(Collection<SFMGameTestDefinition> tests) {
+
+        String rawSelection = System.getProperty(GAME_TEST_SELECTION_PROPERTY, "").trim();
+        if (rawSelection.isEmpty()) {
+            return tests;
+        }
+
+        List<String> selectors = Stream.of(rawSelection.split(","))
+                .map(String::trim)
+                .filter(selector -> !selector.isEmpty())
+                .map(SFMGameTestDiscovery::normalizeSelector)
+                .toList();
+
+        List<SFMGameTestDefinition> matchedTests = tests.stream()
+                .filter(test -> matchesAnySelector(test, selectors))
+                .toList();
+
+        SFM.LOGGER.info(
+                "Applying SFM game test selection '{}': matched {} of {} tests",
+                rawSelection,
+                matchedTests.size(),
+                tests.size()
+        );
+
+        matchedTests.forEach(test -> SFM.LOGGER.info(
+                "Selected SFM game test: {}",
+                qualifyTestName(test)
+        ));
+
+        if (matchedTests.isEmpty()) {
+            throw new IllegalStateException(
+                    "SFM game test selection '" + rawSelection
+                    + "' matched zero tests. Try an exact test name or a wildcard like 'sfm:wither_aggro_*'."
+            );
+        }
+
+        return matchedTests;
+    }
+
+    private static boolean matchesAnySelector(
+            SFMGameTestDefinition test,
+            List<String> selectors
+    ) {
+
+        String qualifiedTestName = qualifyTestName(test);
+        return selectors.stream().anyMatch(selector -> wildcardMatches(qualifiedTestName, selector));
+    }
+
+    private static String qualifyTestName(SFMGameTestDefinition test) {
+
+        return SFM.MOD_ID + ":" + test.testName();
+    }
+
+    private static String normalizeSelector(String selector) {
+
+        return selector.contains(":") ? selector : SFM.MOD_ID + ":" + selector;
+    }
+
+    private static boolean wildcardMatches(
+            String candidate,
+            String selector
+    ) {
+
+        StringBuilder regex = new StringBuilder("^");
+        for (int i = 0; i < selector.length(); i++) {
+            char ch = selector.charAt(i);
+            switch (ch) {
+                case '*' -> regex.append(".*");
+                case '?' -> regex.append('.');
+                default -> regex.append(Pattern.quote(String.valueOf(ch)));
+            }
+        }
+        regex.append('$');
+        return candidate.matches(regex.toString());
+    }
 }
