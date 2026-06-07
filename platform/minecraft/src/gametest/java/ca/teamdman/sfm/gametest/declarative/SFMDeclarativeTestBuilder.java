@@ -78,7 +78,7 @@ public class SFMDeclarativeTestBuilder {
         BlockPos blockPos = managerPos.offset(def.posRelativeToManager());
         helper.setBlock(blockPos, def.block());
         if (def.blockEntityConfigurer() != null) {
-            BlockEntity be = helper.getBlockEntity(blockPos);
+            BlockEntity be = helper.getBlockEntity(blockPos, BlockEntity.class);
             //noinspection unchecked
             Objects.requireNonNull(def.blockEntityConfigurer()).accept((T) be);
         }
@@ -86,14 +86,11 @@ public class SFMDeclarativeTestBuilder {
 
     private ManagerBlockEntity setupManager(BlockPos managerPos) {
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        if (helper.getBlockEntity(managerPos) instanceof ManagerBlockEntity manager) {
-            manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
-            manager.setProgram(spec.program());
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
+        manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
+        manager.setProgram(spec.program());
 //            manager.setLogLevel(Level.DEBUG);
-            return manager;
-        } else {
-            throw new GameTestAssertException("Manager block entity not found!");
-        }
+        return manager;
     }
 
     private void runPreConditions(ManagerBlockEntity manager) {
