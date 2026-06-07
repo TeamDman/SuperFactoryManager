@@ -4,6 +4,7 @@ use crate::state::State;
 use crate::state::Status;
 use crate::worktree::Worktree;
 use crate::worktree::get_worktrees;
+use crate::worktree::parse_version;
 use crate::worktree::sort_worktrees_by_version;
 use dunce::canonicalize;
 use eyre::Context;
@@ -668,6 +669,20 @@ fn run_idle_state(
     // Get all worktrees
     let mut worktrees = get_worktrees(repo_root)?;
     debug!(?worktrees, "Found worktrees");
+
+    let skipped_non_version_worktrees: Vec<String> = worktrees
+        .iter()
+        .filter(|wt| parse_version(&wt.branch).is_none())
+        .map(|wt| wt.branch.clone())
+        .collect();
+    worktrees.retain(|wt| parse_version(&wt.branch).is_some());
+
+    if !skipped_non_version_worktrees.is_empty() {
+        info!(
+            "Skipping non-version worktrees during propagation: {:?}",
+            skipped_non_version_worktrees
+        );
+    }
 
     if worktrees.len() < 2 {
         info!(

@@ -1,3 +1,3 @@
-pub(super) fn invoke(glob: String) -> eyre::Result<()> {
-    super::server_command::add_servers(&glob)
+pub(super) fn invoke(glob: &str) -> eyre::Result<()> {
+    super::server_command::add_servers(glob)
 }
