@@ -24,6 +24,8 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class SFMGameTestDiscovery {
+    private static final String GAME_TEST_SELECTION_PROPERTY = "sfm.gametestSelection";
+
     public static final ResourceKey<TestEnvironmentDefinition<?>> SFM_TEST_ENVIRONMENT = ResourceKey.create(
             Registries.TEST_ENVIRONMENT,
             Identifier.fromNamespaceAndPath(SFM.MOD_ID, "default")
@@ -37,7 +39,7 @@ public class SFMGameTestDiscovery {
     private static final List<SFMGameTestData> TESTS;
     static {
         // Discover our tests
-        Collection<SFMGameTestDefinition> tests = SFMGameTestDiscovery.gatherTests().toList();
+        Collection<SFMGameTestDefinition> tests = filterSelectedTests(SFMGameTestDiscovery.gatherTests().toList());
 
         TESTS = tests.stream().map(test -> {
             ResourceKey<Consumer<GameTestHelper>> key = ResourceKey.create(
@@ -97,6 +99,93 @@ public class SFMGameTestDiscovery {
                 });
 
         return generatedTests.stream();
+    }
+
+    private static Collection<SFMGameTestDefinition> filterSelectedTests(Collection<SFMGameTestDefinition> tests) {
+
+        String rawSelection = System.getProperty(GAME_TEST_SELECTION_PROPERTY, "").trim();
+        if (rawSelection.isEmpty()) {
+            return tests;
+        }
+
+        List<String> selectors = Stream.of(rawSelection.split(","))
+                .map(String::trim)
+                .filter(selector -> !selector.isEmpty())
+                .map(SFMGameTestDiscovery::normalizeSelector)
+                .toList();
+
+        List<SFMGameTestDefinition> matchedTests = tests.stream()
+                .filter(test -> matchesAnySelector(test, selectors))
+                .toList();
+
+        SFM.LOGGER.info(
+                "Applying SFM game test selection '{}': matched {} of {} tests",
+                rawSelection,
+                matchedTests.size(),
+                tests.size()
+        );
+
+        matchedTests.forEach(test -> SFM.LOGGER.info(
+                "Selected SFM game test: {}",
+                qualifyTestName(test)
+        ));
+
+        if (matchedTests.isEmpty()) {
+            throw new IllegalStateException(
+                    "SFM game test selection '" + rawSelection
+                    + "' matched zero tests. Try an exact test name or a wildcard like 'sfm:wither_aggro_*'."
+            );
+        }
+
+        return matchedTests;
+    }
+
+    private static boolean matchesAnySelector(
+            SFMGameTestDefinition test,
+            List<String> selectors
+    ) {
+
+        String qualifiedTestName = qualifyTestName(test);
+        return selectors.stream().anyMatch(selector -> wildcardMatches(qualifiedTestName, selector));
+    }
+
+    private static String qualifyTestName(SFMGameTestDefinition test) {
+        return SFM.MOD_ID + ":" + test.testName();
+    }
+
+    private static String normalizeSelector(String selector) {
+        return selector.contains(":") ? selector : SFM.MOD_ID + ":" + selector;
+    }
+
+    private static boolean wildcardMatches(
+            String text,
+            String wildcardPattern
+    ) {
+
+        int textLength = text.length();
+        int patternLength = wildcardPattern.length();
+        boolean[][] matches = new boolean[textLength + 1][patternLength + 1];
+        matches[0][0] = true;
+
+        for (int patternIndex = 1; patternIndex <= patternLength; patternIndex++) {
+            if (wildcardPattern.charAt(patternIndex - 1) == '*') {
+                matches[0][patternIndex] = matches[0][patternIndex - 1];
+            }
+        }
+
+        for (int textIndex = 1; textIndex <= textLength; textIndex++) {
+            for (int patternIndex = 1; patternIndex <= patternLength; patternIndex++) {
+                char patternCharacter = wildcardPattern.charAt(patternIndex - 1);
+                if (patternCharacter == '*') {
+                    matches[textIndex][patternIndex] = matches[textIndex][patternIndex - 1]
+                                                       || matches[textIndex - 1][patternIndex];
+                } else if (patternCharacter == '?' || patternCharacter == text.charAt(textIndex - 1)) {
+                    matches[textIndex][patternIndex] = matches[textIndex - 1][patternIndex - 1];
+                }
+            }
+        }
+
+        return matches[textLength][patternLength];
     }
 
     private record SFMGameTestData(
