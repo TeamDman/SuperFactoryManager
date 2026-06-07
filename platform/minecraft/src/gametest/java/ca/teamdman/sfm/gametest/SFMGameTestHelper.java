@@ -159,10 +159,6 @@ public class SFMGameTestHelper extends GameTestHelper {
     ) {
 
         SignBlockEntity signBlockEntity = getBlockEntity(signPos, SignBlockEntity.class);
-/*        if (!(blockEntity instanceof SignBlockEntity signBlockEntity)) {
-            fail("Block entity was not an instance of SignBlockEntity, got " + blockEntity, signPos);
-            return;
-        }*/
         if (text.length > 4) {
             fail("Text array was too long, max length is 4, got " + text.length, signPos);
             return;

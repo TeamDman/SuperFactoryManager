@@ -72,8 +72,9 @@ public abstract class SFMTestBuilder {
                         ),
                         String.format("Expected %s in chest %s slot %d, but found %s",
                                       expectedStack, name, i, actualStack
-                        )
-                , helper.getTick());
+                        ),
+                        helper.getTick()
+                );
             }
         });
         return this;
@@ -113,8 +114,9 @@ public abstract class SFMTestBuilder {
                         }
                         assertTrue(
                                 source != null,
-                                "Chaos failed to find an item to move?? What is this test doing that there's no items??"
-                        , helper.getTick());
+                                "Chaos failed to find an item to move?? What is this test doing that there's no items??",
+                                helper.getTick()
+                        );
 
                         // find a chest to move it to
                         Map.Entry<String, IItemHandler> dest = chests.remove(0);
@@ -135,8 +137,9 @@ public abstract class SFMTestBuilder {
                                 "Chaos failed to take an item from "
                                 + source.getKey()
                                 + " slot "
-                                + takenSlot
-                        , helper.getTick());
+                                + takenSlot,
+                                helper.getTick()
+                        );
 
                         // insert the item
                         for (int tryDestSlot = 0; tryDestSlot < dest.getValue().getSlots(); tryDestSlot++) {
@@ -158,8 +161,9 @@ public abstract class SFMTestBuilder {
                                 + " slot "
                                 + takenSlot
                                 + " to put in"
-                                + dest.getKey()
-                        , helper.getTick());
+                                + dest.getKey(),
+                                helper.getTick()
+                        );
 
                         // assert that the assertions fail
                         boolean tripped = false;
@@ -180,8 +184,9 @@ public abstract class SFMTestBuilder {
                                 + " slot "
                                 + takenSlot
                                 + " to "
-                                + dest.getKey()
-                        , helper.getTick());
+                                + dest.getKey(),
+                                helper.getTick()
+                        );
 
                         // take out the moved item
                         ItemStack undo = dest.getValue().extractItem(destSlot, taken.getCount(), false);
@@ -194,8 +199,9 @@ public abstract class SFMTestBuilder {
                                 + " slot "
                                 + destSlot
                                 + " instead of "
-                                + taken
-                        , helper.getTick());
+                                + taken,
+                                helper.getTick()
+                        );
 
                         // put the item back
                         ItemStack remainder = source.getValue().insertItem(takenSlot, taken, false);

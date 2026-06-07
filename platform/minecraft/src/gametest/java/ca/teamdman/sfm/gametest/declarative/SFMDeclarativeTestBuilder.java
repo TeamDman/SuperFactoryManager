@@ -11,8 +11,6 @@ import ca.teamdman.sfml.ast.ASTBuilder;
 import ca.teamdman.sfml.ast.BoolExpr;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.core.BlockPos;
-import net.minecraft.gametest.framework.GameTestAssertException;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -20,8 +18,6 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-
-
 
 public class SFMDeclarativeTestBuilder {
     private final SFMGameTestHelper helper;
@@ -86,14 +82,11 @@ public class SFMDeclarativeTestBuilder {
 
     private ManagerBlockEntity setupManager(BlockPos managerPos) {
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        if (helper.getBlockEntity(managerPos, ManagerBlockEntity.class) instanceof ManagerBlockEntity manager) {
-            manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
-            manager.setProgram(spec.program());
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
+        manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
+        manager.setProgram(spec.program());
 //            manager.setLogLevel(Level.DEBUG);
-            return manager;
-        } else {
-            throw new GameTestAssertException(Component.literal("Manager block entity not found!"), 0);
-        }
+        return manager;
     }
 
     private void runPreConditions(ManagerBlockEntity manager) {
