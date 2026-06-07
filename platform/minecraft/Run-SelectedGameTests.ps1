@@ -6,8 +6,6 @@ param(
     [string[]]$AdditionalGradleArgs = @()
 )
 
-. "$PSScriptRoot\Set-JavaHome.ps1"
-
 $gradleArgs = @(
     "--no-daemon",
     "runGameTestServer",
