@@ -40,7 +40,7 @@ impl GitCommand {
             GitCommand::Merge { command } => command.invoke(),
             GitCommand::Push { command } => command.invoke(),
             GitCommand::Status { command } => command.unwrap_or_default().invoke(),
-            GitCommand::Tag { command } => command.invoke(),
+            GitCommand::Tag { .. } => super::git_tag_command::TagCommand::invoke(),
         }
     }
 }

@@ -1,5 +1,5 @@
 pub(super) fn invoke(
-    mc: Option<String>,
+    mc: Option<&str>,
     project: Option<u64>,
     api_key: Option<String>,
     token: Option<String>,

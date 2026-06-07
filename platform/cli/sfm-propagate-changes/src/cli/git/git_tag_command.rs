@@ -15,7 +15,7 @@ impl TagCommand {
     /// # Errors
     ///
     /// Returns an error if any worktree is dirty or tagging fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke() -> eyre::Result<()> {
         let worktrees = get_sorted_worktrees()?;
 
         if worktrees.is_empty() {

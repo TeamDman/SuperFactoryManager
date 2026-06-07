@@ -28,5 +28,5 @@ fn add_git_revision() {
         .and_then(|v| String::from_utf8(v).ok())
         .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string());
 
-    println!("cargo:rustc-env=GIT_REVISION={rev}",);
+    println!("cargo:rustc-env=GIT_REVISION={rev}");
 }
