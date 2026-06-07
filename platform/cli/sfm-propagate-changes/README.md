@@ -23,6 +23,7 @@ Propagation:
 - `sfm-propagate-changes.exe` is ran
     - `$SFM_PROPAGATE_CHANGES_HOME\repo_root.txt` is read to identify the repo root
     - The set of branches (repo root + worktrees) is determined
+    - Non-version worktrees such as feature branches are skipped; only semver-like Minecraft version branches participate in propagation
     - The branches are sorted by semver
     - If there are any uncommitted changes in any of the branches, bail
     - The branches are merged via sliding window size 2, oldest to newest

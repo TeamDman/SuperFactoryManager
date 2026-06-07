@@ -1,3 +1,5 @@
+#![allow(clippy::doc_markdown)]
+
 //! https://docs.modrinth.com/api/operations/getprojectversions/
 //! https://docs.modrinth.com/api/operations/createversion/
 //! https://modrinth.com/mod/super-factory-manager/versions Project ID - aecUorJQ
@@ -19,6 +21,7 @@ use sha1::Digest;
 use sha1::Sha1;
 use std::collections::BTreeSet;
 use std::ffi::OsStr;
+use std::fmt::Write as _;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -144,8 +147,12 @@ impl ModrinthReleaseCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            Self::Check { mc, project } => super::modrinth_check_command::invoke(mc, project),
-            Self::Validate { mc, project } => super::modrinth_validate_command::invoke(mc, project),
+            Self::Check { mc, project } => {
+                super::modrinth_check_command::invoke(mc.as_deref(), project)
+            }
+            Self::Validate { mc, project } => {
+                super::modrinth_validate_command::invoke(mc.as_deref(), project)
+            }
             Self::Now {
                 project,
                 token,
@@ -161,11 +168,11 @@ impl ModrinthReleaseCommand {
     }
 }
 
-pub(super) fn invoke_check(mc: Option<String>, project: Option<String>) -> eyre::Result<()> {
+pub(super) fn invoke_check(mc: Option<&str>, project: Option<String>) -> eyre::Result<()> {
     check_release_metadata(mc, project)
 }
 
-pub(super) fn invoke_validate(mc: Option<String>, project: Option<String>) -> eyre::Result<()> {
+pub(super) fn invoke_validate(mc: Option<&str>, project: Option<String>) -> eyre::Result<()> {
     validate_release_hashes(mc, project)
 }
 
@@ -339,12 +346,16 @@ fn build_http_client(token: Option<&str>) -> eyre::Result<Client> {
 
     Client::builder()
         .default_headers(headers)
-        .timeout(Duration::from_secs(120))
+        .timeout(Duration::from_mins(2))
         .build()
         .wrap_err("Failed to build Modrinth HTTP client")
 }
 
-fn check_release_metadata(mc: Option<String>, project: Option<String>) -> eyre::Result<()> {
+#[expect(
+    clippy::too_many_lines,
+    reason = "metadata diff is easiest to read linearly"
+)]
+fn check_release_metadata(mc: Option<&str>, project: Option<String>) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
 
     let repo_root = get_repo_root()?;
@@ -353,7 +364,7 @@ fn check_release_metadata(mc: Option<String>, project: Option<String>) -> eyre::
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let jars = filter_release_jars_by_mc(all_jars, mc.as_deref())?;
+    let jars = filter_release_jars_by_mc(all_jars, mc)?;
 
     let plans = build_release_plans(&jars, &mod_version)?;
     let client = build_http_client(None)?;
@@ -468,7 +479,7 @@ fn check_release_metadata(mc: Option<String>, project: Option<String>) -> eyre::
     Ok(())
 }
 
-fn validate_release_hashes(mc: Option<String>, project: Option<String>) -> eyre::Result<()> {
+fn validate_release_hashes(mc: Option<&str>, project: Option<String>) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
 
     let repo_root = get_repo_root()?;
@@ -477,7 +488,7 @@ fn validate_release_hashes(mc: Option<String>, project: Option<String>) -> eyre:
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let jars = filter_release_jars_by_mc(all_jars, mc.as_deref())?;
+    let jars = filter_release_jars_by_mc(all_jars, mc)?;
 
     let client = build_http_client(None)?;
     let existing_versions = fetch_project_versions(&client, &project_id)?;
@@ -572,6 +583,10 @@ fn validate_release_hashes(mc: Option<String>, project: Option<String>) -> eyre:
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "release flow is intentionally linear"
+)]
 fn release_now(
     project: Option<String>,
     token: Option<String>,
@@ -1006,7 +1021,11 @@ fn sha1_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha1::new();
     hasher.update(bytes);
     let digest = hasher.finalize();
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut output = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        let _ = write!(output, "{byte:02x}");
+    }
+    output
 }
 
 fn to_normalized_set(values: &[String]) -> BTreeSet<String> {
