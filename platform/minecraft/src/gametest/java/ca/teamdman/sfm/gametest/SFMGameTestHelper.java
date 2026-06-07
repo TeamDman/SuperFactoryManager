@@ -159,16 +159,27 @@ public class SFMGameTestHelper extends GameTestHelper {
         );
     }
 
+    @MCVersionDependentBehaviour
+    public <T extends BlockEntity> T getBlockEntity(
+            BlockPos pos,
+            Class<T> type
+    ) {
+
+        BlockEntity blockEntity = getBlockEntity(pos);
+        if (type.isInstance(blockEntity)) {
+            return type.cast(blockEntity);
+        }
+
+        fail("Block entity was not an instance of " + type.getSimpleName() + ", got " + blockEntity, pos);
+        throw new IllegalStateException("Unreachable");
+    }
+
     public void setSignText(
             BlockPos signPos,
             Component... text
     ) {
 
-        BlockEntity blockEntity = getBlockEntity(signPos);
-        if (!(blockEntity instanceof SignBlockEntity signBlockEntity)) {
-            fail("Block entity was not an instance of SignBlockEntity, got " + blockEntity, signPos);
-            return;
-        }
+        SignBlockEntity signBlockEntity = getBlockEntity(signPos, SignBlockEntity.class);
         if (text.length > 4) {
             fail("Text array was too long, max length is 4, got " + text.length, signPos);
             return;
@@ -266,7 +277,7 @@ public class SFMGameTestHelper extends GameTestHelper {
             BlockState mimicBlockState
     ) {
 
-        if (!(getBlockEntity(localBlockPos) instanceof IFacadeBlockEntity facadeBlockEntity)) {
+        if (!(getBlockEntity(localBlockPos, BlockEntity.class) instanceof IFacadeBlockEntity facadeBlockEntity)) {
             fail("Block entity was not a facade", localBlockPos);
             return;
         }

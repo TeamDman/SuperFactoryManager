@@ -231,7 +231,7 @@ public abstract class SFMTestBuilder {
     protected void setupManager(BlockPos offset) {
         BlockPos managerPos = new BlockPos(1, 2, 0).offset(offset);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         assertTrue(manager != null, "Manager not found");
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         assertTrue(program != null, "Program not set");
