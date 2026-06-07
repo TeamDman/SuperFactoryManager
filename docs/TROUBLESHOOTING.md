@@ -98,7 +98,23 @@ Running `gradlew runGameTestServer` seems to fix the problem, where after doing 
 
 Yikes.
 
-## Problem 3 - Weird results when using BlockPos
+## Problem 3 - Selected game tests did not match anything
+
+`1.19.2` now supports SFM-side filtering during game test registration.
+
+Example commands:
+
+- `.\Run-SelectedGameTests.ps1 wither_aggro_*`
+- `.\gradlew.bat --no-daemon runGameTestServer -PsfmGameTestSelection=sfm:wither_aggro_*`
+
+Notes:
+
+- Unqualified selectors are treated as `sfm:<pattern>`
+- `*` is a wildcard and `?` matches one character
+- If the selector matches zero SFM tests, startup now fails fast with a clear error instead of silently running the wrong set
+- On `1.19.2`, Forge GameTest shutdown may still make Gradle report a failure after the tests already finished; check `runGameTest/logs/latest.log` for the authoritative result
+
+## Problem 4 - Weird results when using BlockPos
 
 BlockPos has a subclass, BlockPos.Mutable, which if you are receiving as a parameter and later are storing it, you may have had your stored object mutated without you expecting it to have changed.
 

@@ -81,6 +81,11 @@ static void extendConfigurations(Configuration base, Configuration... configurat
     }
 }
 
+def sfmGameTestSelection = (
+        System.getProperty('sfm.gametestSelection')
+                ?: (project.findProperty('sfmGameTestSelection') as String)
+)?.trim()
+
 
 version = mod_version
 group = mod_group_id
@@ -195,6 +200,10 @@ minecraft {
 
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+
+            if (sfmGameTestSelection) {
+                property 'sfm.gametestSelection', sfmGameTestSelection
+            }
 
             jvmArgs '-XX:+IgnoreUnrecognizedVMOptions', '-XX:+AllowRedefinitionToAddDeleteMethods'
 
