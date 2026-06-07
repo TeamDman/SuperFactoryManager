@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.client.render;
 
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.common.item.FormItem;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;

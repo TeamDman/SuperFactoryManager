@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.datagen;
 
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.datagen.version_plumbing.MCVersionAgnosticLootTablesDataGen;
@@ -10,7 +9,6 @@ import net.minecraft.data.loot.LootTableProvider;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 import java.util.HashSet;
 import java.util.List;

@@ -1,12 +1,9 @@
 package ca.teamdman.sfm.common.capability;
 
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.IntTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.common.util.ValueIOSerializable;
-import org.jetbrains.annotations.UnknownNullability;
 
 /// A container for storing "redstone units", which CAN exceed 15.
 public class RedstoneSignalStorage implements IRedstoneSignalStorage, ValueIOSerializable {

@@ -2,7 +2,6 @@ package ca.teamdman.sfm.common.resourcetype;
 
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import net.minecraft.resources.Identifier;
-import net.minecraft.resources.Identifier;
 
 import java.util.stream.Stream;
 

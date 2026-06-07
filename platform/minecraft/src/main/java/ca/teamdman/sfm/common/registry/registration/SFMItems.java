@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.client.handler.SFMTooltips;
 import ca.teamdman.sfm.common.item.*;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
