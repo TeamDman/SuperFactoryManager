@@ -113,9 +113,9 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::cache::CacheCommand,
     },
-    /// CurseForge release and file related commands
+    /// `CurseForge` release and file related commands
     Curseforge {
-        /// CurseForge subcommand
+        /// `CurseForge` subcommand
         #[facet(args::subcommand)]
         command: super::curseforge::CurseforgeCommand,
     },
