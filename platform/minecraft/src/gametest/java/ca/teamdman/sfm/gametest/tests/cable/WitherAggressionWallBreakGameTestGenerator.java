@@ -6,7 +6,6 @@ import ca.teamdman.sfm.gametest.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
@@ -141,7 +140,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                 return;
             }
 
-            Sheep sheep = helper.spawn(EntityType.SHEEP, getSheepSpawnLocalVec(), EntitySpawnReason.MOB_SUMMONED);
+            Sheep sheep = helper.spawn(EntityType.SHEEP, getSheepSpawnLocalVec());
             sheep.setNoAi(true);
 
             if (helper.getLevel().getDifficulty().equals(Difficulty.PEACEFUL)) {
@@ -149,7 +148,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                 return;
             }
 
-            WitherBoss wither = helper.spawn(EntityType.WITHER, getWitherSpawnLocalVec(), null);
+            WitherBoss wither = helper.spawn(EntityType.WITHER, getWitherSpawnLocalVec());
             wither.setTarget(sheep);
             wither.setAlternativeTarget(0, sheep.getId());
             wither.setAlternativeTarget(1, sheep.getId());
@@ -158,7 +157,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
 
             if (scenario.expectedWallBreak) {
                 helper.failIfEver(() -> {
-                    boolean sheepAlive = isSheepAlive(sheep);
+                    boolean sheepAlive = sheep.isAlive();
                     boolean wallBroken = isWallBroken(helper, localWallPositions);
                     if (!sheepAlive && !wallBroken) {
                         helper.fail(
@@ -169,7 +168,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                 });
 
                 helper.succeedWhen(() -> {
-                    boolean sheepAlive = isSheepAlive(sheep);
+                    boolean sheepAlive = sheep.isAlive();
                     boolean wallBroken = isWallBroken(helper, localWallPositions);
                     SFMGameTestMethodHelpers.assertTrue(
                             wallBroken,
@@ -188,7 +187,7 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
 
             helper.runAfterDelay(
                     220, () -> {
-                        boolean sheepAlive = isSheepAlive(sheep);
+                        boolean sheepAlive = sheep.isAlive();
                         boolean wallBroken = isWallBroken(helper, localWallPositions);
 
                         SFMGameTestMethodHelpers.assertTrue(
@@ -226,10 +225,6 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                 }
             }
             return false;
-        }
-
-        private boolean isSheepAlive(Sheep sheep) {
-            return sheep.isAlive();
         }
 
         private List<BlockPos> buildArenaAndPlaceWall(SFMGameTestHelper helper) {

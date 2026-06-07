@@ -24,12 +24,16 @@ import net.minecraft.gametest.framework.GameTestAssertPosException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -71,6 +75,26 @@ public class SFMGameTestHelper extends GameTestHelper {
     @MCVersionDependentBehaviour
     public @NotNull SFMEnchantmentKey createEnchantmentKey(ResourceKey<Enchantment> enchantment) {
         return new SFMEnchantmentKey(getLevel().registryAccess(), enchantment);
+    }
+
+    @Override
+    @MCVersionDependentBehaviour
+    public <E extends Entity> E spawn(
+            EntityType<E> type,
+            BlockPos pos
+    ) {
+
+        return spawn(type, Vec3.atBottomCenterOf(pos));
+    }
+
+    @Override
+    @MCVersionDependentBehaviour
+    public <E extends Entity> E spawn(
+            EntityType<E> type,
+            Vec3 pos
+    ) {
+
+        return super.spawn(type, pos, EntitySpawnReason.MOB_SUMMONED);
     }
 
     public <CAP> CAP discoverCapability(
