@@ -22,6 +22,11 @@ import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestAssertPosException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
@@ -29,6 +34,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -66,6 +72,51 @@ public class SFMGameTestHelper extends GameTestHelper {
     @MCVersionDependentBehaviour
     public @NotNull SFMEnchantmentKey createEnchantmentKey(Enchantment enchantment) {
         return new SFMEnchantmentKey(enchantment);
+    }
+
+    @Override
+    @MCVersionDependentBehaviour
+    public <E extends Entity> E spawn(
+            EntityType<E> type,
+            BlockPos pos
+    ) {
+
+        return spawn(type, Vec3.atBottomCenterOf(pos));
+    }
+
+    @Override
+    @MCVersionDependentBehaviour
+    public <E extends Entity> E spawn(
+            EntityType<E> type,
+            Vec3 pos
+    ) {
+
+        ServerLevel level = getLevel();
+        E entity = type.create(level);
+        if (entity == null) {
+            fail("Failed to spawn entity " + type);
+            throw new IllegalStateException("Unreachable");
+        }
+
+        if (entity instanceof Mob mob) {
+            mob.setPersistenceRequired();
+        }
+
+        Vec3 absoluteVec = absoluteVec(pos);
+        entity.moveTo(absoluteVec.x, absoluteVec.y, absoluteVec.z, entity.getYRot(), entity.getXRot());
+
+        if (entity instanceof Mob mob) {
+            mob.finalizeSpawn(
+                    level,
+                    level.getCurrentDifficultyAt(entity.blockPosition()),
+                    MobSpawnType.MOB_SUMMONED,
+                    null,
+                    null
+            );
+        }
+
+        level.addFreshEntity(entity);
+        return entity;
     }
 
     public <CAP> CAP discoverCapability(
