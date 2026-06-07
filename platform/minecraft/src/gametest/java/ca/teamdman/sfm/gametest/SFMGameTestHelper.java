@@ -28,6 +28,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
@@ -108,17 +109,25 @@ public class SFMGameTestHelper extends GameTestHelper {
         entity.moveTo(absoluteVec.x, absoluteVec.y, absoluteVec.z, entity.getYRot(), entity.getXRot());
 
         if (entity instanceof Mob mob) {
-            mob.finalizeSpawn(
-                    level,
-                    level.getCurrentDifficultyAt(entity.blockPosition()),
-                    MobSpawnType.MOB_SUMMONED,
-                    null,
-                    null
-            );
+            finalizeSummonedMobSpawn(mob, level);
         }
 
         level.addFreshEntity(entity);
         return entity;
+    }
+
+    @MCVersionDependentBehaviour
+    private static @Nullable SpawnGroupData finalizeSummonedMobSpawn(
+            Mob mob,
+            ServerLevel level
+    ) {
+
+        return mob.finalizeSpawn(
+                level,
+                level.getCurrentDifficultyAt(mob.blockPosition()),
+                MobSpawnType.MOB_SUMMONED,
+                null
+        );
     }
 
     public <CAP> CAP discoverCapability(
