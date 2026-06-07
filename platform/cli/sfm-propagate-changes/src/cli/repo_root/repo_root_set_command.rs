@@ -1,10 +1,10 @@
 use crate::paths::APP_HOME;
 use eyre::Context;
-use std::path::PathBuf;
+use std::path::Path;
 use tracing::info;
 
-pub(super) fn invoke(path: PathBuf) -> eyre::Result<()> {
-    let canonical = dunce::canonicalize(&path)
+pub(super) fn invoke(path: &Path) -> eyre::Result<()> {
+    let canonical = dunce::canonicalize(path)
         .wrap_err_with(|| format!("Failed to canonicalize path: {}", path.display()))?;
     let repo_root_file = APP_HOME.file_path(super::repo_root_command::REPO_ROOT_FILE);
 
