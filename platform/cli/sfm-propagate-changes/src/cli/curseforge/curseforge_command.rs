@@ -1,3 +1,5 @@
+#![allow(clippy::doc_markdown)]
+
 //! https://docs.curseforge.com/rest-api/#get-mod
 //! https://support.curseforge.com/support/solutions/articles/9000197321-curseforge-api
 //! https://www.curseforge.com/minecraft/mc-mods/super-factory-manager Project ID - 306935
@@ -22,6 +24,7 @@ use sha1::Sha1;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::fmt::Write as _;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -40,6 +43,7 @@ const DEFAULT_OP_CORE_API_KEY_SECRET_REFERENCE: &str =
     "op://Private/SFM CurseForge studios token/credential";
 const DEFAULT_AMEND_SAFETY_AGE: &str = "30m";
 const CURSEFORGE_AUTHORS_FILES_URL_PREFIX: &str = "https://authors.curseforge.com/#/projects";
+type CurseforgeVersionRow = (u64, String, String, (u32, u32, u32));
 
 const ANSI_RESET: &str = "\x1b[0m";
 const ANSI_BOLD_CYAN: &str = "\x1b[1;36m";
@@ -296,7 +300,11 @@ impl CurseforgeReleaseCommand {
                 token,
                 op_secret,
             } => super::curseforge_release_check_command::invoke(
-                mc, project, api_key, token, op_secret,
+                mc.as_deref(),
+                project,
+                api_key,
+                token,
+                op_secret,
             ),
             Self::Validate {
                 mc,
@@ -305,7 +313,11 @@ impl CurseforgeReleaseCommand {
                 token,
                 op_secret,
             } => super::curseforge_release_validate_command::invoke(
-                mc, project, api_key, token, op_secret,
+                mc.as_deref(),
+                project,
+                api_key,
+                token,
+                op_secret,
             ),
             Self::Now {
                 project,
@@ -536,7 +548,7 @@ fn build_http_client(token: &str) -> eyre::Result<Client> {
 
     Client::builder()
         .default_headers(headers)
-        .timeout(Duration::from_secs(120))
+        .timeout(Duration::from_mins(2))
         .build()
         .wrap_err("Failed to build HTTP client")
 }
@@ -614,7 +626,7 @@ fn build_core_http_client(api_key: &str) -> eyre::Result<Client> {
 
     Client::builder()
         .default_headers(headers)
-        .timeout(Duration::from_secs(120))
+        .timeout(Duration::from_mins(2))
         .build()
         .wrap_err("Failed to build Core API HTTP client")
 }
@@ -628,20 +640,18 @@ fn list_minecraft_versions(
     let client = build_http_client(&token_value)?;
 
     let filter = McVersionFilter::parse(mc_filter_text)?;
-    let mut rows: Vec<(u64, String, String, (u32, u32, u32))> = fetch_game_versions(&client)?
+    let mut rows: Vec<CurseforgeVersionRow> = fetch_game_versions(&client)?
         .into_iter()
         .filter_map(|version| {
             let parsed = parse_version(&version.name)?;
-            if filter.matches_parsed(parsed) {
-                Some((
+            filter.matches_parsed(parsed).then(|| {
+                (
                     version.id,
                     version.name,
                     version.slug.unwrap_or_default(),
                     parsed,
-                ))
-            } else {
-                None
-            }
+                )
+            })
         })
         .collect();
 
@@ -747,6 +757,10 @@ fn fetch_project_files(
     Ok(envelope.data)
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "release flow is intentionally linear"
+)]
 fn release_now(
     project: Option<u64>,
     token: Option<String>,
@@ -1072,7 +1086,7 @@ fn historical_mod_version(file: &CurseforgeProjectFileItem) -> Option<String> {
 }
 
 fn check_minecraft_version_metadata(
-    mc: Option<String>,
+    mc: Option<&str>,
     project: Option<u64>,
     api_key: Option<String>,
     token: Option<String>,
@@ -1086,7 +1100,7 @@ fn check_minecraft_version_metadata(
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let jars = filter_release_jars_by_mc(all_jars, mc.as_deref())?;
+    let jars = filter_release_jars_by_mc(all_jars, mc)?;
 
     let token_value = resolve_token(token.clone(), op_secret.clone())?;
     let upload_client = build_http_client(&token_value)?;
@@ -1179,7 +1193,7 @@ fn check_minecraft_version_metadata(
 }
 
 fn validate_release_hashes(
-    mc: Option<String>,
+    mc: Option<&str>,
     project: Option<u64>,
     api_key: Option<String>,
     token: Option<String>,
@@ -1193,7 +1207,7 @@ fn validate_release_hashes(
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
-    let jars = filter_release_jars_by_mc(all_jars, mc.as_deref())?;
+    let jars = filter_release_jars_by_mc(all_jars, mc)?;
 
     let (core_key, credential_source) = resolve_core_api_key(api_key, token, op_secret)?;
     let core_client = build_core_http_client(&core_key)?;
@@ -1275,7 +1289,7 @@ fn validate_release_hashes(
             style(&mc_version, ANSI_BOLD_BLUE),
             style("hash validated", ANSI_DIM),
             historical.id,
-            style(&format!("({})", file_label), ANSI_DIM)
+            style(&format!("({file_label})"), ANSI_DIM)
         );
     }
 
@@ -1348,6 +1362,7 @@ fn format_age(value: Duration) -> String {
     }
 }
 
+#[expect(clippy::too_many_lines, reason = "amend flow is intentionally linear")]
 fn release_amend(
     project: Option<u64>,
     api_key: Option<String>,
@@ -1738,7 +1753,7 @@ fn find_sha1_hash(hashes: &[CurseforgeProjectFileHash]) -> Option<String> {
             .as_deref()
             .map(str::trim)
             .filter(|value| !value.is_empty())
-            .map(|value| value.to_ascii_lowercase())
+            .map(str::to_ascii_lowercase)
     })
 }
 
@@ -1766,7 +1781,11 @@ fn sha1_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha1::new();
     hasher.update(bytes);
     let digest = hasher.finalize();
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut output = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        let _ = write!(output, "{byte:02x}");
+    }
+    output
 }
 
 fn build_game_version_index(
@@ -1984,7 +2003,7 @@ impl CurseforgeMinecraftVersionCommand {
 }
 
 pub(super) fn invoke_release_check(
-    mc: Option<String>,
+    mc: Option<&str>,
     project: Option<u64>,
     api_key: Option<String>,
     token: Option<String>,
@@ -1994,7 +2013,7 @@ pub(super) fn invoke_release_check(
 }
 
 pub(super) fn invoke_release_validate(
-    mc: Option<String>,
+    mc: Option<&str>,
     project: Option<u64>,
     api_key: Option<String>,
     token: Option<String>,

@@ -68,6 +68,10 @@ impl McVersionFilter {
     /// `|` and `OR` combine clause groups disjunctively.
     ///
     /// Examples: `>=1.19.2`, `>=1.19.2,<=1.21.1`, `=1.19.2 OR =1.21.1`
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the expression contains an invalid operator or version.
     pub fn parse(input: &str) -> eyre::Result<Self> {
         let groups = split_expression(input, McVersionLogicalOp::Or);
         if groups.is_empty() {
@@ -138,9 +142,8 @@ fn match_separator(input: &str, index: usize, op: McVersionLogicalOp) -> Option<
         McVersionLogicalOp::And => {
             let bytes = input.as_bytes();
             match bytes.get(index) {
-                Some(b',') => Some(1),
                 Some(b'&') if bytes.get(index + 1) == Some(&b'&') => Some(2),
-                Some(b'&') => Some(1),
+                Some(b',' | b'&') => Some(1),
                 _ if matches_keyword(input, index, "AND") => Some(3),
                 _ => None,
             }
