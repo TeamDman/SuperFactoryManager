@@ -18,7 +18,10 @@ impl CacheCommand {
     /// This function will return an error if the operation fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            CacheCommand::Path => super::cache_path_command::invoke(),
+            CacheCommand::Path => {
+                super::cache_path_command::invoke();
+                Ok(())
+            }
             CacheCommand::Open => super::cache_open_command::invoke(),
             CacheCommand::Clean => super::cache_clean_command::invoke(),
         }

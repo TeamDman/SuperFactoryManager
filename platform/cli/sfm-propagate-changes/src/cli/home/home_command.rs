@@ -16,7 +16,10 @@ impl HomeCommand {
     /// This function will return an error if the operation fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            HomeCommand::Path => super::home_path_command::invoke(),
+            HomeCommand::Path => {
+                super::home_path_command::invoke();
+                Ok(())
+            }
             HomeCommand::Open => super::home_open_command::invoke(),
         }
     }
