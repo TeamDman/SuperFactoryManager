@@ -58,10 +58,12 @@ impl ServerCommand {
     /// This function will return an error if the operation fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            ServerCommand::Add { glob } => super::server_add_command::invoke(glob),
-            ServerCommand::Remove { glob } => super::server_remove_command::invoke(glob),
-            ServerCommand::List { glob, mc } => super::server_list_command::invoke(glob, mc),
-            ServerCommand::Launch { mc } => super::server_launch_command::invoke(mc),
+            ServerCommand::Add { glob } => super::server_add_command::invoke(&glob),
+            ServerCommand::Remove { glob } => super::server_remove_command::invoke(&glob),
+            ServerCommand::List { glob, mc } => {
+                super::server_list_command::invoke(glob, mc.as_deref())
+            }
+            ServerCommand::Launch { mc } => super::server_launch_command::invoke(mc.as_deref()),
         }
     }
 }

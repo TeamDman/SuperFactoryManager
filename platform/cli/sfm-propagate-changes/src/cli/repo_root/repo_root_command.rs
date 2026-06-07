@@ -29,7 +29,7 @@ impl RepoRootCommand {
     /// This function will return an error if the operation fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
-            RepoRootCommand::Set { path } => super::repo_root_set_command::invoke(path),
+            RepoRootCommand::Set { path } => super::repo_root_set_command::invoke(&path),
             RepoRootCommand::Unset => super::repo_root_unset_command::invoke(),
             RepoRootCommand::Show => super::repo_root_show_command::invoke(),
             RepoRootCommand::Open => super::repo_root_open_command::invoke(),
