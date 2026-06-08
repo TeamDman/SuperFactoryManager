@@ -15,8 +15,6 @@ import mekanism.common.tile.TileEntityChemicalTank;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.getAndPrepMekTile;
 
 
 /**
@@ -47,9 +45,9 @@ public class MekChemtankInfusionFullGameTest extends SFMGameTestDefinition {
 
         // set up the world
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_CHEMICAL_TANK.getBlock());
-        TileEntityChemicalTank leftTank = getAndPrepMekTile(helper, leftPos);
+        TileEntityChemicalTank leftTank = helper.getAndPrepMekTile(leftPos);
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_CHEMICAL_TANK.getBlock());
-        TileEntityChemicalTank rightTank = getAndPrepMekTile(helper, rightPos);
+        TileEntityChemicalTank rightTank = helper.getAndPrepMekTile(rightPos);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
 
@@ -77,8 +75,11 @@ public class MekChemtankInfusionFullGameTest extends SFMGameTestDefinition {
                         ChemicalTankTier.ULTIMATE.getStorage() - 1_000_000L
                 ));
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftTank.getInfusionTank().getStack().getAmount() == 1_000_000L, "Contents did not depart");
-            assertTrue(
+            helper.assertTrue(
+                    leftTank.getInfusionTank().getStack().getAmount() == 1_000_000L,
+                    "Contents did not depart"
+            );
+            helper.assertTrue(
                     rightTank.getInfusionTank().getStack().getAmount() == ChemicalTankTier.ULTIMATE.getStorage(),
                     "Contents did not arrive"
             );

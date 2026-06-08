@@ -13,8 +13,8 @@ import mekanism.common.util.UnitDisplayUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.getAndPrepMekTile;
+
+
 
 /**
  * Migrated from SFMMekanismCompatGameTests.mek_energy_one
@@ -44,9 +44,9 @@ public class MekEnergyTenGameTest extends SFMGameTestDefinition {
 
         // set up the world
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
-        TileEntityEnergyCube left = getAndPrepMekTile(helper,leftPos);
+        TileEntityEnergyCube left = helper.getAndPrepMekTile(leftPos);
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
-        TileEntityEnergyCube right = getAndPrepMekTile(helper,rightPos);
+        TileEntityEnergyCube right = helper.getAndPrepMekTile(rightPos);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
 
@@ -68,13 +68,13 @@ public class MekEnergyTenGameTest extends SFMGameTestDefinition {
         left.setEnergy(0, 100);
         right.setEnergy(0, 0);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(
+            helper.assertTrue(
                     left
                             .getEnergy(0)
                     == UnitDisplayUtils.EnergyUnit.FORGE_ENERGY.convertFrom(30),
                     "Contents did not depart"
             );
-            assertTrue(
+            helper.assertTrue(
                     right.getEnergy(0) == UnitDisplayUtils.EnergyUnit.FORGE_ENERGY.convertFrom(10),
                     "Contents did not arrive"
             );

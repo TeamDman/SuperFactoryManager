@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.retain_5
@@ -61,8 +61,8 @@ public class Retain5GameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).getCount() == 5, "Dirt did not move");
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 64 - 5, "Dirt did not move");
+            helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 5, "Dirt did not move");
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 64 - 5, "Dirt did not move");
         });
     }
 }

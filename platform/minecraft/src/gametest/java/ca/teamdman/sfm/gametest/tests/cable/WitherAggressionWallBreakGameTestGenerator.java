@@ -170,11 +170,11 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                 helper.succeedWhen(() -> {
                     boolean sheepAlive = sheep.isAlive();
                     boolean wallBroken = isWallBroken(helper, localWallPositions);
-                    SFMGameTestMethodHelpers.assertTrue(
+                    helper.assertTrue(
                             wallBroken,
                             "Scenario '" + scenario.name + "' expected wall to break before success"
                     );
-                    SFMGameTestMethodHelpers.assertTrue(
+                    helper.assertTrue(
                             !sheepAlive,
                             "Scenario '" + scenario.name + "' expected sheep to die before success"
                     );
@@ -190,11 +190,11 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                         boolean sheepAlive = sheep.isAlive();
                         boolean wallBroken = isWallBroken(helper, localWallPositions);
 
-                        SFMGameTestMethodHelpers.assertTrue(
+                        helper.assertTrue(
                                 !wallBroken,
                                 "Scenario '" + scenario.name + "' expected wall to remain intact"
                         );
-                        SFMGameTestMethodHelpers.assertTrue(
+                        helper.assertTrue(
                                 sheepAlive,
                                 "Scenario '" + scenario.name + "' expected sheep to remain alive"
                         );

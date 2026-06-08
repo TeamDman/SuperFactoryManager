@@ -13,8 +13,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMIfStatementGameTests.count_execution_paths_conditional_1b
@@ -67,12 +65,12 @@ public class CountExecutionPathsConditional1bGameTest extends SFMGameTestDefinit
                                            END
                                        END
                                    """.stripTrailing().stripIndent());
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
 
         // assert expected warnings
         var warnings = DiskItem.getWarnings(manager.getDisk());
-        assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size());
-        assertTrue(
+        helper.assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size());
+        helper.assertTrue(
                 (
                         (TranslatableContents) warnings
                                 .getFirst()
