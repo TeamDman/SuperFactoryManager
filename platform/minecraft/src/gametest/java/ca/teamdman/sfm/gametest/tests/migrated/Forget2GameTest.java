@@ -11,7 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMIfStatementGameTests.forget_2
@@ -65,8 +65,8 @@ public class Forget2GameTest extends SFMGameTestDefinition {
                 .save(manager.getDisk());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).getCount() == 64, "Dirt should not depart");
-            assertTrue(rightChest.getStackInSlot(0).isEmpty(), "Dirt should not arrive");
+            helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 64, "Dirt should not depart");
+            helper.assertTrue(rightChest.getStackInSlot(0).isEmpty(), "Dirt should not arrive");
 
         });
     }

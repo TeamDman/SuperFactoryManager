@@ -14,8 +14,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.*;
-
 /**
  * Migrated from SFMIfStatementGameTests.conditional_output_inspection
  */
@@ -72,10 +70,10 @@ public class ConditionalOutputInspectionGameTest extends SFMGameTestDefinition {
                     END
                 """.stripTrailing().stripIndent();
         manager.setProgram(code);
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
 
         // compile a new program for inspection
-        Program program = compile(code);
+        Program program = helper.compile(code);
 
 
         OutputStatement outputStatement = (OutputStatement) program
@@ -133,8 +131,8 @@ public class ConditionalOutputInspectionGameTest extends SFMGameTestDefinition {
         }
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).getCount() == 32, "Dirt did not depart");
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 32, "Dirt did not arrive");
+            helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 32, "Dirt did not depart");
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 32, "Dirt did not arrive");
         });
     }
 }

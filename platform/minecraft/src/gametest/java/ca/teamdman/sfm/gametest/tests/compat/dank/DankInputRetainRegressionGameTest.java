@@ -3,7 +3,6 @@ package ca.teamdman.sfm.gametest.tests.compat.dank;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.gametest.SFMGameTest;
-import ca.teamdman.sfm.gametest.SFMGameTestCountHelpers;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
@@ -18,8 +17,7 @@ import tfar.dankstorage.init.ModItems;
 import static ca.teamdman.sfm.common.registry.registration.SFMBlocks.MANAGER;
 import static ca.teamdman.sfm.common.registry.registration.SFMBlocks.TEST_BARREL;
 import static ca.teamdman.sfm.common.registry.registration.SFMItems.DISK;
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.count;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /// [Moving fluid with retain from Fluid Drawer to Industrial Foregoing Latex Processing Unit](https://discord.com/channels/967118679370264627/1372589927090487458)
 /// <br/>
@@ -92,14 +90,14 @@ public class DankInputRetainRegressionGameTest extends SFMGameTestDefinition {
 
         // Success check
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            var chestCount = SFMGameTestCountHelpers.count(chest, Items.DIRT);
-            assertTrue(
+            var chestCount = helper.count(chest, Items.DIRT);
+            helper.assertTrue(
                     chestCount == expectedChest,
                     "Expected chest contain %d dirt, got %d".formatted(expectedChest, chestCount)
             );
 
-            var dankCount = count(dankInventory, Items.DIRT);
-            assertTrue(
+            var dankCount = helper.count(dankInventory, Items.DIRT);
+            helper.assertTrue(
                     dankCount == expectedRetain,
                     "Expected dank to retain %d dirt, got %d".formatted(expectedRetain, dankCount)
             );

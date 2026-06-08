@@ -8,7 +8,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Tests that water tank capacity scales correctly with active member count.
@@ -128,11 +128,11 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
     ) {
         for (int i = 0; i < tankPositions.length; i++) {
             WaterTankBlockEntity tank = (WaterTankBlockEntity) helper.getBlockEntity(tankPositions[i]);
-            assertTrue(
+            helper.assertTrue(
                     tank != null,
                     "Tank " + i + " should exist (" + context + ")"
             );
-            assertTrue(
+            helper.assertTrue(
                     tank.TANK.getCapacity() == expectedCapacity,
                     "Tank " + i + " should have capacity " + expectedCapacity + " but had " + tank.TANK.getCapacity() + " (" + context + ")"
             );
@@ -146,7 +146,7 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
             String message
     ) {
         WaterTankBlockEntity tank = (WaterTankBlockEntity) helper.getBlockEntity(pos);
-        assertTrue(tank != null, "Tank should exist for active check");
-        assertTrue(tank.isActive() == expectedActive, message);
+        helper.assertTrue(tank != null, "Tank should exist for active check");
+        helper.assertTrue(tank.isActive() == expectedActive, message);
     }
 }

@@ -15,7 +15,7 @@ import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
+
 
 /**
  * Generates game tests for all tunnelled block variants (manager, cable, fancy cable, and their facade variants)
@@ -124,7 +124,7 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
             ItemStack remainder = tunnelledHandler.insertItem(0, toInsert, false);
 
             // Verify the insert succeeded (no remainder)
-            SFMGameTestMethodHelpers.assertTrue(
+            helper.assertTrue(
                     remainder.isEmpty(),
                     "Expected cobblestone to be fully inserted through tunnelled block, but had remainder: " + remainder
             );
@@ -133,7 +133,7 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
             IItemHandler barrelHandler = helper.getItemHandler(barrelPos);
 
             // Assert the barrel now contains exactly 1 cobblestone
-            assertCount(
+            helper.assertCount(
                     barrelHandler,
                     Blocks.COBBLESTONE,
                     1,

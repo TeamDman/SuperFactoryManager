@@ -12,7 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
+
 
 /**
  * Migrated from SFMIfStatementGameTests.move_if_powered
@@ -75,12 +75,12 @@ public class MoveIfPoweredGameTest extends SFMGameTestDefinition {
                 .save(manager.getDisk());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertCount(leftChest, 0, "everything should depart");
-            assertCount(rightChest, Items.GOLD_NUGGET, 64, "gold nuggets should arrive");
-            assertCount(rightChest, Items.IRON_INGOT, 64, "iron ingots should arrive");
-            assertCount(rightChest, Items.GOLD_INGOT, 64, "gold ingots should arrive");
-            assertCount(rightChest, Items.DIRT, 64 * 2, "dirt should arrive");
-            assertCount(rightChest, Items.STONE, 64, "stone should arrive");
+            helper.assertCount(leftChest, 0, "everything should depart");
+            helper.assertCount(rightChest, Items.GOLD_NUGGET, 64, "gold nuggets should arrive");
+            helper.assertCount(rightChest, Items.IRON_INGOT, 64, "iron ingots should arrive");
+            helper.assertCount(rightChest, Items.GOLD_INGOT, 64, "gold ingots should arrive");
+            helper.assertCount(rightChest, Items.DIRT, 64 * 2, "dirt should arrive");
+            helper.assertCount(rightChest, Items.STONE, 64, "stone should arrive");
         });
     }
 }

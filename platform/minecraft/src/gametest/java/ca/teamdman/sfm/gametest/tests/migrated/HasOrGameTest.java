@@ -12,7 +12,7 @@ import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
+
 
 /**
  * Migrated from SFMIfStatementGameTests.has_or
@@ -65,11 +65,11 @@ public class HasOrGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // left should be empty
-            assertCount(left, Items.DIAMOND, 0, "left should have no diamonds");
-            assertCount(left, Items.IRON_INGOT, 0, "left should have no iron ingots");
+            helper.assertCount(left, Items.DIAMOND, 0, "left should have no diamonds");
+            helper.assertCount(left, Items.IRON_INGOT, 0, "left should have no iron ingots");
             // right should have all the items
-            assertCount(right, Items.DIAMOND, 64 * 2, "right should have 128 diamonds");
-            assertCount(right, Items.IRON_INGOT, 12, "right should have 12 iron ingots");
+            helper.assertCount(right, Items.DIAMOND, 64 * 2, "right should have 128 diamonds");
+            helper.assertCount(right, Items.IRON_INGOT, 12, "right should have 12 iron ingots");
         });
     }
 }

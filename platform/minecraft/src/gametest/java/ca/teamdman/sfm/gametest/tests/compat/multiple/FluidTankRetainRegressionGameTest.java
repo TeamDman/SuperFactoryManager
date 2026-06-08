@@ -12,7 +12,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import static ca.teamdman.sfm.common.registry.registration.SFMBlocks.MANAGER;
 import static ca.teamdman.sfm.common.registry.registration.SFMItems.DISK;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 import static com.buuz135.industrial.module.ModuleCore.LATEX;
 import static com.buuz135.industrial.module.ModuleCore.LATEX_PROCESSING;
 import static mekanism.common.registries.MekanismBlocks.BASIC_FLUID_TANK;
@@ -56,7 +56,7 @@ public class FluidTankRetainRegressionGameTest extends SFMGameTestDefinition {
 
         // Fill tank with latex (simulate 40,000 mB, retain 30,000)
         FluidStack latexStack = new FluidStack(LATEX.getSourceFluid().get(), 32000);
-        assertTrue(tank.fill(latexStack, EXECUTE) == 32000, "Tank failed to accept all latex");
+        helper.assertTrue(tank.fill(latexStack, EXECUTE) == 32000, "Tank failed to accept all latex");
 
         // Set program
         manager.setProgram("""
@@ -74,11 +74,11 @@ public class FluidTankRetainRegressionGameTest extends SFMGameTestDefinition {
 
         // Success check
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(
+            helper.assertTrue(
                     tank.getFluidInTank(0).getAmount() == 30000,
                     "Tank did not retain 30,000 mB latex"
             );
-            assertTrue(
+            helper.assertTrue(
                     machine.getFluidInTank(0).getAmount() == 2000,
                     "Processing unit did not receive 2,000 latex"
             );
