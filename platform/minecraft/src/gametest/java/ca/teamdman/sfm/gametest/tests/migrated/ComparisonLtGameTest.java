@@ -12,8 +12,6 @@ import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.count;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMIfStatementGameTests.comparison_lt
@@ -84,26 +82,26 @@ public class ComparisonLtGameTest extends SFMGameTestDefinition {
                 .save(manager.getDisk());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            int leftDiamondCount = count(left, Items.DIAMOND);
-            int leftIronCount = count(left, Items.IRON_INGOT);
-            int leftStickCount = count(left, Items.STICK);
-            int leftDirtCount = count(left, Items.DIRT);
-            int rightDiamondCount = count(right, Items.DIAMOND);
-            int rightIronCount = count(right, Items.IRON_INGOT);
-            int rightStickCount = count(right, Items.STICK);
-            int rightDirtCount = count(right, Items.DIRT);
+            int leftDiamondCount = helper.count(left, Items.DIAMOND);
+            int leftIronCount = helper.count(left, Items.IRON_INGOT);
+            int leftStickCount = helper.count(left, Items.STICK);
+            int leftDirtCount = helper.count(left, Items.DIRT);
+            int rightDiamondCount = helper.count(right, Items.DIAMOND);
+            int rightIronCount = helper.count(right, Items.IRON_INGOT);
+            int rightStickCount = helper.count(right, Items.STICK);
+            int rightDirtCount = helper.count(right, Items.DIRT);
             // the diamonds should have moved from left to right
-            assertTrue(leftDiamondCount == 64 * 2, "left should have 128 diamonds");
-            assertTrue(rightDiamondCount == 0, "right should have no diamonds");
+            helper.assertTrue(leftDiamondCount == 64 * 2, "left should have 128 diamonds");
+            helper.assertTrue(rightDiamondCount == 0, "right should have no diamonds");
             // the iron should have moved from left to right
-            assertTrue(leftIronCount == 0, "left should have no iron ingots");
-            assertTrue(rightIronCount == 12, "right should have 12 iron ingots");
+            helper.assertTrue(leftIronCount == 0, "left should have no iron ingots");
+            helper.assertTrue(rightIronCount == 12, "right should have 12 iron ingots");
             // the sticks should have moved from right to left
-            assertTrue(rightStickCount == 0, "right should have no sticks");
-            assertTrue(leftStickCount == 77, "left should have 77 sticks");
+            helper.assertTrue(rightStickCount == 0, "right should have no sticks");
+            helper.assertTrue(leftStickCount == 77, "left should have 77 sticks");
             // the dirt should have moved from right to left
-            assertTrue(rightDirtCount == 0, "right should have no dirt");
-            assertTrue(leftDirtCount == 1, "left should have 1 dirt");
+            helper.assertTrue(rightDirtCount == 0, "right should have no dirt");
+            helper.assertTrue(leftDirtCount == 1, "left should have 1 dirt");
         });
     }
 }

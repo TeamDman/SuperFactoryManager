@@ -21,8 +21,6 @@ import net.minecraftforge.items.ItemHandlerHelper;
 
 import java.util.EnumMap;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMCorrectnessGameTests.falling_anvil_xp_shard_many
@@ -60,7 +58,7 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
         for (LevelsToShards mode : modes) {
             int predicted = FallingAnvilHandler.getShardCountForEnchantments(mode, parameters.enchantments());
             int expected = FallingAnvilHandler.getShardCountForEnchantments(mode, parameters.enchantments());
-            assertTrue(predicted == expected, "unexpected shard prediction for " + mode);
+            helper.assertTrue(predicted == expected, "unexpected shard prediction for " + mode);
             expectedByMode.put(mode, predicted * parameters.bookCount());
         }
 
@@ -71,7 +69,10 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
             BlockPos chestPos = new BlockPos(index * CHEST_SPACING + 1, 2, 1);
 
             helper.setBlock(chestPos, SFMBlocks.TEST_BARREL.get());
-            helper.setBlock(chestPos.above(), Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, 8));
+            helper.setBlock(
+                    chestPos.above(),
+                    Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, 8)
+            );
             helper.setSignText(
                     chestPos.above(),
                     Component.literal(mode.toString()),
@@ -80,18 +81,18 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
 
             IItemHandler handler = helper.getItemHandler(chestPos);
 
-            fill(handler, parameters.bookTemplate(), parameters.bookCount());
+            fill(helper, handler, parameters.bookTemplate(), parameters.bookCount());
 
-            fill(handler, new ItemStack(SFMItems.EXPERIENCE_SHARD.get()), expectedShards);
+            fill(helper, handler, new ItemStack(SFMItems.EXPERIENCE_SHARD.get()), expectedShards);
 
-            assertCount(
+            helper.assertCount(
                     handler,
                     parameters.bookTemplate(),
                     parameters.bookCount(),
                     "chest for " + mode + " did not receive expected book count"
             );
 
-            assertCount(
+            helper.assertCount(
                     handler,
                     SFMItems.EXPERIENCE_SHARD.get().asItem(),
                     expectedShards,
@@ -142,6 +143,7 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
     }
 
     private static void fill(
+            SFMGameTestHelper helper,
             IItemHandler handler,
             ItemStack template,
             long totalCount
@@ -154,7 +156,7 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
             ItemStack stack = template.copy();
             stack.setCount(toInsert);
             ItemStack leftover = ItemHandlerHelper.insertItemStacked(handler, stack, false);
-            assertTrue(leftover.isEmpty(), "insufficient space to store items");
+            helper.assertTrue(leftover.isEmpty(), "insufficient space to store items");
             remaining -= toInsert;
         }
     }

@@ -14,7 +14,7 @@ import mekanism.common.tile.TileEntityChemicalTank;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -71,8 +71,11 @@ public class MekChemtankInfusionSomeGameTest extends SFMGameTestDefinition {
         leftTank.getInfusionTank().setStack(new InfusionStack(MekanismInfuseTypes.REDSTONE.get(), 1_000_000L));
         rightTank.getInfusionTank().setStack(new InfusionStack(MekanismInfuseTypes.REDSTONE.get(), 1_000_000L));
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftTank.getInfusionTank().getStack().isEmpty(), "Contents did not depart");
-            assertTrue(rightTank.getInfusionTank().getStack().getAmount() == 2_000_000L, "Contents did not arrive");
+            helper.assertTrue(leftTank.getInfusionTank().getStack().isEmpty(), "Contents did not depart");
+            helper.assertTrue(
+                    rightTank.getInfusionTank().getStack().getAmount() == 2_000_000L,
+                    "Contents did not arrive"
+            );
         });
     }
 }

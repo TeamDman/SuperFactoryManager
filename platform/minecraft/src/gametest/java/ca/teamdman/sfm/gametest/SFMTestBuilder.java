@@ -14,20 +14,26 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.count;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 public abstract class SFMTestBuilder {
     protected final SFMGameTestHelper helper;
+
     protected @Nullable ManagerBlockEntity manager;
+
     protected Map<String, IItemHandler> chests = new HashMap<>();
+
     protected Map<String, BlockPos> positions = new HashMap<>();
+
     protected LabelPositionHolder labelHolder = LabelPositionHolder.empty();
+
     protected @Nullable String program;
+
     protected List<Runnable> postConditions = new ArrayList<>();
+
     protected List<Runnable> preConditions = new ArrayList<>();
 
     public SFMTestBuilder(SFMGameTestHelper helper) {
+
         this.helper = helper;
     }
 
@@ -41,6 +47,7 @@ public abstract class SFMTestBuilder {
             String name,
             List<ItemStack> stacks
     ) {
+
         preConditions.add(() -> {
             IItemHandler chest = chests.get(name);
             if (chest == null) {
@@ -57,6 +64,7 @@ public abstract class SFMTestBuilder {
             String name,
             List<ItemStack> expected
     ) {
+
         postConditions.add(() -> {
             IItemHandler chest = chests.get(name);
             if (chest == null) {
@@ -65,13 +73,14 @@ public abstract class SFMTestBuilder {
             for (int i = 0; i < chest.getSlots(); i++) {
                 ItemStack expectedStack = i < expected.size() ? expected.get(i) : ItemStack.EMPTY;
                 ItemStack actualStack = chest.getStackInSlot(i);
-                assertTrue(
+                helper.assertTrue(
                         expectedStack.isEmpty() && actualStack.isEmpty() || SFMItemUtils.isSameItemSameAmount(
                                 expectedStack,
                                 actualStack
                         ),
-                        String.format("Expected %s in chest %s slot %d, but found %s",
-                                      expectedStack, name, i, actualStack
+                        String.format(
+                                "Expected %s in chest %s slot %d, but found %s",
+                                expectedStack, name, i, actualStack
                         )
                 );
             }
@@ -80,6 +89,7 @@ public abstract class SFMTestBuilder {
     }
 
     public void run() {
+
         setupStructure(BlockPos.ZERO);
         for (Runnable preCondition : preConditions) {
             preCondition.run();
@@ -106,12 +116,12 @@ public abstract class SFMTestBuilder {
                         Map.Entry<String, IItemHandler> source = null;
                         for (int i = 0; i < chests.size(); i++) {
                             IItemHandler chest = chests.get(i).getValue();
-                            if (count(chest, (ItemLike) null) > 0) {
+                            if (helper.count(chest, (ItemLike) null) > 0) {
                                 source = chests.remove(i);
                                 break;
                             }
                         }
-                        assertTrue(
+                        helper.assertTrue(
                                 source != null,
                                 "Chaos failed to find an item to move?? What is this test doing that there's no items??"
                         );
@@ -130,7 +140,7 @@ public abstract class SFMTestBuilder {
                                 break;
                             }
                         }
-                        assertTrue(
+                        helper.assertTrue(
                                 !taken.isEmpty(),
                                 "Chaos failed to take an item from "
                                 + source.getKey()
@@ -149,7 +159,7 @@ public abstract class SFMTestBuilder {
                         }
 
                         // assert a move occurred
-                        assertTrue(
+                        helper.assertTrue(
                                 destSlot != -1,
                                 "Chaos failed to insert the taken item, took "
                                 + taken
@@ -171,7 +181,7 @@ public abstract class SFMTestBuilder {
                                 break;
                             }
                         }
-                        assertTrue(
+                        helper.assertTrue(
                                 tripped,
                                 "Assertions did not fail after chaos, moved "
                                 + taken
@@ -185,8 +195,8 @@ public abstract class SFMTestBuilder {
 
                         // take out the moved item
                         ItemStack undo = dest.getValue().extractItem(destSlot, taken.getCount(), false);
-                        assertTrue(
-                                 SFMItemUtils.isSameItemSameAmount(undo, taken),
+                        helper.assertTrue(
+                                SFMItemUtils.isSameItemSameAmount(undo, taken),
                                 "Chaos failed to take the moved item, took "
                                 + undo
                                 + " from "
@@ -199,7 +209,7 @@ public abstract class SFMTestBuilder {
 
                         // put the item back
                         ItemStack remainder = source.getValue().insertItem(takenSlot, taken, false);
-                        assertTrue(
+                        helper.assertTrue(
                                 remainder.isEmpty(),
                                 "Chaos failed to put the taken item back, took "
                                 + taken
@@ -218,6 +228,7 @@ public abstract class SFMTestBuilder {
             String name,
             BlockPos pos
     ) {
+
         helper.setBlock(pos, SFMBlocks.TEST_BARREL.get());
         IItemHandler chest = helper.getItemHandler(pos);
         chests.put(name, chest);
@@ -229,12 +240,14 @@ public abstract class SFMTestBuilder {
     protected abstract void setupStructure(BlockPos offset);
 
     protected void setupManager(BlockPos offset) {
+
         BlockPos managerPos = new BlockPos(1, 2, 0).offset(offset);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
-        assertTrue(manager != null, "Manager not found");
+        helper.assertTrue(manager != null, "Manager not found");
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
-        assertTrue(program != null, "Program not set");
+        helper.assertTrue(program != null, "Program not set");
         manager.setProgram(program.stripTrailing().stripIndent());
     }
+
 }

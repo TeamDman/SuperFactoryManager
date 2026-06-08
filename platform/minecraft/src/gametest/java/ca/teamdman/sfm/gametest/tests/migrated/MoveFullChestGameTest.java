@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.Blocks;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.move_full_chest
@@ -67,7 +67,7 @@ public class MoveFullChestGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(
+            helper.assertTrue(
                     IntStream.range(0, leftChest.getSlots()).allMatch(slot -> leftChest.getStackInSlot(slot).isEmpty()),
                     "Dirt did not leave"
             );
@@ -79,7 +79,7 @@ public class MoveFullChestGameTest extends SFMGameTestDefinition {
                     total += rightChest.getStackInSlot(i).getCount();
                 }
             }
-            assertTrue(total == count, "Dirt did not arrive");
+            helper.assertTrue(total == count, "Dirt did not arrive");
         });
     }
 }
