@@ -14,7 +14,7 @@ import mekanism.common.util.UnitDisplayUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -69,7 +69,7 @@ public class MekEnergyTenGameTest extends SFMGameTestDefinition {
         left.setEnergy(0, FloatingLong.create(100));
         right.setEnergy(0, FloatingLong.ZERO);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(
+            helper.assertTrue(
                     left
                             .getEnergy(0)
                             .equals(FloatingLong
@@ -77,7 +77,7 @@ public class MekEnergyTenGameTest extends SFMGameTestDefinition {
                                             .subtract(UnitDisplayUtils.EnergyUnit.FORGE_ENERGY.convertFrom(10))),
                     "Contents did not depart"
             );
-            assertTrue(
+            helper.assertTrue(
                     right.getEnergy(0).equals(UnitDisplayUtils.EnergyUnit.FORGE_ENERGY.convertFrom(10)),
                     "Contents did not arrive"
             );

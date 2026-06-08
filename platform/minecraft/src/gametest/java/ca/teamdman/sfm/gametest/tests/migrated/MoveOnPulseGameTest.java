@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Level;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -76,11 +76,11 @@ public class MoveOnPulseGameTest extends SFMGameTestDefinition {
         // load the program
         manager.setProgram(program);
         manager.setLogLevel(Level.TRACE);
-        assertTrue(manager.logger.getLogLevel() == Level.TRACE, "Log level should be trace");
+        helper.assertTrue(manager.logger.getLogLevel() == Level.TRACE, "Log level should be trace");
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(left.getItem(0).isEmpty(), "Iron should depart");
-            assertTrue(right.getItem(0).getCount() == 64, "Iron should arrive");
+            helper.assertTrue(left.getItem(0).isEmpty(), "Iron should depart");
+            helper.assertTrue(right.getItem(0).getCount() == 64, "Iron should arrive");
         });
 
         // create the button

@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 @SuppressWarnings({"DataFlowIssue"})
 @SFMGameTest
@@ -61,9 +61,9 @@ public class OutputEmptySlotsOnlyReversedSyntaxGameTest extends SFMGameTestDefin
 
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
-                    assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied");
-                    assertTrue(rightChest.getStackInSlot(0).getCount() == 1, "Dest slot 0 should remain 1");
-                    assertTrue(rightChest.getStackInSlot(1).getCount() == 5, "Dest slot 1 should be 5");
+                    helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied");
+                    helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 1, "Dest slot 0 should remain 1");
+                    helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 5, "Dest slot 1 should be 5");
                 }
         );
     }

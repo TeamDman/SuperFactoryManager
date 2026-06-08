@@ -15,7 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /// In {@link ca.teamdman.sfml.ast.InputStatement} there was a correctness bug due to accidentally duplicated logic
@@ -89,13 +89,13 @@ public class IndustrialForegoingBlackholeDoubleMoveRegressionGameTest extends SF
                 .save(manager.getDisk());
 
         int fullCount = BlockUtils.getStackAmountByRarity(ModuleCore.SUPREME_RARITY);
-        assertTrue(fullCount > 0, "expected full count to be greater than 0");
-        assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
-        assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 1), false).isEmpty(), "couldn't prep left");
-        assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
+        helper.assertTrue(fullCount > 0, "expected full count to be greater than 0");
+        helper.assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
+        helper.assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 1), false).isEmpty(), "couldn't prep left");
+        helper.assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(left.getStackInSlot(0).getCount() == 1, "Contents did not depart properly");
-            assertTrue(right.getStackInSlot(0).getCount() == 128, "Contents did not arrive properly");
+            helper.assertTrue(left.getStackInSlot(0).getCount() == 1, "Contents did not depart properly");
+            helper.assertTrue(right.getStackInSlot(0).getCount() == 128, "Contents did not arrive properly");
         });
     }
 }

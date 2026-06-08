@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
+
 
 
 /**
@@ -62,7 +62,7 @@ public class MoveCauldronLavaGameTest extends SFMGameTestDefinition {
                                        END
                                    """.stripTrailing().stripIndent());
 
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             helper.assertBlock(left, b -> b == Blocks.CAULDRON, "cauldron didn't empty");
             helper.assertBlockState(right, s -> s.getBlock() == Blocks.LAVA_CAULDRON, () -> "cauldron didn't fill");
