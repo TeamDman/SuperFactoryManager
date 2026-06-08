@@ -9,7 +9,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -48,10 +48,13 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
             DiskItem.setProgram(disk, programString);
             DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true);
             chest.insertItem(0, disk, false);
-            assertTrue(DiskItem.getProgramName(disk).equals("bruh"), "program name should be bruh for disk 1");
-            assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 1");
-            assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 1");
-            assertTrue(disk.getHoverName().getString().equals("bruh"), "display name should be \"bruh\" for disk 1");
+            helper.assertTrue(DiskItem.getProgramName(disk).equals("bruh"), "program name should be bruh for disk 1");
+            helper.assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 1");
+            helper.assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 1");
+            helper.assertTrue(
+                    disk.getHoverName().getString().equals("bruh"),
+                    "display name should be \"bruh\" for disk 1"
+            );
         }
         {
             ItemStack disk = new ItemStack(SFMItems.DISK.get());
@@ -62,10 +65,10 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
             DiskItem.setProgram(disk, programString);
             DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true);
             chest.insertItem(1, disk, false);
-            assertTrue(DiskItem.getProgramName(disk).isEmpty(), "program name should be empty for disk 2");
-            assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 2");
-            assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 2");
-            assertTrue(
+            helper.assertTrue(DiskItem.getProgramName(disk).isEmpty(), "program name should be empty for disk 2");
+            helper.assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 2");
+            helper.assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 2");
+            helper.assertTrue(
                     disk.getHoverName().contains(DiskItem.DISK_ITEM.getComponent()),
                     "display name should be default for disk 2"
             );

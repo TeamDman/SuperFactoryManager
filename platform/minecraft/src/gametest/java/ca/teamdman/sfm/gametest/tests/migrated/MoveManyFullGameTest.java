@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 
 import java.util.ArrayList;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -88,7 +88,7 @@ public class MoveManyFullGameTest extends SFMGameTestDefinition {
 
         // load the program
         manager.setProgram(program);
-        assertTrue(
+        helper.assertTrue(
                 manager.getState() == ManagerBlockEntity.State.RUNNING,
                 "Program did not start running " + DiskItem.getErrors(manager.getDisk())
         );
@@ -98,14 +98,14 @@ public class MoveManyFullGameTest extends SFMGameTestDefinition {
             sourceBlocks.forEach(pos -> {
                 BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(pos);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
-                    assertTrue(barrel.getItem(i).getCount() == 64, "Items did not stay");
+                    helper.assertTrue(barrel.getItem(i).getCount() == 64, "Items did not stay");
                 }
             });
             // ensure all the dest chests are full
             destBlocks.forEach(pos -> {
                 BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(pos);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
-                    assertTrue(barrel.getItem(i).getCount() == 64, "Items did not arrive");
+                    helper.assertTrue(barrel.getItem(i).getCount() == 64, "Items did not arrive");
                 }
             });
 

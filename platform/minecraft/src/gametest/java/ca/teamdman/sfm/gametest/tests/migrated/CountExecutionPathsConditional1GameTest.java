@@ -17,8 +17,6 @@ import net.minecraft.world.item.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMIfStatementGameTests.count_execution_paths_conditional_1
@@ -71,12 +69,12 @@ public class CountExecutionPathsConditional1GameTest extends SFMGameTestDefiniti
                                            OUTPUT TO right
                                        END
                                    """.stripTrailing().stripIndent());
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
         var program = manager.getProgram();
 
         // ensure no warnings
         var warnings = DiskItem.getWarnings(manager.getDisk());
-        assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size());
+        helper.assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size());
 
         // count the execution paths
         GatherWarningsProgramBehaviour simulation = new GatherWarningsProgramBehaviour(new ProblemTracker());
@@ -88,7 +86,7 @@ public class CountExecutionPathsConditional1GameTest extends SFMGameTestDefiniti
         ));
 
         List<Integer> expectedPathSizes = new ArrayList<>(List.of(1, 2));
-        assertTrue(
+        helper.assertTrue(
                 simulation.getSeenPaths().size() == expectedPathSizes.size(),
                 "expected " + expectedPathSizes.size() + " execution paths, got " + simulation.getSeenPaths().size()
         );

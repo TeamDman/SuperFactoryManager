@@ -3,7 +3,6 @@ package ca.teamdman.sfm.gametest.tests.compat.dank;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.gametest.SFMGameTest;
-import ca.teamdman.sfm.gametest.SFMGameTestCountHelpers;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
@@ -18,7 +17,7 @@ import tfar.dankstorage.init.ModItems;
 import static ca.teamdman.sfm.common.registry.registration.SFMBlocks.MANAGER;
 import static ca.teamdman.sfm.common.registry.registration.SFMBlocks.TEST_BARREL;
 import static ca.teamdman.sfm.common.registry.registration.SFMItems.DISK;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 @SuppressWarnings("DataFlowIssue")
 @SFMGameTest
@@ -70,15 +69,15 @@ public class DankOutputRetainGameTest extends SFMGameTestDefinition {
 
         // Success check
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            var dirtCount = SFMGameTestCountHelpers.count(chest, Items.DIRT);
-            assertTrue(
+            var dirtCount = helper.count(chest, Items.DIRT);
+            helper.assertTrue(
                     dirtCount == chest.getSlots() * 64 - 300,
                     "Expected chest to be full, sans 300 dirt"
             );
 
             var dankInventory = helper.getItemHandler(dankPos, Direction.DOWN);
-            var dankCount = count(dankInventory, Items.DIRT);
-            assertTrue(
+            var dankCount = helper.count(dankInventory, Items.DIRT);
+            helper.assertTrue(
                     dankCount == 300,
                     "Expected dank to have 300 dirt, but got " + dankCount
             );

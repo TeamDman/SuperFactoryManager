@@ -20,7 +20,7 @@ import net.minecraft.world.level.block.Block;
 
 import java.util.List;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -116,7 +116,7 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
             var expected = startingAmount.add(SFMMekanismCompat.createForgeEnergy(incr));
             FloatingLong energy = inductionPort.getEnergy(0);
             boolean success = energy.equals(expected);
-            assertTrue(
+            helper.assertTrue(
                     success,
                     "Expected energy did not match"
             );

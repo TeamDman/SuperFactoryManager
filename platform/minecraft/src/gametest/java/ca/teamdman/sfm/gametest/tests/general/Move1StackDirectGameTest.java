@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 @SuppressWarnings({"DataFlowIssue"})
 @SFMGameTest
@@ -62,8 +62,8 @@ public class Move1StackDirectGameTest extends SFMGameTestDefinition {
 
         // schedule success check
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt did not move");
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "Dirt did not move");
+            helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt did not move");
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "Dirt did not move");
         });
     }
 }

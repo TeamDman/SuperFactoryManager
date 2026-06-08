@@ -9,7 +9,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /// We want to make sure that the {@link SFMEnchantmentCollection} class is properly writing and reading enchantments.
 /// It should clobber rather than append.
@@ -40,7 +40,7 @@ public class EnchantmentCollectionWriteToBookGameTest extends SFMGameTestDefinit
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.SHARPNESS, 3));
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.UNBREAKING, 2));
 
-        assertTrue(!enchantments1.equals(enchantments2), "Enchantment collections must not be equal");
+        helper.assertTrue(!enchantments1.equals(enchantments2), "Enchantment collections must not be equal");
 
         // Create an enchanted book
         ItemStack enchantedBook1 = enchantments1.createEnchantedBook();
@@ -49,7 +49,7 @@ public class EnchantmentCollectionWriteToBookGameTest extends SFMGameTestDefinit
                 enchantedBook1,
                 SFMEnchantmentCollectionKind.HoldingLikeABook
         );
-        assertTrue(
+        helper.assertTrue(
                 found1.canonicalize().equals(enchantments1.canonicalize()),
                 "Enchantment collections 1 must be equal after reading from an enchanted book (HoldingLikeABook)"
         );
@@ -60,7 +60,7 @@ public class EnchantmentCollectionWriteToBookGameTest extends SFMGameTestDefinit
                 enchantedBook1,
                 SFMEnchantmentCollectionKind.HoldingLikeABook
         );
-        assertTrue(
+        helper.assertTrue(
                 found2.canonicalize().equals(enchantments2.canonicalize()),
                 "Enchantment collection 2 must be equal after writing to an enchanted book (HoldingLikeABook)"
         );
