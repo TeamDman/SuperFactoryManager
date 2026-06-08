@@ -14,9 +14,6 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.count;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMCorrectnessGameTests.move_using_or
@@ -71,15 +68,15 @@ public class MoveUsingOrGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // count of stone + dirt in left must be 64*2-5
-            int leftStoneDirt = count(leftChest, Items.STONE) + count(leftChest, Items.DIRT);
-            assertTrue(leftStoneDirt == 64 * 2 - 5, "stone and dirt should depart");
+            int leftStoneDirt = helper.count(leftChest, Items.STONE) + helper.count(leftChest, Items.DIRT);
+            helper.assertTrue(leftStoneDirt == 64 * 2 - 5, "stone and dirt should depart");
             // count of stone + dirt in right must be 5
-            int rightStoneDirt = count(rightChest, Items.STONE) + count(rightChest, Items.DIRT);
-            assertTrue(rightStoneDirt == 5, "stone and dirt should arrive");
+            int rightStoneDirt = helper.count(rightChest, Items.STONE) + helper.count(rightChest, Items.DIRT);
+            helper.assertTrue(rightStoneDirt == 5, "stone and dirt should arrive");
             // left cobblestone count = 0
-            assertCount(leftChest, Items.COBBLESTONE, 0, "no cobblestone should remain");
+            helper.assertCount(leftChest, Items.COBBLESTONE, 0, "no cobblestone should remain");
             // right cobblestone count = 64*2
-            assertCount(rightChest, Items.COBBLESTONE, 64 * 2, "cobblestone should arrive");
+            helper.assertCount(rightChest, Items.COBBLESTONE, 64 * 2, "cobblestone should arrive");
         });
     }
 }

@@ -15,7 +15,7 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMMekanismCompatGameTests.multi_fluid
@@ -75,9 +75,9 @@ public class MekMultiFluidGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
-                    assertTrue(a1.getFluidInTank(0).isEmpty(), "a1 did not empty");
-                    assertTrue(a2.getFluidInTank(0).isEmpty(), "a2 did not empty");
-                    assertTrue(
+                    helper.assertTrue(a1.getFluidInTank(0).isEmpty(), "a1 did not empty");
+                    helper.assertTrue(a2.getFluidInTank(0).isEmpty(), "a2 did not empty");
+                    helper.assertTrue(
                             (
                                     b1.getFluidInTank(0).getFluid() == Fluids.WATER
                                     && b2.getFluidInTank(0).getFluid() == Fluids.LAVA
