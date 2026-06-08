@@ -22,7 +22,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -160,9 +160,9 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
             chest.insertItem(0, held, false);
 
             // Assert ingredient transformations
-            assertTrue(printingPress.getInk().isEmpty(), "Ink was not consumed");
-            assertTrue(printingPress.getPaper().isEmpty(), "Paper was not consumed");
-            assertTrue(!printingPress.getForm().isEmpty(), "Form should not be consumed");
+            helper.assertTrue(printingPress.getInk().isEmpty(), "Ink was not consumed");
+            helper.assertTrue(printingPress.getPaper().isEmpty(), "Paper was not consumed");
+            helper.assertTrue(!printingPress.getForm().isEmpty(), "Form should not be consumed");
 
             // Succeed test
             helper.succeed();

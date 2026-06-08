@@ -15,7 +15,7 @@ import mekanism.common.tile.TileEntityChemicalTank;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -76,8 +76,11 @@ public class MekChemtankInfusionFullGameTest extends SFMGameTestDefinition {
                         ChemicalTankTier.ULTIMATE.getStorage() - 1_000_000L
                 ));
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftTank.getInfusionTank().getStack().getAmount() == 1_000_000L, "Contents did not depart");
-            assertTrue(
+            helper.assertTrue(
+                    leftTank.getInfusionTank().getStack().getAmount() == 1_000_000L,
+                    "Contents did not depart"
+            );
+            helper.assertTrue(
                     rightTank.getInfusionTank().getStack().getAmount() == ChemicalTankTier.ULTIMATE.getStorage(),
                     "Contents did not arrive"
             );

@@ -24,7 +24,7 @@ import org.apache.logging.log4j.Level;
 import java.util.ArrayDeque;
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -90,12 +90,12 @@ public class ResourceLossRegressionGameTest extends SFMGameTestDefinition {
         // load the program
         manager.setProgram(program);
         manager.setLogLevel(Level.ERROR);
-        assertTrue(manager.logger.getLogLevel() == Level.ERROR, "Log level should be trace");
+        helper.assertTrue(manager.logger.getLogLevel() == Level.ERROR, "Log level should be trace");
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             ItemStack phytoInputStack = phyto.getItemInv().get(0);
-            assertTrue(phytoInputStack.getItem() == Items.WHEAT_SEEDS, "Item should be wheat seeds");
-            assertTrue(phytoInputStack.getCount() == 64, "Item should be 64 wheat seeds");
+            helper.assertTrue(phytoInputStack.getItem() == Items.WHEAT_SEEDS, "Item should be wheat seeds");
+            helper.assertTrue(phytoInputStack.getCount() == 64, "Item should be 64 wheat seeds");
 
             ArrayDeque<TranslatableLogEvent> logs = manager.logger.getLogs();
             int foundErrors = 0;
@@ -108,7 +108,7 @@ public class ResourceLossRegressionGameTest extends SFMGameTestDefinition {
                     );
                 }
             }
-            assertTrue(foundErrors == 0, "No errors should be found in logs, found " + foundErrors);
+            helper.assertTrue(foundErrors == 0, "No errors should be found in logs, found " + foundErrors);
         });
 
         // create the button

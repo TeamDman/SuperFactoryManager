@@ -14,9 +14,6 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.count;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMCorrectnessGameTests.round_robin_by_block_2
@@ -89,17 +86,17 @@ public class RoundRobinByBlock2GameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertCount(sourceInv, Items.DIRT, 64 * (27 - 2), "source count bad");
-            int a1Count = count(a1, Items.DIRT);
-            int a2Count = count(a2, Items.DIRT);
-            int b1Count = count(b1, Items.DIRT);
-            int b2Count = count(b2, Items.DIRT);
+            helper.assertCount(sourceInv, Items.DIRT, 64 * (27 - 2), "source count bad");
+            int a1Count = helper.count(a1, Items.DIRT);
+            int a2Count = helper.count(a2, Items.DIRT);
+            int b1Count = helper.count(b1, Items.DIRT);
+            int b2Count = helper.count(b2, Items.DIRT);
             // only one of a1, a2, b1, b2 must be 128, rest must be zero
             boolean good = (a1Count == 128 && a2Count == 0 && b1Count == 0 && b2Count == 0) ||
                            (a1Count == 0 && a2Count == 128 && b1Count == 0 && b2Count == 0) ||
                            (a1Count == 0 && a2Count == 0 && b1Count == 128 && b2Count == 0) ||
                            (a1Count == 0 && a2Count == 0 && b1Count == 0 && b2Count == 128);
-            assertTrue(good, "first tick arrival count bad");
+            helper.assertTrue(good, "first tick arrival count bad");
 
         });
     }

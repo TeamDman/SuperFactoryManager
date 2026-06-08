@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.pattern_cache_regression_2
@@ -64,8 +64,8 @@ public class PatternCacheRegression2GameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).getCount() == 64, "should not depart");
-            assertTrue(rightChest.getStackInSlot(0).isEmpty(), "should not arrive");
+            helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 64, "should not depart");
+            helper.assertTrue(rightChest.getStackInSlot(0).isEmpty(), "should not arrive");
 
         });
     }

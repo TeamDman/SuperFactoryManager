@@ -10,24 +10,31 @@ import ca.teamdman.sfm.common.enchantment.SFMEnchantmentEntry;
 import ca.teamdman.sfm.common.enchantment.SFMEnchantmentKey;
 import ca.teamdman.sfm.common.facade.FacadeData;
 import ca.teamdman.sfm.common.facade.FacadeTextureMode;
+import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.program.ExecuteProgramBehaviour;
 import ca.teamdman.sfm.common.program.IProgramHooks;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import ca.teamdman.sfm.common.util.SFMItemUtils;
 import ca.teamdman.sfml.ast.ASTBuilder;
 import ca.teamdman.sfml.ast.BoolExpr;
 import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestAssertPosException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -47,6 +54,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 public class SFMGameTestHelper extends GameTestHelper {
 
@@ -55,6 +64,51 @@ public class SFMGameTestHelper extends GameTestHelper {
     ) {
 
         super(helper.testInfo);
+    }
+
+    public void assertTrue(
+            boolean condition,
+            String message
+    ) {
+
+        if (!condition) {
+            @SuppressWarnings("UnnecessaryLocalVariable")
+            var toThrow = new GameTestAssertException(message);
+            // Uncomment below for detailed location information
+            // Note that the tests fail every tick using this until they succeed, so you will see logs that make things look like tests are failing if this is uncommented
+//            SFM.LOGGER.error("Assertion failed: {}", message, toThrow);
+            throw toThrow;
+        }
+    }
+
+    public Program compile(
+            String code
+    ) {
+
+        AtomicReference<Program> rtn = new AtomicReference<>();
+
+        new ProgramBuilder(code)
+                .useCache(false)
+                .build()
+                .caseSuccess((program, metadata) -> rtn.set(program))
+                .caseFailure(result -> {
+                    throw new GameTestAssertException("Failed to compile program: " + result.metadata().errors()
+                            .stream()
+                            .map(Object::toString)
+                            .reduce("", (a, b) -> a + "\n" + b));
+                });
+        return rtn.get();
+    }
+
+    public void assertManagerRunning(
+            ManagerBlockEntity manager
+    ) {
+
+        this.assertTrue(manager.getDisk() != null, "No disk in manager");
+        this.assertTrue(
+                manager.getState() == ManagerBlockEntity.State.RUNNING,
+                "Program did not start running " + DiskItem.getErrors(manager.getDisk())
+        );
     }
 
     @MCVersionDependentBehaviour
@@ -71,6 +125,7 @@ public class SFMGameTestHelper extends GameTestHelper {
 
     @MCVersionDependentBehaviour
     public @NotNull SFMEnchantmentKey createEnchantmentKey(Enchantment enchantment) {
+
         return new SFMEnchantmentKey(enchantment);
     }
 
@@ -131,7 +186,7 @@ public class SFMGameTestHelper extends GameTestHelper {
                 absolutePos(localPos),
                 direction
         );
-        SFMGameTestMethodHelpers.assertTrue(found.isPresent(), "No " + capKind.getName() + " found at " + localPos);
+        this.assertTrue(found.isPresent(), "No " + capKind.getName() + " found at " + localPos);
         return found.unwrap();
     }
 
@@ -213,7 +268,7 @@ public class SFMGameTestHelper extends GameTestHelper {
             Runnable assertion
     ) {
 
-        SFMGameTestMethodHelpers.assertManagerRunning(manager);
+        this.assertManagerRunning(manager);
         manager.addProgramHooks(new IProgramHooks() {
             @Override
             public void onProgramDidSomething(Duration elapsed) {
@@ -222,7 +277,7 @@ public class SFMGameTestHelper extends GameTestHelper {
                         0,
                         () -> {
                             assertion.run();
-                            SFMGameTestMethodHelpers.assertTrue(
+                            SFMGameTestHelper.this.assertTrue(
                                     elapsed.toMillis() < 80,
                                     "Program took too long to run: took " + NumberFormat
                                             .getInstance(Locale.getDefault())
@@ -288,4 +343,161 @@ public class SFMGameTestHelper extends GameTestHelper {
                 FacadeTextureMode.FILL
         ));
     }
+
+    public int count(
+            Container inventory,
+            @Nullable ItemLike item
+    ) {
+
+        return IntStream.range(0, inventory.getContainerSize())
+                .mapToObj(inventory::getItem)
+                .filter(stack -> item == null || stack.getItem() == item.asItem())
+                .mapToInt(ItemStack::getCount)
+                .sum();
+    }
+
+    public int count(
+            IItemHandler inventory,
+            @Nullable ItemLike item
+    ) {
+
+        return IntStream.range(0, inventory.getSlots())
+                .mapToObj(inventory::getStackInSlot)
+                .filter(stack -> item == null || stack.getItem() == item.asItem())
+                .mapToInt(ItemStack::getCount)
+                .sum();
+    }
+
+    public static int count(
+            SFMGameTestHelper helper,
+            Container inventory,
+            ItemStack comparisonStack
+    ) {
+
+        return IntStream.range(0, inventory.getContainerSize())
+                .mapToObj(inventory::getItem)
+                .filter(stack -> SFMItemUtils.isSameItemSameTags(stack, comparisonStack))
+                .mapToInt(ItemStack::getCount)
+                .sum();
+    }
+
+    public int count(
+            IItemHandler inventory,
+            ItemStack comparisonStack
+    ) {
+
+        return IntStream.range(0, inventory.getSlots())
+                .mapToObj(inventory::getStackInSlot)
+                .filter(stack -> SFMItemUtils.isSameItemSameTags(stack, comparisonStack))
+                .mapToInt(ItemStack::getCount)
+                .sum();
+    }
+
+    public static int count(
+            SFMGameTestHelper helper,
+            Container inventory
+    ) {
+
+        return helper.count(inventory, (ItemLike) null);
+    }
+
+    public static int count(
+            SFMGameTestHelper helper,
+            IItemHandler inventory
+    ) {
+
+        return helper.count(inventory, (ItemLike) null);
+    }
+
+    public void assertCount(
+            IItemHandler inventory,
+            @Nullable ItemLike item,
+            int expectedCount,
+            String message
+    ) {
+
+        int actualCount = count(inventory, item);
+        assertTrue(
+                actualCount == expectedCount,
+                message + ": expected " + expectedCount + " but got " + actualCount
+        );
+    }
+
+    public void assertCount(
+            Container inventory,
+            @Nullable ItemLike item,
+            int expectedCount,
+            String message
+    ) {
+
+        int actualCount = count(inventory, item);
+        assertTrue(
+                actualCount == expectedCount,
+                message + ": expected " + expectedCount + " but got " + actualCount
+        );
+    }
+
+    public void assertCount(
+            Container inventory,
+            ItemStack comparisonStack,
+            int expectedCount,
+            String message
+    ) {
+
+        int actualCount = count(this, inventory, comparisonStack);
+        assertTrue(
+                actualCount == expectedCount,
+                message + ": expected " + expectedCount + " but got " + actualCount
+        );
+    }
+
+    public void assertCount(
+            IItemHandler inventory,
+            ItemStack comparisonStack,
+            int expectedCount,
+            String message
+    ) {
+
+        int actualCount = count(inventory, comparisonStack);
+        assertTrue(
+                actualCount == expectedCount,
+                message + ": expected " + expectedCount + " but got " + actualCount
+        );
+    }
+
+    public void assertCount(
+            IItemHandler inventory,
+            int expectedCount,
+            String message
+    ) {
+
+        assertCount(inventory, (ItemLike) null, expectedCount, message);
+    }
+
+    public void assertCount(
+            Container inventory,
+            int expectedCount,
+            String message
+    ) {
+
+        assertCount(inventory, (ItemLike) null, expectedCount, message);
+    }
+
+    public void assertCount(
+            AtomicReference<?> ref,
+            int expectedCount,
+            String message
+    ) {
+
+        var inventory = ref.get();
+        if (inventory instanceof Container container) {
+            assertCount(container, expectedCount, message);
+        } else if (inventory instanceof IItemHandler itemHandler) {
+            assertCount(itemHandler, expectedCount, message);
+        } else {
+            throw new IllegalArgumentException("Expected either a Container or IItemHandler but got "
+                                               + inventory.getClass());
+        }
+    }
+
 }
