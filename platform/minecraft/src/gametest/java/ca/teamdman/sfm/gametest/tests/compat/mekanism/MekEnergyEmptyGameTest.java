@@ -13,8 +13,7 @@ import mekanism.common.tile.TileEntityEnergyCube;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.getAndPrepMekTile;
+
 
 /**
  * Migrated from SFMMekanismCompatGameTests.mek_energy_empty
@@ -44,10 +43,10 @@ public class MekEnergyEmptyGameTest extends SFMGameTestDefinition {
 
         // set up the world
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
-        TileEntityEnergyCube left = getAndPrepMekTile(helper,leftPos);
+        TileEntityEnergyCube left = helper.getAndPrepMekTile(leftPos);
 
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
-        TileEntityEnergyCube right = getAndPrepMekTile(helper,rightPos);
+        TileEntityEnergyCube right = helper.getAndPrepMekTile(rightPos);
 
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
@@ -70,8 +69,8 @@ public class MekEnergyEmptyGameTest extends SFMGameTestDefinition {
         left.setEnergy(0, EnergyCubeTier.ULTIMATE.getMaxEnergy());
         right.setEnergy(0, 0);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(left.getEnergy(0) == 0, "Contents did not depart");
-            assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive");
+            helper.assertTrue(left.getEnergy(0) == 0, "Contents did not depart");
+            helper.assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive");
         });
     }
 }

@@ -16,7 +16,7 @@ import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -108,11 +108,11 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
                 BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(pos);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
                     if (i % 3 == 0) {
-                        assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart");
+                        helper.assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart");
                     } else if (i % 3 == 1) {
-                        assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart");
+                        helper.assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart");
                     } else {
-                        assertTrue(barrel.getItem(i).getItem() == Items.DIAMOND, "Non-matching didn't stay");
+                        helper.assertTrue(barrel.getItem(i).getItem() == Items.DIAMOND, "Non-matching didn't stay");
                     }
                 }
             });
@@ -131,9 +131,9 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
                     }
                 }
             });
-            assertTrue(ironIngots.get() == 0, "Iron ingots did not arrive");
-            assertTrue(goldIngots.get() == 0, "Gold ingots did not arrive");
-            assertTrue(diamonds.get() == diamondStart, "Diamonds did not stay");
+            helper.assertTrue(ironIngots.get() == 0, "Iron ingots did not arrive");
+            helper.assertTrue(goldIngots.get() == 0, "Gold ingots did not arrive");
+            helper.assertTrue(diamonds.get() == diamondStart, "Diamonds did not stay");
         });
     }
 }

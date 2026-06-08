@@ -8,7 +8,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Tests water tank network formation, splitting, and merging behavior.
@@ -43,15 +43,15 @@ public class WaterTankNetworkFormationGameTest extends SFMGameTestDefinition {
 
         // All tanks should be in the same network
         WaterTankBlockEntity firstTank = (WaterTankBlockEntity) helper.getBlockEntity(new BlockPos(0, 2, 0));
-        assertTrue(firstTank != null, "First tank should exist");
+        helper.assertTrue(firstTank != null, "First tank should exist");
 
         // Get capacity - with 0 active members, capacity should be 0
         // But the network should still exist and contain all 5 tanks
         for (int i = 0; i < 5; i++) {
             WaterTankBlockEntity tank = (WaterTankBlockEntity) helper.getBlockEntity(new BlockPos(i, 2, 0));
-            assertTrue(tank != null, "Tank " + i + " should exist");
+            helper.assertTrue(tank != null, "Tank " + i + " should exist");
             // All inactive tanks should have capacity 0
-            assertTrue(
+            helper.assertTrue(
                     tank.TANK.getCapacity() == 0,
                     "Inactive tank " + i + " should have capacity 0 but had " + tank.TANK.getCapacity()
             );
@@ -66,16 +66,16 @@ public class WaterTankNetworkFormationGameTest extends SFMGameTestDefinition {
         // All remain inactive (no water), so capacity should still be 0 for all
         for (int i = 0; i < 2; i++) {
             WaterTankBlockEntity tank = (WaterTankBlockEntity) helper.getBlockEntity(new BlockPos(i, 2, 0));
-            assertTrue(tank != null, "Tank " + i + " should still exist after split");
-            assertTrue(
+            helper.assertTrue(tank != null, "Tank " + i + " should still exist after split");
+            helper.assertTrue(
                     tank.TANK.getCapacity() == 0,
                     "Tank " + i + " should have capacity 0 after split"
             );
         }
         for (int i = 3; i < 5; i++) {
             WaterTankBlockEntity tank = (WaterTankBlockEntity) helper.getBlockEntity(new BlockPos(i, 2, 0));
-            assertTrue(tank != null, "Tank " + i + " should still exist after split");
-            assertTrue(
+            helper.assertTrue(tank != null, "Tank " + i + " should still exist after split");
+            helper.assertTrue(
                     tank.TANK.getCapacity() == 0,
                     "Tank " + i + " should have capacity 0 after split"
             );
@@ -87,7 +87,7 @@ public class WaterTankNetworkFormationGameTest extends SFMGameTestDefinition {
         // All tanks should be in the same network again
         for (int i = 0; i < 5; i++) {
             WaterTankBlockEntity tank = (WaterTankBlockEntity) helper.getBlockEntity(new BlockPos(i, 2, 0));
-            assertTrue(tank != null, "Tank " + i + " should exist after repair");
+            helper.assertTrue(tank != null, "Tank " + i + " should exist after repair");
         }
 
         // ===== Plus-shaped network test =====
@@ -112,11 +112,11 @@ public class WaterTankNetworkFormationGameTest extends SFMGameTestDefinition {
         WaterTankBlockEntity eastTank = (WaterTankBlockEntity) helper.getBlockEntity(east);
         WaterTankBlockEntity westTank = (WaterTankBlockEntity) helper.getBlockEntity(west);
 
-        assertTrue(centerTank != null, "Center tank should exist");
-        assertTrue(northTank != null, "North tank should exist");
-        assertTrue(southTank != null, "South tank should exist");
-        assertTrue(eastTank != null, "East tank should exist");
-        assertTrue(westTank != null, "West tank should exist");
+        helper.assertTrue(centerTank != null, "Center tank should exist");
+        helper.assertTrue(northTank != null, "North tank should exist");
+        helper.assertTrue(southTank != null, "South tank should exist");
+        helper.assertTrue(eastTank != null, "East tank should exist");
+        helper.assertTrue(westTank != null, "West tank should exist");
 
         // Remove the center tank - this should split into 4 separate networks
         helper.setBlock(center, Blocks.AIR);
@@ -128,25 +128,25 @@ public class WaterTankNetworkFormationGameTest extends SFMGameTestDefinition {
         eastTank = (WaterTankBlockEntity) helper.getBlockEntity(east);
         westTank = (WaterTankBlockEntity) helper.getBlockEntity(west);
 
-        assertTrue(northTank != null, "North tank should still exist after removing center");
-        assertTrue(southTank != null, "South tank should still exist after removing center");
-        assertTrue(eastTank != null, "East tank should still exist after removing center");
-        assertTrue(westTank != null, "West tank should still exist after removing center");
+        helper.assertTrue(northTank != null, "North tank should still exist after removing center");
+        helper.assertTrue(southTank != null, "South tank should still exist after removing center");
+        helper.assertTrue(eastTank != null, "East tank should still exist after removing center");
+        helper.assertTrue(westTank != null, "West tank should still exist after removing center");
 
         // All should have capacity 0 since they're inactive
-        assertTrue(
+        helper.assertTrue(
                 northTank.TANK.getCapacity() == 0,
                 "North tank should have capacity 0 after split"
         );
-        assertTrue(
+        helper.assertTrue(
                 southTank.TANK.getCapacity() == 0,
                 "South tank should have capacity 0 after split"
         );
-        assertTrue(
+        helper.assertTrue(
                 eastTank.TANK.getCapacity() == 0,
                 "East tank should have capacity 0 after split"
         );
-        assertTrue(
+        helper.assertTrue(
                 westTank.TANK.getCapacity() == 0,
                 "West tank should have capacity 0 after split"
         );
@@ -155,7 +155,7 @@ public class WaterTankNetworkFormationGameTest extends SFMGameTestDefinition {
         helper.setBlock(center, SFMBlocks.WATER_TANK.get());
 
         centerTank = (WaterTankBlockEntity) helper.getBlockEntity(center);
-        assertTrue(centerTank != null, "Center tank should exist after restoration");
+        helper.assertTrue(centerTank != null, "Center tank should exist after restoration");
 
         helper.succeed();
     }

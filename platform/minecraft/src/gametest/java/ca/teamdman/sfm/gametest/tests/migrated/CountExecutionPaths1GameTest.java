@@ -16,8 +16,6 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMCorrectnessGameTests.count_execution_paths_1
@@ -68,12 +66,12 @@ public class CountExecutionPaths1GameTest extends SFMGameTestDefinition {
                                            OUTPUT TO right
                                        END
                                    """.stripTrailing().stripIndent());
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
         var program = manager.getProgram();
 
         // ensure no warnings
         var warnings = DiskItem.getWarnings(Objects.requireNonNull(manager.getDisk()));
-        assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size());
+        helper.assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size());
 
         // count the execution paths
         GatherWarningsProgramBehaviour simulation = new GatherWarningsProgramBehaviour(new ProblemTracker());
@@ -83,8 +81,11 @@ public class CountExecutionPaths1GameTest extends SFMGameTestDefinition {
                 0,
                 simulation
         ));
-        assertTrue(simulation.getSeenPaths().size() == 1, "expected single execution path");
-        assertTrue(simulation.getSeenPaths().get(0).history().size() == 2, "expected two elements in execution path");
+        helper.assertTrue(simulation.getSeenPaths().size() == 1, "expected single execution path");
+        helper.assertTrue(
+                simulation.getSeenPaths().get(0).history().size() == 2,
+                "expected two elements in execution path"
+        );
         helper.succeed();
     }
 }

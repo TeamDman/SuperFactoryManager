@@ -21,7 +21,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -103,9 +103,9 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
                     chest.insertItem(0, held, false);
 
                     // Assert ingredient transformations
-                    assertTrue(printingPress.getInk().getCount() == 9, "Ink was not consumed properly");
-                    assertTrue(printingPress.getPaper().isEmpty(), "Paper was not consumed");
-                    assertTrue(!printingPress.getForm().isEmpty(), "Form should not be consumed");
+                    helper.assertTrue(printingPress.getInk().getCount() == 9, "Ink was not consumed properly");
+                    helper.assertTrue(printingPress.getPaper().isEmpty(), "Paper was not consumed");
+                    helper.assertTrue(!printingPress.getForm().isEmpty(), "Form should not be consumed");
 
                     // Succeed test
                     helper.succeed();

@@ -19,7 +19,6 @@ import net.minecraft.world.level.block.StandingSignBlock;
 
 import java.util.stream.Stream;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.count;
 
 
 /**
@@ -188,9 +187,9 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
                                    END
                                    """.stripTrailing().stripIndent());
         helper.succeedWhen(() -> {
-            boolean hasCalculation = count(results, AEItems.CALCULATION_PROCESSOR.asItem().asItem()) > 0;
-            boolean hasEngineering = count(results, AEItems.ENGINEERING_PROCESSOR.asItem().asItem()) > 0;
-            boolean hasLogic = count(results, AEItems.LOGIC_PROCESSOR.asItem().asItem()) > 0;
+            boolean hasCalculation = helper.count(results, AEItems.CALCULATION_PROCESSOR.asItem().asItem()) > 0;
+            boolean hasEngineering = helper.count(results, AEItems.ENGINEERING_PROCESSOR.asItem().asItem()) > 0;
+            boolean hasLogic = helper.count(results, AEItems.LOGIC_PROCESSOR.asItem().asItem()) > 0;
             if (hasCalculation && hasEngineering && hasLogic) {
                 helper.succeed();
             } else {

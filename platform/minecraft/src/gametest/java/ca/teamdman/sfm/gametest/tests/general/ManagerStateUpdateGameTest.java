@@ -9,8 +9,6 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Ensure that the manager state gets updated as the disk is inserted and the program is set
@@ -27,17 +25,20 @@ public class ManagerStateUpdateGameTest extends SFMGameTestDefinition {
         helper.setBlock(new BlockPos(0, 2, 0), SFMBlocks.MANAGER.get());
         ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(0, 2, 0));
         assert manager != null;
-        assertTrue(manager.getState() == ManagerBlockEntity.State.NO_DISK, "Manager did not start with no disk");
-        assertTrue(manager.getDisk() == null, "Manager did not start with no disk");
+        helper.assertTrue(manager.getState() == ManagerBlockEntity.State.NO_DISK, "Manager did not start with no disk");
+        helper.assertTrue(manager.getDisk() == null, "Manager did not start with no disk");
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
-        assertTrue(manager.getState() == ManagerBlockEntity.State.NO_PROGRAM, "Disk did not start with no program");
+        helper.assertTrue(
+                manager.getState() == ManagerBlockEntity.State.NO_PROGRAM,
+                "Disk did not start with no program"
+        );
         manager.setProgram("""
                                        EVERY 20 TICKS DO
                                            INPUT FROM a
                                            OUTPUT TO b
                                        END
                                    """.stripTrailing().stripIndent());
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
         helper.succeed();
     }
 }

@@ -13,7 +13,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -65,14 +65,20 @@ public class IndustrialForegoingBlackholeSomeGameTest extends SFMGameTestDefinit
                 .save(manager.getDisk());
 
         // we need to insert a normal stack last for the rendering to work in IF
-        assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 5000 - 64), false).isEmpty(), "couldn't prep left");
-        assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
-        assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 5000 - 64), false).isEmpty(), "couldn't prep left");
-        assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep right");
+        helper.assertTrue(
+                left.insertItem(0, new ItemStack(Items.COAL, 5000 - 64), false).isEmpty(),
+                "couldn't prep left"
+        );
+        helper.assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
+        helper.assertTrue(
+                right.insertItem(0, new ItemStack(Items.COAL, 5000 - 64), false).isEmpty(),
+                "couldn't prep left"
+        );
+        helper.assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep right");
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(left.getStackInSlot(0).getCount() == 5_000 - 64, "Contents did not depart properly");
-            assertTrue(right.getStackInSlot(0).getCount() == 5_000 + 64, "Contents did not arrive");
+            helper.assertTrue(left.getStackInSlot(0).getCount() == 5_000 - 64, "Contents did not depart properly");
+            helper.assertTrue(right.getStackInSlot(0).getCount() == 5_000 + 64, "Contents did not arrive");
 
         });
     }

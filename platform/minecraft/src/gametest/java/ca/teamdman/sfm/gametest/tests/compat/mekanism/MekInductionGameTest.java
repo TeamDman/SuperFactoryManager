@@ -19,8 +19,7 @@ import net.minecraft.world.level.block.Block;
 
 import java.util.List;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.getAndPrepMekTile;
+
 
 /**
  * Migrated from SFMMekanismCompatGameTests.mek_induction
@@ -74,7 +73,7 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
         // set up the energy source
         helper.setBlock(powerCubePos, MekanismBlocks.CREATIVE_ENERGY_CUBE.getBlock());
 
-        TileEntityEnergyCube powerCube = getAndPrepMekTile(helper, powerCubePos);
+        TileEntityEnergyCube powerCube = helper.getAndPrepMekTile(powerCubePos);
         powerCube.setEnergy(0, EnergyCubeTier.CREATIVE.getMaxEnergy());
 //        powerCube.getConfig().setupIOConfig(TransmissionType.ENERGY,powerCube.getEnergyContainer(), RelativeSide.TOP, true);
 //        powerCube.getConfig().
@@ -118,9 +117,9 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
             long joules = inductionPort.getEnergy(0);
             long energy = UnitDisplayUtils.EnergyUnit.FORGE_ENERGY.convertTo(joules);
             boolean success = energy == expected;
-            assertTrue(
+            helper.assertTrue(
                     success,
-                    "Expected energy did not match, got " + energy + " expected " + expected
+                    "Expected energy did not match"
             );
         });
     }
