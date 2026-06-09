@@ -1,0 +1,18 @@
+if (project.ext.has('sfmIdeaModuleDownloadsConfigured')) {
+    throw new GradleException("idea-module-downloads.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("idea-module-downloads.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+ext.sfmIdeaModuleDownloadsConfigured = true
+
+// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
+// However, this causes gradle to throw "Error getting artifact" so keep it commented out to retain your sanity
+//idea {
+//    module {
+//        downloadSources = true
+//        downloadJavadoc = true
+//    }
+//}

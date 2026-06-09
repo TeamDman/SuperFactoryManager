@@ -1,0 +1,5 @@
+mixin {
+    add sourceSets.main, "sfm.refmap.json"
+    config "sfm.mixins.json"
+    debug.verbose = true
+}

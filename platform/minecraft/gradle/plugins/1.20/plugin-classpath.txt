@@ -1,0 +1,4 @@
+# External plugin marker coordinates.
+net.minecraftforge.gradle:net.minecraftforge.gradle.gradle.plugin:[6.0,6.2)
+org.parchmentmc.librarian.forgegradle:org.parchmentmc.librarian.forgegradle.gradle.plugin:1.+
+org.spongepowered.mixin:org.spongepowered.mixin.gradle.plugin:0.7.+
