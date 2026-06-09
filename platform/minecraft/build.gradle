@@ -53,12 +53,7 @@ apply from: "gradle/idea-excludes.gradle"
 apply from: "gradle/versioned-configurations.gradle"
 apply from: "gradle/versioned-run-configurations.gradle"
 
-// this is handled in mods.toml from 1.20.2+
-//mixin {
-//    add sourceSets.main, "sfm.refmap.json"
-//    config "sfm.mixins.json"
-//    debug.verbose = true
-//}
+apply from: "gradle/versioned-mixin.gradle"
 
 apply from: "gradle/repositories.gradle"
 

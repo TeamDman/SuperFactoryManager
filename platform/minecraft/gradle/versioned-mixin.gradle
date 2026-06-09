@@ -1,0 +1,19 @@
+def sfmMixinVersion = project.minecraft_version.toString()
+def sfmMixinScript = file("gradle/mixin/${sfmMixinVersion}/mixin.gradle")
+
+if (!sfmMixinScript.isFile()) {
+    def available = file("gradle/mixin")
+            .listFiles()
+            ?.findAll { it.isDirectory() }
+            ?.collect { it.name }
+            ?.sort()
+            ?.join(', ')
+    throw new GradleException(
+            "No mixin script found for minecraft_version=${sfmMixinVersion}. "
+            + "Expected ${sfmMixinScript}. Available versions: ${available ?: '(none)'}"
+    )
+}
+
+ext.sfmMixinVersion = sfmMixinVersion
+
+apply from: sfmMixinScript
