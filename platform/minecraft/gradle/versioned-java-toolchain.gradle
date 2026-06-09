@@ -1,0 +1,19 @@
+def sfmJavaToolchainVersion = project.minecraft_version.toString()
+def sfmJavaToolchainScript = file("gradle/java-toolchain/${sfmJavaToolchainVersion}/java-toolchain.gradle")
+
+if (!sfmJavaToolchainScript.isFile()) {
+    def available = file("gradle/java-toolchain")
+            .listFiles()
+            ?.findAll { it.isDirectory() }
+            ?.collect { it.name }
+            ?.sort()
+            ?.join(', ')
+    throw new GradleException(
+            "No Java toolchain script found for minecraft_version=${sfmJavaToolchainVersion}. "
+            + "Expected ${sfmJavaToolchainScript}. Available versions: ${available ?: '(none)'}"
+    )
+}
+
+ext.sfmJavaToolchainVersion = sfmJavaToolchainVersion
+
+apply from: sfmJavaToolchainScript

@@ -31,13 +31,14 @@ buildscript {
     }
 }
 
+// temp reminder: avoid using --rerun-tasks while we are iterating on cleaning up the build.gradle
+// as it causes things to get decompiled again and it takes a long time
+
 apply from: "gradle/versioned-plugins.gradle"
 apply from: "gradle/java-compiler.gradle"
 apply from: "gradle/wrapper.gradle"
 apply from: "gradle/archive-name.gradle"
-
-// Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
-java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+apply from: "gradle/versioned-java-toolchain.gradle"
 
 accessTransformers {
     file 'src/main/resources/META-INF/accesstransformer.cfg'
