@@ -64,23 +64,7 @@ apply from: "gradle/test.gradle"
 apply from: "gradle/jar-manifest.gradle"
 apply from: "gradle/publishing.gradle"
 apply from: "gradle/java-compile-encoding.gradle"
-
-generateGrammarSource {
-    arguments = [
-            "-visitor",
-            "-Xexact-output-dir" // https://stackoverflow.com/a/79058733/11141271 fixes "can't find .tokens file" error for TomlParser.g4
-    ]
-    outputDirectory = file("${project.buildDir}/generated-src/antlr/main/ca/teamdman/langs")
-
-//    include 'sfml/SFML.g4'
-//    // Include the lexer first
-//    include 'toml/TomlLexer.g4'
-//    include 'toml/TomlParser.g4'
-}
-
-compileJava {
-    dependsOn generateGrammarSource
-}
+apply from: "gradle/generate-grammar-source.gradle"
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
 // However, this causes gradle to throw "Error getting artifact" so keep it commented out to retain your sanity

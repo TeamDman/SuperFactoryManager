@@ -1,0 +1,16 @@
+generateGrammarSource {
+    arguments = [
+            "-visitor",
+            "-Xexact-output-dir" // https://stackoverflow.com/a/79058733/11141271 fixes "can't find .tokens file" error for TomlParser.g4
+    ]
+    outputDirectory = file("${project.buildDir}/generated-src/antlr/main/ca/teamdman/langs")
+
+//    include 'sfml/SFML.g4'
+//    // Include the lexer first
+//    include 'toml/TomlLexer.g4'
+//    include 'toml/TomlParser.g4'
+}
+
+compileJava {
+    dependsOn generateGrammarSource
+}
