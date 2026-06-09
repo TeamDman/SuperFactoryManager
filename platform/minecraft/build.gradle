@@ -71,7 +71,7 @@ sourceSets {
         java {
             exclude "ca/teamdman/sfm/common/resourcetype/GasResourceType.java"
             exclude "ca/teamdman/sfm/common/resourcetype/InfuseResourceType.java"
-            exclude "ca/teamdman/sfm/common/resourcetype/MekanismEnergyResourceType.java"
+            exclude "ca/teamdman/sfm/common/resourcetype/exclude/MekanismEnergyResourceType.java"
             exclude "ca/teamdman/sfm/common/resourcetype/PigmentResourceType.java"
             exclude "ca/teamdman/sfm/common/resourcetype/SlurryResourceType.java"
         }

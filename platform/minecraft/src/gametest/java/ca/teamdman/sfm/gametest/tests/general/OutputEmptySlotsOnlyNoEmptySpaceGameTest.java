@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 @SuppressWarnings({"DataFlowIssue"})
 @SFMGameTest
@@ -66,13 +66,16 @@ public class OutputEmptySlotsOnlyNoEmptySpaceGameTest extends SFMGameTestDefinit
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
                     // Since there are no empty slots among the targeted set, nothing should have moved.
-                    assertTrue(leftChest.getStackInSlot(0).getCount() == 16, "Source should be unchanged", helper.getTick());
-                    assertTrue(rightChest.getStackInSlot(0).getCount() == 1, "Dest slot 0 should be unchanged", helper.getTick());
-                    assertTrue(rightChest.getStackInSlot(1).getCount() == 1, "Dest slot 1 should be unchanged", helper.getTick());
-                    assertTrue(rightChest.getStackInSlot(2).getCount() == 1, "Dest slot 2 should be unchanged", helper.getTick());
-                    assertTrue(rightChest.getStackInSlot(3).getCount() == 1, "Dest slot 3 should be unchanged", helper.getTick());
-                    assertTrue(rightChest.getStackInSlot(4).getCount() == 1, "Dest slot 4 should be unchanged", helper.getTick());
-                    assertTrue(rightChest.getStackInSlot(10).getCount() == 1, "Dest slot 10 should be unchanged", helper.getTick());
+                    helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 16, "Source should be unchanged", helper.getTick());
+                    helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 1, "Dest slot 0 should be unchanged", helper.getTick());
+                    helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 1, "Dest slot 1 should be unchanged", helper.getTick());
+                    helper.assertTrue(rightChest.getStackInSlot(2).getCount() == 1, "Dest slot 2 should be unchanged", helper.getTick());
+                    helper.assertTrue(rightChest.getStackInSlot(3).getCount() == 1, "Dest slot 3 should be unchanged", helper.getTick());
+                    helper.assertTrue(rightChest.getStackInSlot(4).getCount() == 1, "Dest slot 4 should be unchanged", helper.getTick());
+                    helper.assertTrue(
+                            rightChest.getStackInSlot(10).getCount() == 1,
+                            "Dest slot 10 should be unchanged"
+                    , helper.getTick());
                 }
         );
     }

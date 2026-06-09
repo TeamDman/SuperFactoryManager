@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 @SuppressWarnings({"DataFlowIssue"})
 @SFMGameTest
@@ -67,11 +67,14 @@ public class OutputEmptySlotsOnlyAvoidStackingGameTest extends SFMGameTestDefini
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
                     // all 20 moved from left
-                    assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied", helper.getTick());
+                    helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied", helper.getTick());
                     // destination slot 0 remains 10 (no stacking)
-                    assertTrue(rightChest.getStackInSlot(0).getCount() == 10, "Destination slot 0 should remain 10", helper.getTick());
+                    helper.assertTrue(
+                            rightChest.getStackInSlot(0).getCount() == 10,
+                            "Destination slot 0 should remain 10"
+                    , helper.getTick());
                     // destination slot 1 received 20
-                    assertTrue(rightChest.getStackInSlot(1).getCount() == 20, "Destination slot 1 should be 20", helper.getTick());
+                    helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 20, "Destination slot 1 should be 20", helper.getTick());
                 }
         );
     }

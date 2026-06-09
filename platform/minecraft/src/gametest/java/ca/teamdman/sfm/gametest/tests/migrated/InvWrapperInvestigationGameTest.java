@@ -10,7 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.items.wrapper.InvWrapper;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.inv_wrapper_investigation
@@ -38,28 +38,28 @@ public class InvWrapperInvestigationGameTest extends SFMGameTestDefinition {
                 ItemStack insertParam = new ItemStack(Items.DIRT, stackSize);
                 ItemStack insertParamCopy = insertParam.copy();
                 ItemStack ignoredInsertResult = inv.insertItem(0, insertParam, false);
-                assertTrue(
+                helper.assertTrue(
                         SFMItemUtils.isSameItemSameAmount(insertParam, insertParamCopy),
                         "stackSize="
                         + stackSize
                         + " insert param should not be modified after insertion, is now "
                         + insertParam
                 , helper.getTick());
-                assertTrue(
+                helper.assertTrue(
                         inv.getStackInSlot(0) != insertParam,
                         "stackSize="
                         + stackSize
                         + " the inventory shouldn't take ownership of the reference after insertion"
                 , helper.getTick());
                 ItemStack extractResult = inv.extractItem(0, stackSize, false);
-                assertTrue(
+                helper.assertTrue(
                         SFMItemUtils.isSameItemSameAmount(insertParam, insertParamCopy),
                         "stackSize="
                         + stackSize
                         + " insert param should not be modified after extraction, is now "
                         + insertParam
                 , helper.getTick());
-                assertTrue(
+                helper.assertTrue(
                         SFMItemUtils.isSameItemSameAmount(insertParam, extractResult),
                         "stackSize=" + stackSize + " extract result should match insertion param"
                 , helper.getTick());

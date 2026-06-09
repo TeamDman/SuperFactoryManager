@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.wireless_regression
@@ -62,8 +62,8 @@ public class WirelessRegressionGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(!leftChest.getStackInSlot(0).isEmpty(), "Dirt should not move", helper.getTick());
-            assertTrue(rightChest.getStackInSlot(0).getCount() != 64, "Dirt should not move", helper.getTick());
+            helper.assertTrue(!leftChest.getStackInSlot(0).isEmpty(), "Dirt should not move", helper.getTick());
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() != 64, "Dirt should not move", helper.getTick());
 
         });
     }

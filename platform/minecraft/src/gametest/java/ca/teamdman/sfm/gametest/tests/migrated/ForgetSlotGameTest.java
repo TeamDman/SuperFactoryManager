@@ -12,7 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMIfStatementGameTests.forget_slot
@@ -67,10 +67,10 @@ public class ForgetSlotGameTest extends SFMGameTestDefinition {
                 .save(manager.getDisk());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt should depart", helper.getTick());
-            assertTrue(leftChest.getStackInSlot(1).getCount() == 64, "Iron ingots should not depart", helper.getTick());
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "Dirt should arrive in size", helper.getTick());
-            assertTrue(rightChest.getStackInSlot(0).getItem() == Items.DIRT, "Dirt should arrive in type", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt should depart", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(1).getCount() == 64, "Iron ingots should not depart", helper.getTick());
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "Dirt should arrive in size", helper.getTick());
+            helper.assertTrue(rightChest.getStackInSlot(0).getItem() == Items.DIRT, "Dirt should arrive in type", helper.getTick());
 
         });
     }

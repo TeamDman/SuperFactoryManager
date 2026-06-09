@@ -11,7 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /// We want to make sure that the {@link SFMEnchantmentCollection} class is properly writing and reading enchantments.
 /// It should clobber rather than append.
@@ -42,7 +42,7 @@ public class EnchantmentCollectionWriteToToolGameTest extends SFMGameTestDefinit
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.SHARPNESS, 3));
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.UNBREAKING, 2));
 
-        assertTrue(!enchantments1.equals(enchantments2), "Enchantment collections must not be equal", helper.getTick());
+        helper.assertTrue(!enchantments1.equals(enchantments2), "Enchantment collections must not be equal", helper.getTick());
 
         // Create an item
         ItemStack axeStack1 = new ItemStack(Items.GOLDEN_AXE);
@@ -53,7 +53,7 @@ public class EnchantmentCollectionWriteToToolGameTest extends SFMGameTestDefinit
         enchantments1.write(axeStack1, SFMEnchantmentCollectionKind.EnchantedLikeATool);
         enchantments2.write(axeStack1, SFMEnchantmentCollectionKind.EnchantedLikeATool);
 
-        assertTrue(
+        helper.assertTrue(
                 SFMEnchantmentCollection
                         .fromItemStack(axeStack1, SFMEnchantmentCollectionKind.EnchantedLikeATool)
                         .canonicalize()
@@ -62,7 +62,7 @@ public class EnchantmentCollectionWriteToToolGameTest extends SFMGameTestDefinit
         , helper.getTick());
 
         enchantments2.write(axeStack2, SFMEnchantmentCollectionKind.EnchantedLikeATool);
-        assertTrue(
+        helper.assertTrue(
                 SFMItemUtils.isSameItemSameTags(axeStack2, axeStack1),
                 "Item stacks must be equal after writing to an item stack (EnchantedLikeATool) and reading from it (EnchantedLikeATool)"
         , helper.getTick());

@@ -14,7 +14,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.sfm_v4_12_0_changelog
@@ -107,10 +107,10 @@ public class SfmV4120ChangelogGameTest extends SFMGameTestDefinition {
                         continue slots;
                     }
                 }
-                assertTrue(false, "Unexpected item in chest: " + item, helper.getTick());
+                helper.assertTrue(false, "Unexpected item in chest: " + item, helper.getTick());
             }
             for (int i = 0; i < found.length; i++) {
-                assertTrue(found[i] == 1, "Expected " + expected[i] + " to be 1, but was " + found[i], helper.getTick());
+                helper.assertTrue(found[i] == 1, "Expected " + expected[i] + " to be 1, but was " + found[i], helper.getTick());
             }
 
         });

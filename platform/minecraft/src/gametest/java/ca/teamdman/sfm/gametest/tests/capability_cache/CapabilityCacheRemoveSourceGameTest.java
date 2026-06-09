@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
+
 
 @SuppressWarnings({"DataFlowIssue"})
 @SFMGameTest
@@ -72,15 +72,15 @@ public class CapabilityCacheRemoveSourceGameTest extends SFMGameTestDefinition {
                 List.of(
                         () -> {
                             // validate one item has moved
-                            assertCount(leftChest, 63, "One should have departed", helper.getTick());
-                            assertCount(rightChest, 1, "One should have arrived", helper.getTick());
+                            helper.assertCount(leftChest, 63, "One should have departed", helper.getTick());
+                            helper.assertCount(rightChest, 1, "One should have arrived", helper.getTick());
 
                             // break the source block
                             helper.setBlock(leftPos, Blocks.AIR);
                         },
                         () -> {
                             // validate things aren't moving
-                            assertCount(leftChest, 63, "None should depart after source is broken", helper.getTick());
+                            helper.assertCount(leftChest, 63, "None should depart after source is broken", helper.getTick());
 
                             // restore source block
                             helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
@@ -89,8 +89,8 @@ public class CapabilityCacheRemoveSourceGameTest extends SFMGameTestDefinition {
                         },
                         () -> {
                             // validate that items have resumed moving
-                            assertCount(leftChest, 63, "Another departs after source restored", helper.getTick());
-                            assertCount(rightChest, 2, "Another arrives after source restored", helper.getTick());
+                            helper.assertCount(leftChest, 63, "Another departs after source restored", helper.getTick());
+                            helper.assertCount(rightChest, 2, "Another arrives after source restored", helper.getTick());
 
                             // enqueue success
                             helper.succeed();

@@ -10,7 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -49,10 +49,13 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
             DiskItem.setProgram(disk, programString);
             DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true);
             chest.insertItem(0, disk, false);
-            assertTrue(DiskItem.getProgramName(disk).equals("bruh"), "program name should be bruh for disk 1", helper.getTick());
-            assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 1", helper.getTick());
-            assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 1", helper.getTick());
-            assertTrue(disk.getHoverName().getString().equals("bruh"), "display name should be \"bruh\" for disk 1", helper.getTick());
+            helper.assertTrue(DiskItem.getProgramName(disk).equals("bruh"), "program name should be bruh for disk 1", helper.getTick());
+            helper.assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 1", helper.getTick());
+            helper.assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 1", helper.getTick());
+            helper.assertTrue(
+                    disk.getHoverName().getString().equals("bruh"),
+                    "display name should be \"bruh\" for disk 1"
+            , helper.getTick());
         }
         {
             ItemStack disk = new ItemStack(SFMItems.DISK.get());
@@ -63,10 +66,10 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
             DiskItem.setProgram(disk, programString);
             DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true);
             chest.insertItem(1, disk, false);
-            assertTrue(disk.getComponentsPatch().getPatch(DataComponents.ITEM_NAME) == null, "program name should be empty for disk 2", helper.getTick());
-            assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 2", helper.getTick());
-            assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 2", helper.getTick());
-            assertTrue(
+            helper.assertTrue(disk.getComponentsPatch().getPatch(DataComponents.ITEM_NAME) == null, "program name should be empty for disk 2", helper.getTick());
+            helper.assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 2", helper.getTick());
+            helper.assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 2", helper.getTick());
+            helper.assertTrue(
                     disk.getHoverName().contains(DiskItem.DISK_ITEM.getComponent()),
                     "display name should be default for disk 2"
             , helper.getTick());

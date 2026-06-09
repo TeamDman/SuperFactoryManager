@@ -13,7 +13,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.reorder_3
@@ -64,9 +64,9 @@ public class Reorder3GameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "should depart", helper.getTick());
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "should arrive in size", helper.getTick());
-            assertTrue(rightChest.getStackInSlot(0).getItem() == Items.IRON_INGOT, "should arrive in type", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "should depart", helper.getTick());
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "should arrive in size", helper.getTick());
+            helper.assertTrue(rightChest.getStackInSlot(0).getItem() == Items.IRON_INGOT, "should arrive in type", helper.getTick());
 
         });
     }

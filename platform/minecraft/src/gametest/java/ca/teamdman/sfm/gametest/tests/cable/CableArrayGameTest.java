@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 @SFMGameTest
 public class CableArrayGameTest extends SFMGameTestDefinition {
@@ -67,7 +67,7 @@ public class CableArrayGameTest extends SFMGameTestDefinition {
 
         // All placed blocks should be cables; assert that first
         for (BlockPos p : cablePositions) {
-            assertTrue(
+            helper.assertTrue(
                     CableNetwork.isCable(helper.getLevel(), p),
                     "Placed block at " + p + " should be a cable"
             , helper.getTick());
@@ -79,16 +79,16 @@ public class CableArrayGameTest extends SFMGameTestDefinition {
                 helper.getLevel(),
                 firstPos
         );
-        assertTrue(maybeNetwork.isPresent(), "Cable network should exist for first cable", helper.getTick());
+        helper.assertTrue(maybeNetwork.isPresent(), "Cable network should exist for first cable", helper.getTick());
         var network = maybeNetwork.get();
 
         // network should contain all the cable positions we placed
         for (BlockPos p : cablePositions) {
-            assertTrue(network.containsCablePosition(p), "Network should contain cable at " + p, helper.getTick());
+            helper.assertTrue(network.containsCablePosition(p), "Network should contain cable at " + p, helper.getTick());
 
             // For each cable, ensure the manager returns the same network object reference
             var opt = CableNetworkManager.getOrRegisterNetworkFromCablePosition(helper.getLevel(), p);
-            assertTrue(
+            helper.assertTrue(
                     opt.isPresent() && opt.get() == network,
                     "Cable at " + p + " did not return the same network instance"
             , helper.getTick());

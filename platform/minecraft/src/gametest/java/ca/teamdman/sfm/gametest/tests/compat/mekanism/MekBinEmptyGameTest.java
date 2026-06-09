@@ -14,7 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -67,9 +67,12 @@ public class MekBinEmptyGameTest extends SFMGameTestDefinition {
         left.getBinSlot().setStack(new ItemStack(Items.COAL, BinTier.ULTIMATE.getStorage()));
         right.getBinSlot().setEmpty();
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(left.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage() - 64, "Contents did not depart", helper.getTick());
-            assertTrue(right.getBinSlot().getCount() == 64, "Contents did not arrive", helper.getTick());
-            assertTrue(right.getBinSlot().getStack().getItem() == Items.COAL, "Contents wrong type", helper.getTick());
+            helper.assertTrue(
+                    left.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage() - 64,
+                    "Contents did not depart"
+            );
+            helper.assertTrue(right.getBinSlot().getCount() == 64, "Contents did not arrive");
+            helper.assertTrue(right.getBinSlot().getStack().getItem() == Items.COAL, "Contents wrong type");
 
         });
     }

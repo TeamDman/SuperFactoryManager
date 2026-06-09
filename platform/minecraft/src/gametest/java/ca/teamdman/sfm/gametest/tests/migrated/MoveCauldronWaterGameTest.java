@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.LayeredCauldronBlock;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
+
 
 
 /**
@@ -64,7 +64,7 @@ public class MoveCauldronWaterGameTest extends SFMGameTestDefinition {
                                        END
                                    """.stripTrailing().stripIndent());
 
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             helper.assertBlock(left, b -> b == Blocks.CAULDRON, _ -> Component.literal("cauldron didn't empty"));
             helper.assertBlockState(

@@ -15,8 +15,6 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMCorrectnessGameTests.unused_io_warning_input_label_not_present_in_output
@@ -63,21 +61,27 @@ public class UnusedIoWarningInputLabelNotPresentInOutputGameTest extends SFMGame
                                            INPUT FROM left
                                        END
                                    """.stripTrailing().stripIndent());
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
 
         // assert expected warnings
         var warnings = DiskItem.getWarnings(Objects.requireNonNull(manager.getDisk()));
-        assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size(), helper.getTick());
+        helper.assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size(), helper.getTick());
 
         TranslatableContents firstWarning = (TranslatableContents) warnings.getFirst().getContents();
         String expectedKey = GatherWarningsProgramBehaviour.PROGRAM_WARNING_UNUSED_INPUT_LABEL.key().get();
-        assertTrue(firstWarning.getKey().equals(expectedKey), "expected output without matching input warning", helper.getTick());
-        assertTrue(firstWarning.getArgs().length == 5, "expected 5 arguments in warning", helper.getTick());
-        assertTrue(firstWarning.getArgs()[0].equals("INPUT FROM left"), "expected arg 0 to be \"INPUT FROM left\"", helper.getTick());
-        assertTrue(firstWarning.getArgs()[1].equals("Line 2, Column 4"), "expected arg 1 to be \"Line 2, Column 4\"", helper.getTick());
-        assertTrue(firstWarning.getArgs()[2].equals("sfm:item"), "expected arg 2 to be \"sfm:item\"", helper.getTick());
-        assertTrue(firstWarning.getArgs()[3].equals("left"), "expected arg 3 to be \"left\"", helper.getTick());
-        assertTrue(firstWarning.getArgs()[4].equals("sfm:item"), "expected arg 4 to be \"sfm:item\"", helper.getTick());
+        helper.assertTrue(firstWarning.getKey().equals(expectedKey), "expected output without matching input warning");
+        helper.assertTrue(firstWarning.getArgs().length == 5, "expected 5 arguments in warning");
+        helper.assertTrue(
+                firstWarning.getArgs()[0].equals("INPUT FROM left"),
+                "expected arg 0 to be \"INPUT FROM left\""
+        );
+        helper.assertTrue(
+                firstWarning.getArgs()[1].equals("Line 2, Column 4"),
+                "expected arg 1 to be \"Line 2, Column 4\""
+        );
+        helper.assertTrue(firstWarning.getArgs()[2].equals("sfm:item"), "expected arg 2 to be \"sfm:item\"");
+        helper.assertTrue(firstWarning.getArgs()[3].equals("left"), "expected arg 3 to be \"left\"");
+        helper.assertTrue(firstWarning.getArgs()[4].equals("sfm:item"), "expected arg 4 to be \"sfm:item\"");
         helper.succeed();
     }
 

@@ -13,7 +13,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.each_src_retain
@@ -67,13 +67,13 @@ public class EachSrcRetainGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // left should have 2 of each ingot
-            assertCount(leftChest, Items.IRON_INGOT, 2, "Iron did not move", helper.getTick());
-            assertCount(leftChest, Items.GOLD_INGOT, 2, "Gold did not move", helper.getTick());
-            assertCount(leftChest, Items.NETHERITE_INGOT, 2, "Netherite did not move", helper.getTick());
+            helper.assertCount(leftChest, Items.IRON_INGOT, 2, "Iron did not move", helper.getTick());
+            helper.assertCount(leftChest, Items.GOLD_INGOT, 2, "Gold did not move", helper.getTick());
+            helper.assertCount(leftChest, Items.NETHERITE_INGOT, 2, "Netherite did not move", helper.getTick());
             // right should have 62 of each ingot
-            assertCount(rightChest, Items.IRON_INGOT, 62, "Iron did not arrive", helper.getTick());
-            assertCount(rightChest, Items.GOLD_INGOT, 62, "Gold did not arrive", helper.getTick());
-            assertCount(rightChest, Items.NETHERITE_INGOT, 62, "Netherite did not arrive", helper.getTick());
+            helper.assertCount(rightChest, Items.IRON_INGOT, 62, "Iron did not arrive", helper.getTick());
+            helper.assertCount(rightChest, Items.GOLD_INGOT, 62, "Gold did not arrive", helper.getTick());
+            helper.assertCount(rightChest, Items.NETHERITE_INGOT, 62, "Netherite did not arrive", helper.getTick());
 
         });
     }

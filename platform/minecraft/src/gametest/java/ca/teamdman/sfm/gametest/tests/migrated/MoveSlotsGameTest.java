@@ -14,7 +14,7 @@ import net.minecraft.world.item.Items;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.move_slots
@@ -67,13 +67,14 @@ public class MoveSlotsGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).isEmpty(), "slot 0 did not leave", helper.getTick());
-            assertTrue(leftChest.getStackInSlot(1).isEmpty(), "slot 1 did not leave", helper.getTick());
-            assertTrue(leftChest.getStackInSlot(3).isEmpty(), "slot 3 did not leave", helper.getTick());
-            assertTrue(leftChest.getStackInSlot(4).isEmpty(), "slot 4 did not leave", helper.getTick());
-            assertTrue(leftChest.getStackInSlot(5).isEmpty(), "slot 5 did not leave", helper.getTick());
-            assertTrue(leftChest.getStackInSlot(2).getCount() == 25, "Items did not transfer to slot 2", helper.getTick());
-            assertTrue(IntStream
+            helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "slot 0 did not leave", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(1).isEmpty(), "slot 1 did not leave", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(3).isEmpty(), "slot 3 did not leave", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(4).isEmpty(), "slot 4 did not leave", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(5).isEmpty(), "slot 5 did not leave", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(2).getCount() == 25, "Items did not transfer to slot 2", helper.getTick());
+            helper.assertTrue(
+                    IntStream
                                .range(0, rightChest.getSlots())
                                .allMatch(slot -> rightChest.getStackInSlot(slot).isEmpty()), "Chest b is not empty", helper.getTick());
 

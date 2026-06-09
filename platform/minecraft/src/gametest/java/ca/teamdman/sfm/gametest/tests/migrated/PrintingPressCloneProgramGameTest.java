@@ -20,7 +20,7 @@ import net.minecraft.world.level.block.DirectionalBlock;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -109,9 +109,9 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
             chest.insertItem(0, held, false);
 
             // Assert ingredient transformations
-            assertTrue(printingPress.getInk().isEmpty(), "Ink was not consumed", helper.getTick());
-            assertTrue(printingPress.getPaper().isEmpty(), "Paper was not consumed", helper.getTick());
-            assertTrue(!printingPress.getForm().isEmpty(), "Form should not be consumed", helper.getTick());
+            helper.assertTrue(printingPress.getInk().isEmpty(), "Ink was not consumed", helper.getTick());
+            helper.assertTrue(printingPress.getPaper().isEmpty(), "Paper was not consumed", helper.getTick());
+            helper.assertTrue(!printingPress.getForm().isEmpty(), "Form should not be consumed", helper.getTick());
 
             // Succeed test
             helper.succeed();

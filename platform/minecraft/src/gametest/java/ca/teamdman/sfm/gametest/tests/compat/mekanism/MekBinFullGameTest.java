@@ -14,7 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -68,9 +68,15 @@ public class MekBinFullGameTest extends SFMGameTestDefinition {
         left.getBinSlot().setStack(new ItemStack(Items.STICK, BinTier.ULTIMATE.getStorage()));
         right.getBinSlot().setStack(new ItemStack(Items.STICK, BinTier.ULTIMATE.getStorage() - 32));
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(left.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage() - 32, "Contents did not depart", helper.getTick());
-            assertTrue(right.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage(), "Contents did not arrive", helper.getTick());
-            assertTrue(right.getBinSlot().getStack().getItem() == Items.STICK, "Contents wrong type", helper.getTick());
+            helper.assertTrue(
+                    left.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage() - 32,
+                    "Contents did not depart"
+            );
+            helper.assertTrue(
+                    right.getBinSlot().getCount() == BinTier.ULTIMATE.getStorage(),
+                    "Contents did not arrive"
+            );
+            helper.assertTrue(right.getBinSlot().getStack().getItem() == Items.STICK, "Contents wrong type");
 
         });
     }

@@ -16,7 +16,7 @@ import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -108,11 +108,11 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
                 BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
                     if (i % 3 == 0) {
-                        assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart", helper.getTick());
+                        helper.assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart", helper.getTick());
                     } else if (i % 3 == 1) {
-                        assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart", helper.getTick());
+                        helper.assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart", helper.getTick());
                     } else {
-                        assertTrue(barrel.getItem(i).getItem() == Items.DIAMOND, "Non-matching didn't stay", helper.getTick());
+                        helper.assertTrue(barrel.getItem(i).getItem() == Items.DIAMOND, "Non-matching didn't stay", helper.getTick());
                     }
                 }
             });
@@ -131,9 +131,9 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
                     }
                 }
             });
-            assertTrue(ironIngots.get() == 0, "Iron ingots did not arrive", helper.getTick());
-            assertTrue(goldIngots.get() == 0, "Gold ingots did not arrive", helper.getTick());
-            assertTrue(diamonds.get() == diamondStart, "Diamonds did not stay", helper.getTick());
+            helper.assertTrue(ironIngots.get() == 0, "Iron ingots did not arrive", helper.getTick());
+            helper.assertTrue(goldIngots.get() == 0, "Gold ingots did not arrive", helper.getTick());
+            helper.assertTrue(diamonds.get() == diamondStart, "Diamonds did not stay", helper.getTick());
         });
     }
 }

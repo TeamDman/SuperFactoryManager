@@ -18,8 +18,6 @@ import net.minecraft.world.level.block.LayeredCauldronBlock;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMCorrectnessGameTests.regression_crash_type_mixing
@@ -81,7 +79,7 @@ public class RegressionCrashTypeMixingGameTest extends SFMGameTestDefinition {
                                        end
                                    """.stripTrailing().stripIndent());
 
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             helper.assertBlock(front, b -> b == Blocks.CAULDRON, _ -> Component.literal("cauldron didn't empty"));
             helper.assertBlockState(
@@ -91,10 +89,10 @@ public class RegressionCrashTypeMixingGameTest extends SFMGameTestDefinition {
                     _ -> Component.literal("cauldron didn't fill")
             );
             // ensure sticks departed
-            assertTrue(chest.getItem(0).getCount() == 0, "Items did not move", helper.getTick());
+            helper.assertTrue(chest.getItem(0).getCount() == 0, "Items did not move", helper.getTick());
             // ensure sticks arrived
             Container rightChest = helper.getBlockEntity(right, TestBarrelBlockEntity.class);
-            assertTrue(rightChest.getItem(0).getCount() == 64, "Items did not move", helper.getTick());
+            helper.assertTrue(rightChest.getItem(0).getCount() == 64, "Items did not move", helper.getTick());
 
 
         });

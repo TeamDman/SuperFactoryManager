@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.Blocks;
 import java.util.ArrayList;
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -100,7 +100,7 @@ public class MekManyLavaCauldronsGameTest extends SFMGameTestDefinition {
                     .map(x -> x.getAmountAsInt(0))
                     .mapToInt(value -> value)
                     .sum();
-            assertTrue(found == 1000 * 25 * 24, "Not all fluids were moved (found " + found + ")", helper.getTick());
+            helper.assertTrue(found == 1000 * 25 * 24, "Not all fluids were moved (found " + found + ")", helper.getTick());
 
 
         });

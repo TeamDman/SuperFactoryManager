@@ -9,7 +9,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.function.BiConsumer;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMWithGameTests.validate_tags
@@ -38,7 +38,7 @@ public class ValidateTagsGameTest extends SFMGameTestDefinition {
                     .anyMatch(tag -> tag.toString().equals(findTag) || !findTag.contains(":") && tag
                             .getPath()
                             .equals(findTag));
-            assertTrue(hasTag, "Item " + item + " should have tag " + findTag, helper.getTick());
+            helper.assertTrue(hasTag, "Item " + item + " should have tag " + findTag, helper.getTick());
         };
 
         // Assert mineable tags

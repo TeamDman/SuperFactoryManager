@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.Blocks;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.many_outputs
@@ -81,7 +81,8 @@ public class ManyOutputsGameTest extends SFMGameTestDefinition {
                     .mapToObj(sourceInv::getStackInSlot)
                     .mapToInt(ItemStack::getCount)
                     .sum();
-            assertTrue(found == 64 * (sourceInv.getSlots() - 2), "Dirt did not leave (found " + found + " (" + (
+            helper.assertTrue(
+                    found == 64 * (sourceInv.getSlots() - 2), "Dirt did not leave (found " + found + " (" + (
                     found > 64 ? found / 64 + "x stacks + " + found % 64 : found
             ) + " dirt))", helper.getTick());
             int total;
@@ -92,7 +93,7 @@ public class ManyOutputsGameTest extends SFMGameTestDefinition {
                     total += dest1Inv.getStackInSlot(i).getCount();
                 }
             }
-            assertTrue(total == 64, "Dirt did not arrive properly 1", helper.getTick());
+            helper.assertTrue(total == 64, "Dirt did not arrive properly 1", helper.getTick());
             total = 0;
             for (int i = 0; i < dest2Inv.getSlots(); i++) {
                 ItemStack x = dest2Inv.getStackInSlot(i);
@@ -100,7 +101,7 @@ public class ManyOutputsGameTest extends SFMGameTestDefinition {
                     total += dest2Inv.getStackInSlot(i).getCount();
                 }
             }
-            assertTrue(total == 64, "Dirt did not arrive properly 2", helper.getTick());
+            helper.assertTrue(total == 64, "Dirt did not arrive properly 2", helper.getTick());
         });
     }
 }

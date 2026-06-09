@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.forget_input_count_state
@@ -65,8 +65,8 @@ public class ForgetInputCountStateGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).getCount() == 64 - 10, "did not remain", helper.getTick());
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 10, "did not arrive", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 64 - 10, "did not remain", helper.getTick());
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 10, "did not arrive", helper.getTick());
 
         });
     }

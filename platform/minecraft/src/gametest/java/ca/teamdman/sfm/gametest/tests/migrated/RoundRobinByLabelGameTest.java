@@ -14,9 +14,6 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.assertCount;
-import static ca.teamdman.sfm.gametest.SFMGameTestCountHelpers.count;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMCorrectnessGameTests.round_robin_by_label
@@ -89,14 +86,14 @@ public class RoundRobinByLabelGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertCount(sourceInv, Items.DIRT, 64 * (27 - 4), "source count bad", helper.getTick());
+            helper.assertCount(sourceInv, Items.DIRT, 64 * (27 - 4), "source count bad", helper.getTick());
             // we make no guarantees about which one ticks first
             // we guarantee only one of a or b receives on the first tick
-            boolean condition1 = count(a1, Items.DIRT) == 128 && count(a2, Items.DIRT) == 128
-                                 && count(b1, Items.DIRT) == 0 && count(b2, Items.DIRT) == 0;
-            boolean condition2 = count(b1, Items.DIRT) == 128 && count(b2, Items.DIRT) == 128
-                                 && count(a1, Items.DIRT) == 0 && count(a2, Items.DIRT) == 0;
-            assertTrue(condition1 || condition2, "Arrival counts bad", helper.getTick());
+            boolean condition1 = helper.count(a1, Items.DIRT) == 128 && helper.count(a2, Items.DIRT) == 128
+                                 && helper.count(b1, Items.DIRT) == 0 && helper.count(b2, Items.DIRT) == 0;
+            boolean condition2 = helper.count(b1, Items.DIRT) == 128 && helper.count(b2, Items.DIRT) == 128
+                                 && helper.count(a1, Items.DIRT) == 0 && helper.count(a2, Items.DIRT) == 0;
+            helper.assertTrue(condition1 || condition2, "Arrival counts bad", helper.getTick());
         });
     }
 }

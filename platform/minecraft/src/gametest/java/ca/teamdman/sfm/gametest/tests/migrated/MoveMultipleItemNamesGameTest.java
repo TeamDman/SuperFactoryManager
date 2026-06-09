@@ -13,7 +13,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.move_multiple_item_names
@@ -69,10 +69,10 @@ public class MoveMultipleItemNamesGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            assertTrue(leftChest.getStackInSlot(0).getCount() == 64 - 2, "Iron ingots did not retain", helper.getTick());
-            assertTrue(leftChest.getStackInSlot(1).getCount() == 64 - 10, "Stone did not retain", helper.getTick());
-            assertTrue(rightChest.getStackInSlot(0).getCount() == 2, "Iron ingots did not move", helper.getTick());
-            assertTrue(rightChest.getStackInSlot(1).getCount() == 10, "Stone did not move", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 64 - 2, "Iron ingots did not retain", helper.getTick());
+            helper.assertTrue(leftChest.getStackInSlot(1).getCount() == 64 - 10, "Stone did not retain", helper.getTick());
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 2, "Iron ingots did not move", helper.getTick());
+            helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 10, "Stone did not move", helper.getTick());
         });
     }
 }

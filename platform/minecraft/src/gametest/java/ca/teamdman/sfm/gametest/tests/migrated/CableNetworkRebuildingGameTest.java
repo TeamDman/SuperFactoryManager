@@ -7,7 +7,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.cable_network_rebuilding
@@ -36,14 +36,14 @@ public class CableNetworkRebuildingGameTest extends SFMGameTestDefinition {
                 helper.getLevel(),
                 helper.absolutePos(new BlockPos(0, 1, 0))
         );
-        assertTrue(network.isPresent(), "Network should be built", helper.getTick());
+        helper.assertTrue(network.isPresent(), "Network should be built", helper.getTick());
         CableNetworkManager.unregisterNetworkForTestingPurposes(network.get());
         network = CableNetworkManager.getOrRegisterNetworkFromCablePosition(
                 helper.getLevel(),
                 helper.absolutePos(new BlockPos(0, 1, 0))
         );
-        assertTrue(network.isPresent(), "Network should be rebuilt after clearing", helper.getTick());
-        assertTrue(network.get().getCableCount() == 3, "Network rebuilding should discover 3 cables", helper.getTick());
+        helper.assertTrue(network.isPresent(), "Network should be rebuilt after clearing", helper.getTick());
+        helper.assertTrue(network.get().getCableCount() == 3, "Network rebuilding should discover 3 cables", helper.getTick());
         helper.succeed();
     }
 }

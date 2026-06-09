@@ -15,8 +15,6 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 /**
  * Migrated from SFMCorrectnessGameTests.unused_io_warning_output_label_not_presnet_in_input
@@ -63,21 +61,27 @@ public class UnusedIoWarningOutputLabelNotPresnetInInputGameTest extends SFMGame
                                            OUTPUT TO bruh
                                        END
                                    """.stripTrailing().stripIndent());
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
 
         // assert expected warnings
         var warnings = DiskItem.getWarnings(Objects.requireNonNull(manager.getDisk()));
-        assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size(), helper.getTick());
+        helper.assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size(), helper.getTick());
 
         TranslatableContents firstWarning = (TranslatableContents) warnings.getFirst().getContents();
         String expectedKey = GatherWarningsProgramBehaviour.PROGRAM_WARNING_OUTPUT_RESOURCE_TYPE_NOT_FOUND_IN_INPUTS
                 .key()
                 .get();
-        assertTrue(firstWarning.getKey().equals(expectedKey), "expected output without matching input warning", helper.getTick());
-        assertTrue(firstWarning.getArgs().length == 3, "expected 3 arguments in warning", helper.getTick());
-        assertTrue(firstWarning.getArgs()[0].equals("OUTPUT TO bruh"), "expected arg 0 to be \"OUTPUT TO bruh\"", helper.getTick());
-        assertTrue(firstWarning.getArgs()[1].equals("Line 2, Column 4"), "expected arg 1 to be \"Line 2, Column 4\"", helper.getTick());
-        assertTrue(firstWarning.getArgs()[2].equals("sfm:item"), "expected arg 2 to be \"sfm:item\"", helper.getTick());
+        helper.assertTrue(firstWarning.getKey().equals(expectedKey), "expected output without matching input warning");
+        helper.assertTrue(firstWarning.getArgs().length == 3, "expected 3 arguments in warning");
+        helper.assertTrue(
+                firstWarning.getArgs()[0].equals("OUTPUT TO bruh"),
+                "expected arg 0 to be \"OUTPUT TO bruh\""
+        );
+        helper.assertTrue(
+                firstWarning.getArgs()[1].equals("Line 2, Column 4"),
+                "expected arg 1 to be \"Line 2, Column 4\""
+        );
+        helper.assertTrue(firstWarning.getArgs()[2].equals("sfm:item"), "expected arg 2 to be \"sfm:item\"");
         helper.succeed();
     }
 

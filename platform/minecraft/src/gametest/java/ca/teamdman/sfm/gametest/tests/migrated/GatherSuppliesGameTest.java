@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 
 /**
@@ -215,7 +215,7 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
                 for (int slot = 0; slot < barrel.getContainerSize(); slot++) {
                     ItemStack stack = barrel.getItem(slot);
                     if (stack.getItem() == item) {
-                        assertTrue(
+                        helper.assertTrue(
                                 stack.getCount() == stack.getMaxStackSize(),
                                 "Item " + item + " is not fully stocked"
                         , helper.getTick());

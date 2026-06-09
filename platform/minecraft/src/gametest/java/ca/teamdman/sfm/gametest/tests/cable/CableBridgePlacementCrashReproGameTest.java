@@ -16,8 +16,6 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertManagerRunning;
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
 
 @SuppressWarnings({"DataFlowIssue", "OptionalGetWithoutIsPresent"})
 @SFMGameTest
@@ -70,20 +68,20 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
                 END
                 """.stripTrailing().stripIndent());
 
-        assertManagerRunning(manager);
+        helper.assertManagerRunning(manager);
 
         helper.runAfterDelay(60, () -> {
-            assertTrue(source.getStackInSlot(0).isEmpty(), "Expected source barrel to be emptied before bridge placement", helper.getTick());
-            assertTrue(target.getStackInSlot(0).getCount() == 64, "Expected target barrel to receive moved items", helper.getTick());
+            helper.assertTrue(source.getStackInSlot(0).isEmpty(), "Expected source barrel to be emptied before bridge placement");
+            helper.assertTrue(target.getStackInSlot(0).getCount() == 64, "Expected target barrel to receive moved items");
 
             var networkBeforeBridge = CableNetworkManager
                     .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(2, 1, 3)))
                     .get();
-            assertTrue(
+            helper.assertTrue(
                     networkBeforeBridge.getLevelCapabilityCache().size() > 0,
                     "Expected capability cache to be populated before bridge placement"
             , helper.getTick());
-            assertTrue(
+            helper.assertTrue(
                     networkBeforeBridge
                             .getLevelCapabilityCache()
                             .getCapability(
@@ -105,7 +103,7 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
             var mergedNetwork = CableNetworkManager
                     .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(bridgePos))
                     .get();
-            assertTrue(
+            helper.assertTrue(
                     mergedNetwork.getCableCount() == 9,
                     "Expected ring + bridge to form a single 9-cable network"
             , helper.getTick());

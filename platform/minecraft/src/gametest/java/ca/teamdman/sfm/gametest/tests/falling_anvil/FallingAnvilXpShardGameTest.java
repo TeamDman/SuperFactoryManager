@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMCorrectnessGameTests.falling_anvil_xp_shard
@@ -84,20 +84,20 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
                             ItemEntity.class,
                             new AABB(helper.absolutePos(new BlockPos(1, 2, 1))).inflate(5)
                     );
-            assertTrue(!found.isEmpty(), "expected shards to be produced", helper.getTick());
+            helper.assertTrue(!found.isEmpty(), "expected shards to be produced", helper.getTick());
 
             List<String> unexpectedItems = found
                     .stream()
                     .filter(item -> !item.getItem().is(SFMItems.EXPERIENCE_SHARD.get()))
                     .map(item -> item.getItem().getItem().getDescriptionId())
                     .collect(Collectors.toList());
-            assertTrue(
+            helper.assertTrue(
                     unexpectedItems.isEmpty(),
                     "conversion produced non-shard items: " + String.join(", ", unexpectedItems)
             , helper.getTick());
 
             long actualShardTotal = found.stream().mapToLong(item -> item.getItem().getCount()).sum();
-            assertTrue(
+            helper.assertTrue(
                     actualShardTotal == expectedShardTotal,
                     "expected " + expectedShardTotal + " shards but found " + actualShardTotal
             , helper.getTick());

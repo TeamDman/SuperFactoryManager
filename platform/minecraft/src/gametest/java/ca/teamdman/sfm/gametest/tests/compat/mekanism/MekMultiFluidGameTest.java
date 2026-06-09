@@ -15,7 +15,7 @@ import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 /**
  * Migrated from SFMMekanismCompatGameTests.multi_fluid
@@ -75,9 +75,9 @@ public class MekMultiFluidGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
-                    assertTrue(a1.getFluidInTank(0).isEmpty(), "a1 did not empty", helper.getTick());
-                    assertTrue(a2.getFluidInTank(0).isEmpty(), "a2 did not empty", helper.getTick());
-                    assertTrue(
+                    helper.assertTrue(a1.getFluidInTank(0).isEmpty(), "a1 did not empty", helper.getTick());
+                    helper.assertTrue(a2.getFluidInTank(0).isEmpty(), "a2 did not empty", helper.getTick());
+                    helper.assertTrue(
                             (
                                     b1.getFluidInTank(0).getFluid() == Fluids.WATER
                                     && b2.getFluidInTank(0).getFluid() == Fluids.LAVA

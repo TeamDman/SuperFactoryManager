@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.Objects;
 
-import static ca.teamdman.sfm.gametest.SFMGameTestMethodHelpers.assertTrue;
+
 
 @SuppressWarnings({"DataFlowIssue"})
 @SFMGameTest
@@ -62,14 +62,14 @@ public class OutputDefaultStacksWhenNoEmptyModifierGameTest extends SFMGameTestD
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
                     // Source emptied
-                    assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied", helper.getTick());
+                    helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied", helper.getTick());
                     // Destination slot 0 received all 20 (10 -> 30)
-                    assertTrue(
+                    helper.assertTrue(
                             rightChest.getStackInSlot(0).getCount() == 30,
                             "Dest slot 0 should be 30 after stacking"
                     , helper.getTick());
                     // Slot 1 remains empty
-                    assertTrue(rightChest.getStackInSlot(1).isEmpty(), "Dest slot 1 should remain empty", helper.getTick());
+                    helper.assertTrue(rightChest.getStackInSlot(1).isEmpty(), "Dest slot 1 should remain empty", helper.getTick());
                 }
         );
     }

@@ -19,6 +19,8 @@ import net.minecraft.world.item.Items;
 import java.util.ArrayList;
 
 
+
+
 /**
  * Migrated from SFMThermalCompatGameTests.thermal_furnace_array
  */
@@ -123,7 +125,10 @@ public class ThermalFurnaceArrayGameTest extends SFMGameTestDefinition {
         helper.succeedWhen(() -> {
             // the result chests must be full of cooked chicken
             for (BlockPos resultChestPosition : resultChestPositions) {
-                boolean hasEnoughChicken = count(helper.getItemHandler(resultChestPosition), Items.COOKED_CHICKEN)
+                boolean hasEnoughChicken = helper.count(
+                        helper.getItemHandler(resultChestPosition),
+                        Items.COOKED_CHICKEN
+                )
                                            >= 64 * 27;
                 if (!hasEnoughChicken) {
                     helper.fail("Not enough cooked chicken in chest at " + resultChestPosition);
