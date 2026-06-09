@@ -1,5 +1,4 @@
 - audit command
-    - ensure .idea/.name is correct
     - ensure @MCVersionDependentBehaviour annotations are correct
 
 - analyze diff between repos and repos2 for problematic changes
