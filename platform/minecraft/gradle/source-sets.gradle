@@ -1,0 +1,33 @@
+sourceSets {
+    main {
+        resources {
+            srcDirs += "src/generated/resources"
+            srcDirs += "src/main/resources"
+            exclude ".cache"
+        }
+        java {
+            exclude sfmSourceSetJavaExcludes.main
+        }
+    }
+    test {
+        compileClasspath += main.output
+        java {
+            exclude sfmSourceSetJavaExcludes.test
+        }
+    }
+    gametest {
+        java {
+            srcDir "src/gametest/java"
+            exclude sfmSourceSetJavaExcludes.gametest
+        }
+        compileClasspath += main.output
+        resources {
+            srcDirs += "src/gametest/resources"
+            exclude "README.md"
+        }
+    }
+    datagen {
+        compileClasspath += main.output
+    }
+    generated
+}

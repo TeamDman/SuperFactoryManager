@@ -40,48 +40,10 @@ apply from: "gradle/wrapper.gradle"
 apply from: "gradle/archive-name.gradle"
 apply from: "gradle/versioned-java-toolchain.gradle"
 apply from: "gradle/versioned-access-transformer.gradle"
-
 apply from: "gradle/source-excludes.gradle"
 
 // this must come before runs for the sourcesets to be available when calling modSource project.sourceSets.gametest
-sourceSets {
-    main {
-        resources {
-            srcDirs += "src/generated/resources"
-            srcDirs += "src/main/resources"
-            exclude ".cache"
-        }
-
-        java {
-            exclude sfmSourceSetJavaExcludes.main
-        }
-//        java {
-//            exclude "ca/teamdman/sfm/common/capability/CauldronBlockCapabilityProvider.java"
-//        }
-    }
-    // https://docs.gradle.org/current/userguide/java_testing.html#sec:configuring_java_integration_tests
-    test {
-        compileClasspath += main.output
-        java {
-            exclude sfmSourceSetJavaExcludes.test
-        }
-    }
-    gametest {
-        java {
-            srcDir "src/gametest/java"
-            exclude sfmSourceSetJavaExcludes.gametest
-        }
-        compileClasspath += main.output
-        resources {
-            srcDirs += "src/gametest/resources"
-            exclude "README.md"
-        }
-    }
-    datagen {
-        compileClasspath += main.output
-    }
-    generated
-}
+apply from: "gradle/source-sets.gradle"
 
 apply from: "gradle/idea-excludes.gradle"
 
