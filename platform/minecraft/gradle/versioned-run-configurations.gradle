@@ -1,0 +1,24 @@
+ext.sfmGameTestSelection = (
+        System.getProperty('sfm.gametestSelection')
+                ?: (project.findProperty('sfmGameTestSelection') as String)
+)?.trim()
+
+def sfmRunConfigurationsVersion = project.minecraft_version.toString()
+def sfmRunConfigurationsScript = file("gradle/run-configurations/${sfmRunConfigurationsVersion}/run-configurations.gradle")
+
+if (!sfmRunConfigurationsScript.isFile()) {
+    def available = file("gradle/run-configurations")
+            .listFiles()
+            ?.findAll { it.isDirectory() }
+            ?.collect { it.name }
+            ?.sort()
+            ?.join(', ')
+    throw new GradleException(
+            "No run configuration script found for minecraft_version=${sfmRunConfigurationsVersion}. "
+            + "Expected ${sfmRunConfigurationsScript}. Available versions: ${available ?: '(none)'}"
+    )
+}
+
+ext.sfmRunConfigurationsVersion = sfmRunConfigurationsVersion
+
+apply from: sfmRunConfigurationsScript
