@@ -39,11 +39,7 @@ apply from: "gradle/java-compiler.gradle"
 apply from: "gradle/wrapper.gradle"
 apply from: "gradle/archive-name.gradle"
 apply from: "gradle/versioned-java-toolchain.gradle"
-
-accessTransformers {
-    file 'src/main/resources/META-INF/accesstransformer.cfg'
-}
-//minecraft.accessTransformers.entry public net.minecraft.client.Minecraft textureManager # textureManager
+apply from: "gradle/versioned-access-transformer.gradle"
 
 apply from: "gradle/source-excludes.gradle"
 

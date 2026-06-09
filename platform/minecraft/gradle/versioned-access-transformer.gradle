@@ -1,0 +1,19 @@
+def sfmAccessTransformerVersion = project.minecraft_version.toString()
+def sfmAccessTransformerScript = file("gradle/access-transformer/${sfmAccessTransformerVersion}/access-transformer.gradle")
+
+if (!sfmAccessTransformerScript.isFile()) {
+    def available = file("gradle/access-transformer")
+            .listFiles()
+            ?.findAll { it.isDirectory() }
+            ?.collect { it.name }
+            ?.sort()
+            ?.join(', ')
+    throw new GradleException(
+            "No access transformer script found for minecraft_version=${sfmAccessTransformerVersion}. "
+            + "Expected ${sfmAccessTransformerScript}. Available versions: ${available ?: '(none)'}"
+    )
+}
+
+ext.sfmAccessTransformerVersion = sfmAccessTransformerVersion
+
+apply from: sfmAccessTransformerScript
