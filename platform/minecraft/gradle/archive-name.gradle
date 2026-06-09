@@ -1,0 +1,8 @@
+version = mod_version
+group = mod_group_id
+
+base {
+    // Gradle appends project.version to archive task outputs, so the final jar name is:
+    // ${mod_name}-MC${minecraft_version}-${mod_version}.jar
+    archivesName = "${mod_name}-MC${minecraft_version}"
+}

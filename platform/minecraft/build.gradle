@@ -33,19 +33,8 @@ buildscript {
 
 apply from: "gradle/versioned-plugins.gradle"
 apply from: "gradle/java-compiler.gradle"
-
-tasks.named('wrapper', Wrapper).configure {
-    // Define wrapper values here so as to not have to always do so when updating gradlew.properties.
-    // Switching this to Wrapper.DistributionType.ALL will download the full gradle sources that comes with
-    // documentation attached on cursor hover of gradle classes and methods. However, this comes with increased
-    // file size for Gradle. If you do switch this to ALL, run the Gradle wrapper task twice afterwards.
-    // (Verify by checking gradle/wrapper/gradle-wrapper.properties to see if distributionUrl now points to `-all`)
-    distributionType = Wrapper.DistributionType.BIN
-}
-
-base {
-    archivesName = "${mod_name}-MC${minecraft_version}-${mod_version}"
-}
+apply from: "gradle/wrapper.gradle"
+apply from: "gradle/archive-name.gradle"
 
 // Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
