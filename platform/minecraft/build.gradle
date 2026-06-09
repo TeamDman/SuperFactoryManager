@@ -65,43 +65,5 @@ apply from: "gradle/jar-manifest.gradle"
 apply from: "gradle/publishing.gradle"
 apply from: "gradle/java-compile-encoding.gradle"
 apply from: "gradle/generate-grammar-source.gradle"
-
-// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
-// However, this causes gradle to throw "Error getting artifact" so keep it commented out to retain your sanity
-//idea {
-//    module {
-//        downloadSources = true
-//        downloadJavadoc = true
-//    }
-//}
-
-// List of fully qualified entry point classes
-def entryPoints = [
-        'ca.teamdman.ai.ProjectTestMethodLister',
-        'ca.teamdman.ai.ProjectEverythingLister',
-        'ca.teamdman.ai.FileImportWalker'
-        // Add more classes here as needed
-]
-entryPoints.each { className ->
-    // Extract simple class name for the task name (e.g., ProjectTestMethodLister)
-    def simpleClassName = className.substring(className.lastIndexOf('.') + 1)
-
-    // Define a task name, e.g., runProjectTestMethodLister
-    def taskName = "run${simpleClassName}"
-
-    // Create the JavaExec task
-    //noinspection ConfigurationAvoidance
-    task(taskName, type: JavaExec) {
-        group = 'Execution'
-        description = "Runs the ${className} class"
-
-        // Set the main class to run
-        mainClass.set(className)
-
-        // Set the classpath to include compiled test classes and dependencies
-        classpath = sourceSets.test.runtimeClasspath
-
-        // Optional: Set JVM arguments if needed
-        // e.g., jvmArgs = ['-Xmx1G']
-    }
-}
+apply from: "gradle/idea-module-downloads.gradle"
+apply from: "gradle/custom-entrypoints.gradle"
