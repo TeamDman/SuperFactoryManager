@@ -1,20 +1,38 @@
-plugins {
-    id 'java-library'
-    id 'eclipse'
-    id 'idea'
-    id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.1.27'
-    id 'antlr'
-    id 'application'
-}
+buildscript {
+    def sfmGradleProperties = new Properties()
+    def sfmGradlePropertiesFile = file('gradle.properties')
+    if (!sfmGradlePropertiesFile.isFile()) {
+        throw new GradleException("Missing Gradle properties file: ${sfmGradlePropertiesFile}")
+    }
+    sfmGradlePropertiesFile.withInputStream { sfmGradleProperties.load(it) }
 
-afterEvaluate {
-    tasks.withType(JavaCompile).tap {
-        configureEach {
-            options.compilerArgs << "-Xmaxerrs" << "0"
-        }
+    def sfmPluginVersion = gradle.startParameter.projectProperties.get('minecraft_version')
+            ?: sfmGradleProperties.getProperty('minecraft_version')
+    if (!sfmPluginVersion) {
+        throw new GradleException("Missing minecraft_version Gradle property")
+    }
+    def sfmPluginClasspathFile = file("gradle/plugins/${sfmPluginVersion}/plugin-classpath.txt")
+    if (!sfmPluginClasspathFile.isFile()) {
+        throw new GradleException("Missing Gradle plugin classpath file: ${sfmPluginClasspathFile}")
+    }
+
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.neoforged.net/releases' }
+        maven { url = 'https://maven.parchmentmc.org' }
+    }
+    dependencies {
+        sfmPluginClasspathFile
+                .readLines('UTF-8')
+                .collect { it.trim() }
+                .findAll { it && !it.startsWith('#') }
+                .each { classpath it }
     }
 }
+
+apply from: "gradle/versioned-plugins.gradle"
+apply from: "gradle/java-compiler.gradle"
 
 tasks.named('wrapper', Wrapper).configure {
     // Define wrapper values here so as to not have to always do so when updating gradlew.properties.

@@ -1,0 +1,7 @@
+afterEvaluate {
+    tasks.withType(JavaCompile).tap {
+        configureEach {
+            options.compilerArgs << "-Xmaxerrs" << "0"
+        }
+    }
+}
