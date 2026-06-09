@@ -77,12 +77,6 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::gradle::GradleCommand,
     },
-    /// Check workspace files for correctness
-    Check {
-        /// Check options
-        #[facet(flatten)]
-        command: super::check::CheckCommand,
-    },
     /// Client instance tracking and management commands
     Client {
         /// Client subcommand
@@ -146,7 +140,6 @@ impl Command {
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
             Command::Gradle { command } => command.invoke(),
-            Command::Check { command } => command.invoke(),
             Command::Client { command } => command.invoke(),
             Command::Server { command } => command.invoke(),
             Command::Git { command } => command.invoke(),
