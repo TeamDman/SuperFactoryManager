@@ -1,0 +1,2 @@
+# Paths are relative to src/gametest/java.
+ca/teamdman/sfm/gametest/tests/compat/**

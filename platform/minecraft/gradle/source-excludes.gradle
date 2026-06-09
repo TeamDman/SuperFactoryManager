@@ -1,0 +1,34 @@
+def sfmSourceExcludeVersion = project.minecraft_version.toString()
+def sfmSourceExcludeDir = file("gradle/source-excludes/${sfmSourceExcludeVersion}")
+
+if (!sfmSourceExcludeDir.isDirectory()) {
+    def available = file("gradle/source-excludes")
+            .listFiles()
+            ?.findAll { it.isDirectory() }
+            ?.collect { it.name }
+            ?.sort()
+            ?.join(', ')
+    throw new GradleException(
+            "No source exclude list found for minecraft_version=${sfmSourceExcludeVersion}. "
+            + "Expected ${sfmSourceExcludeDir}. Available versions: ${available ?: '(none)'}"
+    )
+}
+
+def readSourceExcludeList = { String name ->
+    def excludeFile = file("${sfmSourceExcludeDir}/${name}.txt")
+    if (!excludeFile.isFile()) {
+        throw new GradleException("Missing source exclude file: ${excludeFile}")
+    }
+    excludeFile
+            .readLines('UTF-8')
+            .collect { it.trim() }
+            .findAll { it && !it.startsWith('#') }
+}
+
+ext.sfmSourceExcludeVersion = sfmSourceExcludeVersion
+
+ext.sfmSourceSetJavaExcludes = [
+        main    : readSourceExcludeList('main-java'),
+        test    : readSourceExcludeList('test-java'),
+        gametest: readSourceExcludeList('gametest-java')
+]

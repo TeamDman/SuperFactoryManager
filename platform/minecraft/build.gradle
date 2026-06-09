@@ -37,6 +37,8 @@ accessTransformers {
 }
 //minecraft.accessTransformers.entry public net.minecraft.client.Minecraft textureManager # textureManager
 
+apply from: "gradle/source-excludes.gradle"
+
 // this must come before runs for the sourcesets to be available when calling modSource project.sourceSets.gametest
 sourceSets {
     main {
@@ -47,33 +49,7 @@ sourceSets {
         }
 
         java {
-//            exclude "ca/teamdman/sfm/client/jei/**"
-            exclude "ca/teamdman/sfm/common/resourcetype/exclude/**"
-        }
-        java {
-            exclude "ca/teamdman/sfm/common/capability/ae2/InterfaceCapabilityProvider.java"
-//            exclude "ca/teamdman/sfm/common/capability/ae2/EnergyAcceptorBlockCapabilityProvider.java"
-        }
-        java {
-            exclude "ca/teamdman/sfm/common/block/BatteryBlock.java"
-            exclude "ca/teamdman/sfm/common/blockentity/BatteryBlockEntity.java"
-        }
-        //// @MCVersionDependentBehaviour
-//        java {
-//            exclude "ca/teamdman/sfm/common/compat/SFMMekanismCompat.java"
-//            exclude "ca/teamdman/sfm/common/program/linting/compat/mekanism"
-//            exclude "ca/teamdman/sfm/common/resourcetype/ChemicalResourceType.java"
-//
-//            exclude "ca/teamdman/sfm/common/resourcetype/RedstoneResourceType.java"
-//            exclude "ca/teamdman/sfm/common/capability/RedstoneSignalStorage.java"
-//            exclude "ca/teamdman/sfm/common/capability/RedstoneSignalCapabilityProvider.java"
-//        }
-        java {
-            exclude "ca/teamdman/sfm/common/resourcetype/GasResourceType.java"
-            exclude "ca/teamdman/sfm/common/resourcetype/InfuseResourceType.java"
-            exclude "ca/teamdman/sfm/common/resourcetype/exclude/MekanismEnergyResourceType.java"
-            exclude "ca/teamdman/sfm/common/resourcetype/PigmentResourceType.java"
-            exclude "ca/teamdman/sfm/common/resourcetype/SlurryResourceType.java"
+            exclude sfmSourceSetJavaExcludes.main
         }
 //        java {
 //            exclude "ca/teamdman/sfm/common/capability/CauldronBlockCapabilityProvider.java"
@@ -83,20 +59,13 @@ sourceSets {
     test {
         compileClasspath += main.output
         java {
-            // Exclude duplicate package-info for ca.teamdman.sfm to avoid "package has already been annotated"
-            exclude "ca/teamdman/sfm/package-info.java"
+            exclude sfmSourceSetJavaExcludes.test
         }
     }
     gametest {
         java {
             srcDir "src/gametest/java"
-            exclude "ca/teamdman/sfm/gametest/tests/ai/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/multiple/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/thermal/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/ae2/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/mekanism/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/dank/**"
+            exclude sfmSourceSetJavaExcludes.gametest
         }
         compileClasspath += main.output
         resources {
@@ -109,6 +78,9 @@ sourceSets {
     }
     generated
 }
+
+apply from: "gradle/idea-excludes.gradle"
+
 
 
 // Ensure sources are available for other modules
