@@ -12,3 +12,6 @@ pluginManagement {
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.5.0'
 }
+
+// IDEA uses the Gradle root project name when importing this project.
+rootProject.name = "sfm-${settingsDir.parentFile.parentFile.name}"
