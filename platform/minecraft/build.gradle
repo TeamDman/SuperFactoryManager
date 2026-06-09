@@ -41,24 +41,13 @@ apply from: "gradle/archive-name.gradle"
 apply from: "gradle/versioned-java-toolchain.gradle"
 apply from: "gradle/versioned-access-transformer.gradle"
 apply from: "gradle/source-excludes.gradle"
-
-// this must come before runs for the sourcesets to be available when calling modSource project.sourceSets.gametest
 apply from: "gradle/source-sets.gradle"
-
-apply from: "gradle/idea-excludes.gradle"
-
-
-
-// Ensure sources are available for other modules
-apply from: "gradle/versioned-configurations.gradle"
 apply from: "gradle/versioned-run-configurations.gradle"
-
+apply from: "gradle/idea-excludes.gradle"
+apply from: "gradle/versioned-configurations.gradle"
 apply from: "gradle/versioned-mixin.gradle"
-
 apply from: "gradle/repositories.gradle"
-
 apply from: "gradle/versioned-dependencies.gradle"
-
 apply from: "gradle/versioned-process-resources.gradle"
 apply from: "gradle/test.gradle"
 apply from: "gradle/jar-manifest.gradle"
