@@ -1,0 +1,29 @@
+if (project.ext.has('sfmProcessResourcesConfigured')) {
+    throw new GradleException("versioned-process-resources.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("versioned-process-resources.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+def sfmProcessResourcesVersion = project.minecraft_version.toString()
+def sfmProcessResourcesScript = file("gradle/process-resources/${sfmProcessResourcesVersion}/process-resources.gradle")
+
+if (!sfmProcessResourcesScript.isFile()) {
+    def available = file("gradle/process-resources")
+            .listFiles()
+            ?.findAll { it.isDirectory() }
+            ?.collect { it.name }
+            ?.sort()
+            ?.join(', ')
+    throw new GradleException(
+            "No process resources script found for minecraft_version=${sfmProcessResourcesVersion}. "
+            + "Expected ${sfmProcessResourcesScript}. Available versions: ${available ?: '(none)'}"
+    )
+}
+
+ext.sfmProcessResourcesVersion = sfmProcessResourcesVersion
+
+apply from: sfmProcessResourcesScript
+
+ext.sfmProcessResourcesConfigured = true

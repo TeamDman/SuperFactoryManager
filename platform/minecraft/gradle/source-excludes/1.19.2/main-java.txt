@@ -1,0 +1,4 @@
+# Paths are relative to src/main/java.
+ca/teamdman/sfm/common/block/BatteryBlock.java
+ca/teamdman/sfm/common/blockentity/BatteryBlockEntity.java
+ca/teamdman/sfm/common/capabilityprovidermapper/ae2/InterfaceCapabilityProviderMapper.java
