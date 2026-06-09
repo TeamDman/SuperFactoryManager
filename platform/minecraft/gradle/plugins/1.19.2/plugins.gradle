@@ -1,0 +1,8 @@
+pluginManager.apply('eclipse')
+pluginManager.apply('idea')
+pluginManager.apply('maven-publish')
+pluginManager.apply('net.minecraftforge.gradle')
+pluginManager.apply('antlr')
+pluginManager.apply('org.parchmentmc.librarian.forgegradle')
+pluginManager.apply('application')
+pluginManager.apply('org.spongepowered.mixin')
