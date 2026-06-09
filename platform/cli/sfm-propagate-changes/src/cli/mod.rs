@@ -1,5 +1,4 @@
 pub mod cache;
-pub mod check;
 mod cli;
 pub mod client;
 pub mod curseforge;
