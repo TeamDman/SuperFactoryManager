@@ -13,7 +13,6 @@ import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.neoforged.neoforge.items.IItemHandler;
 
 
-
 /**
  * Verifies that a hopper connected to a barrel through a chain of tunnelled managers only moves items when the full
  * chain is intact. Breaking any manager should pause transfers, while restoring the chain should immediately allow
@@ -81,18 +80,22 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
         int barrelAfterInitialMove = expectedBarrel + 1;
         tickCursor = forceHopperTick(
                 helper, hopper, tickCursor, () -> {
+                    helper.getTick();
+
                     helper.assertCount(
                             hopper,
                             Blocks.DIRT,
                             hopperAfterInitialMove,
                             "Initial move should reduce hopper stack by one"
-                    , helper.getTick());
+                    );
+                    helper.getTick();
+
                     helper.assertCount(
                             barrel,
                             Blocks.DIRT,
                             barrelAfterInitialMove,
                             "Initial move should place one item in barrel"
-                    , helper.getTick());
+                    );
                 }
         );
         expectedHopper = hopperAfterInitialMove;
@@ -111,18 +114,22 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
             final int barrelNoMove = expectedBarrel;
             tickCursor = forceHopperTick(
                     helper, hopper, tickCursor, () -> {
+                        helper.getTick();
+
                         helper.assertCount(
                                 hopper,
                                 Blocks.DIRT,
                                 hopperNoMove,
                                 "Hopper should not move items while manager " + managerIndex + " is missing"
-                        , helper.getTick());
+                        );
+                        helper.getTick();
+
                         helper.assertCount(
                                 barrel,
                                 Blocks.DIRT,
                                 barrelNoMove,
                                 "Barrel should not receive items while manager " + managerIndex + " is missing"
-                        , helper.getTick());
+                        );
                     }
             );
 
@@ -136,18 +143,22 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
             int barrelAfterRestore = expectedBarrel + 1;
             tickCursor = forceHopperTick(
                     helper, hopper, tickCursor, () -> {
+                        helper.getTick();
+
                         helper.assertCount(
                                 hopper,
                                 Blocks.DIRT,
                                 hopperAfterRestore,
                                 "Hopper should resume moving items after restoring manager " + managerIndex
-                        , helper.getTick());
+                        );
+                        helper.getTick();
+
                         helper.assertCount(
                                 barrel,
                                 Blocks.DIRT,
                                 barrelAfterRestore,
                                 "Barrel should receive an item after restoring manager " + managerIndex
-                        , helper.getTick());
+                        );
                         if (managerIndex == MANAGER_COUNT - 1) {
                             helper.succeed();
                         }

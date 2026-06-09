@@ -67,10 +67,9 @@ public class CableArrayGameTest extends SFMGameTestDefinition {
 
         // All placed blocks should be cables; assert that first
         for (BlockPos p : cablePositions) {
-            helper.assertTrue(
-                    CableNetwork.isCable(helper.getLevel(), p),
-                    "Placed block at " + p + " should be a cable"
-            , helper.getTick());
+            boolean success = CableNetwork.isCable(helper.getLevel(), p);
+            helper.getTick();
+            helper.assertTrue(success, "Placed block at " + p + " should be a cable");
         }
 
         var firstPos = cablePositions.get(0);
@@ -79,19 +78,23 @@ public class CableArrayGameTest extends SFMGameTestDefinition {
                 helper.getLevel(),
                 firstPos
         );
-        helper.assertTrue(maybeNetwork.isPresent(), "Cable network should exist for first cable", helper.getTick());
+        helper.getTick();
+        helper.assertTrue(maybeNetwork.isPresent(), "Cable network should exist for first cable");
         var network = maybeNetwork.get();
 
         // network should contain all the cable positions we placed
         for (BlockPos p : cablePositions) {
-            helper.assertTrue(network.containsCablePosition(p), "Network should contain cable at " + p, helper.getTick());
+            boolean success = network.containsCablePosition(p);
+            helper.getTick();
+            helper.assertTrue(success, "Network should contain cable at " + p);
 
             // For each cable, ensure the manager returns the same network object reference
             var opt = CableNetworkManager.getOrRegisterNetworkFromCablePosition(helper.getLevel(), p);
+            helper.getTick();
             helper.assertTrue(
                     opt.isPresent() && opt.get() == network,
                     "Cable at " + p + " did not return the same network instance"
-            , helper.getTick());
+            );
         }
 
         helper.succeed();

@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.StandingSignBlock;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -21,6 +22,7 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.apache.commons.lang3.NotImplementedException;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumMap;
 
@@ -61,7 +63,8 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
         for (LevelsToShards mode : modes) {
             int predicted = FallingAnvilHandler.getShardCountForEnchantments(mode, parameters.enchantments());
             int expected = FallingAnvilHandler.getShardCountForEnchantments(mode, parameters.enchantments());
-            helper.assertTrue(predicted == expected, "unexpected shard prediction for " + mode, helper.getTick());
+            helper.getTick();
+            helper.assertTrue(predicted == expected, "unexpected shard prediction for " + mode);
             expectedByMode.put(mode, predicted * parameters.bookCount());
         }
 
@@ -88,19 +91,23 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
 
             fill(helper, handler, new ItemStack(SFMItems.EXPERIENCE_SHARD.get()), expectedShards);
 
+            helper.getTick();
+
             helper.assertCount(
                     handler,
                     parameters.bookTemplate(),
                     parameters.bookCount(),
                     "chest for " + mode + " did not receive expected book count"
-            , helper.getTick());
+            );
+
+            @Nullable ItemLike item = SFMItems.EXPERIENCE_SHARD.get().asItem();
+            helper.getTick();
 
             helper.assertCount(
-                    handler,
-                    SFMItems.EXPERIENCE_SHARD.get().asItem(),
+                    handler, item,
                     expectedShards,
                     "chest for " + mode + " did not receive expected shard count"
-            , helper.getTick());
+            );
         }
 
         helper.succeed();
@@ -177,7 +184,8 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
             ItemStack stack = template.copy();
             stack.setCount(toInsert);
             ItemStack leftover = ItemHandlerHelper.insertItemStacked(handler, stack, false);
-            helper.assertTrue(leftover.isEmpty(), "insufficient space to store items", -1);
+            boolean success = leftover.isEmpty();
+            helper.assertTrue(success, "insufficient space to store items");
             remaining -= toInsert;
         }
     }

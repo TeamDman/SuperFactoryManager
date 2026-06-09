@@ -89,10 +89,14 @@ public class RegressionCrashTypeMixingGameTest extends SFMGameTestDefinition {
                     _ -> Component.literal("cauldron didn't fill")
             );
             // ensure sticks departed
-            helper.assertTrue(chest.getItem(0).getCount() == 0, "Items did not move", helper.getTick());
+            boolean success1 = chest.getItem(0).getCount() == 0;
+            helper.getTick();
+            helper.assertTrue(success1, "Items did not move");
             // ensure sticks arrived
             Container rightChest = helper.getBlockEntity(right, TestBarrelBlockEntity.class);
-            helper.assertTrue(rightChest.getItem(0).getCount() == 64, "Items did not move", helper.getTick());
+            boolean success = rightChest.getItem(0).getCount() == 64;
+            helper.getTick();
+            helper.assertTrue(success, "Items did not move");
 
 
         });

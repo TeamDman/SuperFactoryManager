@@ -12,7 +12,6 @@ import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 
 
-
 @SuppressWarnings({"DataFlowIssue", "RedundantSuppression"})
 @SFMGameTest
 public class TunnelledManagerHopperGameTest extends SFMGameTestDefinition {
@@ -53,8 +52,12 @@ public class TunnelledManagerHopperGameTest extends SFMGameTestDefinition {
             final boolean last = ii == OPERATION_ASSESSMENT_COUNT - 1;
             helper.runAfterDelay(
                     i * HopperBlockEntity.MOVE_ITEM_SPEED, () -> {
-                        helper.assertCount(hopper, Blocks.DIRT, 64 - i, 64 - i + " should be in hopper", helper.getTick());
-                        helper.assertCount(inv, Blocks.DIRT, i, i + " should be in inventory", helper.getTick());
+                        helper.getTick();
+
+                        helper.assertCount(hopper, Blocks.DIRT, 64 - i, 64 - i + " should be in hopper");
+                        helper.getTick();
+
+                        helper.assertCount(inv, Blocks.DIRT, i, i + " should be in inventory");
                         if (last) helper.succeed();
                     }
             );

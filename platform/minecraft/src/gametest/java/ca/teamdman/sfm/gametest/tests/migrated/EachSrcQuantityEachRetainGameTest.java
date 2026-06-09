@@ -67,10 +67,18 @@ public class EachSrcQuantityEachRetainGameTest extends SFMGameTestDefinition {
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // two of the four ingots should have moved
             // for now we assume that gold will move since it is in the higher slot
-            helper.assertCount(leftChest, Items.IRON_INGOT, 2, "Iron moved", helper.getTick());
-            helper.assertCount(leftChest, Items.GOLD_INGOT, 2, "Gold did not move", helper.getTick());
-            helper.assertCount(rightChest, Items.IRON_INGOT, 0, "Iron arrive", helper.getTick());
-            helper.assertCount(rightChest, Items.GOLD_INGOT, 0, "Gold arrived", helper.getTick());
+            helper.getTick();
+
+            helper.assertCount(leftChest, Items.IRON_INGOT, 2, "Iron moved");
+            helper.getTick();
+
+            helper.assertCount(leftChest, Items.GOLD_INGOT, 2, "Gold did not move");
+            helper.getTick();
+
+            helper.assertCount(rightChest, Items.IRON_INGOT, 0, "Iron arrive");
+            helper.getTick();
+
+            helper.assertCount(rightChest, Items.GOLD_INGOT, 0, "Gold arrived");
 
         });
     }

@@ -107,10 +107,12 @@ public class SfmV4120ChangelogGameTest extends SFMGameTestDefinition {
                         continue slots;
                     }
                 }
-                helper.assertTrue(false, "Unexpected item in chest: " + item, helper.getTick());
+                helper.getTick();
+                helper.assertTrue(false, "Unexpected item in chest: " + item);
             }
             for (int i = 0; i < found.length; i++) {
-                helper.assertTrue(found[i] == 1, "Expected " + expected[i] + " to be 1, but was " + found[i], helper.getTick());
+                helper.getTick();
+                helper.assertTrue(found[i] == 1, "Expected " + expected[i] + " to be 1, but was " + found[i]);
             }
 
         });

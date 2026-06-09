@@ -86,7 +86,9 @@ public class RoundRobinByBlock2GameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertCount(sourceInv, Items.DIRT, 64 * (27 - 2), "source count bad", helper.getTick());
+            helper.getTick();
+
+            helper.assertCount(sourceInv, Items.DIRT, 64 * (27 - 2), "source count bad");
             int a1Count = helper.count(a1, Items.DIRT);
             int a2Count = helper.count(a2, Items.DIRT);
             int b1Count = helper.count(b1, Items.DIRT);
@@ -96,7 +98,8 @@ public class RoundRobinByBlock2GameTest extends SFMGameTestDefinition {
                            (a1Count == 0 && a2Count == 128 && b1Count == 0 && b2Count == 0) ||
                            (a1Count == 0 && a2Count == 0 && b1Count == 128 && b2Count == 0) ||
                            (a1Count == 0 && a2Count == 0 && b1Count == 0 && b2Count == 128);
-            helper.assertTrue(good, "first tick arrival count bad", helper.getTick());
+            helper.getTick();
+            helper.assertTrue(good, "first tick arrival count bad");
 
         });
     }

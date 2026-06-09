@@ -128,14 +128,12 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
     ) {
         for (int i = 0; i < tankPositions.length; i++) {
             WaterTankBlockEntity tank = helper.getBlockEntity(tankPositions[i], WaterTankBlockEntity.class);
-            helper.assertTrue(
-                    tank != null,
-                    "Tank " + i + " should exist (" + context + ")"
-            , helper.getTick());
-            helper.assertTrue(
-                    tank.TANK.getCapacity() == expectedCapacity,
-                    "Tank " + i + " should have capacity " + expectedCapacity + " but had " + tank.TANK.getCapacity() + " (" + context + ")"
-            , helper.getTick());
+            helper.getTick();
+            helper.assertTrue(tank != null, "Tank " + i + " should exist (" + context + ")");
+            boolean success = tank.TANK.getCapacity() == expectedCapacity;
+            String expectedEnergyDidNotMatch = "Tank " + i + " should have capacity " + expectedCapacity + " but had " + tank.TANK.getCapacity() + " (" + context + ")";
+            helper.getTick();
+            helper.assertTrue(success, expectedEnergyDidNotMatch);
         }
     }
 
@@ -146,7 +144,10 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
             String message
     ) {
         WaterTankBlockEntity tank = helper.getBlockEntity(pos, WaterTankBlockEntity.class);
-        helper.assertTrue(tank != null, "Tank should exist for active check", helper.getTick());
-        helper.assertTrue(tank.isActive() == expectedActive, message, helper.getTick());
+        helper.getTick();
+        helper.assertTrue(tank != null, "Tank should exist for active check");
+        boolean success = tank.isActive() == expectedActive;
+        helper.getTick();
+        helper.assertTrue(success, message);
     }
 }

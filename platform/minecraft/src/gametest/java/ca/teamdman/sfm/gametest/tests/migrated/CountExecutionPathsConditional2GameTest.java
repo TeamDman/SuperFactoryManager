@@ -78,7 +78,8 @@ public class CountExecutionPathsConditional2GameTest extends SFMGameTestDefiniti
 
         // ensure no warnings
         var warnings = DiskItem.getWarnings(manager.getDisk());
-        helper.assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size(), helper.getTick());
+        helper.getTick();
+        helper.assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size());
 
         // count the execution paths
         GatherWarningsProgramBehaviour simulation = new GatherWarningsProgramBehaviour(new ProblemTracker());
@@ -89,10 +90,11 @@ public class CountExecutionPathsConditional2GameTest extends SFMGameTestDefiniti
                 simulation
         ));
         List<Integer> expectedPathSizes = new ArrayList<>(List.of(1, 2, 2, 3));
+        helper.getTick();
         helper.assertTrue(
                 simulation.getSeenPaths().size() == expectedPathSizes.size(),
                 "expected " + expectedPathSizes.size() + " execution paths, got " + simulation.getSeenPaths().size()
-        , helper.getTick());
+        );
         int[] actualPathIOSizes = simulation.getSeenIOStatementCountForEachPath();
         // don't assume the order, just that each path size has occurred the specified number of times
         for (int i = 0; i < actualPathIOSizes.length; i++) {

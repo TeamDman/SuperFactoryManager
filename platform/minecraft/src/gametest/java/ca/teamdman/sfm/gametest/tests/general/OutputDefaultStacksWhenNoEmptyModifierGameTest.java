@@ -62,14 +62,17 @@ public class OutputDefaultStacksWhenNoEmptyModifierGameTest extends SFMGameTestD
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
                     // Source emptied
-                    helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied", helper.getTick());
+                    boolean success2 = leftChest.getStackInSlot(0).isEmpty();
+                    helper.getTick();
+                    helper.assertTrue(success2, "Source not emptied");
                     // Destination slot 0 received all 20 (10 -> 30)
-                    helper.assertTrue(
-                            rightChest.getStackInSlot(0).getCount() == 30,
-                            "Dest slot 0 should be 30 after stacking"
-                    , helper.getTick());
+                    boolean success1 = rightChest.getStackInSlot(0).getCount() == 30;
+                    helper.getTick();
+                    helper.assertTrue(success1, "Dest slot 0 should be 30 after stacking");
                     // Slot 1 remains empty
-                    helper.assertTrue(rightChest.getStackInSlot(1).isEmpty(), "Dest slot 1 should remain empty", helper.getTick());
+                    boolean success = rightChest.getStackInSlot(1).isEmpty();
+                    helper.getTick();
+                    helper.assertTrue(success, "Dest slot 1 should remain empty");
                 }
         );
     }

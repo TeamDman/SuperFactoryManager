@@ -64,8 +64,12 @@ public class PatternCacheRegression2GameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 64, "should not depart", helper.getTick());
-            helper.assertTrue(rightChest.getStackInSlot(0).isEmpty(), "should not arrive", helper.getTick());
+            boolean success1 = leftChest.getStackInSlot(0).getCount() == 64;
+            helper.getTick();
+            helper.assertTrue(success1, "should not depart");
+            boolean success = rightChest.getStackInSlot(0).isEmpty();
+            helper.getTick();
+            helper.assertTrue(success, "should not arrive");
 
         });
     }

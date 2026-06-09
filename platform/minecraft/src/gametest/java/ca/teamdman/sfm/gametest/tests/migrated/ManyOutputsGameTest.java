@@ -81,10 +81,12 @@ public class ManyOutputsGameTest extends SFMGameTestDefinition {
                     .mapToObj(sourceInv::getStackInSlot)
                     .mapToInt(ItemStack::getCount)
                     .sum();
-            helper.assertTrue(
-                    found == 64 * (sourceInv.getSlots() - 2), "Dirt did not leave (found " + found + " (" + (
-                    found > 64 ? found / 64 + "x stacks + " + found % 64 : found
-            ) + " dirt))", helper.getTick());
+            boolean success = found == 64 * (sourceInv.getSlots() - 2);
+            String expectedEnergyDidNotMatch = "Dirt did not leave (found " + found + " (" + (
+            found > 64 ? found / 64 + "x stacks + " + found % 64 : found
+    ) + " dirt))";
+            helper.getTick();
+            helper.assertTrue(success, expectedEnergyDidNotMatch);
             int total;
             total = 0;
             for (int i = 0; i < dest1Inv.getSlots(); i++) {
@@ -93,7 +95,8 @@ public class ManyOutputsGameTest extends SFMGameTestDefinition {
                     total += dest1Inv.getStackInSlot(i).getCount();
                 }
             }
-            helper.assertTrue(total == 64, "Dirt did not arrive properly 1", helper.getTick());
+            helper.getTick();
+            helper.assertTrue(total == 64, "Dirt did not arrive properly 1");
             total = 0;
             for (int i = 0; i < dest2Inv.getSlots(); i++) {
                 ItemStack x = dest2Inv.getStackInSlot(i);
@@ -101,7 +104,8 @@ public class ManyOutputsGameTest extends SFMGameTestDefinition {
                     total += dest2Inv.getStackInSlot(i).getCount();
                 }
             }
-            helper.assertTrue(total == 64, "Dirt did not arrive properly 2", helper.getTick());
+            helper.getTick();
+            helper.assertTrue(total == 64, "Dirt did not arrive properly 2");
         });
     }
 }

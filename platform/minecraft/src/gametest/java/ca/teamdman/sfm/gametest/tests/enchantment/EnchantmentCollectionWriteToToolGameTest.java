@@ -42,7 +42,9 @@ public class EnchantmentCollectionWriteToToolGameTest extends SFMGameTestDefinit
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.SHARPNESS, 3));
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.UNBREAKING, 2));
 
-        helper.assertTrue(!enchantments1.equals(enchantments2), "Enchantment collections must not be equal", helper.getTick());
+        boolean success2 = !enchantments1.equals(enchantments2);
+        helper.getTick();
+        helper.assertTrue(success2, "Enchantment collections must not be equal");
 
         // Create an item
         ItemStack axeStack1 = new ItemStack(Items.GOLDEN_AXE);
@@ -53,19 +55,22 @@ public class EnchantmentCollectionWriteToToolGameTest extends SFMGameTestDefinit
         enchantments1.write(axeStack1, SFMEnchantmentCollectionKind.EnchantedLikeATool);
         enchantments2.write(axeStack1, SFMEnchantmentCollectionKind.EnchantedLikeATool);
 
+        boolean success1 = SFMEnchantmentCollection
+                .fromItemStack(axeStack1, SFMEnchantmentCollectionKind.EnchantedLikeATool)
+                .canonicalize()
+                .equals(enchantments2.canonicalize());
+        helper.getTick();
         helper.assertTrue(
-                SFMEnchantmentCollection
-                        .fromItemStack(axeStack1, SFMEnchantmentCollectionKind.EnchantedLikeATool)
-                        .canonicalize()
-                        .equals(enchantments2.canonicalize()),
+                success1,
                 "Enchantment collections must be equal after writing to an item stack (EnchantedLikeATool) and reading from it (EnchantedLikeATool)"
-        , helper.getTick());
+        );
 
         enchantments2.write(axeStack2, SFMEnchantmentCollectionKind.EnchantedLikeATool);
-        helper.assertTrue(
-                SFMItemUtils.isSameItemSameTags(axeStack2, axeStack1),
-                "Item stacks must be equal after writing to an item stack (EnchantedLikeATool) and reading from it (EnchantedLikeATool)"
-        , helper.getTick());
+        boolean success = SFMItemUtils.isSameItemSameTags(axeStack2, axeStack1);
+        helper.getTick();
+        helper.assertTrue(success,
+                          "Item stacks must be equal after writing to an item stack (EnchantedLikeATool) and reading from it (EnchantedLikeATool)"
+        );
 
 
         helper.succeed();

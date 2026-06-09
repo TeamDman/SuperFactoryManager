@@ -423,17 +423,6 @@ public class SFMGameTestHelper extends GameTestHelper {
     }
 
     public void assertCount(
-            IItemHandler inventory,
-            @Nullable ItemLike item,
-            int expectedCount,
-            String message,
-            long tick
-    ) {
-
-        assertCount(inventory, item, expectedCount, message);
-    }
-
-    public void assertCount(
             Container inventory,
             @Nullable ItemLike item,
             int expectedCount,
@@ -449,17 +438,6 @@ public class SFMGameTestHelper extends GameTestHelper {
 
     public void assertCount(
             Container inventory,
-            @Nullable ItemLike item,
-            int expectedCount,
-            String message,
-            long tick
-    ) {
-
-        assertCount(inventory, item, expectedCount, message);
-    }
-
-    public void assertCount(
-            Container inventory,
             ItemStack comparisonStack,
             int expectedCount,
             String message
@@ -470,17 +448,6 @@ public class SFMGameTestHelper extends GameTestHelper {
                 actualCount == expectedCount,
                 message + ": expected " + expectedCount + " but got " + actualCount
         );
-    }
-
-    public void assertCount(
-            Container inventory,
-            ItemStack comparisonStack,
-            int expectedCount,
-            String message,
-            long tick
-    ) {
-
-        assertCount(inventory, comparisonStack, expectedCount, message);
     }
 
     public void assertCount(
@@ -499,36 +466,6 @@ public class SFMGameTestHelper extends GameTestHelper {
 
     public void assertCount(
             IItemHandler inventory,
-            ItemStack comparisonStack,
-            int expectedCount,
-            String message,
-            long tick
-    ) {
-
-        assertCount(inventory, comparisonStack, expectedCount, message);
-    }
-
-    public void assertCount(
-            IItemHandler inventory,
-            int expectedCount,
-            String message
-    ) {
-
-        assertCount(inventory, (ItemLike) null, expectedCount, message);
-    }
-
-    public void assertCount(
-            IItemHandler inventory,
-            int expectedCount,
-            String message,
-            long tick
-    ) {
-
-        assertCount(inventory, expectedCount, message);
-    }
-
-    public void assertCount(
-            Container inventory,
             int expectedCount,
             String message
     ) {
@@ -539,11 +476,10 @@ public class SFMGameTestHelper extends GameTestHelper {
     public void assertCount(
             Container inventory,
             int expectedCount,
-            String message,
-            long tick
+            String message
     ) {
 
-        assertCount(inventory, expectedCount, message);
+        assertCount(inventory, (ItemLike) null, expectedCount, message);
     }
 
     public void assertCount(
@@ -561,16 +497,6 @@ public class SFMGameTestHelper extends GameTestHelper {
             throw new IllegalArgumentException("Expected either a Container or IItemHandler but got "
                                                + inventory.getClass());
         }
-    }
-
-    public void assertCount(
-            AtomicReference<?> ref,
-            int expectedCount,
-            String message,
-            long tick
-    ) {
-
-        assertCount(ref, expectedCount, message);
     }
 
     @SuppressWarnings("unchecked")
@@ -594,20 +520,6 @@ public class SFMGameTestHelper extends GameTestHelper {
                 }
             }
         }
-    }
-
-    public void assertTrue(
-            boolean success,
-            String expectedEnergyDidNotMatch,
-            long tick
-    ) {
-        // TODO: REMOVE THIS! THIS IS FOR EASILY REMOVING ALL THE STUFF WITH TICK PARAM
-        // TODO: REMOVE THIS! THIS IS FOR EASILY REMOVING ALL THE STUFF WITH TICK PARAM
-        // TODO: REMOVE THIS! THIS IS FOR EASILY REMOVING ALL THE STUFF WITH TICK PARAM
-        // TODO: REMOVE THIS! THIS IS FOR EASILY REMOVING ALL THE STUFF WITH TICK PARAM
-        // TODO: REMOVE THIS! THIS IS FOR EASILY REMOVING ALL THE STUFF WITH TICK PARAM
-        assertTrue(success, expectedEnergyDidNotMatch);
-
     }
 
 }

@@ -91,17 +91,25 @@ public class ComparisonGtGameTest extends SFMGameTestDefinition {
             int rightStickCount = helper.count(right, Items.STICK);
             int rightDirtCount = helper.count(right, Items.DIRT);
             // the diamonds should have moved from left to right
-            helper.assertTrue(leftDiamondCount == 0, "left should have no diamonds", helper.getTick());
-            helper.assertTrue(rightDiamondCount == 64 * 2, "right should have 100 diamonds", helper.getTick());
+            helper.getTick();
+            helper.assertTrue(leftDiamondCount == 0, "left should have no diamonds");
+            helper.getTick();
+            helper.assertTrue(rightDiamondCount == 64 * 2, "right should have 100 diamonds");
             // the iron should have stayed in left
-            helper.assertTrue(leftIronCount == 12, "left should have 12 iron ingots", helper.getTick());
-            helper.assertTrue(rightIronCount == 0, "right should have no iron ingots", helper.getTick());
+            helper.getTick();
+            helper.assertTrue(leftIronCount == 12, "left should have 12 iron ingots");
+            helper.getTick();
+            helper.assertTrue(rightIronCount == 0, "right should have no iron ingots");
             // the sticks should have moved from right to left
-            helper.assertTrue(rightStickCount == 0, "right should have no sticks", helper.getTick());
-            helper.assertTrue(leftStickCount == 77, "left should have 77 sticks", helper.getTick());
+            helper.getTick();
+            helper.assertTrue(rightStickCount == 0, "right should have no sticks");
+            helper.getTick();
+            helper.assertTrue(leftStickCount == 77, "left should have 77 sticks");
             // the dirt should have moved from right to left
-            helper.assertTrue(rightDirtCount == 0, "right should have no dirt", helper.getTick());
-            helper.assertTrue(leftDirtCount == 1, "left should have 1 dirt", helper.getTick());
+            helper.getTick();
+            helper.assertTrue(rightDirtCount == 0, "right should have no dirt");
+            helper.getTick();
+            helper.assertTrue(leftDirtCount == 1, "left should have 1 dirt");
         });
     }
 }

@@ -82,7 +82,8 @@ public class CountExecutionPaths3GameTest extends SFMGameTestDefinition {
 
         // ensure no warnings
         var warnings = DiskItem.getWarnings(Objects.requireNonNull(manager.getDisk()));
-        helper.assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size(), helper.getTick());
+        helper.getTick();
+        helper.assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size());
 
         // count the execution paths
         GatherWarningsProgramBehaviour simulation = new GatherWarningsProgramBehaviour(new ProblemTracker());

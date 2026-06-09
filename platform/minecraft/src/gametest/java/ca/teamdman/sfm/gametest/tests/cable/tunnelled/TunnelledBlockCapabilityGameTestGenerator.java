@@ -124,22 +124,25 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
             ItemStack remainder = tunnelledHandler.insertItem(0, toInsert, false);
 
             // Verify the insert succeeded (no remainder)
-            helper.assertTrue(
-                    remainder.isEmpty(),
-                    "Expected cobblestone to be fully inserted through tunnelled block, but had remainder: " + remainder
-            , helper.getTick());
+            boolean success = remainder.isEmpty();
+            helper.getTick();
+            helper.assertTrue(success,
+                              "Expected cobblestone to be fully inserted through tunnelled block, but had remainder: " + remainder
+            );
 
             // Get the barrel's item handler directly to verify the item arrived
             IItemHandler barrelHandler = helper.getItemHandler(barrelPos);
 
             // Assert the barrel now contains exactly 1 cobblestone
+            helper.getTick();
+
             helper.assertCount(
                     barrelHandler,
                     Blocks.COBBLESTONE,
                     1,
                     "Barrel should contain 1 cobblestone after insertion through " + variant.name
                     + " from " + queryFace + " face"
-            , helper.getTick());
+            );
 
             helper.succeed();
         }

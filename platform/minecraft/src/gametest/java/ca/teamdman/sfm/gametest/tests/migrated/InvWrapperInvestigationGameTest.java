@@ -38,31 +38,33 @@ public class InvWrapperInvestigationGameTest extends SFMGameTestDefinition {
                 ItemStack insertParam = new ItemStack(Items.DIRT, stackSize);
                 ItemStack insertParamCopy = insertParam.copy();
                 ItemStack ignoredInsertResult = inv.insertItem(0, insertParam, false);
+                boolean success3 = SFMItemUtils.isSameItemSameAmount(insertParam, insertParamCopy);
+                helper.getTick();
                 helper.assertTrue(
-                        SFMItemUtils.isSameItemSameAmount(insertParam, insertParamCopy),
-                        "stackSize="
-                        + stackSize
-                        + " insert param should not be modified after insertion, is now "
-                        + insertParam
-                , helper.getTick());
+                        success3, "stackSize="
+                                  + stackSize
+                                  + " insert param should not be modified after insertion, is now "
+                                  + insertParam
+                );
+                boolean success2 = inv.getStackInSlot(0) != insertParam;
+                helper.getTick();
                 helper.assertTrue(
-                        inv.getStackInSlot(0) != insertParam,
-                        "stackSize="
-                        + stackSize
-                        + " the inventory shouldn't take ownership of the reference after insertion"
-                , helper.getTick());
+                        success2, "stackSize="
+                                  + stackSize
+                                  + " the inventory shouldn't take ownership of the reference after insertion"
+                );
                 ItemStack extractResult = inv.extractItem(0, stackSize, false);
+                boolean success1 = SFMItemUtils.isSameItemSameAmount(insertParam, insertParamCopy);
+                helper.getTick();
                 helper.assertTrue(
-                        SFMItemUtils.isSameItemSameAmount(insertParam, insertParamCopy),
-                        "stackSize="
-                        + stackSize
-                        + " insert param should not be modified after extraction, is now "
-                        + insertParam
-                , helper.getTick());
-                helper.assertTrue(
-                        SFMItemUtils.isSameItemSameAmount(insertParam, extractResult),
-                        "stackSize=" + stackSize + " extract result should match insertion param"
-                , helper.getTick());
+                        success1, "stackSize="
+                                  + stackSize
+                                  + " insert param should not be modified after extraction, is now "
+                                  + insertParam
+                );
+                boolean success = SFMItemUtils.isSameItemSameAmount(insertParam, extractResult);
+                helper.getTick();
+                helper.assertTrue(success, "stackSize=" + stackSize + " extract result should match insertion param");
             }
         } catch (GameTestAssertException e) {
             helper.succeed();

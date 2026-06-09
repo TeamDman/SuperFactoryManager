@@ -215,10 +215,9 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
                 for (int slot = 0; slot < barrel.getContainerSize(); slot++) {
                     ItemStack stack = barrel.getItem(slot);
                     if (stack.getItem() == item) {
-                        helper.assertTrue(
-                                stack.getCount() == stack.getMaxStackSize(),
-                                "Item " + item + " is not fully stocked"
-                        , helper.getTick());
+                        boolean success = stack.getCount() == stack.getMaxStackSize();
+                        helper.getTick();
+                        helper.assertTrue(success, "Item " + item + " is not fully stocked");
                     }
                 }
             }

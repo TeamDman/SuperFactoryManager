@@ -87,10 +87,10 @@ public class MoveManyInventoriesGameTest extends SFMGameTestDefinition {
 
         // load the program
         manager.setProgram(program);
-        helper.assertTrue(
-                manager.getState() == ManagerBlockEntity.State.RUNNING,
-                "Program did not start running " + DiskItem.getErrors(manager.getDisk())
-        , helper.getTick());
+        boolean success1 = manager.getState() == ManagerBlockEntity.State.RUNNING;
+        String expectedEnergyDidNotMatch1 = "Program did not start running " + DiskItem.getErrors(manager.getDisk());
+        helper.getTick();
+        helper.assertTrue(success1, expectedEnergyDidNotMatch1);
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // ensure all the source chests are empty
@@ -98,17 +98,19 @@ public class MoveManyInventoriesGameTest extends SFMGameTestDefinition {
                 BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
                     ItemStack found = barrel.getItem(i);
-                    helper.assertTrue(
-                            found.isEmpty(),
-                            "Items did not leave, pos=" + helper.absolutePos(pos) + " i=" + i + " found=" + found
-                    , helper.getTick());
+                    boolean success = found.isEmpty();
+                    String expectedEnergyDidNotMatch = "Items did not leave, pos=" + helper.absolutePos(pos) + " i=" + i + " found=" + found;
+                    helper.getTick();
+                    helper.assertTrue(success, expectedEnergyDidNotMatch);
                 }
             });
             // ensure all the dest chests are full
             destBlocks.forEach(pos -> {
                 BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
-                    helper.assertTrue(barrel.getItem(i).getCount() == 64, "Items did not arrive", helper.getTick());
+                    boolean success = barrel.getItem(i).getCount() == 64;
+                    helper.getTick();
+                    helper.assertTrue(success, "Items did not arrive");
                 }
             });
 

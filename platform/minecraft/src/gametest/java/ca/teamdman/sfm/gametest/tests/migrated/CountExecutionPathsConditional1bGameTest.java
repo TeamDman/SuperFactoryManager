@@ -69,16 +69,19 @@ public class CountExecutionPathsConditional1bGameTest extends SFMGameTestDefinit
 
         // assert expected warnings
         var warnings = DiskItem.getWarnings(manager.getDisk());
-        helper.assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size(), helper.getTick());
-        helper.assertTrue(
-                (
-                        (TranslatableContents) warnings
-                                .getFirst()
-                                .getContents()
-                ).getKey()
-                        .equals(GatherWarningsProgramBehaviour.PROGRAM_WARNING_UNUSED_INPUT_LABEL // should be unused input
-                                        .key()
-                                        .get()), "expected output without matching input warning", helper.getTick());
+        helper.getTick();
+        helper.assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size());
+        // should be unused input
+        boolean success = (
+                (TranslatableContents) warnings
+                        .getFirst()
+                        .getContents()
+        ).getKey()
+                .equals(GatherWarningsProgramBehaviour.PROGRAM_WARNING_UNUSED_INPUT_LABEL // should be unused input
+                                .key()
+                                .get());
+        helper.getTick();
+        helper.assertTrue(success, "expected output without matching input warning");
         helper.succeed();
     }
 

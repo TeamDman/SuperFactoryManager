@@ -57,10 +57,11 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
 
             // Verify the observer is placed correctly
             Direction actualFacing = blockState.getValue(ObserverBlock.FACING);
+            helper.getTick();
             helper.assertTrue(
                     actualFacing == facing,
                     "Observer at " + pos + " should be facing " + facing + " but is facing " + actualFacing
-            , helper.getTick());
+            );
 
             // Try to resolve all Side variants - this should not throw any exceptions
             // The fix for #445 ensures that UP/DOWN facing blocks return null for
@@ -71,80 +72,100 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
 
                     // Validate expected results for absolute directions
                     switch (side) {
-                        case TOP -> helper.assertTrue(
-                                resolved == Direction.UP,
-                                "Side.TOP should resolve to Direction.UP, got " + resolved
-                        , helper.getTick());
-                        case BOTTOM -> helper.assertTrue(
-                                resolved == Direction.DOWN,
-                                "Side.BOTTOM should resolve to Direction.DOWN, got " + resolved
-                        , helper.getTick());
-                        case NORTH -> helper.assertTrue(
-                                resolved == Direction.NORTH,
-                                "Side.NORTH should resolve to Direction.NORTH, got " + resolved
-                        , helper.getTick());
-                        case SOUTH -> helper.assertTrue(
-                                resolved == Direction.SOUTH,
-                                "Side.SOUTH should resolve to Direction.SOUTH, got " + resolved
-                        , helper.getTick());
-                        case EAST -> helper.assertTrue(
-                                resolved == Direction.EAST,
-                                "Side.EAST should resolve to Direction.EAST, got " + resolved
-                        , helper.getTick());
-                        case WEST -> helper.assertTrue(
-                                resolved == Direction.WEST,
-                                "Side.WEST should resolve to Direction.WEST, got " + resolved
-                        , helper.getTick());
-                        case NULL -> helper.assertTrue(
-                                resolved == null,
-                                "Side.NULL should resolve to null, got " + resolved
-                        , helper.getTick());
+                        case TOP -> {
+                            helper.getTick();
+                            helper.assertTrue(
+                                    resolved == Direction.UP,
+                                    "Side.TOP should resolve to Direction.UP, got " + resolved
+                            );
+                        }
+                        case BOTTOM -> {
+                            helper.getTick();
+                            helper.assertTrue(
+                                    resolved == Direction.DOWN,
+                                    "Side.BOTTOM should resolve to Direction.DOWN, got " + resolved
+                            );
+                        }
+                        case NORTH -> {
+                            helper.getTick();
+                            helper.assertTrue(
+                                    resolved == Direction.NORTH,
+                                    "Side.NORTH should resolve to Direction.NORTH, got " + resolved
+                            );
+                        }
+                        case SOUTH -> {
+                            helper.getTick();
+                            helper.assertTrue(
+                                    resolved == Direction.SOUTH,
+                                    "Side.SOUTH should resolve to Direction.SOUTH, got " + resolved
+                            );
+                        }
+                        case EAST -> {
+                            helper.getTick();
+                            helper.assertTrue(
+                                    resolved == Direction.EAST,
+                                    "Side.EAST should resolve to Direction.EAST, got " + resolved
+                            );
+                        }
+                        case WEST -> {
+                            helper.getTick();
+                            helper.assertTrue(
+                                    resolved == Direction.WEST,
+                                    "Side.WEST should resolve to Direction.WEST, got " + resolved
+                            );
+                        }
+                        case NULL -> {
+                            helper.getTick();
+                            helper.assertTrue(resolved == null, "Side.NULL should resolve to null, got " + resolved);
+                        }
                         // For relative sides (LEFT, RIGHT, FRONT, BACK), we just ensure no exception
                         // was thrown. The fix for #445 makes LEFT/RIGHT return null for UP/DOWN facing blocks.
                         case LEFT, RIGHT -> {
                             // For horizontally-facing observers, these should resolve to a direction
                             // For UP/DOWN facing observers, these should return null (fix for #445)
                             if (facing == Direction.UP || facing == Direction.DOWN) {
+                                helper.getTick();
                                 helper.assertTrue(
-                                        resolved == null,
-                                        "Side."
-                                        + side
-                                        + " should resolve to null for "
-                                        + facing
-                                        + " facing observer, got "
-                                        + resolved
-                                , helper.getTick());
+                                        resolved == null, "Side."
+                                                          + side
+                                                          + " should resolve to null for "
+                                                          + facing
+                                                          + " facing observer, got "
+                                                          + resolved
+                                );
                             } else {
+                                helper.getTick();
                                 helper.assertTrue(
-                                        resolved != null,
-                                        "Side."
-                                        + side
-                                        + " should resolve to a direction for "
-                                        + facing
-                                        + " facing observer, but got null"
-                                , helper.getTick());
+                                        resolved != null, "Side."
+                                                          + side
+                                                          + " should resolve to a direction for "
+                                                          + facing
+                                                          + " facing observer, but got null"
+                                );
                             }
                         }
                         case FRONT, BACK -> {
                             // FRONT and BACK should always resolve since they don't involve rotation
+                            helper.getTick();
                             helper.assertTrue(
-                                    resolved != null,
-                                    "Side."
-                                    + side
-                                    + " should resolve for "
-                                    + facing
-                                    + " facing observer, but got null"
-                            , helper.getTick());
+                                    resolved != null, "Side."
+                                                      + side
+                                                      + " should resolve for "
+                                                      + facing
+                                                      + " facing observer, but got null"
+                            );
                             if (side == Side.FRONT) {
+                                helper.getTick();
                                 helper.assertTrue(
                                         resolved == facing,
                                         "Side.FRONT should resolve to " + facing + " for " + facing + " facing observer, got " + resolved
-                                , helper.getTick());
+                                );
                             } else {
+                                helper.getTick();
                                 helper.assertTrue(
                                         resolved == facing.getOpposite(),
                                         "Side.BACK should resolve to " + facing.getOpposite() + " for " + facing + " facing observer, got " + resolved
-                                , helper.getTick());
+                                );
                             }
                         }
                     }

@@ -64,11 +64,21 @@ public class MultiIoLimitsGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt slot 0 must move", helper.getTick());
-            helper.assertTrue(leftChest.getStackInSlot(1).getCount() == 64, "Dirt slot 1 must not move", helper.getTick());
-            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 63, "Dirt slot 0 must arrive", helper.getTick());
-            helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 1, "Dirt slot 1 must arrive", helper.getTick());
-            helper.assertTrue(rightChest.getStackInSlot(2).isEmpty(), "Dirt slot 2 must not arrive", helper.getTick());
+            boolean success4 = leftChest.getStackInSlot(0).isEmpty();
+            helper.getTick();
+            helper.assertTrue(success4, "Dirt slot 0 must move");
+            boolean success3 = leftChest.getStackInSlot(1).getCount() == 64;
+            helper.getTick();
+            helper.assertTrue(success3, "Dirt slot 1 must not move");
+            boolean success2 = rightChest.getStackInSlot(0).getCount() == 63;
+            helper.getTick();
+            helper.assertTrue(success2, "Dirt slot 0 must arrive");
+            boolean success1 = rightChest.getStackInSlot(1).getCount() == 1;
+            helper.getTick();
+            helper.assertTrue(success1, "Dirt slot 1 must arrive");
+            boolean success = rightChest.getStackInSlot(2).isEmpty();
+            helper.getTick();
+            helper.assertTrue(success, "Dirt slot 2 must not arrive");
 
         });
     }
