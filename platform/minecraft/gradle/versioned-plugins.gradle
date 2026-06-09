@@ -1,3 +1,7 @@
+if (project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("versioned-plugins.gradle must not be applied more than once")
+}
+
 def sfmPluginVersion = project.minecraft_version.toString()
 def sfmPluginScript = file("gradle/plugins/${sfmPluginVersion}/plugins.gradle")
 
@@ -17,3 +21,5 @@ if (!sfmPluginScript.isFile()) {
 ext.sfmPluginVersion = sfmPluginVersion
 
 apply from: sfmPluginScript
+
+ext.sfmPluginsConfigured = true

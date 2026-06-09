@@ -1,3 +1,11 @@
+if (project.ext.has('sfmJavaToolchainConfigured')) {
+    throw new GradleException("versioned-java-toolchain.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("versioned-java-toolchain.gradle requires versioned-plugins.gradle to be applied first")
+}
+
 def sfmJavaToolchainVersion = project.minecraft_version.toString()
 def sfmJavaToolchainScript = file("gradle/java-toolchain/${sfmJavaToolchainVersion}/java-toolchain.gradle")
 
@@ -17,3 +25,5 @@ if (!sfmJavaToolchainScript.isFile()) {
 ext.sfmJavaToolchainVersion = sfmJavaToolchainVersion
 
 apply from: sfmJavaToolchainScript
+
+ext.sfmJavaToolchainConfigured = true

@@ -1,3 +1,7 @@
+if (project.ext.has('sfmSourceExcludesConfigured')) {
+    throw new GradleException("source-excludes.gradle must not be applied more than once")
+}
+
 def sfmSourceExcludeVersion = project.minecraft_version.toString()
 def sfmSourceExcludeDir = file("gradle/source-excludes/${sfmSourceExcludeVersion}")
 
@@ -32,3 +36,5 @@ ext.sfmSourceSetJavaExcludes = [
         test    : readSourceExcludeList('test-java'),
         gametest: readSourceExcludeList('gametest-java')
 ]
+
+ext.sfmSourceExcludesConfigured = true

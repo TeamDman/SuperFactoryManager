@@ -1,3 +1,11 @@
+if (project.ext.has('sfmArchiveNameConfigured')) {
+    throw new GradleException("archive-name.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("archive-name.gradle requires versioned-plugins.gradle to be applied first")
+}
+
 version = mod_version
 group = mod_group_id
 
@@ -6,3 +14,5 @@ base {
     // ${mod_name}-MC${minecraft_version}-${mod_version}.jar
     archivesName = "${mod_name}-MC${minecraft_version}"
 }
+
+ext.sfmArchiveNameConfigured = true

@@ -1,3 +1,11 @@
+if (project.ext.has('sfmAccessTransformersConfigured')) {
+    throw new GradleException("versioned-access-transformer.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("versioned-access-transformer.gradle requires versioned-plugins.gradle to be applied first")
+}
+
 def sfmAccessTransformerVersion = project.minecraft_version.toString()
 def sfmAccessTransformerScript = file("gradle/access-transformer/${sfmAccessTransformerVersion}/access-transformer.gradle")
 
@@ -17,3 +25,5 @@ if (!sfmAccessTransformerScript.isFile()) {
 ext.sfmAccessTransformerVersion = sfmAccessTransformerVersion
 
 apply from: sfmAccessTransformerScript
+
+ext.sfmAccessTransformersConfigured = true

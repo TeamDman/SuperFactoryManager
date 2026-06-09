@@ -1,3 +1,9 @@
+if (project.ext.has('sfmRepositoriesConfigured')) {
+    throw new GradleException("repositories.gradle must not be applied more than once")
+}
+
+ext.sfmRepositoriesConfigured = true
+
 repositories {
     // Put repositories for dependencies here
     // ForgeGradle automatically adds the Forge maven and Maven Central for you

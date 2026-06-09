@@ -1,3 +1,11 @@
+if (project.ext.has('sfmConfigurationsConfigured')) {
+    throw new GradleException("versioned-configurations.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmSourceSetsConfigured')) {
+    throw new GradleException("versioned-configurations.gradle requires source-sets.gradle to be applied first")
+}
+
 def sfmConfigurationsVersion = project.minecraft_version.toString()
 def sfmConfigurationsScript = file("gradle/configurations/${sfmConfigurationsVersion}/configurations.gradle")
 
@@ -17,3 +25,5 @@ if (!sfmConfigurationsScript.isFile()) {
 ext.sfmConfigurationsVersion = sfmConfigurationsVersion
 
 apply from: sfmConfigurationsScript
+
+ext.sfmConfigurationsConfigured = true

@@ -1,3 +1,17 @@
+if (project.ext.has('sfmJarManifestConfigured')) {
+    throw new GradleException("jar-manifest.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("jar-manifest.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmArchiveNameConfigured')) {
+    throw new GradleException("jar-manifest.gradle requires archive-name.gradle to be applied first")
+}
+
+ext.sfmJarManifestConfigured = true
+
 // Example for how to get properties into the manifest for reading at runtime.
 jar {
     manifest {

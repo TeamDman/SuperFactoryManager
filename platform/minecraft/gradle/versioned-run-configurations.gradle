@@ -1,3 +1,11 @@
+if (project.ext.has('sfmRunConfigurationsConfigured')) {
+    throw new GradleException("versioned-run-configurations.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmSourceSetsConfigured')) {
+    throw new GradleException("versioned-run-configurations.gradle requires source-sets.gradle to be applied first")
+}
+
 ext.sfmGameTestSelection = (
         System.getProperty('sfm.gametestSelection')
                 ?: (project.findProperty('sfmGameTestSelection') as String)
@@ -22,3 +30,5 @@ if (!sfmRunConfigurationsScript.isFile()) {
 ext.sfmRunConfigurationsVersion = sfmRunConfigurationsVersion
 
 apply from: sfmRunConfigurationsScript
+
+ext.sfmRunConfigurationsConfigured = true

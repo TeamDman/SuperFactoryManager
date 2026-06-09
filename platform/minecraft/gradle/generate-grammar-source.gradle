@@ -1,3 +1,13 @@
+if (project.ext.has('sfmGenerateGrammarSourceConfigured')) {
+    throw new GradleException("generate-grammar-source.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("generate-grammar-source.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+ext.sfmGenerateGrammarSourceConfigured = true
+
 generateGrammarSource {
     arguments = [
             "-visitor",
