@@ -11,8 +11,14 @@ public class SFMEnvironmentUtils {
     }
 
     public static boolean isInIDE() {
-
-        return !FMLEnvironment.isProduction() || !isGameLoaded();
+        try {
+            return !FMLEnvironment.isProduction() || !isGameLoaded();
+        } catch (IllegalStateException e) {
+            if (e.getMessage().equals("There is no current FML Loader")) {
+                return false;
+            }
+        }
+        throw new IllegalStateException("Unable to assess if we are in an IDE");
     }
 
     public static boolean isClient() {
