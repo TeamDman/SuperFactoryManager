@@ -50,29 +50,7 @@ apply from: "gradle/idea-excludes.gradle"
 
 
 // Ensure sources are available for other modules
-configurations {
-
-//    extendConfigurations(implementation, gametestImplementation, testImplementation)
-//    extendConfigurations(compileOnly, gametestCompileOnly, testCompileOnly)
-//    extendConfigurations(runtimeOnly, gametestRuntimeOnly, testRuntimeOnly)
-//    datagenImplementation.extendsFrom(minecraft) // don't load mods when doing datagen lol
-    // the extendsFrom on datagenImplementation isn't available with NeoForge so I guess I keep the old style
-    // mods can break the datagen here :/
-    // guess it's fine since I only have most mods on the 1.19.2 branch
-
-    extendConfigurations(implementation, gametestImplementation, testImplementation, datagenImplementation)
-    extendConfigurations(compileOnly, gametestCompileOnly, testCompileOnly, datagenCompileOnly)
-    extendConfigurations(runtimeOnly, gametestRuntimeOnly, testRuntimeOnly, datagenRuntimeOnly)
-//    testImplementation.extendsFrom(minecraft)
-//    gametestImplementation.extendsFrom(minecraft)
-//    datagenImplementation.extendsFrom(minecraft)
-}
-
-static void extendConfigurations(Configuration base, Configuration... configurations) {
-    for (def configuration : configurations) {
-        configuration.extendsFrom(base)
-    }
-}
+apply from: "gradle/versioned-configurations.gradle"
 
 def sfmGameTestSelection = (
         System.getProperty('sfm.gametestSelection')

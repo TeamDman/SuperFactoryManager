@@ -1,0 +1,19 @@
+def sfmConfigurationsVersion = project.minecraft_version.toString()
+def sfmConfigurationsScript = file("gradle/configurations/${sfmConfigurationsVersion}/configurations.gradle")
+
+if (!sfmConfigurationsScript.isFile()) {
+    def available = file("gradle/configurations")
+            .listFiles()
+            ?.findAll { it.isDirectory() }
+            ?.collect { it.name }
+            ?.sort()
+            ?.join(', ')
+    throw new GradleException(
+            "No configurations script found for minecraft_version=${sfmConfigurationsVersion}. "
+            + "Expected ${sfmConfigurationsScript}. Available versions: ${available ?: '(none)'}"
+    )
+}
+
+ext.sfmConfigurationsVersion = sfmConfigurationsVersion
+
+apply from: sfmConfigurationsScript
