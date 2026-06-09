@@ -60,48 +60,10 @@ apply from: "gradle/repositories.gradle"
 apply from: "gradle/versioned-dependencies.gradle"
 
 apply from: "gradle/versioned-process-resources.gradle"
-
-test {
-    useJUnitPlatform()
-}
-
-// Example for how to get properties into the manifest for reading at runtime.
-jar {
-    manifest {
-        attributes([
-                "Specification-Title"     : mod_id,
-                "Specification-Vendor"    : mod_authors,
-                "Specification-Version"   : "1", // We are version 1 of ourselves
-                "Implementation-Title"    : project.name,
-                "Implementation-Version"  : project.jar.archiveVersion,
-                "Implementation-Vendor"   : mod_authors,
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
-    }
-}
-
-// Example configuration to allow publishing using the maven-publish plugin
-publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            from components.java
-        }
-    }
-    repositories {
-        maven {
-            url "file://${project.projectDir}/repo"
-        }
-    }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
-}
-
-
-test {
-    useJUnitPlatform()
-}
+apply from: "gradle/test.gradle"
+apply from: "gradle/jar-manifest.gradle"
+apply from: "gradle/publishing.gradle"
+apply from: "gradle/java-compile-encoding.gradle"
 
 generateGrammarSource {
     arguments = [
