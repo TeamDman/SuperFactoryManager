@@ -1,11 +1,14 @@
 // Default run configurations.
 // These can be tweaked, removed, or duplicated as needed.
 def sfmGameTestSelection = project.sfmGameTestSelection
+def sfmMainIdeaModule = "${project.name}.main"
+def sfmDatagenIdeaModule = "${project.name}.datagen"
 
 minecraft {
     runs {
         client {
             workingDirectory project.file('run')
+            ideaModule sfmMainIdeaModule
 
             // Recommended logging data for a userdev environment
             // The markers can be added/remove as needed separated by commas.
@@ -41,6 +44,7 @@ minecraft {
         client_teamy {
             //noinspection GroovyAssignabilityCheck
             parent runs.client
+            ideaModule sfmMainIdeaModule
 
             // THIS CAN CAUSE PROBLEMS! DISABLE AND REGEN RUNS IF ENCOUNTERING WEIRD ISSUES!
             // Plays nice with: https://github.com/JetBrains/JetBrainsRuntime/releases/tag/jbr-release-17.0.14b1367.22
@@ -52,6 +56,7 @@ minecraft {
 
         server {
             workingDirectory project.file('runServer')
+            ideaModule sfmMainIdeaModule
 
             property 'forge.logging.markers', 'REGISTRIES'
 
@@ -77,6 +82,7 @@ minecraft {
         // The gametest system is also enabled by default for other run configs under the /test command.
         gameTestServer {
             workingDirectory project.file('runGameTest')
+            ideaModule sfmMainIdeaModule
 
             property 'forge.logging.markers', 'REGISTRIES'
 
@@ -116,7 +122,7 @@ minecraft {
             // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
             args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
 
-            ideaModule "${project.name}.datagen"
+            ideaModule sfmDatagenIdeaModule
 
             mods {
                 "${mod_id}" {
