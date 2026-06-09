@@ -1,511 +1,58 @@
-//file:noinspection GroovyAssignabilityCheck
-plugins {
-    id 'eclipse'
-    id 'idea'
-    id 'maven-publish'
-    id 'net.neoforged.gradle' version '[6.0.18,6.2)'
-    id 'org.spongepowered.mixin' version '0.7.+'
-    id 'antlr'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
-    id 'application'
-}
-
-sourceSets {
-    main {
-        resources {
-            srcDirs += "src/generated/resources"
-            srcDirs += "src/main/resources"
-            exclude ".cache"
-        }
-        java {
-            exclude "ca/teamdman/sfm/common/capability/ae2/InterfaceCapabilityProvider.java"
-            exclude "ca/teamdman/sfm/common/capability/ae2/EnergyAcceptorBlockCapabilityProvider.java"
-//            exclude "ca/teamdman/sfm/common/program/linting/compat/mekanism"
-        }
-        java {
-            exclude "ca/teamdman/sfm/common/block/BatteryBlock.java"
-            exclude "ca/teamdman/sfm/common/blockentity/BatteryBlockEntity.java"
-        }
-        //// @MCVersionDependentBehaviour
-//        java {
-//            exclude "ca/teamdman/sfm/common/compat/SFMMekanismCompat.java"
-//        }
-//        java {
-//            exclude "ca/teamdman/sfm/common/resourcetype/GasResourceType.java"
-//            exclude "ca/teamdman/sfm/common/resourcetype/InfuseResourceType.java"
-//            exclude "ca/teamdman/sfm/common/resourcetype/MekanismEnergyResourceType.java"
-//            exclude "ca/teamdman/sfm/common/resourcetype/PigmentResourceType.java"
-//            exclude "ca/teamdman/sfm/common/resourcetype/SlurryResourceType.java"
-//        }
+buildscript {
+    def sfmGradleProperties = new Properties()
+    def sfmGradlePropertiesFile = file('gradle.properties')
+    if (!sfmGradlePropertiesFile.isFile()) {
+        throw new GradleException("Missing Gradle properties file: ${sfmGradlePropertiesFile}")
     }
-    // https://docs.gradle.org/current/userguide/java_testing.html#sec:configuring_java_integration_tests
-    test {
-        compileClasspath += main.output
-        java {
-            // Exclude duplicate package-info for ca.teamdman.sfm to avoid "package has already been annotated"
-            exclude "ca/teamdman/sfm/package-info.java"
-        }
+    sfmGradlePropertiesFile.withInputStream { sfmGradleProperties.load(it) }
+
+    def sfmPluginVersion = gradle.startParameter.projectProperties.get('minecraft_version')
+            ?: sfmGradleProperties.getProperty('minecraft_version')
+    if (!sfmPluginVersion) {
+        throw new GradleException("Missing minecraft_version Gradle property")
     }
-    gametest {
-        java {
-            srcDir "src/gametest/java"
-            exclude "ca/teamdman/sfm/gametest/tests/ai/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/multiple/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/thermal/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/ae2/**"
-            exclude "ca/teamdman/sfm/gametest/tests/compat/dank/**"
-
-        }
-        compileClasspath += main.output
-        resources {
-            srcDirs += "src/gametest/resources"
-        }
-    }
-    datagen {
-        compileClasspath += main.output
-    }
-    generated
-}
-
-configurations {
-    extendConfigurations(implementation, gametestImplementation, testImplementation)
-    extendConfigurations(compileOnly, gametestCompileOnly, testCompileOnly)
-    extendConfigurations(runtimeOnly, gametestRuntimeOnly, testRuntimeOnly)
-    datagenImplementation.extendsFrom(minecraft) // don't load mods when doing datagen lol
-}
-
-static void extendConfigurations(Configuration base, Configuration... configurations) {
-    for (def configuration : configurations) {
-        configuration.extendsFrom(base)
-    }
-}
-
-def sfmGameTestSelection = (
-        System.getProperty('sfm.gametestSelection')
-                ?: (project.findProperty('sfmGameTestSelection') as String)
-)?.trim()
-
-
-version = mod_version
-group = mod_group_id
-
-base {
-    archivesName = "${mod_name}-MC${minecraft_version}"
-}
-
-// Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-
-println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
-minecraft {
-    // The mappings can be changed at any time and must be in the following format.
-    // Channel:   Version:
-    // official   MCVersion             Official field/method names from Mojang mapping files
-    // parchment  YYYY.MM.DD-MCVersion  Open community-sourced parameter names and javadocs layered on top of official
-    //
-    // You must be aware of the Mojang license when using the 'official' or 'parchment' mappings.
-    // See more information here: https://github.com/MinecraftForge/MCPConfig/blob/master/Mojang.md
-    //
-    // Parchment is an unofficial project maintained by ParchmentMC, separate from MinecraftForge
-    // Additional setup is needed to use their mappings: https://parchmentmc.org/docs/getting-started
-    //
-    // Use non-default mappings at your own risk. They may not always work.
-    // Simply re-run your setup task after changing the mappings to update your workspace.
-    mappings channel: mapping_channel, version: mapping_version
-
-    // When true, this property will have all Eclipse run configurations run the "prepareX" task for the given run configuration before launching the game.
-    // In most cases, it is not necessary to enable.
-    // enableEclipsePrepareRuns = true
-
-    // When true, this property will have all IntelliJ IDEA run configurations run the "prepareX" task for the given run configuration before launching the game.
-    // In most cases, it is not necessary to enable.
-    // enableIdeaPrepareRuns = true
-
-    // This property allows configuring Gradle's ProcessResources task(s) to run on IDE output locations before launching the game.
-    // It is REQUIRED to be set to true for this template to function.
-    // See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
-    copyIdeResources = true
-
-    // When true, this property will add the folder name of all declared run configurations to generated IDE run configurations.
-    // The folder name can be set on a run configuration using the "folderName" property.
-    // By default, the folder name of a run configuration is the name of the Gradle project containing it.
-    // generateRunFolders = true
-
-    // This property enables access transformers for use in development.
-    // They will be applied to the Minecraft artifact.
-    // The access transformer file can be anywhere in the project.
-    // However, it must be at "META-INF/accesstransformer.cfg" in the final mod jar to be loaded by Forge.
-    // This default location is a best practice to automatically put the file in the right place in the final jar.
-    // See https://docs.minecraftforge.net/en/latest/advanced/accesstransformers/ for more information.
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
-    // Default run configurations.
-    // These can be tweaked, removed, or duplicated as needed.
-    runs {
-        client {
-            workingDirectory project.file('run')
-
-            // Recommended logging data for a userdev environment
-            // The markers can be added/remove as needed separated by commas.
-            // "SCAN": For mods scan.
-            // "REGISTRIES": For firing of registry events.
-            // "REGISTRYDUMP": For getting the contents of all registries.
-            property 'forge.logging.markers', 'REGISTRIES'
-
-            // Recommended logging level for the console
-            // You can set various levels here.
-            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
-            property 'forge.logging.console.level', 'debug'
-
-            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-            property 'forge.enabledGameTestNamespaces', mod_id
-
-            // Ensure mixin dependencies play nice
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
-
-            // https://github.com/ChiefArug/ThermalSysteams/blob/main/build.gradle#L27
-            // https://discord.com/channels/313125603924639766/983834532904042537/1089449308048343090
-            jvmArgs '-XX:+IgnoreUnrecognizedVMOptions', '-XX:+AllowRedefinitionToAddDeleteMethods'
-
-            mods {
-                "${mod_id}" {
-                    source sourceSets.main
-                    source sourceSets.gametest
-                }
-            }
-        }
-
-        client_teamy {
-            //noinspection GroovyAssignabilityCheck
-            parent runs.client
-
-            // THIS CAN CAUSE PROBLEMS! DISABLE AND REGEN RUNS IF ENCOUNTERING WEIRD ISSUES!
-            // Plays nice with: https://github.com/JetBrains/JetBrainsRuntime/releases/tag/jbr-release-17.0.14b1367.22
-            // Causes problems with: jbrsdk_jcef-17.0.6-x64-b469
-            jvmArgs '-XX:+AllowEnhancedClassRedefinition', '-XX:+IgnoreUnrecognizedVMOptions', '-XX:+AllowRedefinitionToAddDeleteMethods'
-
-            args '--username', 'TeamDman', '--uuid', '83f1df8b-0ba3-4de0-8a26-e51a1fd74318', '--width', '1708', '--height', '960'
-        }
-
-        server {
-            workingDirectory project.file('runServer')
-
-            property 'forge.logging.markers', 'REGISTRIES'
-
-            property 'forge.logging.console.level', 'debug'
-
-            property 'forge.enabledGameTestNamespaces', mod_id
-
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
-
-            if (sfmGameTestSelection) {
-                property 'sfm.gametestSelection', sfmGameTestSelection
-            }
-
-            jvmArgs '-XX:+IgnoreUnrecognizedVMOptions', '-XX:+AllowRedefinitionToAddDeleteMethods'
-
-            mods {
-                "${mod_id}" {
-                    source sourceSets.main
-                    source sourceSets.gametest
-                }
-            }
-        }
-
-        // This run config launches GameTestServer and runs all registered gametests, then exits.
-        // By default, the server will crash when no gametests are provided.
-        // The gametest system is also enabled by default for other run configs under the /test command.
-        gameTestServer {
-            workingDirectory project.file('runGameTest')
-
-            property 'forge.logging.markers', 'REGISTRIES'
-
-            property 'forge.logging.console.level', 'debug'
-
-            property 'forge.enabledGameTestNamespaces', mod_id
-
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
-
-            jvmArgs '-XX:+IgnoreUnrecognizedVMOptions', '-XX:+AllowRedefinitionToAddDeleteMethods'
-
-            mods {
-                "${mod_id}" {
-                    source sourceSets.main
-                    source sourceSets.gametest
-                }
-            }
-        }
-
-        data {
-            workingDirectory project.file('runData')
-
-            property 'forge.logging.markers', 'REGISTRIES'
-
-            property 'forge.logging.console.level', 'debug'
-
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
-
-            jvmArgs '-XX:+IgnoreUnrecognizedVMOptions', '-XX:+AllowRedefinitionToAddDeleteMethods'
-
-            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-
-            ideaModule "${project.name}.datagen"
-
-            mods {
-                "${mod_id}" {
-                    source sourceSets.main
-                    source sourceSets.datagen
-                }
-            }
-        }
-    }
-}
-
-mixin {
-    add sourceSets.main, "sfm.refmap.json"
-    config "sfm.mixins.json"
-    debug.verbose = true
-}
-
-repositories {
-    // Put repositories for dependencies here
-    // ForgeGradle automatically adds the Forge maven and Maven Central for you
-
-    // If you have mod jar dependencies in ./libs, you can declare them as a repository like so.
-    // See https://docs.gradle.org/current/userguide/declaring_repositories.html#sub:flat_dir_resolver
-    // flatDir {
-    //     dir 'libs'
-    // }
-
-    maven {
-        name 'jei'
-        url 'https://dvs1.progwml6.com/files/maven'
+    def sfmPluginClasspathFile = file("gradle/plugins/${sfmPluginVersion}/plugin-classpath.txt")
+    if (!sfmPluginClasspathFile.isFile()) {
+        throw new GradleException("Missing Gradle plugin classpath file: ${sfmPluginClasspathFile}")
     }
 
-    maven {
-        name 'CurseMaven'
-        url 'https://www.cursemaven.com'
-        content {
-            includeGroup 'curse.maven'
-        }
-    }
-
-    maven {
-        name 'mekanism'
-        url 'https://modmaven.dev/'
-    }
-
-    maven {
-        name 'thermal'
-        url 'https://maven.covers1624.net/'
-        // https://nexus.covers1624.net/#browse/browse:cofh-releases
-    }
-}
-
-dependencies {
-    // Specify the version of Minecraft to use.
-    // Any artifact can be supplied so long as it has a "userdev" classifier artifact and is a compatible patcher artifact.
-    // The "userdev" classifier will be requested and setup by ForgeGradle.
-    // If the group id is "net.minecraft" and the artifact id is one of ["client", "server", "joined"],
-    // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
-    minecraft "net.neoforged:forge:${minecraft_version}-${neo_version}"
-
-    // Apply Mixin AP
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-
-    // Example mod dependency with JEI - using fg.deobf() ensures the dependency is remapped to your development mappings
-    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
-    // compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
-    // compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")
-    // runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
-
-    // Example mod dependency using a mod jar from ./libs with a flat dir repository
-    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
-    // The group id is ignored when searching -- in this case, it is "blank"
-    // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
-
-    // For more info:
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
-
-    antlr 'org.antlr:antlr4:4.9.1'
-    testImplementation 'com.github.javaparser:javaparser-symbol-solver-core:3.26.4'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
-
-    // https://github.com/ollama4j/ollama4j
-//    jarJar(implementation("io.github.ollama4j:ollama4j")) {
-//        version {
-//            strictly "[1.0.100]"
-//        }
-//    }
-
-    // add benchmarking dependencies
-    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
-    testImplementation 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
-    testImplementation 'org.openjdk.jmh:jmh-generator-bytecode:1.37'
-    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
-
-    runtimeOnly fg.deobf("curse.maven:the-one-probe-245211:4629624") //TheOneProbe - 1.20.1-10.0.1
-
-    runtimeOnly fg.deobf("curse.maven:ftb-chunks-314906:5378090") //ftb-chunks-forge-2001.3.1.jar
-    runtimeOnly fg.deobf("curse.maven:architectury-api-419699:5137938") //[Forge 1.20(.1)] v9.2.14
-    runtimeOnly fg.deobf("curse.maven:ftb-library-forge-404465:5364190") //ftb-library-forge-2001.2.2.jar
-    runtimeOnly fg.deobf("curse.maven:ftb-ranks-forge-314905:4596742") //ftb-ranks-forge-2001.1.3.jar
-    runtimeOnly fg.deobf("curse.maven:ftb-teams-forge-404468:5267190") //ftb-teams-forge-2001.3.0.jar
-
-    // These are for testing BiggerReactors to deduce problems with capabilities not being invalidated.
-    // The power plug for the reactor was not working in programs after logging out and in on a server.
-    // These are commented out because they cause problems with runData.
-//    runtimeOnly fg.deobf("curse.maven:bigger-reactors-407780:4883087") //biggerreactors-1.20.1-0.6.0-beta.10.4.jar
-//    runtimeOnly fg.deobf("curse.maven:phosphophyllite-412551:5122727") //phosphophyllite-1.20.1-0.7.0-alpha.0.1.jar
-//    runtimeOnly fg.deobf("curse.maven:quartz-552262:5122746") //quartz-1.20.1-0.2.0-alpha.0.1.jar
-
-
-    compileOnly fg.deobf('mezz.jei:jei-1.20.1-forge:15.12.3.54')
-    runtimeOnly fg.deobf('mezz.jei:jei-1.20.1-forge:15.12.3.54')
-
-    implementation fg.deobf("curse.maven:mekanism-268560:4807067") //Mekanism-1.20.1-10.4.2.16.jar
-    implementation "mekanism:Mekanism:1.20.1-10.4.2.16:api"
-}
-
-// This block of code expands all declared replace properties in the specified resource tar+gets.
-// A missing property will result in an error. Properties are expanded using ${} Groovy notation.
-// When "copyIdeResources" is enabled, this will also run before the game launches in IDE environments.
-// See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
-def resourceTargets = ['META-INF/mods.toml', 'pack.mcmeta']
-def replaceProperties = [
-        minecraft_version      : minecraft_version,
-        minecraft_version_range: minecraft_version_range,
-        neo_version            : neo_version,
-        neo_version_range      : neo_version_range,
-        loader_version_range   : loader_version_range,
-        mod_id                 : mod_id,
-        mod_name               : mod_name,
-        mod_license            : mod_license,
-        mod_version            : mod_version,
-        mod_authors            : mod_authors,
-        mod_description        : mod_description,
-        mod_issue_tracker      : mod_issue_tracker
-]
-processResources {
-    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
-
-    inputs.properties replaceProperties
-    replaceProperties.put 'project', project
-
-    filesMatching(resourceTargets) {
-        expand replaceProperties
-    }
-}
-
-processGametestResources {
-    duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
-}
-
-
-test {
-    useJUnitPlatform()
-}
-
-// Example for how to get properties into the manifest for reading at runtime.
-jar {
-    manifest {
-        attributes([
-                "Specification-Title"     : mod_id,
-                "Specification-Vendor"    : mod_authors,
-                "Specification-Version"   : "1", // We are version 1 of ourselves
-                "Implementation-Title"    : project.name,
-                "Implementation-Version"  : project.jar.archiveVersion,
-                "Implementation-Vendor"   : mod_authors,
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
-    }
-}
-
-// Example configuration to allow publishing using the maven-publish plugin
-// This is the preferred method to reobfuscate your jar file
-jar.finalizedBy('reobfJar')
-// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
-// publish.dependsOn('reobfJar')
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifact jar
-        }
-    }
     repositories {
-        maven {
-            url "file://${project.projectDir}/mcmodsrepo"
-        }
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.neoforged.net/releases' }
+        maven { url = 'https://maven.parchmentmc.org' }
+    }
+    dependencies {
+        sfmPluginClasspathFile
+                .readLines('UTF-8')
+                .collect { it.trim() }
+                .findAll { it && !it.startsWith('#') }
+                .each { classpath it }
     }
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
-}
+// temp reminder: avoid using --rerun-tasks while we are iterating on cleaning up the build.gradle
+// as it causes things to get decompiled again and it takes a long time
 
-
-generateGrammarSource {
-    arguments = [
-            "-visitor",
-            "-Xexact-output-dir" // https://stackoverflow.com/a/79058733/11141271 fixes "can't find .tokens file" error for TomlParser.g4
-    ]
-    outputDirectory = file("${project.buildDir}/generated-src/antlr/main/ca/teamdman/langs")
-
-//    include 'sfml/SFML.g4'
-//    // Include the lexer first
-//    include 'toml/TomlLexer.g4'
-//    include 'toml/TomlParser.g4'
-}
-
-compileJava {
-    dependsOn generateGrammarSource
-}
-
-// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
-// However, this causes gradle to throw "Error getting artifact" so keep it commented out to retain your sanity
-//idea {
-//    module {
-//        downloadSources = true
-//        downloadJavadoc = true
-//    }
-//}
-
-// List of fully qualified entry point classes
-def entryPoints = [
-        'ca.teamdman.ai.ProjectTestMethodLister',
-        'ca.teamdman.ai.ProjectEverythingLister',
-        'ca.teamdman.ai.FileImportWalker'
-        // Add more classes here as needed
-]
-entryPoints.each { className ->
-    // Extract simple class name for the task name (e.g., ProjectTestMethodLister)
-    def simpleClassName = className.substring(className.lastIndexOf('.') + 1)
-
-    // Define a task name, e.g., runProjectTestMethodLister
-    def taskName = "run${simpleClassName}"
-
-    // Create the JavaExec task
-    //noinspection ConfigurationAvoidance
-    task(taskName, type: JavaExec) {
-        group = 'Execution'
-        description = "Runs the ${className} class"
-
-        // Set the main class to run
-        mainClass.set(className)
-
-        // Set the classpath to include compiled test classes and dependencies
-        classpath = sourceSets.test.runtimeClasspath
-
-        // Optional: Set JVM arguments if needed
-        // e.g., jvmArgs = ['-Xmx1G']
-    }
-}
+apply from: "gradle/versioned-plugins.gradle"
+apply from: "gradle/java-compiler.gradle"
+apply from: "gradle/wrapper.gradle"
+apply from: "gradle/archive-name.gradle"
+apply from: "gradle/versioned-java-toolchain.gradle"
+apply from: "gradle/versioned-access-transformer.gradle"
+apply from: "gradle/source-excludes.gradle"
+apply from: "gradle/source-sets.gradle"
+apply from: "gradle/versioned-run-configurations.gradle"
+apply from: "gradle/idea-excludes.gradle"
+apply from: "gradle/versioned-configurations.gradle"
+apply from: "gradle/versioned-mixin.gradle"
+apply from: "gradle/repositories.gradle"
+apply from: "gradle/versioned-dependencies.gradle"
+apply from: "gradle/versioned-process-resources.gradle"
+apply from: "gradle/test.gradle"
+apply from: "gradle/jar-manifest.gradle"
+apply from: "gradle/publishing.gradle"
+apply from: "gradle/java-compile-encoding.gradle"
+apply from: "gradle/generate-grammar-source.gradle"
+apply from: "gradle/idea-module-downloads.gradle"
+apply from: "gradle/custom-entrypoints.gradle"
