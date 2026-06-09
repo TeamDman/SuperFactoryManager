@@ -60,42 +60,7 @@ apply from: "gradle/versioned-run-configurations.gradle"
 //    debug.verbose = true
 //}
 
-repositories {
-    // Put repositories for dependencies here
-    // ForgeGradle automatically adds the Forge maven and Maven Central for you
-
-    // If you have mod jar dependencies in ./libs, you can declare them as a repository like so.
-    // See https://docs.gradle.org/current/userguide/declaring_repositories.html#sub:flat_dir_resolver
-    // flatDir {
-    //     dir 'libs'
-    // }
-    mavenLocal()
-    mavenCentral()
-
-    maven {
-        name 'jared' // used by jei
-        url 'https://maven.blamejared.com/'
-    }
-
-    maven {
-        name 'CurseMaven'
-        url 'https://www.cursemaven.com'
-        content {
-            includeGroup 'curse.maven'
-        }
-    }
-
-    maven {
-        name 'mekanism'
-        url 'https://modmaven.dev/'
-    }
-
-    maven {
-        name 'thermal'
-        url 'https://maven.covers1624.net/'
-        // https://nexus.covers1624.net/#browse/browse:cofh-releases
-    }
-}
+apply from: "gradle/repositories.gradle"
 
 dependencies {
     // Specify the version of Minecraft to use.
