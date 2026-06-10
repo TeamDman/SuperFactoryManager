@@ -95,6 +95,12 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::git::GitCommand,
     },
+    /// GitHub release commands
+    Github {
+        /// GitHub subcommand
+        #[facet(args::subcommand)]
+        command: super::github::GithubCommand,
+    },
     /// Home directory related commands
     Home {
         /// Home subcommand
@@ -143,6 +149,7 @@ impl Command {
             Command::Client { command } => command.invoke(),
             Command::Server { command } => command.invoke(),
             Command::Git { command } => command.invoke(),
+            Command::Github { command } => command.invoke(),
             Command::Home { command } => command.invoke(),
             Command::Cache { command } => command.invoke(),
             Command::Curseforge { command } => command.invoke(),
