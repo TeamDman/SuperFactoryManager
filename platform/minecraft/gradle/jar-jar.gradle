@@ -1,0 +1,27 @@
+if (project.ext.has('sfmJarJarConfigured')) {
+    throw new GradleException("jar-jar.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("jar-jar.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmArchiveNameConfigured')) {
+    throw new GradleException("jar-jar.gradle requires archive-name.gradle to be applied first")
+}
+
+if (project.plugins.hasPlugin('net.neoforged.gradle.userdev')) {
+    tasks.named('jar').configure {
+        archiveClassifier.set('slim')
+    }
+
+    tasks.named('jarJar').configure {
+        archiveClassifier.set('')
+    }
+
+    ext.sfmPublishedJarTask = tasks.named('jarJar')
+} else {
+    ext.sfmPublishedJarTask = tasks.named('jar')
+}
+
+ext.sfmJarJarConfigured = true
