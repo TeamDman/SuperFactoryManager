@@ -6,11 +6,17 @@ import ca.teamdman.sfm.common.block_network.BlockNetworkManager;
 import ca.teamdman.sfm.common.block_network.BlockNetworkMemberFilterMapper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SFMBlockNetworkChunkUnloadReproTests {
+
+    @BeforeAll
+    static void bootStrapMinecraft() {
+        SFMMinecraftBootstrap.bootStrap();
+    }
 
     private static BlockNetworkManager<SFMTestLevel<String>, String, BlockNetwork<SFMTestLevel<String>, String>>
     createManager() {
