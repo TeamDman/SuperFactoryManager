@@ -43,7 +43,8 @@ function cs {
         $targets
     } `
     | Where-Object { Test-Path $_ } `
-    | ct pick `
+    | cloud_terrastodon pick `
     | Set-Location
+    # substitute `cloud_terrastodon pick` with `fzf` or whatever you want to use for picking
 }
 #endregion
