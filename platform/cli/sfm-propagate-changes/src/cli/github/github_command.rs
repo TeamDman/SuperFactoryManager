@@ -227,16 +227,11 @@ fn release_amend(
         println!("MC filter:     {filter}");
     }
     if dry_run {
-        println!("Mode:          dry-run (no GitHub calls)");
+        println!("Mode:          dry-run (no GitHub mutations)");
     }
     println!("Assets used for target selection:");
     for jar in &jars {
         println!(" - {}", jar.filename);
-    }
-
-    if dry_run {
-        println!("Notes file:    {}", notes_file.display());
-        return Ok(());
     }
 
     if !github_release_exists(&repo, &release_tag)? {
@@ -245,6 +240,12 @@ fn release_amend(
             release_tag,
             repo
         );
+    }
+
+    if dry_run {
+        println!("Notes file:    {}", notes_file.display());
+        println!("Dry-run complete: remote GitHub release exists; no release amended.");
+        return Ok(());
     }
 
     if !yes {

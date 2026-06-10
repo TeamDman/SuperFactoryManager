@@ -133,6 +133,9 @@ pub enum ModrinthReleaseCommand {
         /// 1Password secret reference used when token is omitted
         #[facet(default, args::named, rename = "op-secret")]
         op_secret: Option<String>,
+        /// Resolve remote target and print the amend plan without updating Modrinth
+        #[facet(default, args::named, rename = "dry-run")]
+        dry_run: bool,
     },
 }
 
@@ -177,7 +180,14 @@ impl ModrinthReleaseCommand {
                 project,
                 token,
                 op_secret,
-            } => super::modrinth_amend_command::invoke(mc.as_deref(), project, token, op_secret),
+                dry_run,
+            } => super::modrinth_amend_command::invoke(
+                mc.as_deref(),
+                project,
+                token,
+                op_secret,
+                dry_run,
+            ),
         }
     }
 }
@@ -205,8 +215,9 @@ pub(super) fn invoke_amend(
     project: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
+    dry_run: bool,
 ) -> eyre::Result<()> {
-    release_amend(mc, project, token, op_secret)
+    release_amend(mc, project, token, op_secret, dry_run)
 }
 
 #[derive(Facet, Debug, Clone)]
@@ -745,6 +756,7 @@ fn release_amend(
     project: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
+    dry_run: bool,
 ) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
 
@@ -755,8 +767,12 @@ fn release_amend(
     let mod_version = read_mod_version(&gradle_properties)?;
     let wrapped_changelog = compute_wrapped_release_changelog(&repo_root, &mod_version)?;
 
-    let token_value = resolve_token(token, op_secret)?;
-    let client = build_http_client(Some(&token_value))?;
+    let token_value = if dry_run {
+        None
+    } else {
+        Some(resolve_token(token, op_secret)?)
+    };
+    let client = build_http_client(token_value.as_deref())?;
 
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
     let jars = filter_release_jars_by_mc(all_jars, mc)?;
@@ -801,6 +817,13 @@ fn release_amend(
 
     println!("{} {}", style("Project ID:", ANSI_BOLD_CYAN), project_id);
     println!("{} {}", style("Mod version:", ANSI_BOLD_CYAN), mod_version);
+    if dry_run {
+        println!(
+            "{} {}",
+            style("Mode:", ANSI_BOLD_YELLOW),
+            style("dry-run (no Modrinth mutations)", ANSI_BOLD_YELLOW)
+        );
+    }
     println!("{}", style("Amend targets:", ANSI_BOLD_CYAN));
     for (mc_version, version_id, jar_name) in &amend_targets {
         println!(
@@ -812,6 +835,17 @@ fn release_amend(
             style("name", ANSI_DIM),
             jar_name
         );
+    }
+
+    if dry_run {
+        println!(
+            "{}",
+            style(
+                "Dry-run complete: remote Modrinth targets resolved; no versions amended.",
+                ANSI_BOLD_GREEN
+            )
+        );
+        return Ok(());
     }
 
     let prompt = format!(
