@@ -26,6 +26,11 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
     antlr 'org.antlr:antlr4:4.9.1'
+    jarJar(implementation('org.antlr:antlr4-runtime:4.9.1')) {
+        version {
+            strictly '[4.9.1]'
+        }
+    }
     testImplementation 'com.github.javaparser:javaparser-symbol-solver-core:3.26.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
