@@ -1437,6 +1437,22 @@ fn release_amend(
     let mut file_targets: Vec<(String, u64, String, String, Duration)> = Vec::new();
     for (mc_version, jar_name) in target_versions {
         let file = find_latest_historical_file_for_mc(&files, &mc_version)?;
+        let historical_version = historical_mod_version(file).ok_or_else(|| {
+            eyre::eyre!(
+                "Could not parse mod version from latest historical file {} for MC {}",
+                file.id,
+                mc_version
+            )
+        })?;
+        if historical_version != mod_version {
+            eyre::bail!(
+                "Refusing to amend CurseForge file for MC {} because the latest remote version was {}, expected {} (file id {}).",
+                mc_version,
+                historical_version,
+                mod_version,
+                file.id
+            );
+        }
         let old_name = file
             .display_name
             .clone()
