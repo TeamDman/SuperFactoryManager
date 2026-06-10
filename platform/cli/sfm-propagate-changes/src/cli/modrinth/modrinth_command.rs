@@ -103,6 +103,9 @@ pub enum ModrinthReleaseCommand {
     },
     /// Create new Modrinth versions for each release jar
     Now {
+        /// Minecraft version filter expression (examples: `=1.20.1`, `>=1.19.2,<=1.21.1`, `=1.19.2 OR =1.21.1`).
+        #[facet(default, args::named)]
+        mc: Option<String>,
         /// Modrinth project id/slug (defaults to Super Factory Manager)
         #[facet(default, args::named)]
         project: Option<String>,
@@ -113,11 +116,14 @@ pub enum ModrinthReleaseCommand {
         #[facet(default, args::named, rename = "op-secret")]
         op_secret: Option<String>,
         /// Print planned uploads and metadata without uploading
-        #[facet(default, args::named)]
+        #[facet(default, args::named, rename = "dry-run")]
         dry_run: bool,
     },
     /// Amend changelog for latest version per MC in current release jars
     Amend {
+        /// Minecraft version filter expression (examples: `=1.20.1`, `>=1.19.2,<=1.21.1`, `=1.19.2 OR =1.21.1`).
+        #[facet(default, args::named)]
+        mc: Option<String>,
         /// Modrinth project id/slug (defaults to Super Factory Manager)
         #[facet(default, args::named)]
         project: Option<String>,
@@ -154,16 +160,24 @@ impl ModrinthReleaseCommand {
                 super::modrinth_validate_command::invoke(mc.as_deref(), project)
             }
             Self::Now {
+                mc,
                 project,
                 token,
                 op_secret,
                 dry_run,
-            } => super::modrinth_now_command::invoke(project, token, op_secret, dry_run),
-            Self::Amend {
+            } => super::modrinth_now_command::invoke(
+                mc.as_deref(),
                 project,
                 token,
                 op_secret,
-            } => super::modrinth_amend_command::invoke(project, token, op_secret),
+                dry_run,
+            ),
+            Self::Amend {
+                mc,
+                project,
+                token,
+                op_secret,
+            } => super::modrinth_amend_command::invoke(mc.as_deref(), project, token, op_secret),
         }
     }
 }
@@ -177,20 +191,22 @@ pub(super) fn invoke_validate(mc: Option<&str>, project: Option<String>) -> eyre
 }
 
 pub(super) fn invoke_now(
+    mc: Option<&str>,
     project: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
     dry_run: bool,
 ) -> eyre::Result<()> {
-    release_now(project, token, op_secret, dry_run)
+    release_now(mc, project, token, op_secret, dry_run)
 }
 
 pub(super) fn invoke_amend(
+    mc: Option<&str>,
     project: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
 ) -> eyre::Result<()> {
-    release_amend(project, token, op_secret)
+    release_amend(mc, project, token, op_secret)
 }
 
 #[derive(Facet, Debug, Clone)]
@@ -588,6 +604,7 @@ fn validate_release_hashes(mc: Option<&str>, project: Option<String>) -> eyre::R
     reason = "release flow is intentionally linear"
 )]
 fn release_now(
+    mc: Option<&str>,
     project: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
@@ -601,7 +618,8 @@ fn release_now(
 
     let mod_version = read_mod_version(&gradle_properties)?;
     let changelog_section = compute_wrapped_release_changelog(&repo_root, &mod_version)?;
-    let jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
+    let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
+    let jars = filter_release_jars_by_mc(all_jars, mc)?;
     let plans = build_release_plans(&jars, &mod_version)?;
 
     println!("{} {}", style("Project ID:", ANSI_BOLD_CYAN), project_id);
@@ -723,6 +741,7 @@ fn release_now(
 }
 
 fn release_amend(
+    mc: Option<&str>,
     project: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
@@ -739,7 +758,8 @@ fn release_amend(
     let token_value = resolve_token(token, op_secret)?;
     let client = build_http_client(Some(&token_value))?;
 
-    let jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
+    let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
+    let jars = filter_release_jars_by_mc(all_jars, mc)?;
     let mut target_versions: Vec<(String, String)> = Vec::new();
     for jar in jars {
         let mc_version = parse_mc_version_from_jar_name(&jar)?;
