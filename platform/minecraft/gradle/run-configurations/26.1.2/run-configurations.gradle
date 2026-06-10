@@ -76,6 +76,7 @@ runs {
 
     data {
         runType 'clientData'
+        getIDERunName().set('runData (ClientData)')
         modSource project.sourceSets.datagen
         // IntelliJ uses this source set to choose the module/classpath for the generated run config.
         idea.primarySourceSet.set(project.sourceSets.datagen)
