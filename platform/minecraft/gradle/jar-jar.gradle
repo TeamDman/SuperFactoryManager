@@ -10,7 +10,9 @@ if (!project.ext.has('sfmArchiveNameConfigured')) {
     throw new GradleException("jar-jar.gradle requires archive-name.gradle to be applied first")
 }
 
-if (project.plugins.hasPlugin('net.neoforged.gradle.userdev')) {
+def sfmUsesBundledJar = project.findProperty('minecraft_version') == '26.1.2'
+
+if (sfmUsesBundledJar && project.plugins.hasPlugin('net.neoforged.gradle.userdev')) {
     tasks.named('jar').configure {
         archiveClassifier.set('slim')
     }
