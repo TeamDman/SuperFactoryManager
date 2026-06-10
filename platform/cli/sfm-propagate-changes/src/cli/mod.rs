@@ -3,6 +3,7 @@ mod cli;
 pub mod client;
 pub mod curseforge;
 pub mod git;
+pub mod github;
 pub mod gradle;
 pub mod home;
 pub mod jar;
