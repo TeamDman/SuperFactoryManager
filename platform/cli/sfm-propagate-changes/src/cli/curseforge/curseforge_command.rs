@@ -84,6 +84,7 @@ fn colorize_metadata_name(name: &str, mc_version: &str) -> String {
         "Forge" => style(name, ANSI_BOLD_YELLOW),
         "Java 17" => style(name, ANSI_BOLD_GREEN),
         "Java 21" => style(name, ANSI_BOLD_CYAN),
+        "Java 25" => style(name, ANSI_BOLD_CYAN),
         _ => name.to_string(),
     }
 }
@@ -158,6 +159,9 @@ pub enum CurseforgeReleaseCommand {
     },
     /// Upload each release jar to CurseForge according to release-process rules
     Now {
+        /// Minecraft version filter expression (examples: `=1.20.1`, `>=1.19.2,<=1.21.1`, `=1.19.2 OR =1.21.1`).
+        #[facet(default, args::named)]
+        mc: Option<String>,
         /// CurseForge project ID (defaults to configured default project)
         #[facet(default, args::named)]
         project: Option<u64>,
@@ -168,11 +172,14 @@ pub enum CurseforgeReleaseCommand {
         #[facet(default, args::named, rename = "op-secret")]
         op_secret: Option<String>,
         /// Print planned uploads and metadata without uploading
-        #[facet(default, args::named)]
+        #[facet(default, args::named, rename = "dry-run")]
         dry_run: bool,
     },
     /// Amend changelog for latest file per MC version in current release jars
     Amend {
+        /// Minecraft version filter expression (examples: `=1.20.1`, `>=1.19.2,<=1.21.1`, `=1.19.2 OR =1.21.1`).
+        #[facet(default, args::named)]
+        mc: Option<String>,
         /// CurseForge project ID (defaults to configured default project)
         #[facet(default, args::named)]
         project: Option<u64>,
@@ -320,19 +327,32 @@ impl CurseforgeReleaseCommand {
                 op_secret,
             ),
             Self::Now {
+                mc,
                 project,
                 token,
                 op_secret,
                 dry_run,
-            } => super::curseforge_release_now_command::invoke(project, token, op_secret, dry_run),
+            } => super::curseforge_release_now_command::invoke(
+                mc.as_deref(),
+                project,
+                token,
+                op_secret,
+                dry_run,
+            ),
             Self::Amend {
+                mc,
                 project,
                 api_key,
                 token,
                 op_secret,
                 safety_age,
             } => super::curseforge_release_amend_command::invoke(
-                project, api_key, token, op_secret, safety_age,
+                mc.as_deref(),
+                project,
+                api_key,
+                token,
+                op_secret,
+                safety_age,
             ),
         }
     }
@@ -762,6 +782,7 @@ fn fetch_project_files(
     reason = "release flow is intentionally linear"
 )]
 fn release_now(
+    mc: Option<&str>,
     project: Option<u64>,
     token: Option<String>,
     op_secret: Option<String>,
@@ -778,7 +799,8 @@ fn release_now(
     let mod_version = read_mod_version(&gradle_properties)?;
     let changelog_section = read_changelog_section(&changelog_path, &mod_version)?;
     let wrapped_changelog = format!("```\n{}\n```", changelog_section.trim());
-    let jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
+    let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
+    let jars = filter_release_jars_by_mc(all_jars, mc)?;
 
     let game_version_index = if dry_run {
         None
@@ -1364,6 +1386,7 @@ fn format_age(value: Duration) -> String {
 
 #[expect(clippy::too_many_lines, reason = "amend flow is intentionally linear")]
 fn release_amend(
+    mc: Option<&str>,
     project: Option<u64>,
     api_key: Option<String>,
     token: Option<String>,
@@ -1385,7 +1408,8 @@ fn release_amend(
     let token_value = resolve_token(token.clone(), op_secret.clone())?;
     let upload_client = build_http_client(&token_value)?;
 
-    let jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
+    let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
+    let jars = filter_release_jars_by_mc(all_jars, mc)?;
     let mut target_versions: Vec<(String, String)> = Vec::new();
     for jar in jars {
         let mc_version = parse_mc_version_from_jar_name(&jar)?;
@@ -1919,6 +1943,7 @@ fn resolve_game_version_ids(
             "Server" => resolve_exact_type_id(game_version_index, "Server", 75_208)?,
             "Java 17" => resolve_exact_type_id(game_version_index, "Java 17", 2)?,
             "Java 21" => resolve_exact_type_id(game_version_index, "Java 21", 2)?,
+            "Java 25" => resolve_exact_type_id(game_version_index, "Java 25", 2)?,
             minecraft if parse_version(minecraft).is_some() => {
                 resolve_minecraft_version_id(game_version_index, minecraft)?
             }
@@ -1967,8 +1992,11 @@ fn loader_names_for(parsed: (u32, u32, u32)) -> Vec<&'static str> {
 
 fn java_version_name_for(parsed: (u32, u32, u32)) -> &'static str {
     let v_1_20_4 = (1, 20, 4);
+    let v_26_0_0 = (26, 0, 0);
     if parsed <= v_1_20_4 {
         "Java 17"
+    } else if parsed >= v_26_0_0 {
+        "Java 25"
     } else {
         "Java 21"
     }
@@ -2023,22 +2051,24 @@ pub(super) fn invoke_release_validate(
 }
 
 pub(super) fn invoke_release_now(
+    mc: Option<&str>,
     project: Option<u64>,
     token: Option<String>,
     op_secret: Option<String>,
     dry_run: bool,
 ) -> eyre::Result<()> {
-    release_now(project, token, op_secret, dry_run)
+    release_now(mc, project, token, op_secret, dry_run)
 }
 
 pub(super) fn invoke_release_amend(
+    mc: Option<&str>,
     project: Option<u64>,
     api_key: Option<String>,
     token: Option<String>,
     op_secret: Option<String>,
     safety_age: Option<String>,
 ) -> eyre::Result<()> {
-    release_amend(project, api_key, token, op_secret, safety_age)
+    release_amend(mc, project, api_key, token, op_secret, safety_age)
 }
 
 pub(super) fn invoke_project_default_set(project: u64) -> eyre::Result<()> {
@@ -2071,6 +2101,7 @@ pub(super) fn invoke_minecraft_version_list(
 #[cfg(test)]
 mod tests {
     use super::format_age;
+    use super::java_version_name_for;
     use super::parse_safety_age;
     use std::time::Duration;
 
@@ -2093,5 +2124,12 @@ mod tests {
         assert_eq!(format_age(Duration::from_secs(5)), "5s");
         assert_eq!(format_age(Duration::from_secs(90)), "1m30s");
         assert_eq!(format_age(Duration::from_secs(7260)), "2h1m");
+    }
+
+    #[test]
+    fn java_version_metadata_tracks_supported_minecraft_lines() {
+        assert_eq!(java_version_name_for((1, 20, 4)), "Java 17");
+        assert_eq!(java_version_name_for((1, 21, 1)), "Java 21");
+        assert_eq!(java_version_name_for((26, 1, 2)), "Java 25");
     }
 }
