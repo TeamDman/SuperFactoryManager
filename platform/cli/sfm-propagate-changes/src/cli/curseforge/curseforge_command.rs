@@ -195,6 +195,9 @@ pub enum CurseforgeReleaseCommand {
         /// Refuse amending files older than this age (examples: 30m, 2h, 45s)
         #[facet(default, args::named, rename = "safety-age")]
         safety_age: Option<String>,
+        /// Resolve remote target and print the amend plan without updating CurseForge
+        #[facet(default, args::named, rename = "dry-run")]
+        dry_run: bool,
     },
 }
 
@@ -346,6 +349,7 @@ impl CurseforgeReleaseCommand {
                 token,
                 op_secret,
                 safety_age,
+                dry_run,
             } => super::curseforge_release_amend_command::invoke(
                 mc.as_deref(),
                 project,
@@ -353,6 +357,7 @@ impl CurseforgeReleaseCommand {
                 token,
                 op_secret,
                 safety_age,
+                dry_run,
             ),
         }
     }
@@ -1392,6 +1397,7 @@ fn release_amend(
     token: Option<String>,
     op_secret: Option<String>,
     safety_age: Option<String>,
+    dry_run: bool,
 ) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
 
@@ -1405,8 +1411,12 @@ fn release_amend(
     let changelog_section = read_changelog_section(&changelog_path, &mod_version)?;
     let wrapped_changelog = format!("```\n{}\n```", changelog_section.trim());
 
-    let token_value = resolve_token(token.clone(), op_secret.clone())?;
-    let upload_client = build_http_client(&token_value)?;
+    let upload_client = if dry_run {
+        None
+    } else {
+        let token_value = resolve_token(token.clone(), op_secret.clone())?;
+        Some(build_http_client(&token_value)?)
+    };
 
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
     let jars = filter_release_jars_by_mc(all_jars, mc)?;
@@ -1478,6 +1488,13 @@ fn release_amend(
         style("Safety age:", ANSI_BOLD_CYAN),
         style(&safety_age_text, ANSI_BOLD_CYAN)
     );
+    if dry_run {
+        println!(
+            "{} {}",
+            style("Mode:", ANSI_BOLD_YELLOW),
+            style("dry-run (no CurseForge mutations)", ANSI_BOLD_YELLOW)
+        );
+    }
     println!("{}", style("Amend targets:", ANSI_BOLD_CYAN));
     for (mc_version, file_id, old_name, jar_name, file_age) in &file_targets {
         println!(
@@ -1493,6 +1510,17 @@ fn release_amend(
             style("new", ANSI_DIM),
             jar_name
         );
+    }
+
+    if dry_run {
+        println!(
+            "{}",
+            style(
+                "Dry-run complete: remote CurseForge targets resolved; no files amended.",
+                ANSI_BOLD_GREEN
+            )
+        );
+        return Ok(());
     }
 
     let prompt = format!(
@@ -1522,8 +1550,11 @@ fn release_amend(
             style("new", ANSI_DIM),
             jar_name
         );
+        let upload_client = upload_client.as_ref().ok_or_else(|| {
+            eyre::eyre!("internal error: missing CurseForge upload client for amend")
+        })?;
         amend_file_changelog(
-            &upload_client,
+            upload_client,
             project_id,
             *file_id,
             jar_name,
@@ -2083,8 +2114,9 @@ pub(super) fn invoke_release_amend(
     token: Option<String>,
     op_secret: Option<String>,
     safety_age: Option<String>,
+    dry_run: bool,
 ) -> eyre::Result<()> {
-    release_amend(mc, project, api_key, token, op_secret, safety_age)
+    release_amend(mc, project, api_key, token, op_secret, safety_age, dry_run)
 }
 
 pub(super) fn invoke_project_default_set(project: u64) -> eyre::Result<()> {
