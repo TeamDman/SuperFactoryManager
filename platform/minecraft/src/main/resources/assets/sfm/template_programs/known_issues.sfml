@@ -6,6 +6,9 @@ NAME "Known issues"
 -- Official SFM issue tracker:
 -- https://github.com/TeamDman/SuperFactoryManager/issues
 
+-- 26.1.2: legacy textures resource pack missing #548
+-- 26.1.2: increasing timerTriggerMinimumIntervalInTicks not working #549
+
 -- JEI support is missing from some versions
 
 -- Sometimes managers stop working for 'no reason'
