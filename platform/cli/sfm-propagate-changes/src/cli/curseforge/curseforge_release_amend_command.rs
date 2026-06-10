@@ -5,8 +5,9 @@ pub(super) fn invoke(
     token: Option<String>,
     op_secret: Option<String>,
     safety_age: Option<String>,
+    dry_run: bool,
 ) -> eyre::Result<()> {
     super::curseforge_command::invoke_release_amend(
-        mc, project, api_key, token, op_secret, safety_age,
+        mc, project, api_key, token, op_secret, safety_age, dry_run,
     )
 }
