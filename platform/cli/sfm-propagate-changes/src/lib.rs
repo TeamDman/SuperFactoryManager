@@ -8,14 +8,30 @@ pub mod state;
 pub mod worktree;
 
 use crate::cli::Cli;
+use chrono::{DateTime, Local, Utc};
 
-/// Version string combining package version and git revision.
-const VERSION: &str = concat!(
-    env!("CARGO_PKG_VERSION"),
-    " (rev ",
-    env!("GIT_REVISION"),
-    ")"
-);
+/// Version string combining package version, git revision, and build time.
+fn version() -> String {
+    let built_at = option_env!("BUILD_TIMESTAMP_UNIX")
+        .and_then(|value| value.parse::<i64>().ok())
+        .and_then(|timestamp| DateTime::<Utc>::from_timestamp(timestamp, 0))
+        .map_or_else(
+            || "unknown build time".to_string(),
+            |timestamp| {
+                timestamp
+                    .with_timezone(&Local)
+                    .format("%Y-%m-%d %H:%M:%S %Z")
+                    .to_string()
+            },
+        );
+
+    format!(
+        "{} (rev {}, built {})",
+        env!("CARGO_PKG_VERSION"),
+        env!("GIT_REVISION"),
+        built_at,
+    )
+}
 
 /// Entrypoint for the program.
 ///
@@ -30,13 +46,15 @@ pub fn main() -> eyre::Result<()> {
     // Install color_eyre for better error reports
     color_eyre::install()?;
 
+    let version = version();
+
     // Parse command line arguments using figue
     // unwrap() handles --help, --version, completions, and errors with proper exit codes
     let cli: Cli = figue::Driver::new(
         figue::builder::<Cli>()
             .expect("schema should be valid")
             .cli(|c| c)
-            .help(|h| h.version(VERSION))
+            .help(|h| h.version(version))
             .build(),
     )
     .run()
