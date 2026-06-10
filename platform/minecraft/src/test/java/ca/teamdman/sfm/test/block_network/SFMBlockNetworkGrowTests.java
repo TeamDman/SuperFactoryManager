@@ -6,11 +6,17 @@ import ca.teamdman.sfm.common.block_network.BlockNetworkManager;
 import ca.teamdman.sfm.common.block_network.BlockNetworkMemberFilterMapper;
 import ca.teamdman.sfm.common.util.SFMBlockPosUtils;
 import net.minecraft.core.BlockPos;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SFMBlockNetworkGrowTests {
+
+    @BeforeAll
+    static void bootStrapMinecraft() {
+        SFMMinecraftBootstrap.bootStrap();
+    }
 
     @Test
     public void testNetworkGrow() {
