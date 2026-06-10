@@ -781,6 +781,21 @@ fn release_amend(
     let mut amend_targets: Vec<(String, String, String)> = Vec::new();
     for (mc_version, jar_name) in target_versions {
         let version = find_latest_historical_version_for_mc(&versions, &mc_version)?;
+        let historical_version_number =
+            version.version_number.as_deref().unwrap_or_default().trim();
+        if historical_version_number != mod_version {
+            eyre::bail!(
+                "Refusing to amend Modrinth version for MC {} because the latest remote version was {}, expected {} (version id {}).",
+                mc_version,
+                if historical_version_number.is_empty() {
+                    "<missing>"
+                } else {
+                    historical_version_number
+                },
+                mod_version,
+                version.id
+            );
+        }
         amend_targets.push((mc_version, version.id.clone(), jar_name));
     }
 
