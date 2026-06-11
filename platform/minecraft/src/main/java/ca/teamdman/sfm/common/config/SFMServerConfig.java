@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.config;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
+import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
@@ -77,17 +78,25 @@ public class SFMServerConfig {
     @SFMSubscribeEvent
     public static void onConfigLoaded(ModConfigEvent.Loading event) {
         if (event.getConfig().getSpec() == SFMConfig.SERVER_CONFIG_SPEC) {
-            SFMConfig.SERVER_CONFIG.revision++;
-            SFM.LOGGER.info("SFM config loaded, now on revision {}", SFMConfig.SERVER_CONFIG.revision);
+            bumpRevisionAndClearProgramCache("loaded");
         }
     }
 
     @SFMSubscribeEvent
     public static void onConfigReloaded(ModConfigEvent.Reloading event) {
         if (event.getConfig().getSpec() == SFMConfig.SERVER_CONFIG_SPEC) {
-            SFMConfig.SERVER_CONFIG.revision++;
-            SFM.LOGGER.info("SFM config reloaded, now on revision {}", SFMConfig.SERVER_CONFIG.revision);
+            bumpRevisionAndClearProgramCache("reloaded");
         }
+    }
+
+    private static void bumpRevisionAndClearProgramCache(String reason) {
+        SFMConfig.SERVER_CONFIG.revision++;
+        ProgramBuilder.clearCache();
+        SFM.LOGGER.info(
+                "SFM config {}, now on revision {}. Cleared program build cache.",
+                reason,
+                SFMConfig.SERVER_CONFIG.revision
+        );
     }
 
     public enum LevelsToShards {
