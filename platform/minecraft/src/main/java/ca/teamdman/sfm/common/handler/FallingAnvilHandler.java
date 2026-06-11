@@ -22,6 +22,7 @@ import net.minecraft.world.level.block.AnvilBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
 
 import java.util.ArrayList;
@@ -162,6 +163,8 @@ public class FallingAnvilHandler {
                 continue;
             }
 
+            var spawnLocation = Vec3.atBottomCenterOf(anvilPos);
+
             // Determine how large the stack is
             int stackSize = stack.getCount();
 
@@ -181,9 +184,9 @@ public class FallingAnvilHandler {
                 // Spawn the book in the world
                 level.addFreshEntity(new ItemEntity(
                         level,
-                        anvilPos.getX(),
-                        anvilPos.getY(),
-                        anvilPos.getZ(),
+                        spawnLocation.x,
+                        spawnLocation.y,
+                        spawnLocation.z,
                         enchantedBookToSpawn
                 ));
 
@@ -204,13 +207,14 @@ public class FallingAnvilHandler {
         }
 
         // Respawn any remaining books
+        var spawnLocation = Vec3.atBottomCenterOf(anvilPos);
         while (booksAvailable > 0) {
             int toSpawn = Math.min(booksAvailable, 64);
             level.addFreshEntity(new ItemEntity(
                     level,
-                    anvilPos.getX(),
-                    anvilPos.getY(),
-                    anvilPos.getZ(),
+                    spawnLocation.x,
+                    spawnLocation.y,
+                    spawnLocation.z,
                     new ItemStack(Items.BOOK, toSpawn)
             ));
             booksAvailable -= toSpawn;
@@ -222,6 +226,7 @@ public class FallingAnvilHandler {
             BlockPos anvilPos,
             List<ItemEntity> items
     ) {
+        var spawnLocation = Vec3.atBottomCenterOf(anvilPos);
 
         // For each item
         for (ItemEntity itemEntity : items) {
@@ -261,9 +266,9 @@ public class FallingAnvilHandler {
                 // Spawn the stack
                 ItemEntity shardItemEntity = new ItemEntity(
                         level,
-                        anvilPos.getX(),
-                        anvilPos.getY(),
-                        anvilPos.getZ(),
+                        spawnLocation.x,
+                        spawnLocation.y,
+                        spawnLocation.z,
                         shardStack
                 );
                 level.addFreshEntity(shardItemEntity);
@@ -286,6 +291,8 @@ public class FallingAnvilHandler {
         // Mark the block for consumption only if work is done
         boolean consumeBlock = false;
 
+        var spawnLocation = Vec3.atBottomCenterOf(anvilPos);
+
         // For each item entity
         for (ItemEntity itemEntity : itemEntities) {
 
@@ -304,9 +311,9 @@ public class FallingAnvilHandler {
                 // Spawn the new item
                 level.addFreshEntity(new ItemEntity(
                         level,
-                        anvilPos.getX(),
-                        anvilPos.getY(),
-                        anvilPos.getZ(),
+                        spawnLocation.x,
+                        spawnLocation.y,
+                        spawnLocation.z,
                         formStack
                 ));
 

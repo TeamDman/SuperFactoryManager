@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 public class FancyCableBlock extends CableBlock implements IFacadableBlock, SimpleWaterloggedBlock {
+    public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
     public static final BooleanProperty NORTH = BooleanProperty.create("north");
 
     public static final BooleanProperty SOUTH = BooleanProperty.create("south");
@@ -66,8 +67,6 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
             Direction.DOWN, DOWN
     );
 
-    private static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-
     @SFMLocalizationDatagen
     public static final LocalizationEntry FANCY_CABLE_BLOCK = new LocalizationEntry(
             () -> SFMBlocks.FANCY_CABLE.get().getDescriptionId(),
@@ -89,6 +88,13 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
         );
     }
 
+    @SuppressWarnings("deprecation")
+    @Override
+    public FluidState getFluidState(BlockState state) {
+
+        return state.getValue(WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
+    }
+
     @Override
     public IFacadableBlock getNonFacadeBlock() {
 
@@ -103,15 +109,9 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext ctx) {
-        FluidState fluidState = ctx.getLevel().getFluidState(ctx.getClickedPos());
-
-        return getState(defaultBlockState(), ctx.getLevel(), ctx.getClickedPos())
-                .setValue(WATERLOGGED, fluidState.is(Fluids.WATER));
-    }
-
-    @Override
-    protected FluidState getFluidState(BlockState state) {
-        return state.getValue(WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
+        FluidState fluid = ctx.getLevel().getFluidState(ctx.getClickedPos());
+        BlockState base = defaultBlockState().setValue(WATERLOGGED, fluid.getType() == Fluids.WATER);
+        return getState(base, ctx.getLevel(), ctx.getClickedPos());
     }
 
     @Override
@@ -162,7 +162,9 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
             BlockPos pos
     ) {
 
-        return getState(defaultBlockState(), level, pos);
+        FluidState fluid = level.getFluidState(pos);
+        BlockState base = defaultBlockState().setValue(WATERLOGGED, fluid.getType() == Fluids.WATER);
+        return getState(base, level, pos);
     }
 
     protected static VoxelShape getShape(BlockState state) {
@@ -192,8 +194,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
 
         super.createBlockStateDefinition(builder);
-        builder.add(NORTH, SOUTH, EAST, WEST, UP, DOWN);
-        builder.add(WATERLOGGED);
+        builder.add(WATERLOGGED, NORTH, SOUTH, EAST, WEST, UP, DOWN);
     }
 
     protected BlockState getState(
