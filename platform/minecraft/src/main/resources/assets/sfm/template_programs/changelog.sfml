@@ -6,6 +6,13 @@ NAME "Changelog"
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
+---- 4.34.0 ----
+-- Update zh_cn localizations, thanks @ZHAY10086 #526
+-- Introduce uk_ua localizations, thanks @Tenwoc #529
+-- Make fancy cables waterloggable, thanks @myrolorin #541
+-- Fix falling anvil items spawning in corner, thanks @Qther #536
+-- Fix `/sfm config edit server` program cache invalidation #549
+
 ---- 4.33.0 ----
 -- Update to 26.1.2
 ---- Thank you @Burkino for the big contribution!
