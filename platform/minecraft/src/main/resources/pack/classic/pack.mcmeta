@@ -1,6 +1,8 @@
 {
   "pack": {
-    "pack_format": 34,
+    "pack_format": 84,
+    "min_format": 84,
+    "max_format": 84,
     "description": "Classic SFM Textures"
   }
 }
