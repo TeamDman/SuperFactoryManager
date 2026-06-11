@@ -58,7 +58,13 @@ public class ProgramBuilder {
     );
 
     /// Reduce duplication of effort compiling the same program over and over again
-    private static final WeakHashMap<String, ProgramBuildResult> cache = new WeakHashMap<>();
+    private static final WeakHashMap<String, CachedProgramBuildResult> cache = new WeakHashMap<>();
+
+    private record CachedProgramBuildResult(
+            int serverConfigRevision,
+            ProgramBuildResult result
+    ) {
+    }
 
     /// The Super Factory Manager Language source code
     private final String programString;
@@ -78,7 +84,12 @@ public class ProgramBuilder {
     /// If so, mutating the program object is a disallowed behaviour.
     public static boolean isMutationAllowed(Program program) {
 
-        return cache.values().stream().noneMatch(result -> result.program() == program);
+        return cache.values().stream().noneMatch(cached -> cached.result().program() == program);
+    }
+
+    public static void clearCache() {
+
+        cache.clear();
     }
 
     /// MUST be set to {@code false} if the resulting {@link Program} will be mutated.
@@ -91,11 +102,18 @@ public class ProgramBuilder {
     public ProgramBuildResult build(
     ) {
 
+        int serverConfigRevision = SFMConfig.SERVER_CONFIG.getRevision();
         if (useCache) {
-            @Nullable ProgramBuildResult cached = cache.get(programString);
+            @Nullable CachedProgramBuildResult cached = cache.get(programString);
             if (cached != null) {
-                if (cached.metadata().errors().isEmpty()) {
-                    return cached;
+                if (cached.serverConfigRevision() != serverConfigRevision) {
+                    SFM.LOGGER.debug(
+                            "Program cache hit for server config revision {}, but current revision is {}. Will rebuild program.",
+                            cached.serverConfigRevision(),
+                            serverConfigRevision
+                    );
+                } else if (cached.result().metadata().errors().isEmpty()) {
+                    return cached.result();
                 } else {
                     SFM.LOGGER.warn(
                             "Program cache hit, but the program build result contained errors. Will rebuild program."
@@ -160,8 +178,8 @@ public class ProgramBuilder {
         ProgramBuildResult programBuildResult = new ProgramBuildResult(program, metadata);
 
         // We don't cache results with errors because the server config can change, and it affects the outcome.
-        if (useCache && buildErrors.isEmpty()) {
-            cache.put(programString, programBuildResult);
+        if (useCache && errors.isEmpty()) {
+            cache.put(programString, new CachedProgramBuildResult(serverConfigRevision, programBuildResult));
         }
 
         return programBuildResult;
