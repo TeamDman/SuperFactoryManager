@@ -2484,7 +2484,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
         );
         properties.insert(
             "sfm.clientRun.keepOpenSeconds".to_string(),
-            "30".to_string(),
+            "10".to_string(),
         );
     }
 
