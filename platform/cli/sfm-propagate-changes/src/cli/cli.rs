@@ -171,6 +171,7 @@ impl Command {
 mod tests {
     use super::Cli;
     use crate::cli::Command;
+    use crate::cli::jar::JarCommand;
     use crate::cli::run::RunCommand;
 
     #[test]
@@ -181,6 +182,21 @@ mod tests {
         assert_run_command(&["run", "server", "--mc", "1.19.2"]);
         assert_run_command(&["run", "data", "--mc", "1.19.2"]);
         assert_run_command(&["run", "game-test-server", "--mc", "1.19.2"]);
+        assert_run_command(&["run", "game-test-server", "--mc", "1.19.2", "--dry-run"]);
+    }
+
+    #[test]
+    fn parses_jar_build_dry_run() {
+        let cli = figue::from_slice::<Cli>(&["jar", "build", "--mc", "1.19.2", "--dry-run"])
+            .into_result()
+            .expect("jar build dry-run should parse")
+            .get_silent();
+        match cli.command {
+            Command::Jar {
+                command: JarCommand::Build { command },
+            } => assert!(command.dry_run),
+            command => panic!("expected jar build command, got {command:?}"),
+        }
     }
 
     #[test]
