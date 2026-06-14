@@ -2395,6 +2395,8 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
     if matches!(kind, RunKind::ClientPuppet) {
         clean_client_puppet_world(&plan.minecraft_dir, &working_dir)?;
     }
+    let automation_options_path =
+        prepare_client_automation_options(&plan.minecraft_dir, &working_dir, kind)?;
 
     let resolver = Resolver::new(
         plan.maven_cache_dir.clone(),
@@ -2610,10 +2612,18 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
         )
     })?;
 
+    let mut run_outputs = vec![
+        argfile.clone(),
+        minecraft_classpath_file.clone(),
+        launch_log.clone(),
+    ];
+    if let Some(path) = automation_options_path {
+        run_outputs.push(path);
+    }
     context.write_node_state(
         &format!("run-{}", kind.userdev_name()),
         &["Forge userdev run config", "Rust-owned build outputs"],
-        &[argfile, minecraft_classpath_file, launch_log.clone()],
+        &run_outputs,
         if launch_output.status.success() {
             "complete"
         } else {
@@ -2776,6 +2786,57 @@ fn clean_client_puppet_world(minecraft_dir: &Path, working_dir: &Path) -> eyre::
             .wrap_err_with(|| format!("Failed to remove {}", world_dir.display()))?;
     }
     Ok(())
+}
+
+fn prepare_client_automation_options(
+    minecraft_dir: &Path,
+    working_dir: &Path,
+    kind: RunKind,
+) -> eyre::Result<Option<PathBuf>> {
+    if !matches!(kind, RunKind::ClientSmoke | RunKind::ClientPuppet) {
+        return Ok(None);
+    }
+    if !working_dir.starts_with(minecraft_dir) {
+        eyre::bail!(
+            "Refusing to prepare client automation options outside minecraft dir: {}",
+            working_dir.display()
+        );
+    }
+
+    let options_path = working_dir.join("options.txt");
+    let existing = match fs::read_to_string(&options_path) {
+        Ok(content) => content,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(err) => {
+            return Err(err).wrap_err_with(|| format!("Failed to read {}", options_path.display()));
+        }
+    };
+    let updated = set_minecraft_option(&existing, "onboardAccessibility", "true");
+    fs::write(&options_path, updated)
+        .wrap_err_with(|| format!("Failed to write {}", options_path.display()))?;
+    Ok(Some(options_path))
+}
+
+fn set_minecraft_option(content: &str, key: &str, value: &str) -> String {
+    let prefix = format!("{key}:");
+    let mut found = false;
+    let mut lines = content
+        .lines()
+        .map(|line| {
+            if line.starts_with(&prefix) {
+                found = true;
+                format!("{prefix}{value}")
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>();
+    if !found {
+        lines.push(format!("{prefix}{value}"));
+    }
+    let mut output = lines.join("\n");
+    output.push('\n');
+    output
 }
 
 fn run_launch_command(
