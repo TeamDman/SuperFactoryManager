@@ -77,6 +77,28 @@ pub(crate) fn invoke_run_client(command: JarBuildCommand) -> eyre::Result<()> {
     RunCommand::new(command.into_options(BuildMode::Build), RunKind::Client).invoke()
 }
 
+/// Run the Forge client userdev launch and exit when the title screen opens.
+///
+/// # Errors
+///
+/// Returns an error if planning, building, launching, or title-screen detection fails.
+pub(crate) fn invoke_run_client_smoke(command: JarBuildCommand) -> eyre::Result<()> {
+    RunCommand::new(command.into_options(BuildMode::Build), RunKind::ClientSmoke).invoke()
+}
+
+/// Run the Forge client userdev launch and execute SFM game tests in an integrated client.
+///
+/// # Errors
+///
+/// Returns an error if planning, building, launching, or game-test validation fails.
+pub(crate) fn invoke_run_client_puppet(command: JarBuildCommand) -> eyre::Result<()> {
+    RunCommand::new(
+        command.into_options(BuildMode::Build),
+        RunKind::ClientPuppet,
+    )
+    .invoke()
+}
+
 /// Run the Forge server userdev launch.
 ///
 /// # Errors
