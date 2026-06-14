@@ -10,8 +10,7 @@ import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.GameTestRegistry;
 import net.minecraft.gametest.framework.GameTestRunner;
@@ -22,13 +21,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.level.DataPackConfig;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.levelgen.WorldGenSettings;
-import net.minecraft.world.level.levelgen.presets.WorldPreset;
+import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -116,12 +114,6 @@ public class SFMClientRunHarness {
         puppetWorldCreationStarted = true;
 
         Minecraft minecraft = Minecraft.getInstance();
-        RegistryAccess.Frozen registryAccess = RegistryAccess.BUILTIN.get();
-        Registry<WorldPreset> presets = registryAccess.registryOrThrow(Registry.WORLD_PRESET_REGISTRY);
-        WorldGenSettings worldGenSettings = presets
-                .getOrCreateHolderOrThrow(WorldPresets.FLAT)
-                .value()
-                .createWorldGenSettings(0L, false, false);
 
         LevelSettings levelSettings = new LevelSettings(
                 PUPPET_WORLD_NAME,
@@ -130,15 +122,20 @@ public class SFMClientRunHarness {
                 Difficulty.HARD,
                 true,
                 createPuppetGameRules(null),
-                DataPackConfig.DEFAULT
+                WorldDataConfiguration.DEFAULT
         );
+        WorldOptions worldOptions = new WorldOptions(0L, false, false);
 
         SFM.LOGGER.info("SFM_CLIENT_PUPPET_CREATING_WORLD id={}", PUPPET_WORLD_ID);
         minecraft.createWorldOpenFlows().createFreshLevel(
                 PUPPET_WORLD_ID,
                 levelSettings,
-                registryAccess,
-                worldGenSettings
+                worldOptions,
+                registryAccess -> registryAccess
+                        .registryOrThrow(Registries.WORLD_PRESET)
+                        .getHolderOrThrow(WorldPresets.FLAT)
+                        .value()
+                        .createWorldDimensions()
         );
     }
 
