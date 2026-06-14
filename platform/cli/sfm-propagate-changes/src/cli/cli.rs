@@ -176,6 +176,8 @@ mod tests {
     #[test]
     fn parses_top_level_run_commands() {
         assert_run_command(&["run", "client", "--mc", "1.19.2"]);
+        assert_run_command(&["run", "client-smoke", "--mc", "1.19.2"]);
+        assert_run_command(&["run", "client-puppet", "--mc", "1.19.2"]);
         assert_run_command(&["run", "server", "--mc", "1.19.2"]);
         assert_run_command(&["run", "data", "--mc", "1.19.2"]);
         assert_run_command(&["run", "game-test-server", "--mc", "1.19.2"]);
@@ -195,6 +197,8 @@ mod tests {
             Command::Run {
                 command:
                     RunCommand::Client { .. }
+                    | RunCommand::ClientSmoke { .. }
+                    | RunCommand::ClientPuppet { .. }
                     | RunCommand::Server { .. }
                     | RunCommand::Data { .. }
                     | RunCommand::GameTestServer { .. },
