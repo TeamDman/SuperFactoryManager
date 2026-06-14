@@ -93,6 +93,14 @@
       "source": "Maven",
       "dynamic_version": false,
       "cache_path": "build\\sfm-toolchain\\maven\\org/appliedenergistics\\appliedenergistics2\\26.1.8-alpha\\appliedenergistics2-26.1.8-alpha.jar"
+    },
+    {
+      "configuration": "transitiveRuntime",
+      "notation": "org.appliedenergistics:guideme:26.1.10-alpha",
+      "resolved_notation": "org.appliedenergistics:guideme:26.1.10-alpha",
+      "source": "Maven",
+      "dynamic_version": false,
+      "cache_path": "build\\sfm-toolchain\\maven\\org/appliedenergistics\\guideme\\26.1.10-alpha\\guideme-26.1.10-alpha.jar"
     }
   ],
   "artifacts": [
@@ -295,6 +303,15 @@
       "sha1": "491a1bedecb33802fa118cae384b60f91f6f0241"
     },
     {
+      "coordinate": "net.neoforged.fancymodloader:junit-fml:11.0.13",
+      "source": "remote-maven",
+      "repository": "NeoForged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/fancymodloader/junit-fml/11.0.13/junit-fml-11.0.13.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\fancymodloader\\junit-fml\\11.0.13\\junit-fml-11.0.13.jar",
+      "original_path": null,
+      "sha1": "16bc0483f483018f1416b17647ea041be9fbdfd7"
+    },
+    {
       "coordinate": "net.neoforged.fancymodloader:loader:11.0.13",
       "source": "remote-maven",
       "repository": "NeoForged",
@@ -403,6 +420,15 @@
       "sha1": "abb471237b33b19f040ada00bfbad1ec45b949b6"
     },
     {
+      "coordinate": "net.neoforged:testframework:26.1.2.72",
+      "source": "remote-maven",
+      "repository": "NeoForged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/testframework/26.1.2.72/testframework-26.1.2.72.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\testframework\\26.1.2.72\\testframework-26.1.2.72.jar",
+      "original_path": null,
+      "sha1": "f6a4034634cce5ba7ca8b2a58f3bf291f97654a5"
+    },
+    {
       "coordinate": "net.sf.jopt-simple:jopt-simple:5.0.4",
       "source": "remote-maven",
       "repository": "Forge",
@@ -509,6 +535,15 @@
       "cache_path": "build\\sfm-toolchain\\maven\\org\\appliedenergistics\\appliedenergistics2\\26.1.8-alpha\\appliedenergistics2-26.1.8-alpha.jar",
       "original_path": null,
       "sha1": "8573dcb821a1e868794b462130205ac312b68a51"
+    },
+    {
+      "coordinate": "org.appliedenergistics:guideme:26.1.10-alpha",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/appliedenergistics/guideme/26.1.10-alpha/guideme-26.1.10-alpha.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\org\\appliedenergistics\\guideme\\26.1.10-alpha\\guideme-26.1.10-alpha.jar",
+      "original_path": null,
+      "sha1": "235ea6fd617861509667b4d11aca0e4c887aa8b9"
     },
     {
       "coordinate": "org.codehaus.plexus:plexus-utils:3.5.1",
