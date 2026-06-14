@@ -135,7 +135,8 @@ public class SFMClientRunHarness {
                         .registryOrThrow(Registries.WORLD_PRESET)
                         .getHolderOrThrow(WorldPresets.FLAT)
                         .value()
-                        .createWorldDimensions()
+                        .createWorldDimensions(),
+                minecraft.screen
         );
     }
 
