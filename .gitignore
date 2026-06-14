@@ -33,6 +33,7 @@ build
 # Rust
 
 target/
+platform/cli/sfm-propagate-changes/tracy/
 
 # other
 eclipse
