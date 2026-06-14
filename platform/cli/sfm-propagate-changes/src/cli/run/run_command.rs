@@ -11,6 +11,20 @@ pub enum RunCommand {
         #[facet(flatten)]
         command: JarBuildCommand,
     },
+    /// Launch the Forge client userdev run config and exit when the title screen opens
+    #[facet(rename = "client-smoke")]
+    ClientSmoke {
+        /// Build and launch options
+        #[facet(flatten)]
+        command: JarBuildCommand,
+    },
+    /// Launch the Forge client userdev run config and run SFM game tests in an integrated client
+    #[facet(rename = "client-puppet")]
+    ClientPuppet {
+        /// Build and launch options
+        #[facet(flatten)]
+        command: JarBuildCommand,
+    },
     /// Launch the Forge server userdev run config
     Server {
         /// Build and launch options
@@ -40,6 +54,12 @@ impl RunCommand {
         match self {
             RunCommand::Client { command } => {
                 crate::cli::jar::jar_build_command::invoke_run_client(command)
+            }
+            RunCommand::ClientSmoke { command } => {
+                crate::cli::jar::jar_build_command::invoke_run_client_smoke(command)
+            }
+            RunCommand::ClientPuppet { command } => {
+                crate::cli::jar::jar_build_command::invoke_run_client_puppet(command)
             }
             RunCommand::Server { command } => {
                 crate::cli::jar::jar_build_command::invoke_run_server(command)
