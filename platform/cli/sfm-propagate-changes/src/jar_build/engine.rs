@@ -63,7 +63,7 @@ pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
             write_artifact_lockfile(&plan)
         }
         BuildMode::Build => {
-            execute_build(&plan, options.explain_rebuild)?;
+            execute_build(&plan, options.explain_rebuild, BuildTarget::Jar)?;
             write_artifact_lockfile(&plan)
         }
     }
@@ -83,7 +83,7 @@ pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<
     let plan = create_plan(options)?;
     write_plan_outputs(&plan, options.plan_json.as_deref())?;
     print_plan_summary(&plan);
-    execute_build(&plan, options.explain_rebuild)?;
+    execute_build(&plan, options.explain_rebuild, BuildTarget::Run)?;
     write_artifact_lockfile(&plan)?;
     execute_run(&plan, kind, options.dry_run)
 }
@@ -2251,13 +2251,24 @@ fn ensure_forge_gradle_execution_supported(plan: &BuildPlan) -> eyre::Result<()>
     Ok(())
 }
 
-fn execute_build(plan: &BuildPlan, explain_rebuild: bool) -> eyre::Result<()> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BuildTarget {
+    Jar,
+    Run,
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "build orchestration keeps the node order and timing output visible."
+)]
+fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -> eyre::Result<()> {
     let _span = tracing::info_span!(
         "execute_rust_owned_build",
         mc = %plan.minecraft_version,
         loader = ?plan.loader_toolchain.kind,
         graph_nodes = plan.graph.len(),
         explain_rebuild,
+        target = ?target,
     )
     .entered();
     let context = ExecutionContext::new(plan)?;
@@ -2331,25 +2342,33 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool) -> eyre::Result<()> {
         "Build node compile-project: done in {} ms",
         started.elapsed().as_millis()
     );
-    let started = Instant::now();
-    println!("Build node package-and-reobfuscate-jar: start");
-    execute_package_and_reobfuscate(&context)?;
-    println!(
-        "Build node package-and-reobfuscate-jar: done in {} ms",
-        started.elapsed().as_millis()
-    );
+    if target == BuildTarget::Jar {
+        let started = Instant::now();
+        println!("Build node package-and-reobfuscate-jar: start");
+        execute_package_and_reobfuscate(&context)?;
+        println!(
+            "Build node package-and-reobfuscate-jar: done in {} ms",
+            started.elapsed().as_millis()
+        );
 
-    if !plan.rust_output_jar.is_file() {
-        eyre::bail!(
-            "Build finished without producing Rust output jar: {}",
-            plan.rust_output_jar.display()
+        if !plan.rust_output_jar.is_file() {
+            eyre::bail!(
+                "Build finished without producing Rust output jar: {}",
+                plan.rust_output_jar.display()
+            );
+        }
+
+        println!(
+            "Rust jar build completed in {} ms",
+            total_started.elapsed().as_millis()
+        );
+    } else {
+        println!(
+            "Rust run build outputs prepared in {} ms",
+            total_started.elapsed().as_millis()
         );
     }
 
-    println!(
-        "Rust jar build completed in {} ms",
-        total_started.elapsed().as_millis()
-    );
     Ok(())
 }
 
@@ -5087,6 +5106,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         .join("langs");
     let classes_dir = project_root.join("classes");
     let resources_dir = project_root.join("resources");
+    let staged_resources_dir = project_root.join("staged-resources");
     let gametest_classes_dir = project_root.join("gametest").join("classes");
     let gametest_resources_dir = project_root.join("gametest").join("resources");
     tracing::info!(
@@ -5096,8 +5116,6 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         "project_compile_outputs_will_be_recreated"
     );
     fs::create_dir_all(&generated_sources)?;
-    reset_cache_directory(&context.plan.cache_dir, &classes_dir)?;
-    reset_cache_directory(&context.plan.cache_dir, &resources_dir)?;
 
     let resolver = Resolver::new(
         context.plan.maven_cache_dir.clone(),
@@ -5126,26 +5144,59 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         sources.len(),
         argfile.display()
     );
-    let output = Command::new(javac_executable(&context.plan.java))
-        .arg(format!("@{}", argfile.display()))
-        .output()
-        .wrap_err("Failed to run javac")?;
-    let log_path = project_root.join("javac-main.log");
-    let mut log = Vec::new();
-    log.extend_from_slice(b"--- stdout ---\n");
-    log.extend_from_slice(&output.stdout);
-    log.extend_from_slice(b"\n--- stderr ---\n");
-    log.extend_from_slice(&output.stderr);
-    fs::write(&log_path, log)
-        .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
-    if !output.status.success() {
-        eyre::bail!(
-            "javac failed with {}. See {}",
-            output.status,
-            log_path.display()
+    let mut main_fingerprint_paths = classpath.clone();
+    main_fingerprint_paths.extend(sources.iter().cloned());
+    main_fingerprint_paths.push(argfile.clone());
+    let main_fingerprint = input_fingerprint(
+        context,
+        "javac-main",
+        &main_fingerprint_paths,
+        &[
+            context.plan.java.version_output.clone(),
+            context.plan.java_release.to_string(),
+            format!("{:?}", context.plan.loader_toolchain.kind),
+        ],
+    )?;
+    let main_state_path = project_root.join("javac-main.inputs.sha1");
+    let main_refmap = resources_dir.join("sfm.refmap.json");
+    let main_cache_hit = cache_state_matches(
+        context,
+        &main_state_path,
+        &main_fingerprint,
+        &[&classes_dir],
+    )? && (context.plan.loader_toolchain.kind
+        == LoaderToolchainKind::NeoGradleUserdev
+        || main_refmap.is_file());
+    if main_cache_hit {
+        println!(
+            "javac main: reused cached outputs in {} ms",
+            started.elapsed().as_millis()
         );
+    } else {
+        reset_cache_directory(&context.plan.cache_dir, &classes_dir)?;
+        reset_cache_directory(&context.plan.cache_dir, &resources_dir)?;
+        let output = Command::new(javac_executable(&context.plan.java))
+            .arg(format!("@{}", argfile.display()))
+            .output()
+            .wrap_err("Failed to run javac")?;
+        let log_path = project_root.join("javac-main.log");
+        let mut log = Vec::new();
+        log.extend_from_slice(b"--- stdout ---\n");
+        log.extend_from_slice(&output.stdout);
+        log.extend_from_slice(b"\n--- stderr ---\n");
+        log.extend_from_slice(&output.stderr);
+        fs::write(&log_path, log)
+            .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+        if !output.status.success() {
+            eyre::bail!(
+                "javac failed with {}. See {}",
+                output.status,
+                log_path.display()
+            );
+        }
+        write_cache_state(&main_state_path, &main_fingerprint)?;
+        println!("javac main: done in {} ms", started.elapsed().as_millis());
     }
-    println!("javac main: done in {} ms", started.elapsed().as_millis());
 
     compile_optional_java_source_set(
         context,
@@ -5153,6 +5204,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         &classpath,
         &classes_dir,
         &gametest_classes_dir,
+        &main_fingerprint,
     )?;
     stage_optional_resource_source_set(
         context,
@@ -5165,6 +5217,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     } else {
         ensure_run_refmap_remapping_file(context)?;
     }
+    stage_project_resources(context, &staged_resources_dir, &resources_dir)?;
 
     context.write_node_state(
         "compile-project",
@@ -5176,6 +5229,8 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         ],
         &[
             classes_dir,
+            resources_dir,
+            staged_resources_dir,
             gametest_classes_dir,
             gametest_resources_dir,
             project_root.join("run-refmap-remap.srg"),
@@ -5250,6 +5305,7 @@ fn compile_optional_java_source_set(
     base_classpath: &[PathBuf],
     main_classes_dir: &Path,
     classes_dir: &Path,
+    upstream_fingerprint: &str,
 ) -> eyre::Result<()> {
     let project_root = context.plan.cache_dir.join("project");
     let source_root = context
@@ -5258,13 +5314,14 @@ fn compile_optional_java_source_set(
         .join("src")
         .join(source_set)
         .join("java");
-    reset_cache_directory(&context.plan.cache_dir, classes_dir)?;
     if !source_root.exists() {
+        reset_cache_directory(&context.plan.cache_dir, classes_dir)?;
         return Ok(());
     }
 
     let sources = collect_source_set_java_sources(context, source_set)?;
     if sources.is_empty() {
+        reset_cache_directory(&context.plan.cache_dir, classes_dir)?;
         return Ok(());
     }
 
@@ -5289,6 +5346,29 @@ fn compile_optional_java_source_set(
         sources.len(),
         argfile.display()
     );
+    let mut fingerprint_paths = sources.clone();
+    fingerprint_paths.push(argfile.clone());
+    let fingerprint = input_fingerprint(
+        context,
+        &format!("javac-{source_set}"),
+        &fingerprint_paths,
+        &[
+            context.plan.java.version_output.clone(),
+            context.plan.java_release.to_string(),
+            source_set.to_string(),
+            upstream_fingerprint.to_string(),
+        ],
+    )?;
+    let state_path = project_root.join(format!("javac-{source_set}.inputs.sha1"));
+    if cache_state_matches(context, &state_path, &fingerprint, &[classes_dir])? {
+        println!(
+            "javac {source_set}: reused cached outputs in {} ms",
+            started.elapsed().as_millis()
+        );
+        return Ok(());
+    }
+
+    reset_cache_directory(&context.plan.cache_dir, classes_dir)?;
     let output = Command::new(javac_executable(&context.plan.java))
         .arg(format!("@{}", argfile.display()))
         .output()
@@ -5308,6 +5388,7 @@ fn compile_optional_java_source_set(
             log_path.display()
         );
     }
+    write_cache_state(&state_path, &fingerprint)?;
     println!(
         "javac {source_set}: done in {} ms",
         started.elapsed().as_millis()
@@ -5807,6 +5888,94 @@ fn reset_cache_directory(cache_dir: &Path, path: &Path) -> eyre::Result<()> {
     Ok(())
 }
 
+fn cache_state_matches(
+    context: &ExecutionContext<'_>,
+    state_path: &Path,
+    expected_state: &str,
+    required_output_dirs: &[&Path],
+) -> eyre::Result<bool> {
+    if context.plan.refresh {
+        return Ok(false);
+    }
+    if fs::read_to_string(state_path).unwrap_or_default() != expected_state {
+        return Ok(false);
+    }
+    for output_dir in required_output_dirs {
+        if !directory_has_files(output_dir)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+fn directory_has_files(path: &Path) -> eyre::Result<bool> {
+    Ok(path.is_dir() && !collect_files_under(path)?.is_empty())
+}
+
+fn input_fingerprint(
+    context: &ExecutionContext<'_>,
+    label: &str,
+    paths: &[PathBuf],
+    extras: &[String],
+) -> eyre::Result<String> {
+    let mut hasher = Sha1::new();
+    hasher.update(b"sfm-input-fingerprint-v1\n");
+    hasher.update(label.as_bytes());
+    hasher.update(b"\n");
+    for extra in extras {
+        hasher.update(b"extra:");
+        hasher.update(extra.as_bytes());
+        hasher.update(b"\n");
+    }
+    for path in paths {
+        hash_path_input(context, &mut hasher, path)?;
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+fn hash_path_input(
+    context: &ExecutionContext<'_>,
+    hasher: &mut Sha1,
+    path: &Path,
+) -> eyre::Result<()> {
+    context.assert_allowed_input(path)?;
+    let normalized = path.to_string_lossy().replace('\\', "/");
+    hasher.update(b"path:");
+    hasher.update(normalized.as_bytes());
+    hasher.update(b"\n");
+
+    if path.is_file() {
+        hasher.update(b"file:");
+        hasher.update(file_sha1(path)?.as_bytes());
+        hasher.update(b"\n");
+        return Ok(());
+    }
+
+    if path.is_dir() {
+        hasher.update(b"dir\n");
+        for file in collect_files_under(path)? {
+            context.assert_allowed_input(&file)?;
+            let relative = relative_zip_name(path, &file)?;
+            hasher.update(b"entry:");
+            hasher.update(relative.as_bytes());
+            hasher.update(b":");
+            hasher.update(file_sha1(&file)?.as_bytes());
+            hasher.update(b"\n");
+        }
+        return Ok(());
+    }
+
+    hasher.update(b"missing\n");
+    Ok(())
+}
+
+fn write_cache_state(path: &Path, state: &str) -> eyre::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, state).wrap_err_with(|| format!("Failed to write {}", path.display()))
+}
+
 fn collect_files_under(root: &Path) -> eyre::Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     if !root.exists() {
@@ -5973,12 +6142,33 @@ fn run_antlr(
         context.assert_allowed_input(grammar)?;
     }
 
+    let mut fingerprint_paths = classpath.to_vec();
+    fingerprint_paths.extend(grammars.iter().cloned());
+    let fingerprint = input_fingerprint(
+        context,
+        "antlr-main",
+        &fingerprint_paths,
+        &[
+            context.plan.java.version_output.clone(),
+            "-visitor -Xexact-output-dir".to_string(),
+        ],
+    )?;
+    let state_path = output_dir.with_extension("inputs.sha1");
     let started = Instant::now();
     println!(
         "ANTLR main: start grammars={} output={}",
         grammars.len(),
         output_dir.display()
     );
+    if cache_state_matches(context, &state_path, &fingerprint, &[output_dir])? {
+        println!(
+            "ANTLR main: reused cached outputs in {} ms",
+            started.elapsed().as_millis()
+        );
+        return Ok(());
+    }
+
+    reset_cache_directory(&context.plan.cache_dir, output_dir)?;
     let output = Command::new(&context.plan.java.executable)
         .arg("-cp")
         .arg(join_classpath(classpath))
@@ -6005,6 +6195,7 @@ fn run_antlr(
             log_path.display()
         );
     }
+    write_cache_state(&state_path, &fingerprint)?;
     println!("ANTLR main: done in {} ms", started.elapsed().as_millis());
     Ok(())
 }
