@@ -3105,7 +3105,7 @@ fn ensure_run_neoforge_dev_jars(
             .join("run")
             .join(format!("minecraft-{neoforge_version}.jar"));
         let minecraft_input_state = format!(
-            "{}\n{}\nsplit-minecraft-v2\n",
+            "{}\n{}\nsplit-minecraft-v3\n",
             file_sha1(&input)?,
             file_sha1(&neoforge_universal.cache_path)?
         );
@@ -6419,12 +6419,7 @@ fn write_run_neoforge_minecraft_dev_jar(
             format!("Failed to read NeoForge Minecraft runtime jar entry #{index}")
         })?;
         let name = entry.name().replace('\\', "/");
-        if !name.ends_with('/')
-            && !name.eq_ignore_ascii_case("META-INF/MANIFEST.MF")
-            && !is_signature_file(&name)
-            && (!neoforge_entries.contains(&name) || is_neoforge_mod_marker(&name))
-            && !is_neoforge_specific_runtime_entry(&name)
-        {
+        if should_keep_split_minecraft_runtime_entry(&name, &neoforge_entries) {
             names.insert(name);
         }
     }
@@ -6464,6 +6459,29 @@ fn write_run_neoforge_minecraft_dev_jar(
         output.display()
     );
     Ok(())
+}
+
+fn should_keep_split_minecraft_runtime_entry(
+    name: &str,
+    neoforge_entries: &BTreeSet<String>,
+) -> bool {
+    if name.ends_with('/')
+        || name.eq_ignore_ascii_case("META-INF/MANIFEST.MF")
+        || is_signature_file(name)
+        || is_neoforge_specific_runtime_entry(name)
+    {
+        return false;
+    }
+
+    if is_neoforge_mod_marker(name) {
+        return true;
+    }
+
+    if neoforge_entries.contains(name) && zip_entry_has_extension(name, "class") {
+        return false;
+    }
+
+    true
 }
 
 fn write_run_loader_dev_jar(input: &Path, manifest: &[u8], output: &Path) -> eyre::Result<()> {
