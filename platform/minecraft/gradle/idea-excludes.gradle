@@ -76,6 +76,9 @@ def addIdeaCompilerExcludes = { Node compilerConfiguration ->
 
 idea {
     module {
+        // ForgeGradle source artifact lookups make IDEA Gradle sync repeatedly hit remote Maven repositories.
+        downloadSources = false
+        downloadJavadoc = false
         excludeDirs += sfmIdeaCompilerExcludes
                 .findAll { it.kind == 'directory' }
                 .collect { it.file }

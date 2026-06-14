@@ -276,18 +276,18 @@ public class SFMGameTestHelper extends GameTestHelper {
             @Override
             public void onProgramDidSomething(Duration elapsed) {
                 // enqueue to run inside the game test harness
-                runAfterDelay(
+                SFMGameTestHelper.this.runAfterDelay(
                         0,
                         () -> {
                             assertion.run();
-                            assertTrue(
+                            SFMGameTestHelper.this.assertTrue(
                                     elapsed.toMillis() < MAX_PROGRAM_RUN_MILLIS,
                                     "Program took too long to run: took " + NumberFormat
                                             .getInstance(Locale.getDefault())
                                             .format(elapsed.toNanos()) + "ns, max "
                                     + MAX_PROGRAM_RUN_MILLIS + "ms"
                             );
-                            succeed();
+                            SFMGameTestHelper.this.succeed();
                         }
                 );
             }

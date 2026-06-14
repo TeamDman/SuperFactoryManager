@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod jar_build;
 pub mod logging;
 pub mod mc_version_filter;
 pub mod paths;
@@ -8,7 +9,9 @@ pub mod state;
 pub mod worktree;
 
 use crate::cli::Cli;
-use chrono::{DateTime, Local, Utc};
+use chrono::DateTime;
+use chrono::Local;
+use chrono::Utc;
 
 /// Version string combining package version, git revision, and build time.
 fn version() -> String {

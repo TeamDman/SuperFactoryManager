@@ -270,8 +270,8 @@ mod tests {
 
     #[test]
     fn rejects_empty_expression_groups() {
-        assert!(McVersionFilter::parse("=1.20 OR ").is_err());
-        assert!(McVersionFilter::parse("|=1.20").is_err());
-        assert!(McVersionFilter::parse(">=1.20 AND ").is_err());
+        let _ = McVersionFilter::parse("=1.20 OR ").unwrap_err();
+        let _ = McVersionFilter::parse("|=1.20").unwrap_err();
+        let _ = McVersionFilter::parse(">=1.20 AND ").unwrap_err();
     }
 }
