@@ -19,7 +19,7 @@ public class SFMGameTestDiscovery {
     @SFMSubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
         // Discover our tests
-        Collection<SFMGameTestDefinition> tests = filterSelectedTests(SFMGameTestDiscovery.gatherTests().toList());
+        Collection<SFMGameTestDefinition> tests = gatherSelectedTests();
 
         // Discover the test registry
         Collection<TestFunction> allTestFunctions = GameTestRegistry.getAllTestFunctions();
@@ -30,6 +30,10 @@ public class SFMGameTestDiscovery {
             allTestFunctions.add(test.intoTestFunction());
             allTestClassNames.add(test.testName());
         }
+    }
+
+    public static Collection<SFMGameTestDefinition> gatherSelectedTests() {
+        return filterSelectedTests(SFMGameTestDiscovery.gatherTests().toList());
     }
 
     public static Stream<SFMGameTestDefinition> gatherTests() {
