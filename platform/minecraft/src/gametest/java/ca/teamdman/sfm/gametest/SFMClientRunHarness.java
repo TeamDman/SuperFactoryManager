@@ -12,10 +12,11 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestInfo;
-import net.minecraft.gametest.framework.GameTestRegistry;
 import net.minecraft.gametest.framework.GameTestRunner;
 import net.minecraft.gametest.framework.GameTestTicker;
 import net.minecraft.gametest.framework.MultipleTestTracker;
+import net.minecraft.gametest.framework.RetryOptions;
+import net.minecraft.gametest.framework.StructureGridSpawner;
 import net.minecraft.gametest.framework.TestFunction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -28,9 +29,9 @@ import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.TickEvent;
 
 import java.util.Collection;
 import java.util.List;
@@ -87,8 +88,8 @@ public class SFMClientRunHarness {
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || mode() != Mode.PUPPET) {
+    public static void onClientTick(ClientTickEvent.Post event) {
+        if (mode() != Mode.PUPPET) {
             return;
         }
 
@@ -149,8 +150,12 @@ public class SFMClientRunHarness {
                 .stream()
                 .map(SFMGameTestDefinition::intoTestFunction)
                 .toList();
-        activeTotalCount = tests.size();
-        activeRequiredCount = (int) tests.stream().filter(TestFunction::isRequired).count();
+        List<GameTestInfo> gameTestInfos = tests
+                .stream()
+                .map(test -> new GameTestInfo(test, Rotation.NONE, level, RetryOptions.noRetries()))
+                .toList();
+        activeTotalCount = gameTestInfos.size();
+        activeRequiredCount = (int) tests.stream().filter(TestFunction::required).count();
         if (activeTotalCount == 0 || activeRequiredCount == 0) {
             SFM.LOGGER.error(
                     "SFM_CLIENT_PUPPET_TESTS_FAILED required_failed=0 optional_failed=0 required={} total={} reason=no-tests",
@@ -164,22 +169,18 @@ public class SFMClientRunHarness {
         BlockPos startPos = new BlockPos(0, level.getMinBuildHeight() + 4, 0);
         GameTestTicker.SINGLETON.clear();
         GameTestRunner.clearMarkers(level);
-        GameTestRegistry.forgetFailedTests();
-        Collection<GameTestInfo> testsStarted = GameTestRunner.runTests(
-                tests,
-                startPos,
-                Rotation.NONE,
-                level,
-                GameTestTicker.SINGLETON,
-                8
-        );
-        activeTracker = new MultipleTestTracker(testsStarted);
+        activeTracker = new MultipleTestTracker(gameTestInfos);
         activeTracker.addFailureListener(test -> SFM.LOGGER.error(
                 "SFM_CLIENT_PUPPET_TEST_FAILED required={} name={} error={}",
                 test.isRequired(),
                 test.getTestName(),
                 test.getError() == null ? "<unknown>" : test.getError().toString()
         ));
+        GameTestRunner.Builder
+                .fromInfo(gameTestInfos, level)
+                .newStructureSpawner(new StructureGridSpawner(startPos, 8, false))
+                .build()
+                .start();
         SFM.LOGGER.info(
                 "SFM_CLIENT_PUPPET_TESTS_STARTED required={} total={}",
                 activeRequiredCount,
