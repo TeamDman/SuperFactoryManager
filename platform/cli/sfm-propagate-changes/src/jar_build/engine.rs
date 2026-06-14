@@ -41,6 +41,15 @@ const VERSION_MANIFEST_URL: &str =
 const NEOFORM_RUNTIME_COORDINATE: &str = "net.neoforged:neoform-runtime:2.0.19:all";
 
 pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "sfm_jar_build_command",
+        mc = %options.mc,
+        mode = ?options.mode,
+        refresh = options.refresh,
+        explain_rebuild = options.explain_rebuild,
+        allow_local_artifact_cache = options.allow_local_artifact_cache,
+    )
+    .entered();
     let plan = create_plan(options)?;
     write_plan_outputs(&plan, options.plan_json.as_deref())?;
     print_plan_summary(&plan);
@@ -55,6 +64,15 @@ pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
 }
 
 pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "sfm_run_command",
+        mc = %options.mc,
+        kind = kind.command_name(),
+        refresh = options.refresh,
+        explain_rebuild = options.explain_rebuild,
+        allow_local_artifact_cache = options.allow_local_artifact_cache,
+    )
+    .entered();
     let plan = create_plan(options)?;
     write_plan_outputs(&plan, options.plan_json.as_deref())?;
     print_plan_summary(&plan);
@@ -64,6 +82,12 @@ pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<
 }
 
 pub(crate) fn invoke_compare(options: &CompareOptions) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "sfm_jar_compare_command",
+        mc = %options.mc,
+        strict_manifest = options.strict_manifest,
+    )
+    .entered();
     let paths = resolve_compare_paths(options)?;
     let report = compare_jars(&paths.gradle_jar, &paths.rust_jar, options.strict_manifest)?;
 
@@ -603,6 +627,15 @@ impl Resolver {
         allow_local_artifact_cache: bool,
         lockfile: Option<ArtifactLockfile>,
     ) -> eyre::Result<Self> {
+        let _span = tracing::debug_span!(
+            "create_maven_resolver",
+            cache_dir = %cache_dir.display(),
+            repository_count = repositories.len(),
+            refresh,
+            allow_local_artifact_cache,
+            has_lockfile = lockfile.is_some(),
+        )
+        .entered();
         let client = Client::builder()
             .user_agent("sfm-propagate-changes/no-gradle-toolchain")
             .build()
@@ -624,12 +657,25 @@ impl Resolver {
         coordinate: &MavenCoordinate,
         required_for: &str,
     ) -> eyre::Result<ArtifactPlan> {
+        let _span = tracing::debug_span!(
+            "resolve_artifact",
+            id,
+            coordinate = %coordinate,
+            required_for,
+        )
+        .entered();
         let coordinate = self.resolve_dynamic_coordinate(coordinate)?;
         let cache_path = self.cache_path_for(&coordinate);
 
         if cache_path.is_file() && !self.refresh {
             let artifact = Self::cached_artifact_plan(id, &coordinate, cache_path, required_for)?;
             self.verify_locked_artifact(&coordinate, &artifact)?;
+            tracing::debug!(
+                coordinate = %coordinate,
+                cache_path = %artifact.cache_path.display(),
+                sha1 = artifact.sha1.as_deref(),
+                "artifact cache hit"
+            );
             return Ok(artifact);
         }
 
@@ -637,6 +683,12 @@ impl Resolver {
         for repo in self.candidate_repositories(&coordinate) {
             let url = Self::artifact_url(repo, &coordinate);
             attempted.push(url.clone());
+            tracing::debug!(
+                coordinate = %coordinate,
+                repository = repo.name.as_str(),
+                url = url.as_str(),
+                "checking artifact remote"
+            );
             let download_result = if coordinate.group == "curse.maven" {
                 download_to_path_overwrite(&self.client, &url, &cache_path, self.refresh)
             } else {
@@ -654,6 +706,13 @@ impl Resolver {
             let artifact =
                 Self::remote_artifact_plan(id, &coordinate, repo, url, cache_path, required_for)?;
             self.verify_locked_artifact(&coordinate, &artifact)?;
+            tracing::info!(
+                coordinate = %coordinate,
+                repository = artifact.repository.as_deref(),
+                cache_path = %artifact.cache_path.display(),
+                sha1 = artifact.sha1.as_deref(),
+                "artifact downloaded"
+            );
             return Ok(artifact);
         }
 
@@ -668,6 +727,13 @@ impl Resolver {
                 required_for,
             )?;
             self.verify_locked_artifact(&coordinate, &artifact)?;
+            tracing::info!(
+                coordinate = %coordinate,
+                cache_path = %artifact.cache_path.display(),
+                source = ?artifact.provenance.source,
+                sha1 = artifact.sha1.as_deref(),
+                "artifact copied from local cache fallback"
+            );
             return Ok(artifact);
         }
 
@@ -1123,6 +1189,13 @@ fn find_local_cached_artifact(coordinate: &MavenCoordinate) -> Option<LocalCache
     reason = "The planner is a single orchestration pass over project inputs."
 )]
 fn create_plan(options: &BuildOptions) -> eyre::Result<BuildPlan> {
+    let _span = tracing::info_span!(
+        "create_build_plan",
+        mc = %options.mc,
+        refresh = options.refresh,
+        allow_local_artifact_cache = options.allow_local_artifact_cache,
+    )
+    .entered();
     let worktree_path = find_worktree_path(&options.mc)?;
     let minecraft_dir = worktree_path.join("platform").join("minecraft");
     let properties_path = minecraft_dir.join("gradle.properties");
@@ -2172,6 +2245,14 @@ fn ensure_forge_gradle_execution_supported(plan: &BuildPlan) -> eyre::Result<()>
 }
 
 fn execute_build(plan: &BuildPlan, explain_rebuild: bool) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "execute_rust_owned_build",
+        mc = %plan.minecraft_version,
+        loader = ?plan.loader_toolchain.kind,
+        graph_nodes = plan.graph.len(),
+        explain_rebuild,
+    )
+    .entered();
     let context = ExecutionContext::new(plan)?;
     let total_started = Instant::now();
 
@@ -2375,6 +2456,13 @@ struct LaunchOutput {
     reason = "Run launch orchestration intentionally mirrors Forge userdev config shape."
 )]
 fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "execute_run_setup",
+        mc = %plan.minecraft_version,
+        kind = kind.command_name(),
+        loader = ?plan.loader_toolchain.kind,
+    )
+    .entered();
     let context = ExecutionContext::new(plan)?;
     let run_config = read_forge_run_config(&context, kind)?;
     if run_config.main.is_empty() {
@@ -2559,6 +2647,13 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
     println!(
         "Userdev mod jars on launch classpath: {}",
         launch_classpath.userdev_mods.len()
+    );
+    tracing::info!(
+        kind = kind.command_name(),
+        argfile = %argfile.display(),
+        legacy_classpath_entries = launch_classpath.legacy.len(),
+        userdev_mods = launch_classpath.userdev_mods.len(),
+        "run_setup_complete"
     );
 
     let launch_log = run_state_dir.join("console.log");
@@ -2848,6 +2943,17 @@ fn run_launch_command(
     echo_output: bool,
     timeout: Option<Duration>,
 ) -> eyre::Result<LaunchOutput> {
+    let _span = tracing::info_span!(
+        "launch_minecraft_jvm",
+        mc = %plan.minecraft_version,
+        java = %plan.java.executable.display(),
+        argfile = %argfile.display(),
+        working_dir = %working_dir.display(),
+        env_vars = env.len(),
+        echo_output,
+        timeout_seconds = timeout.map_or(0, |timeout| timeout.as_secs()),
+    )
+    .entered();
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -2859,6 +2965,7 @@ fn run_launch_command(
         .stderr(Stdio::piped())
         .spawn()
         .wrap_err_with(|| format!("Failed to spawn {}", plan.java.executable.display()))?;
+    tracing::info!("minecraft_jvm_spawned");
 
     let stdout = child
         .stdout
@@ -3036,6 +3143,12 @@ fn resolve_run_classpath(
     resolver: &Resolver,
     kind: RunKind,
 ) -> eyre::Result<RunClasspath> {
+    let _span = tracing::info_span!(
+        "resolve_run_classpath",
+        mc = %context.plan.minecraft_version,
+        kind = kind.command_name(),
+    )
+    .entered();
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         return resolve_neogradle_run_classpath(context, resolver, kind);
     }
@@ -3051,9 +3164,16 @@ fn resolve_run_classpath(
     legacy.extend(resolve_run_plain_dependencies(context, resolver, kind)?);
 
     let userdev_mods = resolve_run_deobf_dependencies(context, resolver, kind)?;
+    let legacy = dedup_paths_preserve_order(legacy);
+    let userdev_mods = dedup_paths_preserve_order(userdev_mods);
+    tracing::info!(
+        legacy_entries = legacy.len(),
+        userdev_mods = userdev_mods.len(),
+        "run_classpath resolved"
+    );
     Ok(RunClasspath {
-        legacy: dedup_paths_preserve_order(legacy),
-        userdev_mods: dedup_paths_preserve_order(userdev_mods),
+        legacy,
+        userdev_mods,
     })
 }
 
@@ -3076,9 +3196,16 @@ fn resolve_neogradle_run_classpath(
     }
     userdev_mods.extend(resolve_neogradle_run_dependencies(context, kind)?);
 
+    let legacy = dedup_paths_preserve_order(legacy);
+    let userdev_mods = dedup_paths_preserve_order(userdev_mods);
+    tracing::info!(
+        legacy_entries = legacy.len(),
+        userdev_mods = userdev_mods.len(),
+        "neogradle_run_classpath resolved"
+    );
     Ok(RunClasspath {
-        legacy: dedup_paths_preserve_order(legacy),
-        userdev_mods: dedup_paths_preserve_order(userdev_mods),
+        legacy,
+        userdev_mods,
     })
 }
 
@@ -3483,6 +3610,11 @@ fn kind_extra_program_args(plan: &BuildPlan, kind: RunKind) -> eyre::Result<Vec<
 }
 
 fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<MinecraftAssets> {
+    let _span = tracing::info_span!(
+        "prepare_minecraft_assets",
+        mc = %context.plan.minecraft_version,
+    )
+    .entered();
     let client = Client::builder()
         .user_agent("sfm-propagate-changes/no-gradle-toolchain")
         .build()
@@ -3544,6 +3676,14 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
             assets_root.display()
         );
     }
+    tracing::info!(
+        asset_index = index_id.as_str(),
+        checked,
+        downloaded,
+        total = objects.len(),
+        assets_root = %assets_root.display(),
+        "minecraft_assets_prepared"
+    );
 
     Ok(MinecraftAssets {
         root: assets_root,
@@ -3683,6 +3823,15 @@ impl<'a> ExecutionContext<'a> {
         args: &[String],
         work_dir: &Path,
     ) -> eyre::Result<()> {
+        let _span = tracing::info_span!(
+            "run_java_tool",
+            tool_id,
+            work_dir = %work_dir.display(),
+            jvm_args = jvm_args.len(),
+            extra_classpath_entries = extra_classpath.len(),
+            args = args.len(),
+        )
+        .entered();
         let tool = self.artifact(tool_id)?;
         self.assert_allowed_input(&tool.cache_path)?;
         for path in extra_classpath {
@@ -3745,12 +3894,25 @@ impl<'a> ExecutionContext<'a> {
             .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
 
         if !output.status.success() {
+            tracing::warn!(
+                tool_id,
+                status = %output.status,
+                duration_ms,
+                log_path = %log_path.display(),
+                "java_tool_failed"
+            );
             eyre::bail!(
                 "Java tool {tool_id} failed with {}. See {}",
                 output.status,
                 log_path.display()
             );
         }
+        tracing::info!(
+            tool_id,
+            duration_ms,
+            log_path = %log_path.display(),
+            "java_tool_completed"
+        );
         println!("Java tool {tool_id}: done in {duration_ms} ms");
         Ok(())
     }
@@ -3761,6 +3923,11 @@ impl<'a> ExecutionContext<'a> {
     reason = "clean-slate MCP executor is being split incrementally"
 )]
 fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "execute_mcp_config_joined",
+        mc = %context.plan.minecraft_version,
+    )
+    .entered();
     let client = Client::builder()
         .user_agent("sfm-propagate-changes/no-gradle-toolchain")
         .build()
@@ -3774,6 +3941,10 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
     fs::create_dir_all(&mcp_root)?;
     let output = mcp_root.join("patch").join("joined-patched-sources.jar");
     if output.is_file() && !context.plan.refresh {
+        tracing::info!(
+            output = %output.display(),
+            "mcp_config_joined cache hit"
+        );
         println!(
             "Build node execute-mcp-config-joined: reusing {}",
             output.display()
@@ -3786,6 +3957,11 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
         )?;
         return Ok(());
     }
+    tracing::info!(
+        output = %output.display(),
+        refresh = context.plan.refresh,
+        "mcp_config_joined cache miss"
+    );
 
     let minecraft_root = context.plan.cache_dir.join("minecraft");
     let client_jar = minecraft_root.join("client.jar");
@@ -3954,6 +4130,11 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
     reason = "clean-slate Forge userdev executor is being split incrementally"
 )]
 fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "execute_forge_userdev",
+        mc = %context.plan.minecraft_version,
+    )
+    .entered();
     let client = Client::builder()
         .user_agent("sfm-propagate-changes/no-gradle-toolchain")
         .build()
@@ -3973,6 +4154,10 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         && official_to_srg.is_file()
         && !context.plan.refresh
     {
+        tracing::info!(
+            output = %output.display(),
+            "forge_userdev cache hit"
+        );
         println!(
             "Build node execute-forge-userdev: reusing {}",
             output.display()
@@ -3985,6 +4170,11 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         )?;
         return Ok(());
     }
+    tracing::info!(
+        output = %output.display(),
+        refresh = context.plan.refresh,
+        "forge_userdev cache miss"
+    );
 
     let mcp_root = context
         .plan
@@ -4209,7 +4399,16 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     )
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "NeoForm userdev orchestration keeps cache checks, arguments, and state writes visible."
+)]
 fn execute_neoform_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "execute_neoform_userdev",
+        mc = %context.plan.minecraft_version,
+    )
+    .entered();
     let neoform_root = context
         .plan
         .cache_dir
@@ -4224,6 +4423,7 @@ fn execute_neoform_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     let game_sources = output_root.join("gameSourcesWithNeoForge.jar");
 
     if context.plan.refresh {
+        tracing::info!("neoform_userdev refresh requested");
         reset_cache_directory(&context.plan.cache_dir, &neoform_root)?;
     }
     fs::create_dir_all(&output_root)?;
@@ -4232,6 +4432,10 @@ fn execute_neoform_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     write_neoform_artifact_manifest(context, &artifact_manifest)?;
 
     if game_jar.is_file() && !context.plan.refresh {
+        tracing::info!(
+            output = %game_jar.display(),
+            "neoform_userdev cache hit"
+        );
         context.write_node_state(
             "execute-neoform-userdev",
             &["NeoForge userdev", "NeoForm Runtime"],
@@ -4240,6 +4444,11 @@ fn execute_neoform_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         )?;
         return Ok(());
     }
+    tracing::info!(
+        output = %game_jar.display(),
+        refresh = context.plan.refresh,
+        "neoform_userdev cache miss"
+    );
 
     let mut args = vec![
         "--home-dir".to_string(),
@@ -4394,7 +4603,17 @@ fn java_properties_escape(input: &str) -> String {
     output
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "dependency deobf orchestration keeps per-dependency cache and remap behavior visible."
+)]
 fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "execute_dependency_deobf",
+        mc = %context.plan.minecraft_version,
+        dependencies = context.plan.dependencies.len(),
+    )
+    .entered();
     let output = context.plan.cache_dir.join("dependencies");
     if context.plan.refresh {
         reset_cache_directory(&context.plan.cache_dir, &output)?;
@@ -4433,6 +4652,14 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
 
     for dependency in &context.plan.dependencies {
         let coordinate = MavenCoordinate::parse(&dependency.resolved_notation)?;
+        #[cfg(feature = "tracing_detailed")]
+        let _dependency_span = tracing::debug_span!(
+            "prepare_dependency",
+            configuration = dependency.configuration.as_str(),
+            coordinate = %coordinate,
+            source = ?dependency.source,
+        )
+        .entered();
         let artifact = resolver.resolve_artifact(
             &format!("dependency-{}", outputs.len()),
             &coordinate,
@@ -4451,7 +4678,18 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
             &mapping_hash,
             &coordinate,
         )?;
-        if !remapped.is_file() {
+        if remapped.is_file() {
+            tracing::debug!(
+                coordinate = %coordinate,
+                output = %remapped.display(),
+                "dependency_deobf cache hit"
+            );
+        } else {
+            tracing::info!(
+                coordinate = %coordinate,
+                output = %remapped.display(),
+                "dependency_deobf cache miss"
+            );
             if !specialsource_output.is_file() {
                 if let Some(parent) = specialsource_output.parent() {
                     fs::create_dir_all(parent)?;
@@ -4799,7 +5037,16 @@ fn remove_stale_dependency_outputs(output: &Path) -> eyre::Result<()> {
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "project compile orchestration keeps generated sources, resources, and javac inputs visible."
+)]
 fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "execute_project_compile",
+        mc = %context.plan.minecraft_version,
+    )
+    .entered();
     let project_root = context.plan.cache_dir.join("project");
     let generated_sources = project_root
         .join("generated-src")
@@ -4812,6 +5059,12 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     let resources_dir = project_root.join("resources");
     let gametest_classes_dir = project_root.join("gametest").join("classes");
     let gametest_resources_dir = project_root.join("gametest").join("resources");
+    tracing::info!(
+        classes_dir = %classes_dir.display(),
+        resources_dir = %resources_dir.display(),
+        gametest_classes_dir = %gametest_classes_dir.display(),
+        "project_compile_outputs_will_be_recreated"
+    );
     fs::create_dir_all(&generated_sources)?;
     reset_cache_directory(&context.plan.cache_dir, &classes_dir)?;
     reset_cache_directory(&context.plan.cache_dir, &resources_dir)?;
@@ -5076,6 +5329,12 @@ fn stage_optional_resource_source_set(
     reason = "packaging executor keeps orchestration visible while toolchain is incomplete"
 )]
 fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "execute_package_and_reobfuscate",
+        mc = %context.plan.minecraft_version,
+        output = %context.plan.rust_output_jar.display(),
+    )
+    .entered();
     if context.plan.rust_output_jar == context.plan.gradle_output_jar {
         eyre::bail!(
             "Refusing to write Rust jar over Gradle jar: {}",
@@ -5096,6 +5355,12 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         .join(&context.plan.minecraft_version)
         .join("mappings")
         .join("official_to_srg.tsrg");
+    tracing::info!(
+        development_jar = %development_jar.display(),
+        staged_resources_dir = %staged_resources_dir.display(),
+        reobf_mapping = %reobf_mapping.display(),
+        "package_inputs_resolved"
+    );
 
     if !classes_dir.is_dir() {
         eyre::bail!(
@@ -7938,6 +8203,13 @@ fn write_plan_outputs(plan: &BuildPlan, requested_path: Option<&Path>) -> eyre::
 }
 
 fn write_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "write_artifact_lockfile",
+        mc = %plan.minecraft_version,
+        artifacts = plan.artifacts.len(),
+        dependencies = plan.dependencies.len(),
+    )
+    .entered();
     let lockfile = build_artifact_lockfile(plan)?;
     if let Some(parent) = plan.lockfile_path.parent() {
         fs::create_dir_all(parent)?;
@@ -8478,10 +8750,29 @@ fn download_to_path_overwrite(
     path: &Path,
     overwrite: bool,
 ) -> eyre::Result<()> {
+    #[cfg(feature = "tracing_detailed")]
+    let _span = tracing::debug_span!(
+        "download_to_path",
+        url,
+        path = %path.display(),
+        overwrite,
+    )
+    .entered();
     if path.is_file() && !overwrite {
+        tracing::debug!(
+            path = %path.display(),
+            url,
+            "download cache hit"
+        );
         return Ok(());
     }
 
+    tracing::info!(
+        path = %path.display(),
+        url,
+        overwrite,
+        "download cache miss"
+    );
     let parent = path
         .parent()
         .ok_or_else(|| eyre::eyre!("Path has no parent: {}", path.display()))?;
@@ -8533,6 +8824,8 @@ fn download_text_optional(client: &Client, url: &str) -> eyre::Result<String> {
 }
 
 fn remote_exists(client: &Client, url: &str) -> eyre::Result<bool> {
+    #[cfg(feature = "tracing_detailed")]
+    let _span = tracing::debug_span!("remote_exists", url).entered();
     let response = client
         .head(url)
         .send()
