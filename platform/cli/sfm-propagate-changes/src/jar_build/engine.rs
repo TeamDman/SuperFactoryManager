@@ -6873,16 +6873,25 @@ fn forge_runtime_manifest(forge_universal_jar: &Path) -> eyre::Result<Vec<u8>> {
     let mut output_sections = vec![strip_manifest_digests(main_section)];
 
     for required in required_sections {
-        let section = sections
+        let Some(section) = sections
             .iter()
             .copied()
             .find(|section| manifest_section_name(section) == Some(required))
-            .ok_or_else(|| {
-                eyre::eyre!(
-                    "Forge universal manifest {} did not contain package section {required}",
-                    forge_universal_jar.display()
-                )
-            })?;
+        else {
+            if manifest_attribute(&manifest, "FML-System-Mods").as_deref() == Some("forge") {
+                let output_sections = sections
+                    .iter()
+                    .copied()
+                    .map(strip_manifest_digests)
+                    .filter(|section| !section.trim().is_empty())
+                    .collect::<Vec<_>>();
+                return Ok(format!("{}\r\n\r\n", output_sections.join("\r\n\r\n")).into_bytes());
+            }
+            eyre::bail!(
+                "Forge universal manifest {} did not contain package section {required}",
+                forge_universal_jar.display()
+            );
+        };
         output_sections.push(strip_manifest_digests(section));
     }
 
