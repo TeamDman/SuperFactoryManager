@@ -257,7 +257,7 @@ public class SFMClientRunHarness {
         exitTicksRemaining = -1;
         exitCountdownSecondAnnounced = -1;
         SFM.LOGGER.info("SFM_CLIENT_PUPPET_KEEP_OPEN");
-        source.sendSuccess(Component.literal("SFM client puppet will remain open."), true);
+        source.sendSuccess(() -> Component.literal("SFM client puppet will remain open."), true);
         return Command.SINGLE_SUCCESS;
     }
 
