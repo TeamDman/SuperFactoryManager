@@ -47,6 +47,7 @@ pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
         mode = ?options.mode,
         refresh = options.refresh,
         explain_rebuild = options.explain_rebuild,
+        dry_run = options.dry_run,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
     )
     .entered();
@@ -56,6 +57,11 @@ pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
 
     match options.mode {
         BuildMode::Plan => write_artifact_lockfile(&plan),
+        BuildMode::Build if options.dry_run => {
+            println!("Jar build dry-run: resolved plan and lockfile; skipped build execution.");
+            tracing::info!("jar_build_dry_run_skip_execution");
+            write_artifact_lockfile(&plan)
+        }
         BuildMode::Build => {
             execute_build(&plan, options.explain_rebuild)?;
             write_artifact_lockfile(&plan)
@@ -70,6 +76,7 @@ pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<
         kind = kind.command_name(),
         refresh = options.refresh,
         explain_rebuild = options.explain_rebuild,
+        dry_run = options.dry_run,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
     )
     .entered();
@@ -78,7 +85,7 @@ pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<
     print_plan_summary(&plan);
     execute_build(&plan, options.explain_rebuild)?;
     write_artifact_lockfile(&plan)?;
-    execute_run(&plan, kind)
+    execute_run(&plan, kind, options.dry_run)
 }
 
 pub(crate) fn invoke_compare(options: &CompareOptions) -> eyre::Result<()> {
@@ -2455,12 +2462,13 @@ struct LaunchOutput {
     clippy::too_many_lines,
     reason = "Run launch orchestration intentionally mirrors Forge userdev config shape."
 )]
-fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
+fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<()> {
     let _span = tracing::info_span!(
         "execute_run_setup",
         mc = %plan.minecraft_version,
         kind = kind.command_name(),
         loader = ?plan.loader_toolchain.kind,
+        dry_run,
     )
     .entered();
     let context = ExecutionContext::new(plan)?;
@@ -2657,6 +2665,28 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
     );
 
     let launch_log = run_state_dir.join("console.log");
+    if dry_run {
+        let mut run_outputs = vec![argfile.clone(), minecraft_classpath_file.clone()];
+        if let Some(path) = automation_options_path {
+            run_outputs.push(path);
+        }
+        context.write_node_state(
+            &format!("run-{}", kind.userdev_name()),
+            &["Forge userdev run config", "Rust-owned build outputs"],
+            &run_outputs,
+            "dry-run",
+        )?;
+        println!(
+            "Dry run prepared {} launch setup and skipped Minecraft JVM launch.",
+            kind.command_name()
+        );
+        tracing::info!(
+            kind = kind.command_name(),
+            argfile = %argfile.display(),
+            "run_dry_run_skip_launch"
+        );
+        return Ok(());
+    }
     let echo_launch_output = !matches!(kind, RunKind::GameTestServer);
     let max_launch_attempts = if matches!(kind, RunKind::GameTestServer) {
         3

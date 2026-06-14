@@ -9,6 +9,10 @@ use std::path::PathBuf;
 
 /// Options shared by `jar plan` and `jar build`.
 #[derive(Facet, Debug, Clone)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "This type is a thin CLI flag container; each bool maps directly to a named flag."
+)]
 pub struct JarBuildCommand {
     /// Minecraft version to build, for example `1.19.2`.
     #[facet(args::named)]
@@ -30,6 +34,10 @@ pub struct JarBuildCommand {
     #[facet(rename = "java-home", default, args::named)]
     pub java_home: Option<PathBuf>,
 
+    /// Resolve and prepare as much as possible, then skip the final build or launch action.
+    #[facet(rename = "dry-run", default = false, args::named)]
+    pub dry_run: bool,
+
     /// Allow bootstrapping missing artifacts from local .m2 or Gradle module caches.
     #[facet(rename = "allow-local-artifact-cache", default = false, args::named)]
     pub allow_local_artifact_cache: bool,
@@ -44,6 +52,7 @@ impl JarBuildCommand {
             explain_rebuild: self.explain_rebuild,
             plan_json: self.plan_json,
             java_home: self.java_home,
+            dry_run: self.dry_run,
             allow_local_artifact_cache: self.allow_local_artifact_cache,
             mode,
         }
