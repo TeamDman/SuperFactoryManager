@@ -317,7 +317,7 @@ public class SFMClientRunHarness {
     }
 
     private static int keepOpenSeconds() {
-        return Integer.getInteger(KEEP_OPEN_SECONDS_PROPERTY, 30);
+        return Integer.getInteger(KEEP_OPEN_SECONDS_PROPERTY, 10);
     }
 
     private static Mode mode() {
