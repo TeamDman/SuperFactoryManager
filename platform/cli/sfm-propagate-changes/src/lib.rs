@@ -8,6 +8,11 @@ pub mod sfm_path;
 pub mod state;
 pub mod worktree;
 
+#[cfg(feature = "tracy_memory")]
+#[global_allocator]
+static TRACY_ALLOCATOR: tracy_client::ProfiledAllocator<std::alloc::System> =
+    tracy_client::ProfiledAllocator::new(std::alloc::System, 100);
+
 use crate::cli::Cli;
 use chrono::DateTime;
 use chrono::Local;
