@@ -34,8 +34,10 @@ use super::parse_maven_versions;
 use super::resolve_loader_toolchain;
 use super::rust_output_jar_path;
 use super::set_minecraft_option;
+use super::should_keep_split_minecraft_runtime_entry;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -100,6 +102,38 @@ fn set_minecraft_option_replaces_or_appends_option() {
         set_minecraft_option("version:3700\n", "onboardAccessibility", "true"),
         "version:3700\nonboardAccessibility:true\n"
     );
+}
+
+#[test]
+fn split_minecraft_runtime_keeps_duplicate_vanilla_resources() {
+    let neoforge_entries = BTreeSet::from([
+        "assets/minecraft/atlases/blocks.json".to_string(),
+        "assets/minecraft/atlases/items.json".to_string(),
+        "net/minecraft/client/Minecraft.class".to_string(),
+        "net/neoforged/neoforge/NeoForge.class".to_string(),
+        "META-INF/services/example.Service".to_string(),
+    ]);
+
+    assert!(should_keep_split_minecraft_runtime_entry(
+        "assets/minecraft/atlases/blocks.json",
+        &neoforge_entries
+    ));
+    assert!(should_keep_split_minecraft_runtime_entry(
+        "assets/minecraft/atlases/items.json",
+        &neoforge_entries
+    ));
+    assert!(!should_keep_split_minecraft_runtime_entry(
+        "net/minecraft/client/Minecraft.class",
+        &neoforge_entries
+    ));
+    assert!(!should_keep_split_minecraft_runtime_entry(
+        "net/neoforged/neoforge/NeoForge.class",
+        &neoforge_entries
+    ));
+    assert!(!should_keep_split_minecraft_runtime_entry(
+        "META-INF/services/example.Service",
+        &neoforge_entries
+    ));
 }
 
 #[test]
