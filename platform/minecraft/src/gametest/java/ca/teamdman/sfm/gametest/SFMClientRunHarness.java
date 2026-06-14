@@ -51,6 +51,7 @@ public class SFMClientRunHarness {
     private static boolean puppetTestsCompleted = false;
     private static boolean keepOpen = false;
     private static int exitTicksRemaining = -1;
+    private static int exitCountdownSecondAnnounced = -1;
     private static MultipleTestTracker activeTracker = null;
     private static int activeRequiredCount = 0;
     private static int activeTotalCount = 0;
@@ -242,10 +243,15 @@ public class SFMClientRunHarness {
                 passedRequired,
                 activeTotalCount
         );
-        exitTicksRemaining = keepOpenSeconds() * 20;
+        int keepOpenSeconds = keepOpenSeconds();
+        exitTicksRemaining = keepOpenSeconds * 20;
+        exitCountdownSecondAnnounced = -1;
+        sendClientChat("SFM client puppet tests passed. Run /sfm keep_open within "
+                       + keepOpenSeconds
+                       + " seconds to keep this client open.");
         SFM.LOGGER.info(
                 "SFM_CLIENT_PUPPET_EXIT_PENDING seconds={} command=/sfm keep_open",
-                keepOpenSeconds()
+                keepOpenSeconds
         );
     }
 
@@ -253,19 +259,43 @@ public class SFMClientRunHarness {
         if (exitTicksRemaining < 0 || keepOpen) {
             return;
         }
-        if (exitTicksRemaining-- > 0) {
+        if (exitTicksRemaining > 0) {
+            announceExitCountdown();
+            exitTicksRemaining--;
             return;
         }
+        sendClientChat("SFM client puppet closing.");
         SFM.LOGGER.info("SFM_CLIENT_PUPPET_EXITING");
         Minecraft.getInstance().stop();
+    }
+
+    private static void announceExitCountdown() {
+        int secondsRemaining = (exitTicksRemaining + 19) / 20;
+        if (secondsRemaining < 1 || secondsRemaining > 3 || secondsRemaining == exitCountdownSecondAnnounced) {
+            return;
+        }
+
+        exitCountdownSecondAnnounced = secondsRemaining;
+        sendClientChat("SFM client puppet closing in " + secondsRemaining + "...");
     }
 
     private static int keepOpen(CommandSourceStack source) {
         keepOpen = true;
         exitTicksRemaining = -1;
+        exitCountdownSecondAnnounced = -1;
         SFM.LOGGER.info("SFM_CLIENT_PUPPET_KEEP_OPEN");
         source.sendSuccess(() -> Component.literal("SFM client puppet will remain open."), true);
         return Command.SINGLE_SUCCESS;
+    }
+
+    private static void sendClientChat(String message) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null) {
+            SFM.LOGGER.info("SFM_CLIENT_PUPPET_CHAT {}", message);
+            return;
+        }
+
+        minecraft.player.displayClientMessage(Component.literal(message), false);
     }
 
     private static void configurePuppetWorld(
