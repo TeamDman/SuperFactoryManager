@@ -36,7 +36,7 @@ public class SFMGameTestDiscovery {
     private static final List<SFMGameTestData> TESTS;
     static {
         // Discover our tests
-        Collection<SFMGameTestDefinition> tests = filterSelectedTests(SFMGameTestDiscovery.gatherTests().toList());
+        Collection<SFMGameTestDefinition> tests = gatherSelectedTests();
 
         TESTS = tests.stream().map(test -> {
             ResourceKey<Consumer<GameTestHelper>> key = ResourceKey.create(
@@ -63,6 +63,10 @@ public class SFMGameTestDiscovery {
                     testData.definition().intoTestInstance(testData.functionKey(), environment)
             );
         }
+    }
+
+    public static Collection<SFMGameTestDefinition> gatherSelectedTests() {
+        return filterSelectedTests(SFMGameTestDiscovery.gatherTests().toList());
     }
 
     public static Stream<SFMGameTestDefinition> gatherTests() {

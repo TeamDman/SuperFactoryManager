@@ -29,6 +29,7 @@ use std::process::Command;
 use std::process::ExitStatus;
 use std::process::Stdio;
 use std::thread;
+use std::time::Duration;
 use std::time::Instant;
 use zip::CompressionMethod;
 use zip::ZipArchive;
@@ -2267,7 +2268,7 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool) -> eyre::Result<()> {
 impl RunKind {
     const fn userdev_name(self) -> &'static str {
         match self {
-            Self::Client => "client",
+            Self::Client | Self::ClientSmoke | Self::ClientPuppet => "client",
             Self::Server => "server",
             Self::Data => "data",
             Self::GameTestServer => "gameTestServer",
@@ -2277,6 +2278,8 @@ impl RunKind {
     const fn command_name(self) -> &'static str {
         match self {
             Self::Client => "runClient",
+            Self::ClientSmoke => "runClientSmoke",
+            Self::ClientPuppet => "runClientPuppet",
             Self::Server => "runServer",
             Self::Data => "runData",
             Self::GameTestServer => "runGameTestServer",
@@ -2286,6 +2289,8 @@ impl RunKind {
     const fn working_dir_name(self) -> &'static str {
         match self {
             Self::Client => "run",
+            Self::ClientSmoke => "runClientSmoke",
+            Self::ClientPuppet => "runClientPuppet",
             Self::Server => "runServer",
             Self::Data => "runData",
             Self::GameTestServer => "runGameTest",
@@ -2294,13 +2299,40 @@ impl RunKind {
 
     const fn optional_source_set(self) -> &'static str {
         match self {
-            Self::Client | Self::Server | Self::GameTestServer => "gametest",
+            Self::Client
+            | Self::ClientSmoke
+            | Self::ClientPuppet
+            | Self::Server
+            | Self::GameTestServer => "gametest",
             Self::Data => "datagen",
         }
     }
 
     const fn enables_game_tests(self) -> bool {
-        matches!(self, Self::Client | Self::Server | Self::GameTestServer)
+        matches!(
+            self,
+            Self::Client
+                | Self::ClientSmoke
+                | Self::ClientPuppet
+                | Self::Server
+                | Self::GameTestServer
+        )
+    }
+
+    const fn automation_mode(self) -> Option<&'static str> {
+        match self {
+            Self::ClientSmoke => Some("smoke"),
+            Self::ClientPuppet => Some("puppet"),
+            _ => None,
+        }
+    }
+
+    const fn launch_timeout(self) -> Option<Duration> {
+        match self {
+            Self::ClientSmoke => Some(Duration::from_mins(2)),
+            Self::ClientPuppet => Some(Duration::from_mins(15)),
+            _ => None,
+        }
     }
 }
 
@@ -2335,6 +2367,7 @@ struct RunClasspath {
 struct LaunchOutput {
     status: ExitStatus,
     combined: String,
+    timed_out: bool,
 }
 
 #[expect(
@@ -2358,6 +2391,9 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
     fs::create_dir_all(&working_dir)?;
     if matches!(kind, RunKind::GameTestServer) {
         clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
+    }
+    if matches!(kind, RunKind::ClientPuppet) {
+        clean_client_puppet_world(&plan.minecraft_dir, &working_dir)?;
     }
 
     let resolver = Resolver::new(
@@ -2437,6 +2473,16 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
         properties.insert(
             "log4j2.configurationFile".to_string(),
             log4j_config.display().to_string(),
+        );
+    }
+    if let Some(automation_mode) = kind.automation_mode() {
+        properties.insert(
+            "sfm.clientRun.mode".to_string(),
+            automation_mode.to_string(),
+        );
+        properties.insert(
+            "sfm.clientRun.keepOpenSeconds".to_string(),
+            "30".to_string(),
         );
     }
 
@@ -2526,6 +2572,9 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
             clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
             println!("Game-test server attempt {attempt}/{max_launch_attempts}");
         }
+        if matches!(kind, RunKind::ClientPuppet) {
+            clean_client_puppet_world(&plan.minecraft_dir, &working_dir)?;
+        }
         let attempt_output = run_launch_command(
             plan,
             &argfile,
@@ -2533,6 +2582,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
             &env,
             &launch_log,
             echo_launch_output,
+            kind.launch_timeout(),
         )
         .wrap_err_with(|| {
             format!(
@@ -2571,6 +2621,14 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
         },
     )?;
 
+    if launch_output.timed_out {
+        eyre::bail!(
+            "{} timed out after {} seconds. See {}",
+            kind.command_name(),
+            kind.launch_timeout().map_or(0, |timeout| timeout.as_secs()),
+            launch_log.display()
+        );
+    }
     if !launch_output.status.success() {
         eyre::bail!(
             "{} exited with {}. See {}",
@@ -2598,6 +2656,33 @@ fn execute_run(plan: &BuildPlan, kind: RunKind) -> eyre::Result<()> {
             );
         }
         println!("Validated {pass_count} required game tests passed.");
+    }
+    if matches!(kind, RunKind::ClientSmoke) {
+        if !launch_output.combined.contains("SFM_CLIENT_SMOKE_READY") {
+            eyre::bail!(
+                "{} exited successfully but did not report title-screen readiness. See {}",
+                kind.command_name(),
+                launch_log.display()
+            );
+        }
+        println!("Validated client reached the title screen.");
+    }
+    if matches!(kind, RunKind::ClientPuppet) {
+        let Some(pass_count) = extract_client_puppet_pass_count(&launch_output.combined) else {
+            eyre::bail!(
+                "{} exited successfully but did not report a client puppet pass count. See {}",
+                kind.command_name(),
+                launch_log.display()
+            );
+        };
+        if pass_count == 0 {
+            eyre::bail!(
+                "{} reported 0 required game tests passed. See {}",
+                kind.command_name(),
+                launch_log.display()
+            );
+        }
+        println!("Validated client puppet completed {pass_count} required game tests.");
     }
     Ok(())
 }
@@ -2675,6 +2760,24 @@ fn clean_gametest_server_world(minecraft_dir: &Path, working_dir: &Path) -> eyre
     Ok(())
 }
 
+fn clean_client_puppet_world(minecraft_dir: &Path, working_dir: &Path) -> eyre::Result<()> {
+    if working_dir.file_name().and_then(|name| name.to_str()) != Some("runClientPuppet")
+        || !working_dir.starts_with(minecraft_dir)
+    {
+        eyre::bail!(
+            "Refusing to clean unexpected client puppet working directory: {}",
+            working_dir.display()
+        );
+    }
+
+    let world_dir = working_dir.join("saves").join("sfm_client_puppet");
+    if world_dir.exists() {
+        fs::remove_dir_all(&world_dir)
+            .wrap_err_with(|| format!("Failed to remove {}", world_dir.display()))?;
+    }
+    Ok(())
+}
+
 fn run_launch_command(
     plan: &BuildPlan,
     argfile: &Path,
@@ -2682,6 +2785,7 @@ fn run_launch_command(
     env: &BTreeMap<String, String>,
     log_path: &Path,
     echo_output: bool,
+    timeout: Option<Duration>,
 ) -> eyre::Result<LaunchOutput> {
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)?;
@@ -2705,18 +2809,41 @@ fn run_launch_command(
         .ok_or_else(|| eyre::eyre!("Failed to capture launch stderr"))?;
     let stdout_thread = thread::spawn(move || read_launch_stream(stdout, false, echo_output));
     let stderr_thread = thread::spawn(move || read_launch_stream(stderr, true, echo_output));
-    let status = child.wait().wrap_err("Failed to wait for launched JVM")?;
+    let started = Instant::now();
+    let mut timed_out = false;
+    let status = loop {
+        if let Some(status) = child.try_wait().wrap_err("Failed to poll launched JVM")? {
+            break status;
+        }
+        if let Some(timeout) = timeout
+            && started.elapsed() >= timeout
+        {
+            timed_out = true;
+            child
+                .kill()
+                .wrap_err("Failed to kill timed-out launched JVM")?;
+            break child
+                .wait()
+                .wrap_err("Failed to wait for timed-out launched JVM")?;
+        }
+        thread::sleep(Duration::from_millis(250));
+    };
     let stdout_text = join_launch_stream(stdout_thread, "stdout")?;
     let stderr_text = join_launch_stream(stderr_thread, "stderr")?;
     let combined = format!("{stdout_text}{stderr_text}");
     let mut log = String::new();
     writeln!(log, "status={status}")?;
+    writeln!(log, "timed_out={timed_out}")?;
     writeln!(log, "argfile={}", argfile.display())?;
     writeln!(log, "working_dir={}", working_dir.display())?;
     writeln!(log)?;
     log.push_str(&combined);
     fs::write(log_path, log).wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
-    Ok(LaunchOutput { status, combined })
+    Ok(LaunchOutput {
+        status,
+        combined,
+        timed_out,
+    })
 }
 
 fn read_launch_stream<R>(stream: R, stderr: bool, echo_output: bool) -> std::io::Result<String>
@@ -2755,6 +2882,14 @@ fn extract_required_gametest_pass_count(output: &str) -> Option<usize> {
 
 fn extract_running_gametest_count(output: &str) -> Option<usize> {
     extract_number_between(output, "Running all ", " tests")
+}
+
+fn extract_client_puppet_pass_count(output: &str) -> Option<usize> {
+    extract_number_between(
+        output,
+        "SFM_CLIENT_PUPPET_TESTS_PASSED required=",
+        " total=",
+    )
 }
 
 fn extract_number_between(output: &str, prefix: &str, suffix: &str) -> Option<usize> {
@@ -3188,7 +3323,11 @@ fn resolve_neogradle_run_dependencies(
 fn run_dependency_configurations(kind: RunKind) -> &'static [&'static str] {
     match kind {
         RunKind::Data => &["implementation", "runtimeOnly", "transitiveRuntime"],
-        RunKind::Client | RunKind::Server | RunKind::GameTestServer => &[
+        RunKind::Client
+        | RunKind::ClientSmoke
+        | RunKind::ClientPuppet
+        | RunKind::Server
+        | RunKind::GameTestServer => &[
             "implementation",
             "jarJar",
             "runtimeOnly",
