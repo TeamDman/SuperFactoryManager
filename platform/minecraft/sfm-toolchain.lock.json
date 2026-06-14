@@ -2,7 +2,7 @@
   "schema_version": 1,
   "minecraft_version": "1.20.4",
   "maven_cache_dir": "build\\sfm-toolchain\\maven",
-  "allow_local_artifact_cache": true,
+  "allow_local_artifact_cache": false,
   "repositories": [
     {
       "name": "Forge",
