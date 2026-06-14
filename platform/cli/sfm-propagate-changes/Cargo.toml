@@ -30,10 +30,18 @@ sha1 = "0.10.6"
 tokio = { version = "1.49.0", features = ["full"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
+tracing-tracy = { version = "0.11.4", optional = true }
+tracy-client = { version = "0.18.4", optional = true }
 zip = { version = "2.4.2", default-features = false, features = ["deflate"] }
 
 [target.'cfg(windows)'.dependencies]
 teamy-windows = "0.9.0"
+
+[features]
+default = []
+tracy = ["dep:tracing-tracy"]
+tracing_detailed = []
+tracy_memory = ["tracy", "dep:tracy-client"]
 
 [build-dependencies]
 embed-resource = "3.0.6"
