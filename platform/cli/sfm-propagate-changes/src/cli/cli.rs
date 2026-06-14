@@ -131,6 +131,12 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::jar::JarCommand,
     },
+    /// Build and launch Forge userdev run configs
+    Run {
+        /// Run subcommand
+        #[facet(args::subcommand)]
+        command: super::run::RunCommand,
+    },
     /// Repo root related commands
     RepoRoot {
         /// Repo root subcommand
@@ -155,7 +161,45 @@ impl Command {
             Command::Curseforge { command } => command.invoke(),
             Command::Modrinth { command } => command.invoke(),
             Command::Jar { command } => command.invoke(),
+            Command::Run { command } => command.invoke(),
             Command::RepoRoot { command } => command.invoke(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Cli;
+    use crate::cli::Command;
+    use crate::cli::run::RunCommand;
+
+    #[test]
+    fn parses_top_level_run_commands() {
+        assert_run_command(&["run", "client", "--mc", "1.19.2"]);
+        assert_run_command(&["run", "server", "--mc", "1.19.2"]);
+        assert_run_command(&["run", "data", "--mc", "1.19.2"]);
+        assert_run_command(&["run", "game-test-server", "--mc", "1.19.2"]);
+    }
+
+    #[test]
+    fn jar_run_client_no_longer_parses() {
+        assert!(figue::from_slice::<Cli>(&["jar", "run-client", "--mc", "1.19.2"]).is_err());
+    }
+
+    fn assert_run_command(args: &[&str]) {
+        let cli = figue::from_slice::<Cli>(args)
+            .into_result()
+            .expect("run command should parse")
+            .get_silent();
+        match cli.command {
+            Command::Run {
+                command:
+                    RunCommand::Client { .. }
+                    | RunCommand::Server { .. }
+                    | RunCommand::Data { .. }
+                    | RunCommand::GameTestServer { .. },
+            } => {}
+            command => panic!("expected top-level run command, got {command:?}"),
         }
     }
 }

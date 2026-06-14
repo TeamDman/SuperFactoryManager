@@ -1,7 +1,6 @@
-use std::{
-    process::Command,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::process::Command;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 fn main() {
     add_build_script_inputs();
@@ -46,10 +45,10 @@ fn add_git_revision_inputs() {
         println!("cargo:rerun-if-changed={head_path}");
     }
 
-    if let Some(head_ref) = git_output(&["symbolic-ref", "--quiet", "HEAD"]) {
-        if let Some(head_ref_path) = git_output(&["rev-parse", "--git-path", &head_ref]) {
-            println!("cargo:rerun-if-changed={head_ref_path}");
-        }
+    if let Some(head_ref) = git_output(&["symbolic-ref", "--quiet", "HEAD"])
+        && let Some(head_ref_path) = git_output(&["rev-parse", "--git-path", &head_ref])
+    {
+        println!("cargo:rerun-if-changed={head_ref_path}");
     }
 }
 

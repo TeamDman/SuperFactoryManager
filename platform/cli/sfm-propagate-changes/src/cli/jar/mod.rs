@@ -1,5 +1,7 @@
+pub(crate) mod jar_build_command;
 mod jar_collect_command;
 mod jar_command;
+mod jar_compare_command;
 mod jar_dir_command;
 mod jar_list_command;
 mod jar_shared;
