@@ -301,15 +301,7 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
                     .addItemStacks(anvil);
 
             // Track the obsidian catalyst
-            List<ItemStack> crushingCompatibleBlocks = SFMWellKnownRegistries.BLOCKS
-                    .stream()
-                    .filter(block -> SFMBlockTags.hasBlockTag(block, SFMBlockTags.ANVIL_DISENCHANTING))
-                    .map(ItemStack::new)
-                    .peek(stack -> SFMComponentUtils.appendLore(
-                            stack,
-                            Localization.FALLING_ANVIL_JEI_NOT_CONSUMED.getComponent()
-                    ))
-                    .toList();
+            List<ItemStack> crushingCompatibleBlocks = getFallingAnvilCrushingObsidianCatalyst();
             builder
                     .addSlot(RecipeIngredientRole.CRAFTING_STATION, 8, 36)
                     .addItemStacks(crushingCompatibleBlocks);
@@ -338,13 +330,24 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
         } else if (recipe instanceof FallingAnvilExperienceShardRecipe) {
             builder.addSlot(RecipeIngredientRole.CRAFTING_STATION, 0, 0).addItemStacks(anvil);
             builder.addSlot(RecipeIngredientRole.INPUT, 0, 18).add(Ingredient.of(Items.ENCHANTED_BOOK));
-            ItemStack obsidian = new ItemStack(Blocks.OBSIDIAN);
-            SFMComponentUtils.appendLore(obsidian, Localization.FALLING_ANVIL_JEI_NOT_CONSUMED.getComponent());
-            builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).add(obsidian);
+            List<ItemStack> crushingCompatibleBlocks = getFallingAnvilCrushingObsidianCatalyst();
+            builder.addSlot(RecipeIngredientRole.INPUT, 0, 36).addItemStacks(crushingCompatibleBlocks);
             builder
                     .addSlot(RecipeIngredientRole.OUTPUT, 50, 18)
                     .add(SFMItems.EXPERIENCE_SHARD.get());
         }
+    }
+
+    private static List<ItemStack> getFallingAnvilCrushingObsidianCatalyst() {
+        return SFMWellKnownRegistries.BLOCKS
+                .stream()
+                .filter(block -> SFMBlockTags.hasBlockTag(block, SFMBlockTags.ANVIL_DISENCHANTING))
+                .map(ItemStack::new)
+                .peek(stack -> SFMComponentUtils.appendLore(
+                        stack,
+                        Localization.FALLING_ANVIL_JEI_NOT_CONSUMED.getComponent()
+                ))
+                .toList();
     }
 
     @MCVersionDependentBehaviour
