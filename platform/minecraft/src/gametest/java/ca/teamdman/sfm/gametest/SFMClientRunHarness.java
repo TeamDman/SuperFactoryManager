@@ -295,7 +295,7 @@ public class SFMClientRunHarness {
             return;
         }
 
-        minecraft.player.displayClientMessage(Component.literal(message), false);
+        minecraft.gui.getChat().addClientSystemMessage(Component.literal(message));
     }
 
     private static void configurePuppetWorld(
