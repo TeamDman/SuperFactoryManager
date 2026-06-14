@@ -33,6 +33,7 @@ use super::parchment_coordinate;
 use super::parse_maven_versions;
 use super::resolve_loader_toolchain;
 use super::rust_output_jar_path;
+use super::set_minecraft_option;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -85,6 +86,19 @@ fn extracts_single_or_double_quoted_notation() {
     assert_eq!(
         extract_quoted("antlr \"org.antlr:antlr4:4.9.1\""),
         Some("org.antlr:antlr4:4.9.1".to_string())
+    );
+}
+
+#[test]
+fn set_minecraft_option_replaces_or_appends_option() {
+    let existing = "version:3700\nonboardAccessibility:false\nnarrator:0\n";
+    assert_eq!(
+        set_minecraft_option(existing, "onboardAccessibility", "true"),
+        "version:3700\nonboardAccessibility:true\nnarrator:0\n"
+    );
+    assert_eq!(
+        set_minecraft_option("version:3700\n", "onboardAccessibility", "true"),
+        "version:3700\nonboardAccessibility:true\n"
     );
 }
 
