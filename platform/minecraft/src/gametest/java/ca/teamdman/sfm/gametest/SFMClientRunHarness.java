@@ -28,9 +28,9 @@ import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
-import net.minecraftforge.client.event.ScreenEvent;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.TickEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.TickEvent;
 
 import java.util.Collection;
 import java.util.List;
