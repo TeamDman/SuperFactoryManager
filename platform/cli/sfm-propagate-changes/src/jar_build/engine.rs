@@ -5488,6 +5488,56 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         );
     }
     stage_project_resources(context, &staged_resources_dir, &javac_resources_dir)?;
+    let mut package_fingerprint_paths = vec![classes_dir.clone(), staged_resources_dir.clone()];
+    if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
+        package_fingerprint_paths.extend(
+            context
+                .plan
+                .dependencies
+                .iter()
+                .filter(|dependency| dependency.configuration == "jarJar")
+                .map(|dependency| dependency.cache_path.clone()),
+        );
+    } else {
+        package_fingerprint_paths.push(mixin_reobf_mapping.clone());
+        package_fingerprint_paths.push(reobf_mapping.clone());
+    }
+    let package_fingerprint = input_fingerprint(
+        context,
+        "package-and-reobfuscate-jar",
+        &package_fingerprint_paths,
+        &package_fingerprint_extras(context),
+    )?;
+    let package_state_path = project_root.join("package-and-reobfuscate.inputs.sha1");
+    let started = Instant::now();
+    println!(
+        "package-and-reobfuscate-jar: start output={}",
+        context.plan.rust_output_jar.display()
+    );
+    if cache_state_matches_outputs(
+        context,
+        &package_state_path,
+        &package_fingerprint,
+        &[],
+        &[&context.plan.rust_output_jar],
+    )? {
+        println!(
+            "package-and-reobfuscate-jar: reused cached Rust jar in {} ms",
+            started.elapsed().as_millis()
+        );
+        context.write_node_state(
+            "package-and-reobfuscate-jar",
+            &[
+                "compiled classes",
+                "expanded resources",
+                "reobfuscation mappings",
+            ],
+            std::slice::from_ref(&context.plan.rust_output_jar),
+            "cached",
+        )?;
+        return Ok(());
+    }
+
     write_project_development_jar(
         context,
         &classes_dir,
@@ -5524,6 +5574,11 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
             ],
             "complete",
         )?;
+        write_cache_state(&package_state_path, &package_fingerprint)?;
+        println!(
+            "package-and-reobfuscate-jar: done in {} ms",
+            started.elapsed().as_millis()
+        );
         return Ok(());
     }
 
@@ -5573,6 +5628,11 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         );
     }
 
+    write_cache_state(&package_state_path, &package_fingerprint)?;
+    println!(
+        "package-and-reobfuscate-jar: done in {} ms",
+        started.elapsed().as_millis()
+    );
     context.write_node_state(
         "package-and-reobfuscate-jar",
         &[
@@ -5587,6 +5647,40 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         ],
         "complete",
     )
+}
+
+fn package_fingerprint_extras(context: &ExecutionContext<'_>) -> Vec<String> {
+    let mut extras = vec![
+        "package-and-reobfuscate-v1".to_string(),
+        format!("{:?}", context.plan.loader_toolchain.kind),
+        context
+            .plan
+            .worktree_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("sfm")
+            .to_string(),
+    ];
+    extras.extend(
+        context
+            .plan
+            .properties
+            .iter()
+            .map(|(key, value)| format!("property:{key}={value}")),
+    );
+    extras.extend(context.plan.artifacts.iter().map(|artifact| {
+        format!(
+            "artifact:{}:{:?}:{:?}:{:?}",
+            artifact.id, artifact.coordinate, artifact.url, artifact.sha1
+        )
+    }));
+    extras.extend(context.plan.dependencies.iter().map(|dependency| {
+        format!(
+            "dependency:{}:{}:{}",
+            dependency.configuration, dependency.notation, dependency.resolved_notation
+        )
+    }));
+    extras
 }
 
 fn stage_project_resources(
@@ -5894,6 +5988,22 @@ fn cache_state_matches(
     expected_state: &str,
     required_output_dirs: &[&Path],
 ) -> eyre::Result<bool> {
+    cache_state_matches_outputs(
+        context,
+        state_path,
+        expected_state,
+        required_output_dirs,
+        &[],
+    )
+}
+
+fn cache_state_matches_outputs(
+    context: &ExecutionContext<'_>,
+    state_path: &Path,
+    expected_state: &str,
+    required_output_dirs: &[&Path],
+    required_output_files: &[&Path],
+) -> eyre::Result<bool> {
     if context.plan.refresh {
         return Ok(false);
     }
@@ -5902,6 +6012,11 @@ fn cache_state_matches(
     }
     for output_dir in required_output_dirs {
         if !directory_has_files(output_dir)? {
+            return Ok(false);
+        }
+    }
+    for output_file in required_output_files {
+        if !output_file.is_file() {
             return Ok(false);
         }
     }
