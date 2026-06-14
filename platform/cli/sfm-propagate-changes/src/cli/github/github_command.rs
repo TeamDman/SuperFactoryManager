@@ -109,10 +109,6 @@ struct ReleaseTag {
     sort_key: (u32, u32, u32),
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "release flow is clearer when kept in the same order as the old script"
-)]
 fn release_now(
     mc_filter_text: Option<&str>,
     repo: Option<String>,
@@ -193,10 +189,6 @@ fn release_now(
     Ok(())
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "amend flow mirrors release flow for predictable preflight output"
-)]
 fn release_amend(
     mc_filter_text: Option<&str>,
     repo: Option<String>,
@@ -649,6 +641,6 @@ mod tests {
 
     #[test]
     fn rejects_non_sfm_release_jar_name() {
-        assert!(parse_mc_version_from_jar_name("example.jar").is_err());
+        let _ = parse_mc_version_from_jar_name("example.jar").unwrap_err();
     }
 }
