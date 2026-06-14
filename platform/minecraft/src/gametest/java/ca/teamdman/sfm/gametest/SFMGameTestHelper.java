@@ -59,6 +59,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 public class SFMGameTestHelper extends GameTestHelper {
+    private static final long MAX_PROGRAM_RUN_MILLIS = Long.getLong(
+            "sfm.gametest.maxProgramRunMillis",
+            80L
+    );
 
     public SFMGameTestHelper(
             GameTestHelper helper
@@ -282,10 +286,11 @@ public class SFMGameTestHelper extends GameTestHelper {
                         () -> {
                             assertion.run();
                             SFMGameTestHelper.this.assertTrue(
-                                    elapsed.toMillis() < 80,
+                                    elapsed.toMillis() < MAX_PROGRAM_RUN_MILLIS,
                                     "Program took too long to run: took " + NumberFormat
                                             .getInstance(Locale.getDefault())
-                                            .format(elapsed.toNanos()) + "ns"
+                                            .format(elapsed.toNanos()) + "ns, max "
+                                    + MAX_PROGRAM_RUN_MILLIS + "ms"
                             );
                             SFMGameTestHelper.this.succeed();
                         }
