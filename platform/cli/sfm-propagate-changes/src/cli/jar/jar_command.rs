@@ -1,3 +1,5 @@
+use super::jar_build_command::JarBuildCommand;
+use super::jar_compare_command::JarCompareCommand;
 use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
@@ -11,6 +13,24 @@ pub enum JarCommand {
         /// Directory subcommand
         #[facet(args::subcommand)]
         command: JarDirCommand,
+    },
+    /// Resolve the clean-slate jar build graph without running expensive tools
+    Plan {
+        /// Jar build planning options
+        #[facet(flatten)]
+        command: JarBuildCommand,
+    },
+    /// Build an SFM mod jar without invoking Gradle
+    Build {
+        /// Jar build options
+        #[facet(flatten)]
+        command: JarBuildCommand,
+    },
+    /// Compare the Gradle jar against the Rust-built jar
+    Compare {
+        /// Jar comparison options
+        #[facet(flatten)]
+        command: JarCompareCommand,
     },
     /// Collect jars from each MC version based on that version's `mod_version`
     Collect,
@@ -49,6 +69,9 @@ impl JarCommand {
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
             JarCommand::Dir { command } => command.invoke(),
+            JarCommand::Plan { command } => super::jar_build_command::invoke_plan(command),
+            JarCommand::Build { command } => super::jar_build_command::invoke_build(command),
+            JarCommand::Compare { command } => super::jar_compare_command::invoke(command),
             JarCommand::Collect => super::jar_collect_command::invoke(),
             JarCommand::List => super::jar_list_command::invoke(),
             JarCommand::UpdateClients => super::jar_update_clients_command::invoke(),
