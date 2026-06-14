@@ -83,8 +83,7 @@ fn colorize_metadata_name(name: &str, mc_version: &str) -> String {
         "NeoForge" => style(name, ANSI_BOLD_RED),
         "Forge" => style(name, ANSI_BOLD_YELLOW),
         "Java 17" => style(name, ANSI_BOLD_GREEN),
-        "Java 21" => style(name, ANSI_BOLD_CYAN),
-        "Java 25" => style(name, ANSI_BOLD_CYAN),
+        "Java 21" | "Java 25" => style(name, ANSI_BOLD_CYAN),
         _ => name.to_string(),
     }
 }
@@ -2156,22 +2155,22 @@ mod tests {
     #[test]
     fn parse_safety_age_supports_seconds_minutes_and_hours() {
         assert_eq!(parse_safety_age("45s").unwrap(), Duration::from_secs(45));
-        assert_eq!(parse_safety_age("30m").unwrap(), Duration::from_secs(1800));
-        assert_eq!(parse_safety_age("2h").unwrap(), Duration::from_secs(7200));
+        assert_eq!(parse_safety_age("30m").unwrap(), Duration::from_mins(30));
+        assert_eq!(parse_safety_age("2h").unwrap(), Duration::from_hours(2));
     }
 
     #[test]
     fn parse_safety_age_rejects_invalid_inputs() {
-        assert!(parse_safety_age("").is_err());
-        assert!(parse_safety_age("30").is_err());
-        assert!(parse_safety_age("30x").is_err());
+        let _ = parse_safety_age("").unwrap_err();
+        let _ = parse_safety_age("30").unwrap_err();
+        let _ = parse_safety_age("30x").unwrap_err();
     }
 
     #[test]
     fn format_age_uses_readable_units() {
         assert_eq!(format_age(Duration::from_secs(5)), "5s");
         assert_eq!(format_age(Duration::from_secs(90)), "1m30s");
-        assert_eq!(format_age(Duration::from_secs(7260)), "2h1m");
+        assert_eq!(format_age(Duration::from_mins(121)), "2h1m");
     }
 
     #[test]

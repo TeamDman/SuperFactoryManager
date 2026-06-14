@@ -751,6 +751,10 @@ fn release_now(
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "amend flow is clearer when kept in release-operation order"
+)]
 fn release_amend(
     mc: Option<&str>,
     project: Option<String>,
