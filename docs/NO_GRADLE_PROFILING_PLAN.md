@@ -9,6 +9,7 @@ Make the non-Gradle setup work performed before and around `sfm-propagate-change
 ## Completion Criteria
 
 - `platform/cli/sfm-propagate-changes/run-profiler.ps1` can build a Tracy-enabled CLI, run a selected SFM command, and save a `.tracy` capture.
+- `--dry-run` is available on `jar build` and top-level `run` commands so profiling can stop before build execution or before the Minecraft JVM launch.
 - The CLI has feature flags for:
   - `tracy`: compile in the Tracy tracing subscriber support.
   - `tracing_detailed`: enable noisier diagnostic spans that are useful only during profiling.
@@ -57,6 +58,7 @@ Make the non-Gradle setup work performed before and around `sfm-propagate-change
 - 2026-06-13: Verified `cargo check --all-features`, `cargo clippy --all-features -- -D warnings`, `cargo test --all-features`, and `platform/cli/sfm-propagate-changes/check-all.ps1`.
 - 2026-06-13: Ran `platform/cli/sfm-propagate-changes/run-profiler.ps1 -NoOpenProfiler jar plan --mc 1.19.2`. It produced `platform/cli/sfm-propagate-changes/tracy/2026-06-13_23-49-54.tracy`.
 - 2026-06-13: Ran `platform/cli/sfm-propagate-changes/run-profiler.ps1 -NoOpenProfiler run game-test-server --mc 1.19.2`. It produced `platform/cli/sfm-propagate-changes/tracy/2026-06-13_23-51-46.tracy` and validated 219 required game tests passed.
+- 2026-06-14: Added `--dry-run` to shared jar build options. `jar build --dry-run` resolves the plan and lockfile without executing build nodes; `run ... --dry-run` builds and prepares launch files, then skips the Minecraft JVM. The profiler wrapper now defaults to `run game-test-server --mc 1.19.2 --dry-run`.
 
 ## First Capture Observation
 
