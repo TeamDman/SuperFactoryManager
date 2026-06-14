@@ -2,7 +2,7 @@
   "schema_version": 1,
   "minecraft_version": "1.21.1",
   "maven_cache_dir": "build\\sfm-toolchain\\maven",
-  "allow_local_artifact_cache": false,
+  "allow_local_artifact_cache": true,
   "repositories": [
     {
       "name": "Forge",
@@ -117,6 +117,14 @@
       "source": "CurseMaven",
       "dynamic_version": false,
       "cache_path": "build\\sfm-toolchain\\maven\\curse/maven\\building-gadgets-298187\\6850515\\building-gadgets-298187-6850515.jar"
+    },
+    {
+      "configuration": "transitiveRuntime",
+      "notation": "org.appliedenergistics:guideme:21.1.1",
+      "resolved_notation": "org.appliedenergistics:guideme:21.1.1",
+      "source": "Maven",
+      "dynamic_version": false,
+      "cache_path": "build\\sfm-toolchain\\maven\\org/appliedenergistics\\guideme\\21.1.1\\guideme-21.1.1.jar"
     }
   ],
   "artifacts": [
@@ -391,6 +399,15 @@
       "sha1": "53dfbd387ed1b88c7d144bdb6551b7f57d5da6d7"
     },
     {
+      "coordinate": "net.neoforged.fancymodloader:junit-fml:4.0.41",
+      "source": "remote-maven",
+      "repository": "NeoForged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/fancymodloader/junit-fml/4.0.41/junit-fml-4.0.41.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\fancymodloader\\junit-fml\\4.0.41\\junit-fml-4.0.41.jar",
+      "original_path": null,
+      "sha1": "9255c1add94661ba963c8fbbf12361bee94b46b0"
+    },
+    {
       "coordinate": "net.neoforged.fancymodloader:loader:4.0.41",
       "source": "remote-maven",
       "repository": "NeoForged",
@@ -506,6 +523,15 @@
       "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\neoform\\1.21.1-20240808.144430\\neoform-1.21.1-20240808.144430.zip",
       "original_path": null,
       "sha1": "811e2bd86fa2cda2812e5e8e51d718ea8bd6d3f4"
+    },
+    {
+      "coordinate": "net.neoforged:testframework:21.1.206",
+      "source": "remote-maven",
+      "repository": "NeoForged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/testframework/21.1.206/testframework-21.1.206.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\testframework\\21.1.206\\testframework-21.1.206.jar",
+      "original_path": null,
+      "sha1": "ed15656288994336327e3d70ecd9e8795a814a4c"
     },
     {
       "coordinate": "net.sf.jopt-simple:jopt-simple:5.0.4",
@@ -625,6 +651,15 @@
       "sha1": "cd700cdf6a92d83e7293fcd5abf963ac87de06e0"
     },
     {
+      "coordinate": "org.appliedenergistics:guideme:21.1.1",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/appliedenergistics/guideme/21.1.1/guideme-21.1.1.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\org\\appliedenergistics\\guideme\\21.1.1\\guideme-21.1.1.jar",
+      "original_path": null,
+      "sha1": "175e3cd25b088777e942e860b333b10605fbc199"
+    },
+    {
       "coordinate": "org.checkerframework:checker-qual:3.33.0",
       "source": "remote-maven",
       "repository": "Maven Central",
@@ -670,6 +705,33 @@
       "sha1": "d0ddcc708ddf527a3454c941b7b9225cc83a15ff"
     },
     {
+      "coordinate": "org.junit.platform:junit-platform-commons:1.10.2",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\org\\junit\\platform\\junit-platform-commons\\1.10.2\\junit-platform-commons-1.10.2.jar",
+      "original_path": null,
+      "sha1": "3197154a1f0c88da46c47a9ca27611ac7ec5d797"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-engine:1.10.2",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\org\\junit\\platform\\junit-platform-engine\\1.10.2\\junit-platform-engine-1.10.2.jar",
+      "original_path": null,
+      "sha1": "d53bb4e0ce7f211a498705783440614bfaf0df2e"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-launcher:1.10.2",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-launcher/1.10.2/junit-platform-launcher-1.10.2.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\org\\junit\\platform\\junit-platform-launcher\\1.10.2\\junit-platform-launcher-1.10.2.jar",
+      "original_path": null,
+      "sha1": "8125dd29e847ca274dd1a7a9ca54859acc284cb3"
+    },
+    {
       "coordinate": "org.openjdk.nashorn:nashorn-core:15.4",
       "source": "remote-maven",
       "repository": "Maven Central",
@@ -677,6 +739,15 @@
       "cache_path": "build\\sfm-toolchain\\maven\\org\\openjdk\\nashorn\\nashorn-core\\15.4\\nashorn-core-15.4.jar",
       "original_path": null,
       "sha1": "f67f5ffaa5f5130cf6fb9b133da00c7df3b532a5"
+    },
+    {
+      "coordinate": "org.opentest4j:opentest4j:1.3.0",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar",
+      "cache_path": "build\\sfm-toolchain\\maven\\org\\opentest4j\\opentest4j\\1.3.0\\opentest4j-1.3.0.jar",
+      "original_path": null,
+      "sha1": "152ea56b3a72f655d4fd677fc0ef2596c3dd5e6e"
     },
     {
       "coordinate": "org.ow2.asm:asm-analysis:9.8",
