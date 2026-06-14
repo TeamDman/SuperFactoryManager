@@ -9,6 +9,7 @@ pub mod home;
 pub mod jar;
 pub mod modrinth;
 pub mod repo_root;
+pub mod run;
 pub mod server;
 
 pub use cli::*;

@@ -33,6 +33,7 @@ pub struct PropagateOptions {
 const KEEP_OURS_PATH_PATTERNS: &[&str] = &[
     "src/generated/",
     "platform/minecraft/src/generated/",
+    "platform/minecraft/sfm-toolchain.lock.json",
     "docs/AGENTS.md",
 ];
 
