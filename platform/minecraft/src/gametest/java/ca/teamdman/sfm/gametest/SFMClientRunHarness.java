@@ -5,6 +5,7 @@ import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
 import com.mojang.brigadier.Command;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.commands.CommandSourceStack;
@@ -57,10 +58,26 @@ public class SFMClientRunHarness {
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onTitleScreenOpen(ScreenEvent.Opening event) {
         Mode mode = mode();
-        if (mode == Mode.NONE || titleScreenHandled || !(event.getNewScreen() instanceof TitleScreen)) {
+        if (mode == Mode.NONE || titleScreenHandled) {
             return;
         }
 
+        if (event.getNewScreen() instanceof AccessibilityOnboardingScreen) {
+            SFM.LOGGER.info("SFM_CLIENT_ONBOARDING_SKIPPED");
+            Minecraft.getInstance().options.onboardingAccessibilityFinished();
+            Minecraft.getInstance().options.save();
+            event.setNewScreen(new TitleScreen());
+            return;
+        }
+
+        if (!(event.getNewScreen() instanceof TitleScreen)) {
+            return;
+        }
+
+        continueFromClientMenu(mode);
+    }
+
+    private static void continueFromClientMenu(Mode mode) {
         titleScreenHandled = true;
         if (mode == Mode.SMOKE) {
             SFM.LOGGER.info("SFM_CLIENT_SMOKE_READY title_screen");
@@ -90,11 +107,20 @@ public class SFMClientRunHarness {
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onClientTick(ClientTickEvent.Post event) {
-        if (mode() != Mode.PUPPET) {
+        Mode mode = mode();
+        if (mode == Mode.NONE) {
             return;
         }
 
         Minecraft minecraft = Minecraft.getInstance();
+        if (!titleScreenHandled && minecraft.screen instanceof TitleScreen) {
+            continueFromClientMenu(mode);
+        }
+
+        if (mode != Mode.PUPPET) {
+            return;
+        }
+
         IntegratedServer server = minecraft.getSingleplayerServer();
         if (puppetWorldCreationStarted && !puppetTestsStarted && server != null && server.isReady() && minecraft.player != null) {
             puppetTestsStarted = true;
