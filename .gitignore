@@ -22,7 +22,6 @@ out
 *.iws
 *.iml
 **/.idea/**
-!platform/minecraft/.idea/.name
 .idea.bak
 .idea.bak.*
 
