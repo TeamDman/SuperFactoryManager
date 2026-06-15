@@ -89,7 +89,7 @@ public class ManagerSwapProgramGameTest extends SFMGameTestDefinition {
         labels.save(moveDirtDisk);
 
         // prepare manager with dirt disk
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, moveDirtDisk);
 
         // prepare a chest with the other disk

@@ -47,13 +47,13 @@ public class DankInputRetainRegressionGameTest extends SFMGameTestDefinition {
 
         // Place dank storage dock
         helper.setBlock(dankPos, ModBlocks.dock);
-        DockBlockEntity dankBlockEntity = (DockBlockEntity) helper.getBlockEntity(dankPos);
+        DockBlockEntity dankBlockEntity = helper.getBlockEntity(dankPos, DockBlockEntity.class);
         dankBlockEntity.addDank(new ItemStack(ModItems.DANKS.get(0)));
         var dankInventory = helper.getItemHandler(dankPos, Direction.DOWN); // must happen after addDank
 
         // Place manager block
         helper.setBlock(managerPos, MANAGER.get());
-        var manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 //        manager.setLogLevel(Level.DEBUG);
         manager.setItem(0, new ItemStack(DISK.get()));
 
