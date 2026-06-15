@@ -41,7 +41,7 @@ public class ComparisonLeGameTest extends SFMGameTestDefinition {
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         var left = (Container) helper.getBlockEntity(leftPos);
         var right = (Container) helper.getBlockEntity(rightPos);
-        var manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         left.setItem(0, new ItemStack(Items.DIAMOND, 64));
         left.setItem(1, new ItemStack(Items.DIAMOND, 64));
         left.setItem(2, new ItemStack(Items.IRON_INGOT, 12));

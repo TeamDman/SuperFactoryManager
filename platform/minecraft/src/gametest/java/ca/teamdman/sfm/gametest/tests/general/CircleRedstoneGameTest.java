@@ -51,7 +51,7 @@ public class CircleRedstoneGameTest extends SFMGameTestDefinition {
         helper.setBlock(manager2Pos, SFMBlocks.MANAGER.get());
 
         // Set up manager1
-        ManagerBlockEntity manager1 = (ManagerBlockEntity) helper.getBlockEntity(manager1Pos);
+        ManagerBlockEntity manager1 = helper.getBlockEntity(manager1Pos, ManagerBlockEntity.class);
         manager1.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager1.setProgram("""
                                        EVERY REDSTONE PULSE DO
@@ -61,7 +61,7 @@ public class CircleRedstoneGameTest extends SFMGameTestDefinition {
                                    """.stripTrailing().stripIndent());
 
         // Set up manager2
-        ManagerBlockEntity manager2 = (ManagerBlockEntity) helper.getBlockEntity(manager2Pos);
+        ManagerBlockEntity manager2 = helper.getBlockEntity(manager2Pos, ManagerBlockEntity.class);
         manager2.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager2.setProgram("""
                                        EVERY REDSTONE PULSE DO

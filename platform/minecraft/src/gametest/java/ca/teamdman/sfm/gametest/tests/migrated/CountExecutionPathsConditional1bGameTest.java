@@ -49,7 +49,7 @@ public class CountExecutionPathsConditional1bGameTest extends SFMGameTestDefinit
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
 
         // place manager
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(1, 2, 0));
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // set the labels

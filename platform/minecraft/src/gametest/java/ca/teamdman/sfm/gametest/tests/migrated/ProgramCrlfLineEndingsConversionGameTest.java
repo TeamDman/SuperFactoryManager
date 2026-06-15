@@ -31,7 +31,7 @@ public class ProgramCrlfLineEndingsConversionGameTest extends SFMGameTestDefinit
     public void run(SFMGameTestHelper helper) {
         var managerPos = new BlockPos(0, 2, 0);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         String program = """
                 NAME "line endings test"

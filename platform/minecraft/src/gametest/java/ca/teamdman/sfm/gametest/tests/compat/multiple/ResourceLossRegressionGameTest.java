@@ -54,21 +54,18 @@ public class ResourceLossRegressionGameTest extends SFMGameTestDefinition {
 
         // place and fill the chests
         helper.setBlock(leftPos, MekanismBlocks.CREATIVE_BIN.getBlock());
-        TileEntityBin bin = (TileEntityBin) helper.getBlockEntity(leftPos);
-        assert bin != null;
+        TileEntityBin bin = helper.getBlockEntity(leftPos, TileEntityBin.class);
         bin.setStackInSlot(0, new ItemStack(Items.WHEAT_SEEDS, Integer.MAX_VALUE));
 
         var phytoBlock = SFMWellKnownRegistries.BLOCKS.get(SFMResourceLocation.fromNamespaceAndPath("thermal", "machine_insolator"));
         assert phytoBlock != null;
         helper.setBlock(rightPos, phytoBlock);
-        MachineInsolatorTile phyto = (MachineInsolatorTile) helper.getBlockEntity(rightPos);
-        assert phyto != null;
+        MachineInsolatorTile phyto = helper.getBlockEntity(rightPos, MachineInsolatorTile.class);
         phyto.getItemInv().set(0, new ItemStack(Items.WHEAT_SEEDS, 63));
 
         // create the manager block and add the disk
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
-        assert manager != null;
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

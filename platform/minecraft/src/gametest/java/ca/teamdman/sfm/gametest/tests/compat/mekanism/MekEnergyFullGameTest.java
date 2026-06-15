@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 
 
 
+
 /**
  * Migrated from SFMMekanismCompatGameTests.mek_energy_full
  */
@@ -47,7 +48,7 @@ public class MekEnergyFullGameTest extends SFMGameTestDefinition {
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
         TileEntityEnergyCube right = helper.getAndPrepMekTile(rightPos);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 
         // set up the program
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
