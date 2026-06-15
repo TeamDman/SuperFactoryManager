@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod jar_build;
+pub mod jdk;
 pub mod logging;
 pub mod mc_version_filter;
 pub mod paths;

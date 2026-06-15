@@ -119,6 +119,12 @@ pub enum Command {
         #[facet(args::subcommand)]
         command: super::curseforge::CurseforgeCommand,
     },
+    /// JDK discovery and selection commands
+    Jdk {
+        /// JDK subcommand
+        #[facet(args::subcommand)]
+        command: super::jdk::JdkCommand,
+    },
     /// Modrinth release related commands
     Modrinth {
         /// Modrinth subcommand
@@ -159,6 +165,7 @@ impl Command {
             Command::Home { command } => command.invoke(),
             Command::Cache { command } => command.invoke(),
             Command::Curseforge { command } => command.invoke(),
+            Command::Jdk { command } => command.invoke(),
             Command::Modrinth { command } => command.invoke(),
             Command::Jar { command } => command.invoke(),
             Command::Run { command } => command.invoke(),
@@ -202,6 +209,15 @@ mod tests {
     #[test]
     fn jar_run_client_no_longer_parses() {
         assert!(figue::from_slice::<Cli>(&["jar", "run-client", "--mc", "1.19.2"]).is_err());
+    }
+
+    #[test]
+    fn parses_jdk_list() {
+        let cli = figue::from_slice::<Cli>(&["jdk", "list"])
+            .into_result()
+            .expect("jdk list should parse")
+            .get_silent();
+        assert!(matches!(cli.command, Command::Jdk { .. }));
     }
 
     fn assert_run_command(args: &[&str]) {
