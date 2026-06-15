@@ -88,7 +88,7 @@ public class SFMGameTestHelper extends GameTestHelper {
 
     @MCVersionDependentBehaviour
     public DamageSource getFellOutOfWorldDamageSource() {
-        return DamageSource.OUT_OF_WORLD;
+        return getLevel().damageSources().outOfWorld();
     }
 
     public Program compile(
