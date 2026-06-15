@@ -47,7 +47,7 @@ public class IndustrialForegoingBlackholeSomeGameTest extends SFMGameTestDefinit
         helper.setBlock(rightPos, ModuleTransportStorage.BLACK_HOLE_UNIT_SUPREME.getLeft().get());
         var right = helper.getBlockEntity(rightPos).getCapability(SFMWellKnownCapabilities.ITEM_HANDLER.capabilityKind()).orElse(null);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 
         // set up the program
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));

@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-
 public class SFMDeclarativeTestBuilder {
     private final SFMGameTestHelper helper;
     private final SFMTestSpec spec;

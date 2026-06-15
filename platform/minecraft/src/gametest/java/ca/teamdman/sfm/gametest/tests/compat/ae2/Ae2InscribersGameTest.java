@@ -71,15 +71,15 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
         helper.setBlock(lastPos1, AEBlocks.INSCRIBER.block());
         helper.setBlock(lastPos2, AEBlocks.INSCRIBER.block());
         helper.setBlock(lastPos3, AEBlocks.INSCRIBER.block());
-        var silicon1 = ((InscriberBlockEntity) helper.getBlockEntity(siliconPos1));
-        var silicon2 = ((InscriberBlockEntity) helper.getBlockEntity(siliconPos2));
-        var silicon3 = ((InscriberBlockEntity) helper.getBlockEntity(siliconPos3));
-        var logic = ((InscriberBlockEntity) helper.getBlockEntity(logicPos));
-        var engineering = ((InscriberBlockEntity) helper.getBlockEntity(engineeringPos));
-        var calculation = ((InscriberBlockEntity) helper.getBlockEntity(calculationPos));
-        var last1 = ((InscriberBlockEntity) helper.getBlockEntity(lastPos1));
-        var last2 = ((InscriberBlockEntity) helper.getBlockEntity(lastPos2));
-        var last3 = ((InscriberBlockEntity) helper.getBlockEntity(lastPos3));
+        var silicon1 = helper.getBlockEntity(siliconPos1, InscriberBlockEntity.class);
+        var silicon2 = helper.getBlockEntity(siliconPos2, InscriberBlockEntity.class);
+        var silicon3 = helper.getBlockEntity(siliconPos3, InscriberBlockEntity.class);
+        var logic = helper.getBlockEntity(logicPos, InscriberBlockEntity.class);
+        var engineering = helper.getBlockEntity(engineeringPos, InscriberBlockEntity.class);
+        var calculation = helper.getBlockEntity(calculationPos, InscriberBlockEntity.class);
+        var last1 = helper.getBlockEntity(lastPos1, InscriberBlockEntity.class);
+        var last2 = helper.getBlockEntity(lastPos2, InscriberBlockEntity.class);
+        var last3 = helper.getBlockEntity(lastPos3, InscriberBlockEntity.class);
         helper.getItemHandler(siliconPos1)
                 .insertItem(0, new ItemStack(AEItems.SILICON_PRESS), false);
         helper.getItemHandler(siliconPos2)
@@ -139,7 +139,7 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
         );
         helper.setSignText(outputSignPos, Component.literal("output"));
 
-        var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         LabelPositionHolder.empty()
                 .add("silicon", helper.absolutePos(siliconPos1))

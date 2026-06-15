@@ -44,7 +44,7 @@ public class OutputEmptySlotsOnlyAvoidStackingGameTest extends SFMGameTestDefini
         rightChest.insertItem(0, new ItemStack(Blocks.DIRT, 10), false);
 
         // manager & disk
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // program: only output to empty slots (slot 1 specifically)
