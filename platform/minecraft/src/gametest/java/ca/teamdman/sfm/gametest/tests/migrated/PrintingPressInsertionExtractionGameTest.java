@@ -40,7 +40,7 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
     public void run(SFMGameTestHelper helper) {
         var pos = new BlockPos(0, 2, 0);
         helper.setBlock(pos, SFMBlocks.PRINTING_PRESS.get());
-        var printingPress = (PrintingPressBlockEntity) helper.getBlockEntity(pos);
+        var printingPress = helper.getBlockEntity(pos, PrintingPressBlockEntity.class);
         var player = helper.makeMockPlayer();
         // put black dye in player hand
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BLACK_DYE, 23));

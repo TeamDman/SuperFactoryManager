@@ -36,12 +36,12 @@ public class DankOutputRetainGameTest extends SFMGameTestDefinition {
 
         // Place dank storage dock
         helper.setBlock(dankPos, ModBlocks.dock);
-        DockBlockEntity dankBlockEntity = (DockBlockEntity) helper.getBlockEntity(dankPos);
+        DockBlockEntity dankBlockEntity = helper.getBlockEntity(dankPos, DockBlockEntity.class);
         dankBlockEntity.addDank(new ItemStack(ModItems.DANKS.get(0)));
 
         // Place manager block
         helper.setBlock(managerPos, MANAGER.get());
-        var manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(DISK.get()));
 
         // Place chest

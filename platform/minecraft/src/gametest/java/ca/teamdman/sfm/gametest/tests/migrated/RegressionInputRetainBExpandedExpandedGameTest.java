@@ -61,7 +61,7 @@ public class RegressionInputRetainBExpandedExpandedGameTest extends SFMGameTestD
             b3.insertItem(i, new ItemStack(Items.DIRT, 64), false);
         }
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager.setProgram("""
                                        EVERY 20 TICKS DO

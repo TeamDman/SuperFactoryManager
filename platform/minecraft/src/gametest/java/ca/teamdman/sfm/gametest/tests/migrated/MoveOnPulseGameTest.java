@@ -48,13 +48,13 @@ public class MoveOnPulseGameTest extends SFMGameTestDefinition {
         // place and fill the chests
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
-        var left = (BarrelBlockEntity) helper.getBlockEntity(leftPos);
-        var right = (BarrelBlockEntity) helper.getBlockEntity(rightPos);
+        var left = helper.getBlockEntity(leftPos, BarrelBlockEntity.class);
+        var right = helper.getBlockEntity(rightPos, BarrelBlockEntity.class);
         left.setItem(0, new ItemStack(Items.IRON_INGOT, 64));
 
         // create the manager block and add the disk
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

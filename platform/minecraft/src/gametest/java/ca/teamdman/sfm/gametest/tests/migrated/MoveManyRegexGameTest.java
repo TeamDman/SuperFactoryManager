@@ -60,7 +60,7 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
                 helper.setBlock(new BlockPos(x, 3, z), SFMBlocks.TEST_BARREL.get());
                 if (z % 2 == 0) {
                     sourceBlocks.add(new BlockPos(x, 3, z));
-                    BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(new BlockPos(x, 3, z));
+                    BarrelBlockEntity barrel = helper.getBlockEntity(new BlockPos(x, 3, z), BarrelBlockEntity.class);
                     for (int i = 0; i < barrel.getContainerSize(); i++) {
                         if (i % 3 == 0) {
                             barrel.setItem(i, new ItemStack(Items.IRON_INGOT, 64));
@@ -81,7 +81,7 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
 
         // create the manager block and add the disk
         helper.setBlock(new BlockPos(0, 2, 0), SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(0, 2, 0));
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(0, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program
@@ -105,7 +105,7 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // ensure the source chests only have the non-ingot items
             sourceBlocks.forEach(pos -> {
-                BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(pos);
+                BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
                     if (i % 3 == 0) {
                         helper.assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart");
@@ -119,7 +119,7 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
             // ensure the destination chests only have the ingot items
             int diamondStart = diamonds.get();
             destBlocks.forEach(pos -> {
-                BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(pos);
+                BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
                     Item item = barrel.getItem(i).getItem();
                     if (item == Items.IRON_INGOT) {
