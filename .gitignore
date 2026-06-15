@@ -49,3 +49,5 @@ forge*changelog.txt
 
 runServer
 runs
+runClientPuppet
+run_client_puppet
