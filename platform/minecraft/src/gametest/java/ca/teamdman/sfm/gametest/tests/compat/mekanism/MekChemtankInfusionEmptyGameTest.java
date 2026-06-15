@@ -45,11 +45,11 @@ public class MekChemtankInfusionEmptyGameTest extends SFMGameTestDefinition {
 
         // set up the world
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_CHEMICAL_TANK.getBlock());
-        var leftTank = ((TileEntityChemicalTank) helper.getBlockEntity(leftPos));
+        var leftTank = helper.getBlockEntity(leftPos, TileEntityChemicalTank.class);
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_CHEMICAL_TANK.getBlock());
-        var rightTank = ((TileEntityChemicalTank) helper.getBlockEntity(rightPos));
+        var rightTank = helper.getBlockEntity(rightPos, TileEntityChemicalTank.class);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 
         // set up the program
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));

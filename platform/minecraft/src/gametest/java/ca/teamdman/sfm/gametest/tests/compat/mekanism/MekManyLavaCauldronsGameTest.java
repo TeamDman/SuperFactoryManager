@@ -64,7 +64,7 @@ public class MekManyLavaCauldronsGameTest extends SFMGameTestDefinition {
 
         // set up the manager
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

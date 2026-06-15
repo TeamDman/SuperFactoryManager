@@ -50,10 +50,10 @@ public class MoveRegexCircleGameTest extends SFMGameTestDefinition {
         helper.setBlock(bPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(cPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(dPos, SFMBlocks.TEST_BARREL.get());
-        var a = (BarrelBlockEntity) helper.getBlockEntity(aPos);
-        var b = (BarrelBlockEntity) helper.getBlockEntity(bPos);
-        var c = (BarrelBlockEntity) helper.getBlockEntity(cPos);
-        var d = (BarrelBlockEntity) helper.getBlockEntity(dPos);
+        var a = helper.getBlockEntity(aPos, BarrelBlockEntity.class);
+        var b = helper.getBlockEntity(bPos, BarrelBlockEntity.class);
+        var c = helper.getBlockEntity(cPos, BarrelBlockEntity.class);
+        var d = helper.getBlockEntity(dPos, BarrelBlockEntity.class);
         for (int i = 0; i < 27; i++) {
             if (i < 9) {
                 a.setItem(i, new ItemStack(Items.IRON_INGOT, 64));
@@ -66,7 +66,7 @@ public class MoveRegexCircleGameTest extends SFMGameTestDefinition {
 
         // create the manager block and add the disk
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

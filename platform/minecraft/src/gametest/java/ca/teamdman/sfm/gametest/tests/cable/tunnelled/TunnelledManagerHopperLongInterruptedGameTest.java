@@ -67,7 +67,7 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
         }
 
         IItemHandler barrel = helper.getItemHandler(barrelPos);
-        HopperBlockEntity hopper = (HopperBlockEntity) helper.getBlockEntity(hopperPos);
+        HopperBlockEntity hopper = helper.getBlockEntity(hopperPos, HopperBlockEntity.class);
 
         hopper.setCooldown(DISABLED_COOLDOWN);
         hopper.setItem(0, new ItemStack(Blocks.DIRT, INITIAL_ITEM_COUNT));
