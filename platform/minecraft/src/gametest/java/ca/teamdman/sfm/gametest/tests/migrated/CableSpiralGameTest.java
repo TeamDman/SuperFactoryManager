@@ -64,7 +64,7 @@ public class CableSpiralGameTest extends SFMGameTestDefinition {
         Container endChest = (Container) helper.getBlockEntity(end);
 
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(1, 2, 0));
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // set the labels

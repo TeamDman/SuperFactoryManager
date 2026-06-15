@@ -58,7 +58,7 @@ public class MoveManyFullGameTest extends SFMGameTestDefinition {
                 }
 
                 // fill the source chests with ingots
-                BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(new BlockPos(x, 3, z));
+                BarrelBlockEntity barrel = helper.getBlockEntity(new BlockPos(x, 3, z), BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
                     barrel.setItem(i, new ItemStack(Items.IRON_INGOT, 64));
                 }
@@ -67,7 +67,7 @@ public class MoveManyFullGameTest extends SFMGameTestDefinition {
 
         // fill in the blocks needed for the test
         helper.setBlock(new BlockPos(0, 2, 0), SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(0, 2, 0));
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(0, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program
@@ -96,14 +96,14 @@ public class MoveManyFullGameTest extends SFMGameTestDefinition {
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // ensure all the source chests are full
             sourceBlocks.forEach(pos -> {
-                BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(pos);
+                BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
                     helper.assertTrue(barrel.getItem(i).getCount() == 64, "Items did not stay");
                 }
             });
             // ensure all the dest chests are full
             destBlocks.forEach(pos -> {
-                BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(pos);
+                BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
                     helper.assertTrue(barrel.getItem(i).getCount() == 64, "Items did not arrive");
                 }

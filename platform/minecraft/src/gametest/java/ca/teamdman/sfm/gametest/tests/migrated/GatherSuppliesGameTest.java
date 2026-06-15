@@ -82,7 +82,7 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
                         if (i % 3 == 0 || i % 3 == 2) {
                             helper.setBlock(pos, SFMBlocks.TEST_BARREL.get());
                             // fill the barrel with some items
-                            BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(pos);
+                            BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                             for (int slot = 0; slot < barrel.getContainerSize(); slot++) {
                                 barrel.setItem(slot, new ItemStack(items[itemIndex++ % items.length], 64));
                             }
@@ -105,7 +105,7 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
 
         // add the manager
         helper.setBlock(new BlockPos(2, 2, 0), SFMBlocks.MANAGER.get());
-        var manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(2, 2, 0));
+        var manager = helper.getBlockEntity(new BlockPos(2, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program
@@ -210,7 +210,7 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // the inventory should be stocked with a stack of each item
-            BarrelBlockEntity barrel = (BarrelBlockEntity) helper.getBlockEntity(new BlockPos(0, 2, 0));
+            BarrelBlockEntity barrel = helper.getBlockEntity(new BlockPos(0, 2, 0), BarrelBlockEntity.class);
             for (Item item : items) {
                 for (int slot = 0; slot < barrel.getContainerSize(); slot++) {
                     ItemStack stack = barrel.getItem(slot);

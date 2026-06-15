@@ -21,7 +21,6 @@ import java.util.List;
 
 
 
-
 /**
  * Migrated from SFMMekanismCompatGameTests.mek_induction
  */
@@ -69,17 +68,17 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
             }
         }
         helper.setBlock(inductionInput, MekanismBlocks.INDUCTION_PORT.getBlock());
-        var inductionPort = (TileEntityInductionPort) helper.getBlockEntity(inductionInput);
+        var inductionPort = helper.getBlockEntity(inductionInput, TileEntityInductionPort.class);
 
         // set up the energy source
         helper.setBlock(powerCubePos, MekanismBlocks.CREATIVE_ENERGY_CUBE.getBlock());
 
-        TileEntityEnergyCube powerCube = (TileEntityEnergyCube) helper.getBlockEntity(powerCubePos);
+        TileEntityEnergyCube powerCube = helper.getBlockEntity(powerCubePos, TileEntityEnergyCube.class);
         powerCube.setEnergy(0, EnergyCubeTier.CREATIVE.getMaxEnergy());
 
         // set up the manager
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program

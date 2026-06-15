@@ -47,7 +47,7 @@ public class FluidTankRetainRegressionGameTest extends SFMGameTestDefinition {
 
         // Place manager at B
         helper.setBlock(managerPos, MANAGER.get());
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(DISK.get()));
 
         // Place Industrial Foregoing latex processing unit at C

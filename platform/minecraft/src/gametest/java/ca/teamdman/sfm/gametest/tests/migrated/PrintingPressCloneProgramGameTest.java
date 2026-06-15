@@ -57,7 +57,7 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
         helper.setBlock(buttonPos, Blocks.STONE_BUTTON);
         helper.setBlock(chestPos, SFMBlocks.TEST_BARREL.get());
 
-        var printingPress = (PrintingPressBlockEntity) helper.getBlockEntity(printingPos);
+        var printingPress = helper.getBlockEntity(printingPos, PrintingPressBlockEntity.class);
         Player player = helper.makeMockPlayer();
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BLACK_DYE));
         BlockState pressState = helper.getBlockState(printingPos);

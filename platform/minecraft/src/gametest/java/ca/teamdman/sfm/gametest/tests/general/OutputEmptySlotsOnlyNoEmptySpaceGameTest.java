@@ -46,7 +46,7 @@ public class OutputEmptySlotsOnlyNoEmptySpaceGameTest extends SFMGameTestDefinit
         rightChest.insertItem(4, new ItemStack(Blocks.NETHERRACK, 1), false);
         rightChest.insertItem(10, new ItemStack(Blocks.ANDESITE, 1), false);
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         manager.setProgram((

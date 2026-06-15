@@ -49,7 +49,7 @@ public class CapabilityCacheRemoveDestinationGameTest extends SFMGameTestDefinit
         leftChest.insertItem(0, new ItemStack(Blocks.DIRT, 64), false);
 
         // prepare manager
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // set program
