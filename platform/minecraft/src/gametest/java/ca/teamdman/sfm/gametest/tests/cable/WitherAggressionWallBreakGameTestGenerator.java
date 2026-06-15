@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.gametest.tests.cable;
 
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.gametest.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -153,7 +152,8 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
             wither.setAlternativeTarget(0, sheep.getId());
             wither.setAlternativeTarget(1, sheep.getId());
             wither.setAlternativeTarget(2, sheep.getId());
-            triggerWitherDestroyBlocksTickViaHurt(helper, wither);
+            // Hurt the wither to reset the destroy-blocks timer
+            wither.hurt(helper.getFellOutOfWorldDamageSource(), 1.0F);
 
             if (scenario.expectedWallBreak) {
                 helper.failIfEver(() -> {
@@ -204,13 +204,6 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                         helper.succeed();
                     }
             );
-        }
-
-        @MCVersionDependentBehaviour
-        private void triggerWitherDestroyBlocksTickViaHurt(SFMGameTestHelper helper, WitherBoss wither) {
-            // Intentionally route through WitherBoss#hurt to trigger:
-            //   if (this.destroyBlocksTick <= 0) { this.destroyBlocksTick = 20; }
-            wither.hurt(helper.getLevel().damageSources().outOfWorld(), 1.0F);
         }
 
         private boolean isWallBroken(
