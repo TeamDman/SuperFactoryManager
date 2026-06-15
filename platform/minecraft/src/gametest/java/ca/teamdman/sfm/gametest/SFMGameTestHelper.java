@@ -36,6 +36,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
@@ -93,6 +94,11 @@ public class SFMGameTestHelper extends GameTestHelper {
 //            SFM.LOGGER.error("Assertion failed: {}", message, toThrow);
             throw toThrow;
         }
+    }
+
+    @MCVersionDependentBehaviour
+    public DamageSource getFellOutOfWorldDamageSource() {
+        return getLevel().damageSources().fellOutOfWorld();
     }
 
     public Program compile(
