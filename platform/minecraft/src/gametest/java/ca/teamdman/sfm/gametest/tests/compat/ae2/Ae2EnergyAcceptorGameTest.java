@@ -38,7 +38,7 @@ public class Ae2EnergyAcceptorGameTest extends SFMGameTestDefinition {
 
         // Place blocks
         helper.setBlock(cubePos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
-        var cube = (TileEntityEnergyCube) helper.getBlockEntity(cubePos);
+        var cube = helper.getBlockEntity(cubePos, TileEntityEnergyCube.class);
         SFMMekanismCompat.configureExclusiveIO(
                 cube,
                 TransmissionType.ENERGY,
@@ -47,7 +47,7 @@ public class Ae2EnergyAcceptorGameTest extends SFMGameTestDefinition {
         );
 
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 
         helper.setBlock(acceptorPos, AEBlocks.ENERGY_ACCEPTOR.block());
         helper.setBlock(dense1Pos, AEBlocks.DENSE_ENERGY_CELL.block());

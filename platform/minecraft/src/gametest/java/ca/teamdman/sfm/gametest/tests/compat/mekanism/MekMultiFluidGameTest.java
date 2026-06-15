@@ -56,7 +56,7 @@ public class MekMultiFluidGameTest extends SFMGameTestDefinition {
         a2.fill(new FluidStack(Fluids.LAVA, 3000), IFluidHandler.FluidAction.EXECUTE);
 
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager.setProgram("""
                                    EVERY 20 TICKS DO
@@ -78,14 +78,10 @@ public class MekMultiFluidGameTest extends SFMGameTestDefinition {
                     helper.assertTrue(a1.getFluidInTank(0).isEmpty(), "a1 did not empty");
                     helper.assertTrue(a2.getFluidInTank(0).isEmpty(), "a2 did not empty");
                     helper.assertTrue(
-                            (
-                                    b1.getFluidInTank(0).getFluid() == Fluids.WATER
-                                    && b2.getFluidInTank(0).getFluid() == Fluids.LAVA
-                            ) ||
-                            (
-                                    b1.getFluidInTank(0).getFluid() == Fluids.LAVA
-                                    && b2.getFluidInTank(0).getFluid() == Fluids.WATER
-                            ),
+                            b1.getFluidInTank(0).getFluid() == Fluids.WATER
+                            && b2.getFluidInTank(0).getFluid() == Fluids.LAVA ||
+                            b1.getFluidInTank(0).getFluid() == Fluids.LAVA
+                            && b2.getFluidInTank(0).getFluid() == Fluids.WATER,
                             "b1 and b2 did not fill with water and lava"
                     );
                 }
