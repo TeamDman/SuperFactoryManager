@@ -69,18 +69,10 @@ public class MoveMultipleItemNamesGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            boolean success3 = leftChest.getStackInSlot(0).getCount() == 64 - 2;
-            helper.getTick();
-            helper.assertTrue(success3, "Iron ingots did not retain");
-            boolean success2 = leftChest.getStackInSlot(1).getCount() == 64 - 10;
-            helper.getTick();
-            helper.assertTrue(success2, "Stone did not retain");
-            boolean success1 = rightChest.getStackInSlot(0).getCount() == 2;
-            helper.getTick();
-            helper.assertTrue(success1, "Iron ingots did not move");
-            boolean success = rightChest.getStackInSlot(1).getCount() == 10;
-            helper.getTick();
-            helper.assertTrue(success, "Stone did not move");
+            helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 64 - 2, "Iron ingots did not retain");
+            helper.assertTrue(leftChest.getStackInSlot(1).getCount() == 64 - 10, "Stone did not retain");
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 2, "Iron ingots did not move");
+            helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 10, "Stone did not move");
         });
     }
 }

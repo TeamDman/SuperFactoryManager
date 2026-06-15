@@ -132,6 +132,7 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
                 Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, 8)
         );
         helper.setSignText(inputSignPos, Component.literal("input"));
+
         BlockPos outputSignPos = resultsPos.offset(0, 0, 0);
         helper.setBlock(
                 outputSignPos,

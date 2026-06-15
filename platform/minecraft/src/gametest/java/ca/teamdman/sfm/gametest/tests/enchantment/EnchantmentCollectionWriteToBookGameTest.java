@@ -40,9 +40,7 @@ public class EnchantmentCollectionWriteToBookGameTest extends SFMGameTestDefinit
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.SHARPNESS, 3));
         enchantments2.add(helper.createEnchantmentEntry(Enchantments.UNBREAKING, 2));
 
-        boolean success2 = !enchantments1.equals(enchantments2);
-        helper.getTick();
-        helper.assertTrue(success2, "Enchantment collections must not be equal");
+        helper.assertTrue(!enchantments1.equals(enchantments2), "Enchantment collections must not be equal");
 
         // Create an enchanted book
         ItemStack enchantedBook1 = enchantments1.createEnchantedBook();
@@ -51,10 +49,8 @@ public class EnchantmentCollectionWriteToBookGameTest extends SFMGameTestDefinit
                 enchantedBook1,
                 SFMEnchantmentCollectionKind.HoldingLikeABook
         );
-        boolean success1 = found1.canonicalize().equals(enchantments1.canonicalize());
-        helper.getTick();
         helper.assertTrue(
-                success1,
+                found1.canonicalize().equals(enchantments1.canonicalize()),
                 "Enchantment collections 1 must be equal after reading from an enchanted book (HoldingLikeABook)"
         );
 
@@ -64,10 +60,9 @@ public class EnchantmentCollectionWriteToBookGameTest extends SFMGameTestDefinit
                 enchantedBook1,
                 SFMEnchantmentCollectionKind.HoldingLikeABook
         );
-        boolean success = found2.canonicalize().equals(enchantments2.canonicalize());
-        helper.getTick();
-        helper.assertTrue(success,
-                          "Enchantment collection 2 must be equal after writing to an enchanted book (HoldingLikeABook)"
+        helper.assertTrue(
+                found2.canonicalize().equals(enchantments2.canonicalize()),
+                "Enchantment collection 2 must be equal after writing to an enchanted book (HoldingLikeABook)"
         );
 
         helper.succeed();

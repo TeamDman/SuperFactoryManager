@@ -68,9 +68,9 @@ public class MekBinSomeGameTest extends SFMGameTestDefinition {
         left.getBinSlot().setStack(new ItemStack(Items.DIAMOND, 100));
         right.getBinSlot().setStack(new ItemStack(Items.DIAMOND, 100));
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertTrue(left.getBinSlot().getCount() == 100 - 64, "Contents did not depart", helper.getTick());
-            helper.assertTrue(right.getBinSlot().getCount() == 100 + 64, "Contents did not arrive", helper.getTick());
-            helper.assertTrue(right.getBinSlot().getStack().getItem() == Items.DIAMOND, "Contents wrong type", helper.getTick());
+            helper.assertTrue(left.getBinSlot().getCount() == 100 - 64, "Contents did not depart");
+            helper.assertTrue(right.getBinSlot().getCount() == 100 + 64, "Contents did not arrive");
+            helper.assertTrue(right.getBinSlot().getStack().getItem() == Items.DIAMOND, "Contents wrong type");
 
         });
     }

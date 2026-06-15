@@ -16,6 +16,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 
 
+
+
 /**
  * Migrated from SFMMekanismCompatGameTests.mek_chemtank_infusion_full
  */
@@ -74,11 +76,14 @@ public class MekChemtankInfusionFullGameTest extends SFMGameTestDefinition {
                         ChemicalTankTier.ULTIMATE.getStorage() - 1_000_000L
                 ));
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertTrue(leftTank.getChemicalTank().getStack().amount() == 1_000_000L, "Contents did not depart", helper.getTick());
+            helper.assertTrue(
+                    leftTank.getChemicalTank().getStack().amount() == 1_000_000L,
+                    "Contents did not depart"
+            );
             helper.assertTrue(
                     rightTank.getChemicalTank().getStack().amount() == ChemicalTankTier.ULTIMATE.getStorage(),
                     "Contents did not arrive"
-            , helper.getTick());
+            );
         });
     }
 }

@@ -170,14 +170,14 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                 helper.succeedWhen(() -> {
                     boolean sheepAlive = sheep.isAlive();
                     boolean wallBroken = isWallBroken(helper, localWallPositions);
-                    helper.getTick();
                     helper.assertTrue(
                             wallBroken,
                             "Scenario '" + scenario.name + "' expected wall to break before success"
                     );
-                    boolean success = !sheepAlive;
-                    helper.getTick();
-                    helper.assertTrue(success, "Scenario '" + scenario.name + "' expected sheep to die before success");
+                    helper.assertTrue(
+                            !sheepAlive,
+                            "Scenario '" + scenario.name + "' expected sheep to die before success"
+                    );
 
                     wither.discard();
                     sheep.discard();
@@ -190,11 +190,14 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
                         boolean sheepAlive = sheep.isAlive();
                         boolean wallBroken = isWallBroken(helper, localWallPositions);
 
-                        boolean success = !wallBroken;
-                        helper.getTick();
-                        helper.assertTrue(success, "Scenario '" + scenario.name + "' expected wall to remain intact");
-                        helper.getTick();
-                        helper.assertTrue(sheepAlive, "Scenario '" + scenario.name + "' expected sheep to remain alive");
+                        helper.assertTrue(
+                                !wallBroken,
+                                "Scenario '" + scenario.name + "' expected wall to remain intact"
+                        );
+                        helper.assertTrue(
+                                sheepAlive,
+                                "Scenario '" + scenario.name + "' expected sheep to remain alive"
+                        );
 
                         wither.discard();
                         sheep.discard();

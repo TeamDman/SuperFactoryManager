@@ -72,11 +72,7 @@ public class CapabilityCacheRemoveSourceGameTest extends SFMGameTestDefinition {
                 List.of(
                         () -> {
                             // validate one item has moved
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 63, "One should have departed");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 1, "One should have arrived");
 
                             // break the source block
@@ -84,8 +80,6 @@ public class CapabilityCacheRemoveSourceGameTest extends SFMGameTestDefinition {
                         },
                         () -> {
                             // validate things aren't moving
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 63, "None should depart after source is broken");
 
                             // restore source block
@@ -95,11 +89,7 @@ public class CapabilityCacheRemoveSourceGameTest extends SFMGameTestDefinition {
                         },
                         () -> {
                             // validate that items have resumed moving
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 63, "Another departs after source restored");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 2, "Another arrives after source restored");
 
                             // enqueue success

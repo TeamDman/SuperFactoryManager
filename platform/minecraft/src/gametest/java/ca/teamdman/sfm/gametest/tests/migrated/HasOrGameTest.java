@@ -64,18 +64,10 @@ public class HasOrGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // left should be empty
-            helper.getTick();
-
             helper.assertCount(left, Items.DIAMOND, 0, "left should have no diamonds");
-            helper.getTick();
-
             helper.assertCount(left, Items.IRON_INGOT, 0, "left should have no iron ingots");
             // right should have all the items
-            helper.getTick();
-
             helper.assertCount(right, Items.DIAMOND, 64 * 2, "right should have 128 diamonds");
-            helper.getTick();
-
             helper.assertCount(right, Items.IRON_INGOT, 12, "right should have 12 iron ingots");
         });
     }

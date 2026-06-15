@@ -65,12 +65,8 @@ public class ForgetInputCountStateGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            boolean success1 = leftChest.getStackInSlot(0).getCount() == 64 - 10;
-            helper.getTick();
-            helper.assertTrue(success1, "did not remain");
-            boolean success = rightChest.getStackInSlot(0).getCount() == 10;
-            helper.getTick();
-            helper.assertTrue(success, "did not arrive");
+            helper.assertTrue(leftChest.getStackInSlot(0).getCount() == 64 - 10, "did not remain");
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 10, "did not arrive");
 
         });
     }

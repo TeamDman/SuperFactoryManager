@@ -62,12 +62,8 @@ public class WirelessRegressionGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            boolean success1 = !leftChest.getStackInSlot(0).isEmpty();
-            helper.getTick();
-            helper.assertTrue(success1, "Dirt should not move");
-            boolean success = rightChest.getStackInSlot(0).getCount() != 64;
-            helper.getTick();
-            helper.assertTrue(success, "Dirt should not move");
+            helper.assertTrue(!leftChest.getStackInSlot(0).isEmpty(), "Dirt should not move");
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() != 64, "Dirt should not move");
 
         });
     }

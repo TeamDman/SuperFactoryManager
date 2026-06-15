@@ -68,7 +68,6 @@ public class MoveFullChestGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             boolean success = IntStream.range(0, leftChest.getSlots()).allMatch(slot -> leftChest.getStackInSlot(slot).isEmpty());
-            helper.getTick();
             helper.assertTrue(success, "Dirt did not leave");
             int count = rightChest.getSlots() * 64;
             int total = 0;
@@ -78,7 +77,6 @@ public class MoveFullChestGameTest extends SFMGameTestDefinition {
                     total += rightChest.getStackInSlot(i).getCount();
                 }
             }
-            helper.getTick();
             helper.assertTrue(total == count, "Dirt did not arrive");
         });
     }

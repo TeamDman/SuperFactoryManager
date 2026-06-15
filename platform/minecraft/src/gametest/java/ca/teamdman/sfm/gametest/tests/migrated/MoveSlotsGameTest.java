@@ -67,29 +67,16 @@ public class MoveSlotsGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            boolean success6 = leftChest.getStackInSlot(0).isEmpty();
-            helper.getTick();
-            helper.assertTrue(success6, "slot 0 did not leave");
-            boolean success5 = leftChest.getStackInSlot(1).isEmpty();
-            helper.getTick();
-            helper.assertTrue(success5, "slot 1 did not leave");
-            boolean success4 = leftChest.getStackInSlot(3).isEmpty();
-            helper.getTick();
-            helper.assertTrue(success4, "slot 3 did not leave");
-            boolean success3 = leftChest.getStackInSlot(4).isEmpty();
-            helper.getTick();
-            helper.assertTrue(success3, "slot 4 did not leave");
-            boolean success2 = leftChest.getStackInSlot(5).isEmpty();
-            helper.getTick();
-            helper.assertTrue(success2, "slot 5 did not leave");
-            boolean success1 = leftChest.getStackInSlot(2).getCount() == 25;
-            helper.getTick();
-            helper.assertTrue(success1, "Items did not transfer to slot 2");
-            boolean success = IntStream
-                       .range(0, rightChest.getSlots())
-                       .allMatch(slot -> rightChest.getStackInSlot(slot).isEmpty());
-            helper.getTick();
-            helper.assertTrue(success, "Chest b is not empty");
+            helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "slot 0 did not leave");
+            helper.assertTrue(leftChest.getStackInSlot(1).isEmpty(), "slot 1 did not leave");
+            helper.assertTrue(leftChest.getStackInSlot(3).isEmpty(), "slot 3 did not leave");
+            helper.assertTrue(leftChest.getStackInSlot(4).isEmpty(), "slot 4 did not leave");
+            helper.assertTrue(leftChest.getStackInSlot(5).isEmpty(), "slot 5 did not leave");
+            helper.assertTrue(leftChest.getStackInSlot(2).getCount() == 25, "Items did not transfer to slot 2");
+            helper.assertTrue(
+                    IntStream
+                               .range(0, rightChest.getSlots())
+                               .allMatch(slot -> rightChest.getStackInSlot(slot).isEmpty()), "Chest b is not empty");
 
         });
     }

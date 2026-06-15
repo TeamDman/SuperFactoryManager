@@ -49,13 +49,9 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
             DiskItem.setProgram(disk, programString);
             DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true);
             chest.insertItem(0, disk, false);
-            helper.getTick();
             helper.assertTrue(DiskItem.getProgramName(disk).equals("bruh"), "program name should be bruh for disk 1");
-            helper.getTick();
             helper.assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 1");
-            helper.getTick();
             helper.assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 1");
-            helper.getTick();
             helper.assertTrue(
                     disk.getHoverName().getString().equals("bruh"),
                     "display name should be \"bruh\" for disk 1"
@@ -70,16 +66,10 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
             DiskItem.setProgram(disk, programString);
             DiskItem.compileAndUpdateErrorsAndWarnings(disk, null, true);
             chest.insertItem(1, disk, false);
-            boolean success1 = disk.getComponentsPatch().getPatch(DataComponents.ITEM_NAME) == null;
-            helper.getTick();
-            helper.assertTrue(success1, "program name should be empty for disk 2");
-            helper.getTick();
+            helper.assertTrue(disk.getComponentsPatch().getPatch(DataComponents.ITEM_NAME) == null, "program name should be empty for disk 2");
             helper.assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 2");
-            helper.getTick();
             helper.assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 2");
-            boolean success = disk.getHoverName().contains(DiskItem.DISK_ITEM.getComponent());
-            helper.getTick();
-            helper.assertTrue(success, "display name should be default for disk 2");
+            helper.assertTrue(disk.getHoverName().contains(DiskItem.DISK_ITEM.getComponent()), "display name should be default for disk 2");
         }
         helper.succeed();
     }

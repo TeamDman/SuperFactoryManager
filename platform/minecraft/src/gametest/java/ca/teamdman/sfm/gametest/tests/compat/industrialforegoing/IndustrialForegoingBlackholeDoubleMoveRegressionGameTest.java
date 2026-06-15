@@ -70,7 +70,7 @@ public class IndustrialForegoingBlackholeDoubleMoveRegressionGameTest extends SF
         helper.setBlock(rightPos, ModuleTransportStorage.BLACK_HOLE_UNIT_SUPREME.getLeft().get());
         var right = helper.getBlockEntity(rightPos).getCapability(SFMWellKnownCapabilities.ITEM_HANDLER.capabilityKind()).orElse(null);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = (helper.getBlockEntity(managerPos, ManagerBlockEntity.class));
+*        var manager = (helper.getBlockEntity(managerPos, ManagerBlockEntity.class));
 
         // set up the program
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
@@ -89,13 +89,13 @@ public class IndustrialForegoingBlackholeDoubleMoveRegressionGameTest extends SF
                 .save(manager.getDisk());
 
         int fullCount = BlockUtils.getStackAmountByRarity(ModuleCore.SUPREME_RARITY);
-        helper.assertTrue(fullCount > 0, "expected full count to be greater than 0", helper.getTick());
-        helper.assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left", helper.getTick());
-        helper.assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 1), false).isEmpty(), "couldn't prep left", helper.getTick());
-        helper.assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left", helper.getTick());
+        helper.assertTrue(fullCount > 0, "expected full count to be greater than 0");
+        helper.assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
+        helper.assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 1), false).isEmpty(), "couldn't prep left");
+        helper.assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertTrue(left.getStackInSlot(0).getCount() == 1, "Contents did not depart properly", helper.getTick());
-            helper.assertTrue(right.getStackInSlot(0).getCount() == 128, "Contents did not arrive properly", helper.getTick());
+            helper.assertTrue(left.getStackInSlot(0).getCount() == 1, "Contents did not depart properly");
+            helper.assertTrue(right.getStackInSlot(0).getCount() == 128, "Contents did not arrive properly");
         });
     }
 }

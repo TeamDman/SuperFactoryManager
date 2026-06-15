@@ -109,15 +109,9 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
             chest.insertItem(0, held, false);
 
             // Assert ingredient transformations
-            boolean success2 = printingPress.getInk().isEmpty();
-            helper.getTick();
-            helper.assertTrue(success2, "Ink was not consumed");
-            boolean success1 = printingPress.getPaper().isEmpty();
-            helper.getTick();
-            helper.assertTrue(success1, "Paper was not consumed");
-            boolean success = !printingPress.getForm().isEmpty();
-            helper.getTick();
-            helper.assertTrue(success, "Form should not be consumed");
+            helper.assertTrue(printingPress.getInk().isEmpty(), "Ink was not consumed");
+            helper.assertTrue(printingPress.getPaper().isEmpty(), "Paper was not consumed");
+            helper.assertTrue(!printingPress.getForm().isEmpty(), "Form should not be consumed");
 
             // Succeed test
             helper.succeed();

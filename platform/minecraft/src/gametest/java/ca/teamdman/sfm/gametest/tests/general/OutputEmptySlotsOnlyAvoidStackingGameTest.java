@@ -67,17 +67,11 @@ public class OutputEmptySlotsOnlyAvoidStackingGameTest extends SFMGameTestDefini
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
                     // all 20 moved from left
-                    boolean success2 = leftChest.getStackInSlot(0).isEmpty();
-                    helper.getTick();
-                    helper.assertTrue(success2, "Source not emptied");
+                    helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied");
                     // destination slot 0 remains 10 (no stacking)
-                    boolean success1 = rightChest.getStackInSlot(0).getCount() == 10;
-                    helper.getTick();
-                    helper.assertTrue(success1, "Destination slot 0 should remain 10");
+                    helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 10, "Destination slot 0 should remain 10");
                     // destination slot 1 received 20
-                    boolean success = rightChest.getStackInSlot(1).getCount() == 20;
-                    helper.getTick();
-                    helper.assertTrue(success, "Destination slot 1 should be 20");
+                    helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 20, "Destination slot 1 should be 20");
                 }
         );
     }

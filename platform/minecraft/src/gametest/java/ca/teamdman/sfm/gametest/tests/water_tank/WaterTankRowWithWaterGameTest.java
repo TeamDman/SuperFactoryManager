@@ -85,8 +85,8 @@ public class WaterTankRowWithWaterGameTest extends SFMGameTestDefinition {
         // Verify all tanks are active (have 2 water sources touching them)
         for (int i = 0; i < 5; i++) {
             WaterTankBlockEntity tank = helper.getBlockEntity(tankPositions[i], WaterTankBlockEntity.class);
-            helper.assertTrue(tank != null, "Water tank block entity should exist at position " + i, helper.getTick());
-            helper.assertTrue(tank.isActive(), "Water tank " + i + " should be active when surrounded by water", helper.getTick());
+            helper.assertTrue(tank != null, "Water tank block entity should exist at position " + i);
+            helper.assertTrue(tank.isActive(), "Water tank " + i + " should be active when surrounded by water");
         }
 
         // Verify tank capacity is correct (5 active members = 2^(5-1) * 1000 = 16000)
@@ -96,7 +96,7 @@ public class WaterTankRowWithWaterGameTest extends SFMGameTestDefinition {
             helper.assertTrue(
                     tank.TANK.getCapacity() == expectedCapacity,
                     "Water tank " + i + " should have capacity " + expectedCapacity + " but had " + tank.TANK.getCapacity()
-            , helper.getTick());
+            );
         }
 
         // Remove water sources from the top row (z=1)
@@ -107,7 +107,7 @@ public class WaterTankRowWithWaterGameTest extends SFMGameTestDefinition {
         // Tanks should now be inactive (only 1 water source touching each)
         for (int i = 0; i < 5; i++) {
             WaterTankBlockEntity tank = helper.getBlockEntity(tankPositions[i], WaterTankBlockEntity.class);
-            helper.assertTrue(!tank.isActive(), "Water tank " + i + " should be inactive with only 1 water source", helper.getTick());
+            helper.assertTrue(!tank.isActive(), "Water tank " + i + " should be inactive with only 1 water source");
         }
 
         // Verify tank capacity is now 0 (0 active members)
@@ -116,7 +116,7 @@ public class WaterTankRowWithWaterGameTest extends SFMGameTestDefinition {
             helper.assertTrue(
                     tank.TANK.getCapacity() == 0,
                     "Water tank " + i + " should have capacity 0 when inactive but had " + tank.TANK.getCapacity()
-            , helper.getTick());
+            );
         }
 
         // Restore water sources to the top row
@@ -127,7 +127,7 @@ public class WaterTankRowWithWaterGameTest extends SFMGameTestDefinition {
         // Tanks should be active again
         for (int i = 0; i < 5; i++) {
             WaterTankBlockEntity tank = helper.getBlockEntity(tankPositions[i], WaterTankBlockEntity.class);
-            helper.assertTrue(tank.isActive(), "Water tank " + i + " should be active again after restoring water", helper.getTick());
+            helper.assertTrue(tank.isActive(), "Water tank " + i + " should be active again after restoring water");
         }
 
         // Verify tank capacity is restored
@@ -136,7 +136,7 @@ public class WaterTankRowWithWaterGameTest extends SFMGameTestDefinition {
             helper.assertTrue(
                     tank.TANK.getCapacity() == expectedCapacity,
                     "Water tank " + i + " should have capacity " + expectedCapacity + " after restoring water but had " + tank.TANK.getCapacity()
-            , helper.getTick());
+            );
         }
 */
 

@@ -65,24 +65,12 @@ public class EachSrcQuantityGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // left should have 62 of each ingot
-            helper.getTick();
-
             helper.assertCount(leftChest, Items.IRON_INGOT, 62, "Iron did not move");
-            helper.getTick();
-
             helper.assertCount(leftChest, Items.GOLD_INGOT, 62, "Gold did not move");
-            helper.getTick();
-
             helper.assertCount(leftChest, Items.NETHERITE_INGOT, 62, "Netherite did not move");
             // right should have 2 of each ingot
-            helper.getTick();
-
             helper.assertCount(rightChest, Items.IRON_INGOT, 2, "Iron did not arrive");
-            helper.getTick();
-
             helper.assertCount(rightChest, Items.GOLD_INGOT, 2, "Gold did not arrive");
-            helper.getTick();
-
             helper.assertCount(rightChest, Items.NETHERITE_INGOT, 2, "Netherite did not arrive");
 
         });

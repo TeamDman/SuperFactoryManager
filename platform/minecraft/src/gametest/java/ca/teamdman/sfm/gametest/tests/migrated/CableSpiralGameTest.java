@@ -87,13 +87,9 @@ public class CableSpiralGameTest extends SFMGameTestDefinition {
         helper.assertManagerRunning(manager);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // ensure item arrived
-            boolean success1 = endChest.getItem(0).getCount() == 64;
-            helper.getTick();
-            helper.assertTrue(success1, "Items did not move");
+            helper.assertTrue(endChest.getItem(0).getCount() == 64, "Items did not move");
             // ensure item left
-            boolean success = startChest.getItem(0).isEmpty();
-            helper.getTick();
-            helper.assertTrue(success, "Items did not leave");
+            helper.assertTrue(startChest.getItem(0).isEmpty(), "Items did not leave");
 
         });
     }

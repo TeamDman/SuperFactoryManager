@@ -71,25 +71,33 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
         helper.assertManagerRunning(manager);
 
         helper.runAfterDelay(60, () -> {
-            helper.assertTrue(source.getStackInSlot(0).isEmpty(), "Expected source barrel to be emptied before bridge placement");
-            helper.assertTrue(target.getStackInSlot(0).getCount() == 64, "Expected target barrel to receive moved items");
+            helper.assertTrue(
+                    source.getStackInSlot(0).isEmpty(),
+                    "Expected source barrel to be emptied before bridge placement"
+            );
+            helper.assertTrue(
+                    target.getStackInSlot(0).getCount() == 64,
+                    "Expected target barrel to receive moved items"
+            );
 
             var networkBeforeBridge = CableNetworkManager
                     .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(2, 1, 3)))
                     .get();
-            boolean success2 = networkBeforeBridge.getLevelCapabilityCache().size() > 0;
-            helper.getTick();
-            helper.assertTrue(success2, "Expected capability cache to be populated before bridge placement");
-            boolean success1 = networkBeforeBridge
-                    .getLevelCapabilityCache()
-                    .getCapability(
-                            helper.absolutePos(sourcePos),
-                            SFMWellKnownCapabilities.ITEM_HANDLER,
-                            Direction.UP
-                    )
-            != null;
-            helper.getTick();
-            helper.assertTrue(success1, "Expected directional (UP) item capability cache entry before bridge placement");
+            helper.assertTrue(
+                    networkBeforeBridge.getLevelCapabilityCache().size() > 0,
+                    "Expected capability cache to be populated before bridge placement"
+            );
+            helper.assertTrue(
+                    networkBeforeBridge
+                            .getLevelCapabilityCache()
+                            .getCapability(
+                                    helper.absolutePos(sourcePos),
+                                    SFMWellKnownCapabilities.ITEM_HANDLER,
+                                    Direction.UP
+                            )
+                    != null,
+                    "Expected directional (UP) item capability cache entry before bridge placement"
+            );
 
             // This is the critical placement: it touches the same existing network on two sides.
             // On buggy versions this can crash with listener double-registration during network merge.
@@ -101,9 +109,10 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
             var mergedNetwork = CableNetworkManager
                     .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(bridgePos))
                     .get();
-            boolean success = mergedNetwork.getCableCount() == 9;
-            helper.getTick();
-            helper.assertTrue(success, "Expected ring + bridge to form a single 9-cable network");
+            helper.assertTrue(
+                    mergedNetwork.getCableCount() == 9,
+                    "Expected ring + bridge to form a single 9-cable network"
+            );
 
             helper.succeed();
         });

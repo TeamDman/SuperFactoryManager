@@ -74,23 +74,11 @@ public class MoveIfPoweredGameTest extends SFMGameTestDefinition {
                 .save(manager.getDisk());
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.getTick();
-
             helper.assertCount(leftChest, 0, "everything should depart");
-            helper.getTick();
-
             helper.assertCount(rightChest, Items.GOLD_NUGGET, 64, "gold nuggets should arrive");
-            helper.getTick();
-
             helper.assertCount(rightChest, Items.IRON_INGOT, 64, "iron ingots should arrive");
-            helper.getTick();
-
             helper.assertCount(rightChest, Items.GOLD_INGOT, 64, "gold ingots should arrive");
-            helper.getTick();
-
             helper.assertCount(rightChest, Items.DIRT, 64 * 2, "dirt should arrive");
-            helper.getTick();
-
             helper.assertCount(rightChest, Items.STONE, 64, "stone should arrive");
         });
     }

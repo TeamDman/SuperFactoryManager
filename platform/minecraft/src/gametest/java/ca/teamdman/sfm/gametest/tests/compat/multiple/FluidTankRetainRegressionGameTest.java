@@ -56,7 +56,7 @@ public class FluidTankRetainRegressionGameTest extends SFMGameTestDefinition {
 
         // Fill tank with latex (simulate 40,000 mB, retain 30,000)
         FluidStack latexStack = new FluidStack(LATEX.getSourceFluid().get(), 32000);
-        helper.assertTrue(tank.fill(latexStack, EXECUTE) == 32000, "Tank failed to accept all latex", helper.getTick());
+        helper.assertTrue(tank.fill(latexStack, EXECUTE) == 32000, "Tank failed to accept all latex");
 
         // Set program
         manager.setProgram("""
@@ -77,11 +77,11 @@ public class FluidTankRetainRegressionGameTest extends SFMGameTestDefinition {
             helper.assertTrue(
                     tank.getFluidInTank(0).getAmount() == 30000,
                     "Tank did not retain 30,000 mB latex"
-            , helper.getTick());
+            );
             helper.assertTrue(
                     machine.getFluidInTank(0).getAmount() == 2000,
                     "Processing unit did not receive 2,000 latex"
-            , helper.getTick());
+            );
         });
     }
 }

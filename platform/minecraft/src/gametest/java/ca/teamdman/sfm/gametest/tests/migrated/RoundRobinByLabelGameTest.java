@@ -86,8 +86,6 @@ public class RoundRobinByLabelGameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.getTick();
-
             helper.assertCount(sourceInv, Items.DIRT, 64 * (27 - 4), "source count bad");
             // we make no guarantees about which one ticks first
             // we guarantee only one of a or b receives on the first tick
@@ -95,7 +93,6 @@ public class RoundRobinByLabelGameTest extends SFMGameTestDefinition {
                                  && helper.count(b1, Items.DIRT) == 0 && helper.count(b2, Items.DIRT) == 0;
             boolean condition2 = helper.count(b1, Items.DIRT) == 128 && helper.count(b2, Items.DIRT) == 128
                                  && helper.count(a1, Items.DIRT) == 0 && helper.count(a2, Items.DIRT) == 0;
-            helper.getTick();
             helper.assertTrue(condition1 || condition2, "Arrival counts bad");
         });
     }

@@ -62,12 +62,8 @@ public class Move1StackDirectGameTest extends SFMGameTestDefinition {
 
         // schedule success check
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            boolean success1 = leftChest.getStackInSlot(0).isEmpty();
-            helper.getTick();
-            helper.assertTrue(success1, "Dirt did not move");
-            boolean success = rightChest.getStackInSlot(0).getCount() == 64;
-            helper.getTick();
-            helper.assertTrue(success, "Dirt did not move");
+            helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Dirt did not move");
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "Dirt did not move");
         });
     }
 }

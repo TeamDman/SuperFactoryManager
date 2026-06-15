@@ -66,35 +66,19 @@ public class TunnelledManagerGameTest extends SFMGameTestDefinition {
                 helper,
                 List.of(
                         () -> {
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 63, "One should have departed");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 1, "One should have arrived");
                         },
                         () -> {
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 62, "Two should have departed");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 2, "Two should have arrived");
                         },
                         () -> {
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 61, "Three should have departed");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 3, "Three should have arrived");
                         },
                         () -> {
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 60, "Four should have departed");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 4, "Four should have arrived");
                             helper.succeed();
                         }

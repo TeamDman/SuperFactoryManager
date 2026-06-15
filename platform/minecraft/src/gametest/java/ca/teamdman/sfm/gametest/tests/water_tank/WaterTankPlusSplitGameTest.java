@@ -103,45 +103,25 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         WaterTankBlockEntity southTank = helper.getBlockEntity(south, WaterTankBlockEntity.class);
         WaterTankBlockEntity eastTank = helper.getBlockEntity(east, WaterTankBlockEntity.class);
         WaterTankBlockEntity westTank = helper.getBlockEntity(west, WaterTankBlockEntity.class);
-
-        helper.getTick();
         helper.assertTrue(centerTank != null, "Center tank should exist");
-        helper.getTick();
         helper.assertTrue(northTank != null, "North tank should exist");
-        helper.getTick();
         helper.assertTrue(southTank != null, "South tank should exist");
-        helper.getTick();
         helper.assertTrue(eastTank != null, "East tank should exist");
-        helper.getTick();
         helper.assertTrue(westTank != null, "West tank should exist");
 
         // Center is inactive (no water touching it directly)
-        boolean success12 = !centerTank.isActive();
-        helper.getTick();
-        helper.assertTrue(success12, "Center tank should be inactive (no water touching)");
-        boolean success11 = northTank.isActive();
-        helper.getTick();
-        helper.assertTrue(success11, "North tank should be active");
-        boolean success10 = southTank.isActive();
-        helper.getTick();
-        helper.assertTrue(success10, "South tank should be active");
-        boolean success9 = eastTank.isActive();
-        helper.getTick();
-        helper.assertTrue(success9, "East tank should be active");
-        boolean success8 = westTank.isActive();
-        helper.getTick();
-        helper.assertTrue(success8, "West tank should be active");
+        helper.assertTrue(!centerTank.isActive(), "Center tank should be inactive (no water touching)");
+        helper.assertTrue(northTank.isActive(), "North tank should be active");
+        helper.assertTrue(southTank.isActive(), "South tank should be active");
+        helper.assertTrue(eastTank.isActive(), "East tank should be active");
+        helper.assertTrue(westTank.isActive(), "West tank should be active");
 
         // 4 active members in the network: capacity = 2^3 * 1000 = 8000
         int expectedCapacity = 8000;
-        boolean success7 = centerTank.TANK.getCapacity() == expectedCapacity;
         String expectedEnergyDidNotMatch7 = "Center tank should have capacity " + expectedCapacity + " but had " + centerTank.TANK.getCapacity();
-        helper.getTick();
-        helper.assertTrue(success7, expectedEnergyDidNotMatch7);
-        boolean success6 = northTank.TANK.getCapacity() == expectedCapacity;
+        helper.assertTrue(centerTank.TANK.getCapacity() == expectedCapacity, expectedEnergyDidNotMatch7);
         String expectedEnergyDidNotMatch6 = "North tank should have capacity " + expectedCapacity + " but had " + northTank.TANK.getCapacity();
-        helper.getTick();
-        helper.assertTrue(success6, expectedEnergyDidNotMatch6);
+        helper.assertTrue(northTank.TANK.getCapacity() == expectedCapacity, expectedEnergyDidNotMatch6);
 
         // Remove the center tank - this splits into 4 networks of 1 active tank each
         helper.setBlock(center, Blocks.AIR);
@@ -154,22 +134,14 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
 
         // Each network now has 1 active member: capacity = 2^0 * 1000 = 1000
         int expectedCapacityAfterSplit = 1000;
-        boolean success5 = northTank.TANK.getCapacity() == expectedCapacityAfterSplit;
         String expectedEnergyDidNotMatch5 = "North tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + northTank.TANK.getCapacity();
-        helper.getTick();
-        helper.assertTrue(success5, expectedEnergyDidNotMatch5);
-        boolean success4 = southTank.TANK.getCapacity() == expectedCapacityAfterSplit;
+        helper.assertTrue(northTank.TANK.getCapacity() == expectedCapacityAfterSplit, expectedEnergyDidNotMatch5);
         String expectedEnergyDidNotMatch4 = "South tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + southTank.TANK.getCapacity();
-        helper.getTick();
-        helper.assertTrue(success4, expectedEnergyDidNotMatch4);
-        boolean success3 = eastTank.TANK.getCapacity() == expectedCapacityAfterSplit;
+        helper.assertTrue(southTank.TANK.getCapacity() == expectedCapacityAfterSplit, expectedEnergyDidNotMatch4);
         String expectedEnergyDidNotMatch3 = "East tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + eastTank.TANK.getCapacity();
-        helper.getTick();
-        helper.assertTrue(success3, expectedEnergyDidNotMatch3);
-        boolean success2 = westTank.TANK.getCapacity() == expectedCapacityAfterSplit;
+        helper.assertTrue(eastTank.TANK.getCapacity() == expectedCapacityAfterSplit, expectedEnergyDidNotMatch3);
         String expectedEnergyDidNotMatch2 = "West tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + westTank.TANK.getCapacity();
-        helper.getTick();
-        helper.assertTrue(success2, expectedEnergyDidNotMatch2);
+        helper.assertTrue(westTank.TANK.getCapacity() == expectedCapacityAfterSplit, expectedEnergyDidNotMatch2);
 
         // Restore center tank - networks should merge back
         helper.setBlock(center, SFMBlocks.WATER_TANK.get());
@@ -181,14 +153,10 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
             WaterTankBlockEntity northTankNew = helper.getBlockEntity(north, WaterTankBlockEntity.class);
 
             // Back to 4 active members (center is still inactive): capacity = 8000
-            boolean success1 = centerTankNew.TANK.getCapacity() == expectedCapacity;
             String expectedEnergyDidNotMatch1 = "Center tank should have capacity " + expectedCapacity + " after merge but had " + centerTankNew.TANK.getCapacity();
-            helper.getTick();
-            helper.assertTrue(success1, expectedEnergyDidNotMatch1);
-            boolean success = northTankNew.TANK.getCapacity() == expectedCapacity;
+            helper.assertTrue(centerTankNew.TANK.getCapacity() == expectedCapacity, expectedEnergyDidNotMatch1);
             String expectedEnergyDidNotMatch = "North tank should have capacity " + expectedCapacity + " after merge but had " + northTankNew.TANK.getCapacity();
-            helper.getTick();
-            helper.assertTrue(success, expectedEnergyDidNotMatch);
+            helper.assertTrue(northTankNew.TANK.getCapacity() == expectedCapacity, expectedEnergyDidNotMatch);
 
             helper.succeed();
         });

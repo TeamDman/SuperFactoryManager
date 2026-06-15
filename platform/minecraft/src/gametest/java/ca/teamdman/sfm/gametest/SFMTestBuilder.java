@@ -77,7 +77,6 @@ public abstract class SFMTestBuilder {
                         expectedStack,
                         actualStack
                 );
-                helper.getTick();
                 helper.assertTrue(success, String.format(
                                         "Expected %s in chest %s slot %d, but found %s",
                                         expectedStack, name, i, actualStack
@@ -121,7 +120,6 @@ public abstract class SFMTestBuilder {
                                 break;
                             }
                         }
-                        helper.getTick();
                         helper.assertTrue(
                                 source != null,
                                 "Chaos failed to find an item to move?? What is this test doing that there's no items??"
@@ -141,13 +139,12 @@ public abstract class SFMTestBuilder {
                                 break;
                             }
                         }
-                        boolean success2 = !taken.isEmpty();
-                        helper.getTick();
                         helper.assertTrue(
-                                success2, "Chaos failed to take an item from "
-                                          + source.getKey()
-                                          + " slot "
-                                          + takenSlot
+                                !taken.isEmpty(),
+                                "Chaos failed to take an item from "
+                                + source.getKey()
+                                + " slot "
+                                + takenSlot
                         );
 
                         // insert the item
@@ -161,16 +158,16 @@ public abstract class SFMTestBuilder {
                         }
 
                         // assert a move occurred
-                        helper.getTick();
                         helper.assertTrue(
-                                destSlot != -1, "Chaos failed to insert the taken item, took "
-                                                + taken
-                                                + " from "
-                                                + source.getKey()
-                                                + " slot "
-                                                + takenSlot
-                                                + " to put in"
-                                                + dest.getKey()
+                                destSlot != -1,
+                                "Chaos failed to insert the taken item, took "
+                                + taken
+                                + " from "
+                                + source.getKey()
+                                + " slot "
+                                + takenSlot
+                                + " to put in"
+                                + dest.getKey()
                         );
 
                         // assert that the assertions fail
@@ -183,43 +180,42 @@ public abstract class SFMTestBuilder {
                                 break;
                             }
                         }
-                        helper.getTick();
                         helper.assertTrue(
-                                tripped, "Assertions did not fail after chaos, moved "
-                                         + taken
-                                         + " from "
-                                         + source.getKey()
-                                         + " slot "
-                                         + takenSlot
-                                         + " to "
-                                         + dest.getKey()
+                                tripped,
+                                "Assertions did not fail after chaos, moved "
+                                + taken
+                                + " from "
+                                + source.getKey()
+                                + " slot "
+                                + takenSlot
+                                + " to "
+                                + dest.getKey()
                         );
 
                         // take out the moved item
                         ItemStack undo = dest.getValue().extractItem(destSlot, taken.getCount(), false);
-                        boolean success1 = SFMItemUtils.isSameItemSameAmount(undo, taken);
-                        helper.getTick();
                         helper.assertTrue(
-                                success1, "Chaos failed to take the moved item, took "
-                                          + undo
-                                          + " from "
-                                          + dest.getKey()
-                                          + " slot "
-                                          + destSlot
-                                          + " instead of "
-                                          + taken
+                                SFMItemUtils.isSameItemSameAmount(undo, taken),
+                                "Chaos failed to take the moved item, took "
+                                + undo
+                                + " from "
+                                + dest.getKey()
+                                + " slot "
+                                + destSlot
+                                + " instead of "
+                                + taken
                         );
 
                         // put the item back
                         ItemStack remainder = source.getValue().insertItem(takenSlot, taken, false);
-                        boolean success = remainder.isEmpty();
-                        helper.getTick();
-                        helper.assertTrue(success, "Chaos failed to put the taken item back, took "
-                                                   + taken
-                                                   + " from "
-                                                   + source.getKey()
-                                                   + " slot "
-                                                   + takenSlot
+                        helper.assertTrue(
+                                remainder.isEmpty(),
+                                "Chaos failed to put the taken item back, took "
+                                + taken
+                                + " from "
+                                + source.getKey()
+                                + " slot "
+                                + takenSlot
                         );
 
                     }
@@ -247,10 +243,8 @@ public abstract class SFMTestBuilder {
         BlockPos managerPos = new BlockPos(1, 1, 0).offset(offset);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
-        helper.getTick();
         helper.assertTrue(manager != null, "Manager not found");
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
-        helper.getTick();
         helper.assertTrue(program != null, "Program not set");
         manager.setProgram(program.stripTrailing().stripIndent());
     }

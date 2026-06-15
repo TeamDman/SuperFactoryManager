@@ -108,17 +108,11 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
                 BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
                     if (i % 3 == 0) {
-                        boolean success = barrel.getItem(i).isEmpty();
-                        helper.getTick();
-                        helper.assertTrue(success, "Items did not depart");
+                        helper.assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart");
                     } else if (i % 3 == 1) {
-                        boolean success = barrel.getItem(i).isEmpty();
-                        helper.getTick();
-                        helper.assertTrue(success, "Items did not depart");
+                        helper.assertTrue(barrel.getItem(i).isEmpty(), "Items did not depart");
                     } else {
-                        boolean success = barrel.getItem(i).getItem() == Items.DIAMOND;
-                        helper.getTick();
-                        helper.assertTrue(success, "Non-matching didn't stay");
+                        helper.assertTrue(barrel.getItem(i).getItem() == Items.DIAMOND, "Non-matching didn't stay");
                     }
                 }
             });
@@ -137,15 +131,9 @@ public class MoveManyRegexGameTest extends SFMGameTestDefinition {
                     }
                 }
             });
-            boolean success2 = ironIngots.get() == 0;
-            helper.getTick();
-            helper.assertTrue(success2, "Iron ingots did not arrive");
-            boolean success1 = goldIngots.get() == 0;
-            helper.getTick();
-            helper.assertTrue(success1, "Gold ingots did not arrive");
-            boolean success = diamonds.get() == diamondStart;
-            helper.getTick();
-            helper.assertTrue(success, "Diamonds did not stay");
+            helper.assertTrue(ironIngots.get() == 0, "Iron ingots did not arrive");
+            helper.assertTrue(goldIngots.get() == 0, "Gold ingots did not arrive");
+            helper.assertTrue(diamonds.get() == diamondStart, "Diamonds did not stay");
         });
     }
 }

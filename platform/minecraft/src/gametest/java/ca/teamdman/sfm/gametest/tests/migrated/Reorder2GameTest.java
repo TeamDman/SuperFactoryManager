@@ -64,15 +64,9 @@ public class Reorder2GameTest extends SFMGameTestDefinition {
                 .save(Objects.requireNonNull(manager.getDisk()));
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            boolean success2 = leftChest.getStackInSlot(0).isEmpty();
-            helper.getTick();
-            helper.assertTrue(success2, "should depart");
-            boolean success1 = rightChest.getStackInSlot(0).getCount() == 64;
-            helper.getTick();
-            helper.assertTrue(success1, "should arrive in size");
-            boolean success = rightChest.getStackInSlot(0).getItem() == Items.IRON_INGOT;
-            helper.getTick();
-            helper.assertTrue(success, "should arrive in type");
+            helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "should depart");
+            helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 64, "should arrive in size");
+            helper.assertTrue(rightChest.getStackInSlot(0).getItem() == Items.IRON_INGOT, "should arrive in type");
 
         });
     }

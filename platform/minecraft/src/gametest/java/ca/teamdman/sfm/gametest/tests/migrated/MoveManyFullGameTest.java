@@ -88,28 +88,22 @@ public class MoveManyFullGameTest extends SFMGameTestDefinition {
 
         // load the program
         manager.setProgram(program);
-        boolean success1 = manager.getState() == ManagerBlockEntity.State.RUNNING;
         String expectedEnergyDidNotMatch = "Program did not start running " + DiskItem.getErrors(manager.getDisk());
-        helper.getTick();
-        helper.assertTrue(success1, expectedEnergyDidNotMatch);
+        helper.assertTrue(manager.getState() == ManagerBlockEntity.State.RUNNING, expectedEnergyDidNotMatch);
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // ensure all the source chests are full
             sourceBlocks.forEach(pos -> {
                 BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
-                    boolean success = barrel.getItem(i).getCount() == 64;
-                    helper.getTick();
-                    helper.assertTrue(success, "Items did not stay");
+                    helper.assertTrue(barrel.getItem(i).getCount() == 64, "Items did not stay");
                 }
             });
             // ensure all the dest chests are full
             destBlocks.forEach(pos -> {
                 BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
                 for (int i = 0; i < barrel.getContainerSize(); i++) {
-                    boolean success = barrel.getItem(i).getCount() == 64;
-                    helper.getTick();
-                    helper.assertTrue(success, "Items did not arrive");
+                    helper.assertTrue(barrel.getItem(i).getCount() == 64, "Items did not arrive");
                 }
             });
 

@@ -77,8 +77,8 @@ public class IndustrialForegoingBlackholeSomeGameTest extends SFMGameTestDefinit
         helper.assertTrue(right.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep right");
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertTrue(left.getStackInSlot(0).getCount() == 5_000 - 64, "Contents did not depart properly", helper.getTick());
-            helper.assertTrue(right.getStackInSlot(0).getCount() == 5_000 + 64, "Contents did not arrive", helper.getTick());
+            helper.assertTrue(left.getStackInSlot(0).getCount() == 5_000 - 64, "Contents did not depart properly");
+            helper.assertTrue(right.getStackInSlot(0).getCount() == 5_000 + 64, "Contents did not arrive");
 
         });
     }

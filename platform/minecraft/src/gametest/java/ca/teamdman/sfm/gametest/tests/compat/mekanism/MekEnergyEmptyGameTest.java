@@ -69,8 +69,8 @@ public class MekEnergyEmptyGameTest extends SFMGameTestDefinition {
         left.setEnergy(0, EnergyCubeTier.ULTIMATE.getMaxEnergy());
         right.setEnergy(0, 0);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertTrue(left.getEnergy(0) == 0, "Contents did not depart", helper.getTick());
-            helper.assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive", helper.getTick());
+            helper.assertTrue(left.getEnergy(0) == 0, "Contents did not depart");
+            helper.assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive");
         });
     }
 }

@@ -87,7 +87,6 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
             Vec3 itemSpawnPos,
             int bookCount
     ) {
-
         int remaining = bookCount;
         while (remaining > 0) {
             int toSpawn = Math.min(remaining, 64);

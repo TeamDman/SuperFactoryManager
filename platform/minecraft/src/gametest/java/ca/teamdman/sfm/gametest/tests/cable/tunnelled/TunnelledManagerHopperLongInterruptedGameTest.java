@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.neoforged.neoforge.items.IItemHandler;
 
 
+
 /**
  * Verifies that a hopper connected to a barrel through a chain of tunnelled managers only moves items when the full
  * chain is intact. Breaking any manager should pause transfers, while restoring the chain should immediately allow
@@ -80,16 +81,12 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
         int barrelAfterInitialMove = expectedBarrel + 1;
         tickCursor = forceHopperTick(
                 helper, hopper, tickCursor, () -> {
-                    helper.getTick();
-
                     helper.assertCount(
                             hopper,
                             Blocks.DIRT,
                             hopperAfterInitialMove,
                             "Initial move should reduce hopper stack by one"
                     );
-                    helper.getTick();
-
                     helper.assertCount(
                             barrel,
                             Blocks.DIRT,
@@ -114,16 +111,12 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
             final int barrelNoMove = expectedBarrel;
             tickCursor = forceHopperTick(
                     helper, hopper, tickCursor, () -> {
-                        helper.getTick();
-
                         helper.assertCount(
                                 hopper,
                                 Blocks.DIRT,
                                 hopperNoMove,
                                 "Hopper should not move items while manager " + managerIndex + " is missing"
                         );
-                        helper.getTick();
-
                         helper.assertCount(
                                 barrel,
                                 Blocks.DIRT,
@@ -143,16 +136,12 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
             int barrelAfterRestore = expectedBarrel + 1;
             tickCursor = forceHopperTick(
                     helper, hopper, tickCursor, () -> {
-                        helper.getTick();
-
                         helper.assertCount(
                                 hopper,
                                 Blocks.DIRT,
                                 hopperAfterRestore,
                                 "Hopper should resume moving items after restoring manager " + managerIndex
                         );
-                        helper.getTick();
-
                         helper.assertCount(
                                 barrel,
                                 Blocks.DIRT,

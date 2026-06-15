@@ -75,8 +75,8 @@ public class MekMultiFluidGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
-                    helper.assertTrue(a1.getFluidInTank(0).isEmpty(), "a1 did not empty", helper.getTick());
-                    helper.assertTrue(a2.getFluidInTank(0).isEmpty(), "a2 did not empty", helper.getTick());
+                    helper.assertTrue(a1.getFluidInTank(0).isEmpty(), "a1 did not empty");
+                    helper.assertTrue(a2.getFluidInTank(0).isEmpty(), "a2 did not empty");
                     helper.assertTrue(
                             (
                                     b1.getFluidInTank(0).getFluid() == Fluids.WATER
@@ -87,7 +87,7 @@ public class MekMultiFluidGameTest extends SFMGameTestDefinition {
                                     && b2.getFluidInTank(0).getFluid() == Fluids.WATER
                             ),
                             "b1 and b2 did not fill with water and lava"
-                    , helper.getTick());
+                    );
                 }
         );
     }

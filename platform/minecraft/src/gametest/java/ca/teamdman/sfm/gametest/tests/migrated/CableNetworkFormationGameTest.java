@@ -45,7 +45,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                 .get();
         // those cables should all be on the same network
         for (int i = 0; i < 10; i++) {
-            helper.getTick();
             helper.assertTrue(
                     CableNetworkManager
                                    .getOrRegisterNetworkFromCablePosition(
@@ -58,7 +57,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
 
         // the network should only contain those cables
         boolean success5 = net.getCableCount() == 10;
-        helper.getTick();
         helper.assertTrue(success5, "Network size should be ten");
 
         // break a block in the middle of the cable
@@ -69,7 +67,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                 .get();
         // now we have a network of 5 cables and a network of 4 cables
         for (int i = 0; i < 5; i++) {
-            helper.getTick();
             helper.assertTrue(
                     CableNetworkManager
                                    .getOrRegisterNetworkFromCablePosition(
@@ -83,10 +80,8 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         net = CableNetworkManager
                 .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(6, 1, 0)))
                 .get();
-        helper.getTick();
         helper.assertTrue(old != net, "Networks should be distinct after splitting");
         for (int i = 6; i < 10; i++) {
-            helper.getTick();
             helper.assertTrue(
                     CableNetworkManager
                                    .getOrRegisterNetworkFromCablePosition(
@@ -104,7 +99,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                 .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(0, 1, 0)))
                 .get();
         for (int i = 0; i < 10; i++) {
-            helper.getTick();
             helper.assertTrue(
                     CableNetworkManager
                                    .getOrRegisterNetworkFromCablePosition(
@@ -125,7 +119,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                    )
                    .get()
                    .getCableCount() == 12;
-        helper.getTick();
         helper.assertTrue(success4, "Network should grow to twelve after adding two cables");
 
         // punch out the corner, the network should shrink by 1
@@ -137,7 +130,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                    )
                    .get()
                    .getCableCount() == 11;
-        helper.getTick();
         helper.assertTrue(success3, "Network should shrink to eleven after removing a cable");
 
 
@@ -151,7 +143,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                 .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 1, 15)))
                 .get();
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
-            helper.getTick();
             helper.assertTrue(
                     CableNetworkManager
                                    .getOrRegisterNetworkFromCablePosition(
@@ -166,7 +157,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         // break the block in the middle
         helper.setBlock(new BlockPos(15, 1, 15), Blocks.AIR);
         // the network should split
-        helper.getTick();
         helper.assertTrue(
                 CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
@@ -187,7 +177,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         // make sure all the networks are different
         for (CableNetwork network : networks) {
             boolean success = networks.stream().filter(n -> n == network).count() == 1;
-            helper.getTick();
             helper.assertTrue(success, "Broken plus networks should be distinct");
         }
 
@@ -198,7 +187,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                 .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 1, 15)))
                 .get();
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
-            helper.getTick();
             helper.assertTrue(
                     CableNetworkManager
                                    .getOrRegisterNetworkFromCablePosition(
@@ -226,7 +214,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                    )
                    .get()
                    .getCableCount() == 25;
-        helper.getTick();
         helper.assertTrue(success2, "Network cable count should be 25");
         // cut a line through it
         for (int i = 0; i < 5; i++) {
@@ -234,7 +221,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         }
 
         // make sure the network disappeared where it was cut
-        helper.getTick();
         helper.assertTrue(
                 CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
@@ -251,7 +237,6 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                    )
                    .get()
                    .getCableCount() == 10;
-        helper.getTick();
         helper.assertTrue(success1, "New network should be size ten");
         // make sure new network of 10 is formed
         boolean success = CableNetworkManager
@@ -261,10 +246,8 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                    )
                    .get()
                    .getCableCount() == 10;
-        helper.getTick();
         helper.assertTrue(success, "Other new network should be size ten");
         // make sure the new networks are distinct
-        helper.getTick();
         helper.assertTrue(
                 CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(

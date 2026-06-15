@@ -71,7 +71,6 @@ public class CountExecutionPaths1GameTest extends SFMGameTestDefinition {
 
         // ensure no warnings
         var warnings = DiskItem.getWarnings(Objects.requireNonNull(manager.getDisk()));
-        helper.getTick();
         helper.assertTrue(warnings.isEmpty(), "expected 0 warning, got " + warnings.size());
 
         // count the execution paths
@@ -82,9 +81,7 @@ public class CountExecutionPaths1GameTest extends SFMGameTestDefinition {
                 0,
                 simulation
         ));
-        helper.getTick();
         helper.assertTrue(simulation.getSeenPaths().size() == 1, "expected single execution path");
-        helper.getTick();
         helper.assertTrue(
                 simulation.getSeenPaths().get(0).history().size() == 2,
                 "expected two elements in execution path"

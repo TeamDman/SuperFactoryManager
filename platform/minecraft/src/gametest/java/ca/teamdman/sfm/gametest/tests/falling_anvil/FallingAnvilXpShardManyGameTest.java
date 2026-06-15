@@ -63,7 +63,6 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
         for (LevelsToShards mode : modes) {
             int predicted = FallingAnvilHandler.getShardCountForEnchantments(mode, parameters.enchantments());
             int expected = FallingAnvilHandler.getShardCountForEnchantments(mode, parameters.enchantments());
-            helper.getTick();
             helper.assertTrue(predicted == expected, "unexpected shard prediction for " + mode);
             expectedByMode.put(mode, predicted * parameters.bookCount());
         }
@@ -91,8 +90,6 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
 
             fill(helper, handler, new ItemStack(SFMItems.EXPERIENCE_SHARD.get()), expectedShards);
 
-            helper.getTick();
-
             helper.assertCount(
                     handler,
                     parameters.bookTemplate(),
@@ -101,10 +98,10 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
             );
 
             @Nullable ItemLike item = SFMItems.EXPERIENCE_SHARD.get().asItem();
-            helper.getTick();
 
             helper.assertCount(
-                    handler, item,
+                    handler,
+                    item,
                     expectedShards,
                     "chest for " + mode + " did not receive expected shard count"
             );
@@ -184,8 +181,7 @@ public class FallingAnvilXpShardManyGameTest extends SFMGameTestDefinition {
             ItemStack stack = template.copy();
             stack.setCount(toInsert);
             ItemStack leftover = ItemHandlerHelper.insertItemStacked(handler, stack, false);
-            boolean success = leftover.isEmpty();
-            helper.assertTrue(success, "insufficient space to store items");
+            helper.assertTrue(leftover.isEmpty(), "insufficient space to store items");
             remaining -= toInsert;
         }
     }

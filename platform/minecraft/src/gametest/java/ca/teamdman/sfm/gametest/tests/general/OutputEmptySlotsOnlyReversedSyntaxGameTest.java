@@ -61,15 +61,9 @@ public class OutputEmptySlotsOnlyReversedSyntaxGameTest extends SFMGameTestDefin
 
         helper.succeedIfManagerDidThingWithoutLagging(
                 manager, () -> {
-                    boolean success2 = leftChest.getStackInSlot(0).isEmpty();
-                    helper.getTick();
-                    helper.assertTrue(success2, "Source not emptied");
-                    boolean success1 = rightChest.getStackInSlot(0).getCount() == 1;
-                    helper.getTick();
-                    helper.assertTrue(success1, "Dest slot 0 should remain 1");
-                    boolean success = rightChest.getStackInSlot(1).getCount() == 5;
-                    helper.getTick();
-                    helper.assertTrue(success, "Dest slot 1 should be 5");
+                    helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied");
+                    helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 1, "Dest slot 0 should remain 1");
+                    helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 5, "Dest slot 1 should be 5");
                 }
         );
     }

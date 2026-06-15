@@ -90,12 +90,12 @@ public class ResourceLossRegressionGameTest extends SFMGameTestDefinition {
         // load the program
         manager.setProgram(program);
         manager.setLogLevel(Level.ERROR);
-        helper.assertTrue(manager.logger.getLogLevel() == Level.ERROR, "Log level should be trace", helper.getTick());
+        helper.assertTrue(manager.logger.getLogLevel() == Level.ERROR, "Log level should be trace");
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             ItemStack phytoInputStack = phyto.getItemInv().get(0);
-            helper.assertTrue(phytoInputStack.getItem() == Items.WHEAT_SEEDS, "Item should be wheat seeds", helper.getTick());
-            helper.assertTrue(phytoInputStack.getCount() == 64, "Item should be 64 wheat seeds", helper.getTick());
+            helper.assertTrue(phytoInputStack.getItem() == Items.WHEAT_SEEDS, "Item should be wheat seeds");
+            helper.assertTrue(phytoInputStack.getCount() == 64, "Item should be 64 wheat seeds");
 
             ArrayDeque<TranslatableLogEvent> logs = manager.logger.getLogs();
             int foundErrors = 0;
@@ -108,7 +108,7 @@ public class ResourceLossRegressionGameTest extends SFMGameTestDefinition {
                     );
                 }
             }
-            helper.assertTrue(foundErrors == 0, "No errors should be found in logs, found " + foundErrors, helper.getTick());
+            helper.assertTrue(foundErrors == 0, "No errors should be found in logs, found " + foundErrors);
         });
 
         // create the button

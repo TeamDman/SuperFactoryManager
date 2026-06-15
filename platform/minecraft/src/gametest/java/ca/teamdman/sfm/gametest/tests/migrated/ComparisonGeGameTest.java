@@ -91,24 +91,16 @@ public class ComparisonGeGameTest extends SFMGameTestDefinition {
             int rightStickCount = helper.count(right, Items.STICK);
             int rightDirtCount = helper.count(right, Items.DIRT);
             // the diamonds should have moved from left to right
-            helper.getTick();
             helper.assertTrue(leftDiamondCount == 64 * 2, "left should have 128 diamonds");
-            helper.getTick();
             helper.assertTrue(rightDiamondCount == 0, "right should have no diamonds");
             // the iron should have moved from left to right
-            helper.getTick();
             helper.assertTrue(leftIronCount == 0, "left should have no iron ingots");
-            helper.getTick();
             helper.assertTrue(rightIronCount == 12, "right should have 12 iron ingots");
             // the sticks should have moved from right to left
-            helper.getTick();
             helper.assertTrue(rightStickCount == 0, "right should have no sticks");
-            helper.getTick();
             helper.assertTrue(leftStickCount == 77, "left should have 77 sticks");
             // the dirt should have moved from right to left
-            helper.getTick();
             helper.assertTrue(rightDirtCount == 0, "right should have no dirt");
-            helper.getTick();
             helper.assertTrue(leftDirtCount == 1, "left should have 1 dirt");
         });
     }

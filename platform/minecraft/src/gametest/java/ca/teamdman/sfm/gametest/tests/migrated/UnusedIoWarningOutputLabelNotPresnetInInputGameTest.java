@@ -65,7 +65,6 @@ public class UnusedIoWarningOutputLabelNotPresnetInInputGameTest extends SFMGame
 
         // assert expected warnings
         var warnings = DiskItem.getWarnings(Objects.requireNonNull(manager.getDisk()));
-        helper.getTick();
         helper.assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size());
 
         TranslatableContents firstWarning = (TranslatableContents) warnings.getFirst().getContents();

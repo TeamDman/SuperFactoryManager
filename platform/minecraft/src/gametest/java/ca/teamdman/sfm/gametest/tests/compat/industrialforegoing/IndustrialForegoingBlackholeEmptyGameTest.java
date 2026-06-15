@@ -67,11 +67,11 @@ public class IndustrialForegoingBlackholeEmptyGameTest extends SFMGameTestDefini
                 .save(manager.getDisk());
 
         int fullCount = BlockUtils.getStackAmountByRarity(ModuleCore.SUPREME_RARITY);
-        helper.assertTrue(fullCount > 0, "expected full count to be greater than 0", helper.getTick());
-        helper.assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left", helper.getTick());
+        helper.assertTrue(fullCount > 0, "expected full count to be greater than 0");
+        helper.assertTrue(left.insertItem(0, new ItemStack(Items.COAL, 64), false).isEmpty(), "couldn't prep left");
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
-            helper.assertTrue(left.getStackInSlot(0).isEmpty(), "Contents did not depart properly", helper.getTick());
-            helper.assertTrue(right.getStackInSlot(0).getCount() == 64, "Contents did not arrive", helper.getTick());
+            helper.assertTrue(left.getStackInSlot(0).isEmpty(), "Contents did not depart properly");
+            helper.assertTrue(right.getStackInSlot(0).getCount() == 64, "Contents did not arrive");
         });
     }
 }

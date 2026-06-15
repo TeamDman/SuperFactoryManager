@@ -78,20 +78,12 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
                 List.of(
                         () -> {
                             // validate first move
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 63, "One should have departed");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 1, "One should have arrived");
                         },
                         () -> {
                             // validate second move
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 62, "Another should have departed");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 2, "Another should have arrived");
 
                             // break the source block
@@ -99,20 +91,12 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
                         },
                         () -> {
                             // validate no move after source broken
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 62, "None should depart after source is broken");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 2, "None should arrive after source is broken");
                         },
                         () -> {
                             // validate still no move
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 62, "Still none should depart after source is broken");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 2, "Still none should arrive after source is broken");
 
                             // restore source block
@@ -122,20 +106,12 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
                         },
                         () -> {
                             // validate move after source restored
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 63, "Another departs after source restored");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 3, "Another arrives after source restored");
                         },
                         () -> {
                             // validate another move
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 62, "Another departs after source restored");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 4, "Another arrives after source restored");
 
                             // break the destination block
@@ -143,20 +119,12 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
                         },
                         () -> {
                             // validate no move after dest broken
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 62, "None should depart after dest is broken");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 4, "None should arrive after dest is broken");
                         },
                         () -> {
                             // validate still no move
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 62, "Still none should depart after dest is broken");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 4, "Still none should arrive after dest is broken");
 
                             // restore destination block
@@ -165,20 +133,12 @@ public class CapabilityCacheRemoveBothGameTest extends SFMGameTestDefinition {
                         },
                         () -> {
                             // validate move after dest restored
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 61, "Another departs after dest restored");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 1, "Another arrives after dest restored");
                         },
                         () -> {
                             // validate another move
-                            helper.getTick();
-
                             helper.assertCount(leftChest, 60, "Another departs after dest restored");
-                            helper.getTick();
-
                             helper.assertCount(rightChest, 2, "Another arrives after dest restored");
 
                             // enqueue success

@@ -100,7 +100,7 @@ public class MekManyLavaCauldronsGameTest extends SFMGameTestDefinition {
                     .map(x -> x.getAmountAsInt(0))
                     .mapToInt(value -> value)
                     .sum();
-            helper.assertTrue(found == 1000 * 25 * 24, "Not all fluids were moved (found " + found + ")", helper.getTick());
+            helper.assertTrue(found == 1000 * 25 * 24, "Not all fluids were moved (found " + found + ")");
 
 
         });

@@ -84,9 +84,7 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
                             ItemEntity.class,
                             new AABB(helper.absolutePos(new BlockPos(1, 2, 1))).inflate(5)
                     );
-            boolean success = !found.isEmpty();
-            helper.getTick();
-            helper.assertTrue(success, "expected shards to be produced");
+            helper.assertTrue(!found.isEmpty(), "expected shards to be produced");
 
             List<String> unexpectedItems = found
                     .stream()
@@ -94,11 +92,9 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
                     .map(item -> item.getItem().getItem().getDescriptionId())
                     .collect(Collectors.toList());
             String expectedEnergyDidNotMatch = "conversion produced non-shard items: " + String.join(", ", unexpectedItems);
-            helper.getTick();
             helper.assertTrue(unexpectedItems.isEmpty(), expectedEnergyDidNotMatch);
 
             long actualShardTotal = found.stream().mapToLong(item -> item.getItem().getCount()).sum();
-            helper.getTick();
             helper.assertTrue(
                     actualShardTotal == expectedShardTotal,
                     "expected " + expectedShardTotal + " shards but found " + actualShardTotal

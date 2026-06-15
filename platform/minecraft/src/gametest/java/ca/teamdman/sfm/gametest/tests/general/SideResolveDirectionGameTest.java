@@ -57,7 +57,6 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
 
             // Verify the observer is placed correctly
             Direction actualFacing = blockState.getValue(ObserverBlock.FACING);
-            helper.getTick();
             helper.assertTrue(
                     actualFacing == facing,
                     "Observer at " + pos + " should be facing " + facing + " but is facing " + actualFacing
@@ -73,49 +72,42 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
                     // Validate expected results for absolute directions
                     switch (side) {
                         case TOP -> {
-                            helper.getTick();
                             helper.assertTrue(
                                     resolved == Direction.UP,
                                     "Side.TOP should resolve to Direction.UP, got " + resolved
                             );
                         }
                         case BOTTOM -> {
-                            helper.getTick();
                             helper.assertTrue(
                                     resolved == Direction.DOWN,
                                     "Side.BOTTOM should resolve to Direction.DOWN, got " + resolved
                             );
                         }
                         case NORTH -> {
-                            helper.getTick();
                             helper.assertTrue(
                                     resolved == Direction.NORTH,
                                     "Side.NORTH should resolve to Direction.NORTH, got " + resolved
                             );
                         }
                         case SOUTH -> {
-                            helper.getTick();
                             helper.assertTrue(
                                     resolved == Direction.SOUTH,
                                     "Side.SOUTH should resolve to Direction.SOUTH, got " + resolved
                             );
                         }
                         case EAST -> {
-                            helper.getTick();
                             helper.assertTrue(
                                     resolved == Direction.EAST,
                                     "Side.EAST should resolve to Direction.EAST, got " + resolved
                             );
                         }
                         case WEST -> {
-                            helper.getTick();
                             helper.assertTrue(
                                     resolved == Direction.WEST,
                                     "Side.WEST should resolve to Direction.WEST, got " + resolved
                             );
                         }
                         case NULL -> {
-                            helper.getTick();
                             helper.assertTrue(resolved == null, "Side.NULL should resolve to null, got " + resolved);
                         }
                         // For relative sides (LEFT, RIGHT, FRONT, BACK), we just ensure no exception
@@ -124,7 +116,6 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
                             // For horizontally-facing observers, these should resolve to a direction
                             // For UP/DOWN facing observers, these should return null (fix for #445)
                             if (facing == Direction.UP || facing == Direction.DOWN) {
-                                helper.getTick();
                                 helper.assertTrue(
                                         resolved == null, "Side."
                                                           + side
@@ -134,7 +125,6 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
                                                           + resolved
                                 );
                             } else {
-                                helper.getTick();
                                 helper.assertTrue(
                                         resolved != null, "Side."
                                                           + side
@@ -146,7 +136,6 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
                         }
                         case FRONT, BACK -> {
                             // FRONT and BACK should always resolve since they don't involve rotation
-                            helper.getTick();
                             helper.assertTrue(
                                     resolved != null, "Side."
                                                       + side
@@ -155,13 +144,11 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
                                                       + " facing observer, but got null"
                             );
                             if (side == Side.FRONT) {
-                                helper.getTick();
                                 helper.assertTrue(
                                         resolved == facing,
                                         "Side.FRONT should resolve to " + facing + " for " + facing + " facing observer, got " + resolved
                                 );
                             } else {
-                                helper.getTick();
                                 helper.assertTrue(
                                         resolved == facing.getOpposite(),
                                         "Side.BACK should resolve to " + facing.getOpposite() + " for " + facing + " facing observer, got " + resolved
