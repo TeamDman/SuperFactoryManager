@@ -44,11 +44,11 @@ public class MekBinSomeGameTest extends SFMGameTestDefinition {
 
         // set up the world
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_BIN.getBlock());
-        var left = ((TileEntityBin) helper.getBlockEntity(leftPos));
+        var left = helper.getBlockEntity(leftPos, TileEntityBin.class);
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_BIN.getBlock());
-        var right = ((TileEntityBin) helper.getBlockEntity(rightPos));
+        var right = helper.getBlockEntity(rightPos, TileEntityBin.class);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 
         // set up the program
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));

@@ -45,11 +45,11 @@ public class MekEnergyTenGameTest extends SFMGameTestDefinition {
 
         // set up the world
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
-        var left = ((TileEntityEnergyCube) helper.getBlockEntity(leftPos));
+        var left = helper.getBlockEntity(leftPos, TileEntityEnergyCube.class);
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
-        var right = ((TileEntityEnergyCube) helper.getBlockEntity(rightPos));
+        var right = helper.getBlockEntity(rightPos, TileEntityEnergyCube.class);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = ((ManagerBlockEntity) helper.getBlockEntity(managerPos));
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 
         // set up the program
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));

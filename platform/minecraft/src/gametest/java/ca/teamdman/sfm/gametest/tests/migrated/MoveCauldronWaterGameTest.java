@@ -44,7 +44,7 @@ public class MoveCauldronWaterGameTest extends SFMGameTestDefinition {
         BlockPos right = new BlockPos(0, 2, 0);
         helper.setBlock(right, Blocks.CAULDRON);
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(new BlockPos(1, 2, 0));
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // set the labels

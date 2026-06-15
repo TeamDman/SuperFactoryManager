@@ -47,7 +47,7 @@ public class RoundRobinNoBlocksCrashRegressionGameTest extends SFMGameTestDefini
         var leftChest = helper.getItemHandler(leftPos);
         leftChest.insertItem(0, new ItemStack(Blocks.DIRT, 64), false);
 
-        ManagerBlockEntity manager = (ManagerBlockEntity) helper.getBlockEntity(managerPos);
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager.setProgram("""
                                        EVERY 20 TICKS DO
