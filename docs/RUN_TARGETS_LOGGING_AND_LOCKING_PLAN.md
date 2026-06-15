@@ -32,6 +32,7 @@ Status: `Done`
 - All commands that currently support `--mc` will move to `--branch`.
 - Multi-target commands run sequentially by default.
 - `--parallel N` will be added later; when supplied without `N`, it defaults to `10`.
+- Parallel graphical `run client` is allowed as a planned capability after scheduler, logging, locking, and cancellation behavior are solid.
 - `--error-action continue|bail` will control whether multi-target commands collect failures or stop at the first failure.
 - Minecraft version identity comes from each worktree's `platform/minecraft/gradle.properties` `minecraft_version` value.
 - A branch is core only if the branch name itself is a valid numeric dotted version and has no `-patch` suffix.
@@ -44,6 +45,7 @@ Status: `Done`
 - Tests must not depend on the installed `$env:PATH` CLI being up to date.
 - Do not run `install.ps1` as part of normal validation unless explicitly requested.
 - This plan doc should be committed before Rust implementation begins. Future implementation changes should stay unstaged/uncommitted for human review unless explicitly requested otherwise.
+- Discard the Log4j JSONL injection idea for this plan. Build the foundation around line-level subprocess capture and wide tracing events.
 
 ## Core Concepts
 
@@ -180,7 +182,7 @@ Parallel behavior:
 - `--parallel N` limits concurrent target executions to `N`.
 - First allow `--parallel` for dry-run or resolution-heavy commands.
 - Expand to `run game-test-server` after validation.
-- Treat graphical `run client` parallelism as a later, explicit decision.
+- Expand to graphical `run client` after scheduler, prefixed logging, locking, and Ctrl+C behavior are validated.
 - A future implementation may use a Tokio `JoinSet`, but the public behavior should be target-level parallelism first, not unbounded internal parallelism.
 
 ### Wide Tracing Events
@@ -241,12 +243,11 @@ Rules:
 - Preserve raw lines in tracing fields for later diagnosis.
 - JSONL log files are emitted only when the user supplies `--log-file`, matching current logging expectations.
 
-Future Log4j JSONL work:
+Explicitly rejected for this plan:
 
-- After the per-line event path works, optionally inject a Log4j config for run commands.
-- Emit Minecraft Log4j as JSONL.
-- Parse JSONL and re-emit as tracing events with `logger`, `thread`, `level`, and `message`.
-- Keep raw-line fallback for versions or launch modes where JSONL is not available.
+- Do not inject custom Log4j configs for JSONL output.
+- Do not depend on Minecraft/Forge/NeoForge Log4j configuration behavior for correctness.
+- Keep the foundation version-agnostic by capturing subprocess stdout/stderr line-by-line and emitting structured tracing events from those lines.
 
 ### Process-Safe Artifact Locking
 
@@ -427,7 +428,7 @@ Testing requirements:
 | 13 | `Not Started` | Add `--parallel [N]` for dry-run/resolution-heavy commands, defaulting to 10. | Parallel dry-run works across core targets and logs lock waits clearly. |
 | 14 | `Not Started` | Add Ctrl+C graceful/force shutdown behavior. | One Ctrl+C cancels gracefully; two within one second force exit; active children are handled. |
 | 15 | `Not Started` | Expand parallel support to `run game-test-server` if logs and locks hold up. | All core game-test-server runs can be launched/observed without unreadable logs. |
-| 16 | `Not Started` | Investigate Minecraft Log4j JSONL emission. | Decision doc or implementation exists; raw-line fallback remains. |
+| 16 | `Not Started` | Expand parallel support to graphical `run client`. | Multiple clients can run concurrently with readable prefixed logs and predictable Ctrl+C behavior. |
 
 ## Validation Plan
 
@@ -474,5 +475,5 @@ Expected locking behavior:
 | JSONL log default | `Decided` | Only emit JSONL when `--log-file` is supplied. |
 | Error action | `Decided` | Add `--error-action continue\|bail`. |
 | PATH install during validation | `Decided` | Do not install automatically; tests should not depend on installed PATH binary. |
-| Parallel graphical clients | `Open` | Defer until dry-run and game-test-server parallelism prove stable. |
-| Log4j JSONL injection | `Open` | Useful later, but raw per-line event capture is the first milestone. |
+| Parallel graphical clients | `Decided` | Allow eventually, after scheduler, logging, locking, and Ctrl+C behavior are validated. |
+| Log4j JSONL injection | `Rejected For This Plan` | Use raw line-level subprocess capture and wide tracing events instead. |
