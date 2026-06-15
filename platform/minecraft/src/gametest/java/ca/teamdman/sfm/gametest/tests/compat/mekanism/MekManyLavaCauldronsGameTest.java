@@ -71,7 +71,7 @@ public class MekManyLavaCauldronsGameTest extends SFMGameTestDefinition {
         // create the program
         var program = """
                     NAME "many inventory lag test"
-                
+                                
                     EVERY 20 TICKS DO
                         INPUT fluid:*:* FROM source
                         OUTPUT fluid:*:* TO dest TOP SIDE

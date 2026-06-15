@@ -50,8 +50,8 @@ public class ThermalFurnaceArrayGameTest extends SFMGameTestDefinition {
         var furnacePositions = new ArrayList<BlockPos>();
         var resultChestPositions = new ArrayList<BlockPos>();
         var ingredientChestPositions = new ArrayList<BlockPos>();
-        var managerPos = new BlockPos(0, 1, 0);
-        var powerPos = new BlockPos(1, 1, 0);
+        var managerPos = new BlockPos(0, 2, 0);
+        var powerPos = new BlockPos(1, 2, 0);
 
         // set up power
         helper.setBlock(powerPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
@@ -65,10 +65,10 @@ public class ThermalFurnaceArrayGameTest extends SFMGameTestDefinition {
         ));
         for (int x = 0; x < 25; x++) {
             for (int z = 1; z < 25; z++) {
-                helper.setBlock(new BlockPos(x, 1, z), SFMBlocks.CABLE.get());
-                helper.setBlock(new BlockPos(x, 2, z), furnaceBlock);
-                furnacePositions.add(new BlockPos(x, 2, z));
-                var furnace = helper.getBlockEntity(new BlockPos(x, 2, z), var.class);
+                helper.setBlock(new BlockPos(x, 2, z), SFMBlocks.CABLE.get());
+                helper.setBlock(new BlockPos(x, 3, z), furnaceBlock);
+                furnacePositions.add(new BlockPos(x, 3, z));
+                var furnace = helper.getBlockEntity(new BlockPos(x, 3, z), MachineFurnaceTile.class);
                 furnace.setSideConfig(Direction.UP, MachineFurnaceTile.SideConfig.SIDE_INPUT);
                 furnace.setSideConfig(Direction.DOWN, MachineFurnaceTile.SideConfig.SIDE_OUTPUT);
             }
@@ -76,14 +76,14 @@ public class ThermalFurnaceArrayGameTest extends SFMGameTestDefinition {
 
         // set up destinations
         for (int i = 2; i <= 3; i++) {
-            BlockPos pos = new BlockPos(i, 1, 0);
+            BlockPos pos = new BlockPos(i, 2, 0);
             helper.setBlock(pos, SFMBlocks.TEST_BARREL.get());
             resultChestPositions.add(pos);
         }
 
         // set up ingredients
         for (int i = 5; i <= 6; i++) {
-            BlockPos pos = new BlockPos(i, 1, 0);
+            BlockPos pos = new BlockPos(i, 2, 0);
             helper.setBlock(pos, SFMBlocks.TEST_BARREL.get());
             ingredientChestPositions.add(pos);
             for (int slot = 0; slot < 27; slot++) {

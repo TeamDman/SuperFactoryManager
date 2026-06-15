@@ -54,15 +54,13 @@ public class MeatFluidDirectGameTest extends SFMGameTestDefinition {
 
         // set up the tanks
         helper.setBlock(rightTankPos, MekanismBlocks.BASIC_FLUID_TANK.getBlock());
-        TileEntityFluidTank rightTank = helper.getBlockEntity(rightTankPos, TileEntityFluidTank.class, TileEntityFluidTank.class);
-        assert rightTank != null;
+        TileEntityFluidTank rightTank = helper.getBlockEntity(rightTankPos, TileEntityFluidTank.class);
         IExtendedFluidTank fluidTank = rightTank.getFluidTank(0, Direction.DOWN);
         assert fluidTank != null;
 
         // set up the washing factory
         helper.setBlock(washingFactoryPos, ModuleResourceProduction.WASHING_FACTORY.getLeft().get());
         WashingFactoryTile washingFactory = helper.getBlockEntity(washingFactoryPos, WashingFactoryTile.class);
-        assert washingFactory != null;
 
         // add some power
         washingFactory
@@ -86,8 +84,7 @@ public class MeatFluidDirectGameTest extends SFMGameTestDefinition {
 
         // place the manager
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        ManagerBlockEntity manager = (helper.getBlockEntity(managerPos, ManagerBlockEntity.class));
-        assert manager != null;
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager.setProgram("""
                                    NAME "bruh"

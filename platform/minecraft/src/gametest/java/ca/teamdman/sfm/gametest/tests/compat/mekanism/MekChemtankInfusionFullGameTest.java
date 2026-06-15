@@ -50,7 +50,7 @@ public class MekChemtankInfusionFullGameTest extends SFMGameTestDefinition {
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_CHEMICAL_TANK.get());
         TileEntityChemicalTank rightTank = helper.getAndPrepMekTile(rightPos);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = (helper.getBlockEntity(managerPos, ManagerBlockEntity.class));
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 
         // set up the program
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));

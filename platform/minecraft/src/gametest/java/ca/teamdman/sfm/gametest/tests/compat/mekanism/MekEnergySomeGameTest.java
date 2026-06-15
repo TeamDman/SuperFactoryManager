@@ -46,7 +46,7 @@ public class MekEnergySomeGameTest extends SFMGameTestDefinition {
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.get());
         TileEntityEnergyCube right = helper.getAndPrepMekTile(rightPos);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
-        var manager = (helper.getBlockEntity(managerPos, ManagerBlockEntity.class));
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 
         // set up the program
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));

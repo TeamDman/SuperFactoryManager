@@ -40,7 +40,7 @@ public class DankOutputRetainGameTest extends SFMGameTestDefinition {
 
         // Place manager block
         helper.setBlock(managerPos, MANAGER.get());
-        var manager = helper.getBlockEntity(managerPos, var.class);
+        var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(DISK.get()));
 
         // Place chest
