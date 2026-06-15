@@ -8779,57 +8779,13 @@ fn required_java_runtime_major(loader_toolchain: &LoaderToolchainPlan, java_rele
 }
 
 fn resolve_java(java_home: Option<&Path>, required_major: u32) -> eyre::Result<JavaPlan> {
-    let home = java_home
-        .map(Path::to_path_buf)
-        .or_else(|| std::env::var_os("JAVA_HOME").map(PathBuf::from));
-    let executable = home.as_ref().map_or_else(
-        || PathBuf::from("java"),
-        |home| {
-            home.join("bin")
-                .join(if cfg!(windows) { "java.exe" } else { "java" })
-        },
-    );
-
-    let output = Command::new(&executable)
-        .arg("-version")
-        .output()
-        .wrap_err_with(|| format!("Failed to run {} -version", executable.display()))?;
-    if !output.status.success() {
-        eyre::bail!(
-            "{} -version exited with {}",
-            executable.display(),
-            output.status
-        );
-    }
-
-    let version_output = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    let major_version = parse_java_major_version(&version_output)
-        .ok_or_else(|| eyre::eyre!("Could not parse Java version from: {version_output}"))?;
-    if major_version < required_major {
-        eyre::bail!(
-            "Java {} or newer is required for this clean-slate build, but {} reports Java {}",
-            required_major,
-            executable.display(),
-            major_version
-        );
-    }
-
+    let resolved = crate::jdk::resolve_java(java_home, required_major)?;
     Ok(JavaPlan {
-        executable,
-        home,
-        version_output,
-        major_version,
+        executable: resolved.executable,
+        home: resolved.home,
+        version_output: resolved.version_output,
+        major_version: resolved.major_version,
     })
-}
-
-fn parse_java_major_version(version_output: &str) -> Option<u32> {
-    let quoted = version_output.split('"').nth(1)?;
-    let first = quoted.split('.').next()?;
-    if first == "1" {
-        quoted.split('.').nth(1)?.parse().ok()
-    } else {
-        first.parse().ok()
-    }
 }
 
 fn javac_executable(java: &JavaPlan) -> PathBuf {
