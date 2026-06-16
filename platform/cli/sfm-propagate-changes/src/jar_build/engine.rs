@@ -2,9 +2,17 @@ use super::BuildMode;
 use super::BuildOptions;
 use super::CompareOptions;
 use super::RunKind;
+use super::json_branch_name::JsonBranchName;
+use super::json_minecraft_version::JsonMinecraftVersion;
 use super::json_path::JsonOptionalPath;
 use super::json_path::JsonPath;
-use crate::worktree::get_sorted_worktrees;
+use crate::artifact_lock::ArtifactLock;
+use crate::branch_targets::BranchName;
+use crate::branch_targets::MinecraftVersion;
+use crate::branch_targets::WorktreeTarget;
+use crate::branch_targets::select_required_worktree_targets;
+use crate::branch_targets::select_single_worktree_target;
+use crate::paths::CACHE_DIR;
 use chrono::Local;
 use eyre::Context;
 use facet::Facet;
@@ -15,9 +23,11 @@ use sha1::Sha1;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::collections::VecDeque;
 use std::fmt::Write as _;
 use std::fs;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Cursor;
@@ -28,9 +38,16 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::ExitStatus;
 use std::process::Stdio;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering as AtomicOrdering;
+use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 use zip::CompressionMethod;
 use zip::ZipArchive;
 use zip::ZipWriter;
@@ -39,59 +56,308 @@ use zip::write::SimpleFileOptions;
 const VERSION_MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 const NEOFORM_RUNTIME_COORDINATE: &str = "net.neoforged:neoform-runtime:2.0.19:all";
+const DOWNLOAD_RETRY_ATTEMPTS: usize = 3;
 
 pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
     let _span = tracing::info_span!(
         "sfm_jar_build_command",
-        mc = %options.mc,
+        branch = %options.branch,
         mode = ?options.mode,
         refresh = options.refresh,
         explain_rebuild = options.explain_rebuild,
         dry_run = options.dry_run,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
+        error_action = %options.error_action,
+        parallelism = %options.parallelism,
     )
     .entered();
-    let plan = create_plan(options)?;
-    write_plan_outputs(&plan, options.plan_json.as_deref())?;
-    print_plan_summary(&plan);
+    let targets = resolve_build_targets(options)?;
+    let target_count = targets.len();
+    let TargetExecutionSummary { plans, failures } = execute_build_targets(options, targets)?;
 
-    match options.mode {
-        BuildMode::Plan => write_artifact_lockfile(&plan),
-        BuildMode::Build if options.dry_run => {
-            println!("Jar build dry-run: resolved plan and lockfile; skipped build execution.");
-            tracing::info!("jar_build_dry_run_skip_execution");
-            write_artifact_lockfile(&plan)
-        }
-        BuildMode::Build => {
-            execute_build(&plan, options.explain_rebuild, BuildTarget::Jar)?;
-            write_artifact_lockfile(&plan)
-        }
-    }
+    write_requested_plan_outputs(&plans, options.plan_json.as_deref())?;
+    finish_target_summary(
+        build_action_name(options),
+        target_count,
+        plans.len(),
+        &failures,
+    )
 }
 
 pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<()> {
     let _span = tracing::info_span!(
         "sfm_run_command",
-        mc = %options.mc,
+        branch = %options.branch,
         kind = kind.command_name(),
         refresh = options.refresh,
         explain_rebuild = options.explain_rebuild,
         dry_run = options.dry_run,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
+        error_action = %options.error_action,
+        parallelism = %options.parallelism,
     )
     .entered();
-    let plan = create_plan(options)?;
-    write_plan_outputs(&plan, options.plan_json.as_deref())?;
+    let targets = resolve_build_targets(options)?;
+    let target_count = targets.len();
+    let TargetExecutionSummary { plans, failures } = execute_run_targets(options, kind, targets)?;
+
+    write_requested_plan_outputs(&plans, options.plan_json.as_deref())?;
+    finish_target_summary(kind.command_name(), target_count, plans.len(), &failures)
+}
+
+fn execute_build_targets(
+    options: &BuildOptions,
+    targets: Vec<WorktreeTarget>,
+) -> eyre::Result<TargetExecutionSummary> {
+    execute_targets(
+        options,
+        targets,
+        "sfm_jar_build_target",
+        |options, target| {
+            let _target_span = tracing::info_span!(
+                "sfm_jar_build_target",
+                branch = %target.branch,
+                worktree = %target.worktree_path.display(),
+            )
+            .entered();
+            execute_build_target(options, target)
+        },
+    )
+}
+
+fn execute_run_targets(
+    options: &BuildOptions,
+    kind: RunKind,
+    targets: Vec<WorktreeTarget>,
+) -> eyre::Result<TargetExecutionSummary> {
+    execute_targets(options, targets, "sfm_run_target", |options, target| {
+        let _target_span = tracing::info_span!(
+            "sfm_run_target",
+            branch = %target.branch,
+            worktree = %target.worktree_path.display(),
+            kind = kind.command_name(),
+        )
+        .entered();
+        execute_run_target(options, kind, target)
+    })
+}
+
+fn execute_targets(
+    options: &BuildOptions,
+    targets: Vec<WorktreeTarget>,
+    action: &'static str,
+    execute: impl Fn(&BuildOptions, &WorktreeTarget) -> eyre::Result<BuildPlan> + Send + Sync,
+) -> eyre::Result<TargetExecutionSummary> {
+    let Some(limit) = options.parallelism.limit() else {
+        return execute_targets_sequential(options, targets, execute);
+    };
+    execute_targets_parallel(options, targets, action, limit, execute)
+}
+
+fn execute_targets_sequential(
+    options: &BuildOptions,
+    targets: Vec<WorktreeTarget>,
+    execute: impl Fn(&BuildOptions, &WorktreeTarget) -> eyre::Result<BuildPlan>,
+) -> eyre::Result<TargetExecutionSummary> {
+    let mut plans = Vec::new();
+    let mut failures = Vec::new();
+
+    for target in targets {
+        crate::cancellation::bail_if_cancelled()?;
+        match execute(options, &target) {
+            Ok(plan) => plans.push(plan),
+            Err(error) if options.error_action.should_continue() => {
+                tracing::error!(error = %error, "target_failed");
+                failures.push(TargetFailure::new(&target, &error));
+            }
+            Err(error) => return Err(error),
+        }
+    }
+
+    Ok(TargetExecutionSummary { plans, failures })
+}
+
+fn execute_targets_parallel(
+    options: &BuildOptions,
+    targets: Vec<WorktreeTarget>,
+    action: &'static str,
+    limit: usize,
+    execute: impl Fn(&BuildOptions, &WorktreeTarget) -> eyre::Result<BuildPlan> + Send + Sync,
+) -> eyre::Result<TargetExecutionSummary> {
+    if targets.is_empty() {
+        return Ok(TargetExecutionSummary::default());
+    }
+
+    let target_count = targets.len();
+    let worker_count = limit.min(target_count);
+    tracing::info!(
+        action,
+        worker_count,
+        target_count,
+        error_action = %options.error_action,
+        "parallel target execution starting"
+    );
+
+    let queue = Arc::new(Mutex::new(
+        targets.into_iter().enumerate().collect::<VecDeque<_>>(),
+    ));
+    let stop_starting = Arc::new(AtomicBool::new(false));
+    let (sender, receiver) = mpsc::channel::<TargetExecutionResult>();
+
+    thread::scope(|scope| {
+        for worker_index in 0..worker_count {
+            let queue = Arc::clone(&queue);
+            let stop_starting = Arc::clone(&stop_starting);
+            let sender = sender.clone();
+            let execute = &execute;
+            scope.spawn(move || {
+                loop {
+                    if stop_starting.load(AtomicOrdering::Acquire)
+                        || crate::cancellation::is_cancelled()
+                    {
+                        break;
+                    }
+                    let target = {
+                        let mut queue = queue.lock().expect("target queue should not be poisoned");
+                        queue.pop_front()
+                    };
+                    let Some((target_index, target)) = target else {
+                        break;
+                    };
+
+                    let _worker_span = tracing::info_span!(
+                        "sfm_parallel_worker",
+                        worker = worker_index,
+                        branch = %target.branch,
+                        worktree = %target.worktree_path.display(),
+                    )
+                    .entered();
+                    let result = execute(options, &target);
+                    let failed = result.is_err();
+                    if failed && !options.error_action.should_continue() {
+                        stop_starting.store(true, AtomicOrdering::Release);
+                    }
+                    if sender
+                        .send(TargetExecutionResult {
+                            target_index,
+                            target,
+                            result,
+                        })
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+            });
+        }
+        drop(sender);
+
+        let mut results = receiver.into_iter().collect::<Vec<_>>();
+        results.sort_by_key(|result| result.target_index);
+
+        let mut plans = Vec::new();
+        let mut failures = Vec::new();
+        for result in results {
+            match result.result {
+                Ok(plan) => plans.push(plan),
+                Err(error) => {
+                    tracing::error!(
+                        branch = %result.target.branch,
+                        error = %error,
+                        "target_failed"
+                    );
+                    failures.push(TargetFailure::new(&result.target, &error));
+                }
+            }
+        }
+
+        Ok(TargetExecutionSummary { plans, failures })
+    })
+}
+
+fn execute_build_target(
+    options: &BuildOptions,
+    target: &WorktreeTarget,
+) -> eyre::Result<BuildPlan> {
+    let plan = create_plan_for_target(options, target)?;
+    write_last_plan_output(&plan)?;
+    print_plan_summary(&plan);
+
+    match options.mode {
+        BuildMode::Plan => write_artifact_lockfile(&plan)?,
+        BuildMode::Build if options.dry_run => {
+            tracing::info!(
+                "Jar build dry-run: resolved plan and lockfile; skipped build execution."
+            );
+            tracing::info!("jar_build_dry_run_skip_execution");
+            write_artifact_lockfile(&plan)?;
+        }
+        BuildMode::Build => {
+            execute_build(&plan, options.explain_rebuild, BuildTarget::Jar)?;
+            write_artifact_lockfile(&plan)?;
+        }
+    }
+
+    Ok(plan)
+}
+
+fn execute_run_target(
+    options: &BuildOptions,
+    kind: RunKind,
+    target: &WorktreeTarget,
+) -> eyre::Result<BuildPlan> {
+    let plan = create_plan_for_target(options, target)?;
+    write_last_plan_output(&plan)?;
     print_plan_summary(&plan);
     execute_build(&plan, options.explain_rebuild, BuildTarget::Run)?;
     write_artifact_lockfile(&plan)?;
-    execute_run(&plan, kind, options.dry_run)
+    execute_run(&plan, kind, options.dry_run)?;
+    Ok(plan)
+}
+
+fn build_action_name(options: &BuildOptions) -> &'static str {
+    match options.mode {
+        BuildMode::Plan => "jar plan",
+        BuildMode::Build => "jar build",
+    }
+}
+
+fn finish_target_summary(
+    action_name: &str,
+    total: usize,
+    succeeded: usize,
+    failures: &[TargetFailure],
+) -> eyre::Result<()> {
+    if total > 1 || !failures.is_empty() {
+        tracing::info!(
+            "{action_name} target summary: {succeeded}/{total} succeeded, {} failed.",
+            failures.len()
+        );
+    }
+
+    if failures.is_empty() {
+        return Ok(());
+    }
+
+    for failure in failures {
+        tracing::info!(
+            "Failed target {} ({}): {}",
+            failure.branch,
+            failure.worktree_path.display(),
+            failure.error
+        );
+    }
+
+    eyre::bail!(
+        "{action_name} failed for {} of {total} target(s).",
+        failures.len()
+    );
 }
 
 pub(crate) fn invoke_compare(options: &CompareOptions) -> eyre::Result<()> {
     let _span = tracing::info_span!(
         "sfm_jar_compare_command",
-        mc = %options.mc,
+        branch = %options.branch,
         strict_manifest = options.strict_manifest,
     )
     .entered();
@@ -114,11 +380,44 @@ struct ComparePaths {
     rust_jar: PathBuf,
 }
 
+#[derive(Debug, Default)]
+struct TargetExecutionSummary {
+    plans: Vec<BuildPlan>,
+    failures: Vec<TargetFailure>,
+}
+
+#[derive(Debug)]
+struct TargetExecutionResult {
+    target_index: usize,
+    target: WorktreeTarget,
+    result: eyre::Result<BuildPlan>,
+}
+
+#[derive(Debug)]
+struct TargetFailure {
+    branch: BranchName,
+    worktree_path: PathBuf,
+    error: String,
+}
+
+impl TargetFailure {
+    fn new(target: &WorktreeTarget, error: &eyre::Report) -> Self {
+        Self {
+            branch: target.branch.clone(),
+            worktree_path: target.worktree_path.as_path().to_path_buf(),
+            error: error.to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Facet)]
 struct BuildPlan {
     schema_version: u32,
     mode: String,
-    minecraft_version: String,
+    #[facet(proxy = JsonBranchName)]
+    branch_name: BranchName,
+    #[facet(proxy = JsonMinecraftVersion)]
+    minecraft_version: MinecraftVersion,
     #[facet(proxy = JsonPath)]
     worktree_path: PathBuf,
     #[facet(proxy = JsonPath)]
@@ -130,9 +429,19 @@ struct BuildPlan {
     #[facet(proxy = JsonPath)]
     cache_dir: PathBuf,
     #[facet(proxy = JsonPath)]
+    common_cache_dir: PathBuf,
+    #[facet(proxy = JsonPath)]
     state_dir: PathBuf,
     #[facet(proxy = JsonPath)]
     maven_cache_dir: PathBuf,
+    #[facet(proxy = JsonPath)]
+    minecraft_cache_dir: PathBuf,
+    #[facet(proxy = JsonPath)]
+    minecraft_version_cache_dir: PathBuf,
+    #[facet(proxy = JsonPath)]
+    minecraft_assets_dir: PathBuf,
+    #[facet(proxy = JsonPath)]
+    minecraft_libraries_dir: PathBuf,
     #[facet(proxy = JsonPath)]
     lockfile_path: PathBuf,
     #[facet(skip_serializing)]
@@ -673,6 +982,11 @@ impl Resolver {
         .entered();
         let coordinate = self.resolve_dynamic_coordinate(coordinate)?;
         let cache_path = self.cache_path_for(&coordinate);
+        let expected_sha1 = self
+            .locked_artifact_sha1(&coordinate)
+            .map(ToOwned::to_owned);
+        let _cache_lock = acquire_artifact_path_lock(&cache_path)?;
+        prepare_existing_artifact_for_reuse(&cache_path, expected_sha1.as_deref())?;
 
         if cache_path.is_file() && !self.refresh {
             let artifact = Self::cached_artifact_plan(id, &coordinate, cache_path, required_for)?;
@@ -697,12 +1011,24 @@ impl Resolver {
                 "checking artifact remote"
             );
             let download_result = if coordinate.group == "curse.maven" {
-                download_to_path_overwrite(&self.client, &url, &cache_path, self.refresh)
+                download_to_path_overwrite_locked(
+                    &self.client,
+                    &url,
+                    &cache_path,
+                    self.refresh,
+                    expected_sha1.as_deref(),
+                )
             } else {
                 if !remote_exists(&self.client, &url)? {
                     continue;
                 }
-                download_to_path_overwrite(&self.client, &url, &cache_path, self.refresh)
+                download_to_path_overwrite_locked(
+                    &self.client,
+                    &url,
+                    &cache_path,
+                    self.refresh,
+                    expected_sha1.as_deref(),
+                )
             };
 
             if let Err(error) = download_result {
@@ -732,6 +1058,7 @@ impl Resolver {
                 local_artifact,
                 cache_path,
                 required_for,
+                expected_sha1.as_deref(),
             )?;
             self.verify_locked_artifact(&coordinate, &artifact)?;
             tracing::info!(
@@ -751,6 +1078,16 @@ impl Resolver {
         );
     }
 
+    fn locked_artifact_sha1(&self, coordinate: &MavenCoordinate) -> Option<&str> {
+        let coordinate_text = coordinate.to_string();
+        self.lockfile
+            .as_ref()?
+            .artifacts
+            .iter()
+            .find(|entry| entry.coordinate.as_deref() == Some(coordinate_text.as_str()))
+            .map(|entry| entry.sha1.as_str())
+    }
+
     fn verify_locked_artifact(
         &self,
         coordinate: &MavenCoordinate,
@@ -766,7 +1103,7 @@ impl Resolver {
             .find(|entry| entry.coordinate.as_deref() == Some(coordinate_text.as_str()))
         else {
             eyre::bail!(
-                "Artifact {} is not present in {}. Run jar build --mc {} --refresh to update the lockfile intentionally.",
+                "Artifact {} is not present in {}. Run jar build --branch {} --refresh to update the lockfile intentionally.",
                 coordinate_text,
                 "sfm-toolchain.lock.json",
                 lockfile.minecraft_version
@@ -856,17 +1193,9 @@ impl Resolver {
         local_artifact: LocalCachedArtifact,
         cache_path: PathBuf,
         required_for: &str,
+        expected_sha1: Option<&str>,
     ) -> eyre::Result<ArtifactPlan> {
-        if let Some(parent) = cache_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::copy(&local_artifact.path, &cache_path).wrap_err_with(|| {
-            format!(
-                "Failed to copy local cached artifact {} to {}",
-                local_artifact.path.display(),
-                cache_path.display()
-            )
-        })?;
+        copy_file_to_path_checked(&local_artifact.path, &cache_path, expected_sha1)?;
         let sha1 = file_sha1(&cache_path)?;
         let provenance = artifact_provenance(
             local_artifact.source,
@@ -935,7 +1264,7 @@ impl Resolver {
                 .find(|dependency| dependency.notation == notation)
             else {
                 eyre::bail!(
-                    "Dynamic dependency {} is not present in sfm-toolchain.lock.json. Run jar build --mc {} --refresh to update the lockfile intentionally.",
+                    "Dynamic dependency {} is not present in sfm-toolchain.lock.json. Run jar build --branch {} --refresh to update the lockfile intentionally.",
                     notation,
                     lockfile.minecraft_version
                 );
@@ -1191,32 +1520,37 @@ fn find_local_cached_artifact(coordinate: &MavenCoordinate) -> Option<LocalCache
     None
 }
 
+fn resolve_build_targets(options: &BuildOptions) -> eyre::Result<Vec<WorktreeTarget>> {
+    select_required_worktree_targets(&options.branch)
+}
+
+fn common_toolchain_cache_dir() -> PathBuf {
+    CACHE_DIR.0.join("minecraft-toolchain")
+}
+
 #[expect(
     clippy::too_many_lines,
     reason = "The planner is a single orchestration pass over project inputs."
 )]
-fn create_plan(options: &BuildOptions) -> eyre::Result<BuildPlan> {
+fn create_plan_for_target(
+    options: &BuildOptions,
+    target: &WorktreeTarget,
+) -> eyre::Result<BuildPlan> {
     let _span = tracing::info_span!(
         "create_build_plan",
-        mc = %options.mc,
+        branch = %options.branch,
+        target = %target.branch,
         refresh = options.refresh,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
     )
     .entered();
-    let worktree_path = find_worktree_path(&options.mc)?;
+    let worktree_path = target.worktree_path.as_path().to_path_buf();
     let minecraft_dir = worktree_path.join("platform").join("minecraft");
     let properties_path = minecraft_dir.join("gradle.properties");
     let properties = read_properties(&properties_path)?;
 
     let minecraft_version = required_property(&properties, "minecraft_version")?;
-    let mut warnings = Vec::new();
-    if minecraft_version != options.mc {
-        warnings.push(format!(
-            "--mc {} selected {}, but gradle.properties says minecraft_version={minecraft_version}; using minecraft_version for artifact coordinates.",
-            options.mc,
-            worktree_path.display()
-        ));
-    }
+    let warnings = Vec::new();
 
     let loader_version = required_property(&properties, "neo_version")?;
     let (mapping_channel, mapping_version) =
@@ -1229,11 +1563,19 @@ fn create_plan(options: &BuildOptions) -> eyre::Result<BuildPlan> {
     let rust_output_jar =
         rust_output_jar_path(&minecraft_dir, mod_name, minecraft_version, mod_version);
     let cache_dir = minecraft_dir.join("build").join("sfm-toolchain");
+    let common_cache_dir = common_toolchain_cache_dir();
     let state_dir = cache_dir.join("state");
-    let maven_cache_dir = cache_dir.join("maven");
+    let maven_cache_dir = common_cache_dir.join("maven");
+    let minecraft_cache_dir = common_cache_dir.join("minecraft");
+    let minecraft_version_cache_dir = minecraft_cache_dir.join("versions").join(minecraft_version);
+    let minecraft_assets_dir = minecraft_cache_dir.join("assets");
+    let minecraft_libraries_dir = minecraft_cache_dir.join("libraries");
     let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
     fs::create_dir_all(&state_dir)?;
     fs::create_dir_all(&maven_cache_dir)?;
+    fs::create_dir_all(&minecraft_version_cache_dir)?;
+    fs::create_dir_all(&minecraft_assets_dir)?;
+    fs::create_dir_all(&minecraft_libraries_dir)?;
     let lockfile = if options.refresh {
         None
     } else {
@@ -1301,7 +1643,8 @@ fn create_plan(options: &BuildOptions) -> eyre::Result<BuildPlan> {
         artifacts.push(artifact);
     }
 
-    let minecraft = resolve_minecraft_plan(&cache_dir, &resolver.client, minecraft_version)?;
+    let minecraft =
+        resolve_minecraft_plan(&minecraft_cache_dir, &resolver.client, minecraft_version)?;
     artifacts.push(minecraft.version_manifest.clone());
     artifacts.push(minecraft.version_json.clone());
 
@@ -1331,14 +1674,20 @@ fn create_plan(options: &BuildOptions) -> eyre::Result<BuildPlan> {
             BuildMode::Plan => "plan".to_string(),
             BuildMode::Build => "build".to_string(),
         },
-        minecraft_version: minecraft_version.to_string(),
+        branch_name: target.branch.clone(),
+        minecraft_version: MinecraftVersion::parse(minecraft_version)?,
         worktree_path,
         minecraft_dir,
         gradle_output_jar,
         rust_output_jar,
         cache_dir,
+        common_cache_dir,
         state_dir,
         maven_cache_dir,
+        minecraft_cache_dir,
+        minecraft_version_cache_dir,
+        minecraft_assets_dir,
+        minecraft_libraries_dir,
         lockfile_path,
         lockfile,
         java,
@@ -1748,13 +2097,14 @@ fn loader_toolchain_plan(
 }
 
 fn resolve_minecraft_plan(
-    cache_dir: &Path,
+    minecraft_cache: &Path,
     client: &Client,
     minecraft_version: &str,
 ) -> eyre::Result<MinecraftPlan> {
-    let minecraft_cache = cache_dir.join("minecraft");
-    fs::create_dir_all(&minecraft_cache)?;
-    let manifest_path = minecraft_cache.join("version_manifest_v2.json");
+    fs::create_dir_all(minecraft_cache)?;
+    let metadata_cache = minecraft_cache.join("metadata");
+    fs::create_dir_all(&metadata_cache)?;
+    let manifest_path = metadata_cache.join("version_manifest_v2.json");
     download_to_path(client, VERSION_MANIFEST_URL, &manifest_path)?;
     let manifest: MojangVersionManifest = read_json_file(&manifest_path)?;
     let version_url = manifest
@@ -1765,7 +2115,9 @@ fn resolve_minecraft_plan(
             eyre::eyre!("Minecraft version {minecraft_version} not found in Mojang manifest")
         })?;
 
-    let version_json_path = minecraft_cache.join(format!("{minecraft_version}.json"));
+    let version_cache = minecraft_cache.join("versions").join(minecraft_version);
+    fs::create_dir_all(&version_cache)?;
+    let version_json_path = version_cache.join("version.json");
     download_to_path(client, version_url, &version_json_path)?;
     let version_json: MinecraftVersionJson = read_json_file(&version_json_path)?;
     let libraries_count = version_json.libraries.len();
@@ -2154,7 +2506,7 @@ fn build_graph(
                 VERSION_MANIFEST_URL,
                 "dependencies.gradle",
             ],
-            vec!["build/sfm-toolchain/maven", "build/sfm-toolchain/minecraft"],
+            vec!["$sfm-cache/maven", "$sfm-cache/minecraft"],
         ),
     ];
 
@@ -2264,6 +2616,7 @@ enum BuildTarget {
 fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -> eyre::Result<()> {
     let _span = tracing::info_span!(
         "execute_rust_owned_build",
+        branch = %plan.branch_name,
         mc = %plan.minecraft_version,
         loader = ?plan.loader_toolchain.kind,
         graph_nodes = plan.graph.len(),
@@ -2276,18 +2629,18 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
 
     if explain_rebuild {
         for node in &plan.graph {
-            println!("{}: {}", node.id, node.rebuild_reason);
+            tracing::info!("{}: {}", node.id, node.rebuild_reason);
         }
     }
 
-    println!("Build node resolve-project-config: recording plan state");
+    tracing::info!("Build node resolve-project-config: recording plan state");
     context.write_node_state(
         "resolve-project-config",
         &["gradle.properties", "versioned Gradle fragments"],
         &[plan.state_dir.join("last-plan.json")],
         "complete",
     )?;
-    println!("Build node resolve-maven-and-minecraft-inputs: recording resolved artifacts");
+    tracing::info!("Build node resolve-maven-and-minecraft-inputs: recording resolved artifacts");
     context.write_node_state(
         "resolve-maven-and-minecraft-inputs",
         &[
@@ -2297,56 +2650,58 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
         ],
         &[
             plan.maven_cache_dir.clone(),
-            plan.cache_dir.join("minecraft"),
+            plan.minecraft_version_cache_dir.clone(),
+            plan.minecraft_libraries_dir.clone(),
+            plan.minecraft_assets_dir.clone(),
         ],
         "complete",
     )?;
 
     if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         let started = Instant::now();
-        println!("Build node execute-neoform-userdev: start");
+        tracing::info!("Build node execute-neoform-userdev: start");
         execute_neoform_userdev(&context)?;
-        println!(
+        tracing::info!(
             "Build node execute-neoform-userdev: done in {} ms",
             started.elapsed().as_millis()
         );
     } else {
         ensure_forge_gradle_execution_supported(plan)?;
         let started = Instant::now();
-        println!("Build node execute-mcp-config-joined: start");
+        tracing::info!("Build node execute-mcp-config-joined: start");
         execute_mcp_config_joined(&context)?;
-        println!(
+        tracing::info!(
             "Build node execute-mcp-config-joined: done in {} ms",
             started.elapsed().as_millis()
         );
 
         let started = Instant::now();
-        println!("Build node execute-forge-userdev: start");
+        tracing::info!("Build node execute-forge-userdev: start");
         execute_forge_userdev(&context)?;
-        println!(
+        tracing::info!(
             "Build node execute-forge-userdev: done in {} ms",
             started.elapsed().as_millis()
         );
     }
     let started = Instant::now();
-    println!("Build node deobfuscate-mod-dependencies: start");
+    tracing::info!("Build node deobfuscate-mod-dependencies: start");
     execute_dependency_deobf(&context)?;
-    println!(
+    tracing::info!(
         "Build node deobfuscate-mod-dependencies: done in {} ms",
         started.elapsed().as_millis()
     );
     let started = Instant::now();
-    println!("Build node compile-project: start");
+    tracing::info!("Build node compile-project: start");
     execute_project_compile(&context)?;
-    println!(
+    tracing::info!(
         "Build node compile-project: done in {} ms",
         started.elapsed().as_millis()
     );
     if target == BuildTarget::Jar {
         let started = Instant::now();
-        println!("Build node package-and-reobfuscate-jar: start");
+        tracing::info!("Build node package-and-reobfuscate-jar: start");
         execute_package_and_reobfuscate(&context)?;
-        println!(
+        tracing::info!(
             "Build node package-and-reobfuscate-jar: done in {} ms",
             started.elapsed().as_millis()
         );
@@ -2358,12 +2713,12 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
             );
         }
 
-        println!(
+        tracing::info!(
             "Rust jar build completed in {} ms",
             total_started.elapsed().as_millis()
         );
     } else {
-        println!(
+        tracing::info!(
             "Rust run build outputs prepared in {} ms",
             total_started.elapsed().as_millis()
         );
@@ -2475,6 +2830,15 @@ struct LaunchOutput {
     status: ExitStatus,
     combined: String,
     timed_out: bool,
+    cancelled: bool,
+}
+
+#[derive(Debug)]
+struct CancellableOutput {
+    status: ExitStatus,
+    stdout: Vec<u8>,
+    stderr: Vec<u8>,
+    cancelled: bool,
 }
 
 #[expect(
@@ -2484,6 +2848,7 @@ struct LaunchOutput {
 fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<()> {
     let _span = tracing::info_span!(
         "execute_run_setup",
+        branch = %plan.branch_name,
         mc = %plan.minecraft_version,
         kind = kind.command_name(),
         loader = ?plan.loader_toolchain.kind,
@@ -2582,14 +2947,9 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
         );
     }
     if matches!(kind, RunKind::GameTestServer) {
-        let log4j_config = write_gametest_log4j_config(&run_state_dir)?;
         properties.insert(
             "sfm.gametest.maxProgramRunMillis".to_string(),
             "150".to_string(),
-        );
-        properties.insert(
-            "log4j2.configurationFile".to_string(),
-            log4j_config.display().to_string(),
         );
     }
     if let Some(automation_mode) = kind.automation_mode() {
@@ -2661,17 +3021,17 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
     )
     .wrap_err_with(|| format!("Failed to write {}", argfile.display()))?;
 
-    println!(
+    tracing::info!(
         "Launching {} from {}",
         kind.command_name(),
         working_dir.display()
     );
-    println!("Launch args: {}", argfile.display());
-    println!(
+    tracing::info!("Launch args: {}", argfile.display());
+    tracing::info!(
         "MOD_CLASSES={}",
         env.get("MOD_CLASSES").map_or("", String::as_str)
     );
-    println!(
+    tracing::info!(
         "Userdev mod jars on launch classpath: {}",
         launch_classpath.userdev_mods.len()
     );
@@ -2695,7 +3055,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
             &run_outputs,
             "dry-run",
         )?;
-        println!(
+        tracing::info!(
             "Dry run prepared {} launch setup and skipped Minecraft JVM launch.",
             kind.command_name()
         );
@@ -2706,7 +3066,6 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
         );
         return Ok(());
     }
-    let echo_launch_output = !matches!(kind, RunKind::GameTestServer);
     let max_launch_attempts = if matches!(kind, RunKind::GameTestServer) {
         3
     } else {
@@ -2716,7 +3075,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
     for attempt in 1..=max_launch_attempts {
         if matches!(kind, RunKind::GameTestServer) {
             clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
-            println!("Game-test server attempt {attempt}/{max_launch_attempts}");
+            tracing::info!("Game-test server attempt {attempt}/{max_launch_attempts}");
         }
         if matches!(kind, RunKind::ClientPuppet) {
             clean_client_puppet_world(&plan.minecraft_dir, &working_dir)?;
@@ -2727,7 +3086,6 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
             &working_dir,
             &env,
             &launch_log,
-            echo_launch_output,
             kind.launch_timeout(),
         )
         .wrap_err_with(|| {
@@ -2741,7 +3099,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
             launch_output = Some(attempt_output);
             break;
         }
-        println!(
+        tracing::info!(
             "{} attempt {attempt}/{max_launch_attempts} exited with {}; retrying. See {}",
             kind.command_name(),
             attempt_output.status,
@@ -2783,6 +3141,13 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
             launch_log.display()
         );
     }
+    if launch_output.cancelled {
+        eyre::bail!(
+            "{} was cancelled by Ctrl+C. See {}",
+            kind.command_name(),
+            launch_log.display()
+        );
+    }
     if !launch_output.status.success() {
         eyre::bail!(
             "{} exited with {}. See {}",
@@ -2809,7 +3174,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
                 launch_log.display()
             );
         }
-        println!("Validated {pass_count} required game tests passed.");
+        tracing::info!("Validated {pass_count} required game tests passed.");
     }
     if matches!(kind, RunKind::ClientSmoke) {
         if !launch_output.combined.contains("SFM_CLIENT_SMOKE_READY") {
@@ -2819,7 +3184,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
                 launch_log.display()
             );
         }
-        println!("Validated client reached the title screen.");
+        tracing::info!("Validated client reached the title screen.");
     }
     if matches!(kind, RunKind::ClientPuppet) {
         let Some(pass_count) = extract_client_puppet_pass_count(&launch_output.combined) else {
@@ -2836,7 +3201,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
                 launch_log.display()
             );
         }
-        println!("Validated client puppet completed {pass_count} required game tests.");
+        tracing::info!("Validated client puppet completed {pass_count} required game tests.");
     }
     Ok(())
 }
@@ -2857,7 +3222,7 @@ fn game_test_namespace_property(context: &ExecutionContext<'_>) -> eyre::Result<
         .minecraft_dir
         .join("gradle")
         .join("run-configurations")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("run-configurations.gradle");
     if run_config.is_file() {
         let text = fs::read_to_string(&run_config)
@@ -2867,33 +3232,6 @@ fn game_test_namespace_property(context: &ExecutionContext<'_>) -> eyre::Result<
         }
     }
     Ok("forge.enabledGameTestNamespaces".to_string())
-}
-
-fn write_gametest_log4j_config(run_state_dir: &Path) -> eyre::Result<PathBuf> {
-    let path = run_state_dir.join("log4j2-gametest.properties");
-    let content = r"status = warn
-name = SFMGameTest
-
-appenders = console
-appender.console.type = Console
-appender.console.name = STDOUT
-appender.console.target = SYSTEM_OUT
-appender.console.layout.type = PatternLayout
-appender.console.layout.pattern = [%d{HH:mm:ss}] [%t/%level] [%logger]: %msg%n%throwable
-
-loggers = sfm
-logger.sfm.name = sfm
-logger.sfm.level = error
-logger.sfm.additivity = false
-logger.sfm.appenderRefs = stdout
-logger.sfm.appenderRef.stdout.ref = STDOUT
-
-rootLogger.level = info
-rootLogger.appenderRefs = stdout
-rootLogger.appenderRef.stdout.ref = STDOUT
-";
-    fs::write(&path, content).wrap_err_with(|| format!("Failed to write {}", path.display()))?;
-    Ok(path)
 }
 
 fn clean_gametest_server_world(minecraft_dir: &Path, working_dir: &Path) -> eyre::Result<()> {
@@ -2989,17 +3327,16 @@ fn run_launch_command(
     working_dir: &Path,
     env: &BTreeMap<String, String>,
     log_path: &Path,
-    echo_output: bool,
     timeout: Option<Duration>,
 ) -> eyre::Result<LaunchOutput> {
     let _span = tracing::info_span!(
         "launch_minecraft_jvm",
+        branch = %plan.branch_name,
         mc = %plan.minecraft_version,
         java = %plan.java.executable.display(),
         argfile = %argfile.display(),
         working_dir = %working_dir.display(),
         env_vars = env.len(),
-        echo_output,
         timeout_seconds = timeout.map_or(0, |timeout| timeout.as_secs()),
     )
     .entered();
@@ -3024,13 +3361,28 @@ fn run_launch_command(
         .stderr
         .take()
         .ok_or_else(|| eyre::eyre!("Failed to capture launch stderr"))?;
-    let stdout_thread = thread::spawn(move || read_launch_stream(stdout, false, echo_output));
-    let stderr_thread = thread::spawn(move || read_launch_stream(stderr, true, echo_output));
+    let stdout_branch = plan.branch_name.clone();
+    let stderr_branch = plan.branch_name.clone();
+    let stdout_thread = thread::spawn(move || {
+        read_launch_stream(stdout, &stdout_branch, "minecraft", "minecraft", "stdout")
+    });
+    let stderr_thread = thread::spawn(move || {
+        read_launch_stream(stderr, &stderr_branch, "minecraft", "minecraft", "stderr")
+    });
     let started = Instant::now();
     let mut timed_out = false;
+    let mut cancelled = false;
     let status = loop {
         if let Some(status) = child.try_wait().wrap_err("Failed to poll launched JVM")? {
             break status;
+        }
+        if crate::cancellation::is_cancelled() {
+            cancelled = true;
+            tracing::warn!("Cancellation requested; killing launched Minecraft JVM");
+            kill_child_for_cancellation(&mut child, "launched Minecraft JVM")?;
+            break child
+                .wait()
+                .wrap_err("Failed to wait for cancelled launched JVM")?;
         }
         if let Some(timeout) = timeout
             && started.elapsed() >= timeout
@@ -3051,6 +3403,7 @@ fn run_launch_command(
     let mut log = String::new();
     writeln!(log, "status={status}")?;
     writeln!(log, "timed_out={timed_out}")?;
+    writeln!(log, "cancelled={cancelled}")?;
     writeln!(log, "argfile={}", argfile.display())?;
     writeln!(log, "working_dir={}", working_dir.display())?;
     writeln!(log)?;
@@ -3060,23 +3413,25 @@ fn run_launch_command(
         status,
         combined,
         timed_out,
+        cancelled,
     })
 }
 
-fn read_launch_stream<R>(stream: R, stderr: bool, echo_output: bool) -> std::io::Result<String>
+fn read_launch_stream<R>(
+    stream: R,
+    branch: &str,
+    source: &'static str,
+    process: &str,
+    stream_name: &'static str,
+) -> std::io::Result<String>
 where
     R: Read,
 {
+    let _span = tracing::info_span!("forward_subprocess_stream", branch = %branch).entered();
     let mut captured = String::new();
     for line in BufReader::new(stream).lines() {
         let line = line?;
-        if echo_output {
-            if stderr {
-                eprintln!("{line}");
-            } else {
-                println!("{line}");
-            }
-        }
+        trace_subprocess_line(source, process, stream_name, &line);
         captured.push_str(&line);
         captured.push('\n');
     }
@@ -3091,6 +3446,133 @@ fn join_launch_stream(
         .join()
         .map_err(|_panic| eyre::eyre!("Launch {name} reader thread panicked"))?
         .wrap_err_with(|| format!("Failed to read launch {name}"))
+}
+
+fn run_command_capture_output(
+    command: &mut Command,
+    process_name: &str,
+) -> eyre::Result<CancellableOutput> {
+    crate::cancellation::bail_if_cancelled()?;
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = command
+        .spawn()
+        .wrap_err_with(|| format!("Failed to spawn {process_name}"))?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| eyre::eyre!("Failed to capture {process_name} stdout"))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| eyre::eyre!("Failed to capture {process_name} stderr"))?;
+    let stdout_thread = thread::spawn(move || read_stream_bytes(stdout));
+    let stderr_thread = thread::spawn(move || read_stream_bytes(stderr));
+    let mut cancelled = false;
+    let status = loop {
+        if let Some(status) = child
+            .try_wait()
+            .wrap_err_with(|| format!("Failed to poll {process_name}"))?
+        {
+            break status;
+        }
+        if crate::cancellation::is_cancelled() {
+            cancelled = true;
+            tracing::warn!(
+                process = process_name,
+                "Cancellation requested; killing JVM child"
+            );
+            kill_child_for_cancellation(&mut child, process_name)?;
+            break child
+                .wait()
+                .wrap_err_with(|| format!("Failed to wait for cancelled {process_name}"))?;
+        }
+        thread::sleep(Duration::from_millis(250));
+    };
+    Ok(CancellableOutput {
+        status,
+        stdout: join_output_stream(stdout_thread, process_name, "stdout")?,
+        stderr: join_output_stream(stderr_thread, process_name, "stderr")?,
+        cancelled,
+    })
+}
+
+fn kill_child_for_cancellation(
+    child: &mut std::process::Child,
+    process_name: &str,
+) -> eyre::Result<()> {
+    match child.kill() {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::InvalidInput => Ok(()),
+        Err(error) => {
+            Err(error).wrap_err_with(|| format!("Failed to kill cancelled {process_name}"))
+        }
+    }
+}
+
+fn read_stream_bytes<R>(mut stream: R) -> std::io::Result<Vec<u8>>
+where
+    R: Read,
+{
+    let mut bytes = Vec::new();
+    stream.read_to_end(&mut bytes)?;
+    Ok(bytes)
+}
+
+fn join_output_stream(
+    handle: thread::JoinHandle<std::io::Result<Vec<u8>>>,
+    process_name: &str,
+    stream_name: &str,
+) -> eyre::Result<Vec<u8>> {
+    handle
+        .join()
+        .map_err(|_panic| eyre::eyre!("{process_name} {stream_name} reader thread panicked"))?
+        .wrap_err_with(|| format!("Failed to read {process_name} {stream_name}"))
+}
+
+fn trace_subprocess_bytes(
+    plan: &BuildPlan,
+    source: &'static str,
+    process: &str,
+    stream: &'static str,
+    bytes: &[u8],
+) {
+    let _span =
+        tracing::info_span!("forward_subprocess_bytes", branch = %plan.branch_name).entered();
+    let content = String::from_utf8_lossy(bytes);
+    for line in content.lines() {
+        trace_subprocess_line(source, process, stream, line);
+    }
+}
+
+fn write_java_tool_console_log(
+    log_path: &Path,
+    tool_id: &str,
+    main_class: &str,
+    duration_ms: u128,
+    classpath_arg: &str,
+    args: &[String],
+    output: &CancellableOutput,
+) -> eyre::Result<()> {
+    let mut log = Vec::new();
+    writeln!(
+        log,
+        "tool={tool_id}\nmain={main_class}\nstatus={}\ncancelled={}\nduration_ms={}\nclasspath={}\nargs={:?}\n",
+        output.status, output.cancelled, duration_ms, classpath_arg, args
+    )?;
+    log.extend_from_slice(b"\n--- stdout ---\n");
+    log.extend_from_slice(&output.stdout);
+    log.extend_from_slice(b"\n--- stderr ---\n");
+    log.extend_from_slice(&output.stderr);
+    fs::write(log_path, log).wrap_err_with(|| format!("Failed to write {}", log_path.display()))
+}
+
+fn trace_subprocess_line(source: &'static str, process: &str, stream: &'static str, line: &str) {
+    tracing::info!(
+        source,
+        process = %process,
+        stream,
+        "{line}"
+    );
 }
 
 fn extract_required_gametest_pass_count(output: &str) -> Option<usize> {
@@ -3206,9 +3688,7 @@ fn resolve_run_classpath(
     legacy.push(ensure_run_forge_dev_jar(context)?);
     legacy.push(ensure_client_extra_jar(context)?);
     legacy.push(ensure_runtime_mcp_csv_mappings(context)?);
-    legacy.extend(collect_jars(
-        &context.plan.cache_dir.join("minecraft").join("libraries"),
-    )?);
+    legacy.extend(collect_jars(&context.plan.minecraft_libraries_dir)?);
     legacy.extend(resolve_forge_userdev_libraries(context, resolver)?);
     legacy.extend(resolve_run_plain_dependencies(context, resolver, kind)?);
 
@@ -3232,9 +3712,7 @@ fn resolve_neogradle_run_classpath(
     kind: RunKind,
 ) -> eyre::Result<RunClasspath> {
     let mut legacy = Vec::new();
-    legacy.extend(collect_jars(
-        &context.plan.cache_dir.join("minecraft").join("libraries"),
-    )?);
+    legacy.extend(collect_jars(&context.plan.minecraft_libraries_dir)?);
     legacy.extend(resolve_forge_userdev_libraries(context, resolver)?);
     legacy.push(ensure_client_extra_jar(context)?);
     legacy.extend(ensure_run_neoforge_dev_jars(context, kind)?);
@@ -3340,7 +3818,7 @@ fn ensure_run_forge_dev_jar(context: &ExecutionContext<'_>) -> eyre::Result<Path
         .plan
         .cache_dir
         .join("forge")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("classes")
         .join("dev-compile.jar");
     if !input.is_file() {
@@ -3362,8 +3840,7 @@ fn ensure_run_forge_dev_jar(context: &ExecutionContext<'_>) -> eyre::Result<Path
 }
 
 fn ensure_client_extra_jar(context: &ExecutionContext<'_>) -> eyre::Result<PathBuf> {
-    let minecraft_root = context.plan.cache_dir.join("minecraft");
-    let client_jar = minecraft_root.join("client.jar");
+    let client_jar = context.plan.minecraft_version_cache_dir.join("client.jar");
     if !client_jar.is_file() {
         let client = Client::builder()
             .user_agent("sfm-propagate-changes/no-gradle-toolchain")
@@ -3373,7 +3850,7 @@ fn ensure_client_extra_jar(context: &ExecutionContext<'_>) -> eyre::Result<PathB
     }
     context.assert_allowed_input(&client_jar)?;
 
-    let output = minecraft_root.join("client-extra.jar");
+    let output = context.plan.cache_dir.join("run").join("client-extra.jar");
     if output.is_file() && !context.plan.refresh {
         return Ok(output);
     }
@@ -3387,7 +3864,7 @@ fn ensure_runtime_mcp_csv_mappings(context: &ExecutionContext<'_>) -> eyre::Resu
         .plan
         .cache_dir
         .join("forge")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("mappings")
         .join("srg_to_official.tsrg");
     if !input.is_file() {
@@ -3408,7 +3885,7 @@ fn ensure_run_refmap_remapping_file(context: &ExecutionContext<'_>) -> eyre::Res
         .plan
         .cache_dir
         .join("forge")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("mappings")
         .join("srg_to_official.tsrg");
     if !input.is_file() {
@@ -3438,7 +3915,7 @@ fn resolve_run_plain_dependencies(
         .minecraft_dir
         .join("gradle")
         .join("dependencies")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("dependencies.gradle");
     let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
     let configurations = run_dependency_configurations(kind);
@@ -3476,7 +3953,7 @@ fn resolve_run_deobf_dependencies(
         .plan
         .cache_dir
         .join("forge")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("mappings")
         .join("srg_to_official.tsrg");
     if !mapping_path.is_file() {
@@ -3668,12 +4145,8 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
         .user_agent("sfm-propagate-changes/no-gradle-toolchain")
         .build()
         .wrap_err("Failed to create HTTP client")?;
-    let version_json_path = context
-        .plan
-        .cache_dir
-        .join("minecraft")
-        .join(format!("{}.json", context.plan.minecraft_version));
-    let version_json: MinecraftVersionJson = read_json_file(&version_json_path)?;
+    let version_json: MinecraftVersionJson =
+        read_json_file(&context.plan.minecraft.version_json.cache_path)?;
     let asset_index = version_json
         .asset_index
         .ok_or_else(|| eyre::eyre!("Minecraft version JSON missing assetIndex"))?;
@@ -3681,7 +4154,7 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
         id: index_id,
         url: index_url,
     } = asset_index;
-    let assets_root = context.plan.cache_dir.join("assets");
+    let assets_root = context.plan.minecraft_assets_dir.clone();
     let index_path = assets_root.join("indexes").join(format!("{index_id}.json"));
     download_to_path(&client, &index_url, &index_path)?;
 
@@ -3700,7 +4173,13 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
             continue;
         }
         let object_url = format!("https://resources.download.minecraft.net/{prefix}/{hash}");
-        download_to_path_overwrite(&client, &object_url, &object_path, true)?;
+        download_to_path_overwrite_with_expected_sha1(
+            &client,
+            &object_url,
+            &object_path,
+            true,
+            hash,
+        )?;
         let actual_hash = file_sha1(&object_path)?;
         if actual_hash != hash {
             eyre::bail!(
@@ -3713,14 +4192,14 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
         downloaded += 1;
         checked += 1;
         if downloaded.is_multiple_of(100) {
-            println!(
+            tracing::info!(
                 "Downloaded {downloaded} missing Minecraft assets ({checked}/{})",
                 objects.len()
             );
         }
     }
     if downloaded > 0 {
-        println!(
+        tracing::info!(
             "Downloaded {downloaded} Minecraft assets into {}",
             assets_root.display()
         );
@@ -3912,36 +4391,41 @@ impl<'a> ExecutionContext<'a> {
         .wrap_err_with(|| format!("Failed to write {}", java_argfile.display()))?;
         let started = Instant::now();
         let log_path = work_dir.join("console.log");
-        println!(
+        tracing::info!(
             "Java tool {tool_id}: start main={main_class} argfile={} log={}",
             java_argfile.display(),
             log_path.display()
         );
-        let output = Command::new(&self.plan.java.executable)
+        let mut command = Command::new(&self.plan.java.executable);
+        command
             .arg(format!("@{}", java_argfile.display()))
-            .current_dir(work_dir)
-            .output()
-            .wrap_err_with(|| {
-                format!(
-                    "Failed to run Java tool {tool_id} using {}",
-                    self.plan.java.executable.display()
-                )
-            })?;
+            .current_dir(work_dir);
+        let output = run_command_capture_output(&mut command, tool_id).wrap_err_with(|| {
+            format!(
+                "Failed to run Java tool {tool_id} using {}",
+                self.plan.java.executable.display()
+            )
+        })?;
+        trace_subprocess_bytes(self.plan, "java-tool", tool_id, "stdout", &output.stdout);
+        trace_subprocess_bytes(self.plan, "java-tool", tool_id, "stderr", &output.stderr);
 
-        let mut log = Vec::new();
         let duration_ms = started.elapsed().as_millis();
-        writeln!(
-            log,
-            "tool={tool_id}\nmain={main_class}\nstatus={}\nduration_ms={}\nclasspath={}\nargs={:?}\n",
-            output.status, duration_ms, classpath_arg, args
+        write_java_tool_console_log(
+            &log_path,
+            tool_id,
+            &main_class,
+            duration_ms,
+            &classpath_arg,
+            args,
+            &output,
         )?;
-        log.extend_from_slice(b"\n--- stdout ---\n");
-        log.extend_from_slice(&output.stdout);
-        log.extend_from_slice(b"\n--- stderr ---\n");
-        log.extend_from_slice(&output.stderr);
-        fs::write(&log_path, log)
-            .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
 
+        if output.cancelled {
+            eyre::bail!(
+                "Java tool {tool_id} was cancelled by Ctrl+C. See {}",
+                log_path.display()
+            );
+        }
         if !output.status.success() {
             tracing::warn!(
                 tool_id,
@@ -3962,7 +4446,7 @@ impl<'a> ExecutionContext<'a> {
             log_path = %log_path.display(),
             "java_tool_completed"
         );
-        println!("Java tool {tool_id}: done in {duration_ms} ms");
+        tracing::info!("Java tool {tool_id}: done in {duration_ms} ms");
         Ok(())
     }
 }
@@ -3985,7 +4469,7 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
         .plan
         .cache_dir
         .join("mcp")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("joined");
     fs::create_dir_all(&mcp_root)?;
     let output = mcp_root.join("patch").join("joined-patched-sources.jar");
@@ -3994,7 +4478,7 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
             output = %output.display(),
             "mcp_config_joined cache hit"
         );
-        println!(
+        tracing::info!(
             "Build node execute-mcp-config-joined: reusing {}",
             output.display()
         );
@@ -4012,10 +4496,12 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
         "mcp_config_joined cache miss"
     );
 
-    let minecraft_root = context.plan.cache_dir.join("minecraft");
-    let client_jar = minecraft_root.join("client.jar");
-    let server_bundle = minecraft_root.join("server-bundle.jar");
-    let client_mappings = minecraft_root.join("client.txt");
+    let client_jar = context.plan.minecraft_version_cache_dir.join("client.jar");
+    let server_bundle = context
+        .plan
+        .minecraft_version_cache_dir
+        .join("server-bundle.jar");
+    let client_mappings = context.plan.minecraft_version_cache_dir.join("client.txt");
 
     download_to_path(&client, &context.plan.minecraft.client_jar_url, &client_jar)?;
     download_to_path(
@@ -4096,7 +4582,7 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
             "--server".to_string(),
             stripped_server.display().to_string(),
             "--ann".to_string(),
-            context.plan.minecraft_version.clone(),
+            context.plan.minecraft_version.to_string(),
             "--output".to_string(),
             merged_jar.display().to_string(),
             "--inject".to_string(),
@@ -4192,7 +4678,7 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         .plan
         .cache_dir
         .join("forge")
-        .join(&context.plan.minecraft_version);
+        .join(context.plan.minecraft_version.as_str());
     fs::create_dir_all(&forge_root)?;
     let mappings_root = forge_root.join("mappings");
     let srg_to_official = mappings_root.join("srg_to_official.tsrg");
@@ -4207,7 +4693,7 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             output = %output.display(),
             "forge_userdev cache hit"
         );
-        println!(
+        tracing::info!(
             "Build node execute-forge-userdev: reusing {}",
             output.display()
         );
@@ -4229,7 +4715,7 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         .plan
         .cache_dir
         .join("mcp")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("joined");
     let mcp_sources = mcp_root.join("patch").join("joined-patched-sources.jar");
     if !mcp_sources.is_file() {
@@ -4283,9 +4769,8 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         &combined_srg_sources,
     )?;
 
-    let minecraft_root = context.plan.cache_dir.join("minecraft");
-    let client_mappings = minecraft_root.join("client.txt");
-    let server_mappings = minecraft_root.join("server.txt");
+    let client_mappings = context.plan.minecraft_version_cache_dir.join("client.txt");
+    let server_mappings = context.plan.minecraft_version_cache_dir.join("server.txt");
     download_to_path(
         &client,
         required_minecraft_mapping_url(
@@ -4462,7 +4947,7 @@ fn execute_neoform_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         .plan
         .cache_dir
         .join("neoform")
-        .join(&context.plan.minecraft_version);
+        .join(context.plan.minecraft_version.as_str());
     let output_root = neoform_root.join("classes");
     let nfrt_home = neoform_root.join("nfrt-home");
     let nfrt_work = neoform_root.join("nfrt-work");
@@ -4579,7 +5064,7 @@ fn neoform_dev_compile_jar(context: &ExecutionContext<'_>) -> PathBuf {
         .plan
         .cache_dir
         .join("neoform")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("classes")
         .join("gameJarWithNeoForge.jar")
 }
@@ -4605,7 +5090,7 @@ fn loader_dev_compile_jar(context: &ExecutionContext<'_>) -> PathBuf {
             .plan
             .cache_dir
             .join("forge")
-            .join(&context.plan.minecraft_version)
+            .join(context.plan.minecraft_version.as_str())
             .join("classes")
             .join("dev-compile.jar")
     }
@@ -4686,7 +5171,7 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
         .plan
         .cache_dir
         .join("forge")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("mappings")
         .join("srg_to_official.tsrg");
     if !mapping_path.is_file() {
@@ -4964,7 +5449,7 @@ fn rewrite_srg_member_constants_in_jar(
         .finish()
         .wrap_err_with(|| format!("Failed to finish {}", output.display()))?;
     if replacements > 0 {
-        println!(
+        tracing::info!(
             "Patched {replacements} SRG member constants in {}",
             output.display()
         );
@@ -5139,7 +5624,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     write_javac_argfile(context, &argfile, &classpath, &sources, &classes_dir)?;
 
     let started = Instant::now();
-    println!(
+    tracing::info!(
         "javac main: start sources={} argfile={}",
         sources.len(),
         argfile.display()
@@ -5168,17 +5653,31 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         == LoaderToolchainKind::NeoGradleUserdev
         || main_refmap.is_file());
     if main_cache_hit {
-        println!(
+        tracing::info!(
             "javac main: reused cached outputs in {} ms",
             started.elapsed().as_millis()
         );
     } else {
         reset_cache_directory(&context.plan.cache_dir, &classes_dir)?;
         reset_cache_directory(&context.plan.cache_dir, &resources_dir)?;
-        let output = Command::new(javac_executable(&context.plan.java))
-            .arg(format!("@{}", argfile.display()))
-            .output()
+        let mut command = Command::new(javac_executable(&context.plan.java));
+        command.arg(format!("@{}", argfile.display()));
+        let output = run_command_capture_output(&mut command, "javac-main")
             .wrap_err("Failed to run javac")?;
+        trace_subprocess_bytes(
+            context.plan,
+            "java-tool",
+            "javac-main",
+            "stdout",
+            &output.stdout,
+        );
+        trace_subprocess_bytes(
+            context.plan,
+            "java-tool",
+            "javac-main",
+            "stderr",
+            &output.stderr,
+        );
         let log_path = project_root.join("javac-main.log");
         let mut log = Vec::new();
         log.extend_from_slice(b"--- stdout ---\n");
@@ -5187,6 +5686,9 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         log.extend_from_slice(&output.stderr);
         fs::write(&log_path, log)
             .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+        if output.cancelled {
+            eyre::bail!("javac was cancelled by Ctrl+C. See {}", log_path.display());
+        }
         if !output.status.success() {
             eyre::bail!(
                 "javac failed with {}. See {}",
@@ -5195,7 +5697,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             );
         }
         write_cache_state(&main_state_path, &main_fingerprint)?;
-        println!("javac main: done in {} ms", started.elapsed().as_millis());
+        tracing::info!("javac main: done in {} ms", started.elapsed().as_millis());
     }
 
     compile_optional_java_source_set(
@@ -5294,7 +5796,7 @@ fn patch_neogradle_anonymous_constructor_debug_names(classes_dir: &Path) -> eyre
     }
 
     if total_replacements > 0 {
-        println!("Patched {total_replacements} NeoGradle anonymous constructor debug names");
+        tracing::info!("Patched {total_replacements} NeoGradle anonymous constructor debug names");
     }
     Ok(())
 }
@@ -5341,7 +5843,7 @@ fn compile_optional_java_source_set(
     )?;
 
     let started = Instant::now();
-    println!(
+    tracing::info!(
         "javac {source_set}: start sources={} argfile={}",
         sources.len(),
         argfile.display()
@@ -5361,7 +5863,7 @@ fn compile_optional_java_source_set(
     )?;
     let state_path = project_root.join(format!("javac-{source_set}.inputs.sha1"));
     if cache_state_matches(context, &state_path, &fingerprint, &[classes_dir])? {
-        println!(
+        tracing::info!(
             "javac {source_set}: reused cached outputs in {} ms",
             started.elapsed().as_millis()
         );
@@ -5369,10 +5871,13 @@ fn compile_optional_java_source_set(
     }
 
     reset_cache_directory(&context.plan.cache_dir, classes_dir)?;
-    let output = Command::new(javac_executable(&context.plan.java))
-        .arg(format!("@{}", argfile.display()))
-        .output()
+    let mut command = Command::new(javac_executable(&context.plan.java));
+    command.arg(format!("@{}", argfile.display()));
+    let source = format!("javac-{source_set}");
+    let output = run_command_capture_output(&mut command, &source)
         .wrap_err_with(|| format!("Failed to run javac for {source_set}"))?;
+    trace_subprocess_bytes(context.plan, "java-tool", &source, "stdout", &output.stdout);
+    trace_subprocess_bytes(context.plan, "java-tool", &source, "stderr", &output.stderr);
     let log_path = project_root.join(format!("javac-{source_set}.log"));
     let mut log = Vec::new();
     log.extend_from_slice(b"--- stdout ---\n");
@@ -5381,6 +5886,12 @@ fn compile_optional_java_source_set(
     log.extend_from_slice(&output.stderr);
     fs::write(&log_path, log)
         .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+    if output.cancelled {
+        eyre::bail!(
+            "javac {source_set} was cancelled by Ctrl+C. See {}",
+            log_path.display()
+        );
+    }
     if !output.status.success() {
         eyre::bail!(
             "javac {source_set} failed with {}. See {}",
@@ -5389,7 +5900,7 @@ fn compile_optional_java_source_set(
         );
     }
     write_cache_state(&state_path, &fingerprint)?;
-    println!(
+    tracing::info!(
         "javac {source_set}: done in {} ms",
         started.elapsed().as_millis()
     );
@@ -5463,7 +5974,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         .plan
         .cache_dir
         .join("forge")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("mappings")
         .join("official_to_srg.tsrg");
     tracing::info!(
@@ -5510,7 +6021,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
     )?;
     let package_state_path = project_root.join("package-and-reobfuscate.inputs.sha1");
     let started = Instant::now();
-    println!(
+    tracing::info!(
         "package-and-reobfuscate-jar: start output={}",
         context.plan.rust_output_jar.display()
     );
@@ -5521,7 +6032,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         &[],
         &[&context.plan.rust_output_jar],
     )? {
-        println!(
+        tracing::info!(
             "package-and-reobfuscate-jar: reused cached Rust jar in {} ms",
             started.elapsed().as_millis()
         );
@@ -5575,7 +6086,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
             "complete",
         )?;
         write_cache_state(&package_state_path, &package_fingerprint)?;
-        println!(
+        tracing::info!(
             "package-and-reobfuscate-jar: done in {} ms",
             started.elapsed().as_millis()
         );
@@ -5629,7 +6140,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
     }
 
     write_cache_state(&package_state_path, &package_fingerprint)?;
-    println!(
+    tracing::info!(
         "package-and-reobfuscate-jar: done in {} ms",
         started.elapsed().as_millis()
     );
@@ -6150,7 +6661,7 @@ fn resolve_antlr_classpath(
         .minecraft_dir
         .join("gradle")
         .join("dependencies")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("dependencies.gradle");
     let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
     let antlr_version = dependencies
@@ -6191,9 +6702,7 @@ fn resolve_project_compile_classpath(
 ) -> eyre::Result<Vec<PathBuf>> {
     let mut classpath = Vec::new();
     classpath.push(loader_dev_compile_jar(context));
-    classpath.extend(collect_jars(
-        &context.plan.cache_dir.join("minecraft").join("libraries"),
-    )?);
+    classpath.extend(collect_jars(&context.plan.minecraft_libraries_dir)?);
     classpath.extend(resolve_forge_userdev_libraries(context, resolver)?);
     classpath.extend(resolve_compile_dependencies(context, resolver)?);
     classpath.extend(collect_jars(&context.plan.cache_dir.join("dependencies"))?);
@@ -6270,13 +6779,13 @@ fn run_antlr(
     )?;
     let state_path = output_dir.with_extension("inputs.sha1");
     let started = Instant::now();
-    println!(
+    tracing::info!(
         "ANTLR main: start grammars={} output={}",
         grammars.len(),
         output_dir.display()
     );
     if cache_state_matches(context, &state_path, &fingerprint, &[output_dir])? {
-        println!(
+        tracing::info!(
             "ANTLR main: reused cached outputs in {} ms",
             started.elapsed().as_millis()
         );
@@ -6284,7 +6793,8 @@ fn run_antlr(
     }
 
     reset_cache_directory(&context.plan.cache_dir, output_dir)?;
-    let output = Command::new(&context.plan.java.executable)
+    let mut command = Command::new(&context.plan.java.executable);
+    command
         .arg("-cp")
         .arg(join_classpath(classpath))
         .arg("org.antlr.v4.Tool")
@@ -6292,9 +6802,11 @@ fn run_antlr(
         .arg("-Xexact-output-dir")
         .arg("-o")
         .arg(output_dir)
-        .args(grammars)
-        .output()
-        .wrap_err("Failed to run ANTLR")?;
+        .args(grammars);
+    let output =
+        run_command_capture_output(&mut command, "antlr").wrap_err("Failed to run ANTLR")?;
+    trace_subprocess_bytes(context.plan, "java-tool", "antlr", "stdout", &output.stdout);
+    trace_subprocess_bytes(context.plan, "java-tool", "antlr", "stderr", &output.stderr);
     let log_path = output_dir.parent().unwrap_or(output_dir).join("antlr.log");
     let mut log = Vec::new();
     log.extend_from_slice(b"--- stdout ---\n");
@@ -6303,6 +6815,9 @@ fn run_antlr(
     log.extend_from_slice(&output.stderr);
     fs::write(&log_path, log)
         .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+    if output.cancelled {
+        eyre::bail!("ANTLR was cancelled by Ctrl+C. See {}", log_path.display());
+    }
     if !output.status.success() {
         eyre::bail!(
             "ANTLR failed with {}. See {}",
@@ -6311,7 +6826,7 @@ fn run_antlr(
         );
     }
     write_cache_state(&state_path, &fingerprint)?;
-    println!("ANTLR main: done in {} ms", started.elapsed().as_millis());
+    tracing::info!("ANTLR main: done in {} ms", started.elapsed().as_millis());
     Ok(())
 }
 
@@ -6380,7 +6895,7 @@ fn resolve_compile_dependencies(
         .minecraft_dir
         .join("gradle")
         .join("dependencies")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("dependencies.gradle");
     let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
     dependencies
@@ -6448,7 +6963,7 @@ fn read_source_excludes(
         .minecraft_dir
         .join("gradle")
         .join("source-excludes")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join(format!("{source_set}-java.txt"));
     let excludes_text =
         fs::read_to_string(&path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
@@ -6535,7 +7050,7 @@ fn write_javac_argfile(
         .plan
         .cache_dir
         .join("forge")
-        .join(&context.plan.minecraft_version)
+        .join(context.plan.minecraft_version.as_str())
         .join("mappings")
         .join("official_to_srg.tsrg");
     if let Some(parent) = refmap.parent() {
@@ -6794,13 +7309,9 @@ fn write_minecraft_libraries_cfg(
     client: &Client,
     output: &Path,
 ) -> eyre::Result<()> {
-    let version_json_path = context
-        .plan
-        .cache_dir
-        .join("minecraft")
-        .join(format!("{}.json", context.plan.minecraft_version));
-    let version_json: MinecraftVersionJson = read_json_file(&version_json_path)?;
-    let libraries_root = context.plan.cache_dir.join("minecraft").join("libraries");
+    let version_json: MinecraftVersionJson =
+        read_json_file(&context.plan.minecraft.version_json.cache_path)?;
+    let libraries_root = &context.plan.minecraft_libraries_dir;
     let mut lines = Vec::new();
 
     for library in version_json.libraries {
@@ -6978,7 +7489,7 @@ fn write_run_forge_dev_jar(
 ) -> eyre::Result<()> {
     let manifest = forge_runtime_manifest(forge_universal_jar)?;
     write_run_loader_dev_jar(input, &manifest, output)?;
-    println!("Generated Forge userdev runtime jar: {}", output.display());
+    tracing::info!("Generated Forge userdev runtime jar: {}", output.display());
     Ok(())
 }
 
@@ -6989,7 +7500,7 @@ fn write_run_neoforge_dev_jar(
 ) -> eyre::Result<()> {
     let manifest = neoforge_runtime_manifest(neoforge_universal_jar)?;
     write_run_loader_dev_jar(input, &manifest, output)?;
-    println!(
+    tracing::info!(
         "Generated NeoForge userdev runtime jar: {}",
         output.display()
     );
@@ -7055,7 +7566,7 @@ fn write_run_neoforge_minecraft_dev_jar(
     writer
         .finish()
         .wrap_err_with(|| format!("Failed to finish {}", output.display()))?;
-    println!(
+    tracing::info!(
         "Generated NeoForge Minecraft runtime jar: {}",
         output.display()
     );
@@ -7366,7 +7877,7 @@ fn write_client_extra_jar(client_jar: &Path, output: &Path) -> eyre::Result<()> 
     writer
         .finish()
         .wrap_err_with(|| format!("Failed to finish {}", output.display()))?;
-    println!("Generated client-extra jar: {}", output.display());
+    tracing::info!("Generated client-extra jar: {}", output.display());
     Ok(())
 }
 
@@ -7791,12 +8302,12 @@ fn generate_mojang_tsrg_mappings(
 }
 
 fn write_runtime_mcp_csv_mappings(srg_to_named: &Path, output: &Path) -> eyre::Result<()> {
-    let content = fs::read_to_string(srg_to_named)
+    let mapping_text = fs::read_to_string(srg_to_named)
         .wrap_err_with(|| format!("Failed to read {}", srg_to_named.display()))?;
     let mut fields = String::from("searge,name,desc\n");
     let mut methods = String::from("searge,name,desc\n");
 
-    for line in content.lines() {
+    for line in mapping_text.lines() {
         if line.trim().is_empty() || line.starts_with("tsrg") {
             continue;
         }
@@ -7828,7 +8339,7 @@ fn write_runtime_mcp_csv_mappings(srg_to_named: &Path, output: &Path) -> eyre::R
         .wrap_err_with(|| format!("Failed to write {}", fields_path.display()))?;
     fs::write(&methods_path, methods)
         .wrap_err_with(|| format!("Failed to write {}", methods_path.display()))?;
-    println!(
+    tracing::info!(
         "Generated Forge runtime MCP CSV mappings: {}",
         output.display()
     );
@@ -7892,7 +8403,7 @@ fn write_srg_to_named_mapping_file(srg_to_named: &Path, output: &Path) -> eyre::
     }
     fs::write(output, output_text)
         .wrap_err_with(|| format!("Failed to write {}", output.display()))?;
-    println!("Generated Mixin refmap remap file: {}", output.display());
+    tracing::info!("Generated Mixin refmap remap file: {}", output.display());
     Ok(())
 }
 
@@ -8315,7 +8826,8 @@ fn type_descriptor(
 }
 
 fn resolve_compare_paths(options: &CompareOptions) -> eyre::Result<ComparePaths> {
-    let worktree_path = find_worktree_path(&options.mc)?;
+    let target = select_single_worktree_target(&options.branch)?;
+    let worktree_path = target.worktree_path.0;
     let minecraft_dir = worktree_path.join("platform").join("minecraft");
     let properties = read_properties(&minecraft_dir.join("gradle.properties"))?;
     let minecraft_version = required_property(&properties, "minecraft_version")?;
@@ -8529,20 +9041,34 @@ fn write_compare_report(
     Ok(())
 }
 
-fn write_plan_outputs(plan: &BuildPlan, requested_path: Option<&Path>) -> eyre::Result<()> {
+fn write_last_plan_output(plan: &BuildPlan) -> eyre::Result<()> {
     fs::create_dir_all(&plan.state_dir)?;
     let plan_json = facet_json::to_string_pretty(plan)?;
     let last_plan_path = plan.state_dir.join("last-plan.json");
     fs::write(&last_plan_path, &plan_json)
         .wrap_err_with(|| format!("Failed to write {}", last_plan_path.display()))?;
 
-    if let Some(path) = requested_path {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(path, &plan_json)
-            .wrap_err_with(|| format!("Failed to write {}", path.display()))?;
+    Ok(())
+}
+
+fn write_requested_plan_outputs(
+    plans: &[BuildPlan],
+    requested_path: Option<&Path>,
+) -> eyre::Result<()> {
+    let Some(path) = requested_path else {
+        return Ok(());
+    };
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
     }
+
+    let plan_json = if let [plan] = plans {
+        facet_json::to_string_pretty(plan)?
+    } else {
+        facet_json::to_string_pretty(&plans)?
+    };
+    fs::write(path, &plan_json).wrap_err_with(|| format!("Failed to write {}", path.display()))?;
 
     Ok(())
 }
@@ -8550,6 +9076,7 @@ fn write_plan_outputs(plan: &BuildPlan, requested_path: Option<&Path>) -> eyre::
 fn write_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<()> {
     let _span = tracing::info_span!(
         "write_artifact_lockfile",
+        branch = %plan.branch_name,
         mc = %plan.minecraft_version,
         artifacts = plan.artifacts.len(),
         dependencies = plan.dependencies.len(),
@@ -8564,7 +9091,7 @@ fn write_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<()> {
         facet_json::to_string_pretty(&lockfile)?,
     )
     .wrap_err_with(|| format!("Failed to write {}", plan.lockfile_path.display()))?;
-    println!(
+    tracing::info!(
         "Artifact lockfile: {} ({} artifacts)",
         plan.lockfile_path.display(),
         lockfile.artifacts.len()
@@ -8598,7 +9125,7 @@ fn build_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<ArtifactLockfile> {
             source: provenance.source,
             repository: provenance.repository,
             url: provenance.url,
-            cache_path: relative_path(&plan.minecraft_dir, &artifact_path),
+            cache_path: portable_cache_path(plan, &artifact_path),
             original_path: provenance.original_path,
             sha1: actual_sha1,
         });
@@ -8630,8 +9157,8 @@ fn build_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<ArtifactLockfile> {
 
     Ok(ArtifactLockfile {
         schema_version: 1,
-        minecraft_version: plan.minecraft_version.clone(),
-        maven_cache_dir: relative_path(&plan.minecraft_dir, &plan.maven_cache_dir),
+        minecraft_version: plan.minecraft_version.to_string(),
+        maven_cache_dir: portable_cache_path(plan, &plan.maven_cache_dir),
         allow_local_artifact_cache: plan.allow_local_artifact_cache,
         repositories: plan.repositories.clone(),
         dependencies: plan
@@ -8643,11 +9170,18 @@ fn build_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<ArtifactLockfile> {
                 resolved_notation: dependency.resolved_notation.clone(),
                 source: dependency.source.clone(),
                 dynamic_version: dependency.dynamic_version,
-                cache_path: relative_path(&plan.minecraft_dir, &dependency.cache_path),
+                cache_path: portable_cache_path(plan, &dependency.cache_path),
             })
             .collect(),
         artifacts,
     })
+}
+
+fn portable_cache_path(plan: &BuildPlan, path: &Path) -> PathBuf {
+    if let Ok(relative) = path.strip_prefix(&plan.common_cache_dir) {
+        return PathBuf::from("$sfm-cache").join(relative);
+    }
+    relative_path(&plan.minecraft_dir, path)
 }
 
 fn read_optional_artifact_lockfile(
@@ -8716,33 +9250,39 @@ fn relative_path(base: &Path, path: &Path) -> PathBuf {
 }
 
 fn print_plan_summary(plan: &BuildPlan) {
-    println!("Clean-slate jar build plan resolved.");
-    println!("Minecraft:    {}", plan.minecraft_version);
-    println!("Worktree:     {}", plan.worktree_path.display());
-    println!("Gradle jar:   {}", plan.gradle_output_jar.display());
-    println!("Rust jar:     {}", plan.rust_output_jar.display());
-    println!("Java:         {}", plan.java.executable.display());
-    println!("Java release: {}", plan.java_release);
-    println!(
-        "Toolchain:    {:?} ({})",
-        plan.loader_toolchain.kind, plan.loader_toolchain.userdev_coordinate
-    );
-    println!(
-        "State:        {}",
-        plan.state_dir.join("last-plan.json").display()
-    );
-    println!("Lockfile:     {}", plan.lockfile_path.display());
-    println!("Artifacts:    {}", plan.artifacts.len());
     let dependency_label = if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         "project deps"
     } else {
         "fg.deobf deps"
     };
-    println!("{dependency_label}: {}", plan.dependencies.len());
-    println!("Graph nodes:  {}", plan.graph.len());
+    let lines = [
+        "Clean-slate jar build plan resolved.".to_string(),
+        format!("Minecraft:    {}", plan.minecraft_version),
+        format!("Worktree:     {}", plan.worktree_path.display()),
+        format!("Gradle jar:   {}", plan.gradle_output_jar.display()),
+        format!("Rust jar:     {}", plan.rust_output_jar.display()),
+        format!("Java:         {}", plan.java.executable.display()),
+        format!("Java release: {}", plan.java_release),
+        format!("Common cache: {}", plan.common_cache_dir.display()),
+        format!(
+            "Toolchain:    {:?} ({})",
+            plan.loader_toolchain.kind, plan.loader_toolchain.userdev_coordinate
+        ),
+        format!(
+            "State:        {}",
+            plan.state_dir.join("last-plan.json").display()
+        ),
+        format!("Lockfile:     {}", plan.lockfile_path.display()),
+        format!("Artifacts:    {}", plan.artifacts.len()),
+        format!("{dependency_label}: {}", plan.dependencies.len()),
+        format!("Graph nodes:  {}", plan.graph.len()),
+    ];
+    for line in lines {
+        tracing::info!("{line}");
+    }
 
     for warning in &plan.warnings {
-        println!("Warning: {warning}");
+        tracing::warn!("Warning: {warning}");
     }
 }
 
@@ -8830,36 +9370,6 @@ fn relative_zip_name(root: &Path, path: &Path) -> eyre::Result<String> {
         .strip_prefix(root)
         .wrap_err_with(|| format!("{} is not under {}", path.display(), root.display()))?;
     Ok(relative.to_string_lossy().replace('\\', "/"))
-}
-
-fn find_worktree_path(mc: &str) -> eyre::Result<PathBuf> {
-    if let Ok(worktrees) = get_sorted_worktrees()
-        && let Some(worktree) = worktrees.into_iter().find(|worktree| worktree.branch == mc)
-    {
-        return Ok(worktree.path);
-    }
-
-    let mut current = std::env::current_dir().wrap_err("Failed to get current directory")?;
-    loop {
-        let candidate = current.join("platform").join("minecraft");
-        if candidate.join("gradle.properties").is_file() {
-            let properties = read_properties(&candidate.join("gradle.properties"))?;
-            if properties
-                .get("minecraft_version")
-                .is_some_and(|version| version == mc)
-            {
-                return Ok(current);
-            }
-        }
-
-        if !current.pop() {
-            break;
-        }
-    }
-
-    eyre::bail!(
-        "Could not find worktree for Minecraft {mc}. Configure repo root or run from that worktree."
-    );
 }
 
 fn gradle_output_jar_path(
@@ -9045,11 +9555,33 @@ fn download_to_path(client: &Client, url: &str, path: &Path) -> eyre::Result<()>
     download_to_path_overwrite(client, url, path, false)
 }
 
+fn download_to_path_overwrite_with_expected_sha1(
+    client: &Client,
+    url: &str,
+    path: &Path,
+    overwrite: bool,
+    expected_sha1: &str,
+) -> eyre::Result<()> {
+    let _lock = acquire_artifact_path_lock(path)?;
+    download_to_path_overwrite_locked(client, url, path, overwrite, Some(expected_sha1))
+}
+
 fn download_to_path_overwrite(
     client: &Client,
     url: &str,
     path: &Path,
     overwrite: bool,
+) -> eyre::Result<()> {
+    let _lock = acquire_artifact_path_lock(path)?;
+    download_to_path_overwrite_locked(client, url, path, overwrite, None)
+}
+
+fn download_to_path_overwrite_locked(
+    client: &Client,
+    url: &str,
+    path: &Path,
+    overwrite: bool,
+    expected_sha1: Option<&str>,
 ) -> eyre::Result<()> {
     #[cfg(feature = "tracing_detailed")]
     let _span = tracing::debug_span!(
@@ -9057,13 +9589,27 @@ fn download_to_path_overwrite(
         url,
         path = %path.display(),
         overwrite,
+        expected_sha1,
     )
     .entered();
+    prepare_existing_artifact_for_reuse(path, expected_sha1)?;
+
     if path.is_file() && !overwrite {
         tracing::debug!(
             path = %path.display(),
             url,
             "download cache hit"
+        );
+        return Ok(());
+    }
+    if path.is_file()
+        && expected_sha1
+            .is_some_and(|expected| existing_file_matches_sha1(path, expected).unwrap_or(false))
+    {
+        tracing::debug!(
+            path = %path.display(),
+            url,
+            "download cache hit after lock wait"
         );
         return Ok(());
     }
@@ -9074,6 +9620,35 @@ fn download_to_path_overwrite(
         overwrite,
         "download cache miss"
     );
+    let mut last_error = None;
+    for attempt in 1..=DOWNLOAD_RETRY_ATTEMPTS {
+        match download_to_path_once(client, url, path, expected_sha1) {
+            Ok(()) => {
+                remove_bad_artifacts_for(path)?;
+                return Ok(());
+            }
+            Err(error) => {
+                tracing::warn!(
+                    path = %path.display(),
+                    url,
+                    attempt,
+                    attempts = DOWNLOAD_RETRY_ATTEMPTS,
+                    error = %error,
+                    "download attempt failed"
+                );
+                last_error = Some(error);
+            }
+        }
+    }
+    Err(last_error.unwrap_or_else(|| eyre::eyre!("Download failed for {url}")))
+}
+
+fn download_to_path_once(
+    client: &Client,
+    url: &str,
+    path: &Path,
+    expected_sha1: Option<&str>,
+) -> eyre::Result<()> {
     let parent = path
         .parent()
         .ok_or_else(|| eyre::eyre!("Path has no parent: {}", path.display()))?;
@@ -9088,17 +9663,170 @@ fn download_to_path_overwrite(
     let bytes = response
         .bytes()
         .wrap_err_with(|| format!("Failed to read response body for {url}"))?;
-    let file_name = path
-        .file_name()
-        .and_then(std::ffi::OsStr::to_str)
-        .ok_or_else(|| eyre::eyre!("Path has no filename: {}", path.display()))?;
-    let temporary_path = path.with_file_name(format!("{file_name}.download"));
-    fs::write(&temporary_path, bytes)
-        .wrap_err_with(|| format!("Failed to write {}", temporary_path.display()))?;
+    let temporary_path = write_unique_temp_file(path, bytes.as_ref())?;
+    if let Some(expected_sha1) = expected_sha1 {
+        let actual_sha1 = file_sha1(&temporary_path)?;
+        if actual_sha1 != expected_sha1 {
+            let _ = fs::remove_file(&temporary_path);
+            eyre::bail!(
+                "Downloaded {} with SHA-1 {}, expected {}",
+                path.display(),
+                actual_sha1,
+                expected_sha1
+            );
+        }
+    }
+    replace_artifact_file(&temporary_path, path)
+}
+
+fn copy_file_to_path_checked(
+    source: &Path,
+    path: &Path,
+    expected_sha1: Option<&str>,
+) -> eyre::Result<()> {
+    prepare_existing_artifact_for_reuse(path, expected_sha1)?;
+    if path.is_file()
+        && expected_sha1
+            .is_some_and(|expected| existing_file_matches_sha1(path, expected).unwrap_or(false))
+    {
+        return Ok(());
+    }
+
+    let bytes =
+        fs::read(source).wrap_err_with(|| format!("Failed to read {}", source.display()))?;
+    let temporary_path = write_unique_temp_file(path, &bytes)?;
+    if let Some(expected_sha1) = expected_sha1 {
+        let actual_sha1 = file_sha1(&temporary_path)?;
+        if actual_sha1 != expected_sha1 {
+            let _ = fs::remove_file(&temporary_path);
+            eyre::bail!(
+                "Copied local artifact {} with SHA-1 {}, expected {}",
+                source.display(),
+                actual_sha1,
+                expected_sha1
+            );
+        }
+    }
+    replace_artifact_file(&temporary_path, path)?;
+    remove_bad_artifacts_for(path)?;
+    Ok(())
+}
+
+fn acquire_artifact_path_lock(path: &Path) -> eyre::Result<ArtifactLock> {
+    ArtifactLock::acquire(artifact_lock_path(path)?, path.display().to_string())
+}
+
+fn artifact_lock_path(path: &Path) -> eyre::Result<PathBuf> {
+    let file_name = artifact_file_name(path)?;
+    Ok(path.with_file_name(format!("{file_name}.lock")))
+}
+
+fn prepare_existing_artifact_for_reuse(
+    path: &Path,
+    expected_sha1: Option<&str>,
+) -> eyre::Result<()> {
+    let Some(expected_sha1) = expected_sha1 else {
+        return Ok(());
+    };
+    if !path.is_file() {
+        return Ok(());
+    }
+    let actual_sha1 = file_sha1(path)?;
+    if actual_sha1 == expected_sha1 {
+        return Ok(());
+    }
+    quarantine_bad_artifact(path, &actual_sha1, expected_sha1)
+}
+
+fn existing_file_matches_sha1(path: &Path, expected_sha1: &str) -> eyre::Result<bool> {
+    Ok(path.is_file() && file_sha1(path)? == expected_sha1)
+}
+
+fn quarantine_bad_artifact(
+    path: &Path,
+    actual_sha1: &str,
+    expected_sha1: &str,
+) -> eyre::Result<()> {
+    let bad_path = unique_sibling_path(path, &format!("bad.{actual_sha1}"))?;
+    tracing::warn!(
+        path = %path.display(),
+        bad_path = %bad_path.display(),
+        actual_sha1,
+        expected_sha1,
+        "quarantining corrupt artifact"
+    );
+    fs::rename(path, &bad_path).wrap_err_with(|| {
+        format!(
+            "Failed to quarantine corrupt artifact {} as {}",
+            path.display(),
+            bad_path.display()
+        )
+    })
+}
+
+fn remove_bad_artifacts_for(path: &Path) -> eyre::Result<()> {
+    let Some(parent) = path.parent() else {
+        return Ok(());
+    };
+    if !parent.is_dir() {
+        return Ok(());
+    }
+    let file_name = artifact_file_name(path)?;
+    let bad_prefix = format!("{file_name}.bad.");
+    for entry in
+        fs::read_dir(parent).wrap_err_with(|| format!("Failed to read {}", parent.display()))?
+    {
+        let entry = entry?;
+        let entry_path = entry.path();
+        let is_bad_artifact = entry_path
+            .file_name()
+            .and_then(std::ffi::OsStr::to_str)
+            .is_some_and(|name| name.starts_with(&bad_prefix));
+        if is_bad_artifact {
+            fs::remove_file(&entry_path)
+                .wrap_err_with(|| format!("Failed to remove {}", entry_path.display()))?;
+        }
+    }
+    Ok(())
+}
+
+fn write_unique_temp_file(path: &Path, bytes: &[u8]) -> eyre::Result<PathBuf> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| eyre::eyre!("Path has no parent: {}", path.display()))?;
+    fs::create_dir_all(parent)?;
+    for _ in 0..100 {
+        let temporary_path = unique_sibling_path(path, "tmp")?;
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary_path)
+        {
+            Ok(mut file) => {
+                file.write_all(bytes)
+                    .wrap_err_with(|| format!("Failed to write {}", temporary_path.display()))?;
+                file.sync_all()
+                    .wrap_err_with(|| format!("Failed to sync {}", temporary_path.display()))?;
+                return Ok(temporary_path);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) => {
+                return Err(error)
+                    .wrap_err_with(|| format!("Failed to create {}", temporary_path.display()));
+            }
+        }
+    }
+    eyre::bail!(
+        "Could not allocate a unique temporary file for {}",
+        path.display()
+    )
+}
+
+fn replace_artifact_file(temporary_path: &Path, path: &Path) -> eyre::Result<()> {
     if path.exists() {
         fs::remove_file(path).wrap_err_with(|| format!("Failed to replace {}", path.display()))?;
     }
-    fs::rename(&temporary_path, path).wrap_err_with(|| {
+    fs::rename(temporary_path, path).wrap_err_with(|| {
         format!(
             "Failed to move downloaded file {} to {}",
             temporary_path.display(),
@@ -9106,6 +9834,28 @@ fn download_to_path_overwrite(
         )
     })?;
     Ok(())
+}
+
+fn unique_sibling_path(path: &Path, kind: &str) -> eyre::Result<PathBuf> {
+    let file_name = artifact_file_name(path)?;
+    Ok(path.with_file_name(format!(
+        "{file_name}.{kind}.{}.{}",
+        std::process::id(),
+        unique_file_nonce()
+    )))
+}
+
+fn unique_file_nonce() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos()
+}
+
+fn artifact_file_name(path: &Path) -> eyre::Result<&str> {
+    path.file_name()
+        .and_then(std::ffi::OsStr::to_str)
+        .ok_or_else(|| eyre::eyre!("Path has no filename: {}", path.display()))
 }
 
 fn download_text_optional(client: &Client, url: &str) -> eyre::Result<String> {
