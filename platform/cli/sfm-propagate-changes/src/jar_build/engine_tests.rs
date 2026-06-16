@@ -3,6 +3,8 @@ use super::ArtifactLockfile;
 use super::ArtifactPlan;
 use super::ArtifactProvenance;
 use super::ArtifactSource;
+use super::BuildMode;
+use super::BuildOptions;
 use super::BuildPlan;
 use super::ChangedEntry;
 use super::DependencyLockEntry;
@@ -25,21 +27,42 @@ use super::NodeStatus;
 use super::ParchmentData;
 use super::Repository;
 use super::compare_version_text;
+use super::copy_file_to_path_checked;
+use super::execute_targets_parallel;
 use super::extract_quoted;
+use super::file_sha1;
 use super::interpolate_properties;
 use super::is_excluded_source;
 use super::normalize_manifest_bytes;
 use super::parchment_coordinate;
 use super::parse_maven_versions;
+use super::portable_cache_path;
+use super::prepare_existing_artifact_for_reuse;
 use super::resolve_loader_toolchain;
 use super::rust_output_jar_path;
 use super::set_minecraft_option;
+use super::sha1_bytes;
 use super::should_keep_split_minecraft_runtime_entry;
+use super::write_unique_temp_file;
+use crate::branch_targets::BranchName;
+use crate::branch_targets::BranchQuery;
+use crate::branch_targets::MinecraftVersion;
+use crate::branch_targets::WorktreePath;
+use crate::branch_targets::WorktreeTarget;
+use crate::jar_build::ErrorAction;
+use crate::jar_build::Parallelism;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering as AtomicOrdering;
+use std::thread;
+use std::time::Duration;
+
+static TEST_DIR_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[test]
 fn parses_classifier_coordinate() {
@@ -311,19 +334,162 @@ fn facet_json_roundtrips_artifact_lockfile_and_provenance() {
 }
 
 #[test]
+fn prepare_existing_artifact_quarantines_wrong_sha1() {
+    let test_dir = TestDir::new("prepare-existing-artifact");
+    let artifact = test_dir.path.join("artifact.jar");
+    fs::write(&artifact, b"bad").expect("artifact should be written");
+
+    let expected_sha1 = sha1_bytes(b"good");
+    prepare_existing_artifact_for_reuse(&artifact, Some(&expected_sha1))
+        .expect("corrupt artifact should be quarantined");
+
+    assert!(!artifact.exists());
+    let bad_entries = matching_siblings(&artifact, "bad");
+    assert_eq!(bad_entries.len(), 1);
+    assert_eq!(
+        fs::read(&bad_entries[0]).expect("bad artifact should remain readable"),
+        b"bad"
+    );
+}
+
+#[test]
+fn copy_file_to_path_checked_skips_existing_valid_artifact() {
+    let test_dir = TestDir::new("copy-file-skips-existing-valid");
+    let source = test_dir.path.join("source.jar");
+    let destination = test_dir.path.join("artifact.jar");
+    fs::write(&source, b"bad").expect("source should be written");
+    fs::write(&destination, b"good").expect("destination should be written");
+
+    let expected_sha1 = sha1_bytes(b"good");
+    copy_file_to_path_checked(&source, &destination, Some(&expected_sha1))
+        .expect("valid destination should skip copying the bad source");
+
+    assert_eq!(
+        fs::read(&destination).expect("destination should remain readable"),
+        b"good"
+    );
+    assert_eq!(
+        file_sha1(&destination).expect("destination should hash"),
+        expected_sha1
+    );
+    assert!(matching_siblings(&destination, "tmp").is_empty());
+}
+
+#[test]
+fn copy_file_to_path_checked_rejects_temp_sha1_failure() {
+    let test_dir = TestDir::new("copy-file-temp-sha1-failure");
+    let source = test_dir.path.join("source.jar");
+    let destination = test_dir.path.join("artifact.jar");
+    fs::write(&source, b"bad").expect("source should be written");
+
+    let expected_sha1 = sha1_bytes(b"good");
+    let error = copy_file_to_path_checked(&source, &destination, Some(&expected_sha1))
+        .expect_err("bad source should fail expected SHA-1 validation");
+
+    assert!(
+        error.to_string().contains("Copied local artifact"),
+        "{error:?}"
+    );
+    assert!(!destination.exists());
+    assert!(matching_siblings(&destination, "tmp").is_empty());
+}
+
+#[test]
+fn copy_file_to_path_checked_replaces_bad_final_artifact_and_cleans_bad_file() {
+    let test_dir = TestDir::new("copy-file-replaces-bad-final");
+    let source = test_dir.path.join("source.jar");
+    let destination = test_dir.path.join("artifact.jar");
+    fs::write(&source, b"good").expect("source should be written");
+    fs::write(&destination, b"bad").expect("destination should be written");
+
+    let expected_sha1 = sha1_bytes(b"good");
+    copy_file_to_path_checked(&source, &destination, Some(&expected_sha1))
+        .expect("good source should replace corrupt artifact");
+
+    assert_eq!(
+        fs::read(&destination).expect("destination should remain readable"),
+        b"good"
+    );
+    assert!(matching_siblings(&destination, "bad").is_empty());
+}
+
+#[test]
+fn write_unique_temp_file_uses_artifact_sibling() {
+    let test_dir = TestDir::new("write-unique-temp-file");
+    let artifact = test_dir.path.join("artifact.jar");
+
+    let first = write_unique_temp_file(&artifact, b"first").expect("first temp should be written");
+    let second =
+        write_unique_temp_file(&artifact, b"second").expect("second temp should be written");
+
+    assert_ne!(first, second);
+    assert_eq!(first.parent(), artifact.parent());
+    assert_eq!(second.parent(), artifact.parent());
+    assert_eq!(fs::read(first).expect("first temp should read"), b"first");
+    assert_eq!(
+        fs::read(second).expect("second temp should read"),
+        b"second"
+    );
+}
+
+#[test]
+fn parallel_targets_return_plans_in_input_order() {
+    let options = test_build_options(Parallelism::Parallel { limit: 2 });
+    let targets = vec![
+        test_worktree_target("1.19.2", "D:/tmp/1.19.2"),
+        test_worktree_target("1.20.1", "D:/tmp/1.20.1"),
+    ];
+
+    let summary = execute_targets_parallel(
+        &options,
+        targets,
+        "test_parallel_targets",
+        2,
+        |_options, target| {
+            if target.branch.as_ref() == "1.19.2" {
+                thread::sleep(Duration::from_millis(25));
+            }
+            let mut plan = minimal_plan_for_paths();
+            plan.branch_name = target.branch.clone();
+            Ok(plan)
+        },
+    )
+    .expect("parallel execution should succeed");
+
+    let branches = summary
+        .plans
+        .iter()
+        .map(|plan| plan.branch_name.as_ref())
+        .collect::<Vec<_>>();
+    assert_eq!(branches, vec!["1.19.2", "1.20.1"]);
+}
+
+#[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "BuildPlan JSON fixture is intentionally explicit"
+)]
 fn facet_json_serializes_plan_without_embedded_lockfile() {
     let artifact = minimal_artifact();
     let plan = BuildPlan {
         schema_version: 1,
         mode: "plan".to_string(),
-        minecraft_version: "1.19.2".to_string(),
+        branch_name: BranchName::from("1.19.2"),
+        minecraft_version: MinecraftVersion::parse("1.19.2").expect("version should parse"),
         worktree_path: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2"),
         minecraft_dir: PathBuf::from("platform/minecraft"),
         gradle_output_jar: PathBuf::from("build/libs/sfm.jar"),
         rust_output_jar: PathBuf::from("build/libs/sfm-rust.jar"),
         cache_dir: PathBuf::from("build/sfm-toolchain"),
+        common_cache_dir: PathBuf::from("sfm-cache/minecraft-toolchain"),
         state_dir: PathBuf::from("build/sfm-toolchain/state"),
-        maven_cache_dir: PathBuf::from("build/sfm-toolchain/maven"),
+        maven_cache_dir: PathBuf::from("sfm-cache/minecraft-toolchain/maven"),
+        minecraft_cache_dir: PathBuf::from("sfm-cache/minecraft-toolchain/minecraft"),
+        minecraft_version_cache_dir: PathBuf::from(
+            "sfm-cache/minecraft-toolchain/minecraft/versions/1.19.2",
+        ),
+        minecraft_assets_dir: PathBuf::from("sfm-cache/minecraft-toolchain/minecraft/assets"),
+        minecraft_libraries_dir: PathBuf::from("sfm-cache/minecraft-toolchain/minecraft/libraries"),
         lockfile_path: PathBuf::from("sfm-toolchain.lock.json"),
         lockfile: Some(ArtifactLockfile {
             schema_version: 1,
@@ -412,7 +578,26 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
 
     let json = facet_json::to_string_pretty(&plan).expect("plan should serialize");
     assert!(json.contains("rust_output_jar"));
+    assert!(json.contains("common_cache_dir"));
     assert!(!json.contains("\"lockfile\""));
+}
+
+#[test]
+fn portable_cache_path_uses_sfm_cache_prefix_for_common_cache() {
+    let plan = minimal_plan_for_paths();
+    let common_artifact = PathBuf::from("D:/sfm-cache/minecraft-toolchain/maven/g/a/1/a.jar");
+    let local_artifact = PathBuf::from(
+        "D:/Repos/Minecraft/SFM/repos2/1.19.2/platform/minecraft/build/sfm-toolchain/project/a.jar",
+    );
+
+    assert_eq!(
+        portable_cache_path(&plan, &common_artifact),
+        PathBuf::from("$sfm-cache/maven/g/a/1/a.jar")
+    );
+    assert_eq!(
+        portable_cache_path(&plan, &local_artifact),
+        PathBuf::from("build/sfm-toolchain/project/a.jar")
+    );
 }
 
 #[test]
@@ -564,5 +749,140 @@ fn minimal_provenance() -> ArtifactProvenance {
         url: Some("https://example.test/a.jar".to_string()),
         original_path: None,
         sha1: "abc123".to_string(),
+    }
+}
+
+fn minimal_plan_for_paths() -> BuildPlan {
+    let artifact = minimal_artifact();
+    BuildPlan {
+        schema_version: 1,
+        mode: "plan".to_string(),
+        branch_name: BranchName::from("1.19.2"),
+        minecraft_version: MinecraftVersion::parse("1.19.2").expect("version should parse"),
+        worktree_path: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2"),
+        minecraft_dir: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2/platform/minecraft"),
+        gradle_output_jar: PathBuf::from("build/libs/sfm.jar"),
+        rust_output_jar: PathBuf::from("build/libs/sfm-rust.jar"),
+        cache_dir: PathBuf::from(
+            "D:/Repos/Minecraft/SFM/repos2/1.19.2/platform/minecraft/build/sfm-toolchain",
+        ),
+        common_cache_dir: PathBuf::from("D:/sfm-cache/minecraft-toolchain"),
+        state_dir: PathBuf::from("build/sfm-toolchain/state"),
+        maven_cache_dir: PathBuf::from("D:/sfm-cache/minecraft-toolchain/maven"),
+        minecraft_cache_dir: PathBuf::from("D:/sfm-cache/minecraft-toolchain/minecraft"),
+        minecraft_version_cache_dir: PathBuf::from(
+            "D:/sfm-cache/minecraft-toolchain/minecraft/versions/1.19.2",
+        ),
+        minecraft_assets_dir: PathBuf::from("D:/sfm-cache/minecraft-toolchain/minecraft/assets"),
+        minecraft_libraries_dir: PathBuf::from(
+            "D:/sfm-cache/minecraft-toolchain/minecraft/libraries",
+        ),
+        lockfile_path: PathBuf::from("sfm-toolchain.lock.json"),
+        lockfile: None,
+        java: JavaPlan {
+            executable: PathBuf::from("java"),
+            home: None,
+            version_output: "openjdk version \"17\"".to_string(),
+            major_version: 17,
+        },
+        java_release: 17,
+        refresh: false,
+        allow_local_artifact_cache: false,
+        properties: BTreeMap::new(),
+        repositories: Vec::new(),
+        loader_toolchain: LoaderToolchainPlan {
+            kind: LoaderToolchainKind::ForgeGradleForge,
+            base_coordinate: "net.minecraftforge:forge:1.19.2-43.4.0".to_string(),
+            userdev_coordinate: "net.minecraftforge:forge:1.19.2-43.4.0:userdev".to_string(),
+            sources_coordinate: None,
+            universal_coordinate: None,
+        },
+        artifacts: vec![artifact.clone()],
+        minecraft: MinecraftPlan {
+            version_manifest: artifact.clone(),
+            version_json: artifact,
+            client_jar_url: "https://example.test/client.jar".to_string(),
+            server_jar_url: "https://example.test/server.jar".to_string(),
+            client_mappings_url: None,
+            server_mappings_url: None,
+            libraries_count: 0,
+        },
+        forge_userdev: None,
+        mcp_config: None,
+        dependencies: Vec::new(),
+        graph: Vec::new(),
+        warnings: Vec::new(),
+    }
+}
+
+fn test_build_options(parallelism: Parallelism) -> BuildOptions {
+    BuildOptions {
+        branch: BranchQuery::default(),
+        refresh: false,
+        explain_rebuild: false,
+        plan_json: None,
+        java_home: None,
+        dry_run: true,
+        allow_local_artifact_cache: false,
+        error_action: ErrorAction::Bail,
+        parallelism,
+        mode: BuildMode::Plan,
+    }
+}
+
+fn test_worktree_target(branch: &str, path: &str) -> WorktreeTarget {
+    WorktreeTarget {
+        branch: BranchName::from(branch),
+        worktree_path: WorktreePath::from(PathBuf::from(path)),
+        core: true,
+        mc_version: Some(MinecraftVersion::parse(branch).expect("test branch should be version")),
+    }
+}
+
+fn matching_siblings(path: &Path, kind: &str) -> Vec<PathBuf> {
+    let parent = path.parent().expect("path should have parent");
+    let file_name = path
+        .file_name()
+        .and_then(std::ffi::OsStr::to_str)
+        .expect("path should have filename");
+    let prefix = format!("{file_name}.{kind}.");
+    let mut paths = fs::read_dir(parent)
+        .expect("parent should read")
+        .map(|entry| entry.expect("entry should read").path())
+        .filter(|entry_path| {
+            entry_path
+                .file_name()
+                .and_then(std::ffi::OsStr::to_str)
+                .is_some_and(|name| name.starts_with(&prefix))
+        })
+        .collect::<Vec<_>>();
+    paths.sort();
+    paths
+}
+
+struct TestDir {
+    path: PathBuf,
+}
+
+impl TestDir {
+    fn new(name: &str) -> Self {
+        let id = TEST_DIR_COUNTER.fetch_add(1, AtomicOrdering::SeqCst);
+        let path = std::env::temp_dir().join(format!(
+            "sfm-jar-build-engine-tests-{name}-{}-{id}",
+            std::process::id()
+        ));
+        if path.exists() {
+            fs::remove_dir_all(&path).expect("stale test dir should be removable");
+        }
+        fs::create_dir_all(&path).expect("test dir should be created");
+        Self { path }
+    }
+}
+
+impl Drop for TestDir {
+    fn drop(&mut self) {
+        if self.path.exists() {
+            fs::remove_dir_all(&self.path).expect("test dir should be removable");
+        }
     }
 }
