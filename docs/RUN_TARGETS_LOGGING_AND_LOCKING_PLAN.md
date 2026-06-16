@@ -21,7 +21,7 @@ Status values used below:
 - `Done`: implemented, committed, propagated, and validated.
 - `Blocked`: cannot proceed without a decision or external change.
 
-Overall status: `Not Started`
+Overall status: `In Progress`
 
 ## Decisions Locked In
 
@@ -46,22 +46,25 @@ Status: `Done`
 - Do not run `install.ps1` as part of normal validation unless explicitly requested.
 - This plan doc should be committed before Rust implementation begins. Future implementation changes should stay unstaged/uncommitted for human review unless explicitly requested otherwise.
 - Discard the Log4j JSONL injection idea for this plan. Build the foundation around line-level subprocess capture and wide tracing events.
+- Prefer one primary Rust type per file for new orchestration/query/locking modules. Small helper functions may live beside the type they serve; broad mixed-type modules should be avoided.
+- Prefer ergonomic single-field newtypes for domain identifiers and paths: public tuple field plus `Deref` and `AsRef` implementations for the wrapped view type, such as `str` or `Path`.
+- CLI structs should hold typed values where `figue` can deserialize them directly. Prefer Facet enums for closed option sets and transparent typed newtypes for string-backed CLI grammars; convert those wrappers into domain request objects at the CLI boundary. Avoid raw `String` fields when the field has domain meaning.
+- Build/run plan structs should use branch/version domain types internally. JSON output may use explicit Facet proxy wrappers to preserve stable string-shaped wire formats.
 
 ## Core Concepts
 
 ### Worktree Target Identity
 
-Status: `Not Started`
+Status: `Done`
 
 Introduce a target model that represents a Git worktree independently from a Minecraft version:
 
 ```rust
 struct WorktreeTarget {
-    branch: String,
-    worktree_path: PathBuf,
+    branch: BranchName,
+    worktree_path: WorktreePath,
     core: bool,
-    mc_version: Option<String>,
-    display_id: String,
+    mc_version: Option<MinecraftVersion>,
 }
 ```
 
@@ -74,11 +77,11 @@ Rules:
 - Feature branches, such as `feat/1.19.2/draw`, infer `mc_version` from `gradle.properties`, but `core` must be `false`.
 - Publishing and release commands must default to core targets only.
 - Run/build/test commands may allow feature worktrees when explicitly selected.
-- Display and logging should use `display_id`, usually the branch name.
+- Display and logging should use `BranchName`.
 
 ### Branch Selector
 
-Status: `Not Started`
+Status: `Done`
 
 Replace `--mc` with `--branch`. Do not preserve `--mc` as a compatibility holdback.
 
@@ -129,8 +132,8 @@ struct BranchConjunction {
 enum BranchRule {
     All,
     Core,
-    ExactBranch(String),
-    BranchGlob(String),
+    ExactBranch(ExactBranch),
+    BranchGlob(BranchGlob),
     Version {
         scope: VersionScope,
         op: VersionOp,
@@ -152,16 +155,19 @@ enum VersionOp {
 }
 ```
 
+`BranchQuery` should implement `Display` using canonical operator text (`OR`, `AND`) so parsed selectors can be rendered in a stable form. Unit tests should verify that displayed queries parse back to the same typed representation. Generated arbitrary query tests should use constrained `ExactBranch` and `BranchGlob` newtypes so random values stay inside the accepted grammar.
+
 Migration:
 
 - Replace CLI fields named `mc` with `branch`.
 - Replace help text and docs that mention `--mc`.
 - Update tests so old `--mc` invocations fail to parse.
 - Update internal request objects to carry one or more `WorktreeTarget`s rather than a bare MC version string.
+- `jar compare` may remain single-target until compare reporting is designed for multi-target summaries.
 
 ### Multi-Target Scheduling
 
-Status: `Not Started`
+Status: `Done`
 
 Commands that resolve more than one target should run sequentially by default.
 
@@ -170,10 +176,14 @@ Initial behavior:
 - Omitted branch selector means `--branch core`.
 - `run client --branch core`: run each core target in worktree order.
 - `run client --branch *`: run every worktree, including feature worktrees.
+- `jar plan --branch core`: plan each core target in worktree order.
 - `jar build --branch core`: build publishable core targets.
+- Per-target `last-plan.json` remains under that worktree's `build/sfm-toolchain/state`.
+- A single-target `--plan-json <path>` keeps the historic single-plan JSON shape; multi-target selectors write an array of resolved plans.
 - Release/publish commands should reject non-core targets unless an explicit future flag says otherwise.
 - `--error-action bail`: stop after the first target failure.
 - `--error-action continue`: continue running remaining targets, then emit a target summary and return failure if any target failed.
+- Default error action is `bail`.
 
 Parallel behavior:
 
@@ -187,7 +197,7 @@ Parallel behavior:
 
 ### Wide Tracing Events
 
-Status: `Not Started`
+Status: `Done`
 
 All orchestration and subprocess output should be represented as structured tracing events with enough fields for subscribers to render useful output.
 
@@ -199,6 +209,7 @@ tracing::info!(
     mc_version = target.mc_version.as_deref().unwrap_or(""),
     core = target.core,
     source = "minecraft",
+    process = "minecraft",
     stream = "stderr",
     line = %line,
     "subprocess output"
@@ -211,6 +222,8 @@ Source values:
 - `java-tool`: Java tools invoked by the build pipeline.
 - `minecraft`: launched Minecraft client/server/game-test process output.
 
+`process` should carry the more specific child/tool identity, such as `minecraft`, `javac-main`, `antlr`, or a Forge tool id.
+
 Stream rules:
 
 - Track `stdout` and `stderr` internally.
@@ -220,9 +233,17 @@ Stream rules:
 - Existing direct `println!`/`eprintln!` progress output should be replaced with tracing events as affected code is touched.
 - The tracing subscriber is responsible for rendering prefixes such as `[rust]`, `[1.19.2 mc]`, or `[feat/1.19.2/draw mc stderr]`.
 
+Current implementation notes:
+
+- Build plans now carry `branch_name` so subprocess events do not have to infer their target from Minecraft version.
+- Branch context is carried by tracing spans around target/build/run/launch/lockfile work instead of repeating `branch` on every Rust event.
+- Rust-origin orchestration events use the actual log text as the tracing event message and omit `source`, `process`, and `stream`; the subscriber can infer `source=rust`, `process=sfm`, and `stream=stdout` defaults when those fields are absent.
+- Captured Java tool, `javac`, ANTLR, and launched Minecraft stdout/stderr lines are emitted as structured tracing events with explicit `source`, `process`, and `stream` fields. Their branch context comes from the surrounding span, including dedicated stream-reader spans for launched Minecraft output threads.
+- Terminal prefix rendering is implemented for normal terminal output.
+
 ### Per-Line Subprocess Logging
 
-Status: `Not Started`
+Status: `Done`
 
 First pass should not parse Minecraft Log4j lines. Treat each stdout/stderr line as content.
 
@@ -251,7 +272,7 @@ Explicitly rejected for this plan:
 
 ### Process-Safe Artifact Locking
 
-Status: `Not Started`
+Status: `In Progress`
 
 Shared cache writes must be safe across:
 
@@ -340,7 +361,7 @@ Windows atomicity:
 
 ### Shared Cache Layout
 
-Status: `Not Started`
+Status: `In Progress`
 
 The common cache should live under `sfm-propagate-changes.exe cache path`, grouped by purpose. Worktree-local build products stay under each worktree's `platform/minecraft/build/sfm-toolchain`.
 
@@ -377,7 +398,7 @@ Rule of thumb:
 
 ### Ctrl+C Handling
 
-Status: `Not Started`
+Status: `In Progress`
 
 Interactive and multi-target commands should handle cancellation predictably:
 
@@ -386,6 +407,13 @@ Interactive and multi-target commands should handle cancellation predictably:
 - Every Ctrl+C immediately writes a red `^C` to stderr using the `owo-colors` re-export from `color-eyre`.
 - Graceful shutdown should try to terminate launched Minecraft/JVM child processes before returning.
 - Parallel implementation must share one cancellation signal across target tasks.
+
+Current implementation notes:
+
+- The working tree installs a process-wide Ctrl+C handler from the CLI entrypoint.
+- First Ctrl+C sets a shared cancellation flag, emits a red `^C`, prevents new parallel targets from starting, and asks active Java/Minecraft child processes to stop.
+- A second Ctrl+C within one second emits another red `^C` and force-exits with status 130.
+- Java tool, `javac`, ANTLR, and launched Minecraft JVM waits poll the cancellation flag and kill the active child before returning a cancellation error.
 
 ### Locking Testability
 
@@ -413,22 +441,22 @@ Testing requirements:
 
 | Step | Status | Scope | Completion Criteria |
 | --- | --- | --- | --- |
-| 1 | `Not Started` | Add `WorktreeTarget` and classify core vs feature worktrees. | Unit tests cover core version branches, feature branches, and inferred MC versions. |
-| 2 | `Not Started` | Implement typed `BranchQuery`, DNF-style `BranchConjunction`, and `BranchRule` parser/evaluator. | Selector tests cover aliases, core, all, exact branch, feature glob, version comparisons, and `core>=1.20`. |
-| 3 | `Not Started` | Replace `--mc` with `--branch` in run/build/plan/compare surfaces. | CLI tests show `--branch` parses, default is `core`, and `--mc` no longer parses. |
-| 4 | `Not Started` | Convert single-target run/build requests into multi-target scheduling. | `run ... --branch core --dry-run` visits each core worktree sequentially. |
-| 5 | `Not Started` | Add `--error-action continue\|bail` to multi-target commands. | Tests prove bail stops early and continue reports all failures. |
-| 6 | `Not Started` | Add wide tracing fields for branch/source/stream/subprocess lines. | Rust, Java tool, and Minecraft subprocess lines carry branch/source fields in tracing. |
-| 7 | `Not Started` | Replace affected `println!`/`eprintln!` progress with tracing events. | New/modified run/build paths emit progress through tracing except Ctrl+C echo. |
-| 8 | `Not Started` | Add prefixed terminal rendering for line events. | Sequential multi-target output is readable with `[branch source]` prefixes. |
-| 9 | `Not Started` | Keep JSONL logging opt-in via `--log-file` and ensure raw subprocess lines are represented. | `--log-file` output includes branch/source/stream/line fields. |
-| 10 | `Not Started` | Implement std-based artifact lock guard. | Unit tests cover waiting/skip behavior; code uses OS lock, not lock-file existence. |
-| 11 | `Not Started` | Wrap artifact downloads/cache writes with lock + temp + checksum + atomic replace. | Parallel SFM processes cannot corrupt shared artifact cache. |
-| 12 | `Not Started` | Move eligible immutable artifacts into the common SFM cache. | Shared cache layout is documented in state/plan output and worktree-local caches hold only source-dependent outputs. |
-| 13 | `Not Started` | Add `--parallel [N]` for dry-run/resolution-heavy commands, defaulting to 10. | Parallel dry-run works across core targets and logs lock waits clearly. |
-| 14 | `Not Started` | Add Ctrl+C graceful/force shutdown behavior. | One Ctrl+C cancels gracefully; two within one second force exit; active children are handled. |
-| 15 | `Not Started` | Expand parallel support to `run game-test-server` if logs and locks hold up. | All core game-test-server runs can be launched/observed without unreadable logs. |
-| 16 | `Not Started` | Expand parallel support to graphical `run client`. | Multiple clients can run concurrently with readable prefixed logs and predictable Ctrl+C behavior. |
+| 1 | `Done` | Add `WorktreeTarget` and classify core vs feature worktrees. | Committed in `ee92ebd6f`; unit tests cover core version branches, feature branches, and inferred MC versions. |
+| 2 | `Done` | Implement typed `BranchQuery`, DNF-style `BranchConjunction`, and `BranchRule` parser/evaluator. | Committed in `ee92ebd6f`; selector tests cover aliases, core, all, exact branch, feature glob, version comparisons, display round-trips, arbitrary generated selectors, and `core>=1.20`. |
+| 3 | `Done` | Replace `--mc` with `--branch` in run/build/plan/compare surfaces. | Committed in `2d88a2b79`; CLI tests show `--branch` parses, default is `core`, and `--mc` no longer parses. |
+| 4 | `Done` | Convert single-target run/build requests into multi-target scheduling. | Committed in `a260d22ab`; `jar plan`, `jar build`, and `run ...` iterate matching targets sequentially. |
+| 5 | `Done` | Add `--error-action continue\|bail` to multi-target commands. | Committed in `cf0925311`; default is `bail`, `continue` records per-target failures and returns failure after the target summary. |
+| 6 | `Done` | Add wide tracing fields for branch/source/stream/subprocess lines. | Build/run/launch/lockfile spans carry branch context; forwarded Java tool, `javac`, ANTLR, and Minecraft lines carry explicit source/process/stream fields. |
+| 7 | `Done` | Replace affected `println!`/`eprintln!` progress with tracing events. | Jar build/run plan summary, target summaries, build node timing, launch setup/validation, Java tool, javac, ANTLR, and subprocess echo paths use tracing events; compare/report output and older helper output remain direct for later slices. |
+| 8 | `Done` | Add prefixed terminal rendering for line events. | Terminal tracing layer renders branch/source/process/stream-aware prefixes; explicit `--log-filter`/`--debug` override `RUST_LOG`; validated with `jar plan --branch 1.19.2`. |
+| 9 | `Done` | Keep JSONL logging opt-in via `--log-file` and ensure raw subprocess lines are represented. | Working tree makes JSONL append all events and include current span/span list context; validated with `jar plan --branch 1.19.2 --log-file`. |
+| 10 | `Done` | Implement std-based artifact lock guard. | Committed in `433a01e98`; `ArtifactLock` uses std file locking with wait policy, non-blocking try-acquire, blocking wait loop with tracing, and contention/stale-file tests. |
+| 11 | `Done` | Wrap artifact downloads/cache writes with lock + temp + checksum + atomic replace. | Committed in `0618896cc`; Maven artifact cache reads/writes, local artifact fallback copies, generic downloads, and known-SHA Minecraft asset downloads use artifact locks, unique temp files, checksum validation, and `.bad` quarantine. |
+| 12 | `In Progress` | Move eligible immutable artifacts into the common SFM cache. | Working tree adds explicit common-cache plan paths and routes Maven artifacts, Mojang manifests/version metadata, Minecraft jars/mappings, libraries, and assets through the CLI cache path while keeping project outputs worktree-local. |
+| 13 | `In Progress` | Add `--parallel [N]` for dry-run/resolution-heavy commands, defaulting to 10. | Working tree adds typed `Parallelism`, argv normalization for bare `--parallel`, and a worker-pool dispatcher for multi-target jar/build/run execution. Parallel results are re-ordered back into target order before summaries and plan JSON are written. |
+| 14 | `In Progress` | Add Ctrl+C graceful/force shutdown behavior. | Working tree installs a Ctrl+C handler, echoes red `^C`, stops new target starts, kills active Java tool, `javac`, ANTLR, and Minecraft JVM children on graceful cancellation, and force-exits on a second Ctrl+C within one second. |
+| 15 | `In Progress` | Expand parallel support to `run game-test-server` if logs and locks hold up. | Working tree allows live `run game-test-server --parallel`; runtime validation across core targets is still pending. |
+| 16 | `In Progress` | Expand parallel support to graphical `run client`. | Working tree allows live graphical `run client --parallel`; runtime validation with multiple client windows is still pending. |
 
 ## Validation Plan
 
