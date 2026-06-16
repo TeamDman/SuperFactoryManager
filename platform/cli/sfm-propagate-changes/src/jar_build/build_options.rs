@@ -1,4 +1,7 @@
 use super::BuildMode;
+use super::ErrorAction;
+use super::Parallelism;
+use crate::branch_targets::BranchQuery;
 use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
@@ -7,12 +10,14 @@ use std::path::PathBuf;
     reason = "This type carries normalized CLI flags into the build engine."
 )]
 pub struct BuildOptions {
-    pub mc: String,
+    pub branch: BranchQuery,
     pub refresh: bool,
     pub explain_rebuild: bool,
     pub plan_json: Option<PathBuf>,
     pub java_home: Option<PathBuf>,
     pub dry_run: bool,
     pub allow_local_artifact_cache: bool,
+    pub error_action: ErrorAction,
+    pub parallelism: Parallelism,
     pub mode: BuildMode,
 }
