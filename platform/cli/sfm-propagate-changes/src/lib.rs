@@ -1,4 +1,8 @@
+pub mod artifact_lock;
+pub mod branch_targets;
+pub mod cancellation;
 pub mod cli;
+pub mod cli_arg_normalization;
 pub mod jar_build;
 pub mod jdk;
 pub mod logging;
@@ -54,15 +58,17 @@ fn version() -> String {
 pub fn main() -> eyre::Result<()> {
     // Install color_eyre for better error reports
     color_eyre::install()?;
+    cancellation::install_ctrlc_handler()?;
 
     let version = version();
 
     // Parse command line arguments using figue
     // unwrap() handles --help, --version, completions, and errors with proper exit codes
+    let args = cli_arg_normalization::normalize_parallel_args(std::env::args().skip(1));
     let cli: Cli = figue::Driver::new(
         figue::builder::<Cli>()
             .expect("schema should be valid")
-            .cli(|c| c)
+            .cli(|c| c.args(args))
             .help(|h| h.version(version))
             .build(),
     )
