@@ -710,7 +710,7 @@ Completed dependency cache first pass:
 - The hosted CurseMaven endpoint currently resolves SFM's active 1.19.2 CurseMaven jars through normal redirects, so direct unauthenticated resolution is enough for this dependency set.
 - Resolver fallback to user-level `.m2` or Gradle module caches is disabled by default.
 - `jar plan` and `jar build` now expose `--allow-local-artifact-cache` as an explicit bootstrap escape hatch when a remote artifact cannot be resolved.
-- Every Maven artifact downloaded into `build/sfm-toolchain/maven` now gets a sibling provenance sidecar:
+- Every Maven artifact downloaded into the common SFM Maven cache now gets a sibling provenance sidecar:
 
 ```text
 <artifact>.sfm-provenance.json
