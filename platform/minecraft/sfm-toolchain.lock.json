@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "minecraft_version": "26.1.2",
-  "maven_cache_dir": "build\\sfm-toolchain\\maven",
+  "maven_cache_dir": "$sfm-cache\\maven",
   "allow_local_artifact_cache": false,
   "repositories": [
     {
@@ -47,12 +47,20 @@
   ],
   "dependencies": [
     {
+      "configuration": "annotationProcessor",
+      "notation": "org.spongepowered:mixin:0.8.5:processor",
+      "resolved_notation": "org.spongepowered:mixin:0.8.5:processor",
+      "source": "Maven",
+      "dynamic_version": false,
+      "cache_path": "$sfm-cache\\maven\\org\\spongepowered\\mixin\\0.8.5\\mixin-0.8.5-processor.jar"
+    },
+    {
       "configuration": "jarJar",
       "notation": "org.antlr:antlr4-runtime:4.13.1",
       "resolved_notation": "org.antlr:antlr4-runtime:4.13.1",
       "source": "Maven",
       "dynamic_version": false,
-      "cache_path": "build\\sfm-toolchain\\maven\\org/antlr\\antlr4-runtime\\4.13.1\\antlr4-runtime-4.13.1.jar"
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4-runtime\\4.13.1\\antlr4-runtime-4.13.1.jar"
     },
     {
       "configuration": "implementation",
@@ -60,7 +68,7 @@
       "resolved_notation": "mezz.jei:jei-26.1.2-neoforge:29.5.0.27",
       "source": "Maven",
       "dynamic_version": false,
-      "cache_path": "build\\sfm-toolchain\\maven\\mezz/jei\\jei-26.1.2-neoforge\\29.5.0.27\\jei-26.1.2-neoforge-29.5.0.27.jar"
+      "cache_path": "$sfm-cache\\maven\\mezz\\jei\\jei-26.1.2-neoforge\\29.5.0.27\\jei-26.1.2-neoforge-29.5.0.27.jar"
     },
     {
       "configuration": "implementation",
@@ -68,7 +76,7 @@
       "resolved_notation": "curse.maven:jade-324717:8068368",
       "source": "CurseMaven",
       "dynamic_version": false,
-      "cache_path": "build\\sfm-toolchain\\maven\\curse/maven\\jade-324717\\8068368\\jade-324717-8068368.jar"
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\jade-324717\\8068368\\jade-324717-8068368.jar"
     },
     {
       "configuration": "implementation",
@@ -76,7 +84,7 @@
       "resolved_notation": "mekanism:Mekanism:26.1.2-10.8.0.86",
       "source": "Maven",
       "dynamic_version": false,
-      "cache_path": "build\\sfm-toolchain\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar"
+      "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar"
     },
     {
       "configuration": "compileOnly",
@@ -84,7 +92,7 @@
       "resolved_notation": "mekanism:Mekanism:26.1.2-10.8.0.86:api",
       "source": "Maven",
       "dynamic_version": false,
-      "cache_path": "build\\sfm-toolchain\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar"
+      "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar"
     },
     {
       "configuration": "implementation",
@@ -92,7 +100,7 @@
       "resolved_notation": "org.appliedenergistics:appliedenergistics2:26.1.8-alpha",
       "source": "Maven",
       "dynamic_version": false,
-      "cache_path": "build\\sfm-toolchain\\maven\\org/appliedenergistics\\appliedenergistics2\\26.1.8-alpha\\appliedenergistics2-26.1.8-alpha.jar"
+      "cache_path": "$sfm-cache\\maven\\org\\appliedenergistics\\appliedenergistics2\\26.1.8-alpha\\appliedenergistics2-26.1.8-alpha.jar"
     },
     {
       "configuration": "transitiveRuntime",
@@ -100,17 +108,44 @@
       "resolved_notation": "org.appliedenergistics:guideme:26.1.10-alpha",
       "source": "Maven",
       "dynamic_version": false,
-      "cache_path": "build\\sfm-toolchain\\maven\\org/appliedenergistics\\guideme\\26.1.10-alpha\\guideme-26.1.10-alpha.jar"
+      "cache_path": "$sfm-cache\\maven\\org\\appliedenergistics\\guideme\\26.1.10-alpha\\guideme-26.1.10-alpha.jar"
     }
   ],
   "artifacts": [
+    {
+      "coordinate": null,
+      "source": "remote-http",
+      "repository": null,
+      "url": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+      "cache_path": "$sfm-cache\\minecraft\\metadata\\version_manifest_v2.json",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "sha1": "a9620775dbc4c3cff089ceb1e2c772c825d67a1b"
+    },
+    {
+      "coordinate": null,
+      "source": "remote-http",
+      "repository": null,
+      "url": "https://piston-meta.mojang.com/v1/packages/978e6c0dd077d0f8d5d53887454928f1d3687ba8/26.1.2.json",
+      "cache_path": "$sfm-cache\\minecraft\\versions\\26.1.2\\version.json",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "sha1": "978e6c0dd077d0f8d5d53887454928f1d3687ba8"
+    },
     {
       "coordinate": "com.electronwill.night-config:core:3.8.3",
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/electronwill/night-config/core/3.8.3/core-3.8.3.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\electronwill\\night-config\\core\\3.8.3\\core-3.8.3.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\electronwill\\night-config\\core\\3.8.3\\core-3.8.3.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "b442a95f09e349927f5a945ecb594455870fcf4f"
     },
     {
@@ -118,8 +153,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/electronwill/night-config/toml/3.8.3/toml-3.8.3.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\electronwill\\night-config\\toml\\3.8.3\\toml-3.8.3.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\electronwill\\night-config\\toml\\3.8.3\\toml-3.8.3.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "90b2fd6efcb4a7d5b9810cf78f9d824994d717f2"
     },
     {
@@ -127,8 +165,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\google\\code\\findbugs\\jsr305\\3.0.2\\jsr305-3.0.2.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\google\\code\\findbugs\\jsr305\\3.0.2\\jsr305-3.0.2.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "25ea2e8b0c338a877313bd4672d3fe056ea78f0d"
     },
     {
@@ -136,8 +177,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/google/code/gson/gson/2.13.2/gson-2.13.2.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\google\\code\\gson\\gson\\2.13.2\\gson-2.13.2.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\google\\code\\gson\\gson\\2.13.2\\gson-2.13.2.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "48b8230771e573b54ce6e867a9001e75977fe78e"
     },
     {
@@ -145,8 +189,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/google/errorprone/error_prone_annotations/2.41.0/error_prone_annotations-2.41.0.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\google\\errorprone\\error_prone_annotations\\2.41.0\\error_prone_annotations-2.41.0.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\google\\errorprone\\error_prone_annotations\\2.41.0\\error_prone_annotations-2.41.0.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "4381275efdef6ddfae38f002c31e84cd001c97f0"
     },
     {
@@ -154,8 +201,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/google/guava/failureaccess/1.0.3/failureaccess-1.0.3.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\google\\guava\\failureaccess\\1.0.3\\failureaccess-1.0.3.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\google\\guava\\failureaccess\\1.0.3\\failureaccess-1.0.3.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "aeaffd00d57023a2c947393ed251f0354f0985fc"
     },
     {
@@ -163,8 +213,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/google/guava/guava/33.5.0-jre/guava-33.5.0-jre.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\google\\guava\\guava\\33.5.0-jre\\guava-33.5.0-jre.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\google\\guava\\guava\\33.5.0-jre\\guava-33.5.0-jre.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "8699de25f2f979108d6c1b804a7ba38cda1116bc"
     },
     {
@@ -172,8 +225,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\google\\guava\\listenablefuture\\9999.0-empty-to-avoid-conflict-with-guava\\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\google\\guava\\listenablefuture\\9999.0-empty-to-avoid-conflict-with-guava\\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "b421526c5f297295adef1c886e5246c39d4ac629"
     },
     {
@@ -181,8 +237,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/google/j2objc/j2objc-annotations/3.1/j2objc-annotations-3.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\google\\j2objc\\j2objc-annotations\\3.1\\j2objc-annotations-3.1.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\google\\j2objc\\j2objc-annotations\\3.1\\j2objc-annotations-3.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "a892ca9507839bbdb900d64310ac98256cab992f"
     },
     {
@@ -190,8 +249,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/com/ibm/icu/icu4j/72.1/icu4j-72.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\ibm\\icu\\icu4j\\72.1\\icu4j-72.1.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\ibm\\icu\\icu4j\\72.1\\icu4j-72.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "bc9057df4b5efddf7f6d1880bf7f3399f4ce5633"
     },
     {
@@ -199,8 +261,11 @@
       "source": "remote-maven",
       "repository": "Sponge",
       "url": "https://repo.spongepowered.org/repository/maven-public/com/mojang/logging/1.6.11/logging-1.6.11.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\com\\mojang\\logging\\1.6.11\\logging-1.6.11.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\mojang\\logging\\1.6.11\\logging-1.6.11.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "0fd147240733010c158249d986323f9ef98977fe"
     },
     {
@@ -208,8 +273,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/commons-io/commons-io/2.20.0/commons-io-2.20.0.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\commons-io\\commons-io\\2.20.0\\commons-io-2.20.0.jar",
+      "cache_path": "$sfm-cache\\maven\\commons-io\\commons-io\\2.20.0\\commons-io-2.20.0.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "36f3474daec2849c149e877614e7f979b2082cd2"
     },
     {
@@ -217,8 +285,11 @@
       "source": "remote-maven",
       "repository": "CurseMaven",
       "url": "https://www.cursemaven.com/curse/maven/jade-324717/8068368/jade-324717-8068368.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\curse\\maven\\jade-324717\\8068368\\jade-324717-8068368.jar",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\jade-324717\\8068368\\jade-324717-8068368.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "de4f46703a11ac6a35d2fce17c17a603c1886478"
     },
     {
@@ -226,35 +297,77 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/io/github/llamalad7/mixinextras-neoforge/0.5.4/mixinextras-neoforge-0.5.4.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\io\\github\\llamalad7\\mixinextras-neoforge\\0.5.4\\mixinextras-neoforge-0.5.4.jar",
+      "cache_path": "$sfm-cache\\maven\\io\\github\\llamalad7\\mixinextras-neoforge\\0.5.4\\mixinextras-neoforge-0.5.4.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "3cb0fec08c25e18fddf797fbdc1b9db83dc4e92f"
     },
     {
       "coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86",
-      "source": "local-m2-cache",
-      "repository": "local-artifact-cache",
-      "url": null,
-      "cache_path": "build\\sfm-toolchain\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar",
-      "original_path": "C:\\Users\\Teamy\\.m2\\repository\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar",
-      "sha1": "38d0a96f71852c103a57853cebb088da71446689"
+      "source": "source-build",
+      "repository": "source-build",
+      "url": "https://github.com/mekanism/Mekanism/",
+      "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar",
+      "original_path": null,
+      "source_relative_path": "build\\libs\\Mekanism-26.1.2-10.8.0.86.jar",
+      "source_git": {
+        "root": "$sfm-cache\\source-builds\\557dd8a088c05d5fb40abed165349ab01e256254",
+        "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
+        "branch": "26.1",
+        "dirty": false,
+        "remote_url": "https://github.com/mekanism/Mekanism/"
+      },
+      "source_build": {
+        "build_system": "gradle-wrapper",
+        "tasks": [
+          "jar"
+        ],
+        "environment": {
+          "BUILD_NUMBER": "86"
+        },
+        "output_path": "build\\libs\\Mekanism-26.1.2-10.8.0.86.jar"
+      },
+      "sha1": "6bb7838c7565ea6700b4c8df5d2ab538c241865c"
     },
     {
       "coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86:api",
-      "source": "local-m2-cache",
-      "repository": "local-artifact-cache",
-      "url": null,
-      "cache_path": "build\\sfm-toolchain\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar",
-      "original_path": "C:\\Users\\Teamy\\.m2\\repository\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar",
-      "sha1": "17a1ea79dd8e32d61f33f354b819ce1a2d61b571"
+      "source": "source-build",
+      "repository": "source-build",
+      "url": "https://github.com/mekanism/Mekanism/",
+      "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar",
+      "original_path": null,
+      "source_relative_path": "build\\libs\\Mekanism-26.1.2-10.8.0.86-api.jar",
+      "source_git": {
+        "root": "$sfm-cache\\source-builds\\557dd8a088c05d5fb40abed165349ab01e256254",
+        "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
+        "branch": "26.1",
+        "dirty": false,
+        "remote_url": "https://github.com/mekanism/Mekanism/"
+      },
+      "source_build": {
+        "build_system": "gradle-wrapper",
+        "tasks": [
+          "apiJar"
+        ],
+        "environment": {
+          "BUILD_NUMBER": "86"
+        },
+        "output_path": "build\\libs\\Mekanism-26.1.2-10.8.0.86-api.jar"
+      },
+      "sha1": "4787cf980d737d9742f97be4567e03e4cd04d934"
     },
     {
       "coordinate": "mezz.jei:jei-26.1.2-neoforge:29.5.0.27",
       "source": "remote-maven",
       "repository": "BlameJared",
       "url": "https://maven.blamejared.com/mezz/jei/jei-26.1.2-neoforge/29.5.0.27/jei-26.1.2-neoforge-29.5.0.27.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\mezz\\jei\\jei-26.1.2-neoforge\\29.5.0.27\\jei-26.1.2-neoforge-29.5.0.27.jar",
+      "cache_path": "$sfm-cache\\maven\\mezz\\jei\\jei-26.1.2-neoforge\\29.5.0.27\\jei-26.1.2-neoforge-29.5.0.27.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "39a6ed28b29d766d2d9f117b8877a241e633350d"
     },
     {
@@ -262,8 +375,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/net/fabricmc/sponge-mixin/0.17.3+mixin.0.8.7/sponge-mixin-0.17.3+mixin.0.8.7.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\fabricmc\\sponge-mixin\\0.17.3+mixin.0.8.7\\sponge-mixin-0.17.3+mixin.0.8.7.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\fabricmc\\sponge-mixin\\0.17.3+mixin.0.8.7\\sponge-mixin-0.17.3+mixin.0.8.7.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "41c4a3984a80f4679e759fb9f495587acc5cdac7"
     },
     {
@@ -271,8 +387,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/net/jodah/typetools/0.6.3/typetools-0.6.3.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\jodah\\typetools\\0.6.3\\typetools-0.6.3.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\jodah\\typetools\\0.6.3\\typetools-0.6.3.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "a01aaa6ddaea9ec07ec4f209487b7a46a526283a"
     },
     {
@@ -280,8 +399,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/net/minecrell/terminalconsoleappender/1.3.0/terminalconsoleappender-1.3.0.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\minecrell\\terminalconsoleappender\\1.3.0\\terminalconsoleappender-1.3.0.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\minecrell\\terminalconsoleappender\\1.3.0\\terminalconsoleappender-1.3.0.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "b562e9bb61235c9520e26282cdee71f8f802d1fc"
     },
     {
@@ -289,8 +411,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/accesstransformers/at-parser/11.0.2/at-parser-11.0.2.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\accesstransformers\\at-parser\\11.0.2\\at-parser-11.0.2.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\accesstransformers\\at-parser\\11.0.2\\at-parser-11.0.2.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "64aae57d6d26d69543c5275181fe6971707a4e16"
     },
     {
@@ -298,8 +423,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/fancymodloader/earlydisplay/11.0.13/earlydisplay-11.0.13.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\fancymodloader\\earlydisplay\\11.0.13\\earlydisplay-11.0.13.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\fancymodloader\\earlydisplay\\11.0.13\\earlydisplay-11.0.13.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "491a1bedecb33802fa118cae384b60f91f6f0241"
     },
     {
@@ -307,8 +435,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/fancymodloader/junit-fml/11.0.13/junit-fml-11.0.13.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\fancymodloader\\junit-fml\\11.0.13\\junit-fml-11.0.13.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\fancymodloader\\junit-fml\\11.0.13\\junit-fml-11.0.13.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "16bc0483f483018f1416b17647ea041be9fbdfd7"
     },
     {
@@ -316,8 +447,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/fancymodloader/loader/11.0.13/loader-11.0.13.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\fancymodloader\\loader\\11.0.13\\loader-11.0.13.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\fancymodloader\\loader\\11.0.13\\loader-11.0.13.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "c9c89eaf35535990110088224d188748d81eaecf"
     },
     {
@@ -325,8 +459,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/JarJarMetadata/0.5.0/JarJarMetadata-0.5.0.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\JarJarMetadata\\0.5.0\\JarJarMetadata-0.5.0.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\JarJarMetadata\\0.5.0\\JarJarMetadata-0.5.0.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "6f03d0ac17102c33cb7384e42a2e22eda2a3ad8c"
     },
     {
@@ -334,8 +471,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/JarJarSelector/0.5.0/JarJarSelector-0.5.0.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\JarJarSelector\\0.5.0\\JarJarSelector-0.5.0.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\JarJarSelector\\0.5.0\\JarJarSelector-0.5.0.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "64e4956b8dcdd6537eba96590f12fa1f3ba2f831"
     },
     {
@@ -343,8 +483,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/accesstransformers/11.0.2/accesstransformers-11.0.2.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\accesstransformers\\11.0.2\\accesstransformers-11.0.2.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\accesstransformers\\11.0.2\\accesstransformers-11.0.2.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "25dcb69c78b16669935f0ab91dff830ce192379d"
     },
     {
@@ -352,8 +495,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/bus/8.0.5/bus-8.0.5.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\bus\\8.0.5\\bus-8.0.5.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\bus\\8.0.5\\bus-8.0.5.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "5b2d33285ab5d1554e9798ad98c40d6ea3868bd5"
     },
     {
@@ -361,8 +507,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.7/mergetool-2.0.7-api.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\mergetool\\2.0.7\\mergetool-2.0.7-api.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\mergetool\\2.0.7\\mergetool-2.0.7-api.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "793b18456e92c4a7f66d9b5d8bf7a9c1c7a20b20"
     },
     {
@@ -370,8 +519,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/neoforge/26.1.2.72/neoforge-26.1.2.72-sources.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\neoforge\\26.1.2.72\\neoforge-26.1.2.72-sources.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoforge\\26.1.2.72\\neoforge-26.1.2.72-sources.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "2b8d029bba1f835bceb87b381d4391b3c9564f9b"
     },
     {
@@ -379,8 +531,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/neoforge/26.1.2.72/neoforge-26.1.2.72-universal.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\neoforge\\26.1.2.72\\neoforge-26.1.2.72-universal.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoforge\\26.1.2.72\\neoforge-26.1.2.72-universal.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "b2740800b3475a22c3ff0ca2abd0085fe0b94510"
     },
     {
@@ -388,8 +543,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/neoforge/26.1.2.72/neoforge-26.1.2.72-userdev.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\neoforge\\26.1.2.72\\neoforge-26.1.2.72-userdev.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoforge\\26.1.2.72\\neoforge-26.1.2.72-userdev.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "ac465d7218d9369a5ad596f795eb2d870133373a"
     },
     {
@@ -397,8 +555,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/neoform-runtime/2.0.19/neoform-runtime-2.0.19-all.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\neoform-runtime\\2.0.19\\neoform-runtime-2.0.19-all.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoform-runtime\\2.0.19\\neoform-runtime-2.0.19-all.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "8116769fd428391366e0d9d5b684ec195799ee4d"
     },
     {
@@ -406,8 +567,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/neoform/26.1.2-1/neoform-26.1.2-1.zip",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\neoform\\26.1.2-1\\neoform-26.1.2-1.zip",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoform\\26.1.2-1\\neoform-26.1.2-1.zip",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "0194355a3ab209fbdf6f970a05be03a7888599fb"
     },
     {
@@ -415,8 +579,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/srgutils/1.0.10/srgutils-1.0.10.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\srgutils\\1.0.10\\srgutils-1.0.10.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\srgutils\\1.0.10\\srgutils-1.0.10.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "abb471237b33b19f040ada00bfbad1ec45b949b6"
     },
     {
@@ -424,8 +591,11 @@
       "source": "remote-maven",
       "repository": "NeoForged",
       "url": "https://maven.neoforged.net/releases/net/neoforged/testframework/26.1.2.72/testframework-26.1.2.72.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\neoforged\\testframework\\26.1.2.72\\testframework-26.1.2.72.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\neoforged\\testframework\\26.1.2.72\\testframework-26.1.2.72.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "f6a4034634cce5ba7ca8b2a58f3bf291f97654a5"
     },
     {
@@ -433,8 +603,11 @@
       "source": "remote-maven",
       "repository": "Forge",
       "url": "https://maven.minecraftforge.net/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\net\\sf\\jopt-simple\\jopt-simple\\5.0.4\\jopt-simple-5.0.4.jar",
+      "cache_path": "$sfm-cache\\maven\\net\\sf\\jopt-simple\\jopt-simple\\5.0.4\\jopt-simple-5.0.4.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "4fdac2fbe92dfad86aa6e9301736f6b4342a3f5c"
     },
     {
@@ -442,8 +615,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/abego/treelayout/org.abego.treelayout.core/1.0.3/org.abego.treelayout.core-1.0.3.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\abego\\treelayout\\org.abego.treelayout.core\\1.0.3\\org.abego.treelayout.core-1.0.3.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\abego\\treelayout\\org.abego.treelayout.core\\1.0.3\\org.abego.treelayout.core-1.0.3.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "457216e8e6578099ae63667bb1e4439235892028"
     },
     {
@@ -451,8 +627,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/antlr/ST4/4.3.4/ST4-4.3.4.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\antlr\\ST4\\4.3.4\\ST4-4.3.4.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\ST4\\4.3.4\\ST4-4.3.4.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "bf68d049dd4e6e104055a79ac3bf9e6307d29258"
     },
     {
@@ -460,8 +639,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/antlr/antlr-runtime/3.5.3/antlr-runtime-3.5.3.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\antlr\\antlr-runtime\\3.5.3\\antlr-runtime-3.5.3.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr-runtime\\3.5.3\\antlr-runtime-3.5.3.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "9011fb189c5ed6d99e5f3322514848d1ec1e1416"
     },
     {
@@ -469,8 +651,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.13.1/antlr4-runtime-4.13.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\antlr\\antlr4-runtime\\4.13.1\\antlr4-runtime-4.13.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4-runtime\\4.13.1\\antlr4-runtime-4.13.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "17125bae1d965624e265ef49552f6465a2bfa307"
     },
     {
@@ -478,8 +663,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/antlr/antlr4/4.13.1/antlr4-4.13.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\antlr\\antlr4\\4.13.1\\antlr4-4.13.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.13.1\\antlr4-4.13.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "71b8e3e31b0821480a5db1486012caa89e673f41"
     },
     {
@@ -487,8 +675,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.19.0/commons-lang3-3.19.0.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\apache\\commons\\commons-lang3\\3.19.0\\commons-lang3-3.19.0.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\apache\\commons\\commons-lang3\\3.19.0\\commons-lang3-3.19.0.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "d6524b169a6574cd253760c472d419b47bfd37e6"
     },
     {
@@ -496,8 +687,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-api/2.25.2/log4j-api-2.25.2.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\apache\\logging\\log4j\\log4j-api\\2.25.2\\log4j-api-2.25.2.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\apache\\logging\\log4j\\log4j-api\\2.25.2\\log4j-api-2.25.2.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "292c1a2b1702f1e1e3adb13e1c57e5bff60335ff"
     },
     {
@@ -505,8 +699,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.25.2/log4j-core-2.25.2.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\apache\\logging\\log4j\\log4j-core\\2.25.2\\log4j-core-2.25.2.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\apache\\logging\\log4j\\log4j-core\\2.25.2\\log4j-core-2.25.2.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "d4d0ad2e51e03e531f784891fbfff1bae1e13a12"
     },
     {
@@ -514,8 +711,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-slf4j2-impl/2.25.2/log4j-slf4j2-impl-2.25.2.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\apache\\logging\\log4j\\log4j-slf4j2-impl\\2.25.2\\log4j-slf4j2-impl-2.25.2.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\apache\\logging\\log4j\\log4j-slf4j2-impl\\2.25.2\\log4j-slf4j2-impl-2.25.2.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "5eec0c392661dee8a366baec17e8896900dd978f"
     },
     {
@@ -523,8 +723,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/apache/maven/maven-artifact/3.9.9/maven-artifact-3.9.9.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\apache\\maven\\maven-artifact\\3.9.9\\maven-artifact-3.9.9.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\apache\\maven\\maven-artifact\\3.9.9\\maven-artifact-3.9.9.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "a130ec431ef32e12a4424f9b074735bb58e15d2d"
     },
     {
@@ -532,8 +735,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/appliedenergistics/appliedenergistics2/26.1.8-alpha/appliedenergistics2-26.1.8-alpha.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\appliedenergistics\\appliedenergistics2\\26.1.8-alpha\\appliedenergistics2-26.1.8-alpha.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\appliedenergistics\\appliedenergistics2\\26.1.8-alpha\\appliedenergistics2-26.1.8-alpha.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "8573dcb821a1e868794b462130205ac312b68a51"
     },
     {
@@ -541,8 +747,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/appliedenergistics/guideme/26.1.10-alpha/guideme-26.1.10-alpha.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\appliedenergistics\\guideme\\26.1.10-alpha\\guideme-26.1.10-alpha.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\appliedenergistics\\guideme\\26.1.10-alpha\\guideme-26.1.10-alpha.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "235ea6fd617861509667b4d11aca0e4c887aa8b9"
     },
     {
@@ -550,8 +759,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/codehaus/plexus/plexus-utils/3.5.1/plexus-utils-3.5.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\codehaus\\plexus\\plexus-utils\\3.5.1\\plexus-utils-3.5.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\codehaus\\plexus\\plexus-utils\\3.5.1\\plexus-utils-3.5.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "c6bfb17c97ecc8863e88778ea301be742c62b06d"
     },
     {
@@ -559,8 +771,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/jetbrains/annotations/24.0.1/annotations-24.0.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\jetbrains\\annotations\\24.0.1\\annotations-24.0.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\jetbrains\\annotations\\24.0.1\\annotations-24.0.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "13c5c75c4206580aa4d683bffee658caae6c9f43"
     },
     {
@@ -568,8 +783,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/jline/jline-reader/3.20.0/jline-reader-3.20.0.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\jline\\jline-reader\\3.20.0\\jline-reader-3.20.0.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\jline\\jline-reader\\3.20.0\\jline-reader-3.20.0.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "8f15415b022a25b473e8e16c28ae913186ffb9c4"
     },
     {
@@ -577,8 +795,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/jline/jline-terminal/3.20.0/jline-terminal-3.20.0.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\jline\\jline-terminal\\3.20.0\\jline-terminal-3.20.0.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\jline\\jline-terminal\\3.20.0\\jline-terminal-3.20.0.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "d0ddcc708ddf527a3454c941b7b9225cc83a15ff"
     },
     {
@@ -586,8 +807,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\jspecify\\jspecify\\1.0.0\\jspecify-1.0.0.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\jspecify\\jspecify\\1.0.0\\jspecify-1.0.0.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "7425a601c1c7ec76645a78d22b8c6a627edee507"
     },
     {
@@ -595,8 +819,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\lwjgl\\lwjgl-tinyfd\\3.4.1\\lwjgl-tinyfd-3.4.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\lwjgl\\lwjgl-tinyfd\\3.4.1\\lwjgl-tinyfd-3.4.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "562697d40dbd2ed0424bf24dcf65d51170f81adf"
     },
     {
@@ -604,8 +831,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\lwjgl\\lwjgl\\3.4.1\\lwjgl-3.4.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\lwjgl\\lwjgl\\3.4.1\\lwjgl-3.4.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "6105690714874b995aa7812e4f7732a21109276c"
     },
     {
@@ -613,8 +843,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/9.9.1/asm-analysis-9.9.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\ow2\\asm\\asm-analysis\\9.9.1\\asm-analysis-9.9.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-analysis\\9.9.1\\asm-analysis-9.9.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "1ab8d9316ef7a67240087919a708246c37ed1660"
     },
     {
@@ -622,8 +855,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/9.9.1/asm-commons-9.9.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\ow2\\asm\\asm-commons\\9.9.1\\asm-commons-9.9.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-commons\\9.9.1\\asm-commons-9.9.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "ab35de4c537184a09339069f1a3b3aacf2289149"
     },
     {
@@ -631,8 +867,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/9.9.1/asm-tree-9.9.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\ow2\\asm\\asm-tree\\9.9.1\\asm-tree-9.9.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-tree\\9.9.1\\asm-tree-9.9.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "b6b1b3366296163b4b1f540731aad0a2baa484d8"
     },
     {
@@ -640,8 +879,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-util/9.9.1/asm-util-9.9.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\ow2\\asm\\asm-util\\9.9.1\\asm-util-9.9.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-util\\9.9.1\\asm-util-9.9.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "e51f5b0ae0b0c1960687ae970a2a3434d39d8abb"
     },
     {
@@ -649,8 +891,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.9.1/asm-9.9.1.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\ow2\\asm\\asm\\9.9.1\\asm-9.9.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm\\9.9.1\\asm-9.9.1.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "2ceea6ab43bcae1979b2a6d85fc0ca429877e5ab"
     },
     {
@@ -658,8 +903,11 @@
       "source": "remote-maven",
       "repository": "Maven Central",
       "url": "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\slf4j\\slf4j-api\\2.0.17\\slf4j-api-2.0.17.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\slf4j\\slf4j-api\\2.0.17\\slf4j-api-2.0.17.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "d9e58ac9c7779ba3bf8142aff6c830617a7fe60f"
     },
     {
@@ -667,8 +915,11 @@
       "source": "remote-maven",
       "repository": "Sponge",
       "url": "https://repo.spongepowered.org/repository/maven-public/org/spongepowered/mixin/0.8.5/mixin-0.8.5-processor.jar",
-      "cache_path": "build\\sfm-toolchain\\maven\\org\\spongepowered\\mixin\\0.8.5\\mixin-0.8.5-processor.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\spongepowered\\mixin\\0.8.5\\mixin-0.8.5-processor.jar",
       "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
       "sha1": "06d1c8bf4c28e697f472a83bd6add76ec4951734"
     }
   ]

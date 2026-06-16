@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.util.SFMDist;
 import com.mojang.brigadier.Command;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.commands.CommandSourceStack;
@@ -59,7 +60,15 @@ public class SFMClientRunHarness {
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onTitleScreenOpen(ScreenEvent.Opening event) {
         Mode mode = mode();
-        if (mode == Mode.NONE || titleScreenHandled) {
+        if (mode == Mode.NONE) {
+            return;
+        }
+
+        if (preventPuppetPauseScreen(event, mode)) {
+            return;
+        }
+
+        if (titleScreenHandled) {
             return;
         }
 
@@ -76,6 +85,15 @@ public class SFMClientRunHarness {
         }
 
         continueFromClientMenu(mode);
+    }
+
+    private static boolean preventPuppetPauseScreen(ScreenEvent.Opening event, Mode mode) {
+        if (mode == Mode.PUPPET && event.getNewScreen() instanceof PauseScreen) {
+            SFM.LOGGER.info("SFM_CLIENT_PUPPET_PREVENTING_PAUSE_SCREEN");
+            event.setNewScreen(null);
+            return true;
+        }
+        return false;
     }
 
     private static void continueFromClientMenu(Mode mode) {
@@ -122,7 +140,9 @@ public class SFMClientRunHarness {
             return;
         }
 
+        keepPuppetRuntimeUnpaused(minecraft);
         IntegratedServer server = minecraft.getSingleplayerServer();
+        dismissPuppetPauseScreen(minecraft);
         if (puppetWorldCreationStarted && !puppetTestsStarted && server != null && server.isReady() && minecraft.player != null) {
             puppetTestsStarted = true;
             server.execute(() -> startPuppetTests(server));
@@ -134,6 +154,21 @@ public class SFMClientRunHarness {
         }
 
         tickAutoExit();
+    }
+
+    private static void keepPuppetRuntimeUnpaused(Minecraft minecraft) {
+        if (minecraft.options.pauseOnLostFocus) {
+            SFM.LOGGER.info("SFM_CLIENT_PUPPET_DISABLING_PAUSE_ON_LOST_FOCUS");
+            minecraft.options.pauseOnLostFocus = false;
+            minecraft.options.save();
+        }
+    }
+
+    private static void dismissPuppetPauseScreen(Minecraft minecraft) {
+        if (minecraft.screen instanceof PauseScreen) {
+            SFM.LOGGER.info("SFM_CLIENT_PUPPET_DISMISSING_PAUSE_SCREEN");
+            minecraft.setScreen(null);
+        }
     }
 
     private static void startPuppetWorld() {
