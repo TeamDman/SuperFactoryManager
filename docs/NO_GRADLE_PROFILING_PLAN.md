@@ -56,13 +56,13 @@ Make the non-Gradle setup work performed before and around `sfm-propagate-change
 - 2026-06-13: Added SFM Tracy features, runtime Tracy-layer enabling through `SFM_ENABLE_TRACY_LAYER`, optional Tracy allocation profiling, `run-profiler.ps1`, and generated capture ignore rules.
 - 2026-06-13: Added coarse spans/events around command entry, plan creation, resolver/artifact decisions, downloads, build node execution, Java tool calls, run classpath/assets setup, run setup completion, Minecraft JVM launch, packaging, and lockfile writes. Per-dependency and download-request detail is gated behind `tracing_detailed`.
 - 2026-06-13: Verified `cargo check --all-features`, `cargo clippy --all-features -- -D warnings`, `cargo test --all-features`, and `platform/cli/sfm-propagate-changes/check-all.ps1`.
-- 2026-06-13: Ran `platform/cli/sfm-propagate-changes/run-profiler.ps1 -NoOpenProfiler jar plan --mc 1.19.2`. It produced `platform/cli/sfm-propagate-changes/tracy/2026-06-13_23-49-54.tracy`.
-- 2026-06-13: Ran `platform/cli/sfm-propagate-changes/run-profiler.ps1 -NoOpenProfiler run game-test-server --mc 1.19.2`. It produced `platform/cli/sfm-propagate-changes/tracy/2026-06-13_23-51-46.tracy` and validated 219 required game tests passed.
-- 2026-06-14: Added `--dry-run` to shared jar build options. `jar build --dry-run` resolves the plan and lockfile without executing build nodes; `run ... --dry-run` builds and prepares launch files, then skips the Minecraft JVM. The profiler wrapper now defaults to `run game-test-server --mc 1.19.2 --dry-run`.
+- 2026-06-13: Ran `platform/cli/sfm-propagate-changes/run-profiler.ps1 -NoOpenProfiler jar plan --branch 1.19.2`. It produced `platform/cli/sfm-propagate-changes/tracy/2026-06-13_23-49-54.tracy`.
+- 2026-06-13: Ran `platform/cli/sfm-propagate-changes/run-profiler.ps1 -NoOpenProfiler run game-test-server --branch 1.19.2`. It produced `platform/cli/sfm-propagate-changes/tracy/2026-06-13_23-51-46.tracy` and validated 219 required game tests passed.
+- 2026-06-14: Added `--dry-run` to shared jar build options. `jar build --dry-run` resolves the plan and lockfile without executing build nodes; `run ... --dry-run` builds and prepares launch files, then skips the Minecraft JVM. The profiler wrapper now defaults to `run game-test-server --branch 1.19.2 --dry-run`.
 
 ## First Capture Observation
 
-The `jar plan --mc 1.19.2` smoke capture proved the harness and showed immediately useful data:
+The `jar plan --branch 1.19.2` smoke capture proved the harness and showed immediately useful data:
 
 - `sfm_jar_build_command` took about 2.6 seconds in the captured command.
 - `create_build_plan` took about 0.73 seconds.
@@ -71,7 +71,7 @@ The `jar plan --mc 1.19.2` smoke capture proved the harness and showed immediate
 
 This is not an optimization pass, but the result suggests lockfile/provenance serialization and artifact-state collection should be one of the first later investigations.
 
-The `run game-test-server --mc 1.19.2` capture proved the run setup path and showed these coarse timings from the console/csv summary:
+The `run game-test-server --branch 1.19.2` capture proved the run setup path and showed these coarse timings from the console/csv summary:
 
 - Rust-owned build replay took about 31 seconds before run setup.
 - MCPConfig joined and Forge userdev nodes were cache hits at about 62 ms and 229 ms.

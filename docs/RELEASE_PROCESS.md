@@ -173,10 +173,10 @@ ARGUMENTS:
             Gradle tasks to run (for example: `runData`, `runGameTestServer`, `test`).
 
 OPTIONS:
-        --mc <STRING>
-            Minecraft version filter expression for branch names (examples: `>=1.21.0`, `<1.20`, `=1.20.4`).
-        --hide-logs
-            If set, hide stdout of each gradle process while it runs.
+        --branch <STRING>
+            Branch selector for worktrees. Defaults to all worktrees for legacy Gradle orchestration.
+        --show-logs
+            If set, stream gradle stdout/stderr to the console while tasks run.
         --continue-on-error
             If set, continue with later branches after a task failure.
 ```
@@ -190,6 +190,6 @@ USAGE:
     sfm-propagate-changes.exe server launch [OPTIONS]
 
 OPTIONS:
-        --mc <STRING>
-            Minecraft version filter expression for tracked servers (examples: `>=1.21.0`, `<1.20`, `=1.20.4`).
+        --branch <STRING>
+            Branch selector used to choose tracked server Minecraft versions. Defaults to `core`.
 ```

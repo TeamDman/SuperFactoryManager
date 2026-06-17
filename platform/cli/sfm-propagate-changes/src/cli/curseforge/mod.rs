@@ -1,13 +1,14 @@
-mod curseforge_command;
-mod curseforge_minecraft_command;
-mod curseforge_minecraft_version_command;
-mod curseforge_project_command;
-mod curseforge_project_default_command;
-mod curseforge_project_file_command;
-mod curseforge_release_amend_command;
-mod curseforge_release_check_command;
-mod curseforge_release_command;
-mod curseforge_release_now_command;
-mod curseforge_release_validate_command;
+mod curseforge_args_cli;
+mod curseforge_cli;
+mod curseforge_minecraft_cli;
+mod curseforge_minecraft_version_cli;
+mod curseforge_minecraft_version_list_cli;
+mod project;
+mod release;
 
-pub use curseforge_command::*;
+pub use curseforge_args_cli::*;
+pub use curseforge_minecraft_cli::*;
+pub use curseforge_minecraft_version_cli::*;
+pub use curseforge_minecraft_version_list_cli::*;
+pub use project::*;
+pub use release::*;
