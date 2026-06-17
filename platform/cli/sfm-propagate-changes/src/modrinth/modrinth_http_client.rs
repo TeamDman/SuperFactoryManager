@@ -16,6 +16,12 @@ const MODRINTH_USER_AGENT: &str = "sfm-propagate-changes/modrinth";
 pub struct ModrinthHttpClient(pub Client);
 
 impl ModrinthHttpClient {
+    /// Build a `Modrinth` client, optionally attaching an authorization token.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the token cannot be encoded as an HTTP header or the client
+    /// cannot be constructed.
     pub fn new(token: Option<&ModrinthApiSecret>) -> eyre::Result<Self> {
         let mut headers = HeaderMap::new();
         headers.insert(USER_AGENT, HeaderValue::from_static(MODRINTH_USER_AGENT));
