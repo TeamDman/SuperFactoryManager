@@ -23,13 +23,19 @@ Status values used below:
 
 Overall status: `In Progress`
 
+Current working-tree review status: implementation and validation are complete for the current review set, but sections with uncommitted work remain `In Progress` until the review set is committed and propagated.
+
+Known remaining scope gap: no live Rust CLI surface is intentionally kept on `--mc`. The current working tree migrates `jar plan`, `jar build`, `jar compare`, top-level `run ...`, Gradle worktree orchestration, server registry commands, GitHub release commands, CurseForge release/metadata commands, and Modrinth release commands to typed `--branch` selection. The obsolete standalone `mc_version_filter` module has been removed. Any new MC-version-specific workflow should either consume `BranchSelector` directly or explicitly justify why it is not a worktree/release target selector.
+
+Known feature-worktree gap: explicit `--branch feat/1.19.2/draw` selection reaches `D:/Repos/Minecraft/SFM/worktrees/1.19.2-draw`, but that feature worktree is stale relative to the current toolchain layout and lacks `platform/minecraft/gradle/dependencies/1.19.2/dependencies.gradle`. Core/default selectors still exclude the feature worktree, so publishable branch validation is unaffected.
+
 ## Decisions Locked In
 
 Status: `Done`
 
 - The default branch selector is `core`.
 - `--mc` will be removed, not kept as a compatibility alias.
-- All commands that currently support `--mc` will move to `--branch`.
+- All commands that select Git worktrees will move from `--mc` to `--branch`.
 - Multi-target commands run sequentially by default.
 - `--parallel N` will be added later; when supplied without `N`, it defaults to `10`.
 - Parallel graphical `run client` is allowed as a planned capability after scheduler, logging, locking, and cancellation behavior are solid.
@@ -42,6 +48,7 @@ Status: `Done`
 - We want strong Rust types for parsed branch query rules, not stringly typed matching.
 - Rust command progress should flow through structured `tracing`, not direct `println!` or `eprintln!`.
 - The one direct stderr exception is Ctrl+C echoing, which should immediately write a red `^C` using the `owo-colors` re-export from `color-eyre`.
+- Commands whose purpose is to return a machine-readable path/list/report may still write raw stdout, but that output must flow through the explicit `terminal_output` helper contract rather than scattered `println!` calls.
 - Tests must not depend on the installed `$env:PATH` CLI being up to date.
 - Do not run `install.ps1` as part of normal validation unless explicitly requested.
 - This plan doc should be committed before Rust implementation begins. Future implementation changes should stay unstaged/uncommitted for human review unless explicitly requested otherwise.
@@ -163,7 +170,7 @@ Migration:
 - Replace help text and docs that mention `--mc`.
 - Update tests so old `--mc` invocations fail to parse.
 - Update internal request objects to carry one or more `WorktreeTarget`s rather than a bare MC version string.
-- `jar compare` may remain single-target until compare reporting is designed for multi-target summaries.
+- `jar compare` supports multi-target branch selectors and `--parallel [N]`. Single-target `--report-json <path>` keeps the historic single-report JSON shape; multi-target selectors write an array of branch-scoped comparison reports. `--gradle-jar` and `--rust-jar` overrides are allowed only when the selector matches one target.
 
 ### Multi-Target Scheduling
 
@@ -413,11 +420,12 @@ Current implementation notes:
 - The working tree installs a process-wide Ctrl+C handler from the CLI entrypoint.
 - First Ctrl+C sets a shared cancellation flag, emits a red `^C`, prevents new parallel targets from starting, and asks active Java/Minecraft child processes to stop.
 - A second Ctrl+C within one second emits another red `^C` and force-exits with status 130.
+- Parallel scheduler tests cover cancellation being observed between targets: no additional target starts, and execution returns an `Operation cancelled by Ctrl+C` error instead of an empty successful summary.
 - Java tool, `javac`, ANTLR, and launched Minecraft JVM waits poll the cancellation flag and kill the active child before returning a cancellation error.
 
 ### Locking Testability
 
-Status: `Not Started`
+Status: `In Progress`
 
 The lock layer must be designed so contention is testable without shelling out to the installed CLI.
 
@@ -437,26 +445,110 @@ Testing requirements:
   - Windows replacement behavior, where practical
   - concurrent readers do not observe half-written artifacts
 
+Current implementation notes:
+
+- Artifact lock unit tests cover uncontended acquisition, non-blocking contention, blocking wait, and stale lock files.
+- Artifact read lock unit tests cover multiple concurrent readers and writer exclusion while a reader is active.
+- Jar build engine tests cover corrupt final artifacts being quarantined, valid finals being reused, temp checksum failures not replacing finals, bad final cleanup after successful replacement, unique sibling temp files, lock waiters reusing an artifact completed by another lock holder, resolver cache hits waiting for an active writer lock before reading, and run-only Maven cache artifacts being written to the lockfile from provenance sidecars.
+- Download tests cover retry after a temp-file checksum failure before publishing the final artifact.
+- Existing-destination replacement is covered under an active artifact writer lock, matching the Windows-safe remove-then-rename behavior used by the implementation now that readers coordinate through shared locks.
+- No known locking testability gaps remain in the working tree; section status stays `In Progress` until the changes are committed and propagated.
+
 ## Implementation Sequence
 
 | Step | Status | Scope | Completion Criteria |
 | --- | --- | --- | --- |
 | 1 | `Done` | Add `WorktreeTarget` and classify core vs feature worktrees. | Committed in `ee92ebd6f`; unit tests cover core version branches, feature branches, and inferred MC versions. |
 | 2 | `Done` | Implement typed `BranchQuery`, DNF-style `BranchConjunction`, and `BranchRule` parser/evaluator. | Committed in `ee92ebd6f`; selector tests cover aliases, core, all, exact branch, feature glob, version comparisons, display round-trips, arbitrary generated selectors, and `core>=1.20`. |
-| 3 | `Done` | Replace `--mc` with `--branch` in run/build/plan/compare surfaces. | Committed in `2d88a2b79`; CLI tests show `--branch` parses, default is `core`, and `--mc` no longer parses. |
-| 4 | `Done` | Convert single-target run/build requests into multi-target scheduling. | Committed in `a260d22ab`; `jar plan`, `jar build`, and `run ...` iterate matching targets sequentially. |
+| 3 | `Done` | Replace `--mc` with `--branch` in run/build/plan/compare and helper/release surfaces. | Committed in `2d88a2b79` for jar/run surfaces. Working tree additionally migrates Gradle worktree orchestration, server registry commands, GitHub release commands, CurseForge release/metadata commands, and Modrinth release commands to typed `--branch`; CLI tests show migrated surfaces parse `--branch`, default to `core` where omitted, and reject old `--mc` invocations. |
+| 4 | `Done` | Convert single-target run/build requests into multi-target scheduling. | Committed in `a260d22ab`; `jar plan`, `jar build`, and `run ...` iterate matching targets sequentially. Working tree extends `jar compare` to iterate matching branch targets too, with `--error-action continue\|bail` support, `--parallel [N]`, and branch-scoped multi-target JSON reports. |
 | 5 | `Done` | Add `--error-action continue\|bail` to multi-target commands. | Committed in `cf0925311`; default is `bail`, `continue` records per-target failures and returns failure after the target summary. |
 | 6 | `Done` | Add wide tracing fields for branch/source/stream/subprocess lines. | Build/run/launch/lockfile spans carry branch context; forwarded Java tool, `javac`, ANTLR, and Minecraft lines carry explicit source/process/stream fields. |
-| 7 | `Done` | Replace affected `println!`/`eprintln!` progress with tracing events. | Jar build/run plan summary, target summaries, build node timing, launch setup/validation, Java tool, javac, ANTLR, and subprocess echo paths use tracing events; compare/report output and older helper output remain direct for later slices. |
+| 7 | `Done` | Replace affected `println!`/`eprintln!` progress with tracing events and centralize raw stdout output. | Jar build/run plan summary, target summaries, build node timing, launch setup/validation, Java tool, javac, ANTLR, subprocess echo paths, and jar compare report output use tracing events. No direct `println!`/`eprintln!` calls remain in `jar_build` or `artifact_lock`. Working tree additionally routes client/server registry output, jar collect/update summaries, Gradle status/log summaries, merge-conflict progress, git tag/push progress, and GitHub/Modrinth/CurseForge release/status/table output through tracing. Raw result output for commands such as `cache path`, `home path`, `repo-root show`, `client get-launcher`, `jdk list`, `git status`, `jar dir`, `jar list`, and Gradle log reports uses the `terminal_output` helper. Gradle `--show-logs` raw stream echo uses `terminal_output::stderr_text` so arbitrary chunks still stream without direct terminal macros. Focused `rg` scan shows the only remaining direct terminal macro is the explicit Ctrl+C `^C` echo required by the plan. |
 | 8 | `Done` | Add prefixed terminal rendering for line events. | Terminal tracing layer renders branch/source/process/stream-aware prefixes; explicit `--log-filter`/`--debug` override `RUST_LOG`; validated with `jar plan --branch 1.19.2`. |
 | 9 | `Done` | Keep JSONL logging opt-in via `--log-file` and ensure raw subprocess lines are represented. | Working tree makes JSONL append all events and include current span/span list context; validated with `jar plan --branch 1.19.2 --log-file`. |
 | 10 | `Done` | Implement std-based artifact lock guard. | Committed in `433a01e98`; `ArtifactLock` uses std file locking with wait policy, non-blocking try-acquire, blocking wait loop with tracing, and contention/stale-file tests. |
 | 11 | `Done` | Wrap artifact downloads/cache writes with lock + temp + checksum + atomic replace. | Committed in `0618896cc`; Maven artifact cache reads/writes, local artifact fallback copies, generic downloads, and known-SHA Minecraft asset downloads use artifact locks, unique temp files, checksum validation, and `.bad` quarantine. |
-| 12 | `In Progress` | Move eligible immutable artifacts into the common SFM cache. | Working tree adds explicit common-cache plan paths and routes Maven artifacts, Mojang manifests/version metadata, Minecraft jars/mappings, libraries, and assets through the CLI cache path while keeping project outputs worktree-local. |
-| 13 | `In Progress` | Add `--parallel [N]` for dry-run/resolution-heavy commands, defaulting to 10. | Working tree adds typed `Parallelism`, argv normalization for bare `--parallel`, and a worker-pool dispatcher for multi-target jar/build/run execution. Parallel results are re-ordered back into target order before summaries and plan JSON are written. |
-| 14 | `In Progress` | Add Ctrl+C graceful/force shutdown behavior. | Working tree installs a Ctrl+C handler, echoes red `^C`, stops new target starts, kills active Java tool, `javac`, ANTLR, and Minecraft JVM children on graceful cancellation, and force-exits on a second Ctrl+C within one second. |
-| 15 | `In Progress` | Expand parallel support to `run game-test-server` if logs and locks hold up. | Working tree allows live `run game-test-server --parallel`; runtime validation across core targets is still pending. |
-| 16 | `In Progress` | Expand parallel support to graphical `run client`. | Working tree allows live graphical `run client --parallel`; runtime validation with multiple client windows is still pending. |
+| 12 | `Done` | Move eligible immutable artifacts into the common SFM cache. | Working tree adds explicit common-cache plan paths and routes Maven artifacts, Mojang manifests/version metadata, Minecraft jars/mappings, libraries, and assets through the CLI cache path while keeping project outputs worktree-local. Lockfile generation now preserves the existing artifact lock graph while migrating matching entries to `$sfm-cache` paths, and refresh writes provenance-bearing run-time Maven cache artifacts into the lockfile so non-refresh run commands do not fail one transitive launch module at a time. Runtime `--refresh` regenerates the lockfile while still reusing valid shared cache artifacts, preventing parallel graphical runs from replacing a jar after another launched JVM has it open. Minecraft library launch/compile classpaths are selected from the active version JSON instead of recursively scanning the shared cache. Userdev libraries/modules and project compile annotation artifacts are now planned artifacts, so refresh planning records NeoForge launch modules such as `night-config` and hardcoded compiler helpers such as `org.jetbrains:annotations` before run setup. `cargo run -- jar build --branch core --dry-run --parallel --error-action continue` passes without local artifact fallback after the 26.1.2 Mekanism artifacts are present in SFM's common cache. The working tree also adds repeatable `--artifact-source <path>` flags so local project outputs or Maven repository roots can be searched in order and imported explicitly with `explicit-artifact-source` provenance instead of depending on implicit `.m2`/Gradle cache fallback. `BuildPlan` now includes an `artifact_portability` audit and `--require-portable-artifacts` turns any local-only or unknown provenance into a hard failure for clean-slate checks. The working tree adds `jar audit-artifacts` to verify lockfile cache/source provenance after planning, including cache SHA-1 checks, provenance sidecar checks, explicit source artifact checks, source Git metadata checks, source build metadata checks, optional JSON reports, `--parallel`, `--error-action`, and `--require-portable-artifacts`. Lockfile generation no longer performs a global shared-cache sidecar sweep because that polluted every branch lockfile with unrelated provenanced artifacts; run-only extras are still recorded explicitly from the current plan's extra cache paths. The artifact audit report/enums were split out of `engine.rs` into focused one-primary-type files so the new audit surface follows the module-shape preference before further provenance work builds on it. Explicit-source provenance records `source_relative_path` and `source_build`, and the resolver can now materialize recorded Gradle-wrapper source builds into SFM's common Maven cache when remote Maven resolution fails. Source-build checkouts live under `$sfm-cache/source-builds/<sha1(remote,commit)>`, enable Git long paths on Windows, run the recorded wrapper tasks/environment, and write `source-build` provenance instead of absolute `original_path` provenance. `cargo run -- jar audit-artifacts --branch core --parallel --error-action continue --require-portable-artifacts` passes across all core lockfiles. |
+| 13 | `In Progress` | Add `--parallel [N]` for dry-run/resolution-heavy commands, defaulting to 10. | Working tree adds typed `Parallelism`, argv normalization for bare `--parallel`, and worker-pool dispatchers for multi-target jar/build/run/compare execution. Parallel results are re-ordered back into target order before summaries and JSON outputs are written. `cargo run -- jar build --branch core --dry-run --parallel --error-action continue` and `cargo run -- run game-test-server --branch core --dry-run --parallel --error-action continue` pass across all core worktrees. |
+| 14 | `In Progress` | Add Ctrl+C graceful/force shutdown behavior. | Working tree installs a Ctrl+C handler, echoes red `^C`, stops new target starts, kills active Java tool, `javac`, ANTLR, and Minecraft JVM children on graceful cancellation, and force-exits on a second Ctrl+C within one second. Unit coverage includes the Ctrl+C timing state machine and parallel scheduler behavior after cancellation is observed. |
+| 15 | `Done` | Expand parallel support to `run game-test-server` if logs and locks hold up. | `cargo run -- run game-test-server --branch "core>=1.21.0" --parallel --error-action continue` passes. Logs show 1.21.0 ran 190 tests, 1.21.1 ran 206 tests, and 26.1.2 ran 191 tests with all required tests passing. |
+| 16 | `In Progress` | Expand parallel support to graphical `run client`. | Working tree allows live graphical `run client --parallel`; `cargo run -- run client-smoke --branch "core>=1.21.0" --parallel --error-action continue` passes, and `cargo run -- run client-puppet --branch core --parallel --error-action continue` passes across all 10 core worktrees. Client automation options seed `onboardAccessibility:false`, `narrator:0`, `pauseOnLostFocus:false`, and `tutorialStep:none`; the Java client puppet harness prevents `PauseScreen` from opening in puppet mode and also dismisses `PauseScreen` during puppet ticks as a fallback, so tests keep advancing if the OS launches the window unfocused. The harness also forces `minecraft.options.pauseOnLostFocus = false` during puppet ticks, which is the in-process equivalent of keeping F3+P enabled if a version reloads or rewrites options after launcher seeding. The harness logs `SFM_CLIENT_PUPPET_PREVENTING_PAUSE_SCREEN` for the event-level guard, `SFM_CLIENT_PUPPET_DISMISSING_PAUSE_SCREEN` for the tick fallback, and `SFM_CLIENT_PUPPET_DISABLING_PAUSE_ON_LOST_FOCUS` if the runtime F3+P guard has to correct the option. Unit coverage includes `client_automation_options_disable_onboarding_and_focus_pause` and `graphical_client_runs_use_relaxed_program_timing`. Game-test server and server runs keep `sfm.gametest.maxProgramRunMillis=150`; graphical client runs use `1000` because the SFM helper measures wall-clock program runtime and parallel desktop rendering can otherwise trip false performance failures. Full-core puppet validation passed with: 1.19.2 `219/219`, 1.19.4 `190/190`, 1.20 `190/190`, 1.20.1 `204/204`, 1.20.2 `190/190`, 1.20.3 `190/190`, 1.20.4 `190/190`, 1.21.0 `190/190`, 1.21.1 `206/206`, and 26.1.2 `190/190`, all before the 10 second `/sfm keep_open` countdown exit. A focused follow-up live parallel puppet run for 1.21.1 and 26.1.2 also passed after the event-level pause guard was added. Another follow-up live parallel puppet run for 1.21.1 and 26.1.2 passed after adding the runtime F3+P guard, with 1.21.1 `206/206` and 26.1.2 `190/190`. A later focused live parallel puppet run with `--refresh` also passed after the run-time shared-cache refresh race was fixed; logs show 1.21.1 `206/206` and 26.1.2 `190/190`, both reaching the 10 second `/sfm keep_open` countdown and exiting. Direct interactive `run client --parallel` remains manually validated because it intentionally does not auto-exit. |
+
+Current 26.1.2 artifact note:
+
+- Direct checks against the configured Maven repositories return 404 for `mekanism:Mekanism:26.1.2-10.8.0.86` and its `api` classifier.
+- The exact jars are available in `G:\Programming\Repos\Mekanism\build\libs`.
+- `cargo run -- jar plan --branch 26.1.2 --refresh --artifact-source G:\Programming\Repos\Mekanism` imports `Mekanism-26.1.2-10.8.0.86.jar` and `Mekanism-26.1.2-10.8.0.86-api.jar` into SFM's common cache and records `explicit-artifact-source` provenance in both the SFM cache sidecars and `platform/minecraft/sfm-toolchain.lock.json`, including source Git metadata, relative output paths, and source build metadata.
+- A subsequent `jar build --branch "26.1.2" --dry-run` can pass without `--artifact-source` because the artifacts are then SFM-cache-backed and lockfile-backed.
+- `--allow-local-artifact-cache` remains only a last-resort bootstrap/debug route for `.m2`/Gradle-created caches.
+- A truly fresh environment can now recreate the two Mekanism jars from the recorded source-build provenance when the public Maven repositories return 404. The first source-build refresh exposed a Windows Git long-path checkout failure; the materializer now sets `core.longpaths=true` during clone and before checkout.
+- Direct HEAD checks for both expected ModMaven paths and both `https://modmaven.dev/artifactory/local-releases/...` paths return 404 for the main and API Mekanism jars.
+- The local `.m2` artifacts byte-match `G:\Programming\Repos\Mekanism\build\libs`; both main jars have SHA-1 `38d0a96f71852c103a57853cebb088da71446689`, and both API jars have SHA-1 `17a1ea79dd8e32d61f33f354b819ce1a2d61b571`.
+- Explicit source provenance now records source Git metadata and relative artifact paths in the SFM cache sidecars, lockfile, and `last-plan.json`; the current Mekanism artifacts came from `G:\Programming\Repos\Mekanism`, branch `26.1`, commit `f33ff1f438caa55d58ef1f0a08091997353afcb8`, dirty `false`, remote `https://github.com/mekanism/Mekanism/`, relative outputs `build/libs/Mekanism-26.1.2-10.8.0.86.jar` and `build/libs/Mekanism-26.1.2-10.8.0.86-api.jar`.
+- `cargo run -- jar plan --branch 26.1.2 --refresh` now succeeds without `--artifact-source`; the two Mekanism artifacts are built from source into SFM's common cache and recorded with `source-build` provenance.
+- `cargo run -- jar plan --branch 26.1.2 --require-portable-artifacts` now passes because all locked 26.1.2 artifacts are fresh-slate portable.
+- Normal `jar plan --branch 26.1.2` still succeeds and writes `artifact_portability` to `build/sfm-toolchain/state/last-plan.json`.
+- `cargo run -- jar audit-artifacts --branch 26.1.2` verifies every locked artifact and exits successfully.
+- `cargo run -- jar audit-artifacts --branch 26.1.2 --require-portable-artifacts` verifies every locked artifact and exits successfully.
+- `cargo run -- jar audit-artifacts --branch core --parallel --error-action continue` verifies all core lockfiles and exits successfully.
+- `cargo run -- jar audit-artifacts --branch core --parallel --error-action continue --require-portable-artifacts` verifies all core lockfiles and exits successfully.
+- The refreshed core lockfiles no longer contain unrelated 26.1.2 Mekanism entries outside the `26.1.2` worktree after removing the global shared-cache sidecar sweep.
+- Source Git provenance now includes an optional `remote_url` field, and explicit-source/source-build artifact provenance includes optional `source_relative_path` and `source_build` fields. Older lockfiles remain readable through Facet defaults, refreshed explicit-source artifacts include `origin`, source-relative output paths, Gradle wrapper tasks (`jar` and `apiJar`), and `BUILD_NUMBER=86`, and refreshed source-build artifacts replace absolute local `original_path` data with `$sfm-cache/source-builds/<checkout>` provenance.
+
+Latest working-tree validation evidence:
+
+- `cargo fmt --check`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test` (`103` tests)
+- `platform/cli/sfm-propagate-changes/check-all.ps1`
+- Direct terminal output is centralized: `rg "\b(print!|println!|eprintln!)" src -g "*.rs"` reports only `src/cancellation/mod.rs` for the explicit red Ctrl+C `^C` echo. Raw stdout result commands use `terminal_output::{stdout_line, stdout_blank_line, stdout_prompt}` instead of direct macros; the subscriber-init fallback uses `terminal_output::stderr_line` because tracing is unavailable at that point.
+- `cargo run -- jar build --branch core --dry-run --parallel --error-action continue`
+- `cargo run -- jar plan --branch 26.1.2 --refresh --artifact-source G:\Programming\Repos\Mekanism`
+- `cargo run -- jar plan --branch 26.1.2`
+- `cargo run -- jar plan --branch 26.1.2 --refresh` exits successfully without `--artifact-source`, after cloning Mekanism source into `$sfm-cache/source-builds`, running the recorded Gradle wrapper source-build tasks, and writing `source-build` provenance for the main/API Mekanism jars.
+- `cargo run -- jar plan --branch 26.1.2 --require-portable-artifacts` exits successfully.
+- `cargo run -- jar audit-artifacts --branch 26.1.2` exits successfully.
+- `cargo run -- jar audit-artifacts --branch 26.1.2 --require-portable-artifacts` exits successfully.
+- `cargo run -- jar audit-artifacts --branch 26.1.2 --report-json build/sfm-toolchain/state/artifact-audit-26.1.2.json` writes a typed artifact audit report with every artifact verified and `fresh_slate_portable: true`.
+- `cargo run -- jar audit-artifacts --branch core --parallel --error-action continue --require-portable-artifacts` exits successfully across all core worktrees.
+- `cargo test artifact_audit -- --nocapture`
+- `cargo check --all-targets --all-features`
+- `cargo run -- jar plan --branch 26.1.2 --refresh --artifact-source G:\Programming\Repos\Mekanism` refreshes the explicit-source Mekanism artifacts and records `remote_url` for `origin`, `source_relative_path`, and `source_build` for both Mekanism output jars.
+- `cargo run -- run client-puppet --branch "1.21.1|26.1.2" --refresh --parallel --error-action continue --artifact-source G:\Programming\Repos\Mekanism` exits successfully after the runtime refresh resolver fix; logs show 1.21.1 `206/206` and 26.1.2 `190/190`.
+- `cargo run -- run client-puppet --branch "1.21.1|26.1.2" --dry-run --parallel --error-action continue` exits successfully after userdev modules and project compile annotations were promoted into planned artifacts and the lockfiles were refreshed.
+- `cargo run -- jar audit-artifacts --branch "1.21.1|26.1.2" --parallel --error-action continue` exits successfully and reports warnings for only the two 26.1.2 Mekanism explicit-source artifacts.
+- `cargo test source -- --nocapture` passes the explicit-source, source Git, and source build provenance tests.
+- `cargo test source_build -- --nocapture` passes the source-build materializer and source-build portability tests.
+- `cargo test source_git_provenance -- --nocapture`
+- `cargo test resolver_imports_from_explicit_project_artifact_source -- --nocapture`
+- `cargo test` (`103` tests)
+- `cargo run -- jar audit-artifacts --branch core --parallel --error-action continue` exits successfully and reports warnings for only 26.1.2 after remote URL provenance was added.
+- `cargo run -- run client-puppet --branch core --dry-run --parallel --error-action continue`
+- `cargo run -- run client-puppet --branch "1.21.1|26.1.2" --dry-run --error-action continue`
+- `cargo run -- run client-puppet --branch "1.21.1|26.1.2" --parallel --error-action continue`
+- `cargo run -- run client-puppet --branch "1.21.1|26.1.2" --parallel --error-action continue` exits successfully after the runtime F3+P/pause-screen guard; client-puppet fails if the `SFM_CLIENT_PUPPET_TESTS_PASSED` marker is missing or below the required count.
+- `cargo run -- run client-puppet --branch core --parallel --error-action continue`
+- `cargo test forge_project_dependency_planning_includes_plain_compile_inputs` locks in the Forge planner behavior that plain project compile inputs such as `mekanism:Mekanism:1.19.2-10.3.8.477:api` are planned instead of being discovered only at compile/run setup time.
+- `cargo run -- jar plan --branch "1.19.2|1.20.1" --refresh --parallel --error-action continue` refreshes the affected lockfiles after plain Forge project dependencies were added to planning; both Mekanism API classifier artifacts are now lockfile-backed.
+- `cargo run -- run game-test-server --branch core --dry-run --parallel --error-action continue` exits successfully across all core worktrees after the Mekanism API classifier lockfile refresh.
+- `cargo run -- run client --branch "feat/1.19.2/draw" --dry-run` selects the feature worktree and fails because that worktree is stale and missing the current versioned dependency script path.
+- `cargo run -- jar plan --branch "core && >=1.21.0" --parallel --error-action continue`
+- `cargo run -- jar plan --branch "core>=26.0.0" --parallel --error-action continue`
+- `cargo run -- run client --branch core --dry-run --parallel --error-action continue`
+- `cargo run -- jar audit-artifacts --branch core --parallel --error-action continue --require-portable-artifacts`
+- `cargo fmt --check` exits successfully; rustfmt reports only the existing stable-channel warnings for unstable import-format options.
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test` (`104` tests)
+- `platform/cli/sfm-propagate-changes/check-all.ps1` exits successfully and runs format, clippy, build, and tests.
+- `rg -n "print!|println!|eprintln!|eprint!" src -g "*.rs"` reports only `src/cancellation/mod.rs` for the explicit red Ctrl+C `^C` echo.
+- `rg -n --glob "*.md" --glob "!RUN_TARGETS_LOGGING_AND_LOCKING_PLAN.md" -- "--mc" docs` returns no matches; current-facing docs now use `--branch`, while this plan keeps `--mc` references only to document the migration and rejection tests.
+- `rg --glob "*.md" -n -- "--hide-logs|hide stdout|--mc <STRING>|Minecraft version filter expression" docs` returns no matches; current-facing help snippets match the live Gradle/server selector and logging options.
+- `rg -n -- "should eventually|still reruns most expensive nodes|fingerprint-based up-to-date skipping remains future work|intentionally refuse|missing-executor|After the cache-backed prototype works|Likely Hard Parts|--hide-logs|Minecraft version filter expression" docs/NO_GRADLE_TOOLCHAIN.md docs/AGENTS.md docs/RELEASE_PROCESS.md` returns no matches; the no-Gradle toolchain doc now reflects the current clean-slate path, NeoForm support, fingerprint reuse, and review checklist instead of the old FG-cache prototype.
+- After the terminal-output and doc-selector audit fixes, `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test`, `platform/cli/sfm-propagate-changes/check-all.ps1`, `git diff --check`, the direct terminal macro scan, and the non-plan docs `--mc` scan all pass.
+- CLI parser tests cover branch-based server/GitHub/Modrinth/CurseForge command surfaces and old `--mc` rejection.
+- `cargo run -- jar compare --branch 1.19.2 --gradle-jar <synthetic.jar> --rust-jar <synthetic.jar> --report-json <path>` writes a matching single-target report.
+- `cargo run -- jar compare --branch "1.19.2|1.19.4" --parallel --error-action continue --gradle-jar <synthetic.jar> --rust-jar <synthetic.jar>` returns the expected multi-target override error.
 
 ## Validation Plan
 

@@ -1,3 +1,9 @@
+mod artifact_audit_command;
+mod artifact_audit_issue;
+mod artifact_audit_issue_kind;
+mod artifact_audit_options;
+mod artifact_audit_report;
+mod artifact_audit_severity;
 mod build_command;
 mod build_mode;
 mod build_options;
@@ -11,7 +17,10 @@ mod json_path;
 mod parallelism;
 mod run_command;
 mod run_kind;
+mod target_artifact_audit_report;
 
+pub use artifact_audit_command::ArtifactAuditCommand;
+pub use artifact_audit_options::ArtifactAuditOptions;
 pub use build_command::BuildCommand;
 pub use build_mode::BuildMode;
 pub use build_options::BuildOptions;
