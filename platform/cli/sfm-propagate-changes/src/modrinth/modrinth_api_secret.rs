@@ -12,13 +12,24 @@ pub const DEFAULT_OP_SECRET_REFERENCE: &str = "op://Private/Modrinth SFM API tok
 pub struct ModrinthApiSecret(#[facet(sensitive)] String);
 
 impl ModrinthApiSecret {
+    /// Create a validated `Modrinth` API secret.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the provided secret is empty after trimming.
     pub fn new(value: impl AsRef<str>) -> eyre::Result<Self> {
         Self::from_raw(value.as_ref(), "Modrinth API secret was empty")
     }
 
+    /// Resolve the `Modrinth` token from `CLI` input, environment, or `1Password`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the supplied token is empty or when resolving the fallback
+    /// `1Password` secret fails.
     pub fn resolve(token: Option<String>, op_secret: Option<String>) -> eyre::Result<Self> {
         if let Some(value) = token {
-            return Self::from_cli_argument(value, "--token");
+            return Self::from_cli_argument(&value, "--token");
         }
 
         if let Some(secret) = Self::from_environment(MODRINTH_TOKEN_ENV_VAR)? {
@@ -34,12 +45,13 @@ impl ModrinthApiSecret {
         secret_reference.read()
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
-    fn from_cli_argument(value: String, argument_name: &str) -> eyre::Result<Self> {
-        Self::from_raw(&value, &format!("Provided {argument_name} was empty"))
+    fn from_cli_argument(value: &str, argument_name: &str) -> eyre::Result<Self> {
+        Self::from_raw(value, &format!("Provided {argument_name} was empty"))
     }
 
     fn from_environment(env_var: &str) -> eyre::Result<Option<Self>> {
@@ -76,9 +88,8 @@ impl OnePasswordSecretValue for ModrinthApiSecret {
 }
 
 impl fmt::Debug for ModrinthApiSecret {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_tuple("ModrinthApiSecret")
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("ModrinthApiSecret")
             .field(&"<redacted>")
             .finish()
     }
