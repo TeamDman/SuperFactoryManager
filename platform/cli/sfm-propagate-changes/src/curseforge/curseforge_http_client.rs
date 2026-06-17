@@ -15,6 +15,12 @@ const CURSEFORGE_USER_AGENT: &str = "sfm-propagate-changes/curseforge";
 pub struct CurseforgeHttpClient(pub Client);
 
 impl CurseforgeHttpClient {
+    /// Build a `CurseForge` client that authenticates with the legacy API token header.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the token cannot be encoded as an HTTP header or the client
+    /// cannot be constructed.
     pub fn new(token: &CurseforgeApiSecret) -> eyre::Result<Self> {
         Self::build(
             "X-Api-Token",
@@ -24,6 +30,12 @@ impl CurseforgeHttpClient {
         )
     }
 
+    /// Build a `CurseForge` client that authenticates with the Core API key header.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the API key cannot be encoded as an HTTP header or the client
+    /// cannot be constructed.
     pub fn new_core_api(api_key: &CurseforgeApiSecret) -> eyre::Result<Self> {
         Self::build(
             "x-api-key",

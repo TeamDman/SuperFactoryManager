@@ -3,6 +3,7 @@ pub mod branch_targets;
 pub mod cancellation;
 pub mod cli;
 pub mod cli_arg_normalization;
+pub mod colour;
 pub mod curseforge;
 pub mod jar_build;
 pub mod jdk;

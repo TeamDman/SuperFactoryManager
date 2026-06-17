@@ -54,10 +54,10 @@ fn handle_ctrl_c() {
     CANCELLED.store(true, Ordering::Release);
     match action {
         CtrlCAction::RequestGracefulShutdown => {
-            tracing::warn!("Ctrl+C received; graceful shutdown requested");
+            tracing::warn!("{} received; graceful shutdown requested", "Ctrl+C".red());
         }
         CtrlCAction::ForceExit => {
-            tracing::warn!("Second Ctrl+C received; forcing exit");
+            tracing::warn!("{}", "Second Ctrl+C received; forcing exit".red());
             std::process::exit(130);
         }
     }
