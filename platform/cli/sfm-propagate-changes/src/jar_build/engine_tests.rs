@@ -1,6 +1,9 @@
+use super::ArtifactAuditIssueKind;
+use super::ArtifactAuditSeverity;
 use super::ArtifactLockEntry;
 use super::ArtifactLockfile;
 use super::ArtifactPlan;
+use super::ArtifactPortabilityAudit;
 use super::ArtifactProvenance;
 use super::ArtifactSource;
 use super::BuildMode;
@@ -26,24 +29,45 @@ use super::MojangVersionManifest;
 use super::NodeStatus;
 use super::ParchmentData;
 use super::Repository;
+use super::Resolver;
+use super::RunKind;
+use super::SourceBuildProvenance;
+use super::SourceBuildSystem;
+use super::TargetJarCompareReport;
+use super::artifact_lock_path;
+use super::artifact_portability_audit;
+use super::audit_artifact_lockfile;
+use super::build_artifact_lockfile;
 use super::compare_version_text;
 use super::copy_file_to_path_checked;
+use super::download_to_path_overwrite_with_expected_sha1;
+use super::enforce_portable_artifacts;
 use super::execute_targets_parallel;
+use super::execute_targets_parallel_with_cancellation;
+use super::extract_client_puppet_failure;
+use super::extract_client_puppet_pass_count;
 use super::extract_quoted;
 use super::file_sha1;
 use super::interpolate_properties;
 use super::is_excluded_source;
+use super::minecraft_library_jars_from_version_json;
 use super::normalize_manifest_bytes;
 use super::parchment_coordinate;
 use super::parse_maven_versions;
 use super::portable_cache_path;
+use super::prepare_client_automation_options;
 use super::prepare_existing_artifact_for_reuse;
+use super::replace_artifact_file;
 use super::resolve_loader_toolchain;
 use super::rust_output_jar_path;
 use super::set_minecraft_option;
 use super::sha1_bytes;
 use super::should_keep_split_minecraft_runtime_entry;
+use super::source_build_checkout_key;
+use super::source_git_provenance;
+use super::write_compare_reports;
 use super::write_unique_temp_file;
+use crate::artifact_lock::ArtifactLock;
 use crate::branch_targets::BranchName;
 use crate::branch_targets::BranchQuery;
 use crate::branch_targets::MinecraftVersion;
@@ -51,16 +75,23 @@ use crate::branch_targets::WorktreePath;
 use crate::branch_targets::WorktreeTarget;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
+use reqwest::blocking::Client;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::Read;
+use std::io::Write;
+use std::net::TcpListener;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command;
+use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering as AtomicOrdering;
 use std::thread;
 use std::time::Duration;
+use std::time::Instant;
 
 static TEST_DIR_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -84,6 +115,26 @@ fn parses_zip_coordinate() {
         coordinate.file_name(),
         "mcp_config-1.19.2-20220805.130853.zip"
     );
+}
+
+#[test]
+fn extracts_client_puppet_pass_and_failure_markers() {
+    assert_eq!(
+        extract_client_puppet_pass_count(
+            "[Render thread/INFO]: SFM_CLIENT_PUPPET_TESTS_PASSED required=206 total=206"
+        ),
+        Some(206)
+    );
+
+    let failure = extract_client_puppet_failure(
+        "[Render thread/INFO]: SFM_CLIENT_PUPPET_TESTS_FAILED required_failed=7 optional_failed=1 required=190 total=191",
+    )
+    .expect("failure marker should parse");
+
+    assert_eq!(failure.required_failed, 7);
+    assert_eq!(failure.optional_failed, 1);
+    assert_eq!(failure.required_count, 190);
+    assert_eq!(failure.total_count, 191);
 }
 
 #[test]
@@ -116,15 +167,78 @@ fn extracts_single_or_double_quoted_notation() {
 
 #[test]
 fn set_minecraft_option_replaces_or_appends_option() {
-    let existing = "version:3700\nonboardAccessibility:false\nnarrator:0\n";
+    let existing = "version:3700\nonboardAccessibility:true\nnarrator:0\n";
     assert_eq!(
-        set_minecraft_option(existing, "onboardAccessibility", "true"),
-        "version:3700\nonboardAccessibility:true\nnarrator:0\n"
+        set_minecraft_option(existing, "onboardAccessibility", "false"),
+        "version:3700\nonboardAccessibility:false\nnarrator:0\n"
     );
     assert_eq!(
-        set_minecraft_option("version:3700\n", "onboardAccessibility", "true"),
-        "version:3700\nonboardAccessibility:true\n"
+        set_minecraft_option("version:3700\n", "onboardAccessibility", "false"),
+        "version:3700\nonboardAccessibility:false\n"
     );
+    assert_eq!(
+        set_minecraft_option("pauseOnLostFocus:true\n", "pauseOnLostFocus", "false"),
+        "pauseOnLostFocus:false\n"
+    );
+}
+
+#[test]
+fn client_automation_options_disable_onboarding_and_focus_pause() {
+    let test_dir = std::env::temp_dir().join(format!(
+        "sfm-client-options-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system time after unix epoch")
+            .as_nanos()
+    ));
+    let minecraft_dir = test_dir.join("minecraft");
+    let puppet_dir = minecraft_dir.join("runClientPuppet");
+    fs::create_dir_all(&puppet_dir).expect("create puppet run dir");
+    let options_path = puppet_dir.join("options.txt");
+    fs::write(
+        &options_path,
+        "version:3955\nonboardAccessibility:true\npauseOnLostFocus:true\n",
+    )
+    .expect("write existing options");
+
+    let prepared =
+        prepare_client_automation_options(&minecraft_dir, &puppet_dir, RunKind::ClientPuppet)
+            .expect("prepare client puppet options");
+
+    assert_eq!(prepared, Some(options_path.clone()));
+    let updated = fs::read_to_string(&options_path).expect("read updated options");
+    assert!(updated.contains("onboardAccessibility:false\n"));
+    assert!(updated.contains("narrator:0\n"));
+    assert!(updated.contains("pauseOnLostFocus:false\n"));
+    assert!(updated.contains("tutorialStep:none\n"));
+
+    let client_dir = minecraft_dir.join("runClient");
+    fs::create_dir_all(&client_dir).expect("create client run dir");
+    let untouched = prepare_client_automation_options(&minecraft_dir, &client_dir, RunKind::Client)
+        .expect("skip regular client options");
+    assert_eq!(untouched, None);
+    assert!(!client_dir.join("options.txt").exists());
+
+    fs::remove_dir_all(test_dir).expect("remove test dir");
+}
+
+#[test]
+fn graphical_client_runs_use_relaxed_program_timing() {
+    assert_eq!(RunKind::Client.game_test_max_program_run_millis(), "1000");
+    assert_eq!(
+        RunKind::ClientSmoke.game_test_max_program_run_millis(),
+        "1000"
+    );
+    assert_eq!(
+        RunKind::ClientPuppet.game_test_max_program_run_millis(),
+        "1000"
+    );
+    assert_eq!(
+        RunKind::GameTestServer.game_test_max_program_run_millis(),
+        "150"
+    );
+    assert_eq!(RunKind::Server.game_test_max_program_run_millis(), "150");
 }
 
 #[test]
@@ -234,6 +348,50 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
 }
 
 #[test]
+fn forge_project_dependency_planning_includes_plain_compile_inputs() {
+    let forge_toolchain = LoaderToolchainPlan {
+        kind: LoaderToolchainKind::ForgeGradleForge,
+        base_coordinate: "net.minecraftforge:forge:1.19.2-43.4.0".to_string(),
+        userdev_coordinate: "net.minecraftforge:forge:1.19.2-43.4.0:userdev".to_string(),
+        sources_coordinate: Some("net.minecraftforge:forge:1.19.2-43.4.0:sources".to_string()),
+        universal_coordinate: Some("net.minecraftforge:forge:1.19.2-43.4.0:universal".to_string()),
+    };
+
+    let mekanism_api = super::ParsedDependency {
+        configuration: "implementation".to_string(),
+        coordinate: MavenCoordinate::parse("mekanism:Mekanism:1.19.2-10.3.8.477:api")
+            .expect("coordinate should parse"),
+        fg_deobf: false,
+    };
+    assert!(super::should_plan_project_dependency(
+        &forge_toolchain,
+        &mekanism_api
+    ));
+
+    let minecraft_base = super::ParsedDependency {
+        configuration: "minecraft".to_string(),
+        coordinate: MavenCoordinate::parse("net.minecraftforge:forge:1.19.2-43.4.0")
+            .expect("coordinate should parse"),
+        fg_deobf: false,
+    };
+    assert!(!super::should_plan_project_dependency(
+        &forge_toolchain,
+        &minecraft_base
+    ));
+
+    let test_only = super::ParsedDependency {
+        configuration: "testImplementation".to_string(),
+        coordinate: MavenCoordinate::parse("org.junit.jupiter:junit-jupiter-api:5.10.0")
+            .expect("coordinate should parse"),
+        fg_deobf: false,
+    };
+    assert!(!super::should_plan_project_dependency(
+        &forge_toolchain,
+        &test_only
+    ));
+}
+
+#[test]
 fn interpolates_gradle_style_properties() {
     let mut properties = BTreeMap::new();
     properties.insert("minecraft_version".to_string(), "1.19.2".to_string());
@@ -324,6 +482,9 @@ fn facet_json_roundtrips_artifact_lockfile_and_provenance() {
             url: Some("https://example.test/a.jar".to_string()),
             cache_path: PathBuf::from("a.jar"),
             original_path: None,
+            source_relative_path: None,
+            source_git: None,
+            source_build: None,
             sha1: "abc123".to_string(),
         }],
     };
@@ -331,6 +492,150 @@ fn facet_json_roundtrips_artifact_lockfile_and_provenance() {
     assert!(json.contains("remote-maven"));
     let parsed: ArtifactLockfile = facet_json::from_str(&json).expect("lockfile should parse");
     assert_eq!(parsed.artifacts[0].source, ArtifactSource::RemoteMaven);
+}
+
+#[test]
+fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
+    let test_dir = TestDir::new("common-cache-lockfile-dedupe");
+    let common_cache = test_dir.path.join("sfm-cache").join("minecraft-toolchain");
+    let maven_cache = common_cache.join("maven");
+    let artifact_path = maven_cache.join("g").join("a").join("1").join("a-1.jar");
+    fs::create_dir_all(artifact_path.parent().expect("artifact should have parent"))
+        .expect("artifact parent should be created");
+    fs::write(&artifact_path, b"artifact").expect("artifact should be written");
+
+    let sha1 = sha1_bytes(b"artifact");
+    let provenance = ArtifactProvenance {
+        schema_version: 1,
+        source: ArtifactSource::RemoteMaven,
+        coordinate: Some("g:a:1".to_string()),
+        repository: Some("Forge".to_string()),
+        url: Some("https://example.test/a-1.jar".to_string()),
+        original_path: None,
+        source_relative_path: None,
+        source_git: None,
+        source_build: None,
+        sha1: sha1.clone(),
+    };
+    fs::write(
+        artifact_path.with_file_name("a-1.jar.sfm-provenance.json"),
+        facet_json::to_string_pretty(&provenance).expect("provenance should serialize"),
+    )
+    .expect("provenance should be written");
+
+    let mut plan = minimal_plan_for_paths();
+    plan.common_cache_dir = common_cache;
+    plan.maven_cache_dir = maven_cache.clone();
+    plan.artifacts = Vec::new();
+    plan.dependencies = vec![DependencyPlan {
+        configuration: "implementation".to_string(),
+        notation: "g:a:1".to_string(),
+        resolved_notation: "g:a:1".to_string(),
+        source: DependencySource::Maven,
+        cache_path: artifact_path,
+        url: Some("https://example.test/a-1.jar".to_string()),
+        dynamic_version: false,
+    }];
+    plan.lockfile = Some(ArtifactLockfile {
+        schema_version: 1,
+        minecraft_version: plan.minecraft_version.to_string(),
+        maven_cache_dir: PathBuf::from("build/sfm-toolchain/maven"),
+        allow_local_artifact_cache: false,
+        repositories: Vec::new(),
+        dependencies: Vec::new(),
+        artifacts: vec![ArtifactLockEntry {
+            coordinate: Some("g:a:1".to_string()),
+            source: ArtifactSource::RemoteMaven,
+            repository: Some("Forge".to_string()),
+            url: Some("https://example.test/a-1.jar".to_string()),
+            cache_path: PathBuf::from("build/sfm-toolchain/maven/g/a/1/a-1.jar"),
+            original_path: None,
+            source_relative_path: None,
+            source_git: None,
+            source_build: None,
+            sha1,
+        }],
+    });
+
+    let lockfile = build_artifact_lockfile(&plan, &[]).expect("lockfile should build");
+    let matching_entries = lockfile
+        .artifacts
+        .iter()
+        .filter(|artifact| artifact.coordinate.as_deref() == Some("g:a:1"))
+        .collect::<Vec<_>>();
+
+    assert_eq!(matching_entries.len(), 1);
+    assert_eq!(
+        matching_entries[0].cache_path,
+        PathBuf::from("$sfm-cache/maven/g/a/1/a-1.jar")
+    );
+}
+
+#[test]
+fn run_extra_cache_artifacts_are_written_to_lockfile() {
+    let test_dir = TestDir::new("run-extra-cache-lockfile");
+    let common_cache = test_dir.path.join("sfm-cache");
+    let maven_cache = common_cache.join("maven");
+    let artifact_path = maven_cache
+        .join("com")
+        .join("electronwill")
+        .join("night-config")
+        .join("core")
+        .join("3.8.3")
+        .join("core-3.8.3.jar");
+    fs::create_dir_all(artifact_path.parent().expect("artifact should have parent"))
+        .expect("artifact parent should be created");
+    fs::write(&artifact_path, b"night-config-core").expect("artifact should be written");
+    let sha1 = sha1_bytes(b"night-config-core");
+    let provenance = ArtifactProvenance {
+        schema_version: 1,
+        source: ArtifactSource::RemoteMaven,
+        coordinate: Some("com.electronwill.night-config:core:3.8.3".to_string()),
+        repository: Some("NeoForge".to_string()),
+        url: Some(
+            "https://maven.neoforged.net/releases/com/electronwill/night-config/core/3.8.3/core-3.8.3.jar"
+                .to_string(),
+        ),
+        original_path: None,
+        source_relative_path: None,
+        source_git: None,
+        source_build: None,
+        sha1: sha1.clone(),
+    };
+    fs::write(
+        artifact_path.with_file_name("core-3.8.3.jar.sfm-provenance.json"),
+        facet_json::to_string_pretty(&provenance).expect("provenance should serialize"),
+    )
+    .expect("provenance should be written");
+
+    let unprovenanced_cache_file = common_cache.join("run").join("generated.jar");
+    fs::create_dir_all(
+        unprovenanced_cache_file
+            .parent()
+            .expect("cache file should have parent"),
+    )
+    .expect("cache file parent should be created");
+    fs::write(&unprovenanced_cache_file, b"generated").expect("cache file should be written");
+
+    let mut plan = minimal_plan_for_paths();
+    plan.common_cache_dir = common_cache;
+    plan.maven_cache_dir = maven_cache;
+    plan.artifacts = Vec::new();
+    plan.dependencies = Vec::new();
+
+    let lockfile = build_artifact_lockfile(&plan, &[artifact_path, unprovenanced_cache_file])
+        .expect("lockfile should build");
+
+    assert_eq!(lockfile.artifacts.len(), 1);
+    assert_eq!(
+        lockfile.artifacts[0].coordinate.as_deref(),
+        Some("com.electronwill.night-config:core:3.8.3")
+    );
+    assert_eq!(
+        lockfile.artifacts[0].cache_path,
+        PathBuf::from("$sfm-cache/maven/com/electronwill/night-config/core/3.8.3/core-3.8.3.jar")
+    );
+    assert_eq!(lockfile.artifacts[0].sha1, sha1);
 }
 
 #[test]
@@ -376,6 +681,383 @@ fn copy_file_to_path_checked_skips_existing_valid_artifact() {
 }
 
 #[test]
+fn copy_file_to_path_checked_waits_and_reuses_artifact_created_by_lock_holder() {
+    let test_dir = TestDir::new("copy-file-waits-for-valid-final");
+    let source = test_dir.path.join("source.jar");
+    let destination = test_dir.path.join("artifact.jar");
+    fs::write(&source, b"bad").expect("source should be written");
+    let expected_sha1 = sha1_bytes(b"good");
+    let lock_path = artifact_lock_path(&destination).expect("artifact should have lock path");
+    let lock =
+        ArtifactLock::acquire(&lock_path, destination.display().to_string()).expect("first lock");
+
+    let thread_source = source.clone();
+    let thread_destination = destination.clone();
+    let thread_expected_sha1 = expected_sha1.clone();
+    let started = Instant::now();
+    let waiter = thread::spawn(move || {
+        copy_file_to_path_checked(
+            &thread_source,
+            &thread_destination,
+            Some(&thread_expected_sha1),
+        )
+    });
+
+    thread::sleep(Duration::from_millis(50));
+    fs::write(&destination, b"good").expect("lock holder should write final artifact");
+    drop(lock);
+    waiter
+        .join()
+        .expect("waiter thread should finish")
+        .expect("waiter should reuse valid final artifact");
+
+    assert!(started.elapsed() >= Duration::from_millis(40));
+    assert_eq!(
+        fs::read(&destination).expect("destination should remain readable"),
+        b"good"
+    );
+    assert_eq!(
+        file_sha1(&destination).expect("destination should hash"),
+        expected_sha1
+    );
+    assert!(matching_siblings(&destination, "tmp").is_empty());
+}
+
+#[test]
+fn resolver_cache_hit_waits_for_writer_lock_before_reading() {
+    let test_dir = TestDir::new("resolver-cache-hit-waits-for-writer");
+    let coordinate =
+        MavenCoordinate::parse("example.group:artifact:1.0.0").expect("coordinate should parse");
+    let resolver = Resolver::new(
+        test_dir.path.join("maven"),
+        Vec::new(),
+        false,
+        false,
+        Vec::new(),
+        None,
+        None,
+    )
+    .expect("resolver should build");
+    let cache_path = resolver.cache_path_for(&coordinate);
+    fs::create_dir_all(cache_path.parent().expect("cache path should have parent"))
+        .expect("cache parent should be created");
+    fs::write(&cache_path, b"cached").expect("cached artifact should be written");
+    let lock_path = artifact_lock_path(&cache_path).expect("artifact should have lock path");
+    let writer_lock =
+        ArtifactLock::acquire(&lock_path, cache_path.display().to_string()).expect("writer lock");
+
+    let started = Instant::now();
+    let waiter = thread::spawn(move || {
+        resolver.resolve_artifact("cached-artifact", &coordinate, "resolver test")
+    });
+
+    thread::sleep(Duration::from_millis(50));
+    drop(writer_lock);
+    let artifact = waiter
+        .join()
+        .expect("resolver thread should finish")
+        .expect("cached artifact should resolve");
+
+    assert!(started.elapsed() >= Duration::from_millis(40));
+    assert_eq!(artifact.cache_path, cache_path);
+    assert_eq!(
+        artifact.sha1.as_deref(),
+        Some(sha1_bytes(b"cached").as_str())
+    );
+}
+
+#[test]
+fn resolver_imports_from_explicit_project_artifact_source() {
+    let test_dir = TestDir::new("resolver-explicit-artifact-source");
+    let source_root = test_dir.path.join("source-project");
+    let libs_dir = source_root.join("build").join("libs");
+    fs::create_dir_all(&libs_dir).expect("source build libs should be created");
+    let coordinate = MavenCoordinate::parse("example.group:artifact:1.0.0:sources")
+        .expect("classifier coordinate should parse");
+    let source_artifact = libs_dir.join(coordinate.file_name());
+    fs::write(&source_artifact, b"explicit source").expect("source artifact should be written");
+    run_git(&source_root, ["init"]);
+    run_git(&source_root, ["config", "user.name", "SFM Test"]);
+    run_git(
+        &source_root,
+        ["config", "user.email", "sfm-test@example.test"],
+    );
+    run_git(
+        &source_root,
+        [
+            "remote",
+            "add",
+            "origin",
+            "https://example.test/sfm/source-project.git",
+        ],
+    );
+    run_git(&source_root, ["add", "."]);
+    run_git(&source_root, ["commit", "-m", "initial artifact"]);
+
+    let resolver = Resolver::new(
+        test_dir.path.join("maven-cache"),
+        Vec::new(),
+        false,
+        false,
+        vec![source_root],
+        None,
+        None,
+    )
+    .expect("resolver should build");
+    let artifact = resolver
+        .resolve_artifact("explicit-source", &coordinate, "explicit source test")
+        .expect("artifact should import from explicit source");
+
+    assert_eq!(
+        fs::read(&artifact.cache_path).expect("cache artifact should be readable"),
+        b"explicit source"
+    );
+    assert_eq!(artifact.provenance.source, ArtifactSource::ExplicitSource);
+    assert_eq!(
+        artifact.provenance.original_path.as_deref(),
+        Some(source_artifact.as_path())
+    );
+    let expected_source_relative_path =
+        Path::new("build").join("libs").join(coordinate.file_name());
+    assert_eq!(
+        artifact.provenance.source_relative_path.as_deref(),
+        Some(expected_source_relative_path.as_path())
+    );
+    assert_eq!(
+        artifact
+            .provenance
+            .source_git
+            .as_ref()
+            .and_then(|source_git| source_git.remote_url.as_deref()),
+        Some("https://example.test/sfm/source-project.git")
+    );
+    assert_eq!(
+        artifact.repository.as_deref(),
+        Some("explicit-artifact-source")
+    );
+}
+
+#[test]
+fn explicit_source_mekanism_artifacts_record_source_build_commands() {
+    let test_dir = TestDir::new("mekanism-source-build-provenance");
+    let source_root = test_dir.path.join("Mekanism");
+    let libs_dir = source_root.join("build").join("libs");
+    fs::create_dir_all(&libs_dir).expect("source build libs should be created");
+    fs::write(source_root.join("gradlew.bat"), "@echo off\r\n")
+        .expect("gradle wrapper marker should be written");
+
+    let main_coordinate = MavenCoordinate::parse("mekanism:Mekanism:26.1.2-10.8.0.86")
+        .expect("main coordinate should parse");
+    let api_coordinate = MavenCoordinate::parse("mekanism:Mekanism:26.1.2-10.8.0.86:api")
+        .expect("api coordinate should parse");
+    fs::write(libs_dir.join(main_coordinate.file_name()), b"mekanism main")
+        .expect("main artifact should be written");
+    fs::write(libs_dir.join(api_coordinate.file_name()), b"mekanism api")
+        .expect("api artifact should be written");
+
+    run_git(&source_root, ["init"]);
+    run_git(&source_root, ["config", "user.name", "SFM Test"]);
+    run_git(
+        &source_root,
+        ["config", "user.email", "sfm-test@example.test"],
+    );
+    run_git(
+        &source_root,
+        [
+            "remote",
+            "add",
+            "origin",
+            "https://github.com/mekanism/Mekanism/",
+        ],
+    );
+    run_git(&source_root, ["add", "."]);
+    run_git(&source_root, ["commit", "-m", "initial mekanism artifacts"]);
+
+    let resolver = Resolver::new(
+        test_dir.path.join("maven-cache"),
+        Vec::new(),
+        false,
+        false,
+        vec![source_root],
+        None,
+        None,
+    )
+    .expect("resolver should build");
+    let main_artifact = resolver
+        .resolve_artifact("mekanism-main", &main_coordinate, "mekanism main")
+        .expect("main artifact should import from explicit source");
+    let api_artifact = resolver
+        .resolve_artifact("mekanism-api", &api_coordinate, "mekanism api")
+        .expect("api artifact should import from explicit source");
+
+    assert_source_build(
+        main_artifact
+            .provenance
+            .source_build
+            .as_ref()
+            .expect("main artifact should record source build"),
+        "jar",
+        "build/libs/Mekanism-26.1.2-10.8.0.86.jar",
+    );
+    assert_source_build(
+        api_artifact
+            .provenance
+            .source_build
+            .as_ref()
+            .expect("api artifact should record source build"),
+        "apiJar",
+        "build/libs/Mekanism-26.1.2-10.8.0.86-api.jar",
+    );
+}
+
+#[test]
+fn resolver_materializes_locked_artifact_from_source_build() {
+    let test_dir = TestDir::new("resolver-source-build-fallback");
+    let source_root = test_dir.path.join("source-project");
+    fs::create_dir_all(&source_root).expect("source root should be created");
+    let coordinate =
+        MavenCoordinate::parse("example.group:artifact:1.0.0").expect("coordinate should parse");
+    let output_path = Path::new("build").join("libs").join("artifact-1.0.0.jar");
+    write_fake_gradle_wrapper(&source_root, &output_path);
+    run_git(&source_root, ["init"]);
+    run_git(&source_root, ["config", "user.name", "SFM Test"]);
+    run_git(
+        &source_root,
+        ["config", "user.email", "sfm-test@example.test"],
+    );
+    run_git(&source_root, ["add", "."]);
+    run_git(&source_root, ["commit", "-m", "fake source build"]);
+    let commit = git_stdout_test(&source_root, ["rev-parse", "HEAD"]);
+    let remote_url = source_root.display().to_string();
+    let source_build = SourceBuildProvenance {
+        build_system: SourceBuildSystem::GradleWrapper,
+        tasks: vec!["jar".to_string()],
+        environment: BTreeMap::new(),
+        output_path: output_path.clone(),
+    };
+    let lockfile = ArtifactLockfile {
+        schema_version: 1,
+        minecraft_version: "1.19.2".to_string(),
+        maven_cache_dir: PathBuf::from("$sfm-cache").join("maven"),
+        allow_local_artifact_cache: false,
+        repositories: Vec::new(),
+        dependencies: Vec::new(),
+        artifacts: vec![ArtifactLockEntry {
+            coordinate: Some(coordinate.to_string()),
+            source: ArtifactSource::ExplicitSource,
+            repository: Some("explicit-artifact-source".to_string()),
+            url: None,
+            cache_path: PathBuf::from("$sfm-cache")
+                .join("maven/example/group/artifact/1.0.0/artifact-1.0.0.jar"),
+            original_path: Some(source_root.join(&output_path)),
+            source_relative_path: Some(output_path.clone()),
+            source_git: Some(super::SourceGitProvenance {
+                root: source_root.clone(),
+                commit: commit.clone(),
+                branch: "main".to_string(),
+                dirty: false,
+                remote_url: Some(remote_url.clone()),
+            }),
+            source_build: Some(source_build),
+            sha1: "not-used-when-refreshing".to_string(),
+        }],
+    };
+
+    let resolver = Resolver::new(
+        test_dir.path.join("maven-cache"),
+        Vec::new(),
+        true,
+        false,
+        Vec::new(),
+        None,
+        Some(lockfile),
+    )
+    .expect("resolver should build");
+    let artifact = resolver
+        .resolve_artifact("source-build", &coordinate, "source build test")
+        .expect("artifact should materialize from source build");
+
+    assert_eq!(artifact.provenance.source, ArtifactSource::SourceBuild);
+    assert_eq!(
+        String::from_utf8(fs::read(&artifact.cache_path).expect("artifact should read"))
+            .expect("artifact should be utf8")
+            .trim(),
+        "source build artifact"
+    );
+    let checkout_key = source_build_checkout_key(&remote_url, &commit);
+    assert_eq!(
+        artifact
+            .provenance
+            .source_git
+            .as_ref()
+            .map(|source_git| source_git.root.clone()),
+        Some(
+            PathBuf::from("$sfm-cache")
+                .join("source-builds")
+                .join(checkout_key)
+        )
+    );
+    assert_eq!(
+        artifact.provenance.source_relative_path.as_deref(),
+        Some(output_path.as_path())
+    );
+}
+
+fn assert_source_build(source_build: &SourceBuildProvenance, task: &str, output_path: &str) {
+    assert_eq!(source_build.build_system, SourceBuildSystem::GradleWrapper);
+    assert_eq!(source_build.tasks, vec![task.to_string()]);
+    assert_eq!(
+        source_build.environment.get("BUILD_NUMBER"),
+        Some(&"86".to_string())
+    );
+    assert_eq!(source_build.output_path, PathBuf::from(output_path));
+}
+
+#[test]
+fn source_git_provenance_records_checkout_state() {
+    let test_dir = TestDir::new("source-git-provenance");
+    let repo = test_dir.path.join("source-project");
+    fs::create_dir_all(&repo).expect("repo dir should be created");
+    run_git(&repo, ["init"]);
+    run_git(&repo, ["config", "user.name", "SFM Test"]);
+    run_git(&repo, ["config", "user.email", "sfm-test@example.test"]);
+    run_git(
+        &repo,
+        [
+            "remote",
+            "add",
+            "origin",
+            "https://example.test/sfm/source-project.git",
+        ],
+    );
+
+    let artifact = repo.join("build").join("libs").join("artifact.jar");
+    fs::create_dir_all(artifact.parent().expect("artifact should have parent"))
+        .expect("artifact parent should be created");
+    fs::write(&artifact, b"artifact").expect("artifact should be written");
+    run_git(&repo, ["add", "."]);
+    run_git(&repo, ["commit", "-m", "initial artifact"]);
+
+    let clean = source_git_provenance(&artifact).expect("clean provenance should be available");
+    assert_eq!(
+        fs::canonicalize(&clean.root).expect("git root should canonicalize"),
+        fs::canonicalize(&repo).expect("repo should canonicalize")
+    );
+    assert_eq!(clean.commit.len(), 40);
+    assert!(!clean.branch.is_empty());
+    assert!(!clean.dirty);
+    assert_eq!(
+        clean.remote_url.as_deref(),
+        Some("https://example.test/sfm/source-project.git")
+    );
+
+    fs::write(repo.join("untracked.txt"), b"dirty").expect("dirty file should be written");
+    let dirty = source_git_provenance(&artifact).expect("dirty provenance should be available");
+    assert_eq!(dirty.commit, clean.commit);
+    assert!(dirty.dirty);
+}
+
+#[test]
 fn copy_file_to_path_checked_rejects_temp_sha1_failure() {
     let test_dir = TestDir::new("copy-file-temp-sha1-failure");
     let source = test_dir.path.join("source.jar");
@@ -411,6 +1093,54 @@ fn copy_file_to_path_checked_replaces_bad_final_artifact_and_cleans_bad_file() {
         b"good"
     );
     assert!(matching_siblings(&destination, "bad").is_empty());
+}
+
+#[test]
+fn download_to_path_retries_after_temp_sha1_failure() {
+    let test_dir = TestDir::new("download-retry-temp-sha1-failure");
+    let destination = test_dir.path.join("artifact.jar");
+    let expected_sha1 = sha1_bytes(b"good");
+    let (url, server) = serve_http_bodies(vec![b"bad".to_vec(), b"good".to_vec()]);
+
+    download_to_path_overwrite_with_expected_sha1(
+        &Client::new(),
+        &url,
+        &destination,
+        false,
+        &expected_sha1,
+    )
+    .expect("download should retry and write good artifact");
+    server.join().expect("test server should finish");
+
+    assert_eq!(
+        fs::read(&destination).expect("destination should remain readable"),
+        b"good"
+    );
+    assert_eq!(
+        file_sha1(&destination).expect("destination should hash"),
+        expected_sha1
+    );
+    assert!(matching_siblings(&destination, "tmp").is_empty());
+}
+
+#[test]
+fn replace_artifact_file_replaces_existing_destination_under_lock() {
+    let test_dir = TestDir::new("replace-existing-artifact");
+    let destination = test_dir.path.join("artifact.jar");
+    let temporary = test_dir.path.join("artifact.jar.tmp");
+    fs::write(&destination, b"old").expect("destination should be written");
+    fs::write(&temporary, b"new").expect("temporary should be written");
+    let lock_path = artifact_lock_path(&destination).expect("artifact should have lock path");
+    let _lock =
+        ArtifactLock::acquire(&lock_path, destination.display().to_string()).expect("writer lock");
+
+    replace_artifact_file(&temporary, &destination).expect("artifact should be replaced");
+
+    assert_eq!(
+        fs::read(&destination).expect("destination should be readable"),
+        b"new"
+    );
+    assert!(!temporary.exists());
 }
 
 #[test]
@@ -465,6 +1195,36 @@ fn parallel_targets_return_plans_in_input_order() {
 }
 
 #[test]
+fn parallel_targets_stop_starting_after_cancellation() {
+    let options = test_build_options(Parallelism::Parallel { limit: 1 });
+    let targets = vec![
+        test_worktree_target("1.19.2", "D:/tmp/1.19.2"),
+        test_worktree_target("1.20.1", "D:/tmp/1.20.1"),
+    ];
+    let cancelled = AtomicBool::new(false);
+    let started = AtomicUsize::new(0);
+
+    let error = execute_targets_parallel_with_cancellation(
+        &options,
+        targets,
+        "test_parallel_cancelled_targets",
+        1,
+        |_options, target| {
+            started.fetch_add(1, AtomicOrdering::Relaxed);
+            let mut plan = minimal_plan_for_paths();
+            plan.branch_name = target.branch.clone();
+            cancelled.store(true, AtomicOrdering::Release);
+            Ok(plan)
+        },
+        || cancelled.load(AtomicOrdering::Acquire),
+    )
+    .expect_err("parallel execution should report cancellation");
+
+    assert_eq!(started.load(AtomicOrdering::Relaxed), 1);
+    assert!(error.to_string().contains("Operation cancelled by Ctrl+C"));
+}
+
+#[test]
 #[expect(
     clippy::too_many_lines,
     reason = "BuildPlan JSON fixture is intentionally explicit"
@@ -509,6 +1269,7 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         java_release: 17,
         refresh: false,
         allow_local_artifact_cache: false,
+        artifact_sources: Vec::new(),
         properties: BTreeMap::new(),
         repositories: Vec::new(),
         loader_toolchain: LoaderToolchainPlan {
@@ -543,6 +1304,8 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
             patches_modified_prefix: None,
             access_transformers: Vec::new(),
             side_strippers: Vec::new(),
+            modules: Vec::new(),
+            libraries: Vec::new(),
             module_count: 0,
             library_count: 0,
             test_libraries: Vec::new(),
@@ -573,12 +1336,14 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
             outputs: Vec::new(),
             rebuild_reason: "test".to_string(),
         }],
+        artifact_portability: ArtifactPortabilityAudit::default(),
         warnings: Vec::new(),
     };
 
     let json = facet_json::to_string_pretty(&plan).expect("plan should serialize");
     assert!(json.contains("rust_output_jar"));
     assert!(json.contains("common_cache_dir"));
+    assert!(json.contains("artifact_portability"));
     assert!(!json.contains("\"lockfile\""));
 }
 
@@ -601,33 +1366,321 @@ fn portable_cache_path_uses_sfm_cache_prefix_for_common_cache() {
 }
 
 #[test]
-fn facet_json_serializes_compare_report() {
-    let report = JarCompareReport {
-        gradle_jar: PathBuf::from("gradle.jar"),
-        rust_jar: PathBuf::from("rust.jar"),
-        strict_manifest: false,
-        matches: false,
-        total_gradle_entries: 1,
-        total_rust_entries: 1,
-        compared_entries: 1,
-        missing_entries: vec!["a.class".to_string()],
-        extra_entries: Vec::new(),
-        changed_entries: vec![ChangedEntry {
-            path: "b.class".to_string(),
-            gradle_sha1: "1".to_string(),
-            rust_sha1: "2".to_string(),
-        }],
-        manifest: ManifestCompare {
-            compared: true,
-            changed: false,
-            ignored_implementation_timestamp: true,
-            gradle_sha1: Some("1".to_string()),
-            rust_sha1: Some("1".to_string()),
-        },
+fn artifact_portability_audit_reports_explicit_sources() {
+    let source_path = PathBuf::from("G:/Programming/Repos/Mekanism/build/libs/Mekanism.jar");
+    let mut plan = minimal_plan_for_paths();
+    plan.artifacts[0].provenance.source = ArtifactSource::ExplicitSource;
+    plan.artifacts[0].provenance.repository = Some("explicit-artifact-source".to_string());
+    plan.artifacts[0].provenance.original_path = Some(source_path.clone());
+
+    let audit = artifact_portability_audit(&plan).expect("audit should build");
+
+    assert!(!audit.fresh_slate_portable);
+    assert_eq!(audit.total_artifacts, 1);
+    assert_eq!(audit.portable_artifacts, 0);
+    assert_eq!(audit.non_portable_artifacts, 1);
+    assert_eq!(audit.explicit_source_artifacts, 1);
+    assert_eq!(audit.issues[0].source, ArtifactSource::ExplicitSource);
+    assert_eq!(
+        audit.issues[0].original_path.as_deref(),
+        Some(source_path.as_path())
+    );
+
+    plan.artifact_portability = audit;
+    let error = enforce_portable_artifacts(&plan)
+        .expect_err("explicit source should fail portable enforcement");
+    assert!(
+        error
+            .to_string()
+            .contains("provide the same source with --artifact-source"),
+        "{error:?}"
+    );
+}
+
+#[test]
+fn artifact_portability_audit_treats_source_build_as_portable() {
+    let mut plan = minimal_plan_for_paths();
+    plan.artifacts[0].provenance.source = ArtifactSource::SourceBuild;
+    plan.artifacts[0].provenance.repository = Some("source-build".to_string());
+    plan.artifacts[0].provenance.original_path = None;
+    plan.artifacts[0].provenance.source_relative_path =
+        Some(Path::new("build").join("libs").join("artifact-1.0.0.jar"));
+    plan.artifacts[0].provenance.source_git = Some(super::SourceGitProvenance {
+        root: PathBuf::from("$sfm-cache")
+            .join("source-builds")
+            .join("abc123"),
+        commit: "abcdef".to_string(),
+        branch: "main".to_string(),
+        dirty: false,
+        remote_url: Some("https://example.test/source.git".to_string()),
+    });
+    plan.artifacts[0].provenance.source_build = Some(SourceBuildProvenance {
+        build_system: SourceBuildSystem::GradleWrapper,
+        tasks: vec!["jar".to_string()],
+        environment: BTreeMap::new(),
+        output_path: Path::new("build").join("libs").join("artifact-1.0.0.jar"),
+    });
+
+    let audit = artifact_portability_audit(&plan).expect("audit should build");
+
+    assert!(audit.fresh_slate_portable);
+    assert_eq!(audit.total_artifacts, 1);
+    assert_eq!(audit.portable_artifacts, 1);
+    assert_eq!(audit.non_portable_artifacts, 0);
+    assert!(audit.issues.is_empty());
+}
+
+#[test]
+fn artifact_portability_audit_reads_dependency_provenance() {
+    let test_dir = TestDir::new("artifact-portability-dependency-provenance");
+    let artifact_path = test_dir.path.join("maven").join("local-only.jar");
+    fs::create_dir_all(artifact_path.parent().expect("artifact should have parent"))
+        .expect("artifact parent should be created");
+    fs::write(&artifact_path, b"local only").expect("artifact should be written");
+    let provenance = ArtifactProvenance {
+        schema_version: 1,
+        source: ArtifactSource::LocalGradleModuleCache,
+        coordinate: Some("example:local-only:1.0.0".to_string()),
+        repository: Some("local-gradle-module-cache".to_string()),
+        url: None,
+        original_path: Some(PathBuf::from(
+            "C:/Users/Teamy/.gradle/caches/local-only.jar",
+        )),
+        source_relative_path: None,
+        source_git: None,
+        source_build: None,
+        sha1: sha1_bytes(b"local only"),
     };
+    fs::write(
+        artifact_path.with_file_name("local-only.jar.sfm-provenance.json"),
+        facet_json::to_string_pretty(&provenance).expect("provenance should serialize"),
+    )
+    .expect("provenance should be written");
+
+    let mut plan = minimal_plan_for_paths();
+    plan.artifacts.clear();
+    plan.dependencies = vec![DependencyPlan {
+        configuration: "implementation".to_string(),
+        notation: "example:local-only:1.0.0".to_string(),
+        resolved_notation: "example:local-only:1.0.0".to_string(),
+        source: DependencySource::Maven,
+        cache_path: artifact_path,
+        url: None,
+        dynamic_version: false,
+    }];
+
+    let audit = artifact_portability_audit(&plan).expect("audit should build");
+
+    assert!(!audit.fresh_slate_portable);
+    assert_eq!(audit.total_artifacts, 1);
+    assert_eq!(audit.local_cache_artifacts, 1);
+    assert_eq!(
+        audit.issues[0].source,
+        ArtifactSource::LocalGradleModuleCache
+    );
+    assert!(
+        audit.issues[0]
+            .remediation
+            .contains("configured remote repository")
+    );
+}
+
+#[test]
+fn artifact_audit_verifies_sfm_cache_lockfile_artifact() {
+    let test_dir = TestDir::new("artifact-audit-sfm-cache");
+    let minecraft_dir = test_dir
+        .path
+        .join("worktree")
+        .join("platform")
+        .join("minecraft");
+    let common_cache = test_dir.path.join("sfm-cache").join("minecraft-toolchain");
+    let cache_path = common_cache
+        .join("maven")
+        .join("g")
+        .join("a")
+        .join("1")
+        .join("a-1.jar");
+    fs::create_dir_all(cache_path.parent().expect("artifact should have parent"))
+        .expect("artifact parent should be created");
+    fs::write(&cache_path, b"remote artifact").expect("artifact should be written");
+    let sha1 = file_sha1(&cache_path).expect("artifact sha1 should hash");
+    let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
+    fs::create_dir_all(&minecraft_dir).expect("minecraft dir should be created");
+    write_test_artifact_lockfile(
+        &lockfile_path,
+        vec![ArtifactLockEntry {
+            coordinate: Some("g:a:1".to_string()),
+            source: ArtifactSource::RemoteMaven,
+            repository: Some("Test".to_string()),
+            url: Some("https://example.test/g/a/1/a-1.jar".to_string()),
+            cache_path: PathBuf::from("$sfm-cache").join("maven/g/a/1/a-1.jar"),
+            original_path: None,
+            source_relative_path: None,
+            source_git: None,
+            source_build: None,
+            sha1,
+        }],
+        Vec::new(),
+    );
+
+    let report = audit_artifact_lockfile(
+        &lockfile_path,
+        &minecraft_dir,
+        &common_cache,
+        "1.19.2",
+        false,
+    )
+    .expect("artifact audit should run");
+
+    assert!(report.passed);
+    assert!(report.fresh_slate_portable);
+    assert_eq!(report.total_artifacts, 1);
+    assert_eq!(report.verified_artifacts, 1);
+    assert_eq!(report.error_count, 0);
+    assert_eq!(report.warning_count, 0);
+}
+
+#[test]
+fn artifact_audit_warns_or_fails_for_explicit_sources() {
+    let test_dir = TestDir::new("artifact-audit-explicit-source");
+    let minecraft_dir = test_dir
+        .path
+        .join("worktree")
+        .join("platform")
+        .join("minecraft");
+    let common_cache = test_dir.path.join("sfm-cache").join("minecraft-toolchain");
+    let cache_path = common_cache
+        .join("maven")
+        .join("mekanism")
+        .join("Mekanism")
+        .join("26.1.2-10.8.0.86")
+        .join("Mekanism-26.1.2-10.8.0.86.jar");
+    let source_path = test_dir
+        .path
+        .join("Mekanism")
+        .join("build")
+        .join("libs")
+        .join("Mekanism-26.1.2-10.8.0.86.jar");
+    fs::create_dir_all(cache_path.parent().expect("artifact should have parent"))
+        .expect("artifact parent should be created");
+    fs::create_dir_all(source_path.parent().expect("source should have parent"))
+        .expect("source parent should be created");
+    fs::write(&cache_path, b"mekanism artifact").expect("artifact should be written");
+    fs::write(&source_path, b"mekanism artifact").expect("source should be written");
+    let sha1 = file_sha1(&cache_path).expect("artifact sha1 should hash");
+    let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
+    fs::create_dir_all(&minecraft_dir).expect("minecraft dir should be created");
+    write_test_artifact_lockfile(
+        &lockfile_path,
+        vec![ArtifactLockEntry {
+            coordinate: Some("mekanism:Mekanism:26.1.2-10.8.0.86".to_string()),
+            source: ArtifactSource::ExplicitSource,
+            repository: Some("explicit-artifact-source".to_string()),
+            url: None,
+            cache_path: PathBuf::from("$sfm-cache")
+                .join("maven/mekanism/Mekanism/26.1.2-10.8.0.86/Mekanism-26.1.2-10.8.0.86.jar"),
+            original_path: Some(source_path),
+            source_relative_path: None,
+            source_git: None,
+            source_build: None,
+            sha1,
+        }],
+        Vec::new(),
+    );
+
+    let normal_report = audit_artifact_lockfile(
+        &lockfile_path,
+        &minecraft_dir,
+        &common_cache,
+        "1.19.2",
+        false,
+    )
+    .expect("normal artifact audit should run");
+    assert!(normal_report.passed);
+    assert!(!normal_report.fresh_slate_portable);
+    assert_eq!(normal_report.verified_artifacts, 1);
+    assert_eq!(normal_report.error_count, 0);
+    assert_eq!(normal_report.non_portable_artifacts, 1);
+    assert!(
+        normal_report.issues.iter().any(|issue| {
+            issue.kind == ArtifactAuditIssueKind::NonPortableProvenance
+                && issue.severity == ArtifactAuditSeverity::Warning
+        }),
+        "{:?}",
+        normal_report.issues
+    );
+
+    let strict_report = audit_artifact_lockfile(
+        &lockfile_path,
+        &minecraft_dir,
+        &common_cache,
+        "1.19.2",
+        true,
+    )
+    .expect("strict artifact audit should run");
+    assert!(!strict_report.passed);
+    assert_eq!(strict_report.error_count, 1);
+    assert!(
+        strict_report.issues.iter().any(|issue| {
+            issue.kind == ArtifactAuditIssueKind::NonPortableProvenance
+                && issue.severity == ArtifactAuditSeverity::Error
+        }),
+        "{:?}",
+        strict_report.issues
+    );
+}
+
+#[test]
+fn facet_json_serializes_compare_report() {
+    let report = compare_report_fixture(false);
     let json = facet_json::to_string_pretty(&report).expect("report should serialize");
     assert!(json.contains("missing_entries"));
     assert!(json.contains("ignored_implementation_timestamp"));
+}
+
+#[test]
+fn compare_report_json_preserves_single_shape_and_wraps_multi_target_reports() {
+    let test_dir = TestDir::new("compare-report-json-shape");
+    let single_path = test_dir.path.join("single.json");
+    let multi_path = test_dir.path.join("multi.json");
+    let first = TargetJarCompareReport {
+        branch_name: BranchName::from("1.19.2"),
+        worktree_path: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2"),
+        report: compare_report_fixture(true),
+    };
+    let second = TargetJarCompareReport {
+        branch_name: BranchName::from("1.20.1"),
+        worktree_path: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.20.1"),
+        report: compare_report_fixture(false),
+    };
+
+    write_compare_reports(&[first], Some(&single_path)).expect("single report should write");
+    let single_json = fs::read_to_string(&single_path).expect("single report should be readable");
+    assert!(single_json.contains("\"gradle_jar\""));
+    assert!(!single_json.contains("\"branch_name\""));
+
+    write_compare_reports(&[second], Some(&multi_path)).expect("single report should rewrite");
+    let single_again_json =
+        fs::read_to_string(&multi_path).expect("rewritten single report should be readable");
+    assert!(!single_again_json.contains("\"branch_name\""));
+
+    let multi_reports = [
+        TargetJarCompareReport {
+            branch_name: BranchName::from("1.19.2"),
+            worktree_path: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2"),
+            report: compare_report_fixture(true),
+        },
+        TargetJarCompareReport {
+            branch_name: BranchName::from("1.20.1"),
+            worktree_path: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.20.1"),
+            report: compare_report_fixture(false),
+        },
+    ];
+    write_compare_reports(&multi_reports, Some(&multi_path)).expect("multi report should write");
+    let multi_json = fs::read_to_string(&multi_path).expect("multi report should be readable");
+    assert!(multi_json.trim_start().starts_with('['));
+    assert!(multi_json.contains("\"branch_name\""));
+    assert!(multi_json.contains("\"1.20.1\""));
 }
 
 #[test]
@@ -652,6 +1705,13 @@ fn facet_json_parses_upstream_config_shapes() {
         )
         .expect("version json should parse");
     assert_eq!(version_json.libraries.len(), 1);
+    let libraries_root = Path::new("D:/sfm-cache/minecraft-toolchain/minecraft/libraries");
+    let libraries = minecraft_library_jars_from_version_json(libraries_root, &version_json);
+    assert_eq!(libraries.len(), 1);
+    assert_eq!(
+        libraries[0].path,
+        PathBuf::from("D:/sfm-cache/minecraft-toolchain/minecraft/libraries/g/a/1/a.jar")
+    );
     assert_eq!(version_json.asset_index.expect("asset index").id, "1.19");
 
     let forge: ForgeUserdevConfig = facet_json::from_str(
@@ -726,6 +1786,68 @@ fn facet_json_parses_upstream_config_shapes() {
     assert_eq!(parchment.classes[0].methods[0].parameters[0].name, "level");
 }
 
+#[test]
+fn minecraft_library_selection_uses_only_current_version_json() {
+    let version_json: MinecraftVersionJson = facet_json::from_str(
+        r#"{
+            "downloads": {
+                "client": {"url": "https://example.test/client.jar"},
+                "server": {"url": "https://example.test/server.jar"}
+            },
+            "libraries": [
+                {
+                    "downloads": {
+                        "artifact": {
+                            "url": "https://example.test/guava-32.jar",
+                            "path": "com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar",
+                            "sha1": "111"
+                        }
+                    }
+                },
+                {
+                    "downloads": {
+                        "artifact": {
+                            "url": "https://example.test/authlib-7.jar",
+                            "path": "com/mojang/authlib/7.0.63/authlib-7.0.63.jar",
+                            "sha1": "222"
+                        }
+                    }
+                }
+            ]
+        }"#,
+    )
+    .expect("version json should parse");
+    let libraries_root = Path::new("D:/sfm-cache/minecraft-toolchain/minecraft/libraries");
+    let libraries = minecraft_library_jars_from_version_json(libraries_root, &version_json);
+    let paths = libraries
+        .iter()
+        .map(|library| library.path.clone())
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        paths,
+        vec![
+            PathBuf::from(
+                "D:/sfm-cache/minecraft-toolchain/minecraft/libraries/com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar"
+            ),
+            PathBuf::from(
+                "D:/sfm-cache/minecraft-toolchain/minecraft/libraries/com/mojang/authlib/7.0.63/authlib-7.0.63.jar"
+            ),
+        ]
+    );
+    assert!(
+        paths
+            .iter()
+            .all(|path| { !path.to_string_lossy().contains("com/mojang/authlib/6.0.54") })
+    );
+    assert!(paths.iter().all(|path| {
+        !path
+            .to_string_lossy()
+            .contains("com/google/guava/failureaccess/1.0.1")
+    }));
+    assert_eq!(libraries[0].sha1.as_deref(), Some("111"));
+}
+
 fn minimal_artifact() -> ArtifactPlan {
     ArtifactPlan {
         id: "artifact".to_string(),
@@ -748,6 +1870,9 @@ fn minimal_provenance() -> ArtifactProvenance {
         repository: Some("Forge".to_string()),
         url: Some("https://example.test/a.jar".to_string()),
         original_path: None,
+        source_relative_path: None,
+        source_git: None,
+        source_build: None,
         sha1: "abc123".to_string(),
     }
 }
@@ -788,6 +1913,7 @@ fn minimal_plan_for_paths() -> BuildPlan {
         java_release: 17,
         refresh: false,
         allow_local_artifact_cache: false,
+        artifact_sources: Vec::new(),
         properties: BTreeMap::new(),
         repositories: Vec::new(),
         loader_toolchain: LoaderToolchainPlan {
@@ -811,6 +1937,7 @@ fn minimal_plan_for_paths() -> BuildPlan {
         mcp_config: None,
         dependencies: Vec::new(),
         graph: Vec::new(),
+        artifact_portability: ArtifactPortabilityAudit::default(),
         warnings: Vec::new(),
     }
 }
@@ -824,6 +1951,8 @@ fn test_build_options(parallelism: Parallelism) -> BuildOptions {
         java_home: None,
         dry_run: true,
         allow_local_artifact_cache: false,
+        artifact_sources: Vec::new(),
+        require_portable_artifacts: false,
         error_action: ErrorAction::Bail,
         parallelism,
         mode: BuildMode::Plan,
@@ -837,6 +1966,88 @@ fn test_worktree_target(branch: &str, path: &str) -> WorktreeTarget {
         core: true,
         mc_version: Some(MinecraftVersion::parse(branch).expect("test branch should be version")),
     }
+}
+
+fn compare_report_fixture(matches: bool) -> JarCompareReport {
+    JarCompareReport {
+        gradle_jar: PathBuf::from("gradle.jar"),
+        rust_jar: PathBuf::from("rust.jar"),
+        strict_manifest: false,
+        matches,
+        total_gradle_entries: 1,
+        total_rust_entries: 1,
+        compared_entries: 1,
+        missing_entries: if matches {
+            Vec::new()
+        } else {
+            vec!["a.class".to_string()]
+        },
+        extra_entries: Vec::new(),
+        changed_entries: if matches {
+            Vec::new()
+        } else {
+            vec![ChangedEntry {
+                path: "b.class".to_string(),
+                gradle_sha1: "1".to_string(),
+                rust_sha1: "2".to_string(),
+            }]
+        },
+        manifest: ManifestCompare {
+            compared: true,
+            changed: false,
+            ignored_implementation_timestamp: true,
+            gradle_sha1: Some("1".to_string()),
+            rust_sha1: Some("1".to_string()),
+        },
+    }
+}
+
+fn write_test_artifact_lockfile(
+    path: &Path,
+    artifacts: Vec<ArtifactLockEntry>,
+    dependencies: Vec<DependencyLockEntry>,
+) {
+    let lockfile = ArtifactLockfile {
+        schema_version: 1,
+        minecraft_version: "1.19.2".to_string(),
+        maven_cache_dir: PathBuf::from("$sfm-cache").join("maven"),
+        allow_local_artifact_cache: false,
+        repositories: Vec::new(),
+        dependencies,
+        artifacts,
+    };
+    fs::write(
+        path,
+        facet_json::to_string_pretty(&lockfile).expect("lockfile should serialize"),
+    )
+    .expect("lockfile should be written");
+}
+
+fn serve_http_bodies(bodies: Vec<Vec<u8>>) -> (String, thread::JoinHandle<()>) {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("test server should bind");
+    let url = format!(
+        "http://{}/artifact.jar",
+        listener
+            .local_addr()
+            .expect("test server should have local address")
+    );
+    let handle = thread::spawn(move || {
+        for body in bodies {
+            let (mut stream, _) = listener.accept().expect("test server should accept");
+            let mut request_buffer = [0_u8; 1024];
+            let _ = stream.read(&mut request_buffer);
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            )
+            .expect("test server should write headers");
+            stream
+                .write_all(&body)
+                .expect("test server should write body");
+        }
+    });
+    (url, handle)
 }
 
 fn matching_siblings(path: &Path, kind: &str) -> Vec<PathBuf> {
@@ -858,6 +2069,83 @@ fn matching_siblings(path: &Path, kind: &str) -> Vec<PathBuf> {
         .collect::<Vec<_>>();
     paths.sort();
     paths
+}
+
+fn run_git<const N: usize>(repo: &Path, args: [&str; N]) {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(args)
+        .output()
+        .expect("git command should start");
+    assert!(
+        output.status.success(),
+        "git command failed: {}\nstdout:\n{}\nstderr:\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn git_stdout_test<const N: usize>(repo: &Path, args: [&str; N]) -> String {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(args)
+        .output()
+        .expect("git command should start");
+    assert!(
+        output.status.success(),
+        "git command failed: {}\nstdout:\n{}\nstderr:\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    String::from_utf8(output.stdout)
+        .expect("git stdout should be utf8")
+        .trim()
+        .to_string()
+}
+
+fn write_fake_gradle_wrapper(source_root: &Path, output_path: &Path) {
+    let output_parent = output_path
+        .parent()
+        .expect("fake output should have parent")
+        .to_string_lossy()
+        .replace('/', "\\");
+    let output_path_windows = output_path.to_string_lossy().replace('/', "\\");
+    fs::write(
+        source_root.join("gradlew.bat"),
+        format!(
+            "@echo off\r\nmkdir \"{output_parent}\" 2>NUL\r\n> \"{output_path_windows}\" echo source build artifact\r\n"
+        ),
+    )
+    .expect("fake Windows Gradle wrapper should be written");
+
+    #[cfg(not(windows))]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let output_parent = output_path
+            .parent()
+            .expect("fake output should have parent")
+            .display()
+            .to_string();
+        let output_path_unix = output_path.display().to_string();
+        let wrapper = source_root.join("gradlew");
+        fs::write(
+            &wrapper,
+            format!(
+                "#!/bin/sh\nmkdir -p \"{output_parent}\"\nprintf 'source build artifact\\n' > \"{output_path_unix}\"\n"
+            ),
+        )
+        .expect("fake Unix Gradle wrapper should be written");
+        let mut permissions = fs::metadata(&wrapper)
+            .expect("fake Unix wrapper should stat")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&wrapper, permissions).expect("fake Unix wrapper should be executable");
+    }
 }
 
 struct TestDir {

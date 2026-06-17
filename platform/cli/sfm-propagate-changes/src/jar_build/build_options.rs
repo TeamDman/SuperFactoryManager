@@ -17,6 +17,8 @@ pub struct BuildOptions {
     pub java_home: Option<PathBuf>,
     pub dry_run: bool,
     pub allow_local_artifact_cache: bool,
+    pub artifact_sources: Vec<PathBuf>,
+    pub require_portable_artifacts: bool,
     pub error_action: ErrorAction,
     pub parallelism: Parallelism,
     pub mode: BuildMode,
