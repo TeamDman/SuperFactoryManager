@@ -1,6 +1,5 @@
 use crate::logging::logging_config::LoggingConfig;
 use crate::logging::terminal_event_layer::TerminalEventLayer;
-use crate::terminal_output::stderr_line;
 use std::fs::File;
 use std::fs::OpenOptions;
 use tracing::info;
@@ -51,6 +50,22 @@ fn tracy_layer_requested() -> bool {
 pub fn init_logging(config: &LoggingConfig) -> eyre::Result<()> {
     let subscriber = Registry::default();
 
+    {
+        // this is what we used to have, for reference.
+        let old_stderr_layer = tracing_subscriber::fmt::layer()
+            .with_file(cfg!(debug_assertions))
+            .with_target(true)
+            .with_line_number(cfg!(debug_assertions))
+            .with_writer(std::io::stderr)
+            .pretty()
+            .without_time()
+            .with_filter(build_env_filter(config));
+        if false {
+            subscriber.with(old_stderr_layer);
+            panic!()
+        }
+    }
+
     let terminal_layer = TerminalEventLayer.with_filter(build_env_filter(config));
     let subscriber = subscriber.with(terminal_layer);
 
@@ -95,9 +110,9 @@ pub fn init_logging(config: &LoggingConfig) -> eyre::Result<()> {
         subscriber.with(tracy_layer_requested.then(tracing_tracy::TracyLayer::default));
 
     if let Err(error) = subscriber.try_init() {
-        let _ = stderr_line(format!(
+        eprintln!(
             "Failed to initialize tracing subscriber - are you running `cargo test`? If so, multiple test entrypoints may be running from the same process. https://github.com/tokio-rs/console/issues/505 : {error}"
-        ));
+        );
         return Ok(());
     }
 

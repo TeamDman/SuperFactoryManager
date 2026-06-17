@@ -15,13 +15,24 @@ pub const DEFAULT_OP_CORE_API_KEY_SECRET_REFERENCE: &str =
 pub struct CurseforgeApiSecret(#[facet(sensitive)] String);
 
 impl CurseforgeApiSecret {
+    /// Create a validated `CurseForge` API secret.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the provided secret is empty after trimming.
     pub fn new(value: impl AsRef<str>) -> eyre::Result<Self> {
         Self::from_raw(value.as_ref(), "CurseForge API secret was empty")
     }
 
+    /// Resolve the `CurseForge` upload token from `CLI` input, environment, or `1Password`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the supplied token is empty or when resolving the fallback
+    /// `1Password` secret fails.
     pub fn resolve(token: Option<String>, op_secret: Option<String>) -> eyre::Result<Self> {
         if let Some(value) = token {
-            return Self::from_cli_argument(value, "--token");
+            return Self::from_cli_argument(&value, "--token");
         }
 
         if let Some(secret) = Self::from_environment(CURSEFORGE_TOKEN_ENV_VAR)? {
@@ -37,6 +48,12 @@ impl CurseforgeApiSecret {
         secret_reference.read()
     }
 
+    /// Resolve the `CurseForge` Core API key and report which source provided it.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when every configured source is unavailable or empty, or when
+    /// reading a configured `1Password` secret fails.
     pub fn resolve_core(
         api_key: Option<String>,
         token: Option<String>,
@@ -44,7 +61,7 @@ impl CurseforgeApiSecret {
     ) -> eyre::Result<(Self, String)> {
         if let Some(value) = api_key {
             return Ok((
-                Self::from_cli_argument(value, "--api-key")?,
+                Self::from_cli_argument(&value, "--api-key")?,
                 "--api-key".to_string(),
             ));
         }
@@ -54,24 +71,28 @@ impl CurseforgeApiSecret {
         }
 
         if let Some(secret_reference) = op_secret {
-            return Self::read_with_source(OnePasswordSecretReference::new(secret_reference)?);
+            return Self::read_with_source(&OnePasswordSecretReference::new(secret_reference)?);
         }
 
-        if let Ok(resolved) = Self::read_with_source(OnePasswordSecretReference::new(
-            DEFAULT_OP_CORE_API_KEY_SECRET_REFERENCE,
-        )?) {
-            return Ok(resolved);
+        {
+            let default_core_api_key_secret =
+                OnePasswordSecretReference::new(DEFAULT_OP_CORE_API_KEY_SECRET_REFERENCE)?;
+            if let Ok(resolved) = Self::read_with_source(&default_core_api_key_secret) {
+                return Ok(resolved);
+            }
         }
 
-        if let Ok(resolved) = Self::read_with_source(OnePasswordSecretReference::new(
-            DEFAULT_OP_SECRET_REFERENCE,
-        )?) {
-            return Ok(resolved);
+        {
+            let default_upload_secret =
+                OnePasswordSecretReference::new(DEFAULT_OP_SECRET_REFERENCE)?;
+            if let Ok(resolved) = Self::read_with_source(&default_upload_secret) {
+                return Ok(resolved);
+            }
         }
 
         if let Some(value) = token {
             return Ok((
-                Self::from_cli_argument(value, "--token")?,
+                Self::from_cli_argument(&value, "--token")?,
                 "--token".to_string(),
             ));
         }
@@ -87,20 +108,21 @@ impl CurseforgeApiSecret {
         )
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
     fn read_with_source(
-        secret_reference: OnePasswordSecretReference,
+        secret_reference: &OnePasswordSecretReference,
     ) -> eyre::Result<(Self, String)> {
         let source = format!("1Password ({})", secret_reference.as_str());
         let secret = secret_reference.read()?;
         Ok((secret, source))
     }
 
-    fn from_cli_argument(value: String, argument_name: &str) -> eyre::Result<Self> {
-        Self::from_raw(&value, &format!("Provided {argument_name} was empty"))
+    fn from_cli_argument(value: &str, argument_name: &str) -> eyre::Result<Self> {
+        Self::from_raw(value, &format!("Provided {argument_name} was empty"))
     }
 
     fn from_environment(env_var: &str) -> eyre::Result<Option<Self>> {
@@ -137,9 +159,8 @@ impl OnePasswordSecretValue for CurseforgeApiSecret {
 }
 
 impl fmt::Debug for CurseforgeApiSecret {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_tuple("CurseforgeApiSecret")
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("CurseforgeApiSecret")
             .field(&"<redacted>")
             .finish()
     }
