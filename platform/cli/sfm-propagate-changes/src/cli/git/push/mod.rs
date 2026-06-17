@@ -1,3 +1,3 @@
-mod git_push_command;
+mod git_push_cli;
 
-pub use git_push_command::*;
+pub use git_push_cli::*;

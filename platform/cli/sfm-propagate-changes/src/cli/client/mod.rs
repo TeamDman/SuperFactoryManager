@@ -1,9 +1,15 @@
-mod client_add_command;
-mod client_command;
-mod client_get_launcher_command;
-mod client_launch_command;
-mod client_list_command;
-mod client_remove_command;
-mod client_set_launcher_command;
+mod client_add_cli;
+mod client_cli;
+mod client_get_launcher_cli;
+mod client_launch_cli;
+mod client_list_cli;
+mod client_remove_cli;
+mod client_set_launcher_cli;
 
-pub use client_command::*;
+pub use client_add_cli::*;
+pub use client_cli::*;
+pub use client_get_launcher_cli::*;
+pub use client_launch_cli::*;
+pub use client_list_cli::*;
+pub use client_remove_cli::*;
+pub use client_set_launcher_cli::*;
