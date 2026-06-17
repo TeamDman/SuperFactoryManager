@@ -1,3 +1,3 @@
-mod git_merge_command;
+mod git_merge_cli;
 
-pub use git_merge_command::*;
+pub use git_merge_cli::*;

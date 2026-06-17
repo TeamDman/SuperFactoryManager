@@ -1,3 +1,5 @@
-mod jdk_command;
+mod jdk_cli;
+mod jdk_list_cli;
 
-pub use jdk_command::*;
+pub use jdk_cli::*;
+pub use jdk_list_cli::*;

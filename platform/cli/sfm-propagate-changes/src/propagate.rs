@@ -2,6 +2,7 @@ use crate::cli::repo_root::get_repo_root;
 use crate::sfm_path::SfmPath;
 use crate::state::State;
 use crate::state::Status;
+use crate::terminal_output::stdout_prompt;
 use crate::worktree::Worktree;
 use crate::worktree::get_worktrees;
 use crate::worktree::parse_version;
@@ -11,7 +12,6 @@ use eyre::Context;
 use eyre::bail;
 use std::fmt::Write;
 use std::io::BufRead;
-use std::io::Write as IoWrite;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -242,8 +242,7 @@ fn partition_conflicts(files: &[String]) -> (Vec<&String>, Vec<&String>) {
 
 /// Prompt user with Y/n question (defaults to yes)
 fn prompt_yes_no(question: &str) -> eyre::Result<bool> {
-    print!("{question} [Y/n] ");
-    std::io::stdout().flush()?;
+    stdout_prompt(format!("{question} [Y/n] "))?;
 
     let mut input = String::new();
     std::io::stdin().lock().read_line(&mut input)?;
@@ -328,22 +327,23 @@ fn try_auto_resolve_keep_ours_conflicts(path: &PathBuf) -> eyre::Result<bool> {
         return Ok(false); // No keep-ours conflicts to auto-resolve
     }
 
-    println!(
-        "\nFound {} auto-resolvable keep-current conflict(s):",
+    info!(
+        "Found {} auto-resolvable keep-current conflict(s):",
         keep_ours.len()
     );
+    // todo(2026-06-16): make this play nicer with structured logging
     for file in &keep_ours {
-        println!("  - {file}");
+        info!("  - {file}");
     }
 
     if !other.is_empty() {
-        println!("\nOther conflicts remaining: {}", other.len());
+        info!("Other conflicts remaining: {}", other.len());
         for file in &other {
-            println!("  - {file}");
+            info!("  - {file}");
         }
     }
 
-    println!();
+    // todo(2026-06-16): ensure that prompt response is structurally logged
     if prompt_yes_no("Auto-resolve these conflicts by keeping current branch version?")? {
         resolve_keep_ours_conflicts(path, &keep_ours)?;
         info!("Resolved {} keep-ours conflict(s)", keep_ours.len());
@@ -354,8 +354,8 @@ fn try_auto_resolve_keep_ours_conflicts(path: &PathBuf) -> eyre::Result<bool> {
             return Ok(true);
         }
 
-        println!(
-            "\nRemaining conflicts ({}) require manual resolution.",
+        info!(
+            "Remaining conflicts ({}) require manual resolution.",
             other.len()
         );
     }

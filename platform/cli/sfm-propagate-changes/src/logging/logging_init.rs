@@ -1,5 +1,6 @@
 use crate::logging::logging_config::LoggingConfig;
 use crate::logging::terminal_event_layer::TerminalEventLayer;
+use crate::terminal_output::stderr_line;
 use std::fs::File;
 use std::fs::OpenOptions;
 use tracing::info;
@@ -94,9 +95,9 @@ pub fn init_logging(config: &LoggingConfig) -> eyre::Result<()> {
         subscriber.with(tracy_layer_requested.then(tracing_tracy::TracyLayer::default));
 
     if let Err(error) = subscriber.try_init() {
-        eprintln!(
+        let _ = stderr_line(format!(
             "Failed to initialize tracing subscriber - are you running `cargo test`? If so, multiple test entrypoints may be running from the same process. https://github.com/tokio-rs/console/issues/505 : {error}"
-        );
+        ));
         return Ok(());
     }
 

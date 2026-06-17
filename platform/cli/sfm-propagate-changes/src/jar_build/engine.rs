@@ -1,17 +1,23 @@
+// todo(2026-06-16) file very large
+use super::ArtifactAuditOptions;
 use super::BuildMode;
 use super::BuildOptions;
 use super::CompareOptions;
 use super::RunKind;
+pub(super) use super::artifact_audit_issue_kind::ArtifactAuditIssueKind;
+pub(super) use super::artifact_audit_report::ArtifactAuditReport;
+pub(super) use super::artifact_audit_severity::ArtifactAuditSeverity;
 use super::json_branch_name::JsonBranchName;
 use super::json_minecraft_version::JsonMinecraftVersion;
 use super::json_path::JsonOptionalPath;
 use super::json_path::JsonPath;
+pub(super) use super::target_artifact_audit_report::TargetArtifactAuditReport;
 use crate::artifact_lock::ArtifactLock;
+use crate::artifact_lock::ArtifactReadLock;
 use crate::branch_targets::BranchName;
 use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::select_required_worktree_targets;
-use crate::branch_targets::select_single_worktree_target;
 use crate::paths::CACHE_DIR;
 use chrono::Local;
 use eyre::Context;
@@ -56,6 +62,16 @@ use zip::write::SimpleFileOptions;
 const VERSION_MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 const NEOFORM_RUNTIME_COORDINATE: &str = "net.neoforged:neoform-runtime:2.0.19:all";
+const PROJECT_COMPILE_ANNOTATION_COORDINATES: [(&str, &str); 2] = [
+    (
+        "project-compile-annotations",
+        "org.jetbrains:annotations:24.0.1",
+    ),
+    (
+        "project-compile-jsr305",
+        "com.google.code.findbugs:jsr305:3.0.2",
+    ),
+];
 const DOWNLOAD_RETRY_ATTEMPTS: usize = 3;
 
 pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
@@ -67,6 +83,7 @@ pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
         explain_rebuild = options.explain_rebuild,
         dry_run = options.dry_run,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
+        require_portable_artifacts = options.require_portable_artifacts,
         error_action = %options.error_action,
         parallelism = %options.parallelism,
     )
@@ -93,6 +110,7 @@ pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<
         explain_rebuild = options.explain_rebuild,
         dry_run = options.dry_run,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
+        require_portable_artifacts = options.require_portable_artifacts,
         error_action = %options.error_action,
         parallelism = %options.parallelism,
     )
@@ -184,6 +202,24 @@ fn execute_targets_parallel(
     limit: usize,
     execute: impl Fn(&BuildOptions, &WorktreeTarget) -> eyre::Result<BuildPlan> + Send + Sync,
 ) -> eyre::Result<TargetExecutionSummary> {
+    execute_targets_parallel_with_cancellation(
+        options,
+        targets,
+        action,
+        limit,
+        execute,
+        crate::cancellation::is_cancelled,
+    )
+}
+
+fn execute_targets_parallel_with_cancellation(
+    options: &BuildOptions,
+    targets: Vec<WorktreeTarget>,
+    action: &'static str,
+    limit: usize,
+    execute: impl Fn(&BuildOptions, &WorktreeTarget) -> eyre::Result<BuildPlan> + Send + Sync,
+    is_cancelled: impl Fn() -> bool + Send + Sync,
+) -> eyre::Result<TargetExecutionSummary> {
     if targets.is_empty() {
         return Ok(TargetExecutionSummary::default());
     }
@@ -210,11 +246,10 @@ fn execute_targets_parallel(
             let stop_starting = Arc::clone(&stop_starting);
             let sender = sender.clone();
             let execute = &execute;
+            let is_cancelled = &is_cancelled;
             scope.spawn(move || {
                 loop {
-                    if stop_starting.load(AtomicOrdering::Acquire)
-                        || crate::cancellation::is_cancelled()
-                    {
+                    if stop_starting.load(AtomicOrdering::Acquire) || is_cancelled() {
                         break;
                     }
                     let target = {
@@ -269,6 +304,10 @@ fn execute_targets_parallel(
                     failures.push(TargetFailure::new(&result.target, &error));
                 }
             }
+        }
+
+        if is_cancelled() {
+            eyre::bail!("Operation cancelled by Ctrl+C");
         }
 
         Ok(TargetExecutionSummary { plans, failures })
@@ -359,25 +398,921 @@ pub(crate) fn invoke_compare(options: &CompareOptions) -> eyre::Result<()> {
         "sfm_jar_compare_command",
         branch = %options.branch,
         strict_manifest = options.strict_manifest,
+        error_action = %options.error_action,
+        parallelism = %options.parallelism,
     )
     .entered();
-    let paths = resolve_compare_paths(options)?;
-    let report = compare_jars(&paths.gradle_jar, &paths.rust_jar, options.strict_manifest)?;
+    let targets = select_required_worktree_targets(&options.branch)?;
+    if targets.len() == 1 {
+        return invoke_single_target_compare(options, &targets[0]);
+    }
 
-    print_compare_report(&report);
-    write_compare_report(&report, options.report_json.as_deref())?;
+    if options.gradle_jar.is_some() || options.rust_jar.is_some() {
+        eyre::bail!(
+            "--gradle-jar and --rust-jar overrides can only be used when --branch selects one target."
+        );
+    }
 
-    if report.matches {
+    let total = targets.len();
+    let CompareExecutionSummary { reports, failures } = execute_compare_targets(options, targets)?;
+    write_compare_reports(&reports, options.report_json.as_deref())?;
+    finish_compare_summary(total, &reports, &failures)
+}
+
+fn execute_compare_targets(
+    options: &CompareOptions,
+    targets: Vec<WorktreeTarget>,
+) -> eyre::Result<CompareExecutionSummary> {
+    let Some(limit) = options.parallelism.limit() else {
+        return execute_compare_targets_sequential(options, targets);
+    };
+    execute_compare_targets_parallel(options, targets, limit)
+}
+
+fn execute_compare_targets_sequential(
+    options: &CompareOptions,
+    targets: Vec<WorktreeTarget>,
+) -> eyre::Result<CompareExecutionSummary> {
+    let mut reports = Vec::new();
+    let mut failures = Vec::new();
+    for target in targets {
+        crate::cancellation::bail_if_cancelled()?;
+        let _target_span = tracing::info_span!(
+            "sfm_jar_compare_target",
+            branch = %target.branch,
+            worktree = %target.worktree_path.display(),
+        )
+        .entered();
+        record_compare_result(
+            &target,
+            compare_target(options, &target),
+            &mut reports,
+            &mut failures,
+        );
+
+        if !failures.is_empty() && !options.error_action.should_continue() {
+            break;
+        }
+    }
+
+    Ok(CompareExecutionSummary { reports, failures })
+}
+
+fn execute_compare_targets_parallel(
+    options: &CompareOptions,
+    targets: Vec<WorktreeTarget>,
+    limit: usize,
+) -> eyre::Result<CompareExecutionSummary> {
+    if targets.is_empty() {
+        return Ok(CompareExecutionSummary::default());
+    }
+
+    let target_count = targets.len();
+    let worker_count = limit.min(target_count);
+    tracing::info!(
+        action = "sfm_jar_compare_target",
+        worker_count,
+        target_count,
+        error_action = %options.error_action,
+        "parallel target execution starting"
+    );
+
+    let queue = Arc::new(Mutex::new(
+        targets.into_iter().enumerate().collect::<VecDeque<_>>(),
+    ));
+    let stop_starting = Arc::new(AtomicBool::new(false));
+    let (sender, receiver) = mpsc::channel::<CompareExecutionResult>();
+
+    thread::scope(|scope| {
+        for worker_index in 0..worker_count {
+            let queue = Arc::clone(&queue);
+            let stop_starting = Arc::clone(&stop_starting);
+            let sender = sender.clone();
+            scope.spawn(move || {
+                loop {
+                    if stop_starting.load(AtomicOrdering::Acquire)
+                        || crate::cancellation::is_cancelled()
+                    {
+                        break;
+                    }
+                    let target = {
+                        let mut queue = queue.lock().expect("target queue should not be poisoned");
+                        queue.pop_front()
+                    };
+                    let Some((target_index, target)) = target else {
+                        break;
+                    };
+
+                    let _worker_span = tracing::info_span!(
+                        "sfm_parallel_worker",
+                        worker = worker_index,
+                        branch = %target.branch,
+                        worktree = %target.worktree_path.display(),
+                    )
+                    .entered();
+                    let result = compare_target(options, &target);
+                    let failed = result
+                        .as_ref()
+                        .map_or(true, |report| !report.report.matches);
+                    if failed && !options.error_action.should_continue() {
+                        stop_starting.store(true, AtomicOrdering::Release);
+                    }
+                    if sender
+                        .send(CompareExecutionResult {
+                            target_index,
+                            target,
+                            result,
+                        })
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+            });
+        }
+        drop(sender);
+
+        let mut results = receiver.into_iter().collect::<Vec<_>>();
+        results.sort_by_key(|result| result.target_index);
+
+        let mut reports = Vec::new();
+        let mut failures = Vec::new();
+        for result in results {
+            record_compare_result(&result.target, result.result, &mut reports, &mut failures);
+        }
+
+        if crate::cancellation::is_cancelled() {
+            eyre::bail!("Operation cancelled by Ctrl+C");
+        }
+
+        Ok(CompareExecutionSummary { reports, failures })
+    })
+}
+
+fn record_compare_result(
+    target: &WorktreeTarget,
+    result: eyre::Result<TargetJarCompareReport>,
+    reports: &mut Vec<TargetJarCompareReport>,
+    failures: &mut Vec<TargetFailure>,
+) {
+    match result {
+        Ok(report) => {
+            emit_compare_report(&report.report);
+            if !report.report.matches {
+                failures.push(TargetFailure::from_message(
+                    target,
+                    "Jar comparison found normalized differences.",
+                ));
+            }
+            reports.push(report);
+        }
+        Err(error) => {
+            tracing::error!(error = %error, "target_failed");
+            failures.push(TargetFailure::new(target, &error));
+        }
+    }
+}
+
+fn invoke_single_target_compare(
+    options: &CompareOptions,
+    target: &WorktreeTarget,
+) -> eyre::Result<()> {
+    let _target_span = tracing::info_span!(
+        "sfm_jar_compare_target",
+        branch = %target.branch,
+        worktree = %target.worktree_path.display(),
+    )
+    .entered();
+    let report = compare_target(options, target)?;
+
+    emit_compare_report(&report.report);
+    let matches = report.report.matches;
+    write_compare_reports(&[report], options.report_json.as_deref())?;
+
+    if matches {
         Ok(())
     } else {
         eyre::bail!("Jar comparison found normalized differences.")
     }
 }
 
+fn compare_target(
+    options: &CompareOptions,
+    target: &WorktreeTarget,
+) -> eyre::Result<TargetJarCompareReport> {
+    let paths = resolve_compare_paths(options, target)?;
+    let report = compare_jars(&paths.gradle_jar, &paths.rust_jar, options.strict_manifest)?;
+    Ok(TargetJarCompareReport {
+        branch_name: target.branch.clone(),
+        worktree_path: target.worktree_path.as_path().to_path_buf(),
+        report,
+    })
+}
+
+fn finish_compare_summary(
+    total: usize,
+    reports: &[TargetJarCompareReport],
+    failures: &[TargetFailure],
+) -> eyre::Result<()> {
+    if total > 1 || !failures.is_empty() {
+        let matched = reports
+            .iter()
+            .filter(|report| report.report.matches)
+            .count();
+        tracing::info!(
+            "jar compare target summary: {matched}/{total} matched, {} failed.",
+            failures.len()
+        );
+    }
+
+    if failures.is_empty() {
+        return Ok(());
+    }
+
+    for failure in failures {
+        tracing::info!(
+            "Failed target {} ({}): {}",
+            failure.branch,
+            failure.worktree_path.display(),
+            failure.error
+        );
+    }
+
+    eyre::bail!(
+        "jar compare failed for {} of {total} target(s).",
+        failures.len()
+    );
+}
+
+pub(crate) fn invoke_artifact_audit(options: &ArtifactAuditOptions) -> eyre::Result<()> {
+    let _span = tracing::info_span!(
+        "sfm_jar_artifact_audit_command",
+        branch = %options.branch,
+        require_portable_artifacts = options.require_portable_artifacts,
+        error_action = %options.error_action,
+        parallelism = %options.parallelism,
+    )
+    .entered();
+    let targets = select_required_worktree_targets(&options.branch)?;
+    let total = targets.len();
+    let ArtifactAuditExecutionSummary { reports, failures } =
+        execute_artifact_audit_targets(options, targets)?;
+    write_artifact_audit_reports(&reports, options.report_json.as_deref())?;
+    finish_artifact_audit_summary(total, &reports, &failures)
+}
+
+fn execute_artifact_audit_targets(
+    options: &ArtifactAuditOptions,
+    targets: Vec<WorktreeTarget>,
+) -> eyre::Result<ArtifactAuditExecutionSummary> {
+    let Some(limit) = options.parallelism.limit() else {
+        return execute_artifact_audit_targets_sequential(options, targets);
+    };
+    execute_artifact_audit_targets_parallel(options, targets, limit)
+}
+
+fn execute_artifact_audit_targets_sequential(
+    options: &ArtifactAuditOptions,
+    targets: Vec<WorktreeTarget>,
+) -> eyre::Result<ArtifactAuditExecutionSummary> {
+    let mut reports = Vec::new();
+    let mut failures = Vec::new();
+    for target in targets {
+        crate::cancellation::bail_if_cancelled()?;
+        let _target_span = tracing::info_span!(
+            "sfm_jar_artifact_audit_target",
+            branch = %target.branch,
+            worktree = %target.worktree_path.display(),
+        )
+        .entered();
+        record_artifact_audit_result(
+            &target,
+            audit_artifacts_for_target(options, &target),
+            &mut reports,
+            &mut failures,
+        );
+
+        if !failures.is_empty() && !options.error_action.should_continue() {
+            break;
+        }
+    }
+
+    Ok(ArtifactAuditExecutionSummary { reports, failures })
+}
+
+fn execute_artifact_audit_targets_parallel(
+    options: &ArtifactAuditOptions,
+    targets: Vec<WorktreeTarget>,
+    limit: usize,
+) -> eyre::Result<ArtifactAuditExecutionSummary> {
+    if targets.is_empty() {
+        return Ok(ArtifactAuditExecutionSummary::default());
+    }
+
+    let target_count = targets.len();
+    let worker_count = limit.min(target_count);
+    tracing::info!(
+        action = "sfm_jar_artifact_audit_target",
+        worker_count,
+        target_count,
+        error_action = %options.error_action,
+        "parallel target execution starting"
+    );
+
+    let queue = Arc::new(Mutex::new(
+        targets.into_iter().enumerate().collect::<VecDeque<_>>(),
+    ));
+    let stop_starting = Arc::new(AtomicBool::new(false));
+    let (sender, receiver) = mpsc::channel::<ArtifactAuditExecutionResult>();
+
+    thread::scope(|scope| {
+        for worker_index in 0..worker_count {
+            let queue = Arc::clone(&queue);
+            let stop_starting = Arc::clone(&stop_starting);
+            let sender = sender.clone();
+            scope.spawn(move || {
+                loop {
+                    if stop_starting.load(AtomicOrdering::Acquire)
+                        || crate::cancellation::is_cancelled()
+                    {
+                        break;
+                    }
+                    let target = {
+                        let mut queue = queue.lock().expect("target queue should not be poisoned");
+                        queue.pop_front()
+                    };
+                    let Some((target_index, target)) = target else {
+                        break;
+                    };
+
+                    let _worker_span = tracing::info_span!(
+                        "sfm_parallel_worker",
+                        worker = worker_index,
+                        branch = %target.branch,
+                        worktree = %target.worktree_path.display(),
+                    )
+                    .entered();
+                    let result = audit_artifacts_for_target(options, &target);
+                    let failed = result.as_ref().map_or(true, |report| !report.report.passed);
+                    if failed && !options.error_action.should_continue() {
+                        stop_starting.store(true, AtomicOrdering::Release);
+                    }
+                    if sender
+                        .send(ArtifactAuditExecutionResult {
+                            target_index,
+                            target,
+                            result,
+                        })
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+            });
+        }
+        drop(sender);
+
+        let mut results = receiver.into_iter().collect::<Vec<_>>();
+        results.sort_by_key(|result| result.target_index);
+
+        let mut reports = Vec::new();
+        let mut failures = Vec::new();
+        for result in results {
+            record_artifact_audit_result(
+                &result.target,
+                result.result,
+                &mut reports,
+                &mut failures,
+            );
+        }
+
+        if crate::cancellation::is_cancelled() {
+            eyre::bail!("Operation cancelled by Ctrl+C");
+        }
+
+        Ok(ArtifactAuditExecutionSummary { reports, failures })
+    })
+}
+
+fn record_artifact_audit_result(
+    target: &WorktreeTarget,
+    result: eyre::Result<TargetArtifactAuditReport>,
+    reports: &mut Vec<TargetArtifactAuditReport>,
+    failures: &mut Vec<TargetFailure>,
+) {
+    match result {
+        Ok(report) => {
+            emit_artifact_audit_report(&report.report);
+            if !report.report.passed {
+                failures.push(TargetFailure::from_message(
+                    target,
+                    "Artifact audit found verification errors.",
+                ));
+            }
+            reports.push(report);
+        }
+        Err(error) => {
+            tracing::error!(error = %error, "target_failed");
+            failures.push(TargetFailure::new(target, &error));
+        }
+    }
+}
+
+fn audit_artifacts_for_target(
+    options: &ArtifactAuditOptions,
+    target: &WorktreeTarget,
+) -> eyre::Result<TargetArtifactAuditReport> {
+    let worktree_path = target.worktree_path.as_path().to_path_buf();
+    let minecraft_dir = worktree_path.join("platform").join("minecraft");
+    let properties_path = minecraft_dir.join("gradle.properties");
+    let properties = read_properties(&properties_path)?;
+    let minecraft_version = required_property(&properties, "minecraft_version")?;
+    let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
+    let common_cache_dir = common_toolchain_cache_dir();
+    let report = audit_artifact_lockfile(
+        &lockfile_path,
+        &minecraft_dir,
+        &common_cache_dir,
+        minecraft_version,
+        options.require_portable_artifacts,
+    )?;
+
+    Ok(TargetArtifactAuditReport {
+        branch_name: target.branch.clone(),
+        worktree_path,
+        report,
+    })
+}
+
+fn audit_artifact_lockfile(
+    lockfile_path: &Path,
+    minecraft_dir: &Path,
+    common_cache_dir: &Path,
+    minecraft_version: &str,
+    require_portable_artifacts: bool,
+) -> eyre::Result<ArtifactAuditReport> {
+    let mut report = ArtifactAuditReport::new(lockfile_path.to_path_buf());
+    let Some(lockfile) = read_optional_artifact_lockfile(lockfile_path, minecraft_version)? else {
+        report.push_error(
+            ArtifactAuditIssueKind::LockfileMissing,
+            None,
+            None,
+            lockfile_path,
+            format!("Artifact lockfile is missing: {}", lockfile_path.display()),
+        );
+        report.finalize(require_portable_artifacts);
+        return Ok(report);
+    };
+
+    report.total_artifacts = lockfile.artifacts.len();
+    let locked_artifact_paths = lockfile
+        .artifacts
+        .iter()
+        .map(|artifact| artifact.cache_path.clone())
+        .collect::<BTreeSet<_>>();
+    for dependency in &lockfile.dependencies {
+        if !locked_artifact_paths.contains(&dependency.cache_path) {
+            report.push_error(
+                ArtifactAuditIssueKind::DependencyArtifactMissing,
+                Some(dependency.resolved_notation.clone()),
+                None,
+                &dependency.cache_path,
+                format!(
+                    "Dependency {} points at {}, but no locked artifact records that cache path",
+                    dependency.resolved_notation,
+                    dependency.cache_path.display()
+                ),
+            );
+        }
+    }
+
+    for artifact in &lockfile.artifacts {
+        audit_locked_artifact(
+            &mut report,
+            artifact,
+            minecraft_dir,
+            common_cache_dir,
+            require_portable_artifacts,
+        )?;
+    }
+
+    report.finalize(require_portable_artifacts);
+    Ok(report)
+}
+
+fn audit_locked_artifact(
+    report: &mut ArtifactAuditReport,
+    artifact: &ArtifactLockEntry,
+    minecraft_dir: &Path,
+    common_cache_dir: &Path,
+    require_portable_artifacts: bool,
+) -> eyre::Result<()> {
+    if !artifact.source.is_fresh_slate_portable() {
+        let message = format!(
+            "Artifact {} has {} provenance",
+            artifact_label(artifact),
+            artifact.source.label()
+        );
+        if require_portable_artifacts {
+            report.push_error(
+                ArtifactAuditIssueKind::NonPortableProvenance,
+                artifact.coordinate.clone(),
+                Some(artifact.source.clone()),
+                &artifact.cache_path,
+                message,
+            );
+        } else {
+            report.push_warning(
+                ArtifactAuditIssueKind::NonPortableProvenance,
+                artifact.coordinate.clone(),
+                Some(artifact.source.clone()),
+                &artifact.cache_path,
+                message,
+            );
+        }
+    }
+
+    let cache_path =
+        resolve_locked_artifact_path(&artifact.cache_path, minecraft_dir, common_cache_dir);
+    if !cache_path.is_file() {
+        report.push_error(
+            ArtifactAuditIssueKind::ArtifactMissing,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            &cache_path,
+            format!("Locked artifact is missing: {}", cache_path.display()),
+        );
+        return Ok(());
+    }
+
+    let _cache_read_lock = acquire_artifact_path_read_lock(&cache_path)?;
+    let actual_sha1 = file_sha1(&cache_path)?;
+    if actual_sha1 != artifact.sha1 {
+        report.push_error(
+            ArtifactAuditIssueKind::ArtifactHashMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            &cache_path,
+            format!(
+                "Locked artifact {} has SHA-1 {}, but lockfile requires {}",
+                cache_path.display(),
+                actual_sha1,
+                artifact.sha1
+            ),
+        );
+        return Ok(());
+    }
+    report.verified_artifacts += 1;
+
+    if let Some(provenance) = read_artifact_provenance(&cache_path)? {
+        audit_artifact_provenance_sidecar(report, artifact, &cache_path, &provenance);
+    }
+
+    audit_original_source_artifact(report, artifact)?;
+    Ok(())
+}
+
+fn audit_artifact_provenance_sidecar(
+    report: &mut ArtifactAuditReport,
+    artifact: &ArtifactLockEntry,
+    cache_path: &Path,
+    provenance: &ArtifactProvenance,
+) {
+    if provenance.sha1 != artifact.sha1 {
+        report.push_error(
+            ArtifactAuditIssueKind::ProvenanceHashMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            cache_path,
+            format!(
+                "Artifact provenance sidecar for {} records SHA-1 {}, but lockfile requires {}",
+                cache_path.display(),
+                provenance.sha1,
+                artifact.sha1
+            ),
+        );
+    }
+    if provenance.source != artifact.source {
+        report.push_error(
+            ArtifactAuditIssueKind::ProvenanceMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            cache_path,
+            format!(
+                "Artifact provenance sidecar for {} records source {}, but lockfile requires {}",
+                cache_path.display(),
+                provenance.source.label(),
+                artifact.source.label()
+            ),
+        );
+    }
+    if let (Some(sidecar_coordinate), Some(lock_coordinate)) =
+        (&provenance.coordinate, &artifact.coordinate)
+        && sidecar_coordinate != lock_coordinate
+    {
+        report.push_error(
+            ArtifactAuditIssueKind::ProvenanceMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            cache_path,
+            format!(
+                "Artifact provenance sidecar for {} records coordinate {}, but lockfile requires {}",
+                cache_path.display(),
+                sidecar_coordinate,
+                lock_coordinate
+            ),
+        );
+    }
+    if provenance.source_relative_path != artifact.source_relative_path {
+        report.push_error(
+            ArtifactAuditIssueKind::ProvenanceMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            cache_path,
+            format!(
+                "Artifact provenance sidecar for {} records source_relative_path {}, but lockfile requires {}",
+                cache_path.display(),
+                optional_path_label(provenance.source_relative_path.as_deref()),
+                optional_path_label(artifact.source_relative_path.as_deref())
+            ),
+        );
+    }
+    if provenance.source_git != artifact.source_git {
+        report.push_error(
+            ArtifactAuditIssueKind::ProvenanceMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            cache_path,
+            format!(
+                "Artifact provenance sidecar for {} records source_git {:?}, but lockfile requires {:?}",
+                cache_path.display(),
+                provenance.source_git,
+                artifact.source_git
+            ),
+        );
+    }
+    if provenance.source_build != artifact.source_build {
+        report.push_error(
+            ArtifactAuditIssueKind::ProvenanceMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            cache_path,
+            format!(
+                "Artifact provenance sidecar for {} records source_build {:?}, but lockfile requires {:?}",
+                cache_path.display(),
+                provenance.source_build,
+                artifact.source_build
+            ),
+        );
+    }
+}
+
+fn audit_original_source_artifact(
+    report: &mut ArtifactAuditReport,
+    artifact: &ArtifactLockEntry,
+) -> eyre::Result<()> {
+    if artifact.source != ArtifactSource::ExplicitSource {
+        return Ok(());
+    }
+
+    let Some(original_path) = artifact.original_path.as_deref() else {
+        report.push_error(
+            ArtifactAuditIssueKind::OriginalSourceMissing,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            &artifact.cache_path,
+            format!(
+                "Explicit-source artifact {} has no original_path in the lockfile",
+                artifact_label(artifact)
+            ),
+        );
+        return Ok(());
+    };
+
+    if !original_path.is_file() {
+        report.push_error(
+            ArtifactAuditIssueKind::OriginalSourceMissing,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            original_path,
+            format!(
+                "Explicit-source artifact {} original source is missing: {}",
+                artifact_label(artifact),
+                original_path.display()
+            ),
+        );
+        return Ok(());
+    }
+
+    let source_sha1 = file_sha1(original_path)?;
+    if source_sha1 != artifact.sha1 {
+        report.push_error(
+            ArtifactAuditIssueKind::OriginalSourceHashMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            original_path,
+            format!(
+                "Explicit-source artifact {} original source has SHA-1 {}, but lockfile requires {}",
+                artifact_label(artifact),
+                source_sha1,
+                artifact.sha1
+            ),
+        );
+    }
+
+    let Some(locked_git) = &artifact.source_git else {
+        report.push_warning(
+            ArtifactAuditIssueKind::SourceGitMissing,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            original_path,
+            format!(
+                "Explicit-source artifact {} has no source_git provenance in the lockfile",
+                artifact_label(artifact)
+            ),
+        );
+        return Ok(());
+    };
+    let Some(current_git) = source_git_provenance(original_path) else {
+        report.push_error(
+            ArtifactAuditIssueKind::SourceGitMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            original_path,
+            format!(
+                "Explicit-source artifact {} source Git checkout could not be resolved from {}",
+                artifact_label(artifact),
+                original_path.display()
+            ),
+        );
+        return Ok(());
+    };
+    if &current_git != locked_git {
+        report.push_error(
+            ArtifactAuditIssueKind::SourceGitMismatch,
+            artifact.coordinate.clone(),
+            Some(artifact.source.clone()),
+            original_path,
+            format!(
+                "Explicit-source artifact {} source Git changed: lockfile branch={} commit={} dirty={} remote={}, current branch={} commit={} dirty={} remote={}",
+                artifact_label(artifact),
+                locked_git.branch,
+                locked_git.commit,
+                locked_git.dirty,
+                locked_git.remote_url.as_deref().unwrap_or("<none>"),
+                current_git.branch,
+                current_git.commit,
+                current_git.dirty,
+                current_git.remote_url.as_deref().unwrap_or("<none>")
+            ),
+        );
+    }
+
+    Ok(())
+}
+
+fn resolve_locked_artifact_path(
+    path: &Path,
+    minecraft_dir: &Path,
+    common_cache_dir: &Path,
+) -> PathBuf {
+    if let Ok(relative) = path.strip_prefix(Path::new("$sfm-cache")) {
+        return common_cache_dir.join(relative);
+    }
+    if path.is_absolute() {
+        return path.to_path_buf();
+    }
+    minecraft_dir.join(path)
+}
+
+fn artifact_label(artifact: &ArtifactLockEntry) -> String {
+    artifact
+        .coordinate
+        .clone()
+        .unwrap_or_else(|| artifact.cache_path.display().to_string())
+}
+
+fn optional_path_label(path: Option<&Path>) -> String {
+    path.map_or_else(|| "<none>".to_string(), |path| path.display().to_string())
+}
+
+fn emit_artifact_audit_report(report: &ArtifactAuditReport) {
+    tracing::info!(
+        "Artifact audit: {} verified, {} error(s), {} warning(s), {} non-portable artifact(s).",
+        report.verified_artifacts,
+        report.error_count,
+        report.warning_count,
+        report.non_portable_artifacts
+    );
+    for issue in &report.issues {
+        match issue.severity {
+            ArtifactAuditSeverity::Error => tracing::error!(
+                "{} [{}] {}",
+                issue.kind.label(),
+                issue.path.display(),
+                issue.message
+            ),
+            ArtifactAuditSeverity::Warning => tracing::warn!(
+                "{} [{}] {}",
+                issue.kind.label(),
+                issue.path.display(),
+                issue.message
+            ),
+        }
+    }
+}
+
+fn finish_artifact_audit_summary(
+    total: usize,
+    reports: &[TargetArtifactAuditReport],
+    failures: &[TargetFailure],
+) -> eyre::Result<()> {
+    if total > 1 || !failures.is_empty() {
+        let passed = reports.iter().filter(|report| report.report.passed).count();
+        tracing::info!(
+            "jar audit-artifacts target summary: {passed}/{total} passed, {} failed.",
+            failures.len()
+        );
+    }
+
+    if failures.is_empty() {
+        return Ok(());
+    }
+
+    for failure in failures {
+        tracing::info!(
+            "Failed target {} ({}): {}",
+            failure.branch,
+            failure.worktree_path.display(),
+            failure.error
+        );
+    }
+
+    eyre::bail!(
+        "jar audit-artifacts failed for {} of {total} target(s).",
+        failures.len()
+    );
+}
+
+fn write_artifact_audit_reports(
+    reports: &[TargetArtifactAuditReport],
+    requested_path: Option<&Path>,
+) -> eyre::Result<()> {
+    let Some(path) = requested_path else {
+        return Ok(());
+    };
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let json = if reports.len() == 1 {
+        facet_json::to_string_pretty(&reports[0].report)?
+    } else {
+        facet_json::to_string_pretty(reports)?
+    };
+    fs::write(path, json).wrap_err_with(|| format!("Failed to write {}", path.display()))?;
+    Ok(())
+}
+
 #[derive(Debug)]
 struct ComparePaths {
     gradle_jar: PathBuf,
     rust_jar: PathBuf,
+}
+
+#[derive(Debug, Facet)]
+struct TargetJarCompareReport {
+    #[facet(proxy = JsonBranchName)]
+    branch_name: BranchName,
+    #[facet(proxy = JsonPath)]
+    worktree_path: PathBuf,
+    report: JarCompareReport,
+}
+
+#[derive(Debug, Default)]
+struct CompareExecutionSummary {
+    reports: Vec<TargetJarCompareReport>,
+    failures: Vec<TargetFailure>,
+}
+
+#[derive(Debug)]
+struct CompareExecutionResult {
+    target_index: usize,
+    target: WorktreeTarget,
+    result: eyre::Result<TargetJarCompareReport>,
+}
+
+#[derive(Debug, Default)]
+struct ArtifactAuditExecutionSummary {
+    reports: Vec<TargetArtifactAuditReport>,
+    failures: Vec<TargetFailure>,
+}
+
+#[derive(Debug)]
+struct ArtifactAuditExecutionResult {
+    target_index: usize,
+    target: WorktreeTarget,
+    result: eyre::Result<TargetArtifactAuditReport>,
 }
 
 #[derive(Debug, Default)]
@@ -402,10 +1337,14 @@ struct TargetFailure {
 
 impl TargetFailure {
     fn new(target: &WorktreeTarget, error: &eyre::Report) -> Self {
+        Self::from_message(target, error.to_string())
+    }
+
+    fn from_message(target: &WorktreeTarget, error: impl Into<String>) -> Self {
         Self {
             branch: target.branch.clone(),
             worktree_path: target.worktree_path.as_path().to_path_buf(),
-            error: error.to_string(),
+            error: error.into(),
         }
     }
 }
@@ -450,6 +1389,8 @@ struct BuildPlan {
     java_release: u32,
     refresh: bool,
     allow_local_artifact_cache: bool,
+    #[facet(skip_serializing)]
+    artifact_sources: Vec<PathBuf>,
     properties: BTreeMap<String, String>,
     repositories: Vec<Repository>,
     loader_toolchain: LoaderToolchainPlan,
@@ -459,6 +1400,7 @@ struct BuildPlan {
     mcp_config: Option<McpConfigPlan>,
     dependencies: Vec<DependencyPlan>,
     graph: Vec<GraphNode>,
+    artifact_portability: ArtifactPortabilityAudit,
     warnings: Vec<String>,
 }
 
@@ -518,6 +1460,13 @@ struct ArtifactProvenance {
     url: Option<String>,
     #[facet(proxy = JsonOptionalPath)]
     original_path: Option<PathBuf>,
+    #[facet(default)]
+    #[facet(proxy = JsonOptionalPath)]
+    source_relative_path: Option<PathBuf>,
+    #[facet(default)]
+    source_git: Option<SourceGitProvenance>,
+    #[facet(default)]
+    source_build: Option<SourceBuildProvenance>,
     sha1: String,
 }
 
@@ -554,18 +1503,127 @@ struct ArtifactLockEntry {
     cache_path: PathBuf,
     #[facet(proxy = JsonOptionalPath)]
     original_path: Option<PathBuf>,
+    #[facet(default)]
+    #[facet(proxy = JsonOptionalPath)]
+    source_relative_path: Option<PathBuf>,
+    #[facet(default)]
+    source_git: Option<SourceGitProvenance>,
+    #[facet(default)]
+    source_build: Option<SourceBuildProvenance>,
     sha1: String,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+struct SourceGitProvenance {
+    #[facet(proxy = JsonPath)]
+    root: PathBuf,
+    commit: String,
+    branch: String,
+    dirty: bool,
+    #[facet(default)]
+    remote_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+struct SourceBuildProvenance {
+    build_system: SourceBuildSystem,
+    tasks: Vec<String>,
+    environment: BTreeMap<String, String>,
+    #[facet(proxy = JsonPath)]
+    output_path: PathBuf,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
 #[facet(rename_all = "kebab-case")]
 #[repr(u8)]
-enum ArtifactSource {
+enum SourceBuildSystem {
+    GradleWrapper,
+}
+
+#[derive(Clone, Debug, Default, Facet)]
+struct ArtifactPortabilityAudit {
+    fresh_slate_portable: bool,
+    total_artifacts: usize,
+    portable_artifacts: usize,
+    non_portable_artifacts: usize,
+    explicit_source_artifacts: usize,
+    local_cache_artifacts: usize,
+    unknown_cache_artifacts: usize,
+    issues: Vec<ArtifactPortabilityIssue>,
+}
+
+#[derive(Clone, Debug, Facet)]
+struct ArtifactPortabilityIssue {
+    coordinate: Option<String>,
+    source: ArtifactSource,
+    #[facet(proxy = JsonPath)]
+    cache_path: PathBuf,
+    #[facet(proxy = JsonOptionalPath)]
+    original_path: Option<PathBuf>,
+    #[facet(default)]
+    #[facet(proxy = JsonOptionalPath)]
+    source_relative_path: Option<PathBuf>,
+    #[facet(default)]
+    source_git: Option<SourceGitProvenance>,
+    #[facet(default)]
+    source_build: Option<SourceBuildProvenance>,
+    reason: String,
+    remediation: String,
+}
+
+#[derive(Clone, Debug)]
+struct ArtifactPortabilityInput {
+    coordinate: Option<String>,
+    source: ArtifactSource,
+    cache_path: PathBuf,
+    original_path: Option<PathBuf>,
+    source_relative_path: Option<PathBuf>,
+    source_git: Option<SourceGitProvenance>,
+    source_build: Option<SourceBuildProvenance>,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+#[facet(rename_all = "kebab-case")]
+#[repr(u8)]
+pub(super) enum ArtifactSource {
     RemoteMaven,
     RemoteHttp,
+    #[facet(rename = "explicit-artifact-source")]
+    ExplicitSource,
+    #[facet(rename = "source-build")]
+    SourceBuild,
     LocalM2Cache,
     LocalGradleModuleCache,
     ExistingSfmCacheUnknown,
+}
+
+impl ArtifactSource {
+    pub(super) fn is_fresh_slate_portable(&self) -> bool {
+        matches!(
+            self,
+            Self::RemoteMaven | Self::RemoteHttp | Self::SourceBuild
+        )
+    }
+
+    fn is_local_cache(&self) -> bool {
+        matches!(self, Self::LocalM2Cache | Self::LocalGradleModuleCache)
+    }
+
+    fn can_be_materialized_from_source(&self) -> bool {
+        matches!(self, Self::ExplicitSource | Self::SourceBuild)
+    }
+
+    pub(super) fn label(&self) -> &'static str {
+        match self {
+            Self::RemoteMaven => "remote-maven",
+            Self::RemoteHttp => "remote-http",
+            Self::ExplicitSource => "explicit-artifact-source",
+            Self::SourceBuild => "source-build",
+            Self::LocalM2Cache => "local-m2-cache",
+            Self::LocalGradleModuleCache => "local-gradle-module-cache",
+            Self::ExistingSfmCacheUnknown => "existing-sfm-cache-unknown",
+        }
+    }
 }
 
 #[derive(Debug, Facet)]
@@ -593,6 +1651,8 @@ struct ForgeUserdevPlan {
     patches_modified_prefix: Option<String>,
     access_transformers: Vec<String>,
     side_strippers: Vec<String>,
+    modules: Vec<String>,
+    libraries: Vec<String>,
     module_count: usize,
     library_count: usize,
     test_libraries: Vec<String>,
@@ -729,7 +1789,9 @@ struct Resolver {
     repositories: Vec<Repository>,
     refresh: bool,
     allow_local_artifact_cache: bool,
+    artifact_sources: Vec<PathBuf>,
     lockfile: Option<ArtifactLockfile>,
+    materialization_lockfile: Option<ArtifactLockfile>,
 }
 
 #[derive(Debug, Facet)]
@@ -801,6 +1863,8 @@ struct MinecraftLibraryDownloads {
 struct MinecraftLibraryArtifact {
     url: String,
     path: String,
+    #[facet(default)]
+    sha1: Option<String>,
 }
 
 #[derive(Debug, Default, Facet)]
@@ -941,7 +2005,9 @@ impl Resolver {
         repositories: Vec<Repository>,
         refresh: bool,
         allow_local_artifact_cache: bool,
+        artifact_sources: Vec<PathBuf>,
         lockfile: Option<ArtifactLockfile>,
+        materialization_lockfile: Option<ArtifactLockfile>,
     ) -> eyre::Result<Self> {
         let _span = tracing::debug_span!(
             "create_maven_resolver",
@@ -949,6 +2015,7 @@ impl Resolver {
             repository_count = repositories.len(),
             refresh,
             allow_local_artifact_cache,
+            artifact_source_count = artifact_sources.len(),
             has_lockfile = lockfile.is_some(),
         )
         .entered();
@@ -963,7 +2030,9 @@ impl Resolver {
             repositories,
             refresh,
             allow_local_artifact_cache,
+            artifact_sources,
             lockfile,
+            materialization_lockfile,
         })
     }
 
@@ -985,6 +2054,17 @@ impl Resolver {
         let expected_sha1 = self
             .locked_artifact_sha1(&coordinate)
             .map(ToOwned::to_owned);
+
+        if let Some(artifact) = self.cached_artifact_if_valid(
+            id,
+            &coordinate,
+            &cache_path,
+            required_for,
+            expected_sha1.as_deref(),
+        )? {
+            return Ok(artifact);
+        }
+
         let _cache_lock = acquire_artifact_path_lock(&cache_path)?;
         prepare_existing_artifact_for_reuse(&cache_path, expected_sha1.as_deref())?;
 
@@ -1001,8 +2081,169 @@ impl Resolver {
         }
 
         let mut attempted = Vec::new();
-        for repo in self.candidate_repositories(&coordinate) {
-            let url = Self::artifact_url(repo, &coordinate);
+        if let Some(artifact) = self.remote_artifact(
+            id,
+            &coordinate,
+            &cache_path,
+            required_for,
+            expected_sha1.as_deref(),
+            &mut attempted,
+        )? {
+            return Ok(artifact);
+        }
+
+        if let Some(artifact) = self.explicit_artifact_source_fallback(
+            id,
+            &coordinate,
+            cache_path.clone(),
+            required_for,
+            expected_sha1.as_deref(),
+        )? {
+            return Ok(artifact);
+        }
+
+        if let Some(artifact) = self.source_build_fallback(
+            id,
+            &coordinate,
+            cache_path.clone(),
+            required_for,
+            expected_sha1.as_deref(),
+        )? {
+            return Ok(artifact);
+        }
+
+        if let Some(artifact) = self.local_artifact_fallback(
+            id,
+            &coordinate,
+            cache_path,
+            required_for,
+            expected_sha1.as_deref(),
+        )? {
+            return Ok(artifact);
+        }
+
+        eyre::bail!(
+            "Could not resolve artifact {}. Tried:\n{}\nPass --artifact-source <path> to import from an explicit local project/Maven source, or pass --allow-local-artifact-cache to allow bootstrapping from local Maven-created .m2/Gradle caches.",
+            coordinate,
+            attempted.join("\n")
+        );
+    }
+
+    fn source_build_fallback(
+        &self,
+        id: &str,
+        coordinate: &MavenCoordinate,
+        cache_path: PathBuf,
+        required_for: &str,
+        expected_sha1: Option<&str>,
+    ) -> eyre::Result<Option<ArtifactPlan>> {
+        let Some(locked) = self.materializable_locked_artifact(coordinate) else {
+            return Ok(None);
+        };
+        let Some(source_git) = &locked.source_git else {
+            return Ok(None);
+        };
+        let Some(source_build) = &locked.source_build else {
+            return Ok(None);
+        };
+        let Some(remote_url) = source_git.remote_url.as_deref() else {
+            return Ok(None);
+        };
+
+        let checkout_key = source_build_checkout_key(remote_url, &source_git.commit);
+        let checkout_dir = self
+            .cache_dir
+            .parent()
+            .unwrap_or(&self.cache_dir)
+            .join("source-builds")
+            .join(&checkout_key);
+        materialize_source_build(remote_url, &source_git.commit, source_build, &checkout_dir)?;
+        let source_output = checkout_dir.join(&source_build.output_path);
+        if !source_output.is_file() {
+            eyre::bail!(
+                "Source build for {} completed but did not produce {}",
+                coordinate,
+                source_output.display()
+            );
+        }
+        copy_file_to_path_checked_locked(&source_output, &cache_path, expected_sha1)?;
+        let sha1 = file_sha1(&cache_path)?;
+        let portable_source_root = PathBuf::from("$sfm-cache")
+            .join("source-builds")
+            .join(checkout_key);
+        let provenance = ArtifactProvenance {
+            schema_version: 1,
+            source: ArtifactSource::SourceBuild,
+            coordinate: Some(coordinate.to_string()),
+            repository: Some("source-build".to_string()),
+            url: Some(remote_url.to_string()),
+            original_path: None,
+            source_relative_path: Some(source_build.output_path.clone()),
+            source_git: Some(SourceGitProvenance {
+                root: portable_source_root,
+                commit: source_git.commit.clone(),
+                branch: source_git.branch.clone(),
+                dirty: false,
+                remote_url: Some(remote_url.to_string()),
+            }),
+            source_build: Some(source_build.clone()),
+            sha1: sha1.clone(),
+        };
+        write_artifact_provenance(&cache_path, &provenance)?;
+        let artifact = ArtifactPlan {
+            id: id.to_string(),
+            coordinate: Some(coordinate.to_string()),
+            repository: provenance.repository.clone(),
+            url: provenance.url.clone(),
+            cache_path,
+            sha1: Some(sha1),
+            downloaded: false,
+            required_for: required_for.to_string(),
+            provenance,
+        };
+        self.verify_locked_artifact(coordinate, &artifact)?;
+        tracing::info!(
+            coordinate = %coordinate,
+            cache_path = %artifact.cache_path.display(),
+            remote = remote_url,
+            commit = source_git.commit,
+            tasks = ?source_build.tasks,
+            "artifact materialized from source build"
+        );
+        Ok(Some(artifact))
+    }
+
+    fn materializable_locked_artifact(
+        &self,
+        coordinate: &MavenCoordinate,
+    ) -> Option<&ArtifactLockEntry> {
+        let coordinate_text = coordinate.to_string();
+        self.materialization_lockfile
+            .as_ref()?
+            .artifacts
+            .iter()
+            .find(|artifact| {
+                artifact.coordinate.as_deref() == Some(coordinate_text.as_str())
+                    && artifact.source.can_be_materialized_from_source()
+                    && artifact
+                        .source_git
+                        .as_ref()
+                        .is_some_and(|source_git| source_git.remote_url.is_some())
+                    && artifact.source_build.is_some()
+            })
+    }
+
+    fn remote_artifact(
+        &self,
+        id: &str,
+        coordinate: &MavenCoordinate,
+        cache_path: &Path,
+        required_for: &str,
+        expected_sha1: Option<&str>,
+        attempted: &mut Vec<String>,
+    ) -> eyre::Result<Option<ArtifactPlan>> {
+        for repo in self.candidate_repositories(coordinate) {
+            let url = Self::artifact_url(repo, coordinate);
             attempted.push(url.clone());
             tracing::debug!(
                 coordinate = %coordinate,
@@ -1014,9 +2255,9 @@ impl Resolver {
                 download_to_path_overwrite_locked(
                     &self.client,
                     &url,
-                    &cache_path,
+                    cache_path,
                     self.refresh,
-                    expected_sha1.as_deref(),
+                    expected_sha1,
                 )
             } else {
                 if !remote_exists(&self.client, &url)? {
@@ -1025,9 +2266,9 @@ impl Resolver {
                 download_to_path_overwrite_locked(
                     &self.client,
                     &url,
-                    &cache_path,
+                    cache_path,
                     self.refresh,
-                    expected_sha1.as_deref(),
+                    expected_sha1,
                 )
             };
 
@@ -1036,9 +2277,15 @@ impl Resolver {
                 continue;
             }
 
-            let artifact =
-                Self::remote_artifact_plan(id, &coordinate, repo, url, cache_path, required_for)?;
-            self.verify_locked_artifact(&coordinate, &artifact)?;
+            let artifact = Self::remote_artifact_plan(
+                id,
+                coordinate,
+                repo,
+                url,
+                cache_path.to_path_buf(),
+                required_for,
+            )?;
+            self.verify_locked_artifact(coordinate, &artifact)?;
             tracing::info!(
                 coordinate = %coordinate,
                 repository = artifact.repository.as_deref(),
@@ -1046,36 +2293,108 @@ impl Resolver {
                 sha1 = artifact.sha1.as_deref(),
                 "artifact downloaded"
             );
-            return Ok(artifact);
+            return Ok(Some(artifact));
         }
+        Ok(None)
+    }
 
-        if self.allow_local_artifact_cache
-            && let Some(local_artifact) = find_local_cached_artifact(&coordinate)
-        {
-            let artifact = Self::local_artifact_plan(
-                id,
-                &coordinate,
-                local_artifact,
-                cache_path,
-                required_for,
-                expected_sha1.as_deref(),
-            )?;
-            self.verify_locked_artifact(&coordinate, &artifact)?;
-            tracing::info!(
-                coordinate = %coordinate,
-                cache_path = %artifact.cache_path.display(),
-                source = ?artifact.provenance.source,
-                sha1 = artifact.sha1.as_deref(),
-                "artifact copied from local cache fallback"
-            );
-            return Ok(artifact);
-        }
-
-        eyre::bail!(
-            "Could not resolve artifact {}. Tried:\n{}\nLocal .m2/Gradle cache fallback is disabled; pass --allow-local-artifact-cache to allow bootstrapping from local Maven-created caches.",
+    fn explicit_artifact_source_fallback(
+        &self,
+        id: &str,
+        coordinate: &MavenCoordinate,
+        cache_path: PathBuf,
+        required_for: &str,
+        expected_sha1: Option<&str>,
+    ) -> eyre::Result<Option<ArtifactPlan>> {
+        let Some(local_artifact) =
+            find_explicit_source_artifact(coordinate, &self.artifact_sources)
+        else {
+            return Ok(None);
+        };
+        let artifact = Self::local_artifact_plan(
+            id,
             coordinate,
-            attempted.join("\n")
+            local_artifact,
+            cache_path,
+            required_for,
+            expected_sha1,
+        )?;
+        self.verify_locked_artifact(coordinate, &artifact)?;
+        tracing::info!(
+            coordinate = %coordinate,
+            cache_path = %artifact.cache_path.display(),
+            source = ?artifact.provenance.source,
+            original_path = artifact.provenance.original_path.as_ref().map(|path| path.display().to_string()),
+            sha1 = artifact.sha1.as_deref(),
+            "artifact copied from explicit artifact source"
         );
+        Ok(Some(artifact))
+    }
+
+    fn local_artifact_fallback(
+        &self,
+        id: &str,
+        coordinate: &MavenCoordinate,
+        cache_path: PathBuf,
+        required_for: &str,
+        expected_sha1: Option<&str>,
+    ) -> eyre::Result<Option<ArtifactPlan>> {
+        if !self.allow_local_artifact_cache {
+            return Ok(None);
+        }
+        let Some(local_artifact) = find_local_cached_artifact(coordinate) else {
+            return Ok(None);
+        };
+        let artifact = Self::local_artifact_plan(
+            id,
+            coordinate,
+            local_artifact,
+            cache_path,
+            required_for,
+            expected_sha1,
+        )?;
+        self.verify_locked_artifact(coordinate, &artifact)?;
+        tracing::info!(
+            coordinate = %coordinate,
+            cache_path = %artifact.cache_path.display(),
+            source = ?artifact.provenance.source,
+            sha1 = artifact.sha1.as_deref(),
+            "artifact copied from local cache fallback"
+        );
+        Ok(Some(artifact))
+    }
+
+    fn cached_artifact_if_valid(
+        &self,
+        id: &str,
+        coordinate: &MavenCoordinate,
+        cache_path: &Path,
+        required_for: &str,
+        expected_sha1: Option<&str>,
+    ) -> eyre::Result<Option<ArtifactPlan>> {
+        if self.refresh || !cache_path.is_file() {
+            return Ok(None);
+        }
+
+        let _cache_read_lock = acquire_artifact_path_read_lock(cache_path)?;
+        let cached_artifact_is_valid = match expected_sha1 {
+            Some(expected_sha1) => existing_file_matches_sha1(cache_path, expected_sha1)?,
+            None => true,
+        };
+        if !cached_artifact_is_valid {
+            return Ok(None);
+        }
+
+        let artifact =
+            Self::cached_artifact_plan(id, coordinate, cache_path.to_path_buf(), required_for)?;
+        self.verify_locked_artifact(coordinate, &artifact)?;
+        tracing::debug!(
+            coordinate = %coordinate,
+            cache_path = %artifact.cache_path.display(),
+            sha1 = artifact.sha1.as_deref(),
+            "artifact cache hit"
+        );
+        Ok(Some(artifact))
     }
 
     fn locked_artifact_sha1(&self, coordinate: &MavenCoordinate) -> Option<&str> {
@@ -1140,6 +2459,7 @@ impl Resolver {
                 None,
                 None,
                 None,
+                None,
                 sha1.clone(),
             )
         });
@@ -1171,6 +2491,7 @@ impl Resolver {
             Some(repo.name.clone()),
             Some(url.clone()),
             None,
+            None,
             sha1.clone(),
         );
         write_artifact_provenance(&cache_path, &provenance)?;
@@ -1195,21 +2516,27 @@ impl Resolver {
         required_for: &str,
         expected_sha1: Option<&str>,
     ) -> eyre::Result<ArtifactPlan> {
-        copy_file_to_path_checked(&local_artifact.path, &cache_path, expected_sha1)?;
+        copy_file_to_path_checked_locked(&local_artifact.path, &cache_path, expected_sha1)?;
         let sha1 = file_sha1(&cache_path)?;
+        let source_git = if local_artifact.source == ArtifactSource::ExplicitSource {
+            source_git_provenance(&local_artifact.path)
+        } else {
+            None
+        };
         let provenance = artifact_provenance(
             local_artifact.source,
             Some(coordinate.to_string()),
-            Some("local-artifact-cache".to_string()),
+            Some(local_artifact.repository.clone()),
             None,
             Some(local_artifact.path.clone()),
+            source_git,
             sha1.clone(),
         );
         write_artifact_provenance(&cache_path, &provenance)?;
         Ok(ArtifactPlan {
             id: id.to_string(),
             coordinate: Some(coordinate.to_string()),
-            repository: Some("local-artifact-cache".to_string()),
+            repository: Some(local_artifact.repository),
             url: Some(local_artifact.path.display().to_string()),
             sha1: Some(sha1),
             cache_path,
@@ -1231,19 +2558,19 @@ impl Resolver {
         } else {
             DependencySource::Maven
         };
-        let cache_path = self.cache_path_for(&resolved);
-        let url = self
-            .candidate_repositories(&resolved)
-            .first()
-            .map(|repo| Self::artifact_url(repo, &resolved));
+        let artifact = self.resolve_artifact(
+            &format!("dependency:{configuration}:{resolved}"),
+            &resolved,
+            configuration,
+        )?;
 
         Ok(DependencyPlan {
             configuration: configuration.to_string(),
             notation: coordinate.to_string(),
             resolved_notation: resolved.to_string(),
             source,
-            cache_path,
-            url,
+            cache_path: artifact.cache_path,
+            url: artifact.url,
             dynamic_version,
         })
     }
@@ -1354,11 +2681,7 @@ impl Resolver {
     }
 
     fn cache_path_for(&self, coordinate: &MavenCoordinate) -> PathBuf {
-        self.cache_dir
-            .join(coordinate.group.replace('.', "/"))
-            .join(&coordinate.artifact)
-            .join(&coordinate.version)
-            .join(coordinate.file_name())
+        maven_cache_path_for(&self.cache_dir, coordinate)
     }
 
     fn artifact_url(repo: &Repository, coordinate: &MavenCoordinate) -> String {
@@ -1403,6 +2726,16 @@ impl Resolver {
 
         Vec::new()
     }
+}
+
+fn maven_cache_path_for(cache_dir: &Path, coordinate: &MavenCoordinate) -> PathBuf {
+    let mut path = cache_dir.to_path_buf();
+    for segment in coordinate.group.split('.') {
+        path.push(segment);
+    }
+    path.join(&coordinate.artifact)
+        .join(&coordinate.version)
+        .join(coordinate.file_name())
 }
 
 impl MavenCoordinate {
@@ -1479,6 +2812,47 @@ impl std::fmt::Display for MavenCoordinate {
 struct LocalCachedArtifact {
     path: PathBuf,
     source: ArtifactSource,
+    repository: String,
+}
+
+fn find_explicit_source_artifact(
+    coordinate: &MavenCoordinate,
+    artifact_sources: &[PathBuf],
+) -> Option<LocalCachedArtifact> {
+    artifact_sources.iter().find_map(|artifact_source| {
+        explicit_artifact_source_candidates(artifact_source, coordinate)
+            .into_iter()
+            .find(|candidate| candidate.is_file())
+            .map(|path| LocalCachedArtifact {
+                path,
+                source: ArtifactSource::ExplicitSource,
+                repository: "explicit-artifact-source".to_string(),
+            })
+    })
+}
+
+fn explicit_artifact_source_candidates(
+    artifact_source: &Path,
+    coordinate: &MavenCoordinate,
+) -> Vec<PathBuf> {
+    let file_name = coordinate.file_name();
+    if artifact_source.is_file() {
+        return artifact_source
+            .file_name()
+            .and_then(|name| name.to_str())
+            .filter(|name| *name == file_name)
+            .map_or_else(Vec::new, |_| vec![artifact_source.to_path_buf()]);
+    }
+
+    let maven_relative = PathBuf::from(coordinate.group.replace('.', "/"))
+        .join(&coordinate.artifact)
+        .join(&coordinate.version)
+        .join(&file_name);
+    vec![
+        artifact_source.join(maven_relative),
+        artifact_source.join(&file_name),
+        artifact_source.join("build").join("libs").join(file_name),
+    ]
 }
 
 fn find_local_cached_artifact(coordinate: &MavenCoordinate) -> Option<LocalCachedArtifact> {
@@ -1493,6 +2867,7 @@ fn find_local_cached_artifact(coordinate: &MavenCoordinate) -> Option<LocalCache
             return Some(LocalCachedArtifact {
                 path: m2,
                 source: ArtifactSource::LocalM2Cache,
+                repository: "local-artifact-cache".to_string(),
             });
         }
 
@@ -1511,6 +2886,7 @@ fn find_local_cached_artifact(coordinate: &MavenCoordinate) -> Option<LocalCache
                     return Some(LocalCachedArtifact {
                         path: candidate,
                         source: ArtifactSource::LocalGradleModuleCache,
+                        repository: "local-artifact-cache".to_string(),
                     });
                 }
             }
@@ -1542,6 +2918,7 @@ fn create_plan_for_target(
         target = %target.branch,
         refresh = options.refresh,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
+        require_portable_artifacts = options.require_portable_artifacts,
     )
     .entered();
     let worktree_path = target.worktree_path.as_path().to_path_buf();
@@ -1576,10 +2953,11 @@ fn create_plan_for_target(
     fs::create_dir_all(&minecraft_version_cache_dir)?;
     fs::create_dir_all(&minecraft_assets_dir)?;
     fs::create_dir_all(&minecraft_libraries_dir)?;
+    let existing_lockfile = read_optional_artifact_lockfile(&lockfile_path, minecraft_version)?;
     let lockfile = if options.refresh {
         None
     } else {
-        read_optional_artifact_lockfile(&lockfile_path, minecraft_version)?
+        existing_lockfile.clone()
     };
 
     let repositories = repositories();
@@ -1588,7 +2966,9 @@ fn create_plan_for_target(
         repositories.clone(),
         options.refresh,
         options.allow_local_artifact_cache,
+        options.artifact_sources.clone(),
         lockfile.clone(),
+        existing_lockfile.clone(),
     )?;
 
     let dependency_script = minecraft_dir
@@ -1668,7 +3048,7 @@ fn create_plan_for_target(
         &loader_toolchain,
     );
 
-    Ok(BuildPlan {
+    let mut plan = BuildPlan {
         schema_version: 1,
         mode: match options.mode {
             BuildMode::Plan => "plan".to_string(),
@@ -1694,6 +3074,7 @@ fn create_plan_for_target(
         java_release,
         refresh: options.refresh,
         allow_local_artifact_cache: options.allow_local_artifact_cache,
+        artifact_sources: options.artifact_sources.clone(),
         properties,
         repositories,
         loader_toolchain,
@@ -1703,8 +3084,197 @@ fn create_plan_for_target(
         mcp_config,
         dependencies: dependency_plans,
         graph,
+        artifact_portability: ArtifactPortabilityAudit::default(),
         warnings,
+    };
+    plan.artifact_portability = artifact_portability_audit(&plan)?;
+    if !plan.artifact_portability.fresh_slate_portable {
+        plan.warnings.push(format!(
+            "Artifact portability audit found {} non-portable artifact(s); use --require-portable-artifacts to make this a hard failure.",
+            plan.artifact_portability.non_portable_artifacts
+        ));
+    }
+    if options.require_portable_artifacts {
+        enforce_portable_artifacts(&plan)?;
+    }
+    Ok(plan)
+}
+
+fn artifact_portability_audit(plan: &BuildPlan) -> eyre::Result<ArtifactPortabilityAudit> {
+    let mut inputs = BTreeMap::<(Option<String>, PathBuf), ArtifactPortabilityInput>::new();
+    for artifact in &plan.artifacts {
+        push_artifact_portability_input(
+            plan,
+            &mut inputs,
+            ArtifactPortabilityInput {
+                coordinate: artifact
+                    .provenance
+                    .coordinate
+                    .clone()
+                    .or_else(|| artifact.coordinate.clone()),
+                source: artifact.provenance.source.clone(),
+                cache_path: artifact.cache_path.clone(),
+                original_path: artifact.provenance.original_path.clone(),
+                source_relative_path: artifact.provenance.source_relative_path.clone(),
+                source_git: artifact.provenance.source_git.clone(),
+                source_build: artifact.provenance.source_build.clone(),
+            },
+        );
+    }
+    for dependency in &plan.dependencies {
+        let actual_sha1 = file_sha1(&dependency.cache_path)?;
+        let provenance = read_artifact_provenance(&dependency.cache_path)?.unwrap_or_else(|| {
+            artifact_provenance(
+                ArtifactSource::ExistingSfmCacheUnknown,
+                Some(dependency.resolved_notation.clone()),
+                None,
+                None,
+                None,
+                None,
+                actual_sha1,
+            )
+        });
+        push_artifact_portability_input(
+            plan,
+            &mut inputs,
+            ArtifactPortabilityInput {
+                coordinate: provenance
+                    .coordinate
+                    .clone()
+                    .or_else(|| Some(dependency.resolved_notation.clone())),
+                source: provenance.source,
+                cache_path: dependency.cache_path.clone(),
+                original_path: provenance.original_path,
+                source_relative_path: provenance.source_relative_path,
+                source_git: provenance.source_git,
+                source_build: provenance.source_build,
+            },
+        );
+    }
+
+    let total_artifacts = inputs.len();
+    let mut portable_artifacts = 0usize;
+    let mut explicit_source_artifacts = 0usize;
+    let mut local_cache_artifacts = 0usize;
+    let mut unknown_cache_artifacts = 0usize;
+    let mut issues = Vec::new();
+
+    for input in inputs.into_values() {
+        if input.source.is_fresh_slate_portable() {
+            portable_artifacts += 1;
+            continue;
+        }
+
+        match input.source {
+            ArtifactSource::ExplicitSource => explicit_source_artifacts += 1,
+            ArtifactSource::ExistingSfmCacheUnknown => unknown_cache_artifacts += 1,
+            ArtifactSource::SourceBuild => {}
+            ref source if source.is_local_cache() => local_cache_artifacts += 1,
+            _ => {}
+        }
+        issues.push(ArtifactPortabilityIssue {
+            coordinate: input.coordinate,
+            source: input.source.clone(),
+            cache_path: portable_cache_path(plan, &input.cache_path),
+            original_path: input.original_path,
+            source_relative_path: input.source_relative_path,
+            source_git: input.source_git,
+            source_build: input.source_build,
+            reason: artifact_portability_reason(&input.source).to_string(),
+            remediation: artifact_portability_remediation(&input.source).to_string(),
+        });
+    }
+
+    let non_portable_artifacts = issues.len();
+    Ok(ArtifactPortabilityAudit {
+        fresh_slate_portable: non_portable_artifacts == 0,
+        total_artifacts,
+        portable_artifacts,
+        non_portable_artifacts,
+        explicit_source_artifacts,
+        local_cache_artifacts,
+        unknown_cache_artifacts,
+        issues,
     })
+}
+
+fn push_artifact_portability_input(
+    plan: &BuildPlan,
+    inputs: &mut BTreeMap<(Option<String>, PathBuf), ArtifactPortabilityInput>,
+    input: ArtifactPortabilityInput,
+) {
+    let key = (
+        input.coordinate.clone(),
+        portable_cache_path(plan, &input.cache_path),
+    );
+    inputs.entry(key).or_insert(input);
+}
+
+fn artifact_portability_reason(source: &ArtifactSource) -> &'static str {
+    match source {
+        ArtifactSource::ExplicitSource => {
+            "artifact was imported from an explicit local artifact source"
+        }
+        ArtifactSource::SourceBuild => {
+            "artifact can be recreated from recorded source build provenance"
+        }
+        ArtifactSource::LocalM2Cache => "artifact was bootstrapped from the local Maven cache",
+        ArtifactSource::LocalGradleModuleCache => {
+            "artifact was bootstrapped from the local Gradle module cache"
+        }
+        ArtifactSource::ExistingSfmCacheUnknown => {
+            "artifact exists in the SFM cache without a provenance sidecar"
+        }
+        ArtifactSource::RemoteMaven | ArtifactSource::RemoteHttp => {
+            "artifact can be resolved from configured remote provenance"
+        }
+    }
+}
+
+fn artifact_portability_remediation(source: &ArtifactSource) -> &'static str {
+    match source {
+        ArtifactSource::ExplicitSource => {
+            "publish or host the artifact in a configured repository, provide the same source with --artifact-source, or add a reproducible source-build/import step"
+        }
+        ArtifactSource::LocalM2Cache | ArtifactSource::LocalGradleModuleCache => {
+            "resolve the artifact from a configured remote repository or re-import it from an explicit source so the lockfile does not depend on Maven-created local caches"
+        }
+        ArtifactSource::ExistingSfmCacheUnknown => {
+            "refresh the artifact from remote Maven/HTTP or import it from an explicit source so SFM records provenance"
+        }
+        ArtifactSource::SourceBuild | ArtifactSource::RemoteMaven | ArtifactSource::RemoteHttp => {
+            "no remediation required"
+        }
+    }
+}
+
+fn enforce_portable_artifacts(plan: &BuildPlan) -> eyre::Result<()> {
+    if plan.artifact_portability.fresh_slate_portable {
+        return Ok(());
+    }
+
+    let mut message = format!(
+        "Artifact portability audit failed for {}: {} non-portable artifact(s)",
+        plan.branch_name, plan.artifact_portability.non_portable_artifacts
+    );
+    for issue in plan.artifact_portability.issues.iter().take(10) {
+        let coordinate = issue.coordinate.as_deref().unwrap_or("<unknown>");
+        write!(
+            message,
+            "\n- {coordinate} [{}] at {}: {}",
+            issue.source.label(),
+            issue.cache_path.display(),
+            issue.remediation
+        )?;
+    }
+    if plan.artifact_portability.issues.len() > 10 {
+        write!(
+            message,
+            "\n- ... and {} more",
+            plan.artifact_portability.issues.len() - 10
+        )?;
+    }
+    eyre::bail!(message)
 }
 
 fn core_coordinates(
@@ -1772,6 +3342,8 @@ fn core_coordinates(
         ));
     }
 
+    add_userdev_library_coordinates(&mut coordinates, userdev)?;
+
     if loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         coordinates.push((
             "tool-neoform-runtime".to_string(),
@@ -1798,6 +3370,29 @@ fn core_coordinates(
     Ok(coordinates)
 }
 
+fn add_userdev_library_coordinates(
+    coordinates: &mut Vec<(String, MavenCoordinate, String)>,
+    userdev: &ForgeUserdevPlan,
+) -> eyre::Result<()> {
+    let mut userdev_coordinates = userdev
+        .libraries
+        .iter()
+        .chain(userdev.modules.iter())
+        .cloned()
+        .collect::<Vec<_>>();
+    userdev_coordinates.sort();
+    userdev_coordinates.dedup();
+
+    for (index, coordinate) in userdev_coordinates.iter().enumerate() {
+        coordinates.push((
+            format!("forge-userdev-library-{index}"),
+            MavenCoordinate::parse(coordinate)?,
+            "Forge userdev compile classpath".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 fn add_userdev_test_library_coordinates(
     coordinates: &mut Vec<(String, MavenCoordinate, String)>,
     userdev: &ForgeUserdevPlan,
@@ -1816,20 +3411,25 @@ fn should_plan_project_dependency(
     loader_toolchain: &LoaderToolchainPlan,
     dependency: &ParsedDependency,
 ) -> bool {
-    if loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev {
-        return dependency.fg_deobf;
-    }
-
     if dependency.coordinate.to_string() == loader_toolchain.base_coordinate {
         return false;
     }
 
+    if !is_planned_project_dependency_configuration(&dependency.configuration) {
+        return false;
+    }
+
+    true
+}
+
+fn is_planned_project_dependency_configuration(configuration: &str) -> bool {
     matches!(
-        dependency.configuration.as_str(),
+        configuration,
         "implementation"
             | "compileOnly"
             | "runtimeOnly"
             | "jarJar"
+            | "annotationProcessor"
             | "gametestImplementation"
             | "gametestCompileOnly"
             | "gametestRuntimeOnly"
@@ -1876,6 +3476,7 @@ fn add_project_tool_coordinates(
     coordinates: &mut Vec<(String, MavenCoordinate, String)>,
     dependencies: &[ParsedDependency],
 ) -> eyre::Result<()> {
+    add_project_compile_annotation_coordinates(coordinates)?;
     for dependency in dependencies {
         if dependency.configuration == "annotationProcessor" {
             coordinates.push((
@@ -1900,6 +3501,19 @@ fn add_project_tool_coordinates(
                 ));
             }
         }
+    }
+    Ok(())
+}
+
+fn add_project_compile_annotation_coordinates(
+    coordinates: &mut Vec<(String, MavenCoordinate, String)>,
+) -> eyre::Result<()> {
+    for (artifact_id, coordinate) in PROJECT_COMPILE_ANNOTATION_COORDINATES {
+        coordinates.push((
+            artifact_id.to_string(),
+            MavenCoordinate::parse(coordinate)?,
+            "Project compile annotations".to_string(),
+        ));
     }
     Ok(())
 }
@@ -2155,8 +3769,10 @@ fn read_forge_userdev(artifact: &ArtifactPlan) -> eyre::Result<ForgeUserdevPlan>
         .binpatcher
         .as_ref()
         .and_then(|binpatcher| binpatcher.version.clone());
-    let module_count = config.modules.len();
-    let library_count = config.libraries.len();
+    let modules = config.modules;
+    let libraries = config.libraries;
+    let module_count = modules.len();
+    let library_count = libraries.len();
     let test_libraries = config.test_libraries;
     let run_configs = config.runs.keys().cloned().collect();
 
@@ -2183,6 +3799,8 @@ fn read_forge_userdev(artifact: &ArtifactPlan) -> eyre::Result<ForgeUserdevPlan>
         patches_modified_prefix: config.patches_modified_prefix,
         access_transformers: config.ats.map_or_else(Vec::new, StringList::into_vec),
         side_strippers: config.sass.map_or_else(Vec::new, StringList::into_vec),
+        modules,
+        libraries,
         module_count,
         library_count,
         test_libraries,
@@ -2781,6 +4399,13 @@ impl RunKind {
         )
     }
 
+    const fn game_test_max_program_run_millis(self) -> &'static str {
+        match self {
+            Self::Client | Self::ClientSmoke | Self::ClientPuppet => "1000",
+            Self::Server | Self::GameTestServer | Self::Data => "150",
+        }
+    }
+
     const fn automation_mode(self) -> Option<&'static str> {
         match self {
             Self::ClientSmoke => Some("smoke"),
@@ -2878,15 +4503,24 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
     let automation_options_path =
         prepare_client_automation_options(&plan.minecraft_dir, &working_dir, kind)?;
 
+    let run_lockfile = if plan.refresh {
+        None
+    } else {
+        plan.lockfile.clone()
+    };
     let resolver = Resolver::new(
         plan.maven_cache_dir.clone(),
         plan.repositories.clone(),
-        plan.refresh,
+        false,
         plan.allow_local_artifact_cache,
+        plan.artifact_sources.clone(),
+        run_lockfile.clone(),
         plan.lockfile.clone(),
     )?;
     let modules = resolve_forge_userdev_modules(&context, &resolver)?;
     let launch_classpath = resolve_run_classpath(&context, &resolver, kind)?;
+    let run_cache_artifact_paths = run_lockfile_cache_artifact_paths(&launch_classpath, &modules);
+    write_artifact_lockfile_with_extra_cache_paths(plan, &run_cache_artifact_paths)?;
     let minecraft_classpath_file = run_state_dir.join("minecraftClasspath.txt");
     write_classpath_file(&minecraft_classpath_file, &launch_classpath.legacy)?;
 
@@ -2945,11 +4579,9 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
             game_test_property,
             required_property(&plan.properties, "mod_id")?.to_string(),
         );
-    }
-    if matches!(kind, RunKind::GameTestServer) {
         properties.insert(
             "sfm.gametest.maxProgramRunMillis".to_string(),
-            "150".to_string(),
+            kind.game_test_max_program_run_millis().to_string(),
         );
     }
     if let Some(automation_mode) = kind.automation_mode() {
@@ -3187,6 +4819,17 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
         tracing::info!("Validated client reached the title screen.");
     }
     if matches!(kind, RunKind::ClientPuppet) {
+        if let Some(failure) = extract_client_puppet_failure(&launch_output.combined) {
+            eyre::bail!(
+                "{} reported {} required and {} optional game-test failures (required count: {}, total: {}). See {}",
+                kind.command_name(),
+                failure.required_failed,
+                failure.optional_failed,
+                failure.required_count,
+                failure.total_count,
+                launch_log.display()
+            );
+        }
         let Some(pass_count) = extract_client_puppet_pass_count(&launch_output.combined) else {
             eyre::bail!(
                 "{} exited successfully but did not report a client puppet pass count. See {}",
@@ -3214,6 +4857,21 @@ fn run_mcp_mappings(plan: &BuildPlan) -> String {
         return format!("{channel}_{version}");
     }
     format!("official_{}", plan.minecraft_version)
+}
+
+fn run_lockfile_cache_artifact_paths(
+    launch_classpath: &RunClasspath,
+    modules: &[PathBuf],
+) -> Vec<PathBuf> {
+    dedup_paths_preserve_order(
+        launch_classpath
+            .legacy
+            .iter()
+            .cloned()
+            .chain(launch_classpath.userdev_mods.iter().cloned())
+            .chain(modules.iter().cloned())
+            .collect(),
+    )
 }
 
 fn game_test_namespace_property(context: &ExecutionContext<'_>) -> eyre::Result<String> {
@@ -3293,7 +4951,10 @@ fn prepare_client_automation_options(
             return Err(err).wrap_err_with(|| format!("Failed to read {}", options_path.display()));
         }
     };
-    let updated = set_minecraft_option(&existing, "onboardAccessibility", "true");
+    let mut updated = set_minecraft_option(&existing, "onboardAccessibility", "false");
+    updated = set_minecraft_option(&updated, "narrator", "0");
+    updated = set_minecraft_option(&updated, "pauseOnLostFocus", "false");
+    updated = set_minecraft_option(&updated, "tutorialStep", "none");
     fs::write(&options_path, updated)
         .wrap_err_with(|| format!("Failed to write {}", options_path.display()))?;
     Ok(Some(options_path))
@@ -3591,6 +5252,44 @@ fn extract_client_puppet_pass_count(output: &str) -> Option<usize> {
     )
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ClientPuppetFailure {
+    required_failed: usize,
+    optional_failed: usize,
+    required_count: usize,
+    total_count: usize,
+}
+
+fn extract_client_puppet_failure(output: &str) -> Option<ClientPuppetFailure> {
+    let prefix = "SFM_CLIENT_PUPPET_TESTS_FAILED required_failed=";
+    for (start, _) in output.match_indices(prefix) {
+        let after_prefix = &output[start + prefix.len()..];
+        let Some((required_failed, after_required_failed)) =
+            take_usize_before(after_prefix, " optional_failed=")
+        else {
+            continue;
+        };
+        let Some((optional_failed, after_optional_failed)) =
+            take_usize_before(after_required_failed, " required=")
+        else {
+            continue;
+        };
+        let Some((required_count, after_required_count)) =
+            take_usize_before(after_optional_failed, " total=")
+        else {
+            continue;
+        };
+        let total_count = take_leading_usize(after_required_count)?;
+        return Some(ClientPuppetFailure {
+            required_failed,
+            optional_failed,
+            required_count,
+            total_count,
+        });
+    }
+    None
+}
+
 fn extract_number_between(output: &str, prefix: &str, suffix: &str) -> Option<usize> {
     for (start, _) in output.match_indices(prefix) {
         let after_prefix = &output[start + prefix.len()..];
@@ -3603,6 +5302,26 @@ fn extract_number_between(output: &str, prefix: &str, suffix: &str) -> Option<us
         }
     }
     None
+}
+
+fn take_usize_before<'a>(text: &'a str, delimiter: &str) -> Option<(usize, &'a str)> {
+    let end = text.find(delimiter)?;
+    let number = text[..end].trim();
+    if number.is_empty() || !number.chars().all(|character| character.is_ascii_digit()) {
+        return None;
+    }
+    Some((number.parse().ok()?, &text[end + delimiter.len()..]))
+}
+
+fn take_leading_usize(text: &str) -> Option<usize> {
+    let end = text
+        .char_indices()
+        .find_map(|(index, character)| (!character.is_ascii_digit()).then_some(index))
+        .unwrap_or(text.len());
+    if end == 0 {
+        return None;
+    }
+    text[..end].parse().ok()
 }
 
 fn read_forge_run_config(
@@ -3688,7 +5407,10 @@ fn resolve_run_classpath(
     legacy.push(ensure_run_forge_dev_jar(context)?);
     legacy.push(ensure_client_extra_jar(context)?);
     legacy.push(ensure_runtime_mcp_csv_mappings(context)?);
-    legacy.extend(collect_jars(&context.plan.minecraft_libraries_dir)?);
+    legacy.extend(resolve_current_minecraft_libraries(
+        context,
+        &resolver.client,
+    )?);
     legacy.extend(resolve_forge_userdev_libraries(context, resolver)?);
     legacy.extend(resolve_run_plain_dependencies(context, resolver, kind)?);
 
@@ -3712,7 +5434,10 @@ fn resolve_neogradle_run_classpath(
     kind: RunKind,
 ) -> eyre::Result<RunClasspath> {
     let mut legacy = Vec::new();
-    legacy.extend(collect_jars(&context.plan.minecraft_libraries_dir)?);
+    legacy.extend(resolve_current_minecraft_libraries(
+        context,
+        &resolver.client,
+    )?);
     legacy.extend(resolve_forge_userdev_libraries(context, resolver)?);
     legacy.push(ensure_client_extra_jar(context)?);
     legacy.extend(ensure_run_neoforge_dev_jars(context, kind)?);
@@ -5160,6 +6885,8 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
         context.plan.repositories.clone(),
         context.plan.refresh,
         context.plan.allow_local_artifact_cache,
+        context.plan.artifact_sources.clone(),
+        context.plan.lockfile.clone(),
         context.plan.lockfile.clone(),
     )?;
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
@@ -5607,6 +7334,8 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         context.plan.repositories.clone(),
         context.plan.refresh,
         context.plan.allow_local_artifact_cache,
+        context.plan.artifact_sources.clone(),
+        context.plan.lockfile.clone(),
         context.plan.lockfile.clone(),
     )?;
     write_minecraft_libraries_cfg(
@@ -6111,6 +7840,8 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         context.plan.repositories.clone(),
         context.plan.refresh,
         context.plan.allow_local_artifact_cache,
+        context.plan.artifact_sources.clone(),
+        context.plan.lockfile.clone(),
         context.plan.lockfile.clone(),
     )?;
     let antlr_classpath = resolve_antlr_classpath(context, &resolver)?;
@@ -6702,16 +8433,20 @@ fn resolve_project_compile_classpath(
 ) -> eyre::Result<Vec<PathBuf>> {
     let mut classpath = Vec::new();
     classpath.push(loader_dev_compile_jar(context));
-    classpath.extend(collect_jars(&context.plan.minecraft_libraries_dir)?);
+    classpath.extend(resolve_current_minecraft_libraries(
+        context,
+        &resolver.client,
+    )?);
     classpath.extend(resolve_forge_userdev_libraries(context, resolver)?);
     classpath.extend(resolve_compile_dependencies(context, resolver)?);
     classpath.extend(collect_jars(&context.plan.cache_dir.join("dependencies"))?);
+    let annotation_coordinates = PROJECT_COMPILE_ANNOTATION_COORDINATES
+        .iter()
+        .map(|(_, coordinate)| *coordinate)
+        .collect::<Vec<_>>();
     classpath.extend(resolve_coordinates_for_classpath(
         resolver,
-        &[
-            "org.jetbrains:annotations:24.0.1",
-            "com.google.code.findbugs:jsr305:3.0.2",
-        ],
+        &annotation_coordinates,
         "Project compile annotations",
     )?);
     classpath.extend(antlr_classpath.iter().cloned());
@@ -7309,24 +9044,15 @@ fn write_minecraft_libraries_cfg(
     client: &Client,
     output: &Path,
 ) -> eyre::Result<()> {
-    let version_json: MinecraftVersionJson =
-        read_json_file(&context.plan.minecraft.version_json.cache_path)?;
-    let libraries_root = &context.plan.minecraft_libraries_dir;
-    let mut lines = Vec::new();
-
-    for library in version_json.libraries {
-        let Some(artifact) = library.downloads.and_then(|downloads| downloads.artifact) else {
-            continue;
-        };
-        let library_path =
-            libraries_root.join(artifact.path.replace('/', std::path::MAIN_SEPARATOR_STR));
-        download_to_path(client, &artifact.url, &library_path)?;
-        context.assert_allowed_input(&library_path)?;
-        lines.push(format!(
-            "-e={}",
-            dunce::canonicalize(&library_path)?.display()
-        ));
-    }
+    let library_paths = resolve_current_minecraft_libraries(context, client)?;
+    let mut lines = library_paths
+        .iter()
+        .map(|library_path| {
+            dunce::canonicalize(library_path)
+                .map(|path| format!("-e={}", path.display()))
+                .wrap_err_with(|| format!("Failed to canonicalize {}", library_path.display()))
+        })
+        .collect::<eyre::Result<Vec<_>>>()?;
 
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent)?;
@@ -7335,6 +9061,73 @@ fn write_minecraft_libraries_cfg(
     fs::write(output, format!("{}\n", lines.join("\n")))
         .wrap_err_with(|| format!("Failed to write {}", output.display()))?;
     Ok(())
+}
+
+fn resolve_current_minecraft_libraries(
+    context: &ExecutionContext<'_>,
+    client: &Client,
+) -> eyre::Result<Vec<PathBuf>> {
+    let version_json: MinecraftVersionJson =
+        read_json_file(&context.plan.minecraft.version_json.cache_path)?;
+    let libraries = minecraft_library_jars_from_version_json(
+        &context.plan.minecraft_libraries_dir,
+        &version_json,
+    );
+
+    for library in &libraries {
+        if let Some(expected_sha1) = library.sha1.as_deref() {
+            download_to_path_overwrite_with_expected_sha1(
+                client,
+                &library.url,
+                &library.path,
+                false,
+                expected_sha1,
+            )?;
+        } else {
+            download_to_path(client, &library.url, &library.path)?;
+        }
+        context.assert_allowed_input(&library.path)?;
+    }
+
+    Ok(dedup_paths_preserve_order(
+        libraries.into_iter().map(|library| library.path).collect(),
+    ))
+}
+
+#[derive(Debug)]
+struct MinecraftLibraryJar {
+    path: PathBuf,
+    url: String,
+    sha1: Option<String>,
+}
+
+fn minecraft_library_jars_from_version_json(
+    libraries_root: &Path,
+    version_json: &MinecraftVersionJson,
+) -> Vec<MinecraftLibraryJar> {
+    version_json
+        .libraries
+        .iter()
+        .filter_map(|library| {
+            let artifact = library.downloads.as_ref()?.artifact.as_ref()?;
+            Some(MinecraftLibraryJar {
+                path: minecraft_library_path(libraries_root, &artifact.path),
+                url: artifact.url.clone(),
+                sha1: artifact.sha1.clone(),
+            })
+        })
+        .collect()
+}
+
+fn minecraft_library_path(libraries_root: &Path, artifact_path: &str) -> PathBuf {
+    let mut path = libraries_root.to_path_buf();
+    for segment in artifact_path
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+    {
+        path.push(segment);
+    }
+    path
 }
 
 fn inject_mcp_sources(mcp_zip: &Path, source_jar: &Path, output: &Path) -> eyre::Result<()> {
@@ -8825,10 +10618,15 @@ fn type_descriptor(
     Ok(format!("{}{base}", "[".repeat(array_depth)))
 }
 
-fn resolve_compare_paths(options: &CompareOptions) -> eyre::Result<ComparePaths> {
-    let target = select_single_worktree_target(&options.branch)?;
-    let worktree_path = target.worktree_path.0;
-    let minecraft_dir = worktree_path.join("platform").join("minecraft");
+fn resolve_compare_paths(
+    options: &CompareOptions,
+    target: &WorktreeTarget,
+) -> eyre::Result<ComparePaths> {
+    let minecraft_dir = target
+        .worktree_path
+        .as_path()
+        .join("platform")
+        .join("minecraft");
     let properties = read_properties(&minecraft_dir.join("gradle.properties"))?;
     let minecraft_version = required_property(&properties, "minecraft_version")?;
     let mod_name = required_property(&properties, "mod_name")?;
@@ -8969,64 +10767,66 @@ fn normalize_manifest_bytes(bytes: &[u8], strict_manifest: bool) -> String {
     lines.join("\n")
 }
 
-fn print_compare_report(report: &JarCompareReport) {
-    println!("Gradle jar: {}", report.gradle_jar.display());
-    println!("Rust jar:   {}", report.rust_jar.display());
-    println!("Compared entries: {}", report.compared_entries);
-    println!("Gradle entries:   {}", report.total_gradle_entries);
-    println!("Rust entries:     {}", report.total_rust_entries);
-    println!("Missing entries:  {}", report.missing_entries.len());
-    println!("Extra entries:    {}", report.extra_entries.len());
-    println!("Changed entries:  {}", report.changed_entries.len());
-    println!(
+fn emit_compare_report(report: &JarCompareReport) {
+    tracing::info!("Gradle jar: {}", report.gradle_jar.display());
+    tracing::info!("Rust jar:   {}", report.rust_jar.display());
+    tracing::info!("Compared entries: {}", report.compared_entries);
+    tracing::info!("Gradle entries:   {}", report.total_gradle_entries);
+    tracing::info!("Rust entries:     {}", report.total_rust_entries);
+    tracing::info!("Missing entries:  {}", report.missing_entries.len());
+    tracing::info!("Extra entries:    {}", report.extra_entries.len());
+    tracing::info!("Changed entries:  {}", report.changed_entries.len());
+    tracing::info!(
         "Manifest changed: {}",
         if report.manifest.changed { "yes" } else { "no" }
     );
 
-    print_string_list("Missing", &report.missing_entries);
-    print_string_list("Extra", &report.extra_entries);
-    print_changed_entries(&report.changed_entries);
+    emit_string_list("Missing", &report.missing_entries);
+    emit_string_list("Extra", &report.extra_entries);
+    emit_changed_entries(&report.changed_entries);
 
     if report.matches {
-        println!("Jar comparison passed: normalized jars match.");
+        tracing::info!("Jar comparison passed: normalized jars match.");
     } else {
-        println!("Jar comparison failed: normalized jars differ.");
+        tracing::info!("Jar comparison failed: normalized jars differ.");
     }
 }
 
-fn print_string_list(label: &str, entries: &[String]) {
+fn emit_string_list(label: &str, entries: &[String]) {
     if entries.is_empty() {
         return;
     }
 
-    println!("{label} entry sample:");
+    tracing::info!("{label} entry sample:");
     for entry in entries.iter().take(20) {
-        println!(" - {entry}");
+        tracing::info!(" - {entry}");
     }
     if entries.len() > 20 {
-        println!(" - ... {} more", entries.len() - 20);
+        tracing::info!(" - ... {} more", entries.len() - 20);
     }
 }
 
-fn print_changed_entries(entries: &[ChangedEntry]) {
+fn emit_changed_entries(entries: &[ChangedEntry]) {
     if entries.is_empty() {
         return;
     }
 
-    println!("Changed entry sample:");
+    tracing::info!("Changed entry sample:");
     for entry in entries.iter().take(20) {
-        println!(
+        tracing::info!(
             " - {} (gradle {}, rust {})",
-            entry.path, entry.gradle_sha1, entry.rust_sha1
+            entry.path,
+            entry.gradle_sha1,
+            entry.rust_sha1
         );
     }
     if entries.len() > 20 {
-        println!(" - ... {} more", entries.len() - 20);
+        tracing::info!(" - ... {} more", entries.len() - 20);
     }
 }
 
-fn write_compare_report(
-    report: &JarCompareReport,
+fn write_compare_reports(
+    reports: &[TargetJarCompareReport],
     requested_path: Option<&Path>,
 ) -> eyre::Result<()> {
     let Some(path) = requested_path else {
@@ -9036,8 +10836,12 @@ fn write_compare_report(
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(path, facet_json::to_string_pretty(report)?)
-        .wrap_err_with(|| format!("Failed to write {}", path.display()))?;
+    let json = if reports.len() == 1 {
+        facet_json::to_string_pretty(&reports[0].report)?
+    } else {
+        facet_json::to_string_pretty(reports)?
+    };
+    fs::write(path, json).wrap_err_with(|| format!("Failed to write {}", path.display()))?;
     Ok(())
 }
 
@@ -9074,15 +10878,23 @@ fn write_requested_plan_outputs(
 }
 
 fn write_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<()> {
+    write_artifact_lockfile_with_extra_cache_paths(plan, &[])
+}
+
+fn write_artifact_lockfile_with_extra_cache_paths(
+    plan: &BuildPlan,
+    extra_cache_paths: &[PathBuf],
+) -> eyre::Result<()> {
     let _span = tracing::info_span!(
         "write_artifact_lockfile",
         branch = %plan.branch_name,
         mc = %plan.minecraft_version,
         artifacts = plan.artifacts.len(),
         dependencies = plan.dependencies.len(),
+        extra_cache_paths = extra_cache_paths.len(),
     )
     .entered();
-    let lockfile = build_artifact_lockfile(plan)?;
+    let lockfile = build_artifact_lockfile(plan, extra_cache_paths)?;
     if let Some(parent) = plan.lockfile_path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -9099,46 +10911,38 @@ fn write_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<()> {
     Ok(())
 }
 
-fn build_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<ArtifactLockfile> {
-    let mut provenance_paths = Vec::new();
-    collect_provenance_paths(&plan.maven_cache_dir, &mut provenance_paths)?;
-    provenance_paths.sort();
-
-    let mut artifacts = Vec::with_capacity(provenance_paths.len());
-    for provenance_path in provenance_paths {
-        let artifact_path = artifact_path_from_provenance_path(&provenance_path)?;
-        if !artifact_path.is_file() {
-            continue;
-        }
-        let provenance = read_required_artifact_provenance(&provenance_path)?;
-        let actual_sha1 = file_sha1(&artifact_path)?;
-        if actual_sha1 != provenance.sha1 {
-            eyre::bail!(
-                "Artifact provenance hash mismatch for {}: sidecar {}, actual {}",
-                artifact_path.display(),
-                provenance.sha1,
-                actual_sha1
-            );
-        }
-        artifacts.push(ArtifactLockEntry {
-            coordinate: provenance.coordinate,
-            source: provenance.source,
-            repository: provenance.repository,
-            url: provenance.url,
-            cache_path: portable_cache_path(plan, &artifact_path),
-            original_path: provenance.original_path,
-            sha1: actual_sha1,
-        });
-    }
-
+fn build_artifact_lockfile(
+    plan: &BuildPlan,
+    extra_cache_paths: &[PathBuf],
+) -> eyre::Result<ArtifactLockfile> {
+    let mut artifacts = Vec::new();
     if let Some(existing_lockfile) = &plan.lockfile {
         for locked in &existing_lockfile.artifacts {
-            let already_present = artifacts.iter().any(|artifact| {
-                artifact.coordinate == locked.coordinate && artifact.cache_path == locked.cache_path
-            });
-            if !already_present {
-                artifacts.push(locked.clone());
-            }
+            push_artifact_lock_entry(&mut artifacts, migrate_locked_artifact(plan, locked)?);
+        }
+    }
+    for artifact in &plan.artifacts {
+        push_artifact_lock_entry(
+            &mut artifacts,
+            artifact_lock_entry_from_plan_artifact(plan, artifact)?,
+        );
+    }
+    for dependency in &plan.dependencies {
+        push_artifact_lock_entry(
+            &mut artifacts,
+            artifact_lock_entry_from_cache_path(
+                plan,
+                &dependency.cache_path,
+                Some(&dependency.resolved_notation),
+            )?,
+        );
+    }
+    for path in extra_cache_paths {
+        if should_record_extra_cache_artifact(plan, path)? {
+            push_artifact_lock_entry(
+                &mut artifacts,
+                artifact_lock_entry_from_cache_path(plan, path, None)?,
+            );
         }
     }
 
@@ -9177,6 +10981,171 @@ fn build_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<ArtifactLockfile> {
     })
 }
 
+fn should_record_extra_cache_artifact(plan: &BuildPlan, path: &Path) -> eyre::Result<bool> {
+    Ok(path.is_file()
+        && path.starts_with(&plan.maven_cache_dir)
+        && read_artifact_provenance(path)?.is_some())
+}
+
+fn migrate_locked_artifact(
+    plan: &BuildPlan,
+    locked: &ArtifactLockEntry,
+) -> eyre::Result<ArtifactLockEntry> {
+    let Some(coordinate_text) = locked.coordinate.as_deref() else {
+        return Ok(locked.clone());
+    };
+    let Ok(coordinate) = MavenCoordinate::parse(coordinate_text) else {
+        return Ok(locked.clone());
+    };
+    let cache_path = maven_cache_path_for(&plan.maven_cache_dir, &coordinate);
+    if !cache_path.is_file() {
+        return Ok(locked.clone());
+    }
+    let actual_sha1 = file_sha1(&cache_path)?;
+    if actual_sha1 != locked.sha1 {
+        return Ok(locked.clone());
+    }
+    let provenance = read_artifact_provenance(&cache_path)?.unwrap_or_else(|| {
+        artifact_provenance(
+            locked.source.clone(),
+            locked.coordinate.clone(),
+            locked.repository.clone(),
+            locked.url.clone(),
+            locked.original_path.clone(),
+            locked.source_git.clone(),
+            actual_sha1.clone(),
+        )
+    });
+    Ok(ArtifactLockEntry {
+        coordinate: provenance.coordinate.or_else(|| locked.coordinate.clone()),
+        source: provenance.source,
+        repository: provenance.repository.or_else(|| locked.repository.clone()),
+        url: provenance.url.or_else(|| locked.url.clone()),
+        cache_path: portable_cache_path(plan, &cache_path),
+        original_path: provenance
+            .original_path
+            .or_else(|| locked.original_path.clone()),
+        source_relative_path: provenance
+            .source_relative_path
+            .or_else(|| locked.source_relative_path.clone()),
+        source_git: provenance.source_git.or_else(|| locked.source_git.clone()),
+        source_build: provenance
+            .source_build
+            .or_else(|| locked.source_build.clone()),
+        sha1: actual_sha1,
+    })
+}
+
+fn artifact_lock_entry_from_plan_artifact(
+    plan: &BuildPlan,
+    artifact: &ArtifactPlan,
+) -> eyre::Result<ArtifactLockEntry> {
+    let actual_sha1 = artifact_actual_sha1(&artifact.cache_path, artifact.sha1.as_deref())?;
+    if actual_sha1 != artifact.provenance.sha1 {
+        eyre::bail!(
+            "Artifact provenance hash mismatch for {}: sidecar {}, actual {}",
+            artifact.cache_path.display(),
+            artifact.provenance.sha1,
+            actual_sha1
+        );
+    }
+    Ok(ArtifactLockEntry {
+        coordinate: artifact
+            .provenance
+            .coordinate
+            .clone()
+            .or_else(|| artifact.coordinate.clone()),
+        source: artifact.provenance.source.clone(),
+        repository: artifact.provenance.repository.clone(),
+        url: artifact.provenance.url.clone(),
+        cache_path: portable_cache_path(plan, &artifact.cache_path),
+        original_path: artifact.provenance.original_path.clone(),
+        source_relative_path: artifact.provenance.source_relative_path.clone(),
+        source_git: artifact.provenance.source_git.clone(),
+        source_build: artifact.provenance.source_build.clone(),
+        sha1: actual_sha1,
+    })
+}
+
+fn artifact_lock_entry_from_cache_path(
+    plan: &BuildPlan,
+    path: &Path,
+    fallback_coordinate: Option<&str>,
+) -> eyre::Result<ArtifactLockEntry> {
+    let actual_sha1 = file_sha1(path)?;
+    let provenance = read_artifact_provenance(path)?.unwrap_or_else(|| {
+        artifact_provenance(
+            ArtifactSource::ExistingSfmCacheUnknown,
+            fallback_coordinate.map(str::to_string),
+            None,
+            None,
+            None,
+            None,
+            actual_sha1.clone(),
+        )
+    });
+    if actual_sha1 != provenance.sha1 {
+        eyre::bail!(
+            "Artifact provenance hash mismatch for {}: sidecar {}, actual {}",
+            path.display(),
+            provenance.sha1,
+            actual_sha1
+        );
+    }
+    Ok(ArtifactLockEntry {
+        coordinate: provenance.coordinate,
+        source: provenance.source,
+        repository: provenance.repository,
+        url: provenance.url,
+        cache_path: portable_cache_path(plan, path),
+        original_path: provenance.original_path,
+        source_relative_path: provenance.source_relative_path,
+        source_git: provenance.source_git,
+        source_build: provenance.source_build,
+        sha1: actual_sha1,
+    })
+}
+
+fn artifact_actual_sha1(path: &Path, planned_sha1: Option<&str>) -> eyre::Result<String> {
+    if path.is_file() {
+        let actual_sha1 = file_sha1(path)?;
+        if let Some(planned_sha1) = planned_sha1
+            && actual_sha1 != planned_sha1
+        {
+            eyre::bail!(
+                "Artifact {} resolved with SHA-1 {}, but the plan recorded {}",
+                path.display(),
+                actual_sha1,
+                planned_sha1
+            );
+        }
+        return Ok(actual_sha1);
+    }
+    planned_sha1
+        .map(str::to_string)
+        .ok_or_else(|| eyre::eyre!("Artifact is missing and has no SHA-1: {}", path.display()))
+}
+
+fn push_artifact_lock_entry(artifacts: &mut Vec<ArtifactLockEntry>, entry: ArtifactLockEntry) {
+    if let Some(existing) = artifacts
+        .iter()
+        .position(|artifact| artifact.same_locked_artifact(&entry))
+    {
+        artifacts[existing] = entry;
+        return;
+    }
+    artifacts.push(entry);
+}
+
+impl ArtifactLockEntry {
+    fn same_locked_artifact(&self, other: &Self) -> bool {
+        if self.coordinate.is_some() || other.coordinate.is_some() {
+            return self.coordinate == other.coordinate;
+        }
+        self.cache_path == other.cache_path
+    }
+}
+
 fn portable_cache_path(plan: &BuildPlan, path: &Path) -> PathBuf {
     if let Ok(relative) = path.strip_prefix(&plan.common_cache_dir) {
         return PathBuf::from("$sfm-cache").join(relative);
@@ -9204,44 +11173,6 @@ fn read_optional_artifact_lockfile(
         );
     }
     Ok(Some(lockfile))
-}
-
-fn collect_provenance_paths(root: &Path, output: &mut Vec<PathBuf>) -> eyre::Result<()> {
-    if !root.is_dir() {
-        return Ok(());
-    }
-    for entry in
-        fs::read_dir(root).wrap_err_with(|| format!("Failed to read {}", root.display()))?
-    {
-        let path = entry?.path();
-        if path.is_dir() {
-            collect_provenance_paths(&path, output)?;
-        } else if path
-            .file_name()
-            .and_then(std::ffi::OsStr::to_str)
-            .is_some_and(|name| name.ends_with(".sfm-provenance.json"))
-        {
-            output.push(path);
-        }
-    }
-    Ok(())
-}
-
-fn artifact_path_from_provenance_path(path: &Path) -> eyre::Result<PathBuf> {
-    let file_name = path
-        .file_name()
-        .and_then(std::ffi::OsStr::to_str)
-        .ok_or_else(|| eyre::eyre!("Path has no filename: {}", path.display()))?;
-    let artifact_name = file_name
-        .strip_suffix(".sfm-provenance.json")
-        .ok_or_else(|| eyre::eyre!("Not an artifact provenance path: {}", path.display()))?;
-    Ok(path.with_file_name(artifact_name))
-}
-
-fn read_required_artifact_provenance(path: &Path) -> eyre::Result<ArtifactProvenance> {
-    let content =
-        fs::read_to_string(path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
-    facet_json::from_str(&content).wrap_err_with(|| format!("Failed to parse {}", path.display()))
 }
 
 fn relative_path(base: &Path, path: &Path) -> PathBuf {
@@ -9274,6 +11205,10 @@ fn print_plan_summary(plan: &BuildPlan) {
         ),
         format!("Lockfile:     {}", plan.lockfile_path.display()),
         format!("Artifacts:    {}", plan.artifacts.len()),
+        format!(
+            "Portable:     {}/{} artifacts",
+            plan.artifact_portability.portable_artifacts, plan.artifact_portability.total_artifacts
+        ),
         format!("{dependency_label}: {}", plan.dependencies.len()),
         format!("Graph nodes:  {}", plan.graph.len()),
     ];
@@ -9468,9 +11403,40 @@ fn plain_artifact(
             None,
             Some(url.to_string()),
             None,
+            None,
             sha1,
         ),
     })
+}
+
+fn source_git_provenance(path: &Path) -> Option<SourceGitProvenance> {
+    let working_dir = if path.is_dir() { path } else { path.parent()? };
+    let root = PathBuf::from(git_stdout(working_dir, ["rev-parse", "--show-toplevel"])?);
+    let commit = git_stdout(&root, ["rev-parse", "HEAD"])?;
+    let branch = git_stdout(&root, ["rev-parse", "--abbrev-ref", "HEAD"])?;
+    let status = git_stdout(&root, ["status", "--porcelain"])?;
+    let remote_url = git_stdout(&root, ["remote", "get-url", "origin"]);
+    Some(SourceGitProvenance {
+        root,
+        commit,
+        branch,
+        dirty: !status.trim().is_empty(),
+        remote_url,
+    })
+}
+
+fn git_stdout<const N: usize>(working_dir: &Path, args: [&str; N]) -> Option<String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(working_dir)
+        .args(args)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8(output.stdout).ok()?;
+    Some(stdout.trim().to_string())
 }
 
 fn artifact_provenance(
@@ -9479,8 +11445,16 @@ fn artifact_provenance(
     repository: Option<String>,
     url: Option<String>,
     original_path: Option<PathBuf>,
+    source_git: Option<SourceGitProvenance>,
     sha1: String,
 ) -> ArtifactProvenance {
+    let source_relative_path = source_relative_path(original_path.as_deref(), source_git.as_ref());
+    let source_build = source_build_provenance(
+        &source,
+        coordinate.as_deref(),
+        source_relative_path.as_deref(),
+        source_git.as_ref(),
+    );
     ArtifactProvenance {
         schema_version: 1,
         source,
@@ -9488,8 +11462,232 @@ fn artifact_provenance(
         repository,
         url,
         original_path,
+        source_relative_path,
+        source_git,
+        source_build,
         sha1,
     }
+}
+
+fn source_build_provenance(
+    source: &ArtifactSource,
+    coordinate: Option<&str>,
+    source_relative_path: Option<&Path>,
+    source_git: Option<&SourceGitProvenance>,
+) -> Option<SourceBuildProvenance> {
+    if source != &ArtifactSource::ExplicitSource {
+        return None;
+    }
+    let source_git = source_git?;
+    let source_relative_path = source_relative_path?;
+    if !source_git.root.join("gradlew").is_file() && !source_git.root.join("gradlew.bat").is_file()
+    {
+        return None;
+    }
+    let coordinate = coordinate.and_then(|coordinate| MavenCoordinate::parse(coordinate).ok())?;
+    let mut environment = BTreeMap::new();
+    if let Some(build_number) = explicit_source_build_number(&coordinate) {
+        environment.insert("BUILD_NUMBER".to_string(), build_number);
+    }
+
+    Some(SourceBuildProvenance {
+        build_system: SourceBuildSystem::GradleWrapper,
+        tasks: vec![explicit_source_build_task(&coordinate)],
+        environment,
+        output_path: source_relative_path.to_path_buf(),
+    })
+}
+
+fn explicit_source_build_task(coordinate: &MavenCoordinate) -> String {
+    coordinate.classifier.as_ref().map_or_else(
+        || "jar".to_string(),
+        |classifier| format!("{classifier}Jar"),
+    )
+}
+
+fn explicit_source_build_number(coordinate: &MavenCoordinate) -> Option<String> {
+    if coordinate.group != "mekanism" || coordinate.artifact != "Mekanism" {
+        return None;
+    }
+    let (_, basic_version) = coordinate.version.rsplit_once('-')?;
+    let (_, build_number) = basic_version.rsplit_once('.')?;
+    build_number
+        .chars()
+        .all(|character| character.is_ascii_digit())
+        .then(|| build_number.to_string())
+}
+
+fn source_build_checkout_key(remote_url: &str, commit: &str) -> String {
+    sha1_bytes(format!("{remote_url}\n{commit}").as_bytes())
+}
+
+fn materialize_source_build(
+    remote_url: &str,
+    commit: &str,
+    source_build: &SourceBuildProvenance,
+    checkout_dir: &Path,
+) -> eyre::Result<()> {
+    match source_build.build_system {
+        SourceBuildSystem::GradleWrapper => {
+            materialize_gradle_wrapper_source_build(remote_url, commit, source_build, checkout_dir)
+        }
+    }
+}
+
+fn materialize_gradle_wrapper_source_build(
+    remote_url: &str,
+    commit: &str,
+    source_build: &SourceBuildProvenance,
+    checkout_dir: &Path,
+) -> eyre::Result<()> {
+    if source_build.tasks.is_empty() {
+        eyre::bail!("Source build for {remote_url}@{commit} has no Gradle tasks");
+    }
+    prepare_source_build_checkout(remote_url, commit, checkout_dir)?;
+    let wrapper = gradle_wrapper_path(checkout_dir)?;
+    tracing::info!(
+        remote = remote_url,
+        commit,
+        checkout = %checkout_dir.display(),
+        tasks = ?source_build.tasks,
+        output = %source_build.output_path.display(),
+        "running source build"
+    );
+    let mut command = Command::new(wrapper);
+    command
+        .current_dir(checkout_dir)
+        .arg("--no-daemon")
+        .args(&source_build.tasks);
+    for (key, value) in &source_build.environment {
+        command.env(key, value);
+    }
+    run_source_build_process(&mut command, "source-build-gradle-wrapper")?;
+    Ok(())
+}
+
+fn prepare_source_build_checkout(
+    remote_url: &str,
+    commit: &str,
+    checkout_dir: &Path,
+) -> eyre::Result<()> {
+    if !checkout_dir.join(".git").is_dir() {
+        if checkout_dir.exists() {
+            eyre::bail!(
+                "Source build checkout path exists but is not a Git checkout: {}",
+                checkout_dir.display()
+            );
+        }
+        if let Some(parent) = checkout_dir.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let mut clone = Command::new("git");
+        clone
+            .arg("-c")
+            .arg("core.longpaths=true")
+            .arg("clone")
+            .arg("--no-checkout")
+            .arg(remote_url)
+            .arg(checkout_dir);
+        run_source_build_process(&mut clone, "source-build-git-clone")?;
+    }
+
+    let mut longpaths = Command::new("git");
+    longpaths
+        .arg("-C")
+        .arg(checkout_dir)
+        .arg("config")
+        .arg("core.longpaths")
+        .arg("true");
+    run_source_build_process(&mut longpaths, "source-build-git-config-longpaths")?;
+
+    let mut fetch = Command::new("git");
+    fetch
+        .arg("-C")
+        .arg(checkout_dir)
+        .arg("fetch")
+        .arg("origin")
+        .arg(commit);
+    run_source_build_process(&mut fetch, "source-build-git-fetch")?;
+
+    let mut checkout = Command::new("git");
+    checkout
+        .arg("-C")
+        .arg(checkout_dir)
+        .arg("checkout")
+        .arg("--detach")
+        .arg(commit);
+    run_source_build_process(&mut checkout, "source-build-git-checkout")?;
+    Ok(())
+}
+
+fn gradle_wrapper_path(checkout_dir: &Path) -> eyre::Result<PathBuf> {
+    #[cfg(windows)]
+    let wrapper = checkout_dir.join("gradlew.bat");
+    #[cfg(not(windows))]
+    let wrapper = checkout_dir.join("gradlew");
+
+    if !wrapper.is_file() {
+        eyre::bail!(
+            "Source build checkout {} does not contain {}",
+            checkout_dir.display(),
+            wrapper
+                .file_name()
+                .and_then(std::ffi::OsStr::to_str)
+                .unwrap_or("gradlew")
+        );
+    }
+    Ok(wrapper)
+}
+
+fn run_source_build_process(command: &mut Command, process_name: &str) -> eyre::Result<()> {
+    let output = run_command_capture_output(command, process_name)?;
+    if !output.stdout.is_empty() {
+        tracing::debug!(
+            process = process_name,
+            stream = "stdout",
+            "{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+    }
+    if !output.stderr.is_empty() {
+        tracing::debug!(
+            process = process_name,
+            stream = "stderr",
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    if output.cancelled {
+        eyre::bail!("{process_name} was cancelled");
+    }
+    if !output.status.success() {
+        eyre::bail!(
+            "{process_name} failed with status {}\nstdout:\n{}\nstderr:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(())
+}
+
+fn source_relative_path(
+    original_path: Option<&Path>,
+    source_git: Option<&SourceGitProvenance>,
+) -> Option<PathBuf> {
+    let original_path = original_path?;
+    let source_root = &source_git?.root;
+    let canonical_original = dunce::canonicalize(original_path).ok();
+    let canonical_root = dunce::canonicalize(source_root).ok();
+    if let (Some(canonical_original), Some(canonical_root)) = (&canonical_original, &canonical_root)
+        && let Ok(relative) = canonical_original.strip_prefix(canonical_root)
+    {
+        return Some(relative.to_path_buf());
+    }
+    original_path
+        .strip_prefix(source_root)
+        .ok()
+        .map(Path::to_path_buf)
 }
 
 fn artifact_provenance_path(path: &Path) -> eyre::Result<PathBuf> {
@@ -9679,7 +11877,17 @@ fn download_to_path_once(
     replace_artifact_file(&temporary_path, path)
 }
 
+#[cfg(test)]
 fn copy_file_to_path_checked(
+    source: &Path,
+    path: &Path,
+    expected_sha1: Option<&str>,
+) -> eyre::Result<()> {
+    let _lock = acquire_artifact_path_lock(path)?;
+    copy_file_to_path_checked_locked(source, path, expected_sha1)
+}
+
+fn copy_file_to_path_checked_locked(
     source: &Path,
     path: &Path,
     expected_sha1: Option<&str>,
@@ -9714,6 +11922,10 @@ fn copy_file_to_path_checked(
 
 fn acquire_artifact_path_lock(path: &Path) -> eyre::Result<ArtifactLock> {
     ArtifactLock::acquire(artifact_lock_path(path)?, path.display().to_string())
+}
+
+fn acquire_artifact_path_read_lock(path: &Path) -> eyre::Result<ArtifactReadLock> {
+    ArtifactReadLock::acquire(artifact_lock_path(path)?, path.display().to_string())
 }
 
 fn artifact_lock_path(path: &Path) -> eyre::Result<PathBuf> {

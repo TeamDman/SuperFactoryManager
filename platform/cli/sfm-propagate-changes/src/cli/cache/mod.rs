@@ -1,6 +1,9 @@
-mod cache_clean_command;
-mod cache_command;
-mod cache_open_command;
-mod cache_path_command;
+mod cache_clean_cli;
+mod cache_cli;
+mod cache_open_cli;
+mod cache_path_cli;
 
-pub use cache_command::*;
+pub use cache_clean_cli::*;
+pub use cache_cli::*;
+pub use cache_open_cli::*;
+pub use cache_path_cli::*;

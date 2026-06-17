@@ -3,10 +3,10 @@
 This note is the starting map for replacing Gradle in the SFM Minecraft build path. The north star command is:
 
 ```powershell
-sfm-propagate-changes jar build --mc 1.19.2
+sfm-propagate-changes jar build --branch 1.19.2
 ```
 
-For `1.19.2`, that command should eventually take `platform/minecraft/src`, generated sources, resources, mappings, Forge userdev inputs, and dependency declarations, then emit the production mod jar under `platform/minecraft/build/libs` without invoking Gradle.
+For `1.19.2`, that command takes `platform/minecraft/src`, generated sources, resources, mappings, Forge userdev inputs, and dependency declarations, then emits the production mod jar under `platform/minecraft/build/libs` without invoking Gradle.
 
 ## Current 1.19.2 Inputs
 
@@ -266,15 +266,11 @@ Every output should have a small state file recording:
 
 That state is the answer to "why did this rebuild?"
 
-## First Implementation Slice
+## Superseded Prototype Slice
 
-The first useful command should be deliberately smaller than the clean-slate target:
+The first planned implementation slice was deliberately smaller than the clean-slate target: compile and package SFM without invoking Gradle while temporarily reusing already-populated ForgeGradle cache outputs. That prototype mode is now superseded and the live CLI no longer exposes `--use-existing-fg-cache`.
 
-```powershell
-sfm-propagate-changes jar build --mc 1.19.2 --use-existing-fg-cache
-```
-
-This proves SFM project compilation and jar packaging without invoking Gradle, while reusing the already-populated ForgeGradle cache. It should:
+The old prototype would have:
 
 1. Read `platform/minecraft/gradle.properties`.
 2. Read `gradle/source-excludes/1.19.2/*.txt`.
@@ -292,11 +288,11 @@ This proves SFM project compilation and jar packaging without invoking Gradle, w
 9. Package a development jar with the same manifest attributes Gradle uses.
 10. Run SpecialSource with the MCP-to-SRG mapping to reobfuscate the jar in place, matching ForgeGradle's `RenameJarInPlace`.
 
-This slice is not the clean-slate toolchain yet. Its value is that it gives us a fast compare loop against Gradle's jar output and isolates the SFM-specific build behavior from Forge setup behavior.
+That slice was useful as an intermediate design checkpoint, but it is no longer the supported path. The live implementation uses the clean-slate Rust-owned planner/build pipeline and rejects ForgeGradle-generated build outputs as inputs.
 
 ## Clean-Slate Milestones
 
-After the cache-backed prototype works, remove Gradle assumptions in this order:
+The clean-slate implementation removed Gradle assumptions in this order:
 
 1. Generate our own project classpath state instead of reading `build/classpath/*.txt`.
 2. Resolve normal Maven dependencies ourselves.
@@ -306,7 +302,7 @@ After the cache-backed prototype works, remove Gradle assumptions in this order:
 6. Download and interpret Forge `userdev` from scratch.
 7. Build the mapped Forge/Minecraft development jar without Gradle.
 8. Generate MCP-to-SRG and SRG-to-Parchment mappings without Gradle.
-9. Replace the `--use-existing-fg-cache` mode with the default clean-slate mode.
+9. Make clean-slate `jar build --branch 1.19.2` the default mode.
 10. Add `--explain-rebuild` to report exactly which input invalidated an output.
 
 ## Findings From First Mirror Pass
@@ -400,7 +396,7 @@ Until that index exists, use `rg` in the selected mirror. Once indexed, `teamy-m
 Before implementing the full clean-slate Forge setup, add a smaller extractor/planner command that proves we can read the real inputs and produce a stable graph:
 
 ```powershell
-sfm-propagate-changes jar plan --mc 1.19.2
+sfm-propagate-changes jar plan --branch 1.19.2
 ```
 
 The planner should:
@@ -412,24 +408,25 @@ The planner should:
 5. Include input paths, Maven coordinates, expected outputs, and cache keys, but do not run expensive Java tools yet.
 6. Fail clearly when required cache inputs are missing, with the Maven coordinate or file path that would need to be resolved.
 
-Then the practical implementation order becomes:
+Then the practical implementation order became:
 
-1. Build `jar plan --mc 1.19.2`.
-2. Build `jar build --mc 1.19.2 --use-existing-fg-cache`.
-3. Replace classpath-file reads with our own dependency resolver and lock/state files.
-4. Add cached `fg.deobf(...)` remapping for external mod jars.
-5. Add clean MCPConfig execution.
-6. Add clean Forge userdev execution.
-7. Make clean-slate `jar build --mc 1.19.2` the default path.
+1. Build `jar plan --branch 1.19.2`.
+2. Replace classpath-file reads with our own dependency resolver and lock/state files.
+3. Add cached `fg.deobf(...)` remapping for external mod jars.
+4. Add clean MCPConfig execution.
+5. Add clean Forge userdev execution.
+6. Make clean-slate `jar build --branch 1.19.2` the default path.
+
+That sequence is now implemented for the current clean-slate path described below.
 
 ## Current CLI Implementation Status
 
 The first executable slice now exists in `platform/cli/sfm-propagate-changes`:
 
 ```powershell
-sfm-propagate-changes jar plan --mc 1.19.2
-sfm-propagate-changes jar build --mc 1.19.2 --explain-rebuild
-sfm-propagate-changes jar compare --mc 1.19.2
+sfm-propagate-changes jar plan --branch 1.19.2
+sfm-propagate-changes jar build --branch 1.19.2 --explain-rebuild
+sfm-propagate-changes jar compare --branch 1.19.2
 ```
 
 Implemented behavior:
@@ -449,15 +446,15 @@ Implemented behavior:
 - Tracks both final artifact paths:
   - Gradle baseline: `build/libs/Super Factory Manager (SFM)-MC1.19.2-4.33.0.jar`
   - Rust output: `build/libs/Super Factory Manager (SFM)-MC1.19.2-4.33.0-rust.jar`
-- Adds `jar compare --mc 1.19.2` for normalized Gradle-vs-Rust jar comparison.
+- Adds `jar compare --branch 1.19.2` for normalized Gradle-vs-Rust jar comparison.
 - `jar compare` ignores ZIP timestamps, entry order, compression method, directory entries, and `Implementation-Timestamp` manifest differences by default.
 - `jar compare --strict-manifest` includes manifest timestamp differences.
 - `jar compare --report-json <path>` writes a structured report with missing, extra, changed, and manifest differences.
 
 Current implementation point:
 
-- `jar plan --mc 1.19.2` succeeds and writes `build/sfm-toolchain/state/last-plan.json`.
-- `jar build --mc 1.19.2 --explain-rebuild` now produces the Rust-built jar:
+- `jar plan --branch 1.19.2` succeeds and writes `build/sfm-toolchain/state/last-plan.json`.
+- `jar build --branch 1.19.2 --explain-rebuild` now produces the Rust-built jar:
 
 ```text
 platform/minecraft/build/libs/Super Factory Manager (SFM)-MC1.19.2-4.33.0-rust.jar
@@ -465,7 +462,7 @@ platform/minecraft/build/libs/Super Factory Manager (SFM)-MC1.19.2-4.33.0-rust.j
 
 - The command does not invoke Gradle and does not read `build/fg_cache`, `build/classpath`, `build/classes`, `build/resources`, or `build/tmp/jar` as build inputs.
 - `platform/cli/sfm-propagate-changes/check-all.ps1` passes.
-- `jar compare --mc 1.19.2` passes against a fresh Gradle baseline jar.
+- `jar compare --branch 1.19.2` passes against a fresh Gradle baseline jar.
 
 ## Verified Baseline And Compare 2026-06-12
 
@@ -486,8 +483,8 @@ Then the Rust jar build and compare were verified from:
 
 ```powershell
 cd D:\Repos\Minecraft\SFM\repos2\1.19.2\platform\cli\sfm-propagate-changes
-cargo run -- jar build --mc 1.19.2 --refresh --explain-rebuild
-cargo run -- jar compare --mc 1.19.2 --report-json D:\Repos\Minecraft\SFM\repos2\1.19.2\platform\minecraft\build\sfm-toolchain\state\last-compare.json
+cargo run -- jar build --branch 1.19.2 --refresh --explain-rebuild
+cargo run -- jar compare --branch 1.19.2 --report-json D:\Repos\Minecraft\SFM\repos2\1.19.2\platform\minecraft\build\sfm-toolchain\state\last-compare.json
 .\check-all.ps1
 ```
 
@@ -563,13 +560,13 @@ The clean-slate executor has moved from planner/prototype to first end-to-end Ru
 
 Public CLI status:
 
-- `jar plan --mc 1.19.2` resolves the graph.
-- `jar build --mc 1.19.2 --explain-rebuild` runs execution nodes.
-- `jar compare --mc 1.19.2` remains available for normalized Gradle-vs-Rust jar comparison.
-- `run client --mc 1.19.2` builds the Rust-owned outputs, then launches Forge's `client` userdev run config.
-- `run server --mc 1.19.2` builds the Rust-owned outputs, then launches Forge's `server` userdev run config.
-- `run data --mc 1.19.2` builds the Rust-owned outputs, then launches Forge's `data` userdev run config.
-- `run game-test-server --mc 1.19.2` builds the Rust-owned outputs, then launches Forge's `gameTestServer` userdev run config.
+- `jar plan --branch 1.19.2` resolves the graph.
+- `jar build --branch 1.19.2 --explain-rebuild` runs execution nodes.
+- `jar compare --branch 1.19.2` remains available for normalized Gradle-vs-Rust jar comparison.
+- `run client --branch 1.19.2` builds the Rust-owned outputs, then launches Forge's `client` userdev run config.
+- `run server --branch 1.19.2` builds the Rust-owned outputs, then launches Forge's `server` userdev run config.
+- `run data --branch 1.19.2` builds the Rust-owned outputs, then launches Forge's `data` userdev run config.
+- `run game-test-server --branch 1.19.2` builds the Rust-owned outputs, then launches Forge's `gameTestServer` userdev run config.
 - `jar plan` and `jar build` now accept `--java-home <path>`.
 - `jar plan` and `jar build` now write `platform/minecraft/sfm-toolchain.lock.json`.
 - `jar plan` and `jar build` enforce `platform/minecraft/sfm-toolchain.lock.json` unless `--refresh` is supplied.
@@ -644,7 +641,7 @@ Observed `run client` status:
 - The earlier `Could not find client-extra in classpath` failure was fixed by generating and classpathing `client-extra.jar`.
 - The earlier Forge package metadata failure was fixed by using the Forge-named runtime alias jar with Forge universal manifest metadata.
 - The earlier Forge coremod SRG field lookup failures were fixed by generating runtime MCP CSV mappings.
-- A local `run client --mc 1.19.2` run reached Forge/Minecraft startup with SFM discovered and exited with code `0`.
+- A local `run client --branch 1.19.2` run reached Forge/Minecraft startup with SFM discovered and exited with code `0`.
 - Remaining runtime investigation: the dev run still reports a Mixin target lookup warning for `StructureTemplateManagerMixin.onTryLoad`, apparently tied to refmap/runtime mapping behavior. The jar compare path can still be byte-identical while this dev-run mapping path needs follow-up.
 
 Implemented execution foundations:
@@ -657,7 +654,7 @@ Implemented execution foundations:
   - `build/classes`
   - `build/resources`
   - `build/tmp/jar`
-- The current executor still reruns most expensive nodes; fingerprint-based up-to-date skipping remains future work.
+- The executor uses input fingerprints and `*.inputs.sha1` state to reuse ANTLR output, Java compile output, package/reobf output, and several run shims when inputs are unchanged.
 
 Completed MCPConfig joined node:
 
@@ -787,36 +784,41 @@ Version-aware toolchain status:
 - `https://maven.neoforged.net/releases` is part of the resolver and `net.neoforged` artifacts prefer it.
 - Parchment coordinates support both `YYYY.MM.DD-MC` and `MC-YYYY.MM.DD-targetMC` property formats.
 - MCPConfig-declared Java tool versions are now honored. This matters for `1.19.4+`, where MCPConfig moves ForgeFlower from `1.5.605.9` to `2.0.627.2`.
-- ForgeGradle-compatible Rust jar builds have been verified for:
+- ForgeGradle-compatible Rust jar builds have been verified for the Forge-era and transitional branches:
   - `1.19.2`
   - `1.19.4`
   - `1.20`
   - `1.20.1`
 - `1.20.1` is hosted under `net.neoforged:forge` but still executes through the ForgeGradle-style pipeline.
-- `1.20.2`, `1.20.3`, `1.20.4`, `1.21.0`, and `1.21.1` plan successfully as `NeoGradleUserdev`, resolve userdev/source/universal/NeoForm-adjacent artifacts, and then intentionally refuse `jar build`/`run` with a clear NeoForm executor missing message.
+- Modern `NeoGradleUserdev` branches now execute through the Rust-owned NeoForm/NeoForge path. Current core validation covers `1.20.2`, `1.20.3`, `1.20.4`, `1.21.0`, `1.21.1`, and `26.1.2`.
 - Branch `1.21.0` selects worktree `1.21.0`, but its `gradle.properties` uses `minecraft_version=1.21`; the planner now warns and uses the property value for artifact coordinates.
 - Source excludes now match both exact Java files and Gradle-style bare directory excludes, which is required for version branches that exclude Mekanism compat sources.
 
-Immediate next resume checklist:
+Current multi-version validation snapshot:
 
-1. Implement the NeoGradle/NeoForm executor for `1.20.2+`.
-2. Parse and execute NeoForm config instead of MCPConfig for modern NeoForge branches.
-3. Wire NeoForge run classpaths/module paths from userdev `runs`, `modules`, `libraries`, and NeoForm outputs.
-4. Add a strict provenance audit command that fails when any artifact has `source=local-*` or `source=existing-sfm-cache-unknown`.
-5. Add real input fingerprinting/up-to-date checks for expensive nodes, plus temp-file/atomic-rename writes for large generated outputs so Ctrl+C cannot leave convincing partial artifacts.
-6. Smoke test the verified `-rust.jar` outputs in matching Forge instances and confirm Minecraft reaches the main menu with SFM loaded.
-7. Add integration coverage for the MCP joined executor, Forge userdev executor, NeoForm executor, run client launcher, and final compare report.
-8. Keep Gradle baseline compare as the regression oracle until smoke testing and repeated clean builds are boring.
+1. `jar build --branch core --dry-run --parallel --error-action continue` resolves and prepares every core worktree without invoking Gradle.
+2. `run game-test-server --branch core --dry-run --parallel --error-action continue` resolves run setup for every core worktree.
+3. `run client --branch core --dry-run --parallel --error-action continue` resolves graphical launch setup for every core worktree.
+4. `run client-puppet --branch core --parallel --error-action continue` has passed live across the core worktrees with non-zero SFM game-test counts.
+5. `jar audit-artifacts --branch core --parallel --error-action continue --require-portable-artifacts` verifies that locked artifacts are fresh-slate portable.
 
-## Likely Hard Parts
+Immediate next review checklist:
+
+1. Review the pending Rust/docs/lockfile/harness changes in the `1.19.2` worktree.
+2. Commit the accepted review set.
+3. Run `sfm-propagate-changes.exe git merge` after the oldest-branch commit.
+4. Re-run the core dry-run/audit checks after propagation.
+5. Keep Gradle baseline compare as the regression oracle until repeated clean builds and smoke tests are uneventful.
+
+## Hard Parts That Shaped The Design
 
 - Forge `userdev` is the center of the problem, not vanilla Minecraft decompilation.
 - `fg.deobf(...)` matters because SFM compiles against many mod jars, not just Forge and Minecraft.
-- Dynamic Maven versions and CurseMaven file IDs need deterministic lock/state files, even though refreshed remote resolution now works.
-- Mixin AP wiring must be exact enough to produce a valid `sfm.refmap.json`.
-- Reobfuscation must use the same mapping direction as ForgeGradle or the jar will compile but fail at runtime.
-- A "clean slate" build must avoid relying on `C:\Users\Teamy\.gradle\caches`; the cache-backed prototype may use it only as an intermediate stepping stone.
+- Dynamic Maven versions and CurseMaven file IDs need deterministic lock/state files; refreshed remote resolution now records exact versions and provenance.
+- Mixin AP wiring must be exact enough to produce a valid `sfm.refmap.json`; compare checks and live run checks remain the regression guard.
+- Reobfuscation must use the same mapping direction as ForgeGradle or the jar will compile but fail at runtime; normalized Gradle-vs-Rust jar compare remains the oracle.
+- A "clean slate" build must avoid relying on `C:\Users\Teamy\.gradle\caches`; local Gradle/Maven caches remain only a last-resort bootstrap/debug source behind explicit flags.
 
 ## Working Conclusion
 
-Replacing Gradle is feasible, but the unit of work is not "write javac wrapper." The real unit is "own the Forge userdev artifact graph and make rebuild decisions explicit." The fastest path is to first produce the SFM jar from the existing FG cache, then progressively replace each cache artifact with an SFM-owned generator.
+Replacing Gradle is feasible, but the unit of work is not "write javac wrapper." The real unit is "own the Forge/NeoForge userdev artifact graph and make rebuild decisions explicit." The current Rust toolchain owns the clean-slate path; the remaining work is review, propagation, repeated validation, and reducing dependency risk by replacing more external Java tool behavior with Rust where it is worth the maintenance cost.
