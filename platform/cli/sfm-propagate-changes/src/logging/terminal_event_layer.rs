@@ -1,10 +1,15 @@
+use crate::colour::stable_color;
+use crate::logging::captured_fields::CapturedFields;
+use crate::logging::terminal_hyperlink::TerminalTextExt;
+use crate::logging::terminal_span_fields::TerminalSpanFields;
+use color_eyre::owo_colors::OwoColorize;
 use std::fmt::Debug;
-use std::io::Write as _;
+use std::io::Write;
+use std::path::Path;
 use tracing::Event;
 use tracing::Id;
+use tracing::Level;
 use tracing::Subscriber;
-use tracing::field::Field;
-use tracing::field::Visit;
 use tracing::span::Attributes;
 use tracing::span::Record;
 use tracing_subscriber::Layer;
@@ -47,197 +52,177 @@ where
     fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
         let mut fields = CapturedFields::default();
         event.record(&mut fields);
-        let span_fields = TerminalSpanFields::from_scope(&ctx, event);
-        let rendered = RenderedTerminalEvent::new(event, fields, span_fields);
-        let mut stderr = std::io::stderr().lock();
-        let _ = writeln!(stderr, "{rendered}");
-    }
-}
 
-#[derive(Debug, Default, Clone)]
-struct TerminalSpanFields {
-    branch: Option<String>,
-    source: Option<String>,
-    process: Option<String>,
-    stream: Option<String>,
-}
-
-impl TerminalSpanFields {
-    fn from_captured(fields: &CapturedFields) -> Self {
-        Self {
-            branch: fields.branch.clone(),
-            source: fields.source.clone(),
-            process: fields.process.clone(),
-            stream: fields.stream.clone(),
-        }
-    }
-
-    fn from_scope<S>(ctx: &Context<'_, S>, event: &Event<'_>) -> Self
-    where
-        S: Subscriber + for<'lookup> LookupSpan<'lookup>,
-    {
-        let mut output = Self::default();
-        let Some(scope) = ctx.event_scope(event) else {
-            return output;
+        let decorate = {
+            use std::io::IsTerminal as _;
+            std::io::stderr().is_terminal() && std::env::var_os("NO_COLOR").is_none()
         };
-
-        for span in scope.from_root() {
-            let extensions = span.extensions();
-            if let Some(fields) = extensions.get::<Self>() {
-                output.update_from_span(fields);
+        let prefix = render_prefix(event, &ctx, &fields, decorate);
+        let message = fields.message.as_deref().unwrap_or(event.metadata().name());
+        let extra_fields = &fields.extra_fields;
+        let mut stderr = std::io::stderr().lock();
+        let e: std::io::Result<()> = (move || {
+            write!(stderr, "[")?;
+            prefix(&mut stderr)?;
+            write!(stderr, "] ")?;
+            writeln!(stderr, "{message}")?;
+            for (name, value) in extra_fields {
+                writeln!(stderr, "  {name}={value}")?;
             }
-        }
-        output
-    }
-
-    fn update_from_captured(&mut self, fields: &CapturedFields) {
-        self.branch.clone_from(&fields.branch);
-        self.source.clone_from(&fields.source);
-        self.process.clone_from(&fields.process);
-        self.stream.clone_from(&fields.stream);
-    }
-
-    fn update_from_span(&mut self, fields: &Self) {
-        if fields.branch.is_some() {
-            self.branch.clone_from(&fields.branch);
-        }
-        if fields.source.is_some() {
-            self.source.clone_from(&fields.source);
-        }
-        if fields.process.is_some() {
-            self.process.clone_from(&fields.process);
-        }
-        if fields.stream.is_some() {
-            self.stream.clone_from(&fields.stream);
+            Ok(())
+        })();
+        if let Err(error) = e {
+            eprintln!("Failed to write log event to terminal: {error}");
         }
     }
 }
 
-#[derive(Debug, Default)]
-struct CapturedFields {
-    branch: Option<String>,
-    source: Option<String>,
-    process: Option<String>,
-    stream: Option<String>,
-    message: Option<String>,
-    extra_fields: Vec<(String, String)>,
-}
+fn render_prefix<S: Subscriber + for<'lookup> LookupSpan<'lookup>, W: Write>(
+    event: &Event<'_>,
+    ctx: &Context<'_, S>,
+    fields: &CapturedFields,
+    decorate: bool,
+) -> impl FnOnce(&mut W) -> std::io::Result<()> {
+    move |f| {
+        let span_fields = TerminalSpanFields::from_scope(ctx, event);
 
-impl CapturedFields {
-    fn record_value(&mut self, field: &Field, value: String) {
-        match field.name() {
-            "branch" => self.branch = Some(value),
-            "source" => self.source = Some(value),
-            "process" => self.process = Some(value),
-            "stream" => self.stream = Some(value),
-            "message" => self.message = Some(value),
-            name => self.extra_fields.push((name.to_string(), value)),
+        // BRANCH
+        let branch = fields.branch.as_deref().or(span_fields.branch.as_deref());
+        if let Some(branch) = branch {
+            if decorate {
+                f.write_fmt(format_args!("{}", branch.color(stable_color(branch))))?;
+            } else {
+                f.write_fmt(format_args!("{branch}"))?;
+            }
+            f.write_all(b" ")?;
         }
-    }
-}
 
-impl Visit for CapturedFields {
-    fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
-        self.record_value(field, format!("{value:?}"));
-    }
-
-    fn record_str(&mut self, field: &Field, value: &str) {
-        self.record_value(field, value.to_string());
-    }
-
-    fn record_bool(&mut self, field: &Field, value: bool) {
-        self.record_value(field, value.to_string());
-    }
-
-    fn record_i64(&mut self, field: &Field, value: i64) {
-        self.record_value(field, value.to_string());
-    }
-
-    fn record_u64(&mut self, field: &Field, value: u64) {
-        self.record_value(field, value.to_string());
-    }
-}
-
-#[derive(Debug)]
-struct RenderedTerminalEvent {
-    prefix: String,
-    message: String,
-    extra_fields: Vec<(String, String)>,
-}
-
-impl RenderedTerminalEvent {
-    fn new(event: &Event<'_>, fields: CapturedFields, span_fields: TerminalSpanFields) -> Self {
+        // SOURCE (JAVA, RUST, ETC)
         let source = fields
             .source
-            .or(span_fields.source)
-            .unwrap_or_else(|| "rust".to_string());
+            .as_deref()
+            .or(span_fields.source.as_deref())
+            .unwrap_or("rust");
+        let label = {
+            match source {
+                "minecraft" => "mc",
+                "java-tool" => "java",
+                other => other,
+            }
+        };
+        let linked_label = event
+            .metadata()
+            .file()
+            .zip(event.metadata().line())
+            .map_or_else(
+                || label.to_string(),
+                |(file, line)| {
+                    let uri = vscode_file_uri(file, line);
+                    label.hyperlink(&uri)
+                },
+            );
+        if label == "rust" && decorate {
+            f.write_fmt(format_args!("{}", linked_label.truecolor(255, 165, 0)))?;
+        } else if label == "mc" && decorate {
+            f.write_fmt(format_args!("{}", linked_label.truecolor(154, 205, 50)))?;
+        } else {
+            f.write_fmt(format_args!("{label}"))?;
+        }
+
+        // todo(2026-06-17) probably want to fold SOURCE and PROCESS into one unit, requires identifying where logs with these fields are being emitted
+        // PROCESS (CLI, MINECRAFT, ETC)
         let process = fields
             .process
-            .or(span_fields.process)
-            .unwrap_or_else(|| "sfm".to_string());
+            .as_deref()
+            .or(span_fields.process.as_deref())
+            .unwrap_or("cli");
+        let should_show_process = !process.is_empty()
+            && !matches!(
+                (source, process),
+                ("rust", "cli") | ("minecraft", "minecraft")
+            );
+        if should_show_process {
+            f.write_fmt(format_args!(" {process}"))?;
+        }
+
+        // STREAM (STDOUT, STDERR, ETC)
         let stream = fields
             .stream
-            .or(span_fields.stream)
-            .unwrap_or_else(|| "stdout".to_string());
-        let branch = fields.branch.or(span_fields.branch);
-        let prefix = render_prefix(event, branch.as_deref(), &source, &process, &stream);
-        Self {
-            prefix,
-            message: fields
-                .message
-                .unwrap_or_else(|| event.metadata().name().to_string()),
-            extra_fields: fields.extra_fields,
+            .as_deref()
+            .or(span_fields.stream.as_deref())
+            .unwrap_or("stdout");
+        if stream == "stderr" {
+            f.write_fmt(format_args!(" stderr"))?;
         }
-    }
-}
 
-impl std::fmt::Display for RenderedTerminalEvent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}] {}", self.prefix, self.message)?;
-        for (name, value) in &self.extra_fields {
-            write!(f, " {name}={value}")?;
+        // LEVEL (INFO, DEBUG, ETC)
+        let level = event.metadata().level();
+        match *level {
+            Level::TRACE => {
+                f.write_fmt(format_args!(" {}", level.as_str().purple()))?;
+            }
+            Level::DEBUG => {
+                f.write_fmt(format_args!(" {}", level.as_str().blue()))?;
+            }
+            Level::INFO => {}
+            Level::WARN => {
+                f.write_fmt(format_args!(" {}", level.as_str().yellow()))?;
+            }
+            Level::ERROR => {
+                f.write_fmt(format_args!(" {}", level.as_str().red()))?;
+            }
         }
         Ok(())
     }
 }
 
-fn render_prefix(
-    event: &Event<'_>,
-    branch: Option<&str>,
-    source: &str,
-    process: &str,
-    stream: &str,
-) -> String {
-    let mut parts = Vec::new();
-    if let Some(branch) = branch {
-        parts.push(branch.to_string());
-    }
-    parts.push(source_label(source).to_string());
-    if should_show_process(source, process) {
-        parts.push(process.to_string());
-    }
-    if stream == "stderr" {
-        parts.push("stderr".to_string());
-    }
-    let level = event.metadata().level().as_str();
-    if level != "INFO" {
-        parts.push(level.to_ascii_lowercase());
-    }
-    parts.join(" ")
+fn vscode_file_uri(file: &str, line: u32) -> String {
+    let path = Path::new(file);
+    let path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join(path)
+    };
+    let path = percent_encode_uri_path(&path.to_string_lossy().replace('\\', "/"));
+    format!("vscode://file/{path}:{line}:1")
 }
 
-fn should_show_process(source: &str, process: &str) -> bool {
-    !process.is_empty()
-        && !matches!(
-            (source, process),
-            ("rust", "sfm") | ("minecraft", "minecraft")
-        )
+fn percent_encode_uri_path(path: &str) -> String {
+    let mut output = String::with_capacity(path.len());
+    for byte in path.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'/' | b':' | b'-' | b'_' | b'.' | b'~' => {
+                output.push(char::from(byte));
+            }
+            byte => {
+                const HEX: &[u8; 16] = b"0123456789ABCDEF";
+                output.push('%');
+                output.push(char::from(HEX[usize::from(byte >> 4)]));
+                output.push(char::from(HEX[usize::from(byte & 0x0F)]));
+            }
+        }
+    }
+    output
 }
 
-fn source_label(source: &str) -> &str {
-    match source {
-        "minecraft" => "mc",
-        "java-tool" => "java",
-        other => other,
+#[cfg(test)]
+mod tests {
+    use super::percent_encode_uri_path;
+    use super::vscode_file_uri;
+
+    #[test]
+    fn vscode_file_uri_targets_line_and_column() {
+        let uri = vscode_file_uri("src/cli/git/status/git_status_cli.rs", 249);
+
+        assert!(uri.starts_with("vscode://file/"));
+        assert!(uri.ends_with("/src/cli/git/status/git_status_cli.rs:249:1"));
+    }
+
+    #[test]
+    fn percent_encode_uri_path_escapes_reserved_path_bytes() {
+        assert_eq!(
+            percent_encode_uri_path("D:/repo with spaces/src/#file.rs"),
+            "D:/repo%20with%20spaces/src/%23file.rs"
+        );
     }
 }
