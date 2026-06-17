@@ -113,7 +113,7 @@ impl Drop for ArtifactLock {
     }
 }
 
-fn open_lock_file(lock_path: &Path) -> eyre::Result<File> {
+pub(super) fn open_lock_file(lock_path: &Path) -> eyre::Result<File> {
     if let Some(parent) = lock_path.parent() {
         std::fs::create_dir_all(parent)
             .wrap_err_with(|| format!("Failed to create {}", parent.display()))?;
