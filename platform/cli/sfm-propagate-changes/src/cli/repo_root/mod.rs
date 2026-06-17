@@ -1,7 +1,11 @@
-mod repo_root_command;
-mod repo_root_open_command;
-mod repo_root_set_command;
-mod repo_root_show_command;
-mod repo_root_unset_command;
+mod repo_root_cli;
+mod repo_root_open_cli;
+mod repo_root_set_cli;
+mod repo_root_show_cli;
+mod repo_root_unset_cli;
 
-pub use repo_root_command::*;
+pub use repo_root_cli::*;
+pub use repo_root_open_cli::*;
+pub use repo_root_set_cli::*;
+pub use repo_root_show_cli::*;
+pub use repo_root_unset_cli::*;

@@ -3,14 +3,17 @@ pub mod branch_targets;
 pub mod cancellation;
 pub mod cli;
 pub mod cli_arg_normalization;
+pub mod curseforge;
 pub mod jar_build;
 pub mod jdk;
 pub mod logging;
-pub mod mc_version_filter;
+pub mod modrinth;
+pub mod one_password;
 pub mod paths;
 pub mod propagate;
 pub mod sfm_path;
 pub mod state;
+pub mod terminal_output;
 pub mod worktree;
 
 #[cfg(feature = "tracy_memory")]
