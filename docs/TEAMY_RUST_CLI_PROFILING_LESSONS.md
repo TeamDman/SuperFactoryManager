@@ -18,7 +18,7 @@ This note records lessons from adding Tracy profiling to `sfm-propagate-changes`
 
 ## SFM-Specific Choices Worth Generalizing
 
-- The default profiled command is non-interactive: `run game-test-server --mc 1.19.2`.
+- The default profiled command is non-interactive: `run game-test-server --branch 1.19.2`.
 - The wrapper accepts arbitrary remaining CLI arguments, so users can profile `run client-smoke`, `run client-puppet`, `jar build`, or `jar plan` without script edits.
 - Coarse spans are always compiled in because they are useful for regular diagnostics too.
 - Repeated or potentially high-volume spans are behind `tracing_detailed`.
@@ -27,4 +27,3 @@ This note records lessons from adding Tracy profiling to `sfm-propagate-changes`
 ## Future Analysis Tooling
 
 `G:\Programming\Repos\teamy-profiler` is a local native `.tracy` analysis experiment. It can export top CPU zone summaries without relying on `tracy-csvexport.exe`, and should be revisited if SFM captures become too large or slow for Tracy's stock CSV exporter.
-
