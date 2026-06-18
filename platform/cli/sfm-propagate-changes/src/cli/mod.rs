@@ -4,6 +4,7 @@ pub mod client;
 pub mod curseforge;
 pub mod git;
 pub mod github;
+pub mod global_args;
 pub mod gradle;
 pub mod home;
 pub mod jar;

@@ -1,12 +1,9 @@
 use crate::cancellation::CancellationToken;
+use crate::cli::global_args::GlobalArgs;
 use crate::logging::LoggingConfig;
-use chrono::Local;
 use facet::Facet;
 use figue::FigueBuiltins;
 use figue::{self as args};
-use std::path::PathBuf;
-use std::str::FromStr;
-use tracing::level_filters::LevelFilter;
 
 /// A tool for propagating git changes across Minecraft version worktrees.
 ///
@@ -14,18 +11,9 @@ use tracing::level_filters::LevelFilter;
 /// to newer ones in a sequential manner.
 #[derive(Facet, Debug)]
 pub struct Cli {
-    /// Enable debug logging, including backtraces on panics.
-    #[facet(args::named)]
-    pub debug: bool,
-
-    /// Log level filter directive.
-    #[facet(default, args::named)]
-    pub log_filter: Option<String>,
-
-    /// Write structured ndjson logs to this file or directory. If a directory is provided,
-    /// a filename will be generated there. If omitted, no JSON log file will be written.
-    #[facet(default, args::named)]
-    pub log_file: Option<PathBuf>,
+    /// Global arguments that apply to all commands.
+    #[facet(flatten)]
+    pub global_args: GlobalArgs,
 
     /// Subcommand to run
     #[facet(args::subcommand)]
@@ -41,25 +29,7 @@ impl Cli {
     ///
     /// This function will return an error if the log filter string is invalid.
     pub fn logging_config(&self) -> eyre::Result<LoggingConfig> {
-        let explicit_filter = self.debug || self.log_filter.is_some();
-        Ok(LoggingConfig {
-            default_directive: match (self.debug, &self.log_filter) {
-                (true, _) => LevelFilter::DEBUG,
-                (false, Some(filter)) => LevelFilter::from_str(filter)?,
-                (false, None) => LevelFilter::INFO,
-            }
-            .into(),
-            read_env_filter: !explicit_filter,
-            json_log_path: match &self.log_file {
-                None => None,
-                Some(path) if path.is_dir() => {
-                    let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
-                    let filename = format!("log_{timestamp}.ndjson");
-                    Some(path.join(filename))
-                }
-                Some(path) => Some(path.clone()),
-            },
-        })
+        self.global_args.logging_config()
     }
 
     /// # Errors
@@ -132,10 +102,11 @@ mod tests {
     use crate::cli::gradle::GradleCommand;
     use crate::cli::jar::JarCommand;
     use crate::cli::run::RunCommand;
-    use crate::cli_arg_normalization::normalize_parallel_args;
     use crate::jar_build::BuildMode;
     use crate::jar_build::ErrorAction;
     use crate::jar_build::Parallelism;
+    use facet::Facet;
+    use figue as args;
     use tracing::level_filters::LevelFilter;
 
     #[test]
@@ -229,12 +200,10 @@ mod tests {
     }
 
     #[test]
-    fn parses_bare_parallel_after_arg_normalization() {
-        let args = normalize_parallel_args(["run", "game-test-server", "--parallel", "--dry-run"]);
-        let arg_refs = args.iter().map(String::as_str).collect::<Vec<_>>();
-        let cli = figue::from_slice::<Cli>(&arg_refs)
+    fn parses_bare_parallel() {
+        let cli = figue::from_slice::<Cli>(&["run", "game-test-server", "--parallel", "--dry-run"])
             .into_result()
-            .expect("bare parallel should normalize and parse")
+            .expect("bare parallel should parse")
             .get_silent();
         match cli.command {
             Command::Run(crate::cli::run::RunArgs {
@@ -242,7 +211,7 @@ mod tests {
             }) => {
                 let options = command
                     .into_options(BuildMode::Build)
-                    .expect("normalized parallel should parse");
+                    .expect("bare parallel should parse");
                 assert_eq!(
                     options.parallelism,
                     Parallelism::Parallel {
@@ -316,12 +285,10 @@ mod tests {
     }
 
     #[test]
-    fn parses_jar_compare_bare_parallel_after_arg_normalization() {
-        let args = normalize_parallel_args(["jar", "compare", "--branch", "core", "--parallel"]);
-        let arg_refs = args.iter().map(String::as_str).collect::<Vec<_>>();
-        let cli = figue::from_slice::<Cli>(&arg_refs)
+    fn parses_jar_compare_bare_parallel() {
+        let cli = figue::from_slice::<Cli>(&["jar", "compare", "--branch", "core", "--parallel"])
             .into_result()
-            .expect("bare compare parallel should normalize and parse")
+            .expect("bare compare parallel should parse")
             .get_silent();
         match cli.command {
             Command::Jar(crate::cli::jar::JarArgs {
@@ -329,7 +296,7 @@ mod tests {
             }) => {
                 let options = command
                     .into_options()
-                    .expect("normalized compare parallel should parse");
+                    .expect("bare compare parallel should parse");
                 assert_eq!(
                     options.parallelism,
                     Parallelism::Parallel {
@@ -342,12 +309,10 @@ mod tests {
     }
 
     #[test]
-    fn parses_jar_artifact_audit_bare_parallel_after_arg_normalization() {
-        let args = normalize_parallel_args(["jar", "audit-artifacts", "--parallel"]);
-        let arg_refs = args.iter().map(String::as_str).collect::<Vec<_>>();
-        let cli = figue::from_slice::<Cli>(&arg_refs)
+    fn parses_jar_artifact_audit_bare_parallel() {
+        let cli = figue::from_slice::<Cli>(&["jar", "audit-artifacts", "--parallel"])
             .into_result()
-            .expect("bare artifact audit parallel should normalize and parse")
+            .expect("bare artifact audit parallel should parse")
             .get_silent();
         match cli.command {
             Command::Jar(crate::cli::jar::JarArgs {
@@ -355,7 +320,7 @@ mod tests {
             }) => {
                 let options = command
                     .into_options()
-                    .expect("normalized artifact audit parallel should parse");
+                    .expect("bare artifact audit parallel should parse");
                 assert_eq!(
                     options.parallelism,
                     Parallelism::Parallel {
@@ -656,6 +621,79 @@ mod tests {
         let logging = cli.logging_config().expect("logging config should build");
         assert!(!logging.read_env_filter);
         assert_eq!(logging.default_directive, LevelFilter::DEBUG.into());
+    }
+
+    #[test]
+    fn top_level_stop_after_configures_logging() {
+        let cli =
+            figue::from_slice::<Cli>(&["--stop-after", "create_plan_for_target", "jdk", "list"])
+                .into_result()
+                .expect("jdk list should parse")
+                .get_silent();
+        let logging = cli.logging_config().expect("logging config should build");
+        assert_eq!(
+            logging.stop_after.as_deref(),
+            Some("create_plan_for_target")
+        );
+    }
+
+    #[test]
+    fn stop_after_after_subcommand_parses_as_global_arg() {
+        let cli = figue::from_slice::<Cli>(&[
+            "jar",
+            "build",
+            "--dry-run",
+            "--branch",
+            "1.19.2",
+            "--stop-after",
+            "create_plan_for_target{branch=1.19.2}",
+        ])
+        .into_result()
+        .expect("jar build with stop-after should parse")
+        .get_silent();
+        let logging = cli.logging_config().expect("logging config should build");
+        assert_eq!(
+            logging.stop_after.as_deref(),
+            Some("create_plan_for_target{branch=1.19.2}")
+        );
+    }
+
+    #[test]
+    fn figue_nested_option_models_optional_value_flags() {
+        #[expect(
+            clippy::option_option,
+            reason = "This test intentionally checks whether figue can model absent, bare, and valued flags."
+        )]
+        #[derive(Facet, Debug)]
+        struct Args {
+            #[facet(args::named, default)]
+            maybe: Option<Option<usize>>,
+        }
+
+        assert!(
+            figue::from_slice::<Args>(&[])
+                .into_result()
+                .expect("absent flag should parse")
+                .get_silent()
+                .maybe
+                .is_none()
+        );
+        assert_eq!(
+            figue::from_slice::<Args>(&["--maybe", "12"])
+                .into_result()
+                .expect("valued flag should parse")
+                .get_silent()
+                .maybe,
+            Some(Some(12))
+        );
+        assert_eq!(
+            figue::from_slice::<Args>(&["--maybe"])
+                .into_result()
+                .expect("bare flag should parse")
+                .get_silent()
+                .maybe,
+            Some(None)
+        );
     }
 
     fn assert_run_cli(args: &[&str]) {

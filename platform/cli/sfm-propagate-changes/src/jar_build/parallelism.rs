@@ -14,16 +14,19 @@ pub enum Parallelism {
 impl Parallelism {
     pub const DEFAULT_LIMIT: usize = 10;
 
-    /// Convert the optional CLI value into execution parallelism.
+    /// Convert the optional-value CLI flag into execution parallelism.
     ///
     /// # Errors
     ///
     /// Returns an error if the requested parallelism is zero.
-    pub fn from_cli(value: Option<usize>) -> eyre::Result<Self> {
+    pub fn from_cli(value: Option<Option<usize>>) -> eyre::Result<Self> {
         match value {
             None => Ok(Self::Sequential),
-            Some(0) => eyre::bail!("--parallel must be greater than zero"),
-            Some(limit) => Ok(Self::Parallel { limit }),
+            Some(None) => Ok(Self::Parallel {
+                limit: Self::DEFAULT_LIMIT,
+            }),
+            Some(Some(0)) => eyre::bail!("--parallel must be greater than zero"),
+            Some(Some(limit)) => Ok(Self::Parallel { limit }),
         }
     }
 

@@ -10,7 +10,7 @@ impl JdkListArgs {
     ///
     /// Returns an error if JDK discovery output cannot be written.
     pub fn invoke(self) -> eyre::Result<()> {
-        let jdks = crate::jdk::list_jdks();
+        let jdks = crate::jdk::list_jdks()?;
         if jdks.is_empty() {
             stdout_line("No JDKs discovered.")?;
             return Ok(());
