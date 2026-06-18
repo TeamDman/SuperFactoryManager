@@ -1,6 +1,9 @@
 mod cancellation_state;
+mod cancellation_token;
 
-pub use cancellation_state::*;
+use cancellation_state::CancellationState;
+use cancellation_state::CtrlCAction;
+pub use cancellation_token::CancellationToken;
 use color_eyre::owo_colors::OwoColorize;
 use std::sync::LazyLock;
 use std::sync::Mutex;
@@ -27,20 +30,8 @@ pub fn install_ctrlc_handler() -> eyre::Result<()> {
 }
 
 #[must_use]
-pub fn is_cancelled() -> bool {
+fn is_cancelled() -> bool {
     CANCELLED.load(Ordering::Acquire)
-}
-
-/// Return an error if cancellation has been requested.
-///
-/// # Errors
-///
-/// Returns an error after the first Ctrl+C.
-pub fn bail_if_cancelled() -> eyre::Result<()> {
-    if is_cancelled() {
-        eyre::bail!("Operation cancelled by Ctrl+C");
-    }
-    Ok(())
 }
 
 fn handle_ctrl_c() {

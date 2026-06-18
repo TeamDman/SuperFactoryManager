@@ -94,5 +94,5 @@ pub fn main() -> eyre::Result<()> {
     };
 
     // Invoke whatever command was requested
-    cli.invoke()
+    cli.invoke(cancellation::CancellationToken::process())
 }
