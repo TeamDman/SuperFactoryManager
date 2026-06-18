@@ -819,6 +819,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fastrand"
+version = "2.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
+
+[[package]]
 name = "filedescriptor"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1467,9 +1473,9 @@ dependencies = [
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.11.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
+checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
 
 [[package]]
 name = "litemap"
@@ -2300,9 +2306,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "1.1.3"
+version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "146c9e247ccc180c1f61615433868c99f3de3ae256a30a43b49f67c2d9171f34"
+checksum = "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190"
 dependencies = [
  "bitflags 2.10.0",
  "errno",
@@ -2464,8 +2470,10 @@ dependencies = [
  "sha1",
  "teamy-figue",
  "teamy-windows",
+ "tempfile",
  "tokio",
  "tracing",
+ "tracing-error",
  "tracing-subscriber",
  "tracing-tracy",
  "tracy-client",
@@ -2747,17 +2755,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "teamy-figue"
-version = "5.1.0"
+name = "teamy-facet-format"
+version = "0.47.1-teamy.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be6d319d86e87b47b367433ea4cfe771191d4a04b841874cd940a0992c897e48"
+checksum = "4e4acce4c43bd34742689f0661c17df0d20827769854540f28e6f8287a804045"
+dependencies = [
+ "facet-core",
+ "facet-dessert",
+ "facet-path",
+ "facet-reflect",
+ "facet-solver",
+]
+
+[[package]]
+name = "teamy-figue"
+version = "5.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0eeb4b27ecca50724372b0fa5d1e9eae2e279ed8b014da77892922fa84ac2943"
 dependencies = [
  "ariadne",
  "camino",
  "facet",
  "facet-core",
  "facet-error",
- "facet-format",
  "facet-json",
  "facet-pretty",
  "facet-reflect",
@@ -2767,6 +2787,7 @@ dependencies = [
  "strip-ansi-escapes",
  "strsim",
  "supports-color 3.0.2",
+ "teamy-facet-format",
  "teamy-figue-attrs",
  "tracing",
  "unicode-width",
@@ -2774,9 +2795,9 @@ dependencies = [
 
 [[package]]
 name = "teamy-figue-attrs"
-version = "5.1.0"
+version = "5.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "353ffc558184150282b7725f0520260bce529d36ef84e99b548ca82ee5d394e1"
+checksum = "35ed3e5a532e263ad7e19ca1d70fa3be59224191c1b6a03c3ef25a9c228775c4"
 dependencies = [
  "facet",
 ]
@@ -2794,6 +2815,19 @@ dependencies = [
  "uom",
  "widestring",
  "windows",
+]
+
+[[package]]
+name = "tempfile"
+version = "3.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
+dependencies = [
+ "fastrand",
+ "getrandom 0.3.4",
+ "once_cell",
+ "rustix",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

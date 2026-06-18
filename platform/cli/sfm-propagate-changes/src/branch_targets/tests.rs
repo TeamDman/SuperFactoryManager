@@ -319,34 +319,22 @@ fn deterministic_bytes(seed: u64) -> Vec<u8> {
 }
 
 struct TestDir {
-    path: PathBuf,
+    dir: tempfile::TempDir,
 }
 
 impl TestDir {
     fn new() -> Self {
-        let unique = format!(
-            "sfm-branch-targets-test-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time should be after unix epoch")
-                .as_nanos()
-        );
-        let path = std::env::temp_dir().join(unique);
-        std::fs::create_dir_all(&path).expect("test temp dir should be created");
-        Self { path }
+        let dir = tempfile::Builder::new()
+            .prefix("sfm-branch-targets-test-")
+            .tempdir()
+            .expect("test temp dir should be created");
+        Self { dir }
     }
 
     fn worktree_with_minecraft_version(&self, name: &str, minecraft_version: &str) -> PathBuf {
-        let worktree = self.path.join(name);
+        let worktree = self.dir.path().join(name);
         write_gradle_properties(&worktree, minecraft_version);
         worktree
-    }
-}
-
-impl Drop for TestDir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.path);
     }
 }
 

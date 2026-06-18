@@ -1,15 +1,18 @@
+use crate::cancellation::CancellationToken;
 use crate::logging::logging_config::LoggingConfig;
+use crate::logging::stop_after_layer::StopAfterLayer;
 use crate::logging::terminal_event_layer::TerminalEventLayer;
 use std::fs::File;
 use std::fs::OpenOptions;
 use tracing::info;
+use tracing_error::ErrorLayer;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::Registry;
 use tracing_subscriber::fmt::writer::BoxMakeWriter;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::util::SubscriberInitExt;
 
-#[cfg(all(feature = "tracy", not(test)))]
+#[cfg(feature = "tracy")]
 const SFM_ENABLE_TRACY_LAYER_ENV: &str = "SFM_ENABLE_TRACY_LAYER";
 
 fn build_env_filter(config: &LoggingConfig) -> EnvFilter {
@@ -21,7 +24,7 @@ fn build_env_filter(config: &LoggingConfig) -> EnvFilter {
     }
 }
 
-#[cfg(all(feature = "tracy", not(test)))]
+#[cfg(feature = "tracy")]
 fn env_flag_enabled(value: Option<&str>) -> bool {
     let Some(value) = value else {
         return false;
@@ -33,7 +36,7 @@ fn env_flag_enabled(value: Option<&str>) -> bool {
     )
 }
 
-#[cfg(all(feature = "tracy", not(test)))]
+#[cfg(feature = "tracy")]
 fn tracy_layer_requested() -> bool {
     env_flag_enabled(std::env::var(SFM_ENABLE_TRACY_LAYER_ENV).ok().as_deref())
 }
@@ -47,7 +50,10 @@ fn tracy_layer_requested() -> bool {
 /// # Panics
 ///
 /// This function may panic if locking or cloning the log file handle fails.
-pub fn init_logging(config: &LoggingConfig) -> eyre::Result<()> {
+pub fn init_logging(
+    config: &LoggingConfig,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
     let subscriber = Registry::default();
 
     {
@@ -67,7 +73,13 @@ pub fn init_logging(config: &LoggingConfig) -> eyre::Result<()> {
     }
 
     let terminal_layer = TerminalEventLayer.with_filter(build_env_filter(config));
-    let subscriber = subscriber.with(terminal_layer);
+    let subscriber = subscriber.with(ErrorLayer::default()).with(terminal_layer);
+    let subscriber = subscriber.with(
+        config
+            .stop_after
+            .as_ref()
+            .map(|stop_after| StopAfterLayer::new(stop_after, cancellation_token.clone())),
+    );
 
     let json_layer = if let Some(json_log_path) = config.json_log_path.as_ref() {
         // Create parent directories if they don't exist
@@ -103,9 +115,9 @@ pub fn init_logging(config: &LoggingConfig) -> eyre::Result<()> {
     };
     let subscriber = subscriber.with(json_layer);
 
-    #[cfg(all(feature = "tracy", not(test)))]
+    #[cfg(feature = "tracy")]
     let tracy_layer_requested = tracy_layer_requested();
-    #[cfg(all(feature = "tracy", not(test)))]
+    #[cfg(feature = "tracy")]
     let subscriber =
         subscriber.with(tracy_layer_requested.then(tracing_tracy::TracyLayer::default));
 
@@ -120,7 +132,7 @@ pub fn init_logging(config: &LoggingConfig) -> eyre::Result<()> {
         info!(?json_log_path, "JSON log output initialized");
     }
 
-    #[cfg(all(feature = "tracy", not(test)))]
+    #[cfg(feature = "tracy")]
     if tracy_layer_requested {
         info!(
             env_var = SFM_ENABLE_TRACY_LAYER_ENV,
