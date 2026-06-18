@@ -1,4 +1,5 @@
 use super::JarBuildOptionsArgs;
+use crate::cancellation::CancellationToken;
 use crate::jar_build::BuildCommand;
 use crate::jar_build::BuildMode;
 use crate::jar_build::BuildOptions;
@@ -20,7 +21,7 @@ impl JarPlanArgs {
     /// # Errors
     ///
     /// Returns an error if the clean-slate plan cannot be resolved or written.
-    pub fn invoke(self) -> eyre::Result<()> {
-        BuildCommand::new(self.into_options(BuildMode::Plan)?).invoke()
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+        BuildCommand::new(self.into_options(BuildMode::Plan)?, cancellation_token).invoke()
     }
 }
