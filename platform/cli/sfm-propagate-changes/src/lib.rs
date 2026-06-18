@@ -2,7 +2,6 @@ pub mod artifact_lock;
 pub mod branch_targets;
 pub mod cancellation;
 pub mod cli;
-pub mod cli_arg_normalization;
 pub mod colour;
 pub mod curseforge;
 pub mod jar_build;
@@ -62,17 +61,16 @@ fn version() -> String {
 pub fn main() -> eyre::Result<()> {
     // Install color_eyre for better error reports
     color_eyre::install()?;
-    cancellation::install_ctrlc_handler()?;
+    let cancellation_token = cancellation::install_ctrlc_handler()?;
 
     let version = version();
 
     // Parse command line arguments using figue
     // unwrap() handles --help, --version, completions, and errors with proper exit codes
-    let args = cli_arg_normalization::normalize_parallel_args(std::env::args().skip(1));
     let cli: Cli = figue::Driver::new(
         figue::builder::<Cli>()
             .expect("schema should be valid")
-            .cli(|c| c.args(args))
+            .cli(|c| c.args(std::env::args().skip(1)))
             .help(|h| h.version(version))
             .build(),
     )
@@ -80,7 +78,7 @@ pub fn main() -> eyre::Result<()> {
     .unwrap();
 
     // Initialize logging
-    logging::init_logging(&cli.logging_config()?)?;
+    logging::init_logging(&cli.logging_config()?, &cancellation_token)?;
 
     #[cfg(windows)]
     {
@@ -94,5 +92,5 @@ pub fn main() -> eyre::Result<()> {
     };
 
     // Invoke whatever command was requested
-    cli.invoke(cancellation::CancellationToken::process())
+    cli.invoke(cancellation_token)
 }
