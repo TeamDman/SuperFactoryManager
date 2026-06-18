@@ -4,6 +4,7 @@ use super::RunClientSmokeArgs;
 use super::RunDataArgs;
 use super::RunGameTestServerArgs;
 use super::RunServerArgs;
+use crate::cancellation::CancellationToken;
 use facet::Facet;
 use figue as args;
 
@@ -19,8 +20,8 @@ impl RunArgs {
     /// # Errors
     ///
     /// Returns an error if the selected run command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+        self.command.invoke(cancellation_token)
     }
 }
 
@@ -49,14 +50,14 @@ impl RunCommand {
     /// # Errors
     ///
     /// This function will return an error if planning, building, or launching fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         match self {
-            RunCommand::Client(args) => args.invoke(),
-            RunCommand::ClientSmoke(args) => args.invoke(),
-            RunCommand::ClientPuppet(args) => args.invoke(),
-            RunCommand::Server(args) => args.invoke(),
-            RunCommand::Data(args) => args.invoke(),
-            RunCommand::GameTestServer(args) => args.invoke(),
+            RunCommand::Client(args) => args.invoke(cancellation_token),
+            RunCommand::ClientSmoke(args) => args.invoke(cancellation_token),
+            RunCommand::ClientPuppet(args) => args.invoke(cancellation_token),
+            RunCommand::Server(args) => args.invoke(cancellation_token),
+            RunCommand::Data(args) => args.invoke(cancellation_token),
+            RunCommand::GameTestServer(args) => args.invoke(cancellation_token),
         }
     }
 }
