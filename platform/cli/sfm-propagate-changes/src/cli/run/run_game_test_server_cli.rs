@@ -1,3 +1,4 @@
+use crate::cancellation::CancellationToken;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
 use crate::jar_build::BuildOptions;
@@ -21,10 +22,11 @@ impl RunGameTestServerArgs {
     /// # Errors
     ///
     /// Returns an error if planning, building, or launching fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         RunCommand::new(
             self.into_options(BuildMode::Build)?,
             RunKind::GameTestServer,
+            cancellation_token,
         )
         .invoke()
     }
