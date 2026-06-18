@@ -6,6 +6,7 @@ pub struct LoggingConfig {
     pub default_directive: Directive,
     pub read_env_filter: bool,
     pub json_log_path: Option<PathBuf>,
+    pub stop_after: Option<String>,
 }
 
 impl LoggingConfig {
@@ -14,6 +15,7 @@ impl LoggingConfig {
             default_directive: level.into(),
             read_env_filter: true,
             json_log_path: json_log_path.map(Into::into),
+            stop_after: None,
         }
     }
 }
