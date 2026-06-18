@@ -1,3 +1,4 @@
+use crate::cancellation::CancellationToken;
 use crate::logging::LoggingConfig;
 use chrono::Local;
 use facet::Facet;
@@ -64,8 +65,8 @@ impl Cli {
     /// # Errors
     ///
     /// This function will return an error if the command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+        self.command.invoke(cancellation_token)
     }
 }
 
@@ -105,7 +106,7 @@ impl Command {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         match self {
             Command::Gradle(args) => args.invoke(),
             Command::Client(args) => args.invoke(),
@@ -117,8 +118,8 @@ impl Command {
             Command::Curseforge(args) => args.invoke(),
             Command::Jdk(args) => args.invoke(),
             Command::Modrinth(args) => args.invoke(),
-            Command::Jar(args) => args.invoke(),
-            Command::Run(args) => args.invoke(),
+            Command::Jar(args) => args.invoke(cancellation_token),
+            Command::Run(args) => args.invoke(cancellation_token),
             Command::RepoRoot(args) => args.invoke(),
         }
     }
