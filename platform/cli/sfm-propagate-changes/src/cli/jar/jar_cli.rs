@@ -7,6 +7,7 @@ use super::JarListArgs;
 use super::JarPlanArgs;
 use super::JarUpdateClientsArgs;
 use super::JarUpdateServersArgs;
+use crate::cancellation::CancellationToken;
 use facet::Facet;
 use figue as args;
 
@@ -22,8 +23,8 @@ impl JarArgs {
     /// # Errors
     ///
     /// Returns an error if the selected jar command fails.
-    pub fn invoke(self) -> eyre::Result<()> {
-        self.command.invoke()
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+        self.command.invoke(cancellation_token)
     }
 }
 
@@ -58,13 +59,13 @@ impl JarCommand {
     /// # Errors
     ///
     /// This function will return an error if the operation fails.
-    pub fn invoke(self) -> eyre::Result<()> {
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         match self {
             JarCommand::Dir(args) => args.invoke(),
-            JarCommand::Plan(args) => args.invoke(),
-            JarCommand::Build(args) => args.invoke(),
-            JarCommand::Compare(args) => args.invoke(),
-            JarCommand::AuditArtifacts(args) => args.invoke(),
+            JarCommand::Plan(args) => args.invoke(cancellation_token),
+            JarCommand::Build(args) => args.invoke(cancellation_token),
+            JarCommand::Compare(args) => args.invoke(cancellation_token),
+            JarCommand::AuditArtifacts(args) => args.invoke(cancellation_token),
             JarCommand::Collect(args) => args.invoke(),
             JarCommand::List(args) => args.invoke(),
             JarCommand::UpdateClients(args) => args.invoke(),

@@ -35,6 +35,7 @@ impl CancellationState {
         }
     }
 
+    #[cfg(test)]
     #[must_use]
     pub const fn is_cancelled(&self) -> bool {
         self.cancelled
