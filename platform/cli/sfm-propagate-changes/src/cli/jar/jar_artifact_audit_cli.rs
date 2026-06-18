@@ -1,3 +1,4 @@
+use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
 use crate::jar_build::ArtifactAuditCommand;
 use crate::jar_build::ArtifactAuditOptions;
@@ -45,7 +46,7 @@ impl JarArtifactAuditArgs {
     /// # Errors
     ///
     /// Returns an error if locked artifact cache/source provenance fails verification.
-    pub fn invoke(self) -> eyre::Result<()> {
-        ArtifactAuditCommand::new(self.into_options()?).invoke()
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+        ArtifactAuditCommand::new(self.into_options()?, cancellation_token).invoke()
     }
 }

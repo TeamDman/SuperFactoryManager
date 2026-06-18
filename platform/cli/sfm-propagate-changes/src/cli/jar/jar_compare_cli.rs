@@ -1,3 +1,4 @@
+use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
 use crate::jar_build::CompareCommand;
 use crate::jar_build::CompareOptions;
@@ -55,7 +56,7 @@ impl JarCompareArgs {
     /// # Errors
     ///
     /// Returns an error if either jar is missing/unreadable or normalized differences are found.
-    pub fn invoke(self) -> eyre::Result<()> {
-        CompareCommand::new(self.into_options()?).invoke()
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+        CompareCommand::new(self.into_options()?, cancellation_token).invoke()
     }
 }
