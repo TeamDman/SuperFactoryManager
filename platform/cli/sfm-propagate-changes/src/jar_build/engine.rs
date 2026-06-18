@@ -55,6 +55,7 @@ use std::time::Duration;
 use std::time::Instant;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
+use tracing::instrument;
 use zip::CompressionMethod;
 use zip::ZipArchive;
 use zip::ZipWriter;
@@ -1788,6 +1789,7 @@ struct GraphNode {
 
 #[derive(Debug, Facet)]
 struct JavaPlan {
+    // todo(2026-06-17) this can probably be removed in favour of jdk.rs#ResolvedJava
     #[facet(proxy = JsonPath)]
     executable: PathBuf,
     #[facet(proxy = JsonOptionalPath)]
@@ -2094,6 +2096,7 @@ impl Resolver {
         reason = "Resolver construction mirrors the normalized planner state it owns."
     )]
     #[tracing::instrument(
+        name = "resolver_new",
         level = "debug",
         skip_all,
         fields(
@@ -2148,82 +2151,148 @@ impl Resolver {
             required_for,
         )
         .entered();
-        let coordinate = self.resolve_dynamic_coordinate(coordinate)?;
+        let coordinate = {
+            let _span = tracing::debug_span!(
+                "resolve_artifact_coordinate",
+                dynamic_version = coordinate.version.ends_with('+'),
+                has_lockfile = self.lockfile.is_some(),
+            )
+            .entered();
+            self.resolve_dynamic_coordinate(coordinate)?
+        };
         self.cancellation_token.bail_if_cancelled()?;
         let cache_path = self.cache_path_for(&coordinate);
-        let expected_sha1 = self
-            .locked_artifact_sha1(&coordinate)
-            .map(ToOwned::to_owned);
+        let expected_sha1 = {
+            let _span = tracing::debug_span!(
+                "resolve_artifact_lock_lookup",
+                has_lockfile = self.lockfile.is_some()
+            )
+            .entered();
+            self.locked_artifact_sha1(&coordinate)
+                .map(ToOwned::to_owned)
+        };
 
-        if let Some(artifact) = self.cached_artifact_if_valid(
-            id,
-            &coordinate,
-            &cache_path,
-            required_for,
-            expected_sha1.as_deref(),
-        )? {
+        if let Some(artifact) = {
+            let _span = tracing::debug_span!(
+                "resolve_artifact_valid_cache",
+                refresh = self.refresh,
+                cache_exists = cache_path.is_file(),
+                has_expected_sha1 = expected_sha1.is_some(),
+            )
+            .entered();
+            self.cached_artifact_if_valid(
+                id,
+                &coordinate,
+                &cache_path,
+                required_for,
+                expected_sha1.as_deref(),
+            )?
+        } {
             return Ok(artifact);
         }
         self.cancellation_token.bail_if_cancelled()?;
 
-        let _cache_lock = acquire_artifact_path_lock(&cache_path)?;
-        self.cancellation_token.bail_if_cancelled()?;
-        prepare_existing_artifact_for_reuse(&cache_path, expected_sha1.as_deref())?;
+        let _cache_lock = {
+            let _span = tracing::debug_span!(
+                "resolve_artifact_prepare_cache",
+                refresh = self.refresh,
+                cache_exists = cache_path.is_file(),
+                has_expected_sha1 = expected_sha1.is_some(),
+            )
+            .entered();
+            let cache_lock = acquire_artifact_path_lock(&cache_path)?;
+            self.cancellation_token.bail_if_cancelled()?;
+            prepare_existing_artifact_for_reuse(&cache_path, expected_sha1.as_deref())?;
 
-        if cache_path.is_file() && !self.refresh {
-            let artifact = Self::cached_artifact_plan(id, &coordinate, cache_path, required_for)?;
-            self.verify_locked_artifact(&coordinate, &artifact)?;
-            tracing::debug!(
-                coordinate = %coordinate,
-                cache_path = %artifact.cache_path.display(),
-                sha1 = artifact.sha1.as_deref(),
-                "artifact cache hit"
-            );
-            return Ok(artifact);
-        }
+            if cache_path.is_file() && !self.refresh {
+                let artifact =
+                    Self::cached_artifact_plan(id, &coordinate, cache_path, required_for)?;
+                self.verify_locked_artifact(&coordinate, &artifact)?;
+                tracing::debug!(
+                    coordinate = %coordinate,
+                    cache_path = %artifact.cache_path.display(),
+                    sha1 = artifact.sha1.as_deref(),
+                    "artifact cache hit"
+                );
+                return Ok(artifact);
+            }
+            cache_lock
+        };
 
         let mut attempted = Vec::new();
-        if let Some(artifact) = self.remote_artifact(
-            id,
-            &coordinate,
-            &cache_path,
-            required_for,
-            expected_sha1.as_deref(),
-            &mut attempted,
-        )? {
+        if let Some(artifact) = {
+            let _span = tracing::debug_span!(
+                "resolve_artifact_remote",
+                repository_candidates = self.candidate_repositories(&coordinate).len(),
+                has_expected_sha1 = expected_sha1.is_some(),
+            )
+            .entered();
+            self.remote_artifact(
+                id,
+                &coordinate,
+                &cache_path,
+                required_for,
+                expected_sha1.as_deref(),
+                &mut attempted,
+            )?
+        } {
             return Ok(artifact);
         }
         self.cancellation_token.bail_if_cancelled()?;
 
-        if let Some(artifact) = self.explicit_artifact_source_fallback(
-            id,
-            &coordinate,
-            cache_path.clone(),
-            required_for,
-            expected_sha1.as_deref(),
-        )? {
+        if let Some(artifact) = {
+            let _span = tracing::debug_span!(
+                "resolve_artifact_explicit_source",
+                artifact_source_count = self.artifact_sources.len(),
+                has_expected_sha1 = expected_sha1.is_some(),
+            )
+            .entered();
+            self.explicit_artifact_source_fallback(
+                id,
+                &coordinate,
+                cache_path.clone(),
+                required_for,
+                expected_sha1.as_deref(),
+            )?
+        } {
             return Ok(artifact);
         }
         self.cancellation_token.bail_if_cancelled()?;
 
-        if let Some(artifact) = self.source_build_fallback(
-            id,
-            &coordinate,
-            cache_path.clone(),
-            required_for,
-            expected_sha1.as_deref(),
-        )? {
+        if let Some(artifact) = {
+            let _span = tracing::debug_span!(
+                "resolve_artifact_source_build",
+                has_materialization_lockfile = self.materialization_lockfile.is_some(),
+                has_expected_sha1 = expected_sha1.is_some(),
+            )
+            .entered();
+            self.source_build_fallback(
+                id,
+                &coordinate,
+                cache_path.clone(),
+                required_for,
+                expected_sha1.as_deref(),
+            )?
+        } {
             return Ok(artifact);
         }
         self.cancellation_token.bail_if_cancelled()?;
 
-        if let Some(artifact) = self.local_artifact_fallback(
-            id,
-            &coordinate,
-            cache_path,
-            required_for,
-            expected_sha1.as_deref(),
-        )? {
+        if let Some(artifact) = {
+            let _span = tracing::debug_span!(
+                "resolve_artifact_local_cache",
+                allow_local_artifact_cache = self.allow_local_artifact_cache,
+                has_expected_sha1 = expected_sha1.is_some(),
+            )
+            .entered();
+            self.local_artifact_fallback(
+                id,
+                &coordinate,
+                cache_path,
+                required_for,
+                expected_sha1.as_deref(),
+            )?
+        } {
             return Ok(artifact);
         }
 
@@ -2356,6 +2425,12 @@ impl Resolver {
         attempted: &mut Vec<String>,
     ) -> eyre::Result<Option<ArtifactPlan>> {
         for repo in self.candidate_repositories(coordinate) {
+            let _repo_span = tracing::debug_span!(
+                "resolve_artifact_remote_candidate",
+                repository = repo.name.as_str(),
+                requires_existence_check = coordinate.group != "curse.maven",
+            )
+            .entered();
             self.cancellation_token.bail_if_cancelled()?;
             let url = Self::artifact_url(repo, coordinate);
             attempted.push(url.clone());
@@ -2365,27 +2440,35 @@ impl Resolver {
                 url = url.as_str(),
                 "checking artifact remote"
             );
-            let download_result = if coordinate.group == "curse.maven" {
-                download_to_path_overwrite_locked(
-                    &self.cancellation_token,
-                    &self.client,
-                    &url,
-                    cache_path,
-                    self.refresh,
-                    expected_sha1,
+            let download_result = {
+                let _span = tracing::debug_span!(
+                    "resolve_artifact_remote_download",
+                    refresh = self.refresh,
+                    has_expected_sha1 = expected_sha1.is_some(),
                 )
-            } else {
-                if !remote_exists(&self.cancellation_token, &self.client, &url)? {
-                    continue;
+                .entered();
+                if coordinate.group == "curse.maven" {
+                    download_to_path_overwrite_locked(
+                        &self.cancellation_token,
+                        &self.client,
+                        &url,
+                        cache_path,
+                        self.refresh,
+                        expected_sha1,
+                    )
+                } else {
+                    if !remote_exists(&self.cancellation_token, &self.client, &url)? {
+                        continue;
+                    }
+                    download_to_path_overwrite_locked(
+                        &self.cancellation_token,
+                        &self.client,
+                        &url,
+                        cache_path,
+                        self.refresh,
+                        expected_sha1,
+                    )
                 }
-                download_to_path_overwrite_locked(
-                    &self.cancellation_token,
-                    &self.client,
-                    &url,
-                    cache_path,
-                    self.refresh,
-                    expected_sha1,
-                )
             };
 
             if let Err(error) = download_result {
@@ -3058,156 +3141,45 @@ fn create_plan_for_target(
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<BuildPlan> {
     cancellation_token.bail_if_cancelled()?;
-    let worktree_path = target.worktree_path.as_path().to_path_buf();
-    let minecraft_dir = worktree_path.join("platform").join("minecraft");
-    let properties_path = minecraft_dir.join("gradle.properties");
-    let properties = read_properties(&properties_path)?;
+    let (worktree_path, minecraft_dir, properties_path) = {
+        let _span = tracing::debug_span!("plan_resolve_project_paths").entered();
+        let worktree_path = target.worktree_path.as_path().to_path_buf();
+        let minecraft_dir = worktree_path.join("platform").join("minecraft");
+        let properties_path = minecraft_dir.join("gradle.properties");
+        (worktree_path, minecraft_dir, properties_path)
+    };
+    let properties = {
+        let _span = tracing::debug_span!("plan_read_properties").entered();
+        read_properties(&properties_path)?
+    };
 
-    let minecraft_version = required_property(&properties, "minecraft_version")?;
+    let (
+        minecraft_version,
+        loader_version,
+        mapping_channel,
+        mapping_version,
+        mod_name,
+        mod_version,
+    ) = {
+        let _span = tracing::debug_span!("plan_read_project_settings").entered();
+        let minecraft_version = required_property(&properties, "minecraft_version")?;
+        let loader_version = required_property(&properties, "neo_version")?;
+        let (mapping_channel, mapping_version) =
+            resolve_mapping_settings(&properties, minecraft_version);
+        let mod_name = required_property(&properties, "mod_name")?;
+        let mod_version = required_property(&properties, "mod_version")?;
+        (
+            minecraft_version,
+            loader_version,
+            mapping_channel,
+            mapping_version,
+            mod_name,
+            mod_version,
+        )
+    };
     let warnings = Vec::new();
 
-    let loader_version = required_property(&properties, "neo_version")?;
-    let (mapping_channel, mapping_version) =
-        resolve_mapping_settings(&properties, minecraft_version);
-    let mod_name = required_property(&properties, "mod_name")?;
-    let mod_version = required_property(&properties, "mod_version")?;
-
-    let gradle_output_jar =
-        gradle_output_jar_path(&minecraft_dir, mod_name, minecraft_version, mod_version);
-    let rust_output_jar =
-        rust_output_jar_path(&minecraft_dir, mod_name, minecraft_version, mod_version);
-    let cache_dir = minecraft_dir.join("build").join("sfm-toolchain");
-    let common_cache_dir = common_toolchain_cache_dir();
-    let state_dir = cache_dir.join("state");
-    let maven_cache_dir = common_cache_dir.join("maven");
-    let minecraft_cache_dir = common_cache_dir.join("minecraft");
-    let minecraft_version_cache_dir = minecraft_cache_dir.join("versions").join(minecraft_version);
-    let minecraft_assets_dir = minecraft_cache_dir.join("assets");
-    let minecraft_libraries_dir = minecraft_cache_dir.join("libraries");
-    let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
-    fs::create_dir_all(&state_dir)?;
-    fs::create_dir_all(&maven_cache_dir)?;
-    fs::create_dir_all(&minecraft_version_cache_dir)?;
-    fs::create_dir_all(&minecraft_assets_dir)?;
-    fs::create_dir_all(&minecraft_libraries_dir)?;
-    cancellation_token.bail_if_cancelled()?;
-    let existing_lockfile = read_optional_artifact_lockfile(&lockfile_path, minecraft_version)?;
-    let lockfile = if options.refresh {
-        None
-    } else {
-        existing_lockfile.clone()
-    };
-
-    let repositories = repositories();
-    let resolver = Resolver::new(
-        maven_cache_dir.clone(),
-        repositories.clone(),
-        options.refresh,
-        options.allow_local_artifact_cache,
-        options.artifact_sources.clone(),
-        lockfile.clone(),
-        existing_lockfile.clone(),
-        cancellation_token.clone(),
-    )?;
-    cancellation_token.bail_if_cancelled()?;
-
-    let dependency_script = minecraft_dir
-        .join("gradle")
-        .join("dependencies")
-        .join(minecraft_version)
-        .join("dependencies.gradle");
-    let dependencies = parse_dependency_script(&dependency_script, &properties)?;
-    let loader_toolchain =
-        resolve_loader_toolchain(&dependencies, minecraft_version, loader_version)?;
-    cancellation_token.bail_if_cancelled()?;
-    let java_release = read_java_toolchain_release(&minecraft_dir, minecraft_version)?;
-    let required_java = required_java_runtime_major(&loader_toolchain, java_release);
-    let java = resolve_java(options.java_home.as_deref(), required_java)?;
-
-    let forge_userdev_coordinate = MavenCoordinate::parse(&loader_toolchain.userdev_coordinate)?;
-    let forge_userdev_artifact = resolver.resolve_artifact(
-        "forge-userdev",
-        &forge_userdev_coordinate,
-        "Loader userdev configuration and patches",
-    )?;
-    cancellation_token.bail_if_cancelled()?;
-    let forge_userdev = read_forge_userdev(&forge_userdev_artifact)?;
-
-    let mcp_config = if loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        None
-    } else if let Some(mcp) = &forge_userdev.mcp {
-        let mcp_coordinate = MavenCoordinate::parse(mcp)?;
-        let mcp_artifact = resolver.resolve_artifact(
-            "mcp-config",
-            &mcp_coordinate,
-            "MCPConfig clean-slate Minecraft pipeline",
-        )?;
-        cancellation_token.bail_if_cancelled()?;
-        Some(read_mcp_config(&mcp_artifact)?)
-    } else {
-        None
-    };
-
-    let mut artifacts = Vec::new();
-    artifacts.push(forge_userdev.artifact.clone());
-    if let Some(mcp_config) = &mcp_config {
-        artifacts.push(mcp_config.artifact.clone());
-    }
-
-    for (id, coordinate, required_for) in core_coordinates(
-        &loader_toolchain,
-        &mapping_channel,
-        &mapping_version,
-        &forge_userdev,
-        mcp_config.as_ref(),
-        &dependencies,
-    )? {
-        let artifact = resolver.resolve_artifact(&id, &coordinate, &required_for)?;
-        artifacts.push(artifact);
-        cancellation_token.bail_if_cancelled()?;
-    }
-
-    let minecraft = resolve_minecraft_plan(
-        &minecraft_cache_dir,
-        &resolver.client,
-        minecraft_version,
-        cancellation_token,
-    )?;
-    artifacts.push(minecraft.version_manifest.clone());
-    artifacts.push(minecraft.version_json.clone());
-    cancellation_token.bail_if_cancelled()?;
-
-    let dependency_plans = dependencies
-        .iter()
-        .filter(|dependency| should_plan_project_dependency(&loader_toolchain, dependency))
-        .map(|dependency| {
-            resolver.resolve_dependency(&dependency.configuration, &dependency.coordinate)
-        })
-        .collect::<eyre::Result<Vec<_>>>()?;
-    let dependency_plans = if loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        add_transitive_runtime_dependency_plans(&resolver, dependency_plans)?
-    } else {
-        dependency_plans
-    };
-    cancellation_token.bail_if_cancelled()?;
-
-    let graph = build_graph(
-        minecraft_version,
-        &rust_output_jar,
-        &dependency_plans,
-        &loader_toolchain,
-    );
-
-    let mut plan = BuildPlan {
-        schema_version: 1,
-        mode: match options.mode {
-            BuildMode::Plan => "plan".to_string(),
-            BuildMode::Build => "build".to_string(),
-        },
-        branch_name: target.branch.clone(),
-        minecraft_version: MinecraftVersion::parse(minecraft_version)?,
-        worktree_path,
-        minecraft_dir,
+    let (
         gradle_output_jar,
         rust_output_jar,
         cache_dir,
@@ -3219,34 +3191,314 @@ fn create_plan_for_target(
         minecraft_assets_dir,
         minecraft_libraries_dir,
         lockfile_path,
-        lockfile,
-        java,
-        java_release,
-        refresh: options.refresh,
-        allow_local_artifact_cache: options.allow_local_artifact_cache,
-        artifact_sources: options.artifact_sources.clone(),
-        properties,
-        repositories,
-        loader_toolchain,
-        artifacts,
-        minecraft,
-        forge_userdev: Some(forge_userdev),
-        mcp_config,
-        dependencies: dependency_plans,
-        graph,
-        artifact_portability: ArtifactPortabilityAudit::default(),
-        warnings,
+    ) = {
+        let _span = tracing::debug_span!("plan_compute_cache_paths").entered();
+        let gradle_output_jar =
+            gradle_output_jar_path(&minecraft_dir, mod_name, minecraft_version, mod_version);
+        let rust_output_jar =
+            rust_output_jar_path(&minecraft_dir, mod_name, minecraft_version, mod_version);
+        let cache_dir = minecraft_dir.join("build").join("sfm-toolchain");
+        let common_cache_dir = common_toolchain_cache_dir();
+        let state_dir = cache_dir.join("state");
+        let maven_cache_dir = common_cache_dir.join("maven");
+        let minecraft_cache_dir = common_cache_dir.join("minecraft");
+        let minecraft_version_cache_dir =
+            minecraft_cache_dir.join("versions").join(minecraft_version);
+        let minecraft_assets_dir = minecraft_cache_dir.join("assets");
+        let minecraft_libraries_dir = minecraft_cache_dir.join("libraries");
+        let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
+        (
+            gradle_output_jar,
+            rust_output_jar,
+            cache_dir,
+            common_cache_dir,
+            state_dir,
+            maven_cache_dir,
+            minecraft_cache_dir,
+            minecraft_version_cache_dir,
+            minecraft_assets_dir,
+            minecraft_libraries_dir,
+            lockfile_path,
+        )
     };
-    plan.artifact_portability = artifact_portability_audit(&plan)?;
-    cancellation_token.bail_if_cancelled()?;
-    if !plan.artifact_portability.fresh_slate_portable {
-        plan.warnings.push(format!(
-            "Artifact portability audit found {} non-portable artifact(s); use --require-portable-artifacts to make this a hard failure.",
-            plan.artifact_portability.non_portable_artifacts
-        ));
+    {
+        let _span = tracing::debug_span!("plan_create_cache_dirs").entered();
+        fs::create_dir_all(&state_dir)?;
+        fs::create_dir_all(&maven_cache_dir)?;
+        fs::create_dir_all(&minecraft_version_cache_dir)?;
+        fs::create_dir_all(&minecraft_assets_dir)?;
+        fs::create_dir_all(&minecraft_libraries_dir)?;
     }
-    if options.require_portable_artifacts {
-        enforce_portable_artifacts(&plan)?;
+    cancellation_token.bail_if_cancelled()?;
+    let existing_lockfile = {
+        let _span = tracing::debug_span!("plan_read_lockfile", refresh = options.refresh).entered();
+        read_optional_artifact_lockfile(&lockfile_path, minecraft_version)?
+    };
+    let lockfile = if options.refresh {
+        None
+    } else {
+        existing_lockfile.clone()
+    };
+
+    let repositories = {
+        let _span = tracing::debug_span!("plan_load_repositories").entered();
+        repositories()
+    };
+    let resolver = {
+        let _span = tracing::debug_span!(
+            "plan_create_resolver",
+            repository_count = repositories.len(),
+            has_lockfile = lockfile.is_some(),
+            has_materialization_lockfile = existing_lockfile.is_some(),
+            artifact_source_count = options.artifact_sources.len(),
+        )
+        .entered();
+        Resolver::new(
+            maven_cache_dir.clone(),
+            repositories.clone(),
+            options.refresh,
+            options.allow_local_artifact_cache,
+            options.artifact_sources.clone(),
+            lockfile.clone(),
+            existing_lockfile.clone(),
+            cancellation_token.clone(),
+        )?
+    };
+    cancellation_token.bail_if_cancelled()?;
+
+    let dependency_script = minecraft_dir
+        .join("gradle")
+        .join("dependencies")
+        .join(minecraft_version)
+        .join("dependencies.gradle");
+    let dependencies = {
+        let _span = tracing::debug_span!("plan_parse_dependency_script").entered();
+        parse_dependency_script(&dependency_script, &properties)?
+    };
+    let loader_toolchain = {
+        let _span = tracing::debug_span!(
+            "plan_resolve_loader_toolchain",
+            dependency_count = dependencies.len(),
+        )
+        .entered();
+        resolve_loader_toolchain(&dependencies, minecraft_version, loader_version)?
+    };
+    cancellation_token.bail_if_cancelled()?;
+    let (java_release, java) = {
+        let _span = tracing::debug_span!(
+            "plan_resolve_java",
+            has_java_home = options.java_home.is_some(),
+        )
+        .entered();
+        let java_release = read_java_toolchain_release(&minecraft_dir, minecraft_version)?;
+        let required_java = required_java_runtime_major(&loader_toolchain, java_release);
+
+        let java = {
+            let resolved = crate::jdk::resolve_java(options.java_home.as_deref(), required_java)?;
+            JavaPlan {
+                executable: resolved.executable,
+                home: resolved.home,
+                version_output: resolved.version_output,
+                major_version: resolved.major_version,
+            }
+        };
+        (java_release, java)
+    };
+
+    let (forge_userdev, mcp_config) = {
+        let _span =
+            tracing::debug_span!("plan_resolve_loader_artifacts", loader_kind = ?loader_toolchain.kind)
+                .entered();
+        let forge_userdev_coordinate =
+            MavenCoordinate::parse(&loader_toolchain.userdev_coordinate)?;
+        let forge_userdev_artifact = resolver.resolve_artifact(
+            "forge-userdev",
+            &forge_userdev_coordinate,
+            "Loader userdev configuration and patches",
+        )?;
+        cancellation_token.bail_if_cancelled()?;
+        let forge_userdev = read_forge_userdev(&forge_userdev_artifact)?;
+
+        let mcp_config = if loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
+            None
+        } else if let Some(mcp) = &forge_userdev.mcp {
+            let mcp_coordinate = MavenCoordinate::parse(mcp)?;
+            let mcp_artifact = resolver.resolve_artifact(
+                "mcp-config",
+                &mcp_coordinate,
+                "MCPConfig clean-slate Minecraft pipeline",
+            )?;
+            cancellation_token.bail_if_cancelled()?;
+            Some(read_mcp_config(&mcp_artifact)?)
+        } else {
+            None
+        };
+        (forge_userdev, mcp_config)
+    };
+
+    let mut artifacts = Vec::new();
+    artifacts.push(forge_userdev.artifact.clone());
+    if let Some(mcp_config) = &mcp_config {
+        artifacts.push(mcp_config.artifact.clone());
+    }
+
+    let core_coordinates = {
+        let _span = tracing::debug_span!(
+            "plan_select_core_artifacts",
+            loader_kind = ?loader_toolchain.kind,
+            mapping_channel = mapping_channel.as_str(),
+        )
+        .entered();
+        core_coordinates(
+            &loader_toolchain,
+            &mapping_channel,
+            &mapping_version,
+            &forge_userdev,
+            mcp_config.as_ref(),
+            &dependencies,
+        )?
+    };
+    {
+        let _span = tracing::debug_span!(
+            "plan_resolve_core_artifacts",
+            artifact_count = core_coordinates.len(),
+        )
+        .entered();
+        for (id, coordinate, required_for) in core_coordinates {
+            let artifact = resolver.resolve_artifact(&id, &coordinate, &required_for)?;
+            artifacts.push(artifact);
+            cancellation_token.bail_if_cancelled()?;
+        }
+    }
+
+    let minecraft = {
+        let _span = tracing::debug_span!("plan_resolve_minecraft_inputs").entered();
+        resolve_minecraft_plan(
+            &minecraft_cache_dir,
+            &resolver.client,
+            minecraft_version,
+            cancellation_token,
+        )?
+    };
+    artifacts.push(minecraft.version_manifest.clone());
+    artifacts.push(minecraft.version_json.clone());
+    cancellation_token.bail_if_cancelled()?;
+
+    let dependency_plans = {
+        let _span = tracing::debug_span!(
+            "plan_resolve_project_dependencies",
+            parsed_dependency_count = dependencies.len(),
+            loader_kind = ?loader_toolchain.kind,
+        )
+        .entered();
+        let dependency_plans = dependencies
+            .iter()
+            .filter(|dependency| should_plan_project_dependency(&loader_toolchain, dependency))
+            .map(|dependency| {
+                resolver.resolve_dependency(&dependency.configuration, &dependency.coordinate)
+            })
+            .collect::<eyre::Result<Vec<_>>>()?;
+        if loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
+            let _span = tracing::debug_span!(
+                "plan_resolve_transitive_runtime_dependencies",
+                root_dependency_count = dependency_plans.len(),
+            )
+            .entered();
+            add_transitive_runtime_dependency_plans(&resolver, dependency_plans)?
+        } else {
+            dependency_plans
+        }
+    };
+    cancellation_token.bail_if_cancelled()?;
+
+    let graph = {
+        let _span = tracing::debug_span!(
+            "plan_build_graph",
+            dependency_count = dependency_plans.len(),
+        )
+        .entered();
+        build_graph(
+            minecraft_version,
+            &rust_output_jar,
+            &dependency_plans,
+            &loader_toolchain,
+        )
+    };
+
+    let mut plan = {
+        let _span = tracing::debug_span!(
+            "plan_assemble",
+            artifact_count = artifacts.len(),
+            dependency_count = dependency_plans.len(),
+            graph_node_count = graph.len(),
+        )
+        .entered();
+        BuildPlan {
+            schema_version: 1,
+            mode: match options.mode {
+                BuildMode::Plan => "plan".to_string(),
+                BuildMode::Build => "build".to_string(),
+            },
+            branch_name: target.branch.clone(),
+            minecraft_version: MinecraftVersion::parse(minecraft_version)?,
+            worktree_path,
+            minecraft_dir,
+            gradle_output_jar,
+            rust_output_jar,
+            cache_dir,
+            common_cache_dir,
+            state_dir,
+            maven_cache_dir,
+            minecraft_cache_dir,
+            minecraft_version_cache_dir,
+            minecraft_assets_dir,
+            minecraft_libraries_dir,
+            lockfile_path,
+            lockfile,
+            java,
+            java_release,
+            refresh: options.refresh,
+            allow_local_artifact_cache: options.allow_local_artifact_cache,
+            artifact_sources: options.artifact_sources.clone(),
+            properties,
+            repositories,
+            loader_toolchain,
+            artifacts,
+            minecraft,
+            forge_userdev: Some(forge_userdev),
+            mcp_config,
+            dependencies: dependency_plans,
+            graph,
+            artifact_portability: ArtifactPortabilityAudit::default(),
+            warnings,
+        }
+    };
+    {
+        let _span = tracing::debug_span!(
+            "plan_audit_artifact_portability",
+            artifact_count = plan.artifacts.len(),
+            dependency_count = plan.dependencies.len(),
+        )
+        .entered();
+        plan.artifact_portability = artifact_portability_audit(&plan)?;
+    }
+    cancellation_token.bail_if_cancelled()?;
+    {
+        let _span = tracing::debug_span!(
+            "plan_finalize",
+            require_portable_artifacts = options.require_portable_artifacts,
+            fresh_slate_portable = plan.artifact_portability.fresh_slate_portable,
+        )
+        .entered();
+        if !plan.artifact_portability.fresh_slate_portable {
+            plan.warnings.push(format!(
+                "Artifact portability audit found {} non-portable artifact(s); use --require-portable-artifacts to make this a hard failure.",
+                plan.artifact_portability.non_portable_artifacts
+            ));
+        }
+        if options.require_portable_artifacts {
+            enforce_portable_artifacts(&plan)?;
+        }
     }
     Ok(plan)
 }
@@ -11636,6 +11888,7 @@ fn print_plan_summary(plan: &BuildPlan) {
     }
 }
 
+#[instrument(level = "info", skip_all, fields(minecraft_version = %minecraft_version))]
 fn read_java_toolchain_release(minecraft_dir: &Path, minecraft_version: &str) -> eyre::Result<u32> {
     let path = minecraft_dir
         .join("gradle")
@@ -11660,22 +11913,13 @@ fn read_java_toolchain_release(minecraft_dir: &Path, minecraft_version: &str) ->
         .wrap_err_with(|| format!("Could not parse Java release from {}", path.display()))
 }
 
+#[instrument(level = "info", skip_all, fields(loader_toolchain = ?loader_toolchain.kind, java_release = %java_release))]
 fn required_java_runtime_major(loader_toolchain: &LoaderToolchainPlan, java_release: u32) -> u32 {
     if loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         java_release.max(21)
     } else {
         java_release
     }
-}
-
-fn resolve_java(java_home: Option<&Path>, required_major: u32) -> eyre::Result<JavaPlan> {
-    let resolved = crate::jdk::resolve_java(java_home, required_major)?;
-    Ok(JavaPlan {
-        executable: resolved.executable,
-        home: resolved.home,
-        version_output: resolved.version_output,
-        major_version: resolved.major_version,
-    })
 }
 
 fn javac_executable(java: &JavaPlan) -> PathBuf {
