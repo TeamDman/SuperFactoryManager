@@ -35,9 +35,13 @@ pub struct JarCompareArgs {
     #[facet(rename = "error-action", default, args::named)]
     pub error_action: ErrorAction,
 
-    /// Run matching targets in parallel. Bare `--parallel` defaults to 10 before parsing.
+    /// Run matching targets in parallel. Bare `--parallel` defaults to 10.
     #[facet(default, args::named)]
-    pub parallel: Option<usize>,
+    #[expect(
+        clippy::option_option,
+        reason = "figue uses Option<Option<T>> to model absent, bare, and valued optional-value flags."
+    )]
+    pub parallel: Option<Option<usize>>,
 }
 
 impl JarCompareArgs {

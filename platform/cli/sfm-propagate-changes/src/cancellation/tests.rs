@@ -1,4 +1,5 @@
 use super::CancellationState;
+use super::CancellationToken;
 use super::CtrlCAction;
 use std::time::Duration;
 use std::time::Instant;
@@ -41,5 +42,31 @@ fn later_ctrl_c_starts_a_new_graceful_window() {
     assert_eq!(
         state.record_ctrl_c(now + Duration::from_secs(2)),
         CtrlCAction::RequestGracefulShutdown
+    );
+}
+
+#[test]
+fn cancellation_token_clones_share_cancellation() {
+    let token = CancellationToken::new();
+    let clone = token.clone();
+
+    clone.request_cancel("profile stop");
+
+    assert!(token.is_cancelled());
+    assert_eq!(token.cancellation_reason().as_deref(), Some("profile stop"));
+}
+
+#[test]
+fn cancellation_token_keeps_first_reason() {
+    let token = CancellationToken::new();
+
+    token.request_cancel("first");
+    token.request_cancel("second");
+
+    assert_eq!(token.cancellation_reason().as_deref(), Some("first"));
+    assert!(
+        token
+            .bail_if_cancelled()
+            .is_err_and(|error| error.to_string() == "first")
     );
 }

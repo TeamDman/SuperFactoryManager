@@ -88,14 +88,11 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering as AtomicOrdering;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
-
-static TEST_DIR_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[test]
 fn parses_classifier_coordinate() {
@@ -186,15 +183,11 @@ fn set_minecraft_option_replaces_or_appends_option() {
 
 #[test]
 fn client_automation_options_disable_onboarding_and_focus_pause() {
-    let test_dir = std::env::temp_dir().join(format!(
-        "sfm-client-options-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system time after unix epoch")
-            .as_nanos()
-    ));
-    let minecraft_dir = test_dir.join("minecraft");
+    let test_dir = tempfile::Builder::new()
+        .prefix("sfm-client-options-")
+        .tempdir()
+        .expect("test temp dir should be created");
+    let minecraft_dir = test_dir.path().join("minecraft");
     let puppet_dir = minecraft_dir.join("runClientPuppet");
     fs::create_dir_all(&puppet_dir).expect("create puppet run dir");
     let options_path = puppet_dir.join("options.txt");
@@ -221,8 +214,6 @@ fn client_automation_options_disable_onboarding_and_focus_pause() {
         .expect("skip regular client options");
     assert_eq!(untouched, None);
     assert!(!client_dir.join("options.txt").exists());
-
-    fs::remove_dir_all(test_dir).expect("remove test dir");
 }
 
 #[test]
@@ -1211,12 +1202,9 @@ fn parallel_targets_stop_starting_after_cancellation() {
         test_worktree_target("1.19.2", "D:/tmp/1.19.2"),
         test_worktree_target("1.20.1", "D:/tmp/1.20.1"),
     ];
-    let cancelled = Arc::new(AtomicBool::new(false));
     let started = Arc::new(AtomicUsize::new(0));
-    let token_cancelled = Arc::clone(&cancelled);
-    let cancellation_token =
-        CancellationToken::new(move || token_cancelled.load(AtomicOrdering::Acquire));
-    let execute_cancelled = Arc::clone(&cancelled);
+    let cancellation_token = CancellationToken::new();
+    let execute_cancellation_token = cancellation_token.clone();
     let execute_started = Arc::clone(&started);
 
     let error = execute_targets_parallel_with_cancellation(
@@ -1228,7 +1216,7 @@ fn parallel_targets_stop_starting_after_cancellation() {
             execute_started.fetch_add(1, AtomicOrdering::Relaxed);
             let mut plan = minimal_plan_for_paths();
             plan.branch_name = target.branch.clone();
-            execute_cancelled.store(true, AtomicOrdering::Release);
+            execute_cancellation_token.request_cancel("Operation cancelled by Ctrl+C");
             Ok(plan)
         },
         &cancellation_token,
@@ -2087,7 +2075,7 @@ fn matching_siblings(path: &Path, kind: &str) -> Vec<PathBuf> {
 }
 
 fn test_cancellation_token() -> CancellationToken {
-    CancellationToken::new(|| false)
+    CancellationToken::new()
 }
 
 fn run_git<const N: usize>(repo: &Path, args: [&str; N]) {
@@ -2169,27 +2157,16 @@ fn write_fake_gradle_wrapper(source_root: &Path, output_path: &Path) {
 
 struct TestDir {
     path: PathBuf,
+    _dir: tempfile::TempDir,
 }
 
 impl TestDir {
     fn new(name: &str) -> Self {
-        let id = TEST_DIR_COUNTER.fetch_add(1, AtomicOrdering::SeqCst);
-        let path = std::env::temp_dir().join(format!(
-            "sfm-jar-build-engine-tests-{name}-{}-{id}",
-            std::process::id()
-        ));
-        if path.exists() {
-            fs::remove_dir_all(&path).expect("stale test dir should be removable");
-        }
-        fs::create_dir_all(&path).expect("test dir should be created");
-        Self { path }
-    }
-}
-
-impl Drop for TestDir {
-    fn drop(&mut self) {
-        if self.path.exists() {
-            fs::remove_dir_all(&self.path).expect("test dir should be removable");
-        }
+        let dir = tempfile::Builder::new()
+            .prefix(&format!("sfm-jar-build-engine-tests-{name}-"))
+            .tempdir()
+            .expect("test dir should be created");
+        let path = dir.path().to_path_buf();
+        Self { path, _dir: dir }
     }
 }
