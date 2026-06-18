@@ -18,6 +18,7 @@ use crate::branch_targets::BranchName;
 use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::select_required_worktree_targets;
+use crate::cancellation::CancellationToken;
 use crate::paths::CACHE_DIR;
 use chrono::Local;
 use eyre::Context;
@@ -74,9 +75,10 @@ const PROJECT_COMPILE_ANNOTATION_COORDINATES: [(&str, &str); 2] = [
 ];
 const DOWNLOAD_RETRY_ATTEMPTS: usize = 3;
 
-pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "sfm_jar_build_command",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %options.branch,
         mode = ?options.mode,
         refresh = options.refresh,
@@ -87,10 +89,18 @@ pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
         error_action = %options.error_action,
         parallelism = %options.parallelism,
     )
-    .entered();
+)]
+pub(crate) fn invoke_build(
+    options: &BuildOptions,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     let targets = resolve_build_targets(options)?;
+    cancellation_token.bail_if_cancelled()?;
     let target_count = targets.len();
-    let TargetExecutionSummary { plans, failures } = execute_build_targets(options, targets)?;
+    let TargetExecutionSummary { plans, failures } =
+        execute_build_targets(options, targets, cancellation_token)?;
+    cancellation_token.bail_if_cancelled()?;
 
     write_requested_plan_outputs(&plans, options.plan_json.as_deref())?;
     finish_target_summary(
@@ -101,9 +111,10 @@ pub(crate) fn invoke_build(options: &BuildOptions) -> eyre::Result<()> {
     )
 }
 
-pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "sfm_run_command",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %options.branch,
         kind = kind.command_name(),
         refresh = options.refresh,
@@ -114,10 +125,19 @@ pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<
         error_action = %options.error_action,
         parallelism = %options.parallelism,
     )
-    .entered();
+)]
+pub(crate) fn invoke_run(
+    options: &BuildOptions,
+    kind: RunKind,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     let targets = resolve_build_targets(options)?;
+    cancellation_token.bail_if_cancelled()?;
     let target_count = targets.len();
-    let TargetExecutionSummary { plans, failures } = execute_run_targets(options, kind, targets)?;
+    let TargetExecutionSummary { plans, failures } =
+        execute_run_targets(options, kind, targets, cancellation_token)?;
+    cancellation_token.bail_if_cancelled()?;
 
     write_requested_plan_outputs(&plans, options.plan_json.as_deref())?;
     finish_target_summary(kind.command_name(), target_count, plans.len(), &failures)
@@ -126,19 +146,21 @@ pub(crate) fn invoke_run(options: &BuildOptions, kind: RunKind) -> eyre::Result<
 fn execute_build_targets(
     options: &BuildOptions,
     targets: Vec<WorktreeTarget>,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<TargetExecutionSummary> {
     execute_targets(
         options,
         targets,
         "sfm_jar_build_target",
-        |options, target| {
+        cancellation_token,
+        |options, target, cancellation_token| {
             let _target_span = tracing::info_span!(
                 "sfm_jar_build_target",
                 branch = %target.branch,
                 worktree = %target.worktree_path.display(),
             )
             .entered();
-            execute_build_target(options, target)
+            execute_build_target(options, target, cancellation_token)
         },
     )
 }
@@ -147,42 +169,53 @@ fn execute_run_targets(
     options: &BuildOptions,
     kind: RunKind,
     targets: Vec<WorktreeTarget>,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<TargetExecutionSummary> {
-    execute_targets(options, targets, "sfm_run_target", |options, target| {
-        let _target_span = tracing::info_span!(
-            "sfm_run_target",
-            branch = %target.branch,
-            worktree = %target.worktree_path.display(),
-            kind = kind.command_name(),
-        )
-        .entered();
-        execute_run_target(options, kind, target)
-    })
+    execute_targets(
+        options,
+        targets,
+        "sfm_run_target",
+        cancellation_token,
+        |options, target, cancellation_token| {
+            let _target_span = tracing::info_span!(
+                "sfm_run_target",
+                branch = %target.branch,
+                worktree = %target.worktree_path.display(),
+                kind = kind.command_name(),
+            )
+            .entered();
+            execute_run_target(options, kind, target, cancellation_token)
+        },
+    )
 }
 
 fn execute_targets(
     options: &BuildOptions,
     targets: Vec<WorktreeTarget>,
     action: &'static str,
-    execute: impl Fn(&BuildOptions, &WorktreeTarget) -> eyre::Result<BuildPlan> + Send + Sync,
+    cancellation_token: &CancellationToken,
+    execute: impl Fn(&BuildOptions, &WorktreeTarget, &CancellationToken) -> eyre::Result<BuildPlan>
+    + Send
+    + Sync,
 ) -> eyre::Result<TargetExecutionSummary> {
     let Some(limit) = options.parallelism.limit() else {
-        return execute_targets_sequential(options, targets, execute);
+        return execute_targets_sequential(options, targets, cancellation_token, execute);
     };
-    execute_targets_parallel(options, targets, action, limit, execute)
+    execute_targets_parallel(options, targets, action, limit, cancellation_token, execute)
 }
 
 fn execute_targets_sequential(
     options: &BuildOptions,
     targets: Vec<WorktreeTarget>,
-    execute: impl Fn(&BuildOptions, &WorktreeTarget) -> eyre::Result<BuildPlan>,
+    cancellation_token: &CancellationToken,
+    execute: impl Fn(&BuildOptions, &WorktreeTarget, &CancellationToken) -> eyre::Result<BuildPlan>,
 ) -> eyre::Result<TargetExecutionSummary> {
     let mut plans = Vec::new();
     let mut failures = Vec::new();
 
     for target in targets {
-        crate::cancellation::bail_if_cancelled()?;
-        match execute(options, &target) {
+        cancellation_token.bail_if_cancelled()?;
+        match execute(options, &target, cancellation_token) {
             Ok(plan) => plans.push(plan),
             Err(error) if options.error_action.should_continue() => {
                 tracing::error!(error = %error, "target_failed");
@@ -190,6 +223,7 @@ fn execute_targets_sequential(
             }
             Err(error) => return Err(error),
         }
+        cancellation_token.bail_if_cancelled()?;
     }
 
     Ok(TargetExecutionSummary { plans, failures })
@@ -200,7 +234,10 @@ fn execute_targets_parallel(
     targets: Vec<WorktreeTarget>,
     action: &'static str,
     limit: usize,
-    execute: impl Fn(&BuildOptions, &WorktreeTarget) -> eyre::Result<BuildPlan> + Send + Sync,
+    cancellation_token: &CancellationToken,
+    execute: impl Fn(&BuildOptions, &WorktreeTarget, &CancellationToken) -> eyre::Result<BuildPlan>
+    + Send
+    + Sync,
 ) -> eyre::Result<TargetExecutionSummary> {
     execute_targets_parallel_with_cancellation(
         options,
@@ -208,7 +245,7 @@ fn execute_targets_parallel(
         action,
         limit,
         execute,
-        crate::cancellation::is_cancelled,
+        cancellation_token,
     )
 }
 
@@ -217,8 +254,10 @@ fn execute_targets_parallel_with_cancellation(
     targets: Vec<WorktreeTarget>,
     action: &'static str,
     limit: usize,
-    execute: impl Fn(&BuildOptions, &WorktreeTarget) -> eyre::Result<BuildPlan> + Send + Sync,
-    is_cancelled: impl Fn() -> bool + Send + Sync,
+    execute: impl Fn(&BuildOptions, &WorktreeTarget, &CancellationToken) -> eyre::Result<BuildPlan>
+    + Send
+    + Sync,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<TargetExecutionSummary> {
     if targets.is_empty() {
         return Ok(TargetExecutionSummary::default());
@@ -246,10 +285,12 @@ fn execute_targets_parallel_with_cancellation(
             let stop_starting = Arc::clone(&stop_starting);
             let sender = sender.clone();
             let execute = &execute;
-            let is_cancelled = &is_cancelled;
+            let cancellation_token = cancellation_token.clone();
             scope.spawn(move || {
                 loop {
-                    if stop_starting.load(AtomicOrdering::Acquire) || is_cancelled() {
+                    if stop_starting.load(AtomicOrdering::Acquire)
+                        || cancellation_token.is_cancelled()
+                    {
                         break;
                     }
                     let target = {
@@ -267,7 +308,7 @@ fn execute_targets_parallel_with_cancellation(
                         worktree = %target.worktree_path.display(),
                     )
                     .entered();
-                    let result = execute(options, &target);
+                    let result = execute(options, &target, &cancellation_token);
                     let failed = result.is_err();
                     if failed && !options.error_action.should_continue() {
                         stop_starting.store(true, AtomicOrdering::Release);
@@ -306,9 +347,7 @@ fn execute_targets_parallel_with_cancellation(
             }
         }
 
-        if is_cancelled() {
-            eyre::bail!("Operation cancelled by Ctrl+C");
-        }
+        cancellation_token.bail_if_cancelled()?;
 
         Ok(TargetExecutionSummary { plans, failures })
     })
@@ -317,10 +356,14 @@ fn execute_targets_parallel_with_cancellation(
 fn execute_build_target(
     options: &BuildOptions,
     target: &WorktreeTarget,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<BuildPlan> {
-    let plan = create_plan_for_target(options, target)?;
+    cancellation_token.bail_if_cancelled()?;
+    let plan = create_plan_for_target(options, target, cancellation_token)?;
+    cancellation_token.bail_if_cancelled()?;
     write_last_plan_output(&plan)?;
     print_plan_summary(&plan);
+    cancellation_token.bail_if_cancelled()?;
 
     match options.mode {
         BuildMode::Plan => write_artifact_lockfile(&plan)?,
@@ -332,7 +375,13 @@ fn execute_build_target(
             write_artifact_lockfile(&plan)?;
         }
         BuildMode::Build => {
-            execute_build(&plan, options.explain_rebuild, BuildTarget::Jar)?;
+            execute_build(
+                &plan,
+                options.explain_rebuild,
+                BuildTarget::Jar,
+                cancellation_token,
+            )?;
+            cancellation_token.bail_if_cancelled()?;
             write_artifact_lockfile(&plan)?;
         }
     }
@@ -344,13 +393,24 @@ fn execute_run_target(
     options: &BuildOptions,
     kind: RunKind,
     target: &WorktreeTarget,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<BuildPlan> {
-    let plan = create_plan_for_target(options, target)?;
+    cancellation_token.bail_if_cancelled()?;
+    let plan = create_plan_for_target(options, target, cancellation_token)?;
+    cancellation_token.bail_if_cancelled()?;
     write_last_plan_output(&plan)?;
     print_plan_summary(&plan);
-    execute_build(&plan, options.explain_rebuild, BuildTarget::Run)?;
+    cancellation_token.bail_if_cancelled()?;
+    execute_build(
+        &plan,
+        options.explain_rebuild,
+        BuildTarget::Run,
+        cancellation_token,
+    )?;
+    cancellation_token.bail_if_cancelled()?;
     write_artifact_lockfile(&plan)?;
-    execute_run(&plan, kind, options.dry_run)?;
+    cancellation_token.bail_if_cancelled()?;
+    execute_run(&plan, kind, options.dry_run, cancellation_token)?;
     Ok(plan)
 }
 
@@ -393,18 +453,25 @@ fn finish_target_summary(
     );
 }
 
-pub(crate) fn invoke_compare(options: &CompareOptions) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "sfm_jar_compare_command",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %options.branch,
         strict_manifest = options.strict_manifest,
         error_action = %options.error_action,
         parallelism = %options.parallelism,
     )
-    .entered();
+)]
+pub(crate) fn invoke_compare(
+    options: &CompareOptions,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     let targets = select_required_worktree_targets(&options.branch)?;
+    cancellation_token.bail_if_cancelled()?;
     if targets.len() == 1 {
-        return invoke_single_target_compare(options, &targets[0]);
+        return invoke_single_target_compare(options, &targets[0], cancellation_token);
     }
 
     if options.gradle_jar.is_some() || options.rust_jar.is_some() {
@@ -414,7 +481,9 @@ pub(crate) fn invoke_compare(options: &CompareOptions) -> eyre::Result<()> {
     }
 
     let total = targets.len();
-    let CompareExecutionSummary { reports, failures } = execute_compare_targets(options, targets)?;
+    let CompareExecutionSummary { reports, failures } =
+        execute_compare_targets(options, targets, cancellation_token)?;
+    cancellation_token.bail_if_cancelled()?;
     write_compare_reports(&reports, options.report_json.as_deref())?;
     finish_compare_summary(total, &reports, &failures)
 }
@@ -422,21 +491,23 @@ pub(crate) fn invoke_compare(options: &CompareOptions) -> eyre::Result<()> {
 fn execute_compare_targets(
     options: &CompareOptions,
     targets: Vec<WorktreeTarget>,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<CompareExecutionSummary> {
     let Some(limit) = options.parallelism.limit() else {
-        return execute_compare_targets_sequential(options, targets);
+        return execute_compare_targets_sequential(options, targets, cancellation_token);
     };
-    execute_compare_targets_parallel(options, targets, limit)
+    execute_compare_targets_parallel(options, targets, limit, cancellation_token)
 }
 
 fn execute_compare_targets_sequential(
     options: &CompareOptions,
     targets: Vec<WorktreeTarget>,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<CompareExecutionSummary> {
     let mut reports = Vec::new();
     let mut failures = Vec::new();
     for target in targets {
-        crate::cancellation::bail_if_cancelled()?;
+        cancellation_token.bail_if_cancelled()?;
         let _target_span = tracing::info_span!(
             "sfm_jar_compare_target",
             branch = %target.branch,
@@ -449,6 +520,7 @@ fn execute_compare_targets_sequential(
             &mut reports,
             &mut failures,
         );
+        cancellation_token.bail_if_cancelled()?;
 
         if !failures.is_empty() && !options.error_action.should_continue() {
             break;
@@ -462,6 +534,7 @@ fn execute_compare_targets_parallel(
     options: &CompareOptions,
     targets: Vec<WorktreeTarget>,
     limit: usize,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<CompareExecutionSummary> {
     if targets.is_empty() {
         return Ok(CompareExecutionSummary::default());
@@ -488,10 +561,11 @@ fn execute_compare_targets_parallel(
             let queue = Arc::clone(&queue);
             let stop_starting = Arc::clone(&stop_starting);
             let sender = sender.clone();
+            let cancellation_token = cancellation_token.clone();
             scope.spawn(move || {
                 loop {
                     if stop_starting.load(AtomicOrdering::Acquire)
-                        || crate::cancellation::is_cancelled()
+                        || cancellation_token.is_cancelled()
                     {
                         break;
                     }
@@ -541,9 +615,7 @@ fn execute_compare_targets_parallel(
             record_compare_result(&result.target, result.result, &mut reports, &mut failures);
         }
 
-        if crate::cancellation::is_cancelled() {
-            eyre::bail!("Operation cancelled by Ctrl+C");
-        }
+        cancellation_token.bail_if_cancelled()?;
 
         Ok(CompareExecutionSummary { reports, failures })
     })
@@ -573,17 +645,22 @@ fn record_compare_result(
     }
 }
 
-fn invoke_single_target_compare(
-    options: &CompareOptions,
-    target: &WorktreeTarget,
-) -> eyre::Result<()> {
-    let _target_span = tracing::info_span!(
-        "sfm_jar_compare_target",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %target.branch,
         worktree = %target.worktree_path.display(),
     )
-    .entered();
+)]
+fn invoke_single_target_compare(
+    options: &CompareOptions,
+    target: &WorktreeTarget,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     let report = compare_target(options, target)?;
+    cancellation_token.bail_if_cancelled()?;
 
     emit_compare_report(&report.report);
     let matches = report.report.matches;
@@ -644,19 +721,27 @@ fn finish_compare_summary(
     );
 }
 
-pub(crate) fn invoke_artifact_audit(options: &ArtifactAuditOptions) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "sfm_jar_artifact_audit_command",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %options.branch,
         require_portable_artifacts = options.require_portable_artifacts,
         error_action = %options.error_action,
         parallelism = %options.parallelism,
     )
-    .entered();
+)]
+pub(crate) fn invoke_artifact_audit(
+    options: &ArtifactAuditOptions,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     let targets = select_required_worktree_targets(&options.branch)?;
+    cancellation_token.bail_if_cancelled()?;
     let total = targets.len();
     let ArtifactAuditExecutionSummary { reports, failures } =
-        execute_artifact_audit_targets(options, targets)?;
+        execute_artifact_audit_targets(options, targets, cancellation_token)?;
+    cancellation_token.bail_if_cancelled()?;
     write_artifact_audit_reports(&reports, options.report_json.as_deref())?;
     finish_artifact_audit_summary(total, &reports, &failures)
 }
@@ -664,21 +749,23 @@ pub(crate) fn invoke_artifact_audit(options: &ArtifactAuditOptions) -> eyre::Res
 fn execute_artifact_audit_targets(
     options: &ArtifactAuditOptions,
     targets: Vec<WorktreeTarget>,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<ArtifactAuditExecutionSummary> {
     let Some(limit) = options.parallelism.limit() else {
-        return execute_artifact_audit_targets_sequential(options, targets);
+        return execute_artifact_audit_targets_sequential(options, targets, cancellation_token);
     };
-    execute_artifact_audit_targets_parallel(options, targets, limit)
+    execute_artifact_audit_targets_parallel(options, targets, limit, cancellation_token)
 }
 
 fn execute_artifact_audit_targets_sequential(
     options: &ArtifactAuditOptions,
     targets: Vec<WorktreeTarget>,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<ArtifactAuditExecutionSummary> {
     let mut reports = Vec::new();
     let mut failures = Vec::new();
     for target in targets {
-        crate::cancellation::bail_if_cancelled()?;
+        cancellation_token.bail_if_cancelled()?;
         let _target_span = tracing::info_span!(
             "sfm_jar_artifact_audit_target",
             branch = %target.branch,
@@ -691,6 +778,7 @@ fn execute_artifact_audit_targets_sequential(
             &mut reports,
             &mut failures,
         );
+        cancellation_token.bail_if_cancelled()?;
 
         if !failures.is_empty() && !options.error_action.should_continue() {
             break;
@@ -704,6 +792,7 @@ fn execute_artifact_audit_targets_parallel(
     options: &ArtifactAuditOptions,
     targets: Vec<WorktreeTarget>,
     limit: usize,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<ArtifactAuditExecutionSummary> {
     if targets.is_empty() {
         return Ok(ArtifactAuditExecutionSummary::default());
@@ -730,10 +819,11 @@ fn execute_artifact_audit_targets_parallel(
             let queue = Arc::clone(&queue);
             let stop_starting = Arc::clone(&stop_starting);
             let sender = sender.clone();
+            let cancellation_token = cancellation_token.clone();
             scope.spawn(move || {
                 loop {
                     if stop_starting.load(AtomicOrdering::Acquire)
-                        || crate::cancellation::is_cancelled()
+                        || cancellation_token.is_cancelled()
                     {
                         break;
                     }
@@ -786,9 +876,7 @@ fn execute_artifact_audit_targets_parallel(
             );
         }
 
-        if crate::cancellation::is_cancelled() {
-            eyre::bail!("Operation cancelled by Ctrl+C");
-        }
+        cancellation_token.bail_if_cancelled()?;
 
         Ok(ArtifactAuditExecutionSummary { reports, failures })
     })
@@ -1792,6 +1880,7 @@ struct Resolver {
     artifact_sources: Vec<PathBuf>,
     lockfile: Option<ArtifactLockfile>,
     materialization_lockfile: Option<ArtifactLockfile>,
+    cancellation_token: CancellationToken,
 }
 
 #[derive(Debug, Facet)]
@@ -2000,6 +2089,22 @@ impl McpFunction {
 }
 
 impl Resolver {
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "Resolver construction mirrors the normalized planner state it owns."
+    )]
+    #[tracing::instrument(
+        level = "debug",
+        skip_all,
+        fields(
+            cache_dir = %cache_dir.display(),
+            repository_count = repositories.len(),
+            refresh,
+            allow_local_artifact_cache,
+            artifact_source_count = artifact_sources.len(),
+            has_lockfile = lockfile.is_some(),
+        )
+    )]
     fn new(
         cache_dir: PathBuf,
         repositories: Vec<Repository>,
@@ -2008,17 +2113,9 @@ impl Resolver {
         artifact_sources: Vec<PathBuf>,
         lockfile: Option<ArtifactLockfile>,
         materialization_lockfile: Option<ArtifactLockfile>,
+        cancellation_token: CancellationToken,
     ) -> eyre::Result<Self> {
-        let _span = tracing::debug_span!(
-            "create_maven_resolver",
-            cache_dir = %cache_dir.display(),
-            repository_count = repositories.len(),
-            refresh,
-            allow_local_artifact_cache,
-            artifact_source_count = artifact_sources.len(),
-            has_lockfile = lockfile.is_some(),
-        )
-        .entered();
+        cancellation_token.bail_if_cancelled()?;
         let client = Client::builder()
             .user_agent("sfm-propagate-changes/no-gradle-toolchain")
             .build()
@@ -2033,6 +2130,7 @@ impl Resolver {
             artifact_sources,
             lockfile,
             materialization_lockfile,
+            cancellation_token,
         })
     }
 
@@ -2042,6 +2140,7 @@ impl Resolver {
         coordinate: &MavenCoordinate,
         required_for: &str,
     ) -> eyre::Result<ArtifactPlan> {
+        self.cancellation_token.bail_if_cancelled()?;
         let _span = tracing::debug_span!(
             "resolve_artifact",
             id,
@@ -2050,6 +2149,7 @@ impl Resolver {
         )
         .entered();
         let coordinate = self.resolve_dynamic_coordinate(coordinate)?;
+        self.cancellation_token.bail_if_cancelled()?;
         let cache_path = self.cache_path_for(&coordinate);
         let expected_sha1 = self
             .locked_artifact_sha1(&coordinate)
@@ -2064,8 +2164,10 @@ impl Resolver {
         )? {
             return Ok(artifact);
         }
+        self.cancellation_token.bail_if_cancelled()?;
 
         let _cache_lock = acquire_artifact_path_lock(&cache_path)?;
+        self.cancellation_token.bail_if_cancelled()?;
         prepare_existing_artifact_for_reuse(&cache_path, expected_sha1.as_deref())?;
 
         if cache_path.is_file() && !self.refresh {
@@ -2091,6 +2193,7 @@ impl Resolver {
         )? {
             return Ok(artifact);
         }
+        self.cancellation_token.bail_if_cancelled()?;
 
         if let Some(artifact) = self.explicit_artifact_source_fallback(
             id,
@@ -2101,6 +2204,7 @@ impl Resolver {
         )? {
             return Ok(artifact);
         }
+        self.cancellation_token.bail_if_cancelled()?;
 
         if let Some(artifact) = self.source_build_fallback(
             id,
@@ -2111,6 +2215,7 @@ impl Resolver {
         )? {
             return Ok(artifact);
         }
+        self.cancellation_token.bail_if_cancelled()?;
 
         if let Some(artifact) = self.local_artifact_fallback(
             id,
@@ -2137,6 +2242,7 @@ impl Resolver {
         required_for: &str,
         expected_sha1: Option<&str>,
     ) -> eyre::Result<Option<ArtifactPlan>> {
+        self.cancellation_token.bail_if_cancelled()?;
         let Some(locked) = self.materializable_locked_artifact(coordinate) else {
             return Ok(None);
         };
@@ -2157,7 +2263,14 @@ impl Resolver {
             .unwrap_or(&self.cache_dir)
             .join("source-builds")
             .join(&checkout_key);
-        materialize_source_build(remote_url, &source_git.commit, source_build, &checkout_dir)?;
+        materialize_source_build(
+            &self.cancellation_token,
+            remote_url,
+            &source_git.commit,
+            source_build,
+            &checkout_dir,
+        )?;
+        self.cancellation_token.bail_if_cancelled()?;
         let source_output = checkout_dir.join(&source_build.output_path);
         if !source_output.is_file() {
             eyre::bail!(
@@ -2243,6 +2356,7 @@ impl Resolver {
         attempted: &mut Vec<String>,
     ) -> eyre::Result<Option<ArtifactPlan>> {
         for repo in self.candidate_repositories(coordinate) {
+            self.cancellation_token.bail_if_cancelled()?;
             let url = Self::artifact_url(repo, coordinate);
             attempted.push(url.clone());
             tracing::debug!(
@@ -2253,6 +2367,7 @@ impl Resolver {
             );
             let download_result = if coordinate.group == "curse.maven" {
                 download_to_path_overwrite_locked(
+                    &self.cancellation_token,
                     &self.client,
                     &url,
                     cache_path,
@@ -2260,10 +2375,11 @@ impl Resolver {
                     expected_sha1,
                 )
             } else {
-                if !remote_exists(&self.client, &url)? {
+                if !remote_exists(&self.cancellation_token, &self.client, &url)? {
                     continue;
                 }
                 download_to_path_overwrite_locked(
+                    &self.cancellation_token,
                     &self.client,
                     &url,
                     cache_path,
@@ -2273,6 +2389,9 @@ impl Resolver {
             };
 
             if let Err(error) = download_result {
+                if self.cancellation_token.is_cancelled() {
+                    return Err(error);
+                }
                 attempted.push(format!("{url} ({error:#})"));
                 continue;
             }
@@ -2551,8 +2670,10 @@ impl Resolver {
         configuration: &str,
         coordinate: &MavenCoordinate,
     ) -> eyre::Result<DependencyPlan> {
+        self.cancellation_token.bail_if_cancelled()?;
         let dynamic_version = coordinate.version.ends_with('+');
         let resolved = self.resolve_dynamic_coordinate(coordinate)?;
+        self.cancellation_token.bail_if_cancelled()?;
         let source = if resolved.group == "curse.maven" {
             DependencySource::CurseMaven
         } else {
@@ -2579,6 +2700,7 @@ impl Resolver {
         &self,
         coordinate: &MavenCoordinate,
     ) -> eyre::Result<MavenCoordinate> {
+        self.cancellation_token.bail_if_cancelled()?;
         if !coordinate.version.ends_with('+') {
             return Ok(coordinate.clone());
         }
@@ -2611,10 +2733,17 @@ impl Resolver {
         let mut candidates = Vec::new();
 
         for repo in self.candidate_repositories(coordinate) {
+            self.cancellation_token.bail_if_cancelled()?;
             let metadata_url = Self::maven_metadata_url(repo, coordinate);
-            let Ok(metadata) = download_text_optional(&self.client, &metadata_url) else {
-                continue;
-            };
+            let metadata =
+                match download_text_optional(&self.cancellation_token, &self.client, &metadata_url)
+                {
+                    Ok(metadata) => metadata,
+                    Err(error) if self.cancellation_token.is_cancelled() => return Err(error),
+                    Err(_) => continue,
+                };
+
+            self.cancellation_token.bail_if_cancelled()?;
 
             candidates.extend(
                 parse_maven_versions(&metadata)
@@ -2707,24 +2836,28 @@ impl Resolver {
     fn resolve_pom_runtime_dependencies(
         &self,
         coordinate: &MavenCoordinate,
-    ) -> Vec<MavenCoordinate> {
+    ) -> eyre::Result<Vec<MavenCoordinate>> {
+        self.cancellation_token.bail_if_cancelled()?;
         if coordinate.group == "curse.maven"
             || coordinate.classifier.is_some()
             || coordinate.extension != "jar"
         {
-            return Vec::new();
+            return Ok(Vec::new());
         }
 
         let pom_coordinate = coordinate.with_extension("pom");
         for repo in self.candidate_repositories(coordinate) {
+            self.cancellation_token.bail_if_cancelled()?;
             let url = Self::artifact_url(repo, &pom_coordinate);
-            let Ok(pom) = download_text_optional(&self.client, &url) else {
-                continue;
+            let pom = match download_text_optional(&self.cancellation_token, &self.client, &url) {
+                Ok(pom) => pom,
+                Err(error) if self.cancellation_token.is_cancelled() => return Err(error),
+                Err(_) => continue,
             };
-            return parse_maven_pom_runtime_dependencies(&pom, coordinate);
+            return Ok(parse_maven_pom_runtime_dependencies(&pom, coordinate));
         }
 
-        Vec::new()
+        Ok(Vec::new())
     }
 }
 
@@ -2908,19 +3041,23 @@ fn common_toolchain_cache_dir() -> PathBuf {
     clippy::too_many_lines,
     reason = "The planner is a single orchestration pass over project inputs."
 )]
-fn create_plan_for_target(
-    options: &BuildOptions,
-    target: &WorktreeTarget,
-) -> eyre::Result<BuildPlan> {
-    let _span = tracing::info_span!(
-        "create_build_plan",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %options.branch,
         target = %target.branch,
         refresh = options.refresh,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
         require_portable_artifacts = options.require_portable_artifacts,
     )
-    .entered();
+)]
+fn create_plan_for_target(
+    options: &BuildOptions,
+    target: &WorktreeTarget,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<BuildPlan> {
+    cancellation_token.bail_if_cancelled()?;
     let worktree_path = target.worktree_path.as_path().to_path_buf();
     let minecraft_dir = worktree_path.join("platform").join("minecraft");
     let properties_path = minecraft_dir.join("gradle.properties");
@@ -2953,6 +3090,7 @@ fn create_plan_for_target(
     fs::create_dir_all(&minecraft_version_cache_dir)?;
     fs::create_dir_all(&minecraft_assets_dir)?;
     fs::create_dir_all(&minecraft_libraries_dir)?;
+    cancellation_token.bail_if_cancelled()?;
     let existing_lockfile = read_optional_artifact_lockfile(&lockfile_path, minecraft_version)?;
     let lockfile = if options.refresh {
         None
@@ -2969,7 +3107,9 @@ fn create_plan_for_target(
         options.artifact_sources.clone(),
         lockfile.clone(),
         existing_lockfile.clone(),
+        cancellation_token.clone(),
     )?;
+    cancellation_token.bail_if_cancelled()?;
 
     let dependency_script = minecraft_dir
         .join("gradle")
@@ -2979,6 +3119,7 @@ fn create_plan_for_target(
     let dependencies = parse_dependency_script(&dependency_script, &properties)?;
     let loader_toolchain =
         resolve_loader_toolchain(&dependencies, minecraft_version, loader_version)?;
+    cancellation_token.bail_if_cancelled()?;
     let java_release = read_java_toolchain_release(&minecraft_dir, minecraft_version)?;
     let required_java = required_java_runtime_major(&loader_toolchain, java_release);
     let java = resolve_java(options.java_home.as_deref(), required_java)?;
@@ -2989,6 +3130,7 @@ fn create_plan_for_target(
         &forge_userdev_coordinate,
         "Loader userdev configuration and patches",
     )?;
+    cancellation_token.bail_if_cancelled()?;
     let forge_userdev = read_forge_userdev(&forge_userdev_artifact)?;
 
     let mcp_config = if loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
@@ -3000,6 +3142,7 @@ fn create_plan_for_target(
             &mcp_coordinate,
             "MCPConfig clean-slate Minecraft pipeline",
         )?;
+        cancellation_token.bail_if_cancelled()?;
         Some(read_mcp_config(&mcp_artifact)?)
     } else {
         None
@@ -3021,12 +3164,18 @@ fn create_plan_for_target(
     )? {
         let artifact = resolver.resolve_artifact(&id, &coordinate, &required_for)?;
         artifacts.push(artifact);
+        cancellation_token.bail_if_cancelled()?;
     }
 
-    let minecraft =
-        resolve_minecraft_plan(&minecraft_cache_dir, &resolver.client, minecraft_version)?;
+    let minecraft = resolve_minecraft_plan(
+        &minecraft_cache_dir,
+        &resolver.client,
+        minecraft_version,
+        cancellation_token,
+    )?;
     artifacts.push(minecraft.version_manifest.clone());
     artifacts.push(minecraft.version_json.clone());
+    cancellation_token.bail_if_cancelled()?;
 
     let dependency_plans = dependencies
         .iter()
@@ -3040,6 +3189,7 @@ fn create_plan_for_target(
     } else {
         dependency_plans
     };
+    cancellation_token.bail_if_cancelled()?;
 
     let graph = build_graph(
         minecraft_version,
@@ -3088,6 +3238,7 @@ fn create_plan_for_target(
         warnings,
     };
     plan.artifact_portability = artifact_portability_audit(&plan)?;
+    cancellation_token.bail_if_cancelled()?;
     if !plan.artifact_portability.fresh_slate_portable {
         plan.warnings.push(format!(
             "Artifact portability audit found {} non-portable artifact(s); use --require-portable-artifacts to make this a hard failure.",
@@ -3451,7 +3602,8 @@ fn add_transitive_runtime_dependency_plans(
         .collect::<Vec<_>>();
 
     while let Some(root) = queue.pop() {
-        for coordinate in resolver.resolve_pom_runtime_dependencies(&root) {
+        resolver.cancellation_token.bail_if_cancelled()?;
+        for coordinate in resolver.resolve_pom_runtime_dependencies(&root)? {
             let key = coordinate.to_string();
             if !seen.insert(key) {
                 continue;
@@ -3714,12 +3866,20 @@ fn resolve_minecraft_plan(
     minecraft_cache: &Path,
     client: &Client,
     minecraft_version: &str,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<MinecraftPlan> {
+    cancellation_token.bail_if_cancelled()?;
     fs::create_dir_all(minecraft_cache)?;
     let metadata_cache = minecraft_cache.join("metadata");
     fs::create_dir_all(&metadata_cache)?;
     let manifest_path = metadata_cache.join("version_manifest_v2.json");
-    download_to_path(client, VERSION_MANIFEST_URL, &manifest_path)?;
+    download_to_path(
+        cancellation_token,
+        client,
+        VERSION_MANIFEST_URL,
+        &manifest_path,
+    )?;
+    cancellation_token.bail_if_cancelled()?;
     let manifest: MojangVersionManifest = read_json_file(&manifest_path)?;
     let version_url = manifest
         .versions
@@ -3732,7 +3892,8 @@ fn resolve_minecraft_plan(
     let version_cache = minecraft_cache.join("versions").join(minecraft_version);
     fs::create_dir_all(&version_cache)?;
     let version_json_path = version_cache.join("version.json");
-    download_to_path(client, version_url, &version_json_path)?;
+    download_to_path(cancellation_token, client, version_url, &version_json_path)?;
+    cancellation_token.bail_if_cancelled()?;
     let version_json: MinecraftVersionJson = read_json_file(&version_json_path)?;
     let libraries_count = version_json.libraries.len();
 
@@ -4231,9 +4392,10 @@ enum BuildTarget {
     clippy::too_many_lines,
     reason = "build orchestration keeps the node order and timing output visible."
 )]
-fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "execute_rust_owned_build",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %plan.branch_name,
         mc = %plan.minecraft_version,
         loader = ?plan.loader_toolchain.kind,
@@ -4241,8 +4403,15 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
         explain_rebuild,
         target = ?target,
     )
-    .entered();
-    let context = ExecutionContext::new(plan)?;
+)]
+fn execute_build(
+    plan: &BuildPlan,
+    explain_rebuild: bool,
+    target: BuildTarget,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
+    let context = ExecutionContext::new(plan, cancellation_token.clone())?;
     let total_started = Instant::now();
 
     if explain_rebuild {
@@ -4252,6 +4421,7 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
     }
 
     tracing::info!("Build node resolve-project-config: recording plan state");
+    context.bail_if_cancelled()?;
     context.write_node_state(
         "resolve-project-config",
         &["gradle.properties", "versioned Gradle fragments"],
@@ -4259,6 +4429,7 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
         "complete",
     )?;
     tracing::info!("Build node resolve-maven-and-minecraft-inputs: recording resolved artifacts");
+    context.bail_if_cancelled()?;
     context.write_node_state(
         "resolve-maven-and-minecraft-inputs",
         &[
@@ -4278,7 +4449,9 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
     if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         let started = Instant::now();
         tracing::info!("Build node execute-neoform-userdev: start");
+        context.bail_if_cancelled()?;
         execute_neoform_userdev(&context)?;
+        context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-neoform-userdev: done in {} ms",
             started.elapsed().as_millis()
@@ -4287,7 +4460,9 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
         ensure_forge_gradle_execution_supported(plan)?;
         let started = Instant::now();
         tracing::info!("Build node execute-mcp-config-joined: start");
+        context.bail_if_cancelled()?;
         execute_mcp_config_joined(&context)?;
+        context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-mcp-config-joined: done in {} ms",
             started.elapsed().as_millis()
@@ -4295,7 +4470,9 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
 
         let started = Instant::now();
         tracing::info!("Build node execute-forge-userdev: start");
+        context.bail_if_cancelled()?;
         execute_forge_userdev(&context)?;
+        context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-forge-userdev: done in {} ms",
             started.elapsed().as_millis()
@@ -4303,14 +4480,18 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
     }
     let started = Instant::now();
     tracing::info!("Build node deobfuscate-mod-dependencies: start");
+    context.bail_if_cancelled()?;
     execute_dependency_deobf(&context)?;
+    context.bail_if_cancelled()?;
     tracing::info!(
         "Build node deobfuscate-mod-dependencies: done in {} ms",
         started.elapsed().as_millis()
     );
     let started = Instant::now();
     tracing::info!("Build node compile-project: start");
+    context.bail_if_cancelled()?;
     execute_project_compile(&context)?;
+    context.bail_if_cancelled()?;
     tracing::info!(
         "Build node compile-project: done in {} ms",
         started.elapsed().as_millis()
@@ -4318,7 +4499,9 @@ fn execute_build(plan: &BuildPlan, explain_rebuild: bool, target: BuildTarget) -
     if target == BuildTarget::Jar {
         let started = Instant::now();
         tracing::info!("Build node package-and-reobfuscate-jar: start");
+        context.bail_if_cancelled()?;
         execute_package_and_reobfuscate(&context)?;
+        context.bail_if_cancelled()?;
         tracing::info!(
             "Build node package-and-reobfuscate-jar: done in {} ms",
             started.elapsed().as_millis()
@@ -4470,18 +4653,27 @@ struct CancellableOutput {
     clippy::too_many_lines,
     reason = "Run launch orchestration intentionally mirrors Forge userdev config shape."
 )]
-fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "execute_run_setup",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %plan.branch_name,
         mc = %plan.minecraft_version,
         kind = kind.command_name(),
         loader = ?plan.loader_toolchain.kind,
         dry_run,
     )
-    .entered();
-    let context = ExecutionContext::new(plan)?;
+)]
+fn execute_run(
+    plan: &BuildPlan,
+    kind: RunKind,
+    dry_run: bool,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
+    let context = ExecutionContext::new(plan, cancellation_token.clone())?;
     let run_config = read_forge_run_config(&context, kind)?;
+    context.bail_if_cancelled()?;
     if run_config.main.is_empty() {
         eyre::bail!(
             "Forge userdev run config {} did not declare a main class",
@@ -4516,9 +4708,12 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
         plan.artifact_sources.clone(),
         run_lockfile.clone(),
         plan.lockfile.clone(),
+        context.cancellation_token.clone(),
     )?;
     let modules = resolve_forge_userdev_modules(&context, &resolver)?;
+    context.bail_if_cancelled()?;
     let launch_classpath = resolve_run_classpath(&context, &resolver, kind)?;
+    context.bail_if_cancelled()?;
     let run_cache_artifact_paths = run_lockfile_cache_artifact_paths(&launch_classpath, &modules);
     write_artifact_lockfile_with_extra_cache_paths(plan, &run_cache_artifact_paths)?;
     let minecraft_classpath_file = run_state_dir.join("minecraftClasspath.txt");
@@ -4529,6 +4724,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
     } else {
         None
     };
+    context.bail_if_cancelled()?;
 
     let source_roots = run_source_roots(&context, kind)?;
     let mcp_mappings = run_mcp_mappings(plan);
@@ -4705,6 +4901,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
     };
     let mut launch_output = None;
     for attempt in 1..=max_launch_attempts {
+        context.bail_if_cancelled()?;
         if matches!(kind, RunKind::GameTestServer) {
             clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
             tracing::info!("Game-test server attempt {attempt}/{max_launch_attempts}");
@@ -4713,6 +4910,7 @@ fn execute_run(plan: &BuildPlan, kind: RunKind, dry_run: bool) -> eyre::Result<(
             clean_client_puppet_world(&plan.minecraft_dir, &working_dir)?;
         }
         let attempt_output = run_launch_command(
+            &context.cancellation_token,
             plan,
             &argfile,
             &working_dir,
@@ -4982,16 +5180,10 @@ fn set_minecraft_option(content: &str, key: &str, value: &str) -> String {
     output
 }
 
-fn run_launch_command(
-    plan: &BuildPlan,
-    argfile: &Path,
-    working_dir: &Path,
-    env: &BTreeMap<String, String>,
-    log_path: &Path,
-    timeout: Option<Duration>,
-) -> eyre::Result<LaunchOutput> {
-    let _span = tracing::info_span!(
-        "launch_minecraft_jvm",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %plan.branch_name,
         mc = %plan.minecraft_version,
         java = %plan.java.executable.display(),
@@ -5000,7 +5192,17 @@ fn run_launch_command(
         env_vars = env.len(),
         timeout_seconds = timeout.map_or(0, |timeout| timeout.as_secs()),
     )
-    .entered();
+)]
+fn run_launch_command(
+    cancellation_token: &CancellationToken,
+    plan: &BuildPlan,
+    argfile: &Path,
+    working_dir: &Path,
+    env: &BTreeMap<String, String>,
+    log_path: &Path,
+    timeout: Option<Duration>,
+) -> eyre::Result<LaunchOutput> {
+    cancellation_token.bail_if_cancelled()?;
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -5037,7 +5239,7 @@ fn run_launch_command(
         if let Some(status) = child.try_wait().wrap_err("Failed to poll launched JVM")? {
             break status;
         }
-        if crate::cancellation::is_cancelled() {
+        if cancellation_token.is_cancelled() {
             cancelled = true;
             tracing::warn!("Cancellation requested; killing launched Minecraft JVM");
             kill_child_for_cancellation(&mut child, "launched Minecraft JVM")?;
@@ -5078,6 +5280,11 @@ fn run_launch_command(
     })
 }
 
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(branch = %branch)
+)]
 fn read_launch_stream<R>(
     stream: R,
     branch: &str,
@@ -5088,7 +5295,6 @@ fn read_launch_stream<R>(
 where
     R: Read,
 {
-    let _span = tracing::info_span!("forward_subprocess_stream", branch = %branch).entered();
     let mut captured = String::new();
     for line in BufReader::new(stream).lines() {
         let line = line?;
@@ -5110,10 +5316,11 @@ fn join_launch_stream(
 }
 
 fn run_command_capture_output(
+    cancellation_token: &CancellationToken,
     command: &mut Command,
     process_name: &str,
 ) -> eyre::Result<CancellableOutput> {
-    crate::cancellation::bail_if_cancelled()?;
+    cancellation_token.bail_if_cancelled()?;
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = command
         .spawn()
@@ -5136,7 +5343,7 @@ fn run_command_capture_output(
         {
             break status;
         }
-        if crate::cancellation::is_cancelled() {
+        if cancellation_token.is_cancelled() {
             cancelled = true;
             tracing::warn!(
                 process = process_name,
@@ -5388,17 +5595,19 @@ fn resolve_forge_userdev_modules(
         .collect()
 }
 
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
+        mc = %context.plan.minecraft_version,
+        kind = kind.command_name(),
+    )
+)]
 fn resolve_run_classpath(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
     kind: RunKind,
 ) -> eyre::Result<RunClasspath> {
-    let _span = tracing::info_span!(
-        "resolve_run_classpath",
-        mc = %context.plan.minecraft_version,
-        kind = kind.command_name(),
-    )
-    .entered();
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         return resolve_neogradle_run_classpath(context, resolver, kind);
     }
@@ -5571,7 +5780,12 @@ fn ensure_client_extra_jar(context: &ExecutionContext<'_>) -> eyre::Result<PathB
             .user_agent("sfm-propagate-changes/no-gradle-toolchain")
             .build()
             .wrap_err("Failed to create HTTP client")?;
-        download_to_path(&client, &context.plan.minecraft.client_jar_url, &client_jar)?;
+        download_to_path(
+            &context.cancellation_token,
+            &client,
+            &context.plan.minecraft.client_jar_url,
+            &client_jar,
+        )?;
     }
     context.assert_allowed_input(&client_jar)?;
 
@@ -5860,12 +6074,13 @@ fn kind_extra_program_args(plan: &BuildPlan, kind: RunKind) -> eyre::Result<Vec<
     ])
 }
 
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(mc = %context.plan.minecraft_version)
+)]
 fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<MinecraftAssets> {
-    let _span = tracing::info_span!(
-        "prepare_minecraft_assets",
-        mc = %context.plan.minecraft_version,
-    )
-    .entered();
+    context.bail_if_cancelled()?;
     let client = Client::builder()
         .user_agent("sfm-propagate-changes/no-gradle-toolchain")
         .build()
@@ -5881,13 +6096,20 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
     } = asset_index;
     let assets_root = context.plan.minecraft_assets_dir.clone();
     let index_path = assets_root.join("indexes").join(format!("{index_id}.json"));
-    download_to_path(&client, &index_url, &index_path)?;
+    download_to_path(
+        &context.cancellation_token,
+        &client,
+        &index_url,
+        &index_path,
+    )?;
+    context.bail_if_cancelled()?;
 
     let index_json: MinecraftAssetIndexJson = read_json_file(&index_path)?;
     let objects = index_json.objects;
     let mut downloaded = 0usize;
     let mut checked = 0usize;
     for object in objects.values() {
+        context.bail_if_cancelled()?;
         let hash = object.hash.as_str();
         let prefix = hash
             .get(..2)
@@ -5899,6 +6121,7 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
         }
         let object_url = format!("https://resources.download.minecraft.net/{prefix}/{hash}");
         download_to_path_overwrite_with_expected_sha1(
+            &context.cancellation_token,
             &client,
             &object_url,
             &object_path,
@@ -5948,6 +6171,7 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
 struct ExecutionContext<'a> {
     plan: &'a BuildPlan,
     forbidden_input_roots: Vec<PathBuf>,
+    cancellation_token: CancellationToken,
 }
 
 #[derive(Debug, Facet)]
@@ -5973,7 +6197,8 @@ struct NodeOutputState {
 }
 
 impl<'a> ExecutionContext<'a> {
-    fn new(plan: &'a BuildPlan) -> eyre::Result<Self> {
+    fn new(plan: &'a BuildPlan, cancellation_token: CancellationToken) -> eyre::Result<Self> {
+        cancellation_token.bail_if_cancelled()?;
         let forbidden_input_roots = [
             plan.minecraft_dir.join("build").join("fg_cache"),
             plan.minecraft_dir.join("build").join("classpath"),
@@ -5988,7 +6213,12 @@ impl<'a> ExecutionContext<'a> {
         Ok(Self {
             plan,
             forbidden_input_roots,
+            cancellation_token,
         })
+    }
+
+    fn bail_if_cancelled(&self) -> eyre::Result<()> {
+        self.cancellation_token.bail_if_cancelled()
     }
 
     fn write_node_state(
@@ -5998,6 +6228,7 @@ impl<'a> ExecutionContext<'a> {
         outputs: &[PathBuf],
         status: &str,
     ) -> eyre::Result<()> {
+        self.bail_if_cancelled()?;
         let started = Instant::now();
         let state = NodeState {
             schema_version: 1,
@@ -6068,6 +6299,17 @@ impl<'a> ExecutionContext<'a> {
         self.run_java_tool_with_classpath(tool_id, jvm_args, &[], args, work_dir)
     }
 
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        fields(
+            tool_id,
+            work_dir = %work_dir.display(),
+            jvm_args = jvm_args.len(),
+            extra_classpath_entries = extra_classpath.len(),
+            args = args.len(),
+        )
+    )]
     fn run_java_tool_with_classpath(
         &self,
         tool_id: &str,
@@ -6076,15 +6318,6 @@ impl<'a> ExecutionContext<'a> {
         args: &[String],
         work_dir: &Path,
     ) -> eyre::Result<()> {
-        let _span = tracing::info_span!(
-            "run_java_tool",
-            tool_id,
-            work_dir = %work_dir.display(),
-            jvm_args = jvm_args.len(),
-            extra_classpath_entries = extra_classpath.len(),
-            args = args.len(),
-        )
-        .entered();
         let tool = self.artifact(tool_id)?;
         self.assert_allowed_input(&tool.cache_path)?;
         for path in extra_classpath {
@@ -6125,12 +6358,13 @@ impl<'a> ExecutionContext<'a> {
         command
             .arg(format!("@{}", java_argfile.display()))
             .current_dir(work_dir);
-        let output = run_command_capture_output(&mut command, tool_id).wrap_err_with(|| {
-            format!(
-                "Failed to run Java tool {tool_id} using {}",
-                self.plan.java.executable.display()
-            )
-        })?;
+        let output = run_command_capture_output(&self.cancellation_token, &mut command, tool_id)
+            .wrap_err_with(|| {
+                format!(
+                    "Failed to run Java tool {tool_id} using {}",
+                    self.plan.java.executable.display()
+                )
+            })?;
         trace_subprocess_bytes(self.plan, "java-tool", tool_id, "stdout", &output.stdout);
         trace_subprocess_bytes(self.plan, "java-tool", tool_id, "stderr", &output.stderr);
 
@@ -6180,12 +6414,12 @@ impl<'a> ExecutionContext<'a> {
     clippy::too_many_lines,
     reason = "clean-slate MCP executor is being split incrementally"
 )]
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(mc = %context.plan.minecraft_version)
+)]
 fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "execute_mcp_config_joined",
-        mc = %context.plan.minecraft_version,
-    )
-    .entered();
     let client = Client::builder()
         .user_agent("sfm-propagate-changes/no-gradle-toolchain")
         .build()
@@ -6228,13 +6462,22 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
         .join("server-bundle.jar");
     let client_mappings = context.plan.minecraft_version_cache_dir.join("client.txt");
 
-    download_to_path(&client, &context.plan.minecraft.client_jar_url, &client_jar)?;
     download_to_path(
+        &context.cancellation_token,
+        &client,
+        &context.plan.minecraft.client_jar_url,
+        &client_jar,
+    )?;
+    context.bail_if_cancelled()?;
+    download_to_path(
+        &context.cancellation_token,
         &client,
         &context.plan.minecraft.server_jar_url,
         &server_bundle,
     )?;
+    context.bail_if_cancelled()?;
     download_to_path(
+        &context.cancellation_token,
         &client,
         required_minecraft_mapping_url(
             context,
@@ -6243,6 +6486,7 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
         )?,
         &client_mappings,
     )?;
+    context.bail_if_cancelled()?;
 
     context.assert_allowed_input(&client_jar)?;
     context.assert_allowed_input(&server_bundle)?;
@@ -6254,6 +6498,7 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
     fs::create_dir_all(&data_dir)?;
     let joined_tsrg = data_dir.join("joined.tsrg");
     extract_zip_entry_to_path(&mcp_config.cache_path, "config/joined.tsrg", &joined_tsrg)?;
+    context.bail_if_cancelled()?;
 
     let extract_server = mcp_root.join("extractServer").join("output.jar");
     context.run_java_tool(
@@ -6389,12 +6634,12 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
     clippy::too_many_lines,
     reason = "clean-slate Forge userdev executor is being split incrementally"
 )]
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(mc = %context.plan.minecraft_version)
+)]
 fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "execute_forge_userdev",
-        mc = %context.plan.minecraft_version,
-    )
-    .entered();
     let client = Client::builder()
         .user_agent("sfm-propagate-changes/no-gradle-toolchain")
         .build()
@@ -6484,6 +6729,7 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         ],
         &forge_root.join("sourcePatches"),
     )?;
+    context.bail_if_cancelled()?;
 
     let combined_srg_sources = forge_root.join("sources").join("combined-srg.jar");
     merge_zip_archives(
@@ -6497,6 +6743,7 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     let client_mappings = context.plan.minecraft_version_cache_dir.join("client.txt");
     let server_mappings = context.plan.minecraft_version_cache_dir.join("server.txt");
     download_to_path(
+        &context.cancellation_token,
         &client,
         required_minecraft_mapping_url(
             context,
@@ -6505,7 +6752,9 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         )?,
         &client_mappings,
     )?;
+    context.bail_if_cancelled()?;
     download_to_path(
+        &context.cancellation_token,
         &client,
         required_minecraft_mapping_url(
             context,
@@ -6514,6 +6763,7 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         )?,
         &server_mappings,
     )?;
+    context.bail_if_cancelled()?;
     fs::create_dir_all(&mappings_root)?;
     let obf_to_official = mappings_root.join("obf_to_official.tsrg");
     let parchment_parameters = context
@@ -6529,6 +6779,7 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         &srg_to_official,
         &official_to_srg,
     )?;
+    context.bail_if_cancelled()?;
 
     let official_sources = forge_root.join("sources").join("combined-official.jar");
     context.run_java_tool(
@@ -6662,12 +6913,12 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     clippy::too_many_lines,
     reason = "NeoForm userdev orchestration keeps cache checks, arguments, and state writes visible."
 )]
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(mc = %context.plan.minecraft_version)
+)]
 fn execute_neoform_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "execute_neoform_userdev",
-        mc = %context.plan.minecraft_version,
-    )
-    .entered();
     let neoform_root = context
         .plan
         .cache_dir
@@ -6866,13 +7117,15 @@ fn java_properties_escape(input: &str) -> String {
     clippy::too_many_lines,
     reason = "dependency deobf orchestration keeps per-dependency cache and remap behavior visible."
 )]
-fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "execute_dependency_deobf",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         mc = %context.plan.minecraft_version,
         dependencies = context.plan.dependencies.len(),
     )
-    .entered();
+)]
+fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     let output = context.plan.cache_dir.join("dependencies");
     if context.plan.refresh {
         reset_cache_directory(&context.plan.cache_dir, &output)?;
@@ -6888,6 +7141,7 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
         context.plan.artifact_sources.clone(),
         context.plan.lockfile.clone(),
         context.plan.lockfile.clone(),
+        context.cancellation_token.clone(),
     )?;
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         copy_neogradle_dependency_jars(context, &resolver, &output)?;
@@ -7302,12 +7556,13 @@ fn remove_stale_dependency_outputs(output: &Path) -> eyre::Result<()> {
     clippy::too_many_lines,
     reason = "project compile orchestration keeps generated sources, resources, and javac inputs visible."
 )]
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(mc = %context.plan.minecraft_version)
+)]
 fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "execute_project_compile",
-        mc = %context.plan.minecraft_version,
-    )
-    .entered();
+    context.bail_if_cancelled()?;
     let project_root = context.plan.cache_dir.join("project");
     let generated_sources = project_root
         .join("generated-src")
@@ -7328,6 +7583,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         "project_compile_outputs_will_be_recreated"
     );
     fs::create_dir_all(&generated_sources)?;
+    context.bail_if_cancelled()?;
 
     let resolver = Resolver::new(
         context.plan.maven_cache_dir.clone(),
@@ -7337,20 +7593,28 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         context.plan.artifact_sources.clone(),
         context.plan.lockfile.clone(),
         context.plan.lockfile.clone(),
+        context.cancellation_token.clone(),
     )?;
+    context.bail_if_cancelled()?;
     write_minecraft_libraries_cfg(
         context,
         &resolver.client,
         &project_root.join("minecraft-libraries.cfg"),
     )?;
+    context.bail_if_cancelled()?;
     let antlr_classpath = resolve_antlr_classpath(context, &resolver)?;
+    context.bail_if_cancelled()?;
     run_antlr(context, &antlr_classpath, &generated_sources)?;
+    context.bail_if_cancelled()?;
 
     let classpath = resolve_project_compile_classpath(context, &resolver, &antlr_classpath)?;
+    context.bail_if_cancelled()?;
 
     let sources = collect_project_java_sources(context, &generated_sources)?;
+    context.bail_if_cancelled()?;
     let argfile = project_root.join("javac-main.args");
     write_javac_argfile(context, &argfile, &classpath, &sources, &classes_dir)?;
+    context.bail_if_cancelled()?;
 
     let started = Instant::now();
     tracing::info!(
@@ -7361,6 +7625,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     let mut main_fingerprint_paths = classpath.clone();
     main_fingerprint_paths.extend(sources.iter().cloned());
     main_fingerprint_paths.push(argfile.clone());
+    context.bail_if_cancelled()?;
     let main_fingerprint = input_fingerprint(
         context,
         "javac-main",
@@ -7371,6 +7636,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             format!("{:?}", context.plan.loader_toolchain.kind),
         ],
     )?;
+    context.bail_if_cancelled()?;
     let main_state_path = project_root.join("javac-main.inputs.sha1");
     let main_refmap = resources_dir.join("sfm.refmap.json");
     let main_cache_hit = cache_state_matches(
@@ -7381,18 +7647,24 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     )? && (context.plan.loader_toolchain.kind
         == LoaderToolchainKind::NeoGradleUserdev
         || main_refmap.is_file());
+    context.bail_if_cancelled()?;
     if main_cache_hit {
         tracing::info!(
             "javac main: reused cached outputs in {} ms",
             started.elapsed().as_millis()
         );
     } else {
+        context.bail_if_cancelled()?;
         reset_cache_directory(&context.plan.cache_dir, &classes_dir)?;
+        context.bail_if_cancelled()?;
         reset_cache_directory(&context.plan.cache_dir, &resources_dir)?;
+        context.bail_if_cancelled()?;
         let mut command = Command::new(javac_executable(&context.plan.java));
         command.arg(format!("@{}", argfile.display()));
-        let output = run_command_capture_output(&mut command, "javac-main")
-            .wrap_err("Failed to run javac")?;
+        context.bail_if_cancelled()?;
+        let output =
+            run_command_capture_output(&context.cancellation_token, &mut command, "javac-main")
+                .wrap_err("Failed to run javac")?;
         trace_subprocess_bytes(
             context.plan,
             "java-tool",
@@ -7400,6 +7672,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             "stdout",
             &output.stdout,
         );
+        context.bail_if_cancelled()?;
         trace_subprocess_bytes(
             context.plan,
             "java-tool",
@@ -7415,6 +7688,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         log.extend_from_slice(&output.stderr);
         fs::write(&log_path, log)
             .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+        context.bail_if_cancelled()?;
         if output.cancelled {
             eyre::bail!("javac was cancelled by Ctrl+C. See {}", log_path.display());
         }
@@ -7426,9 +7700,11 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             );
         }
         write_cache_state(&main_state_path, &main_fingerprint)?;
+        context.bail_if_cancelled()?;
         tracing::info!("javac main: done in {} ms", started.elapsed().as_millis());
     }
 
+    context.bail_if_cancelled()?;
     compile_optional_java_source_set(
         context,
         "gametest",
@@ -7437,18 +7713,22 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         &gametest_classes_dir,
         &main_fingerprint,
     )?;
+    context.bail_if_cancelled()?;
     stage_optional_resource_source_set(
         context,
         "gametest",
         &gametest_resources_dir,
         &["README.md"],
     )?;
+    context.bail_if_cancelled()?;
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        patch_neogradle_anonymous_constructor_debug_names(&classes_dir)?;
+        patch_neogradle_anonymous_constructor_debug_names(context, &classes_dir)?;
     } else {
         ensure_run_refmap_remapping_file(context)?;
     }
+    context.bail_if_cancelled()?;
     stage_project_resources(context, &staged_resources_dir, &resources_dir)?;
+    context.bail_if_cancelled()?;
 
     context.write_node_state(
         "compile-project",
@@ -7471,7 +7751,10 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     Ok(())
 }
 
-fn patch_neogradle_anonymous_constructor_debug_names(classes_dir: &Path) -> eyre::Result<()> {
+fn patch_neogradle_anonymous_constructor_debug_names(
+    context: &ExecutionContext<'_>,
+    classes_dir: &Path,
+) -> eyre::Result<()> {
     let debug_name_patches: &[(&str, &[(&str, &str)])] = &[
         (
             "ca/teamdman/sfm/client/text_styling/ProgramSyntaxHighlightingHelper$1.class",
@@ -7502,6 +7785,7 @@ fn patch_neogradle_anonymous_constructor_debug_names(classes_dir: &Path) -> eyre
 
     let mut total_replacements = 0usize;
     for (class_name, replacements) in debug_name_patches {
+        context.bail_if_cancelled()?;
         let class_path = zip_name_to_path(classes_dir, class_name);
         if !class_path.is_file() {
             continue;
@@ -7512,10 +7796,12 @@ fn patch_neogradle_anonymous_constructor_debug_names(classes_dir: &Path) -> eyre
             .collect::<BTreeMap<_, _>>();
         let bytes = fs::read(&class_path)
             .wrap_err_with(|| format!("Failed to read {}", class_path.display()))?;
+        context.bail_if_cancelled()?;
         let (patched_bytes, replacement_count) =
             rewrite_class_srg_member_constants(&bytes, &mapping).wrap_err_with(|| {
                 format!("Failed to patch debug names in {}", class_path.display())
             })?;
+        context.bail_if_cancelled()?;
         if replacement_count == 0 {
             continue;
         }
@@ -7538,6 +7824,7 @@ fn compile_optional_java_source_set(
     classes_dir: &Path,
     upstream_fingerprint: &str,
 ) -> eyre::Result<()> {
+    context.bail_if_cancelled()?;
     let project_root = context.plan.cache_dir.join("project");
     let source_root = context
         .plan
@@ -7551,6 +7838,7 @@ fn compile_optional_java_source_set(
     }
 
     let sources = collect_source_set_java_sources(context, source_set)?;
+    context.bail_if_cancelled()?;
     if sources.is_empty() {
         reset_cache_directory(&context.plan.cache_dir, classes_dir)?;
         return Ok(());
@@ -7562,14 +7850,8 @@ fn compile_optional_java_source_set(
             .collect(),
     );
     let argfile = project_root.join(format!("javac-{source_set}.args"));
-    write_javac_no_ap_argfile(
-        &argfile,
-        &classpath,
-        &sources,
-        classes_dir,
-        context.plan.java_release,
-        context.plan.java.major_version,
-    )?;
+    write_javac_no_ap_argfile(context, &argfile, &classpath, &sources, classes_dir)?;
+    context.bail_if_cancelled()?;
 
     let started = Instant::now();
     tracing::info!(
@@ -7579,6 +7861,7 @@ fn compile_optional_java_source_set(
     );
     let mut fingerprint_paths = sources.clone();
     fingerprint_paths.push(argfile.clone());
+    context.bail_if_cancelled()?;
     let fingerprint = input_fingerprint(
         context,
         &format!("javac-{source_set}"),
@@ -7590,6 +7873,7 @@ fn compile_optional_java_source_set(
             upstream_fingerprint.to_string(),
         ],
     )?;
+    context.bail_if_cancelled()?;
     let state_path = project_root.join(format!("javac-{source_set}.inputs.sha1"));
     if cache_state_matches(context, &state_path, &fingerprint, &[classes_dir])? {
         tracing::info!(
@@ -7599,14 +7883,19 @@ fn compile_optional_java_source_set(
         return Ok(());
     }
 
+    context.bail_if_cancelled()?;
     reset_cache_directory(&context.plan.cache_dir, classes_dir)?;
+    context.bail_if_cancelled()?;
     let mut command = Command::new(javac_executable(&context.plan.java));
     command.arg(format!("@{}", argfile.display()));
     let source = format!("javac-{source_set}");
-    let output = run_command_capture_output(&mut command, &source)
+    context.bail_if_cancelled()?;
+    let output = run_command_capture_output(&context.cancellation_token, &mut command, &source)
         .wrap_err_with(|| format!("Failed to run javac for {source_set}"))?;
+    context.bail_if_cancelled()?;
     trace_subprocess_bytes(context.plan, "java-tool", &source, "stdout", &output.stdout);
     trace_subprocess_bytes(context.plan, "java-tool", &source, "stderr", &output.stderr);
+    context.bail_if_cancelled()?;
     let log_path = project_root.join(format!("javac-{source_set}.log"));
     let mut log = Vec::new();
     log.extend_from_slice(b"--- stdout ---\n");
@@ -7615,6 +7904,7 @@ fn compile_optional_java_source_set(
     log.extend_from_slice(&output.stderr);
     fs::write(&log_path, log)
         .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+    context.bail_if_cancelled()?;
     if output.cancelled {
         eyre::bail!(
             "javac {source_set} was cancelled by Ctrl+C. See {}",
@@ -7629,6 +7919,7 @@ fn compile_optional_java_source_set(
         );
     }
     write_cache_state(&state_path, &fingerprint)?;
+    context.bail_if_cancelled()?;
     tracing::info!(
         "javac {source_set}: done in {} ms",
         started.elapsed().as_millis()
@@ -7642,7 +7933,9 @@ fn stage_optional_resource_source_set(
     output: &Path,
     excludes: &[&str],
 ) -> eyre::Result<()> {
+    context.bail_if_cancelled()?;
     reset_cache_directory(&context.plan.cache_dir, output)?;
+    context.bail_if_cancelled()?;
     let root = context
         .plan
         .minecraft_dir
@@ -7654,7 +7947,8 @@ fn stage_optional_resource_source_set(
     }
     context.assert_allowed_input(&root)?;
 
-    for path in collect_files_under(&root)? {
+    for path in collect_files_under_cancellable(context, &root)? {
+        context.bail_if_cancelled()?;
         context.assert_allowed_input(&path)?;
         let name = relative_zip_name(&root, &path)?;
         if excludes.iter().any(|exclude| *exclude == name) {
@@ -7671,6 +7965,7 @@ fn stage_optional_resource_source_set(
                 output_path.display()
             )
         })?;
+        context.bail_if_cancelled()?;
     }
     Ok(())
 }
@@ -7679,13 +7974,15 @@ fn stage_optional_resource_source_set(
     clippy::too_many_lines,
     reason = "packaging executor keeps orchestration visible while toolchain is incomplete"
 )]
-fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "execute_package_and_reobfuscate",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         mc = %context.plan.minecraft_version,
         output = %context.plan.rust_output_jar.display(),
     )
-    .entered();
+)]
+fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     if context.plan.rust_output_jar == context.plan.gradle_output_jar {
         eyre::bail!(
             "Refusing to write Rust jar over Gradle jar: {}",
@@ -7843,6 +8140,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         context.plan.artifact_sources.clone(),
         context.plan.lockfile.clone(),
         context.plan.lockfile.clone(),
+        context.cancellation_token.clone(),
     )?;
     let antlr_classpath = resolve_antlr_classpath(context, &resolver)?;
     let reobf_classpath = resolve_project_compile_classpath(context, &resolver, &antlr_classpath)?;
@@ -7930,6 +8228,7 @@ fn stage_project_resources(
     staging_dir: &Path,
     javac_resources_dir: &Path,
 ) -> eyre::Result<()> {
+    context.bail_if_cancelled()?;
     reset_cache_directory(&context.plan.cache_dir, staging_dir)?;
     let mut written = BTreeSet::new();
     for root in [
@@ -7947,6 +8246,7 @@ fn stage_project_resources(
             .join("resources"),
         javac_resources_dir.to_path_buf(),
     ] {
+        context.bail_if_cancelled()?;
         stage_resource_root(context, &root, staging_dir, &mut written)?;
     }
     Ok(())
@@ -7958,12 +8258,14 @@ fn stage_resource_root(
     staging_dir: &Path,
     written: &mut BTreeSet<String>,
 ) -> eyre::Result<()> {
+    context.bail_if_cancelled()?;
     if !root.exists() {
         return Ok(());
     }
     context.assert_allowed_input(root)?;
 
-    for path in collect_files_under(root)? {
+    for path in collect_files_under_cancellable(context, root)? {
+        context.bail_if_cancelled()?;
         if path
             .components()
             .any(|component| component.as_os_str() == ".cache")
@@ -7986,12 +8288,14 @@ fn stage_resource_root(
         } else {
             fs::read(&path).wrap_err_with(|| format!("Failed to read {}", path.display()))?
         };
+        context.bail_if_cancelled()?;
         let output = zip_name_to_path(staging_dir, &name);
         if let Some(parent) = output.parent() {
             fs::create_dir_all(parent)?;
         }
         fs::write(&output, bytes)
             .wrap_err_with(|| format!("Failed to write staged resource {}", output.display()))?;
+        context.bail_if_cancelled()?;
     }
 
     Ok(())
@@ -8246,6 +8550,7 @@ fn cache_state_matches_outputs(
     required_output_dirs: &[&Path],
     required_output_files: &[&Path],
 ) -> eyre::Result<bool> {
+    context.bail_if_cancelled()?;
     if context.plan.refresh {
         return Ok(false);
     }
@@ -8253,11 +8558,13 @@ fn cache_state_matches_outputs(
         return Ok(false);
     }
     for output_dir in required_output_dirs {
-        if !directory_has_files(output_dir)? {
+        context.bail_if_cancelled()?;
+        if !directory_has_files(context, output_dir)? {
             return Ok(false);
         }
     }
     for output_file in required_output_files {
+        context.bail_if_cancelled()?;
         if !output_file.is_file() {
             return Ok(false);
         }
@@ -8265,8 +8572,9 @@ fn cache_state_matches_outputs(
     Ok(true)
 }
 
-fn directory_has_files(path: &Path) -> eyre::Result<bool> {
-    Ok(path.is_dir() && !collect_files_under(path)?.is_empty())
+fn directory_has_files(context: &ExecutionContext<'_>, path: &Path) -> eyre::Result<bool> {
+    context.bail_if_cancelled()?;
+    Ok(path.is_dir() && !collect_files_under_cancellable(context, path)?.is_empty())
 }
 
 fn input_fingerprint(
@@ -8275,16 +8583,19 @@ fn input_fingerprint(
     paths: &[PathBuf],
     extras: &[String],
 ) -> eyre::Result<String> {
+    context.bail_if_cancelled()?;
     let mut hasher = Sha1::new();
     hasher.update(b"sfm-input-fingerprint-v1\n");
     hasher.update(label.as_bytes());
     hasher.update(b"\n");
     for extra in extras {
+        context.bail_if_cancelled()?;
         hasher.update(b"extra:");
         hasher.update(extra.as_bytes());
         hasher.update(b"\n");
     }
     for path in paths {
+        context.bail_if_cancelled()?;
         hash_path_input(context, &mut hasher, path)?;
     }
     Ok(format!("{:x}", hasher.finalize()))
@@ -8295,6 +8606,7 @@ fn hash_path_input(
     hasher: &mut Sha1,
     path: &Path,
 ) -> eyre::Result<()> {
+    context.bail_if_cancelled()?;
     context.assert_allowed_input(path)?;
     let normalized = path.to_string_lossy().replace('\\', "/");
     hasher.update(b"path:");
@@ -8302,6 +8614,7 @@ fn hash_path_input(
     hasher.update(b"\n");
 
     if path.is_file() {
+        context.bail_if_cancelled()?;
         hasher.update(b"file:");
         hasher.update(file_sha1(path)?.as_bytes());
         hasher.update(b"\n");
@@ -8310,7 +8623,8 @@ fn hash_path_input(
 
     if path.is_dir() {
         hasher.update(b"dir\n");
-        for file in collect_files_under(path)? {
+        for file in collect_files_under_cancellable(context, path)? {
+            context.bail_if_cancelled()?;
             context.assert_allowed_input(&file)?;
             let relative = relative_zip_name(path, &file)?;
             hasher.update(b"entry:");
@@ -8354,6 +8668,32 @@ fn collect_files_under(root: &Path) -> eyre::Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+fn collect_files_under_cancellable(
+    context: &ExecutionContext<'_>,
+    root: &Path,
+) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
+    let mut files = Vec::new();
+    if !root.exists() {
+        return Ok(files);
+    }
+    let mut entries = fs::read_dir(root)
+        .wrap_err_with(|| format!("Failed to read {}", root.display()))?
+        .collect::<Result<Vec<_>, _>>()
+        .wrap_err_with(|| format!("Failed to read {}", root.display()))?;
+    entries.sort_by_key(std::fs::DirEntry::path);
+    for entry in entries {
+        context.bail_if_cancelled()?;
+        let path = entry.path();
+        if path.is_dir() {
+            files.extend(collect_files_under_cancellable(context, &path)?);
+        } else if path.is_file() {
+            files.push(path);
+        }
+    }
+    Ok(files)
+}
+
 fn zip_name_to_path(root: &Path, name: &str) -> PathBuf {
     name.split('/')
         .filter(|part| !part.is_empty())
@@ -8367,26 +8707,29 @@ fn zip_entry_has_extension(name: &str, extension: &str) -> bool {
 }
 
 fn resolve_coordinates_for_classpath(
+    context: &ExecutionContext<'_>,
     resolver: &Resolver,
     coordinates: &[&str],
     required_for: &str,
 ) -> eyre::Result<Vec<PathBuf>> {
-    coordinates
-        .iter()
-        .enumerate()
-        .map(|(index, coordinate)| {
-            let coordinate = MavenCoordinate::parse(coordinate)?;
+    let mut paths = Vec::new();
+    for (index, coordinate) in coordinates.iter().enumerate() {
+        context.bail_if_cancelled()?;
+        let coordinate = MavenCoordinate::parse(coordinate)?;
+        paths.push(
             resolver
-                .resolve_artifact(&format!("classpath-{index}"), &coordinate, required_for)
-                .map(|artifact| artifact.cache_path)
-        })
-        .collect()
+                .resolve_artifact(&format!("classpath-{index}"), &coordinate, required_for)?
+                .cache_path,
+        );
+    }
+    Ok(paths)
 }
 
 fn resolve_antlr_classpath(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
 ) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let dependency_script = context
         .plan
         .minecraft_dir
@@ -8395,13 +8738,19 @@ fn resolve_antlr_classpath(
         .join(context.plan.minecraft_version.as_str())
         .join("dependencies.gradle");
     let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
+    context.bail_if_cancelled()?;
     let antlr_version = dependencies
         .iter()
         .find(|dependency| dependency.configuration == "antlr")
         .map_or("4.9.1", |dependency| dependency.coordinate.version.as_str());
     let coordinates = antlr_classpath_coordinates(antlr_version)?;
     let coordinate_refs = coordinates.iter().map(String::as_str).collect::<Vec<_>>();
-    resolve_coordinates_for_classpath(resolver, &coordinate_refs, "ANTLR grammar generation")
+    resolve_coordinates_for_classpath(
+        context,
+        resolver,
+        &coordinate_refs,
+        "ANTLR grammar generation",
+    )
 }
 
 fn antlr_classpath_coordinates(version: &str) -> eyre::Result<Vec<String>> {
@@ -8431,24 +8780,35 @@ fn resolve_project_compile_classpath(
     resolver: &Resolver,
     antlr_classpath: &[PathBuf],
 ) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let mut classpath = Vec::new();
     classpath.push(loader_dev_compile_jar(context));
+    context.bail_if_cancelled()?;
     classpath.extend(resolve_current_minecraft_libraries(
         context,
         &resolver.client,
     )?);
+    context.bail_if_cancelled()?;
     classpath.extend(resolve_forge_userdev_libraries(context, resolver)?);
+    context.bail_if_cancelled()?;
     classpath.extend(resolve_compile_dependencies(context, resolver)?);
-    classpath.extend(collect_jars(&context.plan.cache_dir.join("dependencies"))?);
+    context.bail_if_cancelled()?;
+    classpath.extend(collect_jars(
+        context,
+        &context.plan.cache_dir.join("dependencies"),
+    )?);
+    context.bail_if_cancelled()?;
     let annotation_coordinates = PROJECT_COMPILE_ANNOTATION_COORDINATES
         .iter()
         .map(|(_, coordinate)| *coordinate)
         .collect::<Vec<_>>();
     classpath.extend(resolve_coordinates_for_classpath(
+        context,
         resolver,
         &annotation_coordinates,
         "Project compile annotations",
     )?);
+    context.bail_if_cancelled()?;
     classpath.extend(antlr_classpath.iter().cloned());
     Ok(dedup_paths_preserve_order(classpath))
 }
@@ -8486,6 +8846,7 @@ fn run_antlr(
     classpath: &[PathBuf],
     output_dir: &Path,
 ) -> eyre::Result<()> {
+    context.bail_if_cancelled()?;
     let grammar_root = context
         .plan
         .minecraft_dir
@@ -8498,11 +8859,13 @@ fn run_antlr(
         grammar_root.join("toml").join("TomlParser.g4"),
     ];
     for grammar in &grammars {
+        context.bail_if_cancelled()?;
         context.assert_allowed_input(grammar)?;
     }
 
     let mut fingerprint_paths = classpath.to_vec();
     fingerprint_paths.extend(grammars.iter().cloned());
+    context.bail_if_cancelled()?;
     let fingerprint = input_fingerprint(
         context,
         "antlr-main",
@@ -8512,6 +8875,7 @@ fn run_antlr(
             "-visitor -Xexact-output-dir".to_string(),
         ],
     )?;
+    context.bail_if_cancelled()?;
     let state_path = output_dir.with_extension("inputs.sha1");
     let started = Instant::now();
     tracing::info!(
@@ -8527,7 +8891,9 @@ fn run_antlr(
         return Ok(());
     }
 
+    context.bail_if_cancelled()?;
     reset_cache_directory(&context.plan.cache_dir, output_dir)?;
+    context.bail_if_cancelled()?;
     let mut command = Command::new(&context.plan.java.executable);
     command
         .arg("-cp")
@@ -8538,10 +8904,13 @@ fn run_antlr(
         .arg("-o")
         .arg(output_dir)
         .args(grammars);
-    let output =
-        run_command_capture_output(&mut command, "antlr").wrap_err("Failed to run ANTLR")?;
+    context.bail_if_cancelled()?;
+    let output = run_command_capture_output(&context.cancellation_token, &mut command, "antlr")
+        .wrap_err("Failed to run ANTLR")?;
+    context.bail_if_cancelled()?;
     trace_subprocess_bytes(context.plan, "java-tool", "antlr", "stdout", &output.stdout);
     trace_subprocess_bytes(context.plan, "java-tool", "antlr", "stderr", &output.stderr);
+    context.bail_if_cancelled()?;
     let log_path = output_dir.parent().unwrap_or(output_dir).join("antlr.log");
     let mut log = Vec::new();
     log.extend_from_slice(b"--- stdout ---\n");
@@ -8550,6 +8919,7 @@ fn run_antlr(
     log.extend_from_slice(&output.stderr);
     fs::write(&log_path, log)
         .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+    context.bail_if_cancelled()?;
     if output.cancelled {
         eyre::bail!("ANTLR was cancelled by Ctrl+C. See {}", log_path.display());
     }
@@ -8561,6 +8931,7 @@ fn run_antlr(
         );
     }
     write_cache_state(&state_path, &fingerprint)?;
+    context.bail_if_cancelled()?;
     tracing::info!("ANTLR main: done in {} ms", started.elapsed().as_millis());
     Ok(())
 }
@@ -8569,62 +8940,68 @@ fn resolve_forge_userdev_libraries(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
 ) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let config: ForgeUserdevConfig = read_zip_json_entry(
         &context.artifact("forge-userdev")?.cache_path,
         "config.json",
     )?;
+    context.bail_if_cancelled()?;
     let mut coordinates = Vec::new();
     coordinates.extend(config.libraries);
     coordinates.extend(config.modules);
     coordinates.sort();
     coordinates.dedup();
 
-    coordinates
-        .iter()
-        .enumerate()
-        .map(|(index, coordinate)| {
-            let coordinate = MavenCoordinate::parse(coordinate)?;
+    let mut paths = Vec::new();
+    for (index, coordinate) in coordinates.iter().enumerate() {
+        context.bail_if_cancelled()?;
+        let coordinate = MavenCoordinate::parse(coordinate)?;
+        paths.push(
             resolver
                 .resolve_artifact(
                     &format!("forge-userdev-library-{index}"),
                     &coordinate,
                     "Forge userdev compile classpath",
-                )
-                .map(|artifact| artifact.cache_path)
-        })
-        .collect()
+                )?
+                .cache_path,
+        );
+    }
+    Ok(paths)
 }
 
 fn resolve_forge_userdev_test_libraries(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
 ) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let config: ForgeUserdevConfig = read_zip_json_entry(
         &context.artifact("forge-userdev")?.cache_path,
         "config.json",
     )?;
+    context.bail_if_cancelled()?;
 
-    config
-        .test_libraries
-        .iter()
-        .enumerate()
-        .map(|(index, coordinate)| {
-            let coordinate = MavenCoordinate::parse(coordinate)?;
+    let mut paths = Vec::new();
+    for (index, coordinate) in config.test_libraries.iter().enumerate() {
+        context.bail_if_cancelled()?;
+        let coordinate = MavenCoordinate::parse(coordinate)?;
+        paths.push(
             resolver
                 .resolve_artifact(
                     &format!("forge-userdev-test-library-{index}"),
                     &coordinate,
                     "Forge userdev game-test runtime classpath",
-                )
-                .map(|artifact| artifact.cache_path)
-        })
-        .collect()
+                )?
+                .cache_path,
+        );
+    }
+    Ok(paths)
 }
 
 fn resolve_compile_dependencies(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
 ) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let dependency_script = context
         .plan
         .minecraft_dir
@@ -8633,36 +9010,39 @@ fn resolve_compile_dependencies(
         .join(context.plan.minecraft_version.as_str())
         .join("dependencies.gradle");
     let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
-    dependencies
-        .iter()
-        .filter(|dependency| {
-            !dependency.fg_deobf
-                && matches!(
-                    dependency.configuration.as_str(),
-                    "implementation" | "compileOnly" | "annotationProcessor"
-                )
-                && (context.plan.loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev
-                    || dependency.configuration == "annotationProcessor")
-        })
-        .enumerate()
-        .map(|(index, dependency)| {
+    context.bail_if_cancelled()?;
+    let mut paths = Vec::new();
+    for dependency in dependencies.iter().filter(|dependency| {
+        !dependency.fg_deobf
+            && matches!(
+                dependency.configuration.as_str(),
+                "implementation" | "compileOnly" | "annotationProcessor"
+            )
+            && (context.plan.loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev
+                || dependency.configuration == "annotationProcessor")
+    }) {
+        context.bail_if_cancelled()?;
+        paths.push(
             resolver
                 .resolve_artifact(
-                    &format!("compile-dependency-{index}"),
+                    &format!("compile-dependency-{}", paths.len()),
                     &dependency.coordinate,
                     "Project compile classpath",
-                )
-                .map(|artifact| artifact.cache_path)
-        })
-        .collect()
+                )?
+                .cache_path,
+        );
+    }
+    Ok(paths)
 }
 
 fn collect_project_java_sources(
     context: &ExecutionContext<'_>,
     generated_sources: &Path,
 ) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let mut sources = collect_source_set_java_sources(context, "main")?;
-    sources.extend(collect_java_sources_under(generated_sources)?);
+    context.bail_if_cancelled()?;
+    sources.extend(collect_java_sources_under(context, generated_sources)?);
     sources.sort();
     Ok(sources)
 }
@@ -8671,6 +9051,7 @@ fn collect_source_set_java_sources(
     context: &ExecutionContext<'_>,
     source_set: &str,
 ) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let source_root = context
         .plan
         .minecraft_dir
@@ -8678,13 +9059,14 @@ fn collect_source_set_java_sources(
         .join(source_set)
         .join("java");
     let excludes = read_source_excludes(context, source_set)?;
-    let mut sources = collect_java_sources_under(&source_root)?
-        .into_iter()
-        .filter(|path| {
-            let relative = relative_zip_name(&source_root, path).unwrap_or_default();
-            !is_excluded_source(&relative, &excludes)
-        })
-        .collect::<Vec<_>>();
+    let mut sources = Vec::new();
+    for path in collect_java_sources_under(context, &source_root)? {
+        context.bail_if_cancelled()?;
+        let relative = relative_zip_name(&source_root, &path).unwrap_or_default();
+        if !is_excluded_source(&relative, &excludes) {
+            sources.push(path);
+        }
+    }
     sources.sort();
     Ok(sources)
 }
@@ -8693,6 +9075,7 @@ fn read_source_excludes(
     context: &ExecutionContext<'_>,
     source_set: &str,
 ) -> eyre::Result<Vec<String>> {
+    context.bail_if_cancelled()?;
     let path = context
         .plan
         .minecraft_dir
@@ -8702,6 +9085,7 @@ fn read_source_excludes(
         .join(format!("{source_set}-java.txt"));
     let excludes_text =
         fs::read_to_string(&path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
+    context.bail_if_cancelled()?;
     Ok(excludes_text
         .lines()
         .map(str::trim)
@@ -8725,7 +9109,11 @@ fn is_excluded_source(relative: &str, excludes: &[String]) -> bool {
     })
 }
 
-fn collect_java_sources_under(root: &Path) -> eyre::Result<Vec<PathBuf>> {
+fn collect_java_sources_under(
+    context: &ExecutionContext<'_>,
+    root: &Path,
+) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let mut sources = Vec::new();
     if !root.exists() {
         return Ok(sources);
@@ -8733,10 +9121,11 @@ fn collect_java_sources_under(root: &Path) -> eyre::Result<Vec<PathBuf>> {
     for entry in
         fs::read_dir(root).wrap_err_with(|| format!("Failed to read {}", root.display()))?
     {
+        context.bail_if_cancelled()?;
         let entry = entry.wrap_err_with(|| format!("Failed to read {}", root.display()))?;
         let path = entry.path();
         if path.is_dir() {
-            sources.extend(collect_java_sources_under(&path)?);
+            sources.extend(collect_java_sources_under(context, &path)?);
         } else if path.extension().and_then(|extension| extension.to_str()) == Some("java") {
             sources.push(path);
         }
@@ -8744,7 +9133,8 @@ fn collect_java_sources_under(root: &Path) -> eyre::Result<Vec<PathBuf>> {
     Ok(sources)
 }
 
-fn collect_jars(root: &Path) -> eyre::Result<Vec<PathBuf>> {
+fn collect_jars(context: &ExecutionContext<'_>, root: &Path) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let mut jars = Vec::new();
     if !root.exists() {
         return Ok(jars);
@@ -8752,10 +9142,11 @@ fn collect_jars(root: &Path) -> eyre::Result<Vec<PathBuf>> {
     for entry in
         fs::read_dir(root).wrap_err_with(|| format!("Failed to read {}", root.display()))?
     {
+        context.bail_if_cancelled()?;
         let entry = entry.wrap_err_with(|| format!("Failed to read {}", root.display()))?;
         let path = entry.path();
         if path.is_dir() {
-            jars.extend(collect_jars(&path)?);
+            jars.extend(collect_jars(context, &path)?);
         } else if path.extension().and_then(|extension| extension.to_str()) == Some("jar") {
             jars.push(path);
         }
@@ -8770,6 +9161,7 @@ fn write_javac_argfile(
     sources: &[PathBuf],
     classes_dir: &Path,
 ) -> eyre::Result<()> {
+    context.bail_if_cancelled()?;
     let refmap = context
         .plan
         .cache_dir
@@ -8791,6 +9183,7 @@ fn write_javac_argfile(
     if let Some(parent) = refmap.parent() {
         fs::create_dir_all(parent)?;
     }
+    context.bail_if_cancelled()?;
 
     let mut args = Vec::new();
     args.extend([
@@ -8825,11 +9218,15 @@ fn write_javac_argfile(
             "-AdefaultObfuscationEnv=searge".to_string(),
         ]);
     }
-    args.extend(sources.iter().map(|source| source.display().to_string()));
+    for source in sources {
+        context.bail_if_cancelled()?;
+        args.push(source.display().to_string());
+    }
 
     if let Some(parent) = argfile.parent() {
         fs::create_dir_all(parent)?;
     }
+    context.bail_if_cancelled()?;
     fs::write(
         argfile,
         args.into_iter()
@@ -8842,13 +9239,13 @@ fn write_javac_argfile(
 }
 
 fn write_javac_no_ap_argfile(
+    context: &ExecutionContext<'_>,
     argfile: &Path,
     classpath: &[PathBuf],
     sources: &[PathBuf],
     classes_dir: &Path,
-    java_release: u32,
-    java_major_version: u32,
 ) -> eyre::Result<()> {
+    context.bail_if_cancelled()?;
     let mut args = Vec::new();
     args.extend([
         "-encoding".to_string(),
@@ -8864,12 +9261,20 @@ fn write_javac_no_ap_argfile(
         "-sourcepath".to_string(),
         String::new(),
     ]);
-    append_javac_release_args(&mut args, java_release, java_major_version);
-    args.extend(sources.iter().map(|source| source.display().to_string()));
+    append_javac_release_args(
+        &mut args,
+        context.plan.java_release,
+        context.plan.java.major_version,
+    );
+    for source in sources {
+        context.bail_if_cancelled()?;
+        args.push(source.display().to_string());
+    }
 
     if let Some(parent) = argfile.parent() {
         fs::create_dir_all(parent)?;
     }
+    context.bail_if_cancelled()?;
     fs::write(
         argfile,
         args.into_iter()
@@ -9067,6 +9472,7 @@ fn resolve_current_minecraft_libraries(
     context: &ExecutionContext<'_>,
     client: &Client,
 ) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
     let version_json: MinecraftVersionJson =
         read_json_file(&context.plan.minecraft.version_json.cache_path)?;
     let libraries = minecraft_library_jars_from_version_json(
@@ -9075,8 +9481,10 @@ fn resolve_current_minecraft_libraries(
     );
 
     for library in &libraries {
+        context.bail_if_cancelled()?;
         if let Some(expected_sha1) = library.sha1.as_deref() {
             download_to_path_overwrite_with_expected_sha1(
+                &context.cancellation_token,
                 client,
                 &library.url,
                 &library.path,
@@ -9084,7 +9492,12 @@ fn resolve_current_minecraft_libraries(
                 expected_sha1,
             )?;
         } else {
-            download_to_path(client, &library.url, &library.path)?;
+            download_to_path(
+                &context.cancellation_token,
+                client,
+                &library.url,
+                &library.path,
+            )?;
         }
         context.assert_allowed_input(&library.path)?;
     }
@@ -10881,19 +11294,21 @@ fn write_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<()> {
     write_artifact_lockfile_with_extra_cache_paths(plan, &[])
 }
 
-fn write_artifact_lockfile_with_extra_cache_paths(
-    plan: &BuildPlan,
-    extra_cache_paths: &[PathBuf],
-) -> eyre::Result<()> {
-    let _span = tracing::info_span!(
-        "write_artifact_lockfile",
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
         branch = %plan.branch_name,
         mc = %plan.minecraft_version,
         artifacts = plan.artifacts.len(),
         dependencies = plan.dependencies.len(),
         extra_cache_paths = extra_cache_paths.len(),
     )
-    .entered();
+)]
+fn write_artifact_lockfile_with_extra_cache_paths(
+    plan: &BuildPlan,
+    extra_cache_paths: &[PathBuf],
+) -> eyre::Result<()> {
     let lockfile = build_artifact_lockfile(plan, extra_cache_paths)?;
     if let Some(parent) = plan.lockfile_path.parent() {
         fs::create_dir_all(parent)?;
@@ -11522,28 +11937,36 @@ fn source_build_checkout_key(remote_url: &str, commit: &str) -> String {
 }
 
 fn materialize_source_build(
+    cancellation_token: &CancellationToken,
     remote_url: &str,
     commit: &str,
     source_build: &SourceBuildProvenance,
     checkout_dir: &Path,
 ) -> eyre::Result<()> {
     match source_build.build_system {
-        SourceBuildSystem::GradleWrapper => {
-            materialize_gradle_wrapper_source_build(remote_url, commit, source_build, checkout_dir)
-        }
+        SourceBuildSystem::GradleWrapper => materialize_gradle_wrapper_source_build(
+            cancellation_token,
+            remote_url,
+            commit,
+            source_build,
+            checkout_dir,
+        ),
     }
 }
 
 fn materialize_gradle_wrapper_source_build(
+    cancellation_token: &CancellationToken,
     remote_url: &str,
     commit: &str,
     source_build: &SourceBuildProvenance,
     checkout_dir: &Path,
 ) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     if source_build.tasks.is_empty() {
         eyre::bail!("Source build for {remote_url}@{commit} has no Gradle tasks");
     }
-    prepare_source_build_checkout(remote_url, commit, checkout_dir)?;
+    prepare_source_build_checkout(cancellation_token, remote_url, commit, checkout_dir)?;
+    cancellation_token.bail_if_cancelled()?;
     let wrapper = gradle_wrapper_path(checkout_dir)?;
     tracing::info!(
         remote = remote_url,
@@ -11561,15 +11984,21 @@ fn materialize_gradle_wrapper_source_build(
     for (key, value) in &source_build.environment {
         command.env(key, value);
     }
-    run_source_build_process(&mut command, "source-build-gradle-wrapper")?;
+    run_source_build_process(
+        cancellation_token,
+        &mut command,
+        "source-build-gradle-wrapper",
+    )?;
     Ok(())
 }
 
 fn prepare_source_build_checkout(
+    cancellation_token: &CancellationToken,
     remote_url: &str,
     commit: &str,
     checkout_dir: &Path,
 ) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     if !checkout_dir.join(".git").is_dir() {
         if checkout_dir.exists() {
             eyre::bail!(
@@ -11588,9 +12017,10 @@ fn prepare_source_build_checkout(
             .arg("--no-checkout")
             .arg(remote_url)
             .arg(checkout_dir);
-        run_source_build_process(&mut clone, "source-build-git-clone")?;
+        run_source_build_process(cancellation_token, &mut clone, "source-build-git-clone")?;
     }
 
+    cancellation_token.bail_if_cancelled()?;
     let mut longpaths = Command::new("git");
     longpaths
         .arg("-C")
@@ -11598,8 +12028,13 @@ fn prepare_source_build_checkout(
         .arg("config")
         .arg("core.longpaths")
         .arg("true");
-    run_source_build_process(&mut longpaths, "source-build-git-config-longpaths")?;
+    run_source_build_process(
+        cancellation_token,
+        &mut longpaths,
+        "source-build-git-config-longpaths",
+    )?;
 
+    cancellation_token.bail_if_cancelled()?;
     let mut fetch = Command::new("git");
     fetch
         .arg("-C")
@@ -11607,8 +12042,9 @@ fn prepare_source_build_checkout(
         .arg("fetch")
         .arg("origin")
         .arg(commit);
-    run_source_build_process(&mut fetch, "source-build-git-fetch")?;
+    run_source_build_process(cancellation_token, &mut fetch, "source-build-git-fetch")?;
 
+    cancellation_token.bail_if_cancelled()?;
     let mut checkout = Command::new("git");
     checkout
         .arg("-C")
@@ -11616,7 +12052,11 @@ fn prepare_source_build_checkout(
         .arg("checkout")
         .arg("--detach")
         .arg(commit);
-    run_source_build_process(&mut checkout, "source-build-git-checkout")?;
+    run_source_build_process(
+        cancellation_token,
+        &mut checkout,
+        "source-build-git-checkout",
+    )?;
     Ok(())
 }
 
@@ -11639,8 +12079,12 @@ fn gradle_wrapper_path(checkout_dir: &Path) -> eyre::Result<PathBuf> {
     Ok(wrapper)
 }
 
-fn run_source_build_process(command: &mut Command, process_name: &str) -> eyre::Result<()> {
-    let output = run_command_capture_output(command, process_name)?;
+fn run_source_build_process(
+    cancellation_token: &CancellationToken,
+    command: &mut Command,
+    process_name: &str,
+) -> eyre::Result<()> {
+    let output = run_command_capture_output(cancellation_token, command, process_name)?;
     if !output.stdout.is_empty() {
         tracing::debug!(
             process = process_name,
@@ -11749,32 +12193,49 @@ where
         .wrap_err_with(|| format!("Failed to parse {entry_name} from {}", path.display()))
 }
 
-fn download_to_path(client: &Client, url: &str, path: &Path) -> eyre::Result<()> {
-    download_to_path_overwrite(client, url, path, false)
+fn download_to_path(
+    cancellation_token: &CancellationToken,
+    client: &Client,
+    url: &str,
+    path: &Path,
+) -> eyre::Result<()> {
+    download_to_path_overwrite(cancellation_token, client, url, path, false)
 }
 
 fn download_to_path_overwrite_with_expected_sha1(
+    cancellation_token: &CancellationToken,
     client: &Client,
     url: &str,
     path: &Path,
     overwrite: bool,
     expected_sha1: &str,
 ) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     let _lock = acquire_artifact_path_lock(path)?;
-    download_to_path_overwrite_locked(client, url, path, overwrite, Some(expected_sha1))
+    download_to_path_overwrite_locked(
+        cancellation_token,
+        client,
+        url,
+        path,
+        overwrite,
+        Some(expected_sha1),
+    )
 }
 
 fn download_to_path_overwrite(
+    cancellation_token: &CancellationToken,
     client: &Client,
     url: &str,
     path: &Path,
     overwrite: bool,
 ) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     let _lock = acquire_artifact_path_lock(path)?;
-    download_to_path_overwrite_locked(client, url, path, overwrite, None)
+    download_to_path_overwrite_locked(cancellation_token, client, url, path, overwrite, None)
 }
 
 fn download_to_path_overwrite_locked(
+    cancellation_token: &CancellationToken,
     client: &Client,
     url: &str,
     path: &Path,
@@ -11790,6 +12251,7 @@ fn download_to_path_overwrite_locked(
         expected_sha1,
     )
     .entered();
+    cancellation_token.bail_if_cancelled()?;
     prepare_existing_artifact_for_reuse(path, expected_sha1)?;
 
     if path.is_file() && !overwrite {
@@ -11820,12 +12282,16 @@ fn download_to_path_overwrite_locked(
     );
     let mut last_error = None;
     for attempt in 1..=DOWNLOAD_RETRY_ATTEMPTS {
-        match download_to_path_once(client, url, path, expected_sha1) {
+        cancellation_token.bail_if_cancelled()?;
+        match download_to_path_once(cancellation_token, client, url, path, expected_sha1) {
             Ok(()) => {
                 remove_bad_artifacts_for(path)?;
                 return Ok(());
             }
             Err(error) => {
+                if cancellation_token.is_cancelled() {
+                    return Err(error);
+                }
                 tracing::warn!(
                     path = %path.display(),
                     url,
@@ -11842,11 +12308,13 @@ fn download_to_path_overwrite_locked(
 }
 
 fn download_to_path_once(
+    cancellation_token: &CancellationToken,
     client: &Client,
     url: &str,
     path: &Path,
     expected_sha1: Option<&str>,
 ) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
     let parent = path
         .parent()
         .ok_or_else(|| eyre::eyre!("Path has no parent: {}", path.display()))?;
@@ -11855,12 +12323,14 @@ fn download_to_path_once(
         .get(url)
         .send()
         .wrap_err_with(|| format!("Failed to request {url}"))?;
+    cancellation_token.bail_if_cancelled()?;
     if !response.status().is_success() {
         eyre::bail!("Failed to download {url}: HTTP {}", response.status());
     }
     let bytes = response
         .bytes()
         .wrap_err_with(|| format!("Failed to read response body for {url}"))?;
+    cancellation_token.bail_if_cancelled()?;
     let temporary_path = write_unique_temp_file(path, bytes.as_ref())?;
     if let Some(expected_sha1) = expected_sha1 {
         let actual_sha1 = file_sha1(&temporary_path)?;
@@ -12070,31 +12540,49 @@ fn artifact_file_name(path: &Path) -> eyre::Result<&str> {
         .ok_or_else(|| eyre::eyre!("Path has no filename: {}", path.display()))
 }
 
-fn download_text_optional(client: &Client, url: &str) -> eyre::Result<String> {
+fn download_text_optional(
+    cancellation_token: &CancellationToken,
+    client: &Client,
+    url: &str,
+) -> eyre::Result<String> {
+    cancellation_token.bail_if_cancelled()?;
     let response = client
         .get(url)
         .send()
         .wrap_err_with(|| format!("Failed to request {url}"))?;
+    cancellation_token.bail_if_cancelled()?;
     if response.status() == StatusCode::NOT_FOUND {
         eyre::bail!("not found");
     }
     if !response.status().is_success() {
         eyre::bail!("HTTP {}", response.status());
     }
-    response
+    let text = response
         .text()
-        .wrap_err_with(|| format!("Failed to read response body for {url}"))
+        .wrap_err_with(|| format!("Failed to read response body for {url}"))?;
+    cancellation_token.bail_if_cancelled()?;
+    Ok(text)
 }
 
-fn remote_exists(client: &Client, url: &str) -> eyre::Result<bool> {
+fn remote_exists(
+    cancellation_token: &CancellationToken,
+    client: &Client,
+    url: &str,
+) -> eyre::Result<bool> {
     #[cfg(feature = "tracing_detailed")]
     let _span = tracing::debug_span!("remote_exists", url).entered();
+    cancellation_token.bail_if_cancelled()?;
     let response = client
         .head(url)
         .send()
         .wrap_err_with(|| format!("Failed to request {url}"))?;
+    cancellation_token.bail_if_cancelled()?;
     if response.status() == StatusCode::METHOD_NOT_ALLOWED {
-        return Ok(download_text_optional(client, url).is_ok());
+        return match download_text_optional(cancellation_token, client, url) {
+            Ok(_) => Ok(true),
+            Err(error) if cancellation_token.is_cancelled() => Err(error),
+            Err(_) => Ok(false),
+        };
     }
     Ok(response.status().is_success())
 }

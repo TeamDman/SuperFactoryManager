@@ -1,4 +1,5 @@
 use super::JarBuildOptionsArgs;
+use crate::cancellation::CancellationToken;
 use crate::jar_build::BuildCommand;
 use crate::jar_build::BuildMode;
 use crate::jar_build::BuildOptions;
@@ -20,7 +21,7 @@ impl JarBuildArgs {
     /// # Errors
     ///
     /// Returns an error if planning fails or an unsupported build node is reached.
-    pub fn invoke(self) -> eyre::Result<()> {
-        BuildCommand::new(self.into_options(BuildMode::Build)?).invoke()
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+        BuildCommand::new(self.into_options(BuildMode::Build)?, cancellation_token).invoke()
     }
 }

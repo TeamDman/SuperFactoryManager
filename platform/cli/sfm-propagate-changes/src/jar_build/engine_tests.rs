@@ -73,6 +73,7 @@ use crate::branch_targets::BranchQuery;
 use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::WorktreePath;
 use crate::branch_targets::WorktreeTarget;
+use crate::cancellation::CancellationToken;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
 use reqwest::blocking::Client;
@@ -86,6 +87,7 @@ use std::net::TcpListener;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering as AtomicOrdering;
@@ -736,6 +738,7 @@ fn resolver_cache_hit_waits_for_writer_lock_before_reading() {
         Vec::new(),
         None,
         None,
+        test_cancellation_token(),
     )
     .expect("resolver should build");
     let cache_path = resolver.cache_path_for(&coordinate);
@@ -802,6 +805,7 @@ fn resolver_imports_from_explicit_project_artifact_source() {
         vec![source_root],
         None,
         None,
+        test_cancellation_token(),
     )
     .expect("resolver should build");
     let artifact = resolver
@@ -881,6 +885,7 @@ fn explicit_source_mekanism_artifacts_record_source_build_commands() {
         vec![source_root],
         None,
         None,
+        test_cancellation_token(),
     )
     .expect("resolver should build");
     let main_artifact = resolver
@@ -971,6 +976,7 @@ fn resolver_materializes_locked_artifact_from_source_build() {
         Vec::new(),
         None,
         Some(lockfile),
+        test_cancellation_token(),
     )
     .expect("resolver should build");
     let artifact = resolver
@@ -1101,8 +1107,10 @@ fn download_to_path_retries_after_temp_sha1_failure() {
     let destination = test_dir.path.join("artifact.jar");
     let expected_sha1 = sha1_bytes(b"good");
     let (url, server) = serve_http_bodies(vec![b"bad".to_vec(), b"good".to_vec()]);
+    let cancellation_token = test_cancellation_token();
 
     download_to_path_overwrite_with_expected_sha1(
+        &cancellation_token,
         &Client::new(),
         &url,
         &destination,
@@ -1165,6 +1173,7 @@ fn write_unique_temp_file_uses_artifact_sibling() {
 #[test]
 fn parallel_targets_return_plans_in_input_order() {
     let options = test_build_options(Parallelism::Parallel { limit: 2 });
+    let cancellation_token = test_cancellation_token();
     let targets = vec![
         test_worktree_target("1.19.2", "D:/tmp/1.19.2"),
         test_worktree_target("1.20.1", "D:/tmp/1.20.1"),
@@ -1175,7 +1184,8 @@ fn parallel_targets_return_plans_in_input_order() {
         targets,
         "test_parallel_targets",
         2,
-        |_options, target| {
+        &cancellation_token,
+        |_options, target, _cancellation_token| {
             if target.branch.as_ref() == "1.19.2" {
                 thread::sleep(Duration::from_millis(25));
             }
@@ -1201,22 +1211,27 @@ fn parallel_targets_stop_starting_after_cancellation() {
         test_worktree_target("1.19.2", "D:/tmp/1.19.2"),
         test_worktree_target("1.20.1", "D:/tmp/1.20.1"),
     ];
-    let cancelled = AtomicBool::new(false);
-    let started = AtomicUsize::new(0);
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let started = Arc::new(AtomicUsize::new(0));
+    let token_cancelled = Arc::clone(&cancelled);
+    let cancellation_token =
+        CancellationToken::new(move || token_cancelled.load(AtomicOrdering::Acquire));
+    let execute_cancelled = Arc::clone(&cancelled);
+    let execute_started = Arc::clone(&started);
 
     let error = execute_targets_parallel_with_cancellation(
         &options,
         targets,
         "test_parallel_cancelled_targets",
         1,
-        |_options, target| {
-            started.fetch_add(1, AtomicOrdering::Relaxed);
+        move |_options, target, _cancellation_token| {
+            execute_started.fetch_add(1, AtomicOrdering::Relaxed);
             let mut plan = minimal_plan_for_paths();
             plan.branch_name = target.branch.clone();
-            cancelled.store(true, AtomicOrdering::Release);
+            execute_cancelled.store(true, AtomicOrdering::Release);
             Ok(plan)
         },
-        || cancelled.load(AtomicOrdering::Acquire),
+        &cancellation_token,
     )
     .expect_err("parallel execution should report cancellation");
 
@@ -2069,6 +2084,10 @@ fn matching_siblings(path: &Path, kind: &str) -> Vec<PathBuf> {
         .collect::<Vec<_>>();
     paths.sort();
     paths
+}
+
+fn test_cancellation_token() -> CancellationToken {
+    CancellationToken::new(|| false)
 }
 
 fn run_git<const N: usize>(repo: &Path, args: [&str; N]) {
