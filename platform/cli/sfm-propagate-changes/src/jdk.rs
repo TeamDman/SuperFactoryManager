@@ -4,6 +4,11 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use std::thread;
+use tracing::instrument;
+use tracing::warn;
+
+use crate::logging::set_tracy_thread_name;
 
 #[derive(Clone, Debug)]
 pub(crate) struct JdkInstallation {
@@ -13,6 +18,7 @@ pub(crate) struct JdkInstallation {
     pub(crate) version_output: String,
     pub(crate) major_version: u32,
     pub(crate) source: String,
+    /// JetBrains Runtime (JBR) is preferred for development builds of SFM, so we track whether each discovered JDK is a JBR distribution.
     pub(crate) is_jbr: bool,
 }
 
@@ -24,19 +30,45 @@ pub(crate) struct ResolvedJava {
     pub(crate) major_version: u32,
 }
 
-pub(crate) fn list_jdks() -> Vec<JdkInstallation> {
-    let mut jdks = discovered_jdk_homes()
-        .into_iter()
-        .filter_map(|(home, source)| JdkInstallation::from_home(&home, source).ok())
-        .collect::<Vec<_>>();
+#[instrument]
+pub(crate) fn list_jdks() -> eyre::Result<Vec<JdkInstallation>> {
+    let mut handles = Vec::new();
+    for (index, jdk) in discover_jdk_homes().into_iter().enumerate() {
+        let (home, source) = jdk;
+        let thread_name = format!("Java Discovery Worker {index} ({source})");
+        handles.push(
+            thread::Builder::new()
+                .name(thread_name.clone())
+                .spawn(move || {
+                    set_tracy_thread_name(&thread_name);
+                    JdkInstallation::from_home(&home, source)
+                })?,
+        );
+    }
+    let thread_name = "Java Discovery Worker PATH".to_string();
+    handles.push(
+        thread::Builder::new()
+            .name(thread_name.clone())
+            .spawn(move || {
+                set_tracy_thread_name(&thread_name);
+                JdkInstallation::from_path()
+            })?,
+    );
 
-    if let Ok(path_jdk) = JdkInstallation::from_path() {
-        jdks.push(path_jdk);
+    let mut jdks = Vec::with_capacity(handles.len());
+    for handle in handles {
+        match handle.join().map_err(|panic| {
+            eyre::eyre!("JDK discovery worker panicked: {}", panic_message(&panic))
+        })? {
+            Ok(x) => jdks.push(x),
+            Err(e) => warn!("Failed to read JDK: {e:?}"),
+        }
     }
 
-    dedup_jdks(jdks)
+    Ok(dedup_jdks(jdks))
 }
 
+#[instrument]
 pub(crate) fn resolve_java(
     explicit_java_home: Option<&Path>,
     required_major: u32,
@@ -47,7 +79,7 @@ pub(crate) fn resolve_java(
         return Ok(jdk.into_resolved_java());
     }
 
-    let jdks = list_jdks();
+    let jdks = list_jdks()?;
     if let Some(jdk) = select_jdk(&jdks, required_major) {
         return Ok(jdk.clone().into_resolved_java());
     }
@@ -82,6 +114,7 @@ pub(crate) fn parse_java_major_version(version_output: &str) -> Option<u32> {
     }
 }
 
+#[instrument(level = "debug", skip_all, fields(jdks_count = jdks.len(), required_major))]
 fn select_jdk(jdks: &[JdkInstallation], required_major: u32) -> Option<&JdkInstallation> {
     jdks.iter()
         .filter(|jdk| jdk.major_version >= required_major)
@@ -141,7 +174,8 @@ fn dedup_jdks(jdks: Vec<JdkInstallation>) -> Vec<JdkInstallation> {
     output
 }
 
-fn discovered_jdk_homes() -> Vec<(PathBuf, String)> {
+#[instrument]
+fn discover_jdk_homes() -> Vec<(PathBuf, String)> {
     let mut homes = Vec::new();
     if let Some(user_profile) = env_path("USERPROFILE").or_else(|| env_path("HOME")) {
         push_child_directories(&mut homes, &user_profile.join(".jdks"), "user .jdks");
@@ -178,9 +212,16 @@ fn push_child_directories(output: &mut Vec<(PathBuf, String)>, root: &Path, sour
             continue;
         };
         if file_type.is_dir() || file_type.is_symlink() {
-            output.push((entry.path(), source.to_string()));
+            let path = entry.path();
+            if jdk_home_has_executables(&path) {
+                output.push((path, source.to_string()));
+            }
         }
     }
+}
+
+fn jdk_home_has_executables(home: &Path) -> bool {
+    java_executable_for_home(home).is_file() && javac_executable_for_home(home).is_file()
 }
 
 fn env_path(name: &str) -> Option<PathBuf> {
@@ -189,7 +230,18 @@ fn env_path(name: &str) -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
+    if let Some(message) = panic.downcast_ref::<&str>() {
+        return (*message).to_string();
+    }
+    if let Some(message) = panic.downcast_ref::<String>() {
+        return message.clone();
+    }
+    "<non-string panic payload>".to_string()
+}
+
 impl JdkInstallation {
+    #[instrument]
     fn from_home(home: &Path, source: String) -> eyre::Result<Self> {
         let runtime_executable = java_executable_for_home(home);
         let compiler_executable = javac_executable_for_home(home);
@@ -207,6 +259,7 @@ impl JdkInstallation {
         )
     }
 
+    #[instrument(level = "debug")]
     fn from_path() -> eyre::Result<Self> {
         Self::from_parts(
             None,
@@ -216,6 +269,7 @@ impl JdkInstallation {
         )
     }
 
+    #[instrument]
     fn from_parts(
         home: Option<PathBuf>,
         runtime_executable: PathBuf,
@@ -284,7 +338,9 @@ fn canonicalize_existing(path: &Path) -> eyre::Result<PathBuf> {
 mod tests {
     use super::JdkInstallation;
     use super::parse_java_major_version;
+    use super::push_child_directories;
     use super::select_jdk;
+    use std::fs;
     use std::path::PathBuf;
 
     #[test]
@@ -313,6 +369,27 @@ mod tests {
         assert_eq!(select_jdk(&jdks, 17).unwrap().major_version, 21);
         assert_eq!(select_jdk(&jdks, 25).unwrap().major_version, 25);
         assert!(select_jdk(&jdks, 26).is_none());
+    }
+
+    #[test]
+    fn child_discovery_ignores_directories_without_java_and_javac() {
+        let root = tempfile::Builder::new()
+            .prefix("jdk-discovery-test")
+            .tempdir()
+            .unwrap();
+        let root_path = root.path();
+        let jdk_home = root_path.join("temurin-17");
+        let edge_home = root_path.join("Edge");
+        fs::create_dir_all(jdk_home.join("bin")).unwrap();
+        fs::create_dir_all(edge_home.join("bin")).unwrap();
+        fs::write(super::java_executable_for_home(&jdk_home), "").unwrap();
+        fs::write(super::javac_executable_for_home(&jdk_home), "").unwrap();
+        fs::write(super::java_executable_for_home(&edge_home), "").unwrap();
+
+        let mut output = Vec::new();
+        push_child_directories(&mut output, root_path, "test root");
+
+        assert_eq!(output, vec![(jdk_home, "test root".to_string())]);
     }
 
     fn fake_jdk(name: &str, major_version: u32, is_jbr: bool) -> JdkInstallation {

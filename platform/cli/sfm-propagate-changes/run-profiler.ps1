@@ -168,6 +168,7 @@ if (-not (Test-Path $captureDir)) {
 
 $slug = "$((Get-Date).ToString("yyyy-MM-dd_HH-mm-ss")).tracy"
 $capturePath = Join-Path $captureDir $slug
+$commandLogPath = [System.IO.Path]::ChangeExtension($capturePath, ".command.log")
 
 if (-not (Get-Command tracy-capture.exe -ErrorAction SilentlyContinue)) {
 	throw "tracy-capture.exe not found in PATH"
@@ -216,6 +217,7 @@ if (-not (Test-Path $sfmPath)) {
 }
 
 Write-Host "Capture: $capturePath"
+Write-Host "Traced command log: $commandLogPath"
 Write-Host "Logging SFM toolchain runtime performance information to $capturePath"
 $wt = Get-Command wt.exe -ErrorAction SilentlyContinue
 $captureLaunchStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
@@ -239,14 +241,17 @@ try {
 	$previousTracyLayerSetting = [Environment]::GetEnvironmentVariable($tracyLayerEnvVar)
 	Set-Item -Path "Env:$tracyLayerEnvVar" -Value "1"
 	Write-Host "Running built $profileLabel SFM CLI with ${tracyLayerEnvVar}=1: $sfmPath $($QueryArgs -join ' ')"
+	if (Test-Path $commandLogPath) {
+		Remove-Item -Path $commandLogPath -Force
+	}
 	$commandStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-	& $sfmPath @QueryArgs
+	& $sfmPath @QueryArgs 2>&1 | Tee-Object -FilePath $commandLogPath
 	$commandStopwatch.Stop()
 	$commandElapsed = $commandStopwatch.Elapsed
 	$commandExitCode = $LASTEXITCODE
 	Write-Host "Traced command time: $(Format-Elapsed $commandElapsed)"
 	if ($commandExitCode -ne 0) {
-		$commandFailureMessage = "sfm-propagate-changes.exe failed with exit code $commandExitCode"
+		$commandFailureMessage = "sfm-propagate-changes.exe failed with exit code $commandExitCode; output was saved to $commandLogPath"
 		Write-Warning $commandFailureMessage
 	}
 }
@@ -314,6 +319,7 @@ Write-Host "  build:          $(Format-Elapsed $buildElapsed)"
 Write-Host "  capture launch: $(Format-Elapsed $captureLaunchElapsed)"
 if ($commandElapsed) {
 	Write-Host "  traced command: $(Format-Elapsed $commandElapsed)"
+	Write-Host "  command log:    $commandLogPath"
 }
 Write-Host "  cleanup:        $(Format-Elapsed $cleanupElapsed)"
 Write-Host "  capture stop:   $(Format-Elapsed $captureShutdownElapsed)"
@@ -323,5 +329,8 @@ if ($profilerElapsed) {
 Write-Host "  total wrapper:  $(Format-Elapsed $overallStopwatch.Elapsed)"
 
 if ($commandFailureMessage) {
-	throw $commandFailureMessage
+	Write-Warning $commandFailureMessage
+	Write-Warning "Profiler wrapper completed cleanup and post-processing despite the traced command failure."
+	$global:LASTEXITCODE = $commandExitCode
+	return
 }
