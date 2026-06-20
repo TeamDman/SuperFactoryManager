@@ -38,6 +38,7 @@ platform/cli/sfm-propagate-changes/tracy/
 eclipse
 platform/minecraft/run/
 runClient
+runClientSmoke
 runData
 runTest
 runGameTest
