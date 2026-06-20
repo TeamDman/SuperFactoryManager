@@ -19,6 +19,13 @@ impl ArtifactReadLock {
     ///
     /// Returns an error if the lock file cannot be opened or the OS lock operation fails.
     pub fn acquire(lock_path: impl AsRef<Path>, artifact: impl Into<String>) -> eyre::Result<Self> {
+        let artifact = artifact.into();
+        let _span = tracing::info_span!(
+            "acquire_artifact_read_lock",
+            artifact = %artifact,
+            lock = %lock_path.as_ref().display()
+        )
+        .entered();
         Self::acquire_with_policy(lock_path, artifact, ArtifactLockWaitPolicy::default())
     }
 
