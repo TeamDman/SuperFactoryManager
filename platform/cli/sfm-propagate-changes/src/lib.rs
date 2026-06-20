@@ -15,6 +15,7 @@ pub mod sfm_path;
 pub mod state;
 pub mod terminal_output;
 pub mod worktree;
+pub mod panic;
 
 #[cfg(feature = "tracy_memory")]
 #[global_allocator]

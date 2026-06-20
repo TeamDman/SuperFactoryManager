@@ -1,14 +1,12 @@
 use eyre::Context;
+use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
-use std::thread;
 use tracing::instrument;
 use tracing::warn;
-
-use crate::logging::set_tracy_thread_name;
 
 #[derive(Clone, Debug)]
 pub(crate) struct JdkInstallation {
@@ -32,34 +30,20 @@ pub(crate) struct ResolvedJava {
 
 #[instrument]
 pub(crate) fn list_jdks() -> eyre::Result<Vec<JdkInstallation>> {
-    let mut handles = Vec::new();
-    for (index, jdk) in discover_jdk_homes().into_iter().enumerate() {
-        let (home, source) = jdk;
-        let thread_name = format!("Java Discovery Worker {index} ({source})");
-        handles.push(
-            thread::Builder::new()
-                .name(thread_name.clone())
-                .spawn(move || {
-                    set_tracy_thread_name(&thread_name);
-                    JdkInstallation::from_home(&home, source)
-                })?,
-        );
-    }
-    let thread_name = "Java Discovery Worker PATH".to_string();
-    handles.push(
-        thread::Builder::new()
-            .name(thread_name.clone())
-            .spawn(move || {
-                set_tracy_thread_name(&thread_name);
-                JdkInstallation::from_path()
-            })?,
+    let jdk_homes = discover_jdk_homes();
+    let (home_results, path_result) = rayon::join(
+        || {
+            jdk_homes
+                .into_par_iter()
+                .map(|(home, source)| JdkInstallation::from_home(&home, source))
+                .collect::<Vec<_>>()
+        },
+        JdkInstallation::from_path,
     );
 
-    let mut jdks = Vec::with_capacity(handles.len());
-    for handle in handles {
-        match handle.join().map_err(|panic| {
-            eyre::eyre!("JDK discovery worker panicked: {}", panic_message(&panic))
-        })? {
+    let mut jdks = Vec::with_capacity(home_results.len() + 1);
+    for result in home_results.into_iter().chain(std::iter::once(path_result)) {
+        match result {
             Ok(x) => jdks.push(x),
             Err(e) => warn!("Failed to read JDK: {e:?}"),
         }
@@ -228,16 +212,6 @@ fn env_path(name: &str) -> Option<PathBuf> {
     std::env::var_os(name)
         .filter(|value| !value.as_os_str().is_empty())
         .map(PathBuf::from)
-}
-
-fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
-    if let Some(message) = panic.downcast_ref::<&str>() {
-        return (*message).to_string();
-    }
-    if let Some(message) = panic.downcast_ref::<String>() {
-        return message.clone();
-    }
-    "<non-string panic payload>".to_string()
 }
 
 impl JdkInstallation {
