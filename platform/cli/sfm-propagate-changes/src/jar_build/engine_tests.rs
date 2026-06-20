@@ -1,10 +1,12 @@
 use super::ArtifactAuditIssueKind;
 use super::ArtifactAuditSeverity;
+use super::ArtifactId;
 use super::ArtifactLockEntry;
 use super::ArtifactLockfile;
 use super::ArtifactPlan;
 use super::ArtifactPortabilityAudit;
 use super::ArtifactProvenance;
+use super::ArtifactPurpose;
 use super::ArtifactSource;
 use super::BuildMode;
 use super::BuildOptions;
@@ -40,14 +42,13 @@ use super::audit_artifact_lockfile;
 use super::build_artifact_lockfile;
 use super::compare_version_text;
 use super::copy_file_to_path_checked;
-use super::download_to_path_overwrite_with_expected_sha1;
+use super::download_to_path_overwrite_with_expected_hash;
 use super::enforce_portable_artifacts;
 use super::execute_targets_parallel;
 use super::execute_targets_parallel_with_cancellation;
 use super::extract_client_puppet_failure;
 use super::extract_client_puppet_pass_count;
 use super::extract_quoted;
-use super::file_sha1;
 use super::interpolate_properties;
 use super::is_excluded_source;
 use super::minecraft_library_jars_from_version_json;
@@ -61,7 +62,6 @@ use super::replace_artifact_file;
 use super::resolve_loader_toolchain;
 use super::rust_output_jar_path;
 use super::set_minecraft_option;
-use super::sha1_bytes;
 use super::should_keep_split_minecraft_runtime_entry;
 use super::source_build_checkout_key;
 use super::source_git_provenance;
@@ -76,6 +76,7 @@ use crate::branch_targets::WorktreeTarget;
 use crate::cancellation::CancellationToken;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
+use crate::jar_build::hash::{ContentHash, ContentHashAlgorithm};
 use reqwest::blocking::Client;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -93,6 +94,10 @@ use std::sync::atomic::Ordering as AtomicOrdering;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
+
+fn legacy_sha1_hash(input: &str) -> ContentHash {
+    ContentHash::parse_hex(input, ContentHashAlgorithm::Sha1).expect("test SHA-1 should parse")
+}
 
 #[test]
 fn parses_classifier_coordinate() {
@@ -449,7 +454,7 @@ fn facet_json_roundtrips_artifact_lockfile_and_provenance() {
     assert!(provenance_json.contains("remote-maven"));
     let parsed_provenance: ArtifactProvenance =
         facet_json::from_str(&provenance_json).expect("provenance should parse");
-    assert_eq!(parsed_provenance.sha1, "abc123");
+    assert_eq!(parsed_provenance.hash, provenance.hash);
 
     let lockfile = ArtifactLockfile {
         schema_version: 1,
@@ -478,7 +483,7 @@ fn facet_json_roundtrips_artifact_lockfile_and_provenance() {
             source_relative_path: None,
             source_git: None,
             source_build: None,
-            sha1: "abc123".to_string(),
+            hash: provenance.hash,
         }],
     };
     let json = facet_json::to_string_pretty(&lockfile).expect("lockfile should serialize");
@@ -497,7 +502,7 @@ fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
         .expect("artifact parent should be created");
     fs::write(&artifact_path, b"artifact").expect("artifact should be written");
 
-    let sha1 = sha1_bytes(b"artifact");
+    let legacy_sha1 = legacy_sha1_hash("1e5dcbb59b753cb1d46e234d8f6180285b8b86ad");
     let provenance = ArtifactProvenance {
         schema_version: 1,
         source: ArtifactSource::RemoteMaven,
@@ -508,7 +513,7 @@ fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
         source_relative_path: None,
         source_git: None,
         source_build: None,
-        sha1: sha1.clone(),
+        hash: legacy_sha1,
     };
     fs::write(
         artifact_path.with_file_name("a-1.jar.sfm-provenance.json"),
@@ -546,7 +551,7 @@ fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
             source_relative_path: None,
             source_git: None,
             source_build: None,
-            sha1,
+            hash: legacy_sha1,
         }],
     });
 
@@ -579,7 +584,7 @@ fn run_extra_cache_artifacts_are_written_to_lockfile() {
     fs::create_dir_all(artifact_path.parent().expect("artifact should have parent"))
         .expect("artifact parent should be created");
     fs::write(&artifact_path, b"night-config-core").expect("artifact should be written");
-    let sha1 = sha1_bytes(b"night-config-core");
+    let hash = ContentHash::from_bytes(b"night-config-core", ContentHashAlgorithm::Blake3);
     let provenance = ArtifactProvenance {
         schema_version: 1,
         source: ArtifactSource::RemoteMaven,
@@ -593,7 +598,7 @@ fn run_extra_cache_artifacts_are_written_to_lockfile() {
         source_relative_path: None,
         source_git: None,
         source_build: None,
-        sha1: sha1.clone(),
+        hash,
     };
     fs::write(
         artifact_path.with_file_name("core-3.8.3.jar.sfm-provenance.json"),
@@ -628,7 +633,7 @@ fn run_extra_cache_artifacts_are_written_to_lockfile() {
         lockfile.artifacts[0].cache_path,
         PathBuf::from("$sfm-cache/maven/com/electronwill/night-config/core/3.8.3/core-3.8.3.jar")
     );
-    assert_eq!(lockfile.artifacts[0].sha1, sha1);
+    assert_eq!(lockfile.artifacts[0].hash, hash);
 }
 
 #[test]
@@ -637,8 +642,8 @@ fn prepare_existing_artifact_quarantines_wrong_sha1() {
     let artifact = test_dir.path.join("artifact.jar");
     fs::write(&artifact, b"bad").expect("artifact should be written");
 
-    let expected_sha1 = sha1_bytes(b"good");
-    prepare_existing_artifact_for_reuse(&artifact, Some(&expected_sha1))
+    let expected_hash = ContentHash::from_bytes(b"good", ContentHashAlgorithm::Blake3);
+    prepare_existing_artifact_for_reuse(&artifact, Some(&expected_hash))
         .expect("corrupt artifact should be quarantined");
 
     assert!(!artifact.exists());
@@ -658,8 +663,8 @@ fn copy_file_to_path_checked_skips_existing_valid_artifact() {
     fs::write(&source, b"bad").expect("source should be written");
     fs::write(&destination, b"good").expect("destination should be written");
 
-    let expected_sha1 = sha1_bytes(b"good");
-    copy_file_to_path_checked(&source, &destination, Some(&expected_sha1))
+    let expected_hash = ContentHash::from_bytes(b"good", ContentHashAlgorithm::Blake3);
+    copy_file_to_path_checked(&source, &destination, Some(&expected_hash))
         .expect("valid destination should skip copying the bad source");
 
     assert_eq!(
@@ -667,8 +672,9 @@ fn copy_file_to_path_checked_skips_existing_valid_artifact() {
         b"good"
     );
     assert_eq!(
-        file_sha1(&destination).expect("destination should hash"),
-        expected_sha1
+        ContentHash::from_path(&destination, ContentHashAlgorithm::Blake3)
+            .expect("destination should hash"),
+        expected_hash
     );
     assert!(matching_siblings(&destination, "tmp").is_empty());
 }
@@ -679,20 +685,20 @@ fn copy_file_to_path_checked_waits_and_reuses_artifact_created_by_lock_holder() 
     let source = test_dir.path.join("source.jar");
     let destination = test_dir.path.join("artifact.jar");
     fs::write(&source, b"bad").expect("source should be written");
-    let expected_sha1 = sha1_bytes(b"good");
+    let expected_hash = ContentHash::from_bytes(b"good", ContentHashAlgorithm::Blake3);
     let lock_path = artifact_lock_path(&destination).expect("artifact should have lock path");
     let lock =
         ArtifactLock::acquire(&lock_path, destination.display().to_string()).expect("first lock");
 
     let thread_source = source.clone();
     let thread_destination = destination.clone();
-    let thread_expected_sha1 = expected_sha1.clone();
+    let thread_expected_hash = expected_hash;
     let started = Instant::now();
     let waiter = thread::spawn(move || {
         copy_file_to_path_checked(
             &thread_source,
             &thread_destination,
-            Some(&thread_expected_sha1),
+            Some(&thread_expected_hash),
         )
     });
 
@@ -710,8 +716,9 @@ fn copy_file_to_path_checked_waits_and_reuses_artifact_created_by_lock_holder() 
         b"good"
     );
     assert_eq!(
-        file_sha1(&destination).expect("destination should hash"),
-        expected_sha1
+        ContentHash::from_path(&destination, ContentHashAlgorithm::Blake3)
+            .expect("destination should hash"),
+        expected_hash
     );
     assert!(matching_siblings(&destination, "tmp").is_empty());
 }
@@ -742,7 +749,11 @@ fn resolver_cache_hit_waits_for_writer_lock_before_reading() {
 
     let started = Instant::now();
     let waiter = thread::spawn(move || {
-        resolver.resolve_artifact("cached-artifact", &coordinate, "resolver test")
+        resolver.resolve_artifact(
+            ArtifactId::from("cached-artifact"),
+            &coordinate,
+            ArtifactPurpose::from("resolver test"),
+        )
     });
 
     thread::sleep(Duration::from_millis(50));
@@ -755,8 +766,11 @@ fn resolver_cache_hit_waits_for_writer_lock_before_reading() {
     assert!(started.elapsed() >= Duration::from_millis(40));
     assert_eq!(artifact.cache_path, cache_path);
     assert_eq!(
-        artifact.sha1.as_deref(),
-        Some(sha1_bytes(b"cached").as_str())
+        artifact.sha1,
+        Some(ContentHash::from_bytes(
+            b"cached",
+            ContentHashAlgorithm::Blake3
+        ))
     );
 }
 
@@ -800,7 +814,11 @@ fn resolver_imports_from_explicit_project_artifact_source() {
     )
     .expect("resolver should build");
     let artifact = resolver
-        .resolve_artifact("explicit-source", &coordinate, "explicit source test")
+        .resolve_artifact(
+            ArtifactId::from("explicit-source"),
+            &coordinate,
+            ArtifactPurpose::from("explicit source test"),
+        )
         .expect("artifact should import from explicit source");
 
     assert_eq!(
@@ -880,10 +898,18 @@ fn explicit_source_mekanism_artifacts_record_source_build_commands() {
     )
     .expect("resolver should build");
     let main_artifact = resolver
-        .resolve_artifact("mekanism-main", &main_coordinate, "mekanism main")
+        .resolve_artifact(
+            ArtifactId::from("mekanism-main"),
+            &main_coordinate,
+            ArtifactPurpose::from("mekanism main"),
+        )
         .expect("main artifact should import from explicit source");
     let api_artifact = resolver
-        .resolve_artifact("mekanism-api", &api_coordinate, "mekanism api")
+        .resolve_artifact(
+            ArtifactId::from("mekanism-api"),
+            &api_coordinate,
+            ArtifactPurpose::from("mekanism api"),
+        )
         .expect("api artifact should import from explicit source");
 
     assert_source_build(
@@ -955,7 +981,10 @@ fn resolver_materializes_locked_artifact_from_source_build() {
                 remote_url: Some(remote_url.clone()),
             }),
             source_build: Some(source_build),
-            sha1: "not-used-when-refreshing".to_string(),
+            hash: ContentHash::from_bytes(
+                b"not-used-when-refreshing",
+                ContentHashAlgorithm::Blake3,
+            ),
         }],
     };
 
@@ -971,7 +1000,11 @@ fn resolver_materializes_locked_artifact_from_source_build() {
     )
     .expect("resolver should build");
     let artifact = resolver
-        .resolve_artifact("source-build", &coordinate, "source build test")
+        .resolve_artifact(
+            ArtifactId::from("source-build"),
+            &coordinate,
+            ArtifactPurpose::from("source build test"),
+        )
         .expect("artifact should materialize from source build");
 
     assert_eq!(artifact.provenance.source, ArtifactSource::SourceBuild);
@@ -1061,9 +1094,9 @@ fn copy_file_to_path_checked_rejects_temp_sha1_failure() {
     let destination = test_dir.path.join("artifact.jar");
     fs::write(&source, b"bad").expect("source should be written");
 
-    let expected_sha1 = sha1_bytes(b"good");
-    let error = copy_file_to_path_checked(&source, &destination, Some(&expected_sha1))
-        .expect_err("bad source should fail expected SHA-1 validation");
+    let expected_hash = ContentHash::from_bytes(b"good", ContentHashAlgorithm::Blake3);
+    let error = copy_file_to_path_checked(&source, &destination, Some(&expected_hash))
+        .expect_err("bad source should fail expected content hash validation");
 
     assert!(
         error.to_string().contains("Copied local artifact"),
@@ -1081,8 +1114,8 @@ fn copy_file_to_path_checked_replaces_bad_final_artifact_and_cleans_bad_file() {
     fs::write(&source, b"good").expect("source should be written");
     fs::write(&destination, b"bad").expect("destination should be written");
 
-    let expected_sha1 = sha1_bytes(b"good");
-    copy_file_to_path_checked(&source, &destination, Some(&expected_sha1))
+    let expected_hash = ContentHash::from_bytes(b"good", ContentHashAlgorithm::Blake3);
+    copy_file_to_path_checked(&source, &destination, Some(&expected_hash))
         .expect("good source should replace corrupt artifact");
 
     assert_eq!(
@@ -1096,17 +1129,17 @@ fn copy_file_to_path_checked_replaces_bad_final_artifact_and_cleans_bad_file() {
 fn download_to_path_retries_after_temp_sha1_failure() {
     let test_dir = TestDir::new("download-retry-temp-sha1-failure");
     let destination = test_dir.path.join("artifact.jar");
-    let expected_sha1 = sha1_bytes(b"good");
+    let expected_hash = ContentHash::from_bytes(b"good", ContentHashAlgorithm::Blake3);
     let (url, server) = serve_http_bodies(vec![b"bad".to_vec(), b"good".to_vec()]);
     let cancellation_token = test_cancellation_token();
 
-    download_to_path_overwrite_with_expected_sha1(
+    download_to_path_overwrite_with_expected_hash(
         &cancellation_token,
         &Client::new(),
         &url,
         &destination,
         false,
-        &expected_sha1,
+        &expected_hash,
     )
     .expect("download should retry and write good artifact");
     server.join().expect("test server should finish");
@@ -1116,8 +1149,9 @@ fn download_to_path_retries_after_temp_sha1_failure() {
         b"good"
     );
     assert_eq!(
-        file_sha1(&destination).expect("destination should hash"),
-        expected_sha1
+        ContentHash::from_path(&destination, ContentHashAlgorithm::Blake3)
+            .expect("destination should hash"),
+        expected_hash
     );
     assert!(matching_siblings(&destination, "tmp").is_empty());
 }
@@ -1452,7 +1486,7 @@ fn artifact_portability_audit_reads_dependency_provenance() {
         source_relative_path: None,
         source_git: None,
         source_build: None,
-        sha1: sha1_bytes(b"local only"),
+        hash: ContentHash::from_bytes(b"local only", ContentHashAlgorithm::Blake3),
     };
     fs::write(
         artifact_path.with_file_name("local-only.jar.sfm-provenance.json"),
@@ -1506,7 +1540,8 @@ fn artifact_audit_verifies_sfm_cache_lockfile_artifact() {
     fs::create_dir_all(cache_path.parent().expect("artifact should have parent"))
         .expect("artifact parent should be created");
     fs::write(&cache_path, b"remote artifact").expect("artifact should be written");
-    let sha1 = file_sha1(&cache_path).expect("artifact sha1 should hash");
+    let hash = ContentHash::from_path(&cache_path, ContentHashAlgorithm::Blake3)
+        .expect("artifact should hash");
     let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
     fs::create_dir_all(&minecraft_dir).expect("minecraft dir should be created");
     write_test_artifact_lockfile(
@@ -1521,7 +1556,7 @@ fn artifact_audit_verifies_sfm_cache_lockfile_artifact() {
             source_relative_path: None,
             source_git: None,
             source_build: None,
-            sha1,
+            hash: hash,
         }],
         Vec::new(),
     );
@@ -1570,7 +1605,8 @@ fn artifact_audit_warns_or_fails_for_explicit_sources() {
         .expect("source parent should be created");
     fs::write(&cache_path, b"mekanism artifact").expect("artifact should be written");
     fs::write(&source_path, b"mekanism artifact").expect("source should be written");
-    let sha1 = file_sha1(&cache_path).expect("artifact sha1 should hash");
+    let hash = ContentHash::from_path(&cache_path, ContentHashAlgorithm::Blake3)
+        .expect("artifact should hash");
     let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
     fs::create_dir_all(&minecraft_dir).expect("minecraft dir should be created");
     write_test_artifact_lockfile(
@@ -1586,7 +1622,7 @@ fn artifact_audit_warns_or_fails_for_explicit_sources() {
             source_relative_path: None,
             source_git: None,
             source_build: None,
-            sha1,
+            hash: hash,
         }],
         Vec::new(),
     );
@@ -1803,7 +1839,7 @@ fn minecraft_library_selection_uses_only_current_version_json() {
                         "artifact": {
                             "url": "https://example.test/guava-32.jar",
                             "path": "com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar",
-                            "sha1": "111"
+                            "sha1": "1111111111111111111111111111111111111111"
                         }
                     }
                 },
@@ -1812,7 +1848,7 @@ fn minecraft_library_selection_uses_only_current_version_json() {
                         "artifact": {
                             "url": "https://example.test/authlib-7.jar",
                             "path": "com/mojang/authlib/7.0.63/authlib-7.0.63.jar",
-                            "sha1": "222"
+                            "sha1": "2222222222222222222222222222222222222222"
                         }
                     }
                 }
@@ -1848,19 +1884,25 @@ fn minecraft_library_selection_uses_only_current_version_json() {
             .to_string_lossy()
             .contains("com/google/guava/failureaccess/1.0.1")
     }));
-    assert_eq!(libraries[0].sha1.as_deref(), Some("111"));
+    assert_eq!(
+        libraries[0].sha1,
+        Some(legacy_sha1_hash("1111111111111111111111111111111111111111"))
+    );
 }
 
 fn minimal_artifact() -> ArtifactPlan {
     ArtifactPlan {
-        id: "artifact".to_string(),
+        id: ArtifactId::from("artifact"),
         coordinate: Some("g:a:1".to_string()),
         repository: Some("Forge".to_string()),
         url: Some("https://example.test/a.jar".to_string()),
         cache_path: PathBuf::from("a.jar"),
-        sha1: Some("abc123".to_string()),
+        sha1: Some(ContentHash::from_bytes(
+            b"abc123",
+            ContentHashAlgorithm::Blake3,
+        )),
         downloaded: true,
-        required_for: "test".to_string(),
+        required_for: ArtifactPurpose::from("test"),
         provenance: minimal_provenance(),
     }
 }
@@ -1876,7 +1918,7 @@ fn minimal_provenance() -> ArtifactProvenance {
         source_relative_path: None,
         source_git: None,
         source_build: None,
-        sha1: "abc123".to_string(),
+        hash: ContentHash::from_bytes(b"abc123", ContentHashAlgorithm::Blake3),
     }
 }
 
@@ -1991,16 +2033,16 @@ fn compare_report_fixture(matches: bool) -> JarCompareReport {
         } else {
             vec![ChangedEntry {
                 path: "b.class".to_string(),
-                gradle_sha1: "1".to_string(),
-                rust_sha1: "2".to_string(),
+                gradle_hash: ContentHash::from_bytes(b"1", ContentHashAlgorithm::Blake3),
+                rust_hash: ContentHash::from_bytes(b"2", ContentHashAlgorithm::Blake3),
             }]
         },
         manifest: ManifestCompare {
             compared: true,
             changed: false,
             ignored_implementation_timestamp: true,
-            gradle_sha1: Some("1".to_string()),
-            rust_sha1: Some("1".to_string()),
+            gradle_sha1: Some(ContentHash::from_bytes(b"1", ContentHashAlgorithm::Blake3)),
+            rust_sha1: Some(ContentHash::from_bytes(b"1", ContentHashAlgorithm::Blake3)),
         },
     }
 }
