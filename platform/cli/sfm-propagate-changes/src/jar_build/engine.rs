@@ -4352,6 +4352,16 @@ impl RunKind {
         }
     }
 
+    const fn userdev_names(self) -> &'static [&'static str] {
+        match self {
+            Self::Data => &["data", "clientData"],
+            Self::Client | Self::ClientSmoke | Self::ClientPuppet => &["client"],
+            Self::Server => &["server"],
+            Self::GameTestServer => &["gameTestServer"],
+            Self::Test => &["test"],
+        }
+    }
+
     const fn command_name(self) -> &'static str {
         match self {
             Self::Client => "runClient",
@@ -4638,7 +4648,9 @@ fn execute_run(
         .map(|arg| replace_placeholders(arg, &replacements))
         .collect::<Vec<_>>();
     program_args.extend(kind_extra_program_args(plan, kind)?);
-    program_args.extend(["--mixin.config".to_string(), "sfm.mixins.json".to_string()]);
+    if !matches!(kind, RunKind::Data) {
+        program_args.extend(["--mixin.config".to_string(), "sfm.mixins.json".to_string()]);
+    }
 
     let mut env = BTreeMap::new();
     for (key, value) in &run_config.env {
@@ -5518,7 +5530,11 @@ fn emit_junit_terminal_summary(
     let process = "junit-test";
     match test_options.action {
         RunTestAction::Compile => {
-            tracing::info!(source, process, "Compiled test source set; no JUnit launch requested.");
+            tracing::info!(
+                source,
+                process,
+                "Compiled test source set; no JUnit launch requested."
+            );
         }
         RunTestAction::List => {
             let count = report
@@ -6466,14 +6482,15 @@ fn read_forge_run_config(
             .cache_path,
         "config.json",
     )?;
-    config
-        .runs
-        .get(kind.userdev_name())
+    kind.userdev_names()
+        .iter()
+        .find_map(|name| config.runs.get(*name))
         .cloned()
         .ok_or_else(|| {
             eyre::eyre!(
-                "Forge userdev config does not define run config {}",
-                kind.userdev_name()
+                "Forge userdev config does not define any run config for {} (tried: {})",
+                kind.command_name(),
+                kind.userdev_names().join(", ")
             )
         })
 }
@@ -7062,9 +7079,7 @@ fn resolve_run_deobf_dependencies(
             );
         }
         context.assert_allowed_input(&remapped)?;
-        if should_include_run_dependency(&remapped, kind) {
-            output.push(remapped);
-        }
+        output.push(remapped);
     }
 
     Ok(output)
@@ -7114,7 +7129,7 @@ fn resolve_neogradle_run_dependencies(
 
 fn run_dependency_configurations(kind: RunKind) -> &'static [&'static str] {
     match kind {
-        RunKind::Data => &["implementation", "runtimeOnly", "transitiveRuntime"],
+        RunKind::Data => &["jarJar"],
         RunKind::Test => &[
             "implementation",
             "compileOnly",
@@ -7137,17 +7152,6 @@ fn run_dependency_configurations(kind: RunKind) -> &'static [&'static str] {
             "transitiveRuntime",
         ],
     }
-}
-
-fn should_include_run_dependency(path: &Path, kind: RunKind) -> bool {
-    if !matches!(kind, RunKind::Data) {
-        return true;
-    }
-    let file_name = path
-        .file_name()
-        .and_then(std::ffi::OsStr::to_str)
-        .map_or("", |name| name);
-    !file_name.contains("mouse-tweaks-60089")
 }
 
 fn write_classpath_file(path: &Path, classpath: &[PathBuf]) -> eyre::Result<()> {
