@@ -9,13 +9,13 @@ pub mod jdk;
 pub mod logging;
 pub mod modrinth;
 pub mod one_password;
+pub mod panic;
 pub mod paths;
 pub mod propagate;
 pub mod sfm_path;
 pub mod state;
 pub mod terminal_output;
 pub mod worktree;
-pub mod panic;
 
 #[cfg(feature = "tracy_memory")]
 #[global_allocator]

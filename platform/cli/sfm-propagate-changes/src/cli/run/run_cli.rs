@@ -45,7 +45,7 @@ pub enum RunCommand {
     /// Launch the Forge game test server userdev run config
     #[facet(rename = "game-test-server")]
     GameTestServer(RunGameTestServerArgs),
-    /// Compile and run the Java JUnit test source set
+    /// Compile and run the Java `JUnit` test source set
     Test(RunTestArgs),
 }
 
