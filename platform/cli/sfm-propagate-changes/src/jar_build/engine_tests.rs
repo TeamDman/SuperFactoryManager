@@ -61,6 +61,7 @@ use super::prepare_client_automation_options;
 use super::prepare_existing_artifact_for_reuse;
 use super::replace_artifact_file;
 use super::resolve_loader_toolchain;
+use super::run_dependency_configurations;
 use super::rust_output_jar_path;
 use super::set_minecraft_option;
 use super::should_keep_split_minecraft_runtime_entry;
@@ -1830,6 +1831,23 @@ fn facet_json_parses_upstream_config_shapes() {
         vec!["sas.cfg".to_string()]
     );
 
+    let neoforge_runs: ForgeUserdevConfig = facet_json::from_str(
+        r#"{
+                "runs": {
+                    "clientData": {
+                        "main": "net.neoforged.fml.startup.DataClient",
+                        "args": ["--assetIndex", "{asset_index}"]
+                    }
+                }
+            }"#,
+    )
+    .expect("neoforge clientData run config should parse");
+    assert_eq!(
+        neoforge_runs.runs[RunKind::Data.userdev_names()[1]].main,
+        "net.neoforged.fml.startup.DataClient"
+    );
+    assert_eq!(RunKind::Data.userdev_names(), &["data", "clientData"]);
+
     let mcp: McpConfigJson = facet_json::from_str(
             r#"{
                 "data": {"mappings": "config/joined.tsrg", "inject": "config/inject/", "patches": {"joined": "patches/joined/"}},
@@ -1851,6 +1869,21 @@ fn facet_json_parses_upstream_config_shapes() {
         )
         .expect("parchment should parse");
     assert_eq!(parchment.classes[0].methods[0].parameters[0].name, "level");
+}
+
+#[test]
+fn datagen_launch_uses_only_bundled_library_dependency_configurations() {
+    assert_eq!(run_dependency_configurations(RunKind::Data), &["jarJar"]);
+    assert!(
+        !run_dependency_configurations(RunKind::Data)
+            .iter()
+            .any(|configuration| matches!(*configuration, "implementation" | "runtimeOnly"))
+    );
+    assert!(
+        run_dependency_configurations(RunKind::Client)
+            .iter()
+            .any(|configuration| configuration == &"runtimeOnly")
+    );
 }
 
 #[test]
