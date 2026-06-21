@@ -90,7 +90,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "a9620775dbc4c3cff089ceb1e2c772c825d67a1b"
+      "hash": "blake3:13fc8058e084e22e01c9fef08a61f4cb9cbb7d4f"
     },
     {
       "coordinate": null,
@@ -102,7 +102,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "820d711d5cbd4799936eb114b94c0d3b3412048b"
+      "hash": "blake3:8dda6b0f2398766aace07fd85f8f66a81ef012b4"
     },
     {
       "coordinate": "com.electronwill.night-config:core:3.6.4",
@@ -114,7 +114,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "510f174abbf1c947494db50ef2445683bd52c230"
+      "hash": "blake3:48fc6bae43e80bbaf9c7ee7cb627bf56bc1c5f52"
     },
     {
       "coordinate": "com.electronwill.night-config:toml:3.6.4",
@@ -126,7 +126,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "51d6cefb2b55ee55ee26b16391212fb2c7dfb4f4"
+      "hash": "blake3:0ecbb5e8d8d3f8cdc7a7ad4c4bfad3ae8366a166"
     },
     {
       "coordinate": "com.google.code.findbugs:jsr305:3.0.2",
@@ -138,7 +138,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "25ea2e8b0c338a877313bd4672d3fe056ea78f0d"
+      "hash": "blake3:bd3e148a3f405a3a5b7a217b401b494feb8acc81"
     },
     {
       "coordinate": "com.google.code.gson:gson:2.10",
@@ -150,7 +150,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "dd9b193aef96e973d5a11ab13cd17430c2e4306b"
+      "hash": "blake3:1f7d75f14d950bee58d58f6d64aa8d3f7005b830"
     },
     {
       "coordinate": "com.google.errorprone:error_prone_annotations:2.11.0",
@@ -162,7 +162,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "c5a0ace696d3f8b1c1d8cc036d8c03cc0cbe6b69"
+      "hash": "blake3:bce93b5ebd15900654dd3ed5045beb59dc925251"
     },
     {
       "coordinate": "com.google.guava:failureaccess:1.0.1",
@@ -174,7 +174,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "1dcf1de382a0bf95a3d8b0849546c88bac1292c9"
+      "hash": "blake3:ef22899364361f72dab03ee9a344ab2e1e13215a"
     },
     {
       "coordinate": "com.google.guava:guava:31.1-jre",
@@ -186,7 +186,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "60458f877d055d0c9114d9e1a2efb737b4bc282c"
+      "hash": "blake3:8791a4645a357d3a0640c0555f8a45f05334a92b"
     },
     {
       "coordinate": "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
@@ -198,7 +198,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "b421526c5f297295adef1c886e5246c39d4ac629"
+      "hash": "blake3:f0d8d49877fa2594423ab164830d5658a8e03a0f"
     },
     {
       "coordinate": "com.google.j2objc:j2objc-annotations:1.3",
@@ -210,7 +210,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "ba035118bc8bac37d7eff77700720999acd9986d"
+      "hash": "blake3:d7d89341f281c248d9f5c400abd71c0d0ac016af"
     },
     {
       "coordinate": "com.ibm.icu:icu4j:72.1",
@@ -222,7 +222,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "bc9057df4b5efddf7f6d1880bf7f3399f4ce5633"
+      "hash": "blake3:72f3ca071e66c446e43d010806d3822573e69022"
     },
     {
       "coordinate": "com.machinezoo.noexception:noexception:1.7.1",
@@ -234,7 +234,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "b65330c98e38a1f915fa54a6e5eca496505e3f0a"
+      "hash": "blake3:c726e16b01bef81b9b7f32817e0467113b00dabf"
     },
     {
       "coordinate": "com.mojang:logging:1.1.1",
@@ -246,7 +246,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "832b8e6674a9b325a5175a3a6267dfaf34c85139"
+      "hash": "blake3:1e9a8233ee3fe8174918ea94ae6d163305938a3f"
     },
     {
       "coordinate": "commons-io:commons-io:2.11.0",
@@ -258,7 +258,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "a2503f302b11ebde7ebc3df41daebe0e4eea3689"
+      "hash": "blake3:3ce23246fffebb6787033194e3d61c3beb9377a9"
     },
     {
       "coordinate": "cpw.mods:bootstraplauncher:1.1.2",
@@ -270,7 +270,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "0c546e00443d8432cda6baa1c860346980742628"
+      "hash": "blake3:f8767a36e474ef7a5680b4b6c2805a7bbb26527a"
     },
     {
       "coordinate": "cpw.mods:modlauncher:10.0.9",
@@ -282,7 +282,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "06d9443f56f50bb85cea383686ff9c867391458b"
+      "hash": "blake3:4915dd783a0d462d4bb303530cbc13520af9df51"
     },
     {
       "coordinate": "cpw.mods:securejarhandler:2.1.24",
@@ -294,7 +294,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "21e16217c30688d99200796f5d828ad5b671141c"
+      "hash": "blake3:917be7cd6c077e9273ed9097a65a59b11b0cd80a"
     },
     {
       "coordinate": "curse.maven:easy-villagers-400514:5153632",
@@ -306,7 +306,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "3f1d82834222c0d06dc07550b2c7428764bd7c3f"
+      "hash": "blake3:e375f48b78a539d0e43a22c59f56e09cd5c6b0fe"
     },
     {
       "coordinate": "curse.maven:mekanism-268560:5316226",
@@ -318,7 +318,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "3314a790a8d4b7c11fb4a2093fb382bb4b97dfcc"
+      "hash": "blake3:9f4f31ccc07bddc93526c0d4a920f66dd9fbb071"
     },
     {
       "coordinate": "io.github.llamalad7:mixinextras-neoforge:0.3.5",
@@ -330,7 +330,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "ef3ffcf309dae656517b2f120189b1c9b21737dd"
+      "hash": "blake3:f02d24442f8cd48fa6688f4fc31f1a3c5ea4c47e"
     },
     {
       "coordinate": "mekanism:Mekanism:1.20.4-10.5.20.41:api",
@@ -342,7 +342,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "bd9ea7125bf3388755636b5b69adc73148a2c0f6"
+      "hash": "blake3:84336a9a7e28cea3139a7338254b4c17f280bce2"
     },
     {
       "coordinate": "net.fabricmc:sponge-mixin:0.13.1+mixin.0.8.5",
@@ -354,7 +354,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "618f4dff860cf2d6b5196073b1a5f5e0a8591acb"
+      "hash": "blake3:839b6ce3f5f328d017ef3ca774b3f1cdfb250360"
     },
     {
       "coordinate": "net.jodah:typetools:0.6.3",
@@ -366,7 +366,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "a01aaa6ddaea9ec07ec4f209487b7a46a526283a"
+      "hash": "blake3:f4c1ed2af614b2ae7a8087e96fa6f9fd4b986f9f"
     },
     {
       "coordinate": "net.minecraftforge:srgutils:0.4.15",
@@ -378,7 +378,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "ca408b131759478f164e010fae0d73997e125fb5"
+      "hash": "blake3:3f82db20b59b41eedeb4a6002cb49ae259aae07e"
     },
     {
       "coordinate": "net.minecraftforge:unsafe:0.2.0",
@@ -390,7 +390,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "54d7a0a5e8fdb71b973025caa46f341ae5904f39"
+      "hash": "blake3:53cc83cfe5ad1e830ca024b142d85396fb06530c"
     },
     {
       "coordinate": "net.minecrell:terminalconsoleappender:1.2.0",
@@ -402,7 +402,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "96d02cd3b384ff015a8fef4223bcb4ccf1717c95"
+      "hash": "blake3:4d40de2defbf016c8f9d380575792d5d77e0be8e"
     },
     {
       "coordinate": "net.neoforged.accesstransformers:at-modlauncher:10.0.1",
@@ -414,7 +414,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "5aba50202aceead086bc09fbc2751c9f05cb4890"
+      "hash": "blake3:4f9eeccdcade17d09aab2d9dd34a7d5e7491dfaf"
     },
     {
       "coordinate": "net.neoforged.fancymodloader:earlydisplay:2.0.17",
@@ -426,7 +426,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "d6af13e1290e79c7e4501a097cdd1bd50531f5f3"
+      "hash": "blake3:98610213ac8a146a9fa059dc9c1778212e2d9f9f"
     },
     {
       "coordinate": "net.neoforged.fancymodloader:loader:2.0.17",
@@ -438,7 +438,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "e187e949dea14726924c284ef8bf6d51e4c87526"
+      "hash": "blake3:a7df9a372083db58501f2779398bd70fa1829cbd"
     },
     {
       "coordinate": "net.neoforged.fancymodloader:spi:2.0.17",
@@ -450,7 +450,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "3d3f2ed71a472bb360a38eaad565cec755696406"
+      "hash": "blake3:080eb2ea2a79671820ebb826a0bad6aede15d84b"
     },
     {
       "coordinate": "net.neoforged:JarJarFileSystems:0.4.0",
@@ -462,7 +462,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "ef7e5716525bbe50c784a362f9393457a33e6daf"
+      "hash": "blake3:cde6de1ee081dcd309bdab73659b99e89e7a87d9"
     },
     {
       "coordinate": "net.neoforged:JarJarMetadata:0.4.0",
@@ -474,7 +474,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "06f5e5c52382d11a15f47ca030e046519e389456"
+      "hash": "blake3:9d146872227e354b46aac6cb738adaf0fc8909b6"
     },
     {
       "coordinate": "net.neoforged:JarJarSelector:0.4.0",
@@ -486,7 +486,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "122fa3fe21da1a0ace8323709197616cdb4d1416"
+      "hash": "blake3:5409c5ae82004f94a19a23f7a642222aa985bda9"
     },
     {
       "coordinate": "net.neoforged:accesstransformers:10.0.1",
@@ -498,7 +498,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "fd83b5725f76eae9115e9355fa1c456a6a441400"
+      "hash": "blake3:49186ce636dee5b7c7773bd99b3cd1d5bd897b00"
     },
     {
       "coordinate": "net.neoforged:bus:7.2.0",
@@ -510,7 +510,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "03bc91f330d0e2f350ab1dbe5026a5769dc52b9a"
+      "hash": "blake3:d879350b0b07af896fffa6759d8b13373b43156e"
     },
     {
       "coordinate": "net.neoforged:coremods:6.0.4",
@@ -522,7 +522,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "87c17499d9fd2d5c9a220ec653f0e674fb25ccaa"
+      "hash": "blake3:df62593ebaec2c0d0a4fbbe9fc90ec6e739175c4"
     },
     {
       "coordinate": "net.neoforged:mergetool:2.0.0:api",
@@ -534,7 +534,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "52fe1949be64e3303aabaaa21e315f551db9c9f4"
+      "hash": "blake3:4d6f4fc870173ec42e08ea1cc77196e85757138f"
     },
     {
       "coordinate": "net.neoforged:neoforge:20.4.231:sources",
@@ -546,7 +546,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "4c98f91322c016d0d95d6a7f22566a388306ff06"
+      "hash": "blake3:91ed3d910eda436f9df002cc1a48b27814b7aad3"
     },
     {
       "coordinate": "net.neoforged:neoforge:20.4.231:universal",
@@ -558,7 +558,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "dac2b0193a53a1009b697df47012c992ed0093dc"
+      "hash": "blake3:208314cccc724a03bd4b6f6706c649b62e28b813"
     },
     {
       "coordinate": "net.neoforged:neoforge:20.4.231:userdev",
@@ -570,7 +570,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "a62671484afba78fa8c9d529a604c244d5b428b9"
+      "hash": "blake3:c8186bce8892b9a8cd703372cd3f770acc435b71"
     },
     {
       "coordinate": "net.neoforged:neoform-runtime:2.0.19:all",
@@ -582,7 +582,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "8116769fd428391366e0d9d5b684ec195799ee4d"
+      "hash": "blake3:008acc741f349d2b57d6c393f3cb248974143a1a"
     },
     {
       "coordinate": "net.neoforged:neoform:1.20.4-20231207.154220@zip",
@@ -594,7 +594,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "ad0bdcc5c21199e1a9cb05836f9660c22830a4fe"
+      "hash": "blake3:af9b38aa9afc5620f0eaaa4e8793d30ec303d1d2"
     },
     {
       "coordinate": "net.sf.jopt-simple:jopt-simple:5.0.4",
@@ -606,7 +606,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "4fdac2fbe92dfad86aa6e9301736f6b4342a3f5c"
+      "hash": "blake3:c9f31de9dc51d72c8f1173842455542005d524e5"
     },
     {
       "coordinate": "org.abego.treelayout:org.abego.treelayout.core:1.0.3",
@@ -618,7 +618,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "457216e8e6578099ae63667bb1e4439235892028"
+      "hash": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8"
     },
     {
       "coordinate": "org.antlr:ST4:4.3.4",
@@ -630,7 +630,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "bf68d049dd4e6e104055a79ac3bf9e6307d29258"
+      "hash": "blake3:f2e791b074daaebc422756dfbb334023640e3f99"
     },
     {
       "coordinate": "org.antlr:antlr-runtime:3.5.3",
@@ -642,7 +642,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "9011fb189c5ed6d99e5f3322514848d1ec1e1416"
+      "hash": "blake3:5526b5bc53f5aaae0721d086d88c31a5af88572f"
     },
     {
       "coordinate": "org.antlr:antlr4-runtime:4.13.1",
@@ -654,7 +654,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "17125bae1d965624e265ef49552f6465a2bfa307"
+      "hash": "blake3:ee9769fc09bea7288037d4f210a5f0e0a8aa0b90"
     },
     {
       "coordinate": "org.antlr:antlr4:4.13.1",
@@ -666,7 +666,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "71b8e3e31b0821480a5db1486012caa89e673f41"
+      "hash": "blake3:7a222484ba088298bdc3b4b26294420eb69c36d6"
     },
     {
       "coordinate": "org.apache.commons:commons-lang3:3.13.0",
@@ -678,7 +678,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "b7263237aa89c1f99b327197c41d0669707a462e"
+      "hash": "blake3:c2266d535de18099d5a059e15e23b4052832e055"
     },
     {
       "coordinate": "org.apache.logging.log4j:log4j-api:2.19.0",
@@ -690,7 +690,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "ea1b37f38c327596b216542bc636cfdc0b8036fa"
+      "hash": "blake3:6036255706ef54c9fb10d78c6d3322bdd8e5f4b1"
     },
     {
       "coordinate": "org.apache.logging.log4j:log4j-core:2.19.0",
@@ -702,7 +702,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "3b6eeb4de4c49c0fe38a4ee27188ff5fee44d0bb"
+      "hash": "blake3:72c46add99835f68ba44614a3c61dc6f291eb11e"
     },
     {
       "coordinate": "org.apache.maven:maven-artifact:3.8.5",
@@ -714,7 +714,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "4433f50c07debefaed0553bd0068f4f48d449313"
+      "hash": "blake3:492cc125aaaeb811c3938dc741e5d215a77b593a"
     },
     {
       "coordinate": "org.checkerframework:checker-qual:3.12.0",
@@ -726,7 +726,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "d5692f0526415fcc6de94bb5bfbd3afd9dd3b3e5"
+      "hash": "blake3:e506f0ed0b0df2a6ece0bbb90b342ccb09e20161"
     },
     {
       "coordinate": "org.codehaus.plexus:plexus-utils:3.3.0",
@@ -738,7 +738,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "cf43b5391de623b36fe066a21127baef82c64022"
+      "hash": "blake3:983ea86b0ad4c1859ea828d439f865d20b5014dd"
     },
     {
       "coordinate": "org.jetbrains:annotations:22.0.0",
@@ -750,7 +750,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "fb9bebc90794c7602e73d6ed0cb165a0c650be62"
+      "hash": "blake3:067ed59ef2e2211f01556e273ad693488379f9dc"
     },
     {
       "coordinate": "org.jetbrains:annotations:24.0.1",
@@ -762,7 +762,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "13c5c75c4206580aa4d683bffee658caae6c9f43"
+      "hash": "blake3:9a3d2fae94bf334d4dc72f71112c47755d37f533"
     },
     {
       "coordinate": "org.jline:jline-reader:3.12.1",
@@ -774,7 +774,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "4382ab1382c7b6f379377ed5f665dc2f6e1218bc"
+      "hash": "blake3:52015aa763c5303696b4c512cfb155710276bdeb"
     },
     {
       "coordinate": "org.jline:jline-terminal:3.12.1",
@@ -786,7 +786,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "c777448314e050d980a6b697c140f3bfe9eb7416"
+      "hash": "blake3:d6b248905e367f187ed6d41e7a22ba07a39d1a81"
     },
     {
       "coordinate": "org.openjdk.nashorn:nashorn-core:15.4",
@@ -798,7 +798,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "f67f5ffaa5f5130cf6fb9b133da00c7df3b532a5"
+      "hash": "blake3:b1cded0a306035a1e3b9e508686ce07812351525"
     },
     {
       "coordinate": "org.ow2.asm:asm-analysis:9.5",
@@ -810,7 +810,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "490bacc77de7cbc0be1a30bb3471072d705be4a4"
+      "hash": "blake3:74a8529bf90b32cdef97de947562f1d28798bd44"
     },
     {
       "coordinate": "org.ow2.asm:asm-commons:9.5",
@@ -822,7 +822,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "19ab5b5800a3910d30d3a3e64fdb00fd0cb42de0"
+      "hash": "blake3:19c89f1f40d3cc9d408a2b2076f904f178de48af"
     },
     {
       "coordinate": "org.ow2.asm:asm-tree:9.5",
@@ -834,7 +834,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "fd33c8b6373abaa675be407082fdfda35021254a"
+      "hash": "blake3:e8af669fc7eaae63613912f79a9583026e8ad2de"
     },
     {
       "coordinate": "org.ow2.asm:asm-util:9.5",
@@ -846,7 +846,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "64b5a1fc8c1b15ed2efd6a063e976bc8d3dc5ffe"
+      "hash": "blake3:467583e601278692a3ba40819ad23212ae11d958"
     },
     {
       "coordinate": "org.ow2.asm:asm:9.5",
@@ -858,7 +858,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "dc6ea1875f4d64fbc85e1691c95b96a3d8569c90"
+      "hash": "blake3:56df078607b3ba0ab75201c1feb9da35880f96f5"
     },
     {
       "coordinate": "org.slf4j:slf4j-api:2.0.9",
@@ -870,7 +870,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "7cf2726fdcfbc8610f9a71fb3ed639871f315340"
+      "hash": "blake3:1f4a497cc597e5a68fa151804aeff0a9f927dccb"
     },
     {
       "coordinate": "org.spongepowered:mixin:0.8.5:processor",
@@ -882,7 +882,7 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "sha1": "06d1c8bf4c28e697f472a83bd6add76ec4951734"
+      "hash": "blake3:b4839b346ffef67432425608e4363435dd9acbc6"
     }
   ]
 }
