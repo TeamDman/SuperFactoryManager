@@ -7,7 +7,7 @@ use crate::jar_build::RunTestOptions;
 use facet::Facet;
 use figue as args;
 
-/// Arguments for compiling and running the Java JUnit test source set.
+/// Arguments for compiling and running the Java `JUnit` test source set.
 #[derive(Facet, Debug, Clone)]
 pub struct RunTestArgs {
     /// Build and test options.
@@ -27,17 +27,17 @@ pub struct RunTestArgs {
     pub command: Option<RunTestCliCommand>,
 }
 
-/// Java JUnit test subcommands.
+/// Java `JUnit` test subcommands.
 #[derive(Facet, Debug, Clone)]
 #[repr(u8)]
 pub enum RunTestCliCommand {
-    /// List discovered Java JUnit tests without running them.
+    /// List discovered Java `JUnit` tests without running them.
     List(RunTestListArgs),
 }
 
-/// Arguments for listing Java JUnit tests.
+/// Arguments for listing Java `JUnit` tests.
 #[derive(Facet, Debug, Clone, Default)]
-pub struct RunTestListArgs {}
+pub struct RunTestListArgs;
 
 impl RunTestCliCommand {
     const fn action(&self) -> RunTestAction {
@@ -50,7 +50,7 @@ impl RunTestCliCommand {
 impl RunTestArgs {
     /// # Errors
     ///
-    /// Returns an error if planning, building, compiling tests, or running JUnit fails.
+    /// Returns an error if planning, building, compiling tests, or running `JUnit` fails.
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         let Self {
             options,
