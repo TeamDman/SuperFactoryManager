@@ -4623,7 +4623,7 @@ fn execute_run(
         );
         properties.insert(
             "sfm.clientRun.keepOpenSeconds".to_string(),
-            "10".to_string(),
+            "25".to_string(),
         );
     }
 
