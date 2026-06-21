@@ -13,6 +13,7 @@ mod compare_command;
 mod compare_options;
 mod engine;
 mod error_action;
+pub mod hash;
 mod json_branch_name;
 mod json_minecraft_version;
 mod json_path;
@@ -22,7 +23,6 @@ mod run_kind;
 mod run_test_command;
 mod run_test_options;
 mod target_artifact_audit_report;
-pub mod hash;
 
 pub use artifact_audit_command::ArtifactAuditCommand;
 pub use artifact_audit_options::ArtifactAuditOptions;

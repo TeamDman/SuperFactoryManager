@@ -55,6 +55,21 @@ public class SFMKeyMappings {
     ));
 
     @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_OPEN_GUI_KEY_NAME = new LocalizationEntry(
+            "key.sfm.label_gun.open_gui",
+            "Open Label Gun GUI"
+    );
+
+    public static final Lazy<KeyMapping> LABEL_GUN_OPEN_GUI_KEY = Lazy.of(() -> new KeyMapping(
+            LABEL_GUN_OPEN_GUI_KEY_NAME.key().get(),
+            KeyConflictContext.IN_GAME,
+            KeyModifier.NONE,
+            InputConstants.Type.KEYSYM,
+            InputConstants.UNKNOWN.getValue(),
+            SFM_KEY_CATEGORY.key().get()
+    ));
+
+    @SFMLocalizationDatagen
     public static final LocalizationEntry TOGGLE_NETWORK_TOOL_OVERLAY_KEY_NAME = new LocalizationEntry(
             "key.sfm.toggle_network_tool_overlay",
             "Toggle network tool overlay"
@@ -271,6 +286,7 @@ public class SFMKeyMappings {
                 CONTAINER_INSPECTOR_KEY.get(),
                 ITEM_INSPECTOR_KEY.get(),
                 CYCLE_LABEL_VIEW_KEY.get(),
+                LABEL_GUN_OPEN_GUI_KEY.get(),
                 LABEL_GUN_PICK_BLOCK_MODIFIER_KEY.get(),
                 LABEL_GUN_CONTIGUOUS_MODIFIER_KEY.get(),
                 LABEL_GUN_CLEAR_MODIFIER_KEY.get(),
