@@ -70,7 +70,7 @@ public class SFMKeyMappings {
             KeyModifier.NONE,
             InputConstants.Type.KEYSYM,
             InputConstants.UNKNOWN.getValue(),
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen
