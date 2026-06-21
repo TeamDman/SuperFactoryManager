@@ -2531,6 +2531,7 @@ name = "sfm-propagate-changes"
 version = "0.1.1"
 dependencies = [
  "arbitrary",
+ "base64",
  "blake3",
  "chrono",
  "color-eyre",

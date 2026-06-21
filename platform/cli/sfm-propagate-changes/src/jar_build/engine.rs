@@ -6,6 +6,8 @@ use super::BuildMode;
 use super::BuildOptions;
 use super::CompareOptions;
 use super::RunKind;
+use super::RunTestAction;
+use super::RunTestOptions;
 pub(super) use super::artifact_audit_issue_kind::ArtifactAuditIssueKind;
 pub(super) use super::artifact_audit_report::ArtifactAuditReport;
 pub(super) use super::artifact_audit_severity::ArtifactAuditSeverity;
@@ -22,8 +24,12 @@ use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::select_required_worktree_targets;
 use crate::cancellation::CancellationToken;
+use crate::colour::stable_color;
 use crate::paths::CACHE_DIR;
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use chrono::Local;
+use color_eyre::owo_colors::OwoColorize;
 use eyre::Context;
 use facet::Facet;
 use rayon::prelude::*;
@@ -110,8 +116,11 @@ pub(crate) fn invoke_build(
     let targets = resolve_build_targets(options)?;
     cancellation_token.bail_if_cancelled()?;
     let target_count = targets.len();
-    let TargetExecutionSummary { plans, failures } =
-        execute_build_targets(options, targets, cancellation_token)?;
+    let TargetExecutionSummary {
+        plans,
+        failures,
+        reports,
+    } = execute_build_targets(options, targets, cancellation_token)?;
     cancellation_token.bail_if_cancelled()?;
 
     write_requested_plan_outputs(&plans, options.plan_json.as_deref())?;
@@ -120,6 +129,7 @@ pub(crate) fn invoke_build(
         target_count,
         plans.len(),
         &failures,
+        &reports,
     )
 }
 
@@ -147,12 +157,62 @@ pub(crate) fn invoke_run(
     let targets = resolve_build_targets(options)?;
     cancellation_token.bail_if_cancelled()?;
     let target_count = targets.len();
-    let TargetExecutionSummary { plans, failures } =
-        execute_run_targets(options, kind, targets, cancellation_token)?;
+    let TargetExecutionSummary {
+        plans,
+        failures,
+        reports,
+    } = execute_run_targets(options, kind, targets, cancellation_token)?;
     cancellation_token.bail_if_cancelled()?;
 
     write_requested_plan_outputs(&plans, options.plan_json.as_deref())?;
-    finish_target_summary(kind.command_name(), target_count, plans.len(), &failures)
+    finish_target_summary(
+        kind.command_name(),
+        target_count,
+        plans.len(),
+        &failures,
+        &reports,
+    )
+}
+
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
+        branch = %options.branch,
+        action = ?test_options.action,
+        filter = test_options.filter.as_deref().unwrap_or(""),
+        no_capture = test_options.no_capture,
+        refresh = options.refresh,
+        explain_rebuild = options.explain_rebuild,
+        dry_run = options.dry_run,
+        allow_local_artifact_cache = options.allow_local_artifact_cache,
+        require_portable_artifacts = options.require_portable_artifacts,
+        error_action = %options.error_action,
+        parallelism = %options.parallelism,
+    )
+)]
+pub(crate) fn invoke_run_test(
+    options: &BuildOptions,
+    test_options: &RunTestOptions,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
+    let targets = resolve_build_targets(options)?;
+    cancellation_token.bail_if_cancelled()?;
+    let target_count = targets.len();
+    let TargetExecutionSummary {
+        plans,
+        failures,
+        reports,
+    } = execute_run_test_targets(options, test_options, targets, cancellation_token)?;
+    cancellation_token.bail_if_cancelled()?;
+
+    write_requested_plan_outputs(&plans, options.plan_json.as_deref())?;
+    let action_name = match test_options.action {
+        RunTestAction::Run => RunKind::Test.command_name(),
+        RunTestAction::List => "runTest list",
+    };
+    finish_target_summary(action_name, target_count, plans.len(), &failures, &reports)
 }
 
 fn execute_build_targets(
@@ -201,6 +261,29 @@ fn execute_run_targets(
     )
 }
 
+fn execute_run_test_targets(
+    options: &BuildOptions,
+    test_options: &RunTestOptions,
+    targets: Vec<WorktreeTarget>,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<TargetExecutionSummary> {
+    execute_targets(
+        options,
+        targets,
+        "sfm_run_test_target",
+        cancellation_token,
+        |options, target, cancellation_token| {
+            let _target_span = tracing::info_span!(
+                "sfm_run_test_target",
+                branch = %target.branch,
+                worktree = %target.worktree_path.display(),
+            )
+            .entered();
+            execute_run_test_target(options, test_options, target, cancellation_token)
+        },
+    )
+}
+
 fn execute_targets(
     options: &BuildOptions,
     targets: Vec<WorktreeTarget>,
@@ -224,21 +307,35 @@ fn execute_targets_sequential(
 ) -> eyre::Result<TargetExecutionSummary> {
     let mut plans = Vec::new();
     let mut failures = Vec::new();
+    let mut reports = Vec::new();
 
     for target in targets {
         cancellation_token.bail_if_cancelled()?;
-        match execute(options, &target, cancellation_token) {
+        let started_at = SystemTime::now();
+        let started = Instant::now();
+        let result = execute(options, &target, cancellation_token);
+        let report =
+            TargetExecutionReport::from_result(&target, started_at, started.elapsed(), &result);
+        reports.push(report);
+        match result {
             Ok(plan) => plans.push(plan),
-            Err(error) if options.error_action.should_continue() => {
+            Err(error) => {
                 tracing::error!(error = %error, "target_failed");
                 failures.push(TargetFailure::new(&target, &error));
+                if !options.error_action.should_continue() {
+                    break;
+                }
             }
-            Err(error) => return Err(error),
         }
         cancellation_token.bail_if_cancelled()?;
     }
+    cancellation_token.bail_if_cancelled()?;
 
-    Ok(TargetExecutionSummary { plans, failures })
+    Ok(TargetExecutionSummary {
+        plans,
+        failures,
+        reports,
+    })
 }
 
 fn execute_targets_parallel(
@@ -320,7 +417,15 @@ fn execute_targets_parallel_with_cancellation(
                         worktree = %target.worktree_path.display(),
                     )
                     .entered();
+                    let started_at = SystemTime::now();
+                    let started = Instant::now();
                     let result = execute(options, &target, &cancellation_token);
+                    let report = TargetExecutionReport::from_result(
+                        &target,
+                        started_at,
+                        started.elapsed(),
+                        &result,
+                    );
                     let failed = result.is_err();
                     if failed && !options.error_action.should_continue() {
                         stop_starting.store(true, AtomicOrdering::Release);
@@ -329,6 +434,7 @@ fn execute_targets_parallel_with_cancellation(
                         .send(TargetExecutionResult {
                             target_index,
                             target,
+                            report,
                             result,
                         })
                         .is_err()
@@ -345,7 +451,9 @@ fn execute_targets_parallel_with_cancellation(
 
         let mut plans = Vec::new();
         let mut failures = Vec::new();
+        let mut reports = Vec::new();
         for result in results {
+            reports.push(result.report);
             match result.result {
                 Ok(plan) => plans.push(plan),
                 Err(error) => {
@@ -361,7 +469,11 @@ fn execute_targets_parallel_with_cancellation(
 
         cancellation_token.bail_if_cancelled()?;
 
-        Ok(TargetExecutionSummary { plans, failures })
+        Ok(TargetExecutionSummary {
+            plans,
+            failures,
+            reports,
+        })
     })
 }
 
@@ -426,6 +538,31 @@ fn execute_run_target(
     Ok(plan)
 }
 
+fn execute_run_test_target(
+    options: &BuildOptions,
+    test_options: &RunTestOptions,
+    target: &WorktreeTarget,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<BuildPlan> {
+    cancellation_token.bail_if_cancelled()?;
+    let plan = create_plan_for_target(options, target, cancellation_token)?;
+    cancellation_token.bail_if_cancelled()?;
+    write_last_plan_output(&plan)?;
+    print_plan_summary(&plan);
+    cancellation_token.bail_if_cancelled()?;
+    execute_build(
+        &plan,
+        options.explain_rebuild,
+        BuildTarget::Run,
+        cancellation_token,
+    )?;
+    cancellation_token.bail_if_cancelled()?;
+    write_artifact_lockfile(&plan)?;
+    cancellation_token.bail_if_cancelled()?;
+    execute_junit_tests(&plan, options.dry_run, test_options, cancellation_token)?;
+    Ok(plan)
+}
+
 fn build_action_name(options: &BuildOptions) -> &'static str {
     match options.mode {
         BuildMode::Plan => "jar plan",
@@ -438,6 +575,7 @@ fn finish_target_summary(
     total: usize,
     succeeded: usize,
     failures: &[TargetFailure],
+    reports: &[TargetExecutionReport],
 ) -> eyre::Result<()> {
     if total > 1 || !failures.is_empty() {
         tracing::info!(
@@ -445,15 +583,17 @@ fn finish_target_summary(
             failures.len()
         );
     }
+    emit_target_report_matrix(action_name, reports);
 
     if failures.is_empty() {
         return Ok(());
     }
 
+    tracing::info!("{}", target_report_separator());
     for failure in failures {
         tracing::info!(
             "Failed target {} ({}): {}",
-            failure.branch,
+            format_branch_name(&failure.branch),
             failure.worktree_path.display(),
             failure.error
         );
@@ -463,6 +603,300 @@ fn finish_target_summary(
         "{action_name} failed for {} of {total} target(s).",
         failures.len()
     );
+}
+
+fn emit_target_report_matrix(action_name: &str, reports: &[TargetExecutionReport]) {
+    if reports.is_empty() {
+        return;
+    }
+
+    let branch_width = reports
+        .iter()
+        .map(|report| report.branch.to_string().len())
+        .max()
+        .unwrap_or("branch".len())
+        .max("branch".len());
+    tracing::info!("{action_name} target report:");
+    tracing::info!("{}", format_report_header(branch_width));
+    for report in reports {
+        let failed = report.bail_message.is_some();
+        let duration = format_report_duration(report.duration);
+        let message = report
+            .bail_message
+            .as_deref()
+            .map(report_message)
+            .unwrap_or_default();
+        tracing::info!(
+            "{}",
+            format!(
+                "{}  {}  {}  {}  {}  {}",
+                format_branch_cell(&report.branch, branch_width),
+                format_status_cell(failed),
+                format!("{duration:>9}"),
+                format_warning_count_cell(report.warning_count),
+                format_error_count_cell(report.error_count),
+                format_report_message_cell(&message, failed),
+            )
+        );
+    }
+}
+
+fn format_report_header(branch_width: usize) -> String {
+    format!(
+        "{}  {}  {}  {}  {}  {}",
+        format!("{:<branch_width$}", "branch", branch_width = branch_width).dimmed(),
+        format!("{:<6}", "status").dimmed(),
+        format!("{:>9}", "time").dimmed(),
+        format!("{:>8}", "warnings").dimmed(),
+        format!("{:>6}", "errors").dimmed(),
+        "message".dimmed(),
+    )
+}
+
+fn format_branch_name(branch: &BranchName) -> String {
+    let branch = branch.to_string();
+    branch.color(stable_color(&branch)).bold().to_string()
+}
+
+fn format_branch_cell(branch: &BranchName, width: usize) -> String {
+    let branch = branch.to_string();
+    format!("{branch:<width$}")
+        .color(stable_color(&branch))
+        .bold()
+        .to_string()
+}
+
+fn format_status_cell(failed: bool) -> String {
+    if failed {
+        format!("{:<6}", "failed").red().bold().to_string()
+    } else {
+        format!("{:<6}", "ok").green().bold().to_string()
+    }
+}
+
+fn format_warning_count_cell(count: usize) -> String {
+    let text = format!("{count:>8}");
+    if count == 0 {
+        text.dimmed().to_string()
+    } else {
+        text.yellow().bold().to_string()
+    }
+}
+
+fn format_error_count_cell(count: usize) -> String {
+    let text = format!("{count:>6}");
+    if count == 0 {
+        text.dimmed().to_string()
+    } else {
+        text.red().bold().to_string()
+    }
+}
+
+fn format_report_message_cell(message: &str, failed: bool) -> String {
+    if failed {
+        message.red().to_string()
+    } else if message.is_empty() {
+        message.dimmed().to_string()
+    } else {
+        message.to_string()
+    }
+}
+
+fn target_report_separator() -> String {
+    "-".repeat(96).dimmed().to_string()
+}
+
+fn format_report_duration(duration: Duration) -> String {
+    let millis = duration.as_millis();
+    if millis < 1_000 {
+        return format!("{millis}ms");
+    }
+    if millis < 60_000 {
+        return format!("{:.1}s", millis as f64 / 1_000.0);
+    }
+    let seconds = millis / 1_000;
+    format!("{}m{:02}s", seconds / 60, seconds % 60)
+}
+
+fn report_message(message: &str) -> String {
+    const MESSAGE_LIMIT: usize = 180;
+    let joined = message
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join(" | ");
+    if joined.chars().count() <= MESSAGE_LIMIT {
+        return joined;
+    }
+    let mut truncated = joined
+        .chars()
+        .take(MESSAGE_LIMIT.saturating_sub(3))
+        .collect::<String>();
+    truncated.push_str("...");
+    truncated
+}
+
+fn target_diagnostics(
+    target: &WorktreeTarget,
+    plan: Option<&BuildPlan>,
+    started_at: SystemTime,
+) -> TargetDiagnosticCounts {
+    let cache_dir = plan
+        .map(|plan| plan.cache_dir.clone())
+        .unwrap_or_else(|| target_toolchain_cache_dir(target));
+    let mut diagnostics = scan_target_diagnostic_logs(&cache_dir, started_at);
+    if let Some(plan) = plan {
+        diagnostics.warnings += plan.warnings.len();
+    }
+    diagnostics
+}
+
+fn target_toolchain_cache_dir(target: &WorktreeTarget) -> PathBuf {
+    target
+        .worktree_path
+        .join("platform")
+        .join("minecraft")
+        .join("build")
+        .join("sfm-toolchain")
+}
+
+fn scan_target_diagnostic_logs(cache_dir: &Path, started_at: SystemTime) -> TargetDiagnosticCounts {
+    let mut diagnostics = TargetDiagnosticCounts::default();
+    let files = match collect_files_under(cache_dir) {
+        Ok(files) => files,
+        Err(error) => {
+            tracing::debug!(
+                cache = %cache_dir.display(),
+                error = %error,
+                "failed to scan target diagnostic logs"
+            );
+            return diagnostics;
+        }
+    };
+
+    for path in files {
+        if !is_report_diagnostic_log(&path) || !was_modified_for_target_report(&path, started_at) {
+            continue;
+        }
+        let bytes = match fs::read(&path) {
+            Ok(bytes) => bytes,
+            Err(error) => {
+                tracing::debug!(
+                    path = %path.display(),
+                    error = %error,
+                    "failed to read target diagnostic log"
+                );
+                continue;
+            }
+        };
+        let content = String::from_utf8_lossy(&bytes);
+        diagnostics.add(diagnostic_counts_from_log_text(&content));
+    }
+
+    diagnostics
+}
+
+fn is_report_diagnostic_log(path: &Path) -> bool {
+    if path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.eq_ignore_ascii_case("console.log"))
+    {
+        return true;
+    }
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("log"))
+}
+
+fn was_modified_for_target_report(path: &Path, started_at: SystemTime) -> bool {
+    let threshold = started_at
+        .checked_sub(Duration::from_secs(2))
+        .unwrap_or(started_at);
+    let Ok(metadata) = fs::metadata(path) else {
+        return true;
+    };
+    let Ok(modified) = metadata.modified() else {
+        return true;
+    };
+    modified >= threshold
+}
+
+fn diagnostic_counts_from_log_text(content: &str) -> TargetDiagnosticCounts {
+    let mut summary_counts = TargetDiagnosticCounts::default();
+    let mut fallback_counts = TargetDiagnosticCounts::default();
+    let mut has_warning_summary = false;
+    let mut has_error_summary = false;
+
+    for line in content.lines() {
+        if let Some(count) = parse_diagnostic_summary(line, "warning", "warnings") {
+            summary_counts.warnings += count;
+            has_warning_summary = true;
+        }
+        if let Some(count) = parse_diagnostic_summary(line, "error", "errors") {
+            summary_counts.errors += count;
+            has_error_summary = true;
+        }
+        if line_looks_like_warning(line) {
+            fallback_counts.warnings += 1;
+        }
+        if line_looks_like_error(line) {
+            fallback_counts.errors += 1;
+        }
+    }
+
+    TargetDiagnosticCounts {
+        warnings: if has_warning_summary {
+            summary_counts.warnings
+        } else {
+            fallback_counts.warnings
+        },
+        errors: if has_error_summary {
+            summary_counts.errors
+        } else {
+            fallback_counts.errors
+        },
+    }
+}
+
+fn parse_diagnostic_summary(line: &str, singular: &str, plural: &str) -> Option<usize> {
+    let mut previous_count = None;
+    for token in line.split_whitespace() {
+        let token = token.trim_matches(|ch: char| !ch.is_ascii_alphanumeric());
+        if token.is_empty() {
+            previous_count = None;
+            continue;
+        }
+        if let Some(count) = parse_count_token(token) {
+            previous_count = Some(count);
+            continue;
+        }
+        let label = token.to_ascii_lowercase();
+        if (label == singular || label == plural) && previous_count.is_some() {
+            return previous_count;
+        }
+        previous_count = None;
+    }
+    None
+}
+
+fn parse_count_token(token: &str) -> Option<usize> {
+    token
+        .chars()
+        .all(|ch| ch.is_ascii_digit())
+        .then(|| token.parse().ok())
+        .flatten()
+}
+
+fn line_looks_like_warning(line: &str) -> bool {
+    let line = line.to_ascii_lowercase();
+    line.contains("warning:") || line.contains("[warning]") || line.contains(" warn ")
+}
+
+fn line_looks_like_error(line: &str) -> bool {
+    let line = line.to_ascii_lowercase();
+    line.contains("error:") || line.contains("[error]") || line.contains(" error ")
 }
 
 #[tracing::instrument(
@@ -1419,13 +1853,56 @@ struct ArtifactAuditExecutionResult {
 struct TargetExecutionSummary {
     plans: Vec<BuildPlan>,
     failures: Vec<TargetFailure>,
+    reports: Vec<TargetExecutionReport>,
 }
 
 #[derive(Debug)]
 struct TargetExecutionResult {
     target_index: usize,
     target: WorktreeTarget,
+    report: TargetExecutionReport,
     result: eyre::Result<BuildPlan>,
+}
+
+#[derive(Debug)]
+struct TargetExecutionReport {
+    branch: BranchName,
+    duration: Duration,
+    warning_count: usize,
+    error_count: usize,
+    bail_message: Option<String>,
+}
+
+impl TargetExecutionReport {
+    fn from_result(
+        target: &WorktreeTarget,
+        started_at: SystemTime,
+        duration: Duration,
+        result: &eyre::Result<BuildPlan>,
+    ) -> Self {
+        let plan = result.as_ref().ok();
+        let diagnostics = target_diagnostics(target, plan, started_at);
+        Self {
+            branch: target.branch.clone(),
+            duration,
+            warning_count: diagnostics.warnings,
+            error_count: diagnostics.errors,
+            bail_message: result.as_ref().err().map(|error| error.to_string()),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct TargetDiagnosticCounts {
+    warnings: usize,
+    errors: usize,
+}
+
+impl TargetDiagnosticCounts {
+    fn add(&mut self, other: Self) {
+        self.warnings += other.warnings;
+        self.errors += other.errors;
+    }
 }
 
 #[derive(Debug)]
@@ -3862,6 +4339,7 @@ impl RunKind {
             Self::Server => "server",
             Self::Data => "data",
             Self::GameTestServer => "gameTestServer",
+            Self::Test => "test",
         }
     }
 
@@ -3873,6 +4351,7 @@ impl RunKind {
             Self::Server => "runServer",
             Self::Data => "runData",
             Self::GameTestServer => "runGameTestServer",
+            Self::Test => "runTest",
         }
     }
 
@@ -3884,6 +4363,7 @@ impl RunKind {
             Self::Server => "runServer",
             Self::Data => "runData",
             Self::GameTestServer => "runGameTest",
+            Self::Test => "runTest",
         }
     }
 
@@ -3895,6 +4375,7 @@ impl RunKind {
             | Self::Server
             | Self::GameTestServer => "gametest",
             Self::Data => "datagen",
+            Self::Test => "test",
         }
     }
 
@@ -3912,7 +4393,7 @@ impl RunKind {
     const fn game_test_max_program_run_millis(self) -> &'static str {
         match self {
             Self::Client | Self::ClientSmoke | Self::ClientPuppet => "1000",
-            Self::Server | Self::GameTestServer | Self::Data => "150",
+            Self::Server | Self::GameTestServer | Self::Data | Self::Test => "150",
         }
     }
 
@@ -3998,6 +4479,15 @@ fn execute_run(
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
     cancellation_token.bail_if_cancelled()?;
+    if matches!(kind, RunKind::Test) {
+        return execute_junit_tests(
+            plan,
+            dry_run,
+            &RunTestOptions::default(),
+            cancellation_token,
+        );
+    }
+
     let context = ExecutionContext::new(plan, cancellation_token.clone())?;
     let run_config = read_forge_run_config(&context, kind)?;
     context.bail_if_cancelled()?;
@@ -4372,6 +4862,1085 @@ fn execute_run(
         tracing::info!("Validated client puppet completed {pass_count} required game tests.");
     }
     Ok(())
+}
+
+const JUNIT_EVENT_PREFIX: &str = "SFM_JUNIT\t";
+const JUNIT_EVENT_RUNNER_MAIN_CLASS: &str = "dev.teamdman.sfm.toolchain.SfmJUnitRunner";
+const JUNIT_EVENT_RUNNER_SOURCE: &str = include_str!("junit_event_runner.java");
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "JUnit execution mirrors the run setup flow while avoiding Gradle."
+)]
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
+        branch = %plan.branch_name,
+        mc = %plan.minecraft_version,
+        dry_run,
+        action = ?test_options.action,
+        filter = test_options.filter.as_deref().unwrap_or(""),
+        no_capture = test_options.no_capture,
+    )
+)]
+fn execute_junit_tests(
+    plan: &BuildPlan,
+    dry_run: bool,
+    test_options: &RunTestOptions,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
+    let context = ExecutionContext::new(plan, cancellation_token.clone())?;
+    let project_root = plan.cache_dir.join("project");
+    let classes_dir = project_root.join("classes");
+    let staged_resources_dir = project_root.join("staged-resources");
+    let test_classes_dir = project_root.join("test").join("classes");
+    let test_resources_dir = project_root.join("test").join("resources");
+    let run_state_dir = plan
+        .cache_dir
+        .join("run")
+        .join(RunKind::Test.command_name());
+    fs::create_dir_all(&run_state_dir)?;
+
+    let locked_resolver = Resolver::new(
+        plan.maven_cache_dir.clone(),
+        plan.repositories.clone(),
+        plan.refresh,
+        plan.allow_local_artifact_cache,
+        plan.artifact_sources.clone(),
+        plan.lockfile.clone(),
+        plan.lockfile.clone(),
+        context.cancellation_token.clone(),
+    )?;
+    let test_resolver = Resolver::new(
+        plan.maven_cache_dir.clone(),
+        plan.repositories.clone(),
+        plan.refresh,
+        plan.allow_local_artifact_cache,
+        plan.artifact_sources.clone(),
+        None,
+        None,
+        context.cancellation_token.clone(),
+    )?;
+    context.bail_if_cancelled()?;
+
+    let antlr_classpath = resolve_antlr_classpath(&context, &locked_resolver)?;
+    let base_classpath =
+        resolve_project_compile_classpath(&context, &locked_resolver, &antlr_classpath)?;
+    let test_compile_dependencies =
+        resolve_test_dependency_classpath(&context, &test_resolver, TestClasspathKind::Compile)?;
+    let test_runtime_dependencies =
+        resolve_test_dependency_classpath(&context, &test_resolver, TestClasspathKind::Runtime)?;
+    let console_launcher = resolve_junit_console_standalone(&context, &test_resolver)?.cache_path;
+    context.bail_if_cancelled()?;
+
+    let mut test_compile_classpath = base_classpath.clone();
+    test_compile_classpath.extend(test_compile_dependencies.iter().cloned());
+    test_compile_classpath = dedup_paths_preserve_order(test_compile_classpath);
+
+    let mut upstream_fingerprint_paths = vec![classes_dir.clone(), staged_resources_dir.clone()];
+    upstream_fingerprint_paths.extend(test_compile_classpath.iter().cloned());
+    let upstream_fingerprint = input_fingerprint(
+        &context,
+        "javac-test-upstream",
+        &upstream_fingerprint_paths,
+        &[
+            plan.java.version_output.clone(),
+            plan.java_release.to_string(),
+            format!("{:?}", plan.loader_toolchain.kind),
+        ],
+    )?;
+
+    let started = Instant::now();
+    tracing::info!("Build node compile-test: start");
+    compile_optional_java_source_set(
+        &context,
+        "test",
+        &test_compile_classpath,
+        &classes_dir,
+        &test_classes_dir,
+        &upstream_fingerprint,
+    )
+    .wrap_err("Failed to compile test source set")?;
+    stage_optional_resource_source_set(&context, "test", &test_resources_dir, &[])
+        .wrap_err("Failed to stage test resources")?;
+    tracing::info!(
+        "Build node compile-test: done in {} ms",
+        started.elapsed().as_millis()
+    );
+    context.bail_if_cancelled()?;
+
+    let mut test_runtime_classpath = vec![
+        test_classes_dir.clone(),
+        test_resources_dir.clone(),
+        staged_resources_dir.clone(),
+        classes_dir.clone(),
+    ];
+    test_runtime_classpath.extend(base_classpath);
+    test_runtime_classpath.extend(test_compile_dependencies.iter().cloned());
+    test_runtime_classpath.extend(test_runtime_dependencies.iter().cloned());
+    test_runtime_classpath = dedup_paths_preserve_order(test_runtime_classpath);
+
+    let runtime_classpath_file = run_state_dir.join("testRuntimeClasspath.txt");
+    write_classpath_file(&runtime_classpath_file, &test_runtime_classpath)?;
+    let runner_classes_dir = compile_junit_event_runner(&context, &console_launcher)?;
+    let argfile = run_state_dir.join("junit.java.args");
+    let test_source_root = plan.minecraft_dir.join("src").join("test").join("java");
+    write_junit_runner_argfile(
+        &argfile,
+        &runner_classes_dir,
+        &console_launcher,
+        &test_runtime_classpath,
+        &test_classes_dir,
+        &test_source_root,
+        test_options,
+    )?;
+
+    let mut extra_cache_paths = Vec::new();
+    extra_cache_paths.extend(test_compile_dependencies);
+    extra_cache_paths.extend(test_runtime_dependencies);
+    extra_cache_paths.push(console_launcher.clone());
+    write_artifact_lockfile_with_extra_cache_paths(plan, &extra_cache_paths)?;
+
+    tracing::info!(
+        "Launching JUnit tests from {}",
+        plan.minecraft_dir.display()
+    );
+    tracing::info!("JUnit args: {}", argfile.display());
+    tracing::info!(
+        runtime_classpath_entries = test_runtime_classpath.len(),
+        argfile = %argfile.display(),
+        "junit_test_setup_complete"
+    );
+
+    let console_log = run_state_dir.join("console.log");
+    if dry_run {
+        context.write_node_state(
+            "run-test",
+            &["SFM JUnit event runner", "Rust-owned test outputs"],
+            &[
+                argfile.clone(),
+                runtime_classpath_file,
+                runner_classes_dir,
+                test_classes_dir,
+                test_resources_dir,
+            ],
+            "dry-run",
+        )?;
+        tracing::info!("Dry run prepared runTest launch setup and skipped JUnit execution.");
+        tracing::info!(argfile = %argfile.display(), "run_test_dry_run_skip_launch");
+        return Ok(());
+    }
+
+    let mut command = Command::new(&plan.java.executable);
+    command
+        .arg(format!("@{}", argfile.display()))
+        .current_dir(&plan.minecraft_dir);
+    let started = Instant::now();
+    let output =
+        run_command_capture_output(&context.cancellation_token, &mut command, "junit-test")
+            .wrap_err_with(|| {
+                format!(
+                    "Failed to launch JUnit tests using {}",
+                    plan.java.executable.display()
+                )
+            })?;
+    let report = process_junit_event_output(
+        plan,
+        test_options,
+        &console_log,
+        &output,
+        started.elapsed().as_millis(),
+    )?;
+
+    context.write_node_state(
+        "run-test",
+        &["SFM JUnit event runner", "Rust-owned test outputs"],
+        &[
+            argfile,
+            runtime_classpath_file,
+            console_log.clone(),
+            runner_classes_dir,
+            test_classes_dir,
+            test_resources_dir,
+        ],
+        if output.status.success() {
+            "complete"
+        } else {
+            "failed"
+        },
+    )?;
+
+    if output.cancelled {
+        eyre::bail!(
+            "runTest was cancelled by Ctrl+C. See {}",
+            console_log.display()
+        );
+    }
+    if !output.status.success() {
+        eyre::bail!(
+            "runTest exited with {} ({}). See {}",
+            output.status,
+            report.summary_message(),
+            console_log.display()
+        );
+    }
+    if !report.protocol_errors.is_empty() {
+        eyre::bail!(
+            "runTest produced {} malformed protocol event(s). See {}",
+            report.protocol_errors.len(),
+            console_log.display()
+        );
+    }
+    tracing::info!("JUnit tests completed successfully.");
+    Ok(())
+}
+
+fn compile_junit_event_runner(
+    context: &ExecutionContext<'_>,
+    console_launcher: &Path,
+) -> eyre::Result<PathBuf> {
+    context.bail_if_cancelled()?;
+    let runner_root = context.plan.cache_dir.join("junit-runner");
+    let source_dir = runner_root
+        .join("src")
+        .join("dev")
+        .join("teamdman")
+        .join("sfm")
+        .join("toolchain");
+    let source_file = source_dir.join("SfmJUnitRunner.java");
+    let classes_dir = runner_root.join("classes");
+    fs::create_dir_all(&source_dir)?;
+    write_file_if_changed(&source_file, JUNIT_EVENT_RUNNER_SOURCE.as_bytes())?;
+
+    let argfile = runner_root.join("javac-junit-runner.args");
+    write_javac_no_ap_argfile(
+        context,
+        &argfile,
+        &[console_launcher.to_path_buf()],
+        std::slice::from_ref(&source_file),
+        &classes_dir,
+    )?;
+    let fingerprint = input_fingerprint(
+        context,
+        "javac-junit-runner",
+        &[
+            source_file.clone(),
+            argfile.clone(),
+            console_launcher.to_path_buf(),
+        ],
+        &[
+            context.plan.java.version_output.clone(),
+            context.plan.java_release.to_string(),
+        ],
+    )?;
+    let state_path = runner_root.join("javac-junit-runner.inputs.sha1");
+    if cache_state_matches(context, &state_path, &fingerprint, &[&classes_dir])? {
+        tracing::info!(
+            "javac junit-runner: reused cached outputs at {}",
+            classes_dir.display()
+        );
+        return Ok(classes_dir);
+    }
+
+    reset_cache_directory(&context.plan.cache_dir, &classes_dir)?;
+    let mut command = Command::new(javac_executable(&context.plan.java));
+    command.arg(format!("@{}", argfile.display()));
+    let output = run_command_capture_output(
+        &context.cancellation_token,
+        &mut command,
+        "javac-junit-runner",
+    )
+    .wrap_err("Failed to run javac for SFM JUnit event runner")?;
+    trace_subprocess_bytes(
+        context.plan,
+        "java-tool",
+        "javac-junit-runner",
+        "stdout",
+        &output.stdout,
+    );
+    trace_subprocess_bytes(
+        context.plan,
+        "java-tool",
+        "javac-junit-runner",
+        "stderr",
+        &output.stderr,
+    );
+    let log_path = runner_root.join("javac-junit-runner.log");
+    let mut log = Vec::new();
+    log.extend_from_slice(b"--- stdout ---\n");
+    log.extend_from_slice(&output.stdout);
+    log.extend_from_slice(b"\n--- stderr ---\n");
+    log.extend_from_slice(&output.stderr);
+    fs::write(&log_path, log)
+        .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+    if output.cancelled {
+        eyre::bail!(
+            "javac junit-runner was cancelled by Ctrl+C. See {}",
+            log_path.display()
+        );
+    }
+    if !output.status.success() {
+        eyre::bail!(
+            "javac junit-runner failed with {}. See {}",
+            output.status,
+            log_path.display()
+        );
+    }
+    write_cache_state(&state_path, &fingerprint)?;
+    Ok(classes_dir)
+}
+
+fn write_file_if_changed(path: &Path, bytes: &[u8]) -> eyre::Result<()> {
+    if path.is_file() && fs::read(path).is_ok_and(|existing| existing == bytes) {
+        return Ok(());
+    }
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, bytes).wrap_err_with(|| format!("Failed to write {}", path.display()))
+}
+
+fn write_junit_runner_argfile(
+    argfile: &Path,
+    runner_classes_dir: &Path,
+    console_launcher: &Path,
+    runtime_classpath: &[PathBuf],
+    test_classes_dir: &Path,
+    test_source_root: &Path,
+    test_options: &RunTestOptions,
+) -> eyre::Result<()> {
+    if let Some(parent) = argfile.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut command_classpath = vec![
+        runner_classes_dir.to_path_buf(),
+        console_launcher.to_path_buf(),
+    ];
+    command_classpath.extend(runtime_classpath.iter().cloned());
+    let mut args = vec![
+        "-cp".to_string(),
+        join_classpath(&command_classpath),
+        JUNIT_EVENT_RUNNER_MAIN_CLASS.to_string(),
+        "--mode".to_string(),
+        match test_options.action {
+            RunTestAction::Run => "run".to_string(),
+            RunTestAction::List => "list".to_string(),
+        },
+        "--classpath-root".to_string(),
+        test_classes_dir.display().to_string(),
+        "--source-root".to_string(),
+        test_source_root.display().to_string(),
+    ];
+    if let Some(filter) = test_options
+        .filter
+        .as_ref()
+        .filter(|filter| !filter.trim().is_empty())
+    {
+        args.extend(["--filter".to_string(), filter.clone()]);
+    }
+    fs::write(
+        argfile,
+        args.into_iter()
+            .map(escape_argfile_arg)
+            .collect::<Vec<_>>()
+            .join("\n"),
+    )
+    .wrap_err_with(|| format!("Failed to write {}", argfile.display()))
+}
+
+#[derive(Clone, Debug, Default)]
+struct JunitTestInfo {
+    unique_id: String,
+    display_name: String,
+    legacy_name: String,
+    source_path: String,
+}
+
+impl JunitTestInfo {
+    fn label(&self) -> &str {
+        if !self.legacy_name.is_empty() {
+            &self.legacy_name
+        } else if !self.display_name.is_empty() {
+            &self.display_name
+        } else {
+            "unknown-test"
+        }
+    }
+
+    fn key(&self) -> String {
+        if self.unique_id.is_empty() {
+            self.label().to_string()
+        } else {
+            self.unique_id.clone()
+        }
+    }
+
+    fn uri(&self) -> String {
+        vscode_file_uri_for_path(&self.source_path)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct JunitCapturedOutput {
+    stream: String,
+    line: String,
+}
+
+#[derive(Clone, Debug)]
+struct JunitFinishedTest {
+    info: JunitTestInfo,
+    status: String,
+    throwable_type: String,
+    throwable_message: String,
+    stack_trace: String,
+}
+
+#[derive(Clone, Debug, Default)]
+struct JunitSummary {
+    tests_found: u64,
+    tests_started: u64,
+    tests_succeeded: u64,
+    tests_failed: u64,
+    tests_skipped: u64,
+    tests_aborted: u64,
+    containers_found: u64,
+    containers_failed: u64,
+}
+
+#[derive(Clone, Debug)]
+enum JunitProtocolEvent {
+    Test(JunitTestInfo),
+    Started(JunitTestInfo),
+    Skipped {
+        info: JunitTestInfo,
+        reason: String,
+    },
+    Output {
+        stream: String,
+        info: JunitTestInfo,
+        line: String,
+    },
+    Finished(JunitFinishedTest),
+    Summary(JunitSummary),
+    ListSummary {
+        count: u64,
+    },
+    RunnerError {
+        message: String,
+        stack_trace: String,
+    },
+}
+
+#[derive(Debug, Default)]
+struct JunitExecutionReport {
+    summary: Option<JunitSummary>,
+    list_count: Option<u64>,
+    listed_tests: Vec<JunitTestInfo>,
+    failures: Vec<JunitFinishedTest>,
+    runner_errors: Vec<String>,
+    protocol_errors: Vec<String>,
+    non_protocol_stdout: Vec<String>,
+    child_stderr: Vec<String>,
+}
+
+impl JunitExecutionReport {
+    fn summary_message(&self) -> String {
+        if let Some(summary) = self.summary.as_ref() {
+            return format!(
+                "{} found, {} started, {} passed, {} failed, {} skipped, {} aborted",
+                summary.tests_found,
+                summary.tests_started,
+                summary.tests_succeeded,
+                summary.tests_failed,
+                summary.tests_skipped,
+                summary.tests_aborted
+            );
+        }
+        if let Some(count) = self.list_count {
+            return format!("{count} discovered");
+        }
+        "no JUnit summary received".to_string()
+    }
+}
+
+fn process_junit_event_output(
+    plan: &BuildPlan,
+    test_options: &RunTestOptions,
+    console_log: &Path,
+    output: &CancellableOutput,
+    duration_ms: u128,
+) -> eyre::Result<JunitExecutionReport> {
+    let mut report = JunitExecutionReport::default();
+    let mut events = Vec::new();
+    let mut captured_outputs: BTreeMap<String, Vec<JunitCapturedOutput>> = BTreeMap::new();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.lines() {
+        match parse_junit_protocol_line(line) {
+            Some(Ok(event)) => {
+                process_junit_event(
+                    plan,
+                    test_options,
+                    &mut report,
+                    &mut captured_outputs,
+                    &event,
+                );
+                events.push(event);
+            }
+            Some(Err(error)) => report.protocol_errors.push(error.to_string()),
+            None => report.non_protocol_stdout.push(line.to_string()),
+        }
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    report
+        .child_stderr
+        .extend(stderr.lines().map(std::string::ToString::to_string));
+
+    if test_options.no_capture || !output.status.success() {
+        for line in &report.non_protocol_stdout {
+            trace_subprocess_line("java-tool", "junit-test", "stdout", line);
+        }
+        for line in &report.child_stderr {
+            trace_subprocess_line("java-tool", "junit-test", "stderr", line);
+        }
+    }
+
+    emit_junit_terminal_summary(plan, test_options, &report);
+    write_junit_event_console_log(console_log, output, duration_ms, &events, &report)?;
+    Ok(report)
+}
+
+fn process_junit_event(
+    plan: &BuildPlan,
+    test_options: &RunTestOptions,
+    report: &mut JunitExecutionReport,
+    captured_outputs: &mut BTreeMap<String, Vec<JunitCapturedOutput>>,
+    event: &JunitProtocolEvent,
+) {
+    match event {
+        JunitProtocolEvent::Test(info) => {
+            report.listed_tests.push(info.clone());
+            trace_junit_test_list_entry(plan, info);
+        }
+        JunitProtocolEvent::Started(_) => {}
+        JunitProtocolEvent::Skipped { info, reason } => {
+            if test_options.no_capture {
+                trace_junit_test_line(plan, info, "stdout", &format!("skipped: {reason}"));
+            }
+        }
+        JunitProtocolEvent::Output { stream, info, line } => {
+            captured_outputs
+                .entry(info.key())
+                .or_default()
+                .push(JunitCapturedOutput {
+                    stream: stream.clone(),
+                    line: line.clone(),
+                });
+            if test_options.no_capture {
+                trace_junit_test_line(plan, info, stream, line);
+            }
+        }
+        JunitProtocolEvent::Finished(finished) => {
+            if finished.status != "SUCCESSFUL" {
+                if !test_options.no_capture {
+                    for captured in captured_outputs
+                        .get(&finished.info.key())
+                        .into_iter()
+                        .flat_map(|outputs| outputs.iter())
+                    {
+                        trace_junit_test_line(
+                            plan,
+                            &finished.info,
+                            &captured.stream,
+                            &captured.line,
+                        );
+                    }
+                }
+                trace_junit_test_failure(plan, finished);
+                report.failures.push(finished.clone());
+            }
+        }
+        JunitProtocolEvent::Summary(summary) => {
+            report.summary = Some(summary.clone());
+        }
+        JunitProtocolEvent::ListSummary { count } => {
+            report.list_count = Some(*count);
+        }
+        JunitProtocolEvent::RunnerError {
+            message,
+            stack_trace,
+        } => {
+            report.runner_errors.push(message.clone());
+            let info = JunitTestInfo::default();
+            trace_junit_test_line(plan, &info, "stderr", message);
+            for line in stack_trace.lines() {
+                trace_junit_test_line(plan, &info, "stderr", line);
+            }
+        }
+    }
+}
+
+fn emit_junit_terminal_summary(
+    plan: &BuildPlan,
+    test_options: &RunTestOptions,
+    report: &JunitExecutionReport,
+) {
+    let _span = tracing::info_span!("junit_terminal_summary", branch = %plan.branch_name).entered();
+    let source = "java-tool";
+    let process = "junit-test";
+    match test_options.action {
+        RunTestAction::List => {
+            let count = report
+                .list_count
+                .unwrap_or_else(|| report.listed_tests.len() as u64);
+            tracing::info!(source, process, "Discovered {count} JUnit tests.");
+        }
+        RunTestAction::Run => {
+            if let Some(summary) = report.summary.as_ref() {
+                tracing::info!(
+                    source,
+                    process,
+                    "JUnit tests: {} passed, {} failed, {} skipped, {} aborted ({} found).",
+                    summary.tests_succeeded,
+                    summary.tests_failed,
+                    summary.tests_skipped,
+                    summary.tests_aborted,
+                    summary.tests_found
+                );
+            }
+        }
+    }
+}
+
+fn trace_junit_test_list_entry(plan: &BuildPlan, info: &JunitTestInfo) {
+    let _span = tracing::info_span!("junit_test_list_entry", branch = %plan.branch_name).entered();
+    let source = "java-tool";
+    let process = "junit-test";
+    let test = info.label();
+    let test_uri = info.uri();
+    tracing::info!(
+        source,
+        process,
+        test = %test,
+        test_uri = %test_uri,
+        "{test}"
+    );
+}
+
+fn trace_junit_test_line(plan: &BuildPlan, info: &JunitTestInfo, stream: &str, line: &str) {
+    let _span = tracing::info_span!("junit_test_output", branch = %plan.branch_name).entered();
+    let source = "java-tool";
+    let process = "junit-test";
+    let test = info.label();
+    let test_uri = info.uri();
+    tracing::info!(
+        source,
+        process,
+        stream = %stream,
+        test = %test,
+        test_uri = %test_uri,
+        "{line}"
+    );
+}
+
+fn trace_junit_test_failure(plan: &BuildPlan, failure: &JunitFinishedTest) {
+    let _span = tracing::info_span!("junit_test_failure", branch = %plan.branch_name).entered();
+    let source = "java-tool";
+    let process = "junit-test";
+    let stream = "stderr";
+    let test = failure.info.label();
+    let test_uri = failure.info.uri();
+    let message = if failure.throwable_message.is_empty() {
+        failure.throwable_type.as_str()
+    } else {
+        failure.throwable_message.as_str()
+    };
+    tracing::error!(
+        source,
+        process,
+        stream,
+        test = %test,
+        test_uri = %test_uri,
+        "JUnit test failed ({}) {message}",
+        failure.status
+    );
+    for line in failure.stack_trace.lines() {
+        tracing::error!(
+            source,
+            process,
+            stream,
+            test = %test,
+            test_uri = %test_uri,
+            "{line}"
+        );
+    }
+}
+
+fn parse_junit_protocol_line(line: &str) -> Option<eyre::Result<JunitProtocolEvent>> {
+    let rest = line.strip_prefix(JUNIT_EVENT_PREFIX)?;
+    Some(parse_junit_protocol_event(rest))
+}
+
+fn parse_junit_protocol_event(rest: &str) -> eyre::Result<JunitProtocolEvent> {
+    let mut parts = rest.split('\t');
+    let event = parts
+        .next()
+        .ok_or_else(|| eyre::eyre!("JUnit protocol line did not include an event name"))?;
+    let fields = parts
+        .map(decode_junit_protocol_field)
+        .collect::<eyre::Result<Vec<_>>>()?;
+    match event {
+        "test" => {
+            expect_junit_field_count(event, &fields, 4)?;
+            Ok(JunitProtocolEvent::Test(junit_info_from_fields(&fields, 0)))
+        }
+        "started" => {
+            expect_junit_field_count(event, &fields, 4)?;
+            Ok(JunitProtocolEvent::Started(junit_info_from_fields(
+                &fields, 0,
+            )))
+        }
+        "skipped" => {
+            expect_junit_field_count(event, &fields, 5)?;
+            Ok(JunitProtocolEvent::Skipped {
+                info: junit_info_from_fields(&fields, 0),
+                reason: fields[4].clone(),
+            })
+        }
+        "output" => {
+            expect_junit_field_count(event, &fields, 6)?;
+            Ok(JunitProtocolEvent::Output {
+                stream: fields[0].clone(),
+                info: junit_info_from_fields(&fields, 1),
+                line: fields[5].clone(),
+            })
+        }
+        "finished" => {
+            expect_junit_field_count(event, &fields, 8)?;
+            Ok(JunitProtocolEvent::Finished(JunitFinishedTest {
+                info: junit_info_from_fields(&fields, 0),
+                status: fields[4].clone(),
+                throwable_type: fields[5].clone(),
+                throwable_message: fields[6].clone(),
+                stack_trace: fields[7].clone(),
+            }))
+        }
+        "summary" => {
+            expect_junit_field_count(event, &fields, 8)?;
+            Ok(JunitProtocolEvent::Summary(JunitSummary {
+                tests_found: parse_junit_u64(event, "tests_found", &fields[0])?,
+                tests_started: parse_junit_u64(event, "tests_started", &fields[1])?,
+                tests_succeeded: parse_junit_u64(event, "tests_succeeded", &fields[2])?,
+                tests_failed: parse_junit_u64(event, "tests_failed", &fields[3])?,
+                tests_skipped: parse_junit_u64(event, "tests_skipped", &fields[4])?,
+                tests_aborted: parse_junit_u64(event, "tests_aborted", &fields[5])?,
+                containers_found: parse_junit_u64(event, "containers_found", &fields[6])?,
+                containers_failed: parse_junit_u64(event, "containers_failed", &fields[7])?,
+            }))
+        }
+        "list_summary" => {
+            expect_junit_field_count(event, &fields, 1)?;
+            Ok(JunitProtocolEvent::ListSummary {
+                count: parse_junit_u64(event, "count", &fields[0])?,
+            })
+        }
+        "runner_error" => {
+            expect_junit_field_count(event, &fields, 2)?;
+            Ok(JunitProtocolEvent::RunnerError {
+                message: fields[0].clone(),
+                stack_trace: fields[1].clone(),
+            })
+        }
+        _ => eyre::bail!("Unknown JUnit protocol event: {event}"),
+    }
+}
+
+fn decode_junit_protocol_field(field: &str) -> eyre::Result<String> {
+    let bytes = BASE64_STANDARD
+        .decode(field)
+        .wrap_err("Failed to decode JUnit protocol field as base64")?;
+    String::from_utf8(bytes).wrap_err("JUnit protocol field was not UTF-8")
+}
+
+fn expect_junit_field_count(event: &str, fields: &[String], expected: usize) -> eyre::Result<()> {
+    if fields.len() != expected {
+        eyre::bail!(
+            "JUnit protocol event {event} expected {expected} field(s), got {}",
+            fields.len()
+        );
+    }
+    Ok(())
+}
+
+fn junit_info_from_fields(fields: &[String], offset: usize) -> JunitTestInfo {
+    JunitTestInfo {
+        unique_id: fields[offset].clone(),
+        display_name: fields[offset + 1].clone(),
+        legacy_name: fields[offset + 2].clone(),
+        source_path: fields[offset + 3].clone(),
+    }
+}
+
+fn parse_junit_u64(event: &str, field: &str, value: &str) -> eyre::Result<u64> {
+    value
+        .parse::<u64>()
+        .wrap_err_with(|| format!("JUnit protocol event {event} field {field} was not a number"))
+}
+
+fn write_junit_event_console_log(
+    log_path: &Path,
+    output: &CancellableOutput,
+    duration_ms: u128,
+    events: &[JunitProtocolEvent],
+    report: &JunitExecutionReport,
+) -> eyre::Result<()> {
+    let mut log = String::new();
+    writeln!(log, "tool=junit-test")?;
+    writeln!(log, "main={JUNIT_EVENT_RUNNER_MAIN_CLASS}")?;
+    writeln!(log, "status={}", output.status)?;
+    writeln!(log, "cancelled={}", output.cancelled)?;
+    writeln!(log, "duration_ms={duration_ms}")?;
+    writeln!(log, "summary={}", report.summary_message())?;
+    writeln!(log)?;
+    writeln!(log, "--- events ---")?;
+    for event in events {
+        write_junit_event_log_line(&mut log, event)?;
+    }
+    if !report.non_protocol_stdout.is_empty() {
+        writeln!(log)?;
+        writeln!(log, "--- non-protocol stdout ---")?;
+        for line in &report.non_protocol_stdout {
+            writeln!(log, "{line}")?;
+        }
+    }
+    if !report.child_stderr.is_empty() {
+        writeln!(log)?;
+        writeln!(log, "--- child stderr ---")?;
+        for line in &report.child_stderr {
+            writeln!(log, "{line}")?;
+        }
+    }
+    fs::write(log_path, log).wrap_err_with(|| format!("Failed to write {}", log_path.display()))
+}
+
+fn write_junit_event_log_line(log: &mut String, event: &JunitProtocolEvent) -> eyre::Result<()> {
+    match event {
+        JunitProtocolEvent::Test(info) => {
+            writeln!(log, "test {}", info.label())?;
+        }
+        JunitProtocolEvent::Started(info) => {
+            writeln!(log, "started {}", info.label())?;
+        }
+        JunitProtocolEvent::Skipped { info, reason } => {
+            writeln!(log, "skipped {}: {reason}", info.label())?;
+        }
+        JunitProtocolEvent::Output { stream, info, line } => {
+            writeln!(log, "{stream} {}: {line}", info.label())?;
+        }
+        JunitProtocolEvent::Finished(finished) => {
+            writeln!(
+                log,
+                "finished {}: {}",
+                finished.info.label(),
+                finished.status
+            )?;
+            if !finished.throwable_type.is_empty() {
+                writeln!(
+                    log,
+                    "  failure_type={}\n  failure_message={}",
+                    finished.throwable_type, finished.throwable_message
+                )?;
+                writeln!(log, "{}", finished.stack_trace)?;
+            }
+        }
+        JunitProtocolEvent::Summary(summary) => {
+            writeln!(
+                log,
+                "summary: {} found, {} passed, {} failed, {} skipped, {} aborted",
+                summary.tests_found,
+                summary.tests_succeeded,
+                summary.tests_failed,
+                summary.tests_skipped,
+                summary.tests_aborted
+            )?;
+            writeln!(
+                log,
+                "containers: {} found, {} failed",
+                summary.containers_found, summary.containers_failed
+            )?;
+        }
+        JunitProtocolEvent::ListSummary { count } => {
+            writeln!(log, "list_summary: {count} discovered")?;
+        }
+        JunitProtocolEvent::RunnerError {
+            message,
+            stack_trace,
+        } => {
+            writeln!(log, "runner_error: {message}")?;
+            writeln!(log, "{stack_trace}")?;
+        }
+    }
+    Ok(())
+}
+
+fn vscode_file_uri_for_path(path: &str) -> String {
+    if path.is_empty() {
+        return String::new();
+    }
+    let path = percent_encode_uri_path_for_junit(&path.replace('\\', "/"));
+    format!("vscode://file/{path}:1:1")
+}
+
+fn percent_encode_uri_path_for_junit(path: &str) -> String {
+    let mut output = String::with_capacity(path.len());
+    for byte in path.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'/' | b':' | b'-' | b'_' | b'.' | b'~' => {
+                output.push(char::from(byte));
+            }
+            byte => {
+                const HEX: &[u8; 16] = b"0123456789ABCDEF";
+                output.push('%');
+                output.push(char::from(HEX[usize::from(byte >> 4)]));
+                output.push(char::from(HEX[usize::from(byte & 0x0F)]));
+            }
+        }
+    }
+    output
+}
+
+#[derive(Clone, Copy, Debug)]
+enum TestClasspathKind {
+    Compile,
+    Runtime,
+}
+
+fn resolve_test_dependency_classpath(
+    context: &ExecutionContext<'_>,
+    resolver: &Resolver,
+    kind: TestClasspathKind,
+) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
+    let dependency_script = context
+        .plan
+        .minecraft_dir
+        .join("gradle")
+        .join("dependencies")
+        .join(context.plan.minecraft_version.as_str())
+        .join("dependencies.gradle");
+    let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
+    let configurations: &[&str] = match kind {
+        TestClasspathKind::Compile => &["testImplementation", "testCompileOnly"],
+        TestClasspathKind::Runtime => &["testImplementation", "testRuntimeOnly"],
+    };
+    let roots = dependencies
+        .iter()
+        .filter(|dependency| {
+            !dependency.fg_deobf && configurations.contains(&dependency.configuration.as_str())
+        })
+        .map(|dependency| {
+            (
+                dependency.configuration.as_str(),
+                dependency.coordinate.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    resolve_dependency_artifact_closure(context, resolver, "test-dependency", roots)
+}
+
+fn resolve_dependency_artifact_closure(
+    context: &ExecutionContext<'_>,
+    resolver: &Resolver,
+    artifact_prefix: &str,
+    roots: Vec<(&str, MavenCoordinate)>,
+) -> eyre::Result<Vec<PathBuf>> {
+    let mut seen = BTreeSet::new();
+    let mut queue = VecDeque::new();
+    let mut paths = Vec::new();
+
+    for (configuration, coordinate) in roots {
+        context.bail_if_cancelled()?;
+        let dependency = resolver.resolve_dependency(configuration, &coordinate)?;
+        let resolved = MavenCoordinate::parse(&dependency.resolved_notation)?;
+        if seen.insert(resolved.to_string()) {
+            paths.push(dependency.cache_path);
+            queue.push_back(resolved);
+        }
+    }
+
+    while let Some(parent) = queue.pop_front() {
+        context.bail_if_cancelled()?;
+        for coordinate in resolver.resolve_pom_runtime_dependencies(&parent)? {
+            context.bail_if_cancelled()?;
+            if !seen.insert(coordinate.to_string()) {
+                continue;
+            }
+            let artifact = resolver.resolve_artifact(
+                ArtifactId::from(format!("{artifact_prefix}-{}", paths.len())),
+                &coordinate,
+                ArtifactPurpose::from("JUnit test classpath"),
+            )?;
+            paths.push(artifact.cache_path);
+            queue.push_back(coordinate);
+        }
+    }
+
+    Ok(paths)
+}
+
+fn resolve_junit_console_standalone(
+    context: &ExecutionContext<'_>,
+    resolver: &Resolver,
+) -> eyre::Result<ArtifactPlan> {
+    let dependency_script = context
+        .plan
+        .minecraft_dir
+        .join("gradle")
+        .join("dependencies")
+        .join(context.plan.minecraft_version.as_str())
+        .join("dependencies.gradle");
+    let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
+    let platform_version = junit_platform_version(&dependencies)?;
+    let coordinate = MavenCoordinate::parse(&format!(
+        "org.junit.platform:junit-platform-console-standalone:{platform_version}"
+    ))?;
+    resolver.resolve_artifact(
+        ArtifactId::from("junit-platform-console-standalone"),
+        &coordinate,
+        ArtifactPurpose::from("JUnit Platform ConsoleLauncher"),
+    )
+}
+
+fn junit_platform_version(dependencies: &[ParsedDependency]) -> eyre::Result<String> {
+    for artifact in [
+        "junit-platform-console-standalone",
+        "junit-platform-launcher",
+        "junit-platform-engine",
+        "junit-platform-commons",
+    ] {
+        if let Some(dependency) = dependencies.iter().find(|dependency| {
+            dependency.coordinate.group == "org.junit.platform"
+                && dependency.coordinate.artifact == artifact
+        }) {
+            return Ok(dependency.coordinate.version.clone());
+        }
+    }
+    if let Some(dependency) = dependencies.iter().find(|dependency| {
+        dependency.coordinate.group == "org.junit.jupiter"
+            && dependency.coordinate.artifact.starts_with("junit-jupiter")
+    }) {
+        return platform_version_from_jupiter_version(&dependency.coordinate.version);
+    }
+    eyre::bail!("Could not infer a JUnit Platform version from test dependencies")
+}
+
+fn platform_version_from_jupiter_version(version: &str) -> eyre::Result<String> {
+    let Some(rest) = version.strip_prefix("5.") else {
+        eyre::bail!("Unsupported JUnit Jupiter version for platform inference: {version}");
+    };
+    Ok(format!("1.{rest}"))
 }
 
 fn run_mcp_mappings(plan: &BuildPlan) -> String {
@@ -5513,6 +7082,15 @@ fn resolve_neogradle_run_dependencies(
 fn run_dependency_configurations(kind: RunKind) -> &'static [&'static str] {
     match kind {
         RunKind::Data => &["implementation", "runtimeOnly", "transitiveRuntime"],
+        RunKind::Test => &[
+            "implementation",
+            "compileOnly",
+            "runtimeOnly",
+            "testImplementation",
+            "testCompileOnly",
+            "testRuntimeOnly",
+            "transitiveRuntime",
+        ],
         RunKind::Client
         | RunKind::ClientSmoke
         | RunKind::ClientPuppet
