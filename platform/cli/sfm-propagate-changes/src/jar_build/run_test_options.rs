@@ -3,6 +3,7 @@ pub enum RunTestAction {
     #[default]
     Run,
     List,
+    Compile,
 }
 
 #[derive(Clone, Debug, Default)]
