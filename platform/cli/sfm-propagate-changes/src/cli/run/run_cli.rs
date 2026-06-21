@@ -4,6 +4,7 @@ use super::RunClientSmokeArgs;
 use super::RunDataArgs;
 use super::RunGameTestServerArgs;
 use super::RunServerArgs;
+use super::RunTestArgs;
 use crate::cancellation::CancellationToken;
 use facet::Facet;
 use figue as args;
@@ -44,6 +45,8 @@ pub enum RunCommand {
     /// Launch the Forge game test server userdev run config
     #[facet(rename = "game-test-server")]
     GameTestServer(RunGameTestServerArgs),
+    /// Compile and run the Java JUnit test source set
+    Test(RunTestArgs),
 }
 
 impl RunCommand {
@@ -58,6 +61,7 @@ impl RunCommand {
             RunCommand::Server(args) => args.invoke(cancellation_token),
             RunCommand::Data(args) => args.invoke(cancellation_token),
             RunCommand::GameTestServer(args) => args.invoke(cancellation_token),
+            RunCommand::Test(args) => args.invoke(cancellation_token),
         }
     }
 }

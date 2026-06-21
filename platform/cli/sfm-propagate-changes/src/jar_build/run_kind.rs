@@ -6,4 +6,5 @@ pub enum RunKind {
     Server,
     Data,
     GameTestServer,
+    Test,
 }
