@@ -1,20 +1,40 @@
-use super::{
-    ArtifactId, ArtifactLockEntry, ArtifactLockfile, ArtifactPlan, ArtifactProvenance,
-    ArtifactPurpose, ArtifactSource, DependencyPlan, DependencySource, MavenCoordinate, Repository,
-    SourceGitProvenance, acquire_artifact_path_lock, acquire_artifact_path_read_lock,
-    artifact_provenance, compare_version_text, copy_file_to_path_checked_locked,
-    download_text_optional, download_to_path_overwrite_locked, materialize_source_build,
-    parse_maven_pom_runtime_dependencies, parse_maven_versions,
-    prepare_existing_artifact_for_reuse, read_artifact_provenance, remote_exists,
-    source_build_checkout_key, source_git_provenance, write_artifact_provenance,
-};
+use super::ArtifactId;
+use super::ArtifactLockEntry;
+use super::ArtifactLockfile;
+use super::ArtifactPlan;
+use super::ArtifactProvenance;
+use super::ArtifactPurpose;
+use super::ArtifactSource;
+use super::DependencyPlan;
+use super::DependencySource;
+use super::MavenCoordinate;
+use super::Repository;
+use super::SourceGitProvenance;
+use super::acquire_artifact_path_lock;
+use super::acquire_artifact_path_read_lock;
+use super::artifact_provenance;
+use super::compare_version_text;
+use super::copy_file_to_path_checked_locked;
+use super::download_text_optional;
+use super::download_to_path_overwrite_locked;
+use super::materialize_source_build;
+use super::parse_maven_pom_runtime_dependencies;
+use super::parse_maven_versions;
+use super::prepare_existing_artifact_for_reuse;
+use super::read_artifact_provenance;
+use super::remote_exists;
+use super::source_build_checkout_key;
+use super::source_git_provenance;
+use super::write_artifact_provenance;
 use crate::cancellation::CancellationToken;
-use crate::jar_build::hash::{ContentHash, ContentHashAlgorithm};
+use crate::jar_build::hash::ContentHash;
+use crate::jar_build::hash::ContentHashAlgorithm;
 use eyre::Context;
 use rayon::prelude::*;
 use reqwest::blocking::Client;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::instrument;
 
@@ -102,6 +122,11 @@ impl Resolver {
             .wrap_err("Failed to resolve core artifact")
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        clippy::needless_pass_by_value,
+        reason = "Artifact resolution is a linear fallback chain and owns ids/purposes at the API boundary."
+    )]
     pub(super) fn resolve_artifact(
         &self,
         id: ArtifactId,
