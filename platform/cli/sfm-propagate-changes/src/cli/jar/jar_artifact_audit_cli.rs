@@ -29,10 +29,6 @@ pub struct JarArtifactAuditArgs {
 
     /// Run matching targets in parallel. Bare `--parallel` defaults to 10.
     #[facet(default, args::named)]
-    #[expect(
-        clippy::option_option,
-        reason = "figue uses Option<Option<T>> to model absent, bare, and valued optional-value flags."
-    )]
     pub parallel: Option<Option<usize>>,
 }
 

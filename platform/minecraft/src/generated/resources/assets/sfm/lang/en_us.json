@@ -183,6 +183,7 @@
   "key.sfm.label_gun.clear_modifier": "Label Gun Clear Modifier",
   "key.sfm.label_gun.contiguous_modifier": "Label Gun Contiguous Modifier",
   "key.sfm.label_gun.next_label": "Label Gun Next Label",
+  "key.sfm.label_gun.open_gui": "Open Label Gun GUI",
   "key.sfm.label_gun.pick_block_modifier": "Label Gun Pick Block Modifier",
   "key.sfm.label_gun.previous_label": "Label Gun Previous Label",
   "key.sfm.label_gun.pull_modifier": "Label Gun Pull Modifier",
