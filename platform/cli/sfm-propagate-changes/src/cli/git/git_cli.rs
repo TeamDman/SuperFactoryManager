@@ -22,6 +22,10 @@ impl GitArgs {
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum GitCommand {
+    /// Stage pathspecs in each worktree
+    Add(super::git_add_cli::GitAddArgs),
+    /// Commit staged changes in each worktree
+    Commit(super::git_commit_cli::GitCommitArgs),
     /// Propagate changes by merging from older to newer version branches
     Merge(super::merge::MergeArgs),
     /// Push branches (runs `git push` in each worktree)
@@ -38,6 +42,8 @@ impl GitCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
+            GitCommand::Add(args) => args.invoke(),
+            GitCommand::Commit(args) => args.invoke(),
             GitCommand::Merge(args) => args.invoke(),
             GitCommand::Push(args) => args.invoke(),
             GitCommand::Status(args) => args.invoke(),
