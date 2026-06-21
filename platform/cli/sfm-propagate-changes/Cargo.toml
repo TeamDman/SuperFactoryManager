@@ -11,6 +11,7 @@ keywords = ["cli", "git", "minecraft", "worktree"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
+base64 = "0.22.1"
 blake3 = "1.8.5"
 chrono = "0.4.43"
 color-eyre = "0.6.5"
