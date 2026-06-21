@@ -42,6 +42,7 @@ use super::audit_artifact_lockfile;
 use super::build_artifact_lockfile;
 use super::compare_version_text;
 use super::copy_file_to_path_checked;
+use super::diagnostic_counts_from_log_text;
 use super::download_to_path_overwrite_with_expected_hash;
 use super::enforce_portable_artifacts;
 use super::execute_targets_parallel;
@@ -414,6 +415,32 @@ fn parses_maven_metadata_versions() {
 #[test]
 fn compares_numeric_version_segments() {
     assert_eq!(compare_version_text("1.2.10", "1.2.9"), Ordering::Greater);
+}
+
+#[test]
+fn diagnostic_counts_prefer_compiler_summary_lines() {
+    let counts = diagnostic_counts_from_log_text(
+        "src/Main.java:1: error: cannot find symbol\n\
+         src/Main.java:2: warning: [unchecked] unchecked conversion\n\
+         3 errors\n\
+         100 warnings\n",
+    );
+
+    assert_eq!(counts.errors, 3);
+    assert_eq!(counts.warnings, 100);
+}
+
+#[test]
+fn diagnostic_counts_fall_back_to_diagnostic_lines() {
+    let counts = diagnostic_counts_from_log_text(
+        "error: first failure\n\
+         note: this is informational\n\
+         warning: first warning\n\
+         [ERROR] second failure\n",
+    );
+
+    assert_eq!(counts.errors, 2);
+    assert_eq!(counts.warnings, 1);
 }
 
 #[test]

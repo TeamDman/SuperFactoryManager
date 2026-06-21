@@ -10,6 +10,8 @@ pub struct TerminalSpanFields {
     pub source: Option<String>,
     pub process: Option<String>,
     pub stream: Option<String>,
+    pub test: Option<String>,
+    pub test_uri: Option<String>,
 }
 
 impl TerminalSpanFields {
@@ -19,6 +21,8 @@ impl TerminalSpanFields {
             source: fields.source.clone(),
             process: fields.process.clone(),
             stream: fields.stream.clone(),
+            test: fields.test.clone(),
+            test_uri: fields.test_uri.clone(),
         }
     }
 
@@ -45,6 +49,8 @@ impl TerminalSpanFields {
         self.source.clone_from(&fields.source);
         self.process.clone_from(&fields.process);
         self.stream.clone_from(&fields.stream);
+        self.test.clone_from(&fields.test);
+        self.test_uri.clone_from(&fields.test_uri);
     }
 
     pub fn update_from_span(&mut self, fields: &Self) {
@@ -59,6 +65,12 @@ impl TerminalSpanFields {
         }
         if fields.stream.is_some() {
             self.stream.clone_from(&fields.stream);
+        }
+        if fields.test.is_some() {
+            self.test.clone_from(&fields.test);
+        }
+        if fields.test_uri.is_some() {
+            self.test_uri.clone_from(&fields.test_uri);
         }
     }
 }

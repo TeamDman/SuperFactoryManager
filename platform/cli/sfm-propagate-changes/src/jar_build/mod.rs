@@ -19,6 +19,8 @@ mod json_path;
 mod parallelism;
 mod run_command;
 mod run_kind;
+mod run_test_command;
+mod run_test_options;
 mod target_artifact_audit_report;
 pub mod hash;
 
@@ -35,3 +37,6 @@ pub use error_action::ErrorAction;
 pub use parallelism::Parallelism;
 pub use run_command::RunCommand;
 pub use run_kind::RunKind;
+pub use run_test_command::RunTestCommand;
+pub use run_test_options::RunTestAction;
+pub use run_test_options::RunTestOptions;
