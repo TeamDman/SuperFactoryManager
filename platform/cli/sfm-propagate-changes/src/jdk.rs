@@ -16,7 +16,7 @@ pub(crate) struct JdkInstallation {
     pub(crate) version_output: String,
     pub(crate) major_version: u32,
     pub(crate) source: String,
-    /// JetBrains Runtime (JBR) is preferred for development builds of SFM, so we track whether each discovered JDK is a JBR distribution.
+    /// `JetBrains` Runtime (JBR) is preferred for development builds of SFM, so we track whether each discovered JDK is a JBR distribution.
     pub(crate) is_jbr: bool,
 }
 

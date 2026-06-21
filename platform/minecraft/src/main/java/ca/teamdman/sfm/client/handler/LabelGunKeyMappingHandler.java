@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.handler;
 
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunCycleViewModePacket;
@@ -30,8 +31,19 @@ public class LabelGunKeyMappingHandler {
         if (minecraft.level == null) return;
         Player player = minecraft.player;
         if (player == null) return;
+        if (handleOpenGuiKeyLogic(player)) return;
         handleAltKeyLogic();
         handleLabelSwitchKeyLogic(player);
+    }
+
+    private static boolean handleOpenGuiKeyLogic(Player player) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen != null) return false;
+        if (!SFMKeyMappings.LABEL_GUN_OPEN_GUI_KEY.get().consumeClick()) return false;
+        var labelGun = SFMHandUtils.getItemAndHand(player, SFMItems.LABEL_GUN.get());
+        if (labelGun == null) return false;
+        SFMScreenChangeHelpers.showLabelGunScreen(labelGun.stack(), labelGun.hand());
+        return true;
     }
 
     private static void handleLabelSwitchKeyLogic(Player player) {
