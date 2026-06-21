@@ -25,7 +25,7 @@ impl RunTestCommand {
 
     /// # Errors
     ///
-    /// Returns an error if the clean-slate build graph cannot be resolved or JUnit execution fails.
+    /// Returns an error if the clean-slate build graph cannot be resolved or `JUnit` execution fails.
     pub fn invoke(self) -> eyre::Result<()> {
         super::engine::invoke_run_test(&self.options, &self.test_options, &self.cancellation_token)
     }
