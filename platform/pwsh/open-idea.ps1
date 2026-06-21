@@ -1,0 +1,1 @@
+git worktree list --porcelain | ? { $_.StartsWith("worktree") } | % { ($_.Split("worktree"))[1].Trim() } | Select-Object -SkipLast 1 | % { echo "$_"; idea $_; Start-Sleep -Seconds 5 }
