@@ -1,6 +1,7 @@
 use super::RunClientArgs;
 use super::RunClientPuppetArgs;
 use super::RunClientSmokeArgs;
+use super::RunCompileArgs;
 use super::RunDataArgs;
 use super::RunGameTestServerArgs;
 use super::RunServerArgs;
@@ -30,6 +31,8 @@ impl RunArgs {
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum RunCommand {
+    /// Compile all Java source sets without launching userdev or tests
+    Compile(RunCompileArgs),
     /// Launch the Forge client userdev run config
     Client(RunClientArgs),
     /// Launch the Forge client userdev run config and exit when the title screen opens
@@ -55,6 +58,7 @@ impl RunCommand {
     /// This function will return an error if planning, building, or launching fails.
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         match self {
+            RunCommand::Compile(args) => args.invoke(cancellation_token),
             RunCommand::Client(args) => args.invoke(cancellation_token),
             RunCommand::ClientSmoke(args) => args.invoke(cancellation_token),
             RunCommand::ClientPuppet(args) => args.invoke(cancellation_token),
