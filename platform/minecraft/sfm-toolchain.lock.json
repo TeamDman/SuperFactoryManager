@@ -129,6 +129,30 @@
       "hash": "blake3:5e98efaadb2cc88ae964cf1f7d0c5cab8afa5577"
     },
     {
+      "coordinate": "com.github.javaparser:javaparser-core:3.26.4",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/com/github/javaparser/javaparser-core/3.26.4/javaparser-core-3.26.4.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-core\\3.26.4\\javaparser-core-3.26.4.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:1055b7a25b9cf1274901059912a1b7d455197a9b"
+    },
+    {
+      "coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/com/github/javaparser/javaparser-symbol-solver-core/3.26.4/javaparser-symbol-solver-core-3.26.4.jar",
+      "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-symbol-solver-core\\3.26.4\\javaparser-symbol-solver-core-3.26.4.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c"
+    },
+    {
       "coordinate": "com.google.code.findbugs:jsr305:3.0.2",
       "source": "remote-maven",
       "repository": "Forge",
@@ -729,6 +753,18 @@
       "hash": "blake3:492cc125aaaeb811c3938dc741e5d215a77b593a"
     },
     {
+      "coordinate": "org.apiguardian:apiguardian-api:1.1.2",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\apiguardian\\apiguardian-api\\1.1.2\\apiguardian-api-1.1.2.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:441ed3e16cf38b69d79c7511a6f4422b12da102e"
+    },
+    {
       "coordinate": "org.checkerframework:checker-qual:3.33.0",
       "source": "remote-maven",
       "repository": "Maven Central",
@@ -789,6 +825,30 @@
       "hash": "blake3:582b11eaef411bba8353f05f91472cb6ba30f668"
     },
     {
+      "coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-api/5.8.1/junit-jupiter-api-5.8.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-api\\5.8.1\\junit-jupiter-api-5.8.1.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa"
+    },
+    {
+      "coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-engine/5.8.1/junit-jupiter-engine-5.8.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-engine\\5.8.1\\junit-jupiter-engine-5.8.1.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce"
+    },
+    {
       "coordinate": "org.junit.platform:junit-platform-commons:1.10.2",
       "source": "remote-maven",
       "repository": "Maven Central",
@@ -799,6 +859,30 @@
       "source_git": null,
       "source_build": null,
       "hash": "blake3:7759ca76b225617375161ef5de29f78fe2fc4341"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-commons:1.8.1",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-commons/1.8.1/junit-platform-commons-1.8.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-commons\\1.8.1\\junit-platform-commons-1.8.1.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:43f785f96ceecfab14da65957cf6fa1a0cd26ee4"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-console-standalone:1.8.1",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.8.1/junit-platform-console-standalone-1.8.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-console-standalone\\1.8.1\\junit-platform-console-standalone-1.8.1.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:1b806456ca8a7a09bd65ef672af0b4344611fa3d"
     },
     {
       "coordinate": "org.junit.platform:junit-platform-engine:1.10.2",
@@ -813,6 +897,18 @@
       "hash": "blake3:0c4199c63ca00b63eef30ed0b2c1ecce10dc2dfc"
     },
     {
+      "coordinate": "org.junit.platform:junit-platform-engine:1.8.1",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-engine\\1.8.1\\junit-platform-engine-1.8.1.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:f98f7e2669f9f7661af6ca3d0dfdea913234168a"
+    },
+    {
       "coordinate": "org.junit.platform:junit-platform-launcher:1.10.2",
       "source": "remote-maven",
       "repository": "Maven Central",
@@ -825,6 +921,66 @@
       "hash": "blake3:a5c85638cb5d72a1ebabe90759bee19967f70377"
     },
     {
+      "coordinate": "org.openjdk.jmh:jmh-core:1.37",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-core\\1.37\\jmh-core-1.37.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15"
+    },
+    {
+      "coordinate": "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-annprocess/1.37/jmh-generator-annprocess-1.37.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-annprocess\\1.37\\jmh-generator-annprocess-1.37.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:74920027bb3f569af240fc283876568793baa2e8"
+    },
+    {
+      "coordinate": "org.openjdk.jmh:jmh-generator-asm:1.37",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-asm\\1.37\\jmh-generator-asm-1.37.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:7d990641e58ba333d6533e1575c625105f9114e4"
+    },
+    {
+      "coordinate": "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-bytecode\\1.37\\jmh-generator-bytecode-1.37.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20"
+    },
+    {
+      "coordinate": "org.openjdk.jmh:jmh-generator-reflection:1.37",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-reflection\\1.37\\jmh-generator-reflection-1.37.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:080c98f2b44dc69f4112da9a89dca9762f309948"
+    },
+    {
       "coordinate": "org.openjdk.nashorn:nashorn-core:15.4",
       "source": "remote-maven",
       "repository": "Maven Central",
@@ -835,6 +991,18 @@
       "source_git": null,
       "source_build": null,
       "hash": "blake3:b1cded0a306035a1e3b9e508686ce07812351525"
+    },
+    {
+      "coordinate": "org.opentest4j:opentest4j:1.2.0",
+      "source": "remote-maven",
+      "repository": "Maven Central",
+      "url": "https://repo1.maven.org/maven2/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar",
+      "cache_path": "$sfm-cache\\maven\\org\\opentest4j\\opentest4j\\1.2.0\\opentest4j-1.2.0.jar",
+      "original_path": null,
+      "source_relative_path": null,
+      "source_git": null,
+      "source_build": null,
+      "hash": "blake3:75de231b7d449ae3feb8ffafac8e8f7dc68d319b"
     },
     {
       "coordinate": "org.opentest4j:opentest4j:1.3.0",
