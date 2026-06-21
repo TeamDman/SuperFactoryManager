@@ -8,6 +8,8 @@ pub struct CapturedFields {
     pub source: Option<String>,
     pub process: Option<String>,
     pub stream: Option<String>,
+    pub test: Option<String>,
+    pub test_uri: Option<String>,
     pub message: Option<String>,
     pub extra_fields: Vec<(String, String)>,
 }
@@ -19,6 +21,8 @@ impl CapturedFields {
             "source" => self.source = Some(value),
             "process" => self.process = Some(value),
             "stream" => self.stream = Some(value),
+            "test" => self.test = Some(value),
+            "test_uri" => self.test_uri = Some(value),
             "message" => self.message = Some(value),
             name => self.extra_fields.push((name.to_string(), value)),
         }

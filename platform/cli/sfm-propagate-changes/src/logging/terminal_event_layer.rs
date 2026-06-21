@@ -145,6 +145,22 @@ fn render_prefix<S: Subscriber + for<'lookup> LookupSpan<'lookup>, W: Write>(
             f.write_fmt(format_args!(" {process}"))?;
         }
 
+        // TEST
+        let test = fields.test.as_deref().or(span_fields.test.as_deref());
+        if let Some(test) = test.filter(|test| !test.is_empty()) {
+            let test_uri = fields
+                .test_uri
+                .as_deref()
+                .or(span_fields.test_uri.as_deref())
+                .filter(|uri| !uri.is_empty());
+            let label = test_uri.map_or_else(|| test.to_string(), |uri| test.hyperlink(uri));
+            if decorate {
+                f.write_fmt(format_args!(" {}", label.color(stable_color(test))))?;
+            } else {
+                f.write_fmt(format_args!(" {test}"))?;
+            }
+        }
+
         // STREAM (STDOUT, STDERR, ETC)
         let stream = fields
             .stream
