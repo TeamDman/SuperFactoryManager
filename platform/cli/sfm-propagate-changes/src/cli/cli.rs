@@ -113,6 +113,8 @@ mod tests {
 
     #[test]
     fn parses_top_level_run_clis() {
+        assert_run_cli(&["run", "compile"]);
+        assert_run_cli(&["run", "compile", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "client"]);
         assert_run_cli(&["run", "client", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "client-smoke", "--branch", "1.19.2"]);
@@ -793,7 +795,8 @@ mod tests {
         match cli.command {
             Command::Run(crate::cli::run::RunArgs {
                 command:
-                    RunCommand::Client(_)
+                    RunCommand::Compile(_)
+                    | RunCommand::Client(_)
                     | RunCommand::ClientSmoke(_)
                     | RunCommand::ClientPuppet(_)
                     | RunCommand::Server(_)

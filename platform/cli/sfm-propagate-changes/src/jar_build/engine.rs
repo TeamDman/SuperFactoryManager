@@ -212,6 +212,7 @@ pub(crate) fn invoke_run_test(
     let action_name = match test_options.action {
         RunTestAction::Run => RunKind::Test.command_name(),
         RunTestAction::List => "runTest list",
+        RunTestAction::Compile => "runCompile",
     };
     finish_target_summary(action_name, target_count, plans.len(), &failures, &reports)
 }
@@ -4938,9 +4939,6 @@ fn execute_junit_tests(
         resolve_project_compile_classpath(&context, &locked_resolver, &antlr_classpath)?;
     let test_compile_dependencies =
         resolve_test_dependency_classpath(&context, &test_resolver, TestClasspathKind::Compile)?;
-    let test_runtime_dependencies =
-        resolve_test_dependency_classpath(&context, &test_resolver, TestClasspathKind::Runtime)?;
-    let console_launcher = resolve_junit_console_standalone(&context, &test_resolver)?.cache_path;
     context.bail_if_cancelled()?;
 
     let mut test_compile_classpath = base_classpath.clone();
@@ -4977,6 +4975,25 @@ fn execute_junit_tests(
         "Build node compile-test: done in {} ms",
         started.elapsed().as_millis()
     );
+    context.bail_if_cancelled()?;
+
+    if matches!(test_options.action, RunTestAction::Compile) {
+        write_artifact_lockfile_with_extra_cache_paths(plan, &test_compile_dependencies)?;
+        context.write_node_state(
+            "run-compile",
+            &["Rust-owned main/gametest/datagen/test outputs"],
+            &[test_classes_dir, test_resources_dir],
+            if dry_run { "dry-run" } else { "complete" },
+        )?;
+        tracing::info!(
+            "Compiled all Java source sets (main, gametest, datagen, test) without launch."
+        );
+        return Ok(());
+    }
+
+    let test_runtime_dependencies =
+        resolve_test_dependency_classpath(&context, &test_resolver, TestClasspathKind::Runtime)?;
+    let console_launcher = resolve_junit_console_standalone(&context, &test_resolver)?.cache_path;
     context.bail_if_cancelled()?;
 
     let mut test_runtime_classpath = vec![
@@ -5235,6 +5252,7 @@ fn write_junit_runner_argfile(
         match test_options.action {
             RunTestAction::Run => "run".to_string(),
             RunTestAction::List => "list".to_string(),
+            RunTestAction::Compile => "compile".to_string(),
         },
         "--classpath-root".to_string(),
         test_classes_dir.display().to_string(),
@@ -5499,6 +5517,9 @@ fn emit_junit_terminal_summary(
     let source = "java-tool";
     let process = "junit-test";
     match test_options.action {
+        RunTestAction::Compile => {
+            tracing::info!(source, process, "Compiled test source set; no JUnit launch requested.");
+        }
         RunTestAction::List => {
             let count = report
                 .list_count
