@@ -23,16 +23,31 @@ public class ProgramContext {
     private final List<InputStatement> INPUTS = new ArrayList<>();
     private final Level                LEVEL;
 
+    private final int REDSTONE_PULSES;
+
     public ProgramContext(ManagerBlockEntity manager) {
-        this.MANAGER = manager;
-        NETWORK      = CableNetworkManager
+        this.MANAGER    = manager;
+        NETWORK         = CableNetworkManager
                 .getOrRegisterNetwork(MANAGER)
                 .get();
-        LEVEL        = MANAGER.getLevel();
+        LEVEL           = MANAGER.getLevel();
+        REDSTONE_PULSES = MANAGER.getUnprocessedRedstonePulseCount();
     }
 
-    public void clear() {
-        INPUTS.clear();
+    public ProgramContext(ProgramContext other) {
+        MANAGER         = other.MANAGER;
+        NETWORK         = other.NETWORK;
+        LEVEL           = other.LEVEL;
+        REDSTONE_PULSES = other.REDSTONE_PULSES;
+        INPUTS.addAll(other.INPUTS);
+    }
+
+    public int getRedstonePulses() {
+        return REDSTONE_PULSES;
+    }
+
+    public ProgramContext fork() {
+        return new ProgramContext(this);
     }
 
     public ManagerBlockEntity getManager() {

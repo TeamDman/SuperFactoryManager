@@ -79,6 +79,36 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     }
 
     @Override
+    public ASTNode visitBooleanRedstone(SFMLParser.BooleanRedstoneContext ctx) {
+        ComparisonOperator comp = ComparisonOperator.GREATER_OR_EQUAL;
+        Quantity           num  = new Quantity(0);
+        if (ctx.comparisonOp() != null && ctx.number() != null) {
+            comp = visitComparisonOp(ctx.comparisonOp());
+            num  = visitNumber(ctx.number());
+        }
+
+        ComparisonOperator finalComp = comp;
+        int                finalNum  = num.value();
+        return new BoolExpr(
+                programContext -> finalComp.test(
+                        programContext
+                                .getManager()
+                                .getLevel()
+                                .getBestNeighborSignal(programContext
+                                                               .getManager()
+                                                               .getBlockPos()),
+                        finalNum
+                )
+        );
+    }
+
+    @Override
+    public ASTNode visitPulseTrigger(SFMLParser.PulseTriggerContext ctx) {
+        var block = visitBlock(ctx.block());
+        return new RedstoneTrigger(block);
+    }
+
+    @Override
     public Quantity visitNumber(SFMLParser.NumberContext ctx) {
         return new Quantity(Integer.parseInt(ctx.getText()));
     }

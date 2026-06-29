@@ -53,6 +53,19 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
             return 1;
         }
     };
+    private             int                    unprocessedRedstonePulses = 0; // used by redstone trigger
+
+    public void trackRedstonePulseUnprocessed() {
+        unprocessedRedstonePulses++;
+    }
+
+    public void clearRedstonePulseQueue() {
+        unprocessedRedstonePulses = 0;
+    }
+
+    public int getUnprocessedRedstonePulseCount() {
+        return unprocessedRedstonePulses;
+    }
 
     public ManagerBlockEntity(BlockPos blockPos, BlockState blockState) {
         super(SFMBlockEntities.MANAGER_BLOCK_ENTITY.get(), blockPos, blockState);
@@ -127,6 +140,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
         try {
             programAST = new ASTBuilder().visitProgram(context);
             DiskItem.setProgramName(disk, programAST.name());
+            programAST.addWarnings(disk);
         } catch (ResourceLocationException | IllegalArgumentException e) {
             errors.add(e.getMessage());
         } catch (Throwable t) {

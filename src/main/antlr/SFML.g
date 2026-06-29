@@ -64,6 +64,7 @@ boolexpr        : TRUE                                  #BooleanTrue
                 | boolexpr AND boolexpr                 #BooleanConjunction
                 | boolexpr OR boolexpr                  #BooleanDisjunction
                 | setOp? labelaccess HAS itemcomparison #BooleanHas
+                | REDSTONE (comparisonOp number)?       #BooleanRedstone
                 ;
 itemcomparison  : comparisonOp number item ;
 comparisonOp    : GT
