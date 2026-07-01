@@ -70,6 +70,8 @@ pub enum Command {
     Run(super::run::RunArgs),
     /// Repo root related commands
     RepoRoot(super::repo_root::RepoRootArgs),
+    /// Source code audit commands
+    Source(super::source::SourceArgs),
 }
 
 impl Command {
@@ -91,6 +93,7 @@ impl Command {
             Command::Jar(args) => args.invoke(cancellation_token),
             Command::Run(args) => args.invoke(cancellation_token),
             Command::RepoRoot(args) => args.invoke(),
+            Command::Source(args) => args.invoke(),
         }
     }
 }
@@ -103,10 +106,15 @@ mod tests {
     use crate::cli::gradle::GradleCommand;
     use crate::cli::jar::JarCommand;
     use crate::cli::run::RunCommand;
+    use crate::cli::run::RunGameTestServerCliCommand;
     use crate::cli::run::RunTestCliCommand;
+    use crate::cli::source::SourceCommand;
     use crate::jar_build::BuildMode;
+    use crate::jar_build::ClientPuppetKeepOpen;
     use crate::jar_build::ErrorAction;
     use crate::jar_build::Parallelism;
+    use crate::jar_build::SourceOutputLayout;
+    use crate::source_audit::SourceLanguage;
     use facet::Facet;
     use figue as args;
     use tracing::level_filters::LevelFilter;
@@ -119,9 +127,35 @@ mod tests {
         assert_run_cli(&["run", "client", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "client-smoke", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "client-puppet", "--branch", "1.19.2"]);
+        assert_run_cli(&[
+            "run",
+            "client-puppet",
+            "--branch",
+            "1.19.2",
+            "--filter",
+            "wither_aggro_*",
+        ]);
         assert_run_cli(&["run", "server", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "data", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "game-test-server", "--branch", "1.19.2"]);
+        assert_run_cli(&[
+            "run",
+            "game-test-server",
+            "--branch",
+            "1.19.2",
+            "--filter",
+            "sfm:wither_aggro_*,sfm:tough_cable_*",
+        ]);
+        assert_run_cli(&[
+            "run",
+            "game-test-server",
+            "--branch",
+            "1.19.2",
+            "bisect",
+            "wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall",
+            "--max-runs",
+            "8",
+        ]);
         assert_run_cli(&["run", "test", "--branch", "1.19.2"]);
         assert_run_cli(&[
             "run",
@@ -155,6 +189,49 @@ mod tests {
     }
 
     #[test]
+    fn parses_source_audit_cli() {
+        let cli = figue::from_slice::<Cli>(&["source", "audit"])
+            .into_result()
+            .expect("source audit should parse")
+            .get_silent();
+        let Command::Source(args) = cli.command else {
+            panic!("expected source command");
+        };
+        let SourceCommand::Audit(args) = args.command;
+        assert_eq!(args.branch.as_ref(), "*");
+        assert!(args.language.is_empty());
+        assert!(args.lang.is_empty());
+        assert_eq!(args.max_lines.0, 1000);
+    }
+
+    #[test]
+    fn parses_source_audit_filters() {
+        let cli = figue::from_slice::<Cli>(&[
+            "source",
+            "audit",
+            "--branch",
+            ">=1.19.2",
+            "--language",
+            "rust",
+            "--lang",
+            "java",
+            "--max-lines",
+            "1200",
+        ])
+        .into_result()
+        .expect("source audit filters should parse")
+        .get_silent();
+        let Command::Source(args) = cli.command else {
+            panic!("expected source command");
+        };
+        let SourceCommand::Audit(args) = args.command;
+        assert_eq!(args.branch.as_ref(), ">=1.19.2");
+        assert_eq!(args.language, vec![SourceLanguage::Rust]);
+        assert_eq!(args.lang, vec![SourceLanguage::Java]);
+        assert_eq!(args.max_lines.0, 1200);
+    }
+
+    #[test]
     fn parses_run_test_options() {
         let cli = figue::from_slice::<Cli>(&[
             "run",
@@ -178,6 +255,151 @@ mod tests {
         assert_eq!(args.filter.as_deref(), Some("lavaSearch"));
         assert!(args.no_capture);
         assert!(matches!(args.command, Some(RunTestCliCommand::List(_))));
+    }
+
+    #[test]
+    fn parses_game_test_run_filters() {
+        let game_test_server = figue::from_slice::<Cli>(&[
+            "run",
+            "game-test-server",
+            "--branch",
+            "1.19.2",
+            "--filter",
+            "wither_aggro_*",
+        ])
+        .into_result()
+        .expect("game test server filter should parse")
+        .get_silent();
+        match game_test_server.command {
+            Command::Run(crate::cli::run::RunArgs {
+                command: RunCommand::GameTestServer(args),
+            }) => {
+                assert_eq!(args.filter.as_deref(), Some("wither_aggro_*"));
+            }
+            command => panic!("expected game-test-server run command, got {command:?}"),
+        }
+
+        let client_puppet = figue::from_slice::<Cli>(&[
+            "run",
+            "client-puppet",
+            "--branch",
+            "1.19.2",
+            "--filter",
+            "sfm:wither_aggro_*,sfm:tough_cable_*",
+        ])
+        .into_result()
+        .expect("client puppet filter should parse")
+        .get_silent();
+        match client_puppet.command {
+            Command::Run(crate::cli::run::RunArgs {
+                command: RunCommand::ClientPuppet(args),
+            }) => {
+                assert_eq!(
+                    args.filter.as_deref(),
+                    Some("sfm:wither_aggro_*,sfm:tough_cable_*")
+                );
+            }
+            command => panic!("expected client-puppet run command, got {command:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_client_puppet_keep_open_options() {
+        let bare = figue::from_slice::<Cli>(&["run", "client-puppet", "--keep-open"])
+            .into_result()
+            .expect("bare keep-open should parse")
+            .get_silent();
+        match bare.command {
+            Command::Run(crate::cli::run::RunArgs {
+                command: RunCommand::ClientPuppet(args),
+            }) => {
+                assert_eq!(args.keep_open, Some(None));
+                assert_eq!(
+                    ClientPuppetKeepOpen::from_cli(args.keep_open)
+                        .expect("bare keep-open should convert"),
+                    ClientPuppetKeepOpen::Forever
+                );
+            }
+            command => panic!("expected client-puppet run command, got {command:?}"),
+        }
+
+        let valued = figue::from_slice::<Cli>(&[
+            "run",
+            "client-puppet",
+            "--keep-open",
+            "5m",
+            "--filter",
+            "wither_*",
+        ])
+        .into_result()
+        .expect("valued keep-open should parse")
+        .get_silent();
+        match valued.command {
+            Command::Run(crate::cli::run::RunArgs {
+                command: RunCommand::ClientPuppet(args),
+            }) => {
+                assert_eq!(args.keep_open, Some(Some("5m".to_string())));
+                assert_eq!(
+                    ClientPuppetKeepOpen::from_cli(args.keep_open)
+                        .expect("valued keep-open should convert"),
+                    ClientPuppetKeepOpen::Countdown { seconds: 300 }
+                );
+            }
+            command => panic!("expected client-puppet run command, got {command:?}"),
+        }
+
+        let numeric_seconds =
+            figue::from_slice::<Cli>(&["run", "client-puppet", "--keep-open", "90"])
+                .into_result()
+                .expect("numeric keep-open seconds should parse")
+                .get_silent();
+        match numeric_seconds.command {
+            Command::Run(crate::cli::run::RunArgs {
+                command: RunCommand::ClientPuppet(args),
+            }) => {
+                assert_eq!(
+                    ClientPuppetKeepOpen::from_cli(args.keep_open)
+                        .expect("numeric keep-open seconds should convert"),
+                    ClientPuppetKeepOpen::Countdown { seconds: 90 }
+                );
+            }
+            command => panic!("expected client-puppet run command, got {command:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_game_test_server_bisect_options() {
+        let cli = figue::from_slice::<Cli>(&[
+            "run",
+            "game-test-server",
+            "--branch",
+            "1.19.2",
+            "--filter",
+            "sfm:*",
+            "bisect",
+            "wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall",
+            "--max-runs",
+            "12",
+        ])
+        .into_result()
+        .expect("game test server bisect should parse")
+        .get_silent();
+        match cli.command {
+            Command::Run(crate::cli::run::RunArgs {
+                command: RunCommand::GameTestServer(args),
+            }) => {
+                assert_eq!(args.filter.as_deref(), Some("sfm:*"));
+                let Some(RunGameTestServerCliCommand::Bisect(bisect)) = args.command else {
+                    panic!("expected game-test-server bisect command");
+                };
+                assert_eq!(
+                    bisect.target,
+                    "wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall"
+                );
+                assert_eq!(bisect.max_runs, Some(12));
+            }
+            command => panic!("expected game-test-server run command, got {command:?}"),
+        }
     }
 
     #[test]
@@ -287,6 +509,39 @@ mod tests {
                 assert_eq!(options.parallelism, Parallelism::Parallel { limit: 4 });
             }
             command => panic!("expected jar build command, got {command:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_jar_sources_filetree_layout() {
+        let cli = figue::from_slice::<Cli>(&[
+            "jar",
+            "sources",
+            "--branch",
+            "1.19.2",
+            "--layout",
+            "filetree",
+            "--parallel",
+            "2",
+        ])
+        .into_result()
+        .expect("jar sources filetree should parse")
+        .get_silent();
+        match cli.command {
+            Command::Jar(crate::cli::jar::JarArgs {
+                command: JarCommand::Sources(command),
+            }) => {
+                let options = command
+                    .into_options(BuildMode::Build)
+                    .expect("jar sources options should parse");
+                assert_eq!(options.build.branch.to_string(), "1.19.2");
+                assert_eq!(options.layout, SourceOutputLayout::Filetree);
+                assert_eq!(
+                    options.build.parallelism,
+                    Parallelism::Parallel { limit: 2 }
+                );
+            }
+            command => panic!("expected jar sources command, got {command:?}"),
         }
     }
 

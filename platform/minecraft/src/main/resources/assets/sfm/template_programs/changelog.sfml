@@ -13,6 +13,7 @@ NAME "Changelog"
 -- Fix falling anvil items spawning in corner, thanks @Qther #536
 -- Fix `/sfm config edit server` program cache invalidation #549
 -- Add configurable keymapping for opening the label gun GUI #554
+-- Fix label gun clear modifier tooltip
 
 ---- 4.33.0 ----
 -- Update to 26.1.2
