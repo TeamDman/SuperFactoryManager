@@ -13,6 +13,7 @@ mod jar_dir_show_cli;
 mod jar_list_cli;
 mod jar_plan_cli;
 mod jar_shared;
+mod jar_sources_cli;
 mod jar_update_clients_cli;
 mod jar_update_servers_cli;
 
@@ -30,5 +31,6 @@ pub use jar_dir_set_cli::*;
 pub use jar_dir_show_cli::*;
 pub use jar_list_cli::*;
 pub use jar_plan_cli::*;
+pub use jar_sources_cli::*;
 pub use jar_update_clients_cli::*;
 pub use jar_update_servers_cli::*;
