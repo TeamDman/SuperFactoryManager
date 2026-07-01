@@ -223,7 +223,7 @@ public class SFMClientRunHarness {
                     activeRequiredCount,
                     activeTotalCount
             );
-            Minecraft.getInstance().stop();
+            schedulePuppetExit("SFM client puppet found no required tests.");
             return;
         }
 
@@ -260,7 +260,7 @@ public class SFMClientRunHarness {
                     activeRequiredCount,
                     activeTotalCount
             );
-            Minecraft.getInstance().stop();
+            schedulePuppetExit("SFM client puppet tests failed.");
             return;
         }
 
@@ -278,10 +278,22 @@ public class SFMClientRunHarness {
                 passedRequired,
                 activeTotalCount
         );
+        schedulePuppetExit("SFM client puppet tests passed.");
+    }
+
+    private static void schedulePuppetExit(String resultMessage) {
         int keepOpenSeconds = keepOpenSeconds();
+        if (keepOpenSeconds < 0) {
+            keepOpen = true;
+            exitTicksRemaining = -1;
+            exitCountdownSecondAnnounced = -1;
+            sendClientChat(resultMessage + " Client will remain open.");
+            SFM.LOGGER.info("SFM_CLIENT_PUPPET_KEEP_OPEN");
+            return;
+        }
         exitTicksRemaining = keepOpenSeconds * 20;
         exitCountdownSecondAnnounced = -1;
-        sendClientChat("SFM client puppet tests passed. Run /sfm keep_open within "
+        sendClientChat(resultMessage + " Run /sfm keep_open within "
                        + keepOpenSeconds
                        + " seconds to keep this client open.");
         SFM.LOGGER.info(

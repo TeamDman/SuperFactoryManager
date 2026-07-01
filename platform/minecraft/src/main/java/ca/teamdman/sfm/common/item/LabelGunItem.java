@@ -285,7 +285,7 @@ public class LabelGunItem extends Item implements TooltipProvider {
             );
             consumer.accept(
                     LabelGunItem.LABEL_GUN_ITEM_TOOLTIP_CLEAR_REMINDER.getComponent(
-                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_PULL_MODIFIER_KEY),
+                            SFMKeyMappings.getKeyDisplay(SFMKeyMappings.LABEL_GUN_CLEAR_MODIFIER_KEY),
                             SFMKeyMappings.getKeyDisplay(options.keyUse)
                     ).withStyle(ChatFormatting.GRAY)
             );
