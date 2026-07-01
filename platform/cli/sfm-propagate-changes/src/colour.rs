@@ -1,11 +1,22 @@
 use color_eyre::owo_colors::Rgb;
 
 #[must_use]
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "Stable color hues are bounded to 0..=360 before converting to f32."
+)]
 pub fn stable_hue(input: &str) -> f32 {
     let hash = blake3::hash(input.as_bytes());
-    let hue_seed = u32::from_le_bytes(hash.as_bytes()[..4].try_into().expect("slice has 4 bytes"));
+    let Some(seed_bytes) = hash
+        .as_bytes()
+        .get(..4)
+        .and_then(|bytes| <[u8; 4]>::try_from(bytes).ok())
+    else {
+        return 0.0;
+    };
+    let hue_seed = u32::from_le_bytes(seed_bytes);
 
-    (hue_seed as f32 / u32::MAX as f32) * 360.0
+    (f64::from(hue_seed) / f64::from(u32::MAX) * 360.0) as f32
 }
 
 #[must_use]
