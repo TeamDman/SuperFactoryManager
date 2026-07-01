@@ -13,6 +13,7 @@ pub mod panic;
 pub mod paths;
 pub mod propagate;
 pub mod sfm_path;
+pub mod source_audit;
 pub mod state;
 pub mod terminal_output;
 pub mod worktree;
