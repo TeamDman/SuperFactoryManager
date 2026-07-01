@@ -33,9 +33,12 @@ use super::ParchmentData;
 use super::Repository;
 use super::Resolver;
 use super::RunKind;
+use super::RunOptions;
 use super::SourceBuildProvenance;
 use super::SourceBuildSystem;
 use super::TargetJarCompareReport;
+use super::apply_client_puppet_keep_open_property;
+use super::apply_game_test_filter_property;
 use super::artifact_lock_path;
 use super::artifact_portability_audit;
 use super::audit_artifact_lockfile;
@@ -49,19 +52,23 @@ use super::execute_targets_parallel;
 use super::execute_targets_parallel_with_cancellation;
 use super::extract_client_puppet_failure;
 use super::extract_client_puppet_pass_count;
+use super::extract_failed_gametest_names;
 use super::extract_quoted;
+use super::extract_sfm_game_test_names;
 use super::interpolate_properties;
 use super::is_excluded_source;
 use super::minecraft_library_jars_from_version_json;
 use super::normalize_manifest_bytes;
 use super::parchment_coordinate;
 use super::parse_maven_versions;
+use super::partition_game_test_candidates;
 use super::portable_cache_path;
 use super::prepare_client_automation_options;
 use super::prepare_existing_artifact_for_reuse;
 use super::replace_artifact_file;
 use super::resolve_loader_toolchain;
 use super::run_dependency_configurations;
+use super::run_max_launch_attempts;
 use super::rust_output_jar_path;
 use super::set_minecraft_option;
 use super::should_keep_split_minecraft_runtime_entry;
@@ -76,6 +83,7 @@ use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::WorktreePath;
 use crate::branch_targets::WorktreeTarget;
 use crate::cancellation::CancellationToken;
+use crate::jar_build::ClientPuppetKeepOpen;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
 use crate::jar_build::hash::ContentHash;
@@ -225,6 +233,157 @@ fn client_automation_options_disable_onboarding_and_focus_pause() {
 }
 
 #[test]
+fn game_test_run_filter_sets_selection_property_for_game_test_runners() {
+    let run_options = RunOptions {
+        game_test_filter: Some(" wither_aggro_* ".to_string()),
+        game_test_bisect: None,
+        ..RunOptions::default()
+    };
+    let mut server_properties = BTreeMap::new();
+    apply_game_test_filter_property(
+        &mut server_properties,
+        RunKind::GameTestServer,
+        &run_options,
+    );
+    assert_eq!(
+        server_properties
+            .get("sfm.gametestSelection")
+            .map(String::as_str),
+        Some("wither_aggro_*")
+    );
+
+    let mut puppet_properties = BTreeMap::new();
+    apply_game_test_filter_property(&mut puppet_properties, RunKind::ClientPuppet, &run_options);
+    assert_eq!(
+        puppet_properties
+            .get("sfm.gametestSelection")
+            .map(String::as_str),
+        Some("wither_aggro_*")
+    );
+
+    let mut client_properties = BTreeMap::new();
+    apply_game_test_filter_property(&mut client_properties, RunKind::Client, &run_options);
+    assert!(!client_properties.contains_key("sfm.gametestSelection"));
+
+    let mut blank_properties = BTreeMap::new();
+    apply_game_test_filter_property(
+        &mut blank_properties,
+        RunKind::GameTestServer,
+        &RunOptions {
+            game_test_filter: Some("  ".to_string()),
+            game_test_bisect: None,
+            ..RunOptions::default()
+        },
+    );
+    assert!(!blank_properties.contains_key("sfm.gametestSelection"));
+}
+
+#[test]
+fn client_puppet_keep_open_sets_seconds_property() {
+    let mut default_properties = BTreeMap::new();
+    apply_client_puppet_keep_open_property(
+        &mut default_properties,
+        RunKind::ClientPuppet,
+        &RunOptions::default(),
+    );
+    assert_eq!(
+        default_properties
+            .get("sfm.clientRun.keepOpenSeconds")
+            .map(String::as_str),
+        Some("25")
+    );
+
+    let mut forever_properties = BTreeMap::new();
+    apply_client_puppet_keep_open_property(
+        &mut forever_properties,
+        RunKind::ClientPuppet,
+        &RunOptions {
+            client_puppet_keep_open: ClientPuppetKeepOpen::Forever,
+            ..RunOptions::default()
+        },
+    );
+    assert_eq!(
+        forever_properties
+            .get("sfm.clientRun.keepOpenSeconds")
+            .map(String::as_str),
+        Some("-1")
+    );
+
+    let mut client_properties = BTreeMap::new();
+    apply_client_puppet_keep_open_property(
+        &mut client_properties,
+        RunKind::Client,
+        &RunOptions {
+            client_puppet_keep_open: ClientPuppetKeepOpen::Countdown { seconds: 300 },
+            ..RunOptions::default()
+        },
+    );
+    assert!(!client_properties.contains_key("sfm.clientRun.keepOpenSeconds"));
+}
+
+#[test]
+fn game_test_bisect_partitions_candidates_evenly() {
+    let candidates = ["a", "b", "c", "d", "e"]
+        .into_iter()
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        partition_game_test_candidates(&candidates, 2),
+        vec![
+            vec!["a".to_string(), "b".to_string(), "c".to_string()],
+            vec!["d".to_string(), "e".to_string()]
+        ]
+    );
+    assert_eq!(
+        partition_game_test_candidates(&candidates, 4),
+        vec![
+            vec!["a".to_string(), "b".to_string()],
+            vec!["c".to_string()],
+            vec!["d".to_string()],
+            vec!["e".to_string()]
+        ]
+    );
+}
+
+#[test]
+fn game_test_log_parsers_extract_selected_and_failed_names() {
+    let unfiltered_output = "\
+[12:00:00] [Server thread/INFO] [ca.teamdman.sfm/SFM]: Discovered SFM game test: move_1_stack
+[12:00:00] [Server thread/INFO] [ca.teamdman.sfm/SFM]: Generated SFM game test: wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall
+[12:00:01] [Server thread/INFO] [minecraft/GameTestServer]: 1 required tests failed :(
+[12:00:01] [Server thread/INFO] [minecraft/GameTestServer]: - wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall
+[12:00:01] [Server thread/INFO] [minecraft/GameTestServer]: ====================================
+";
+
+    assert_eq!(
+        extract_sfm_game_test_names(unfiltered_output),
+        vec![
+            "move_1_stack".to_string(),
+            "wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall".to_string()
+        ]
+    );
+    assert_eq!(
+        extract_failed_gametest_names(unfiltered_output),
+        vec!["wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall".to_string()]
+    );
+
+    let filtered_output = "\
+[12:00:00] [Server thread/INFO] [ca.teamdman.sfm/SFM]: Discovered SFM game test: move_1_stack
+[12:00:00] [Server thread/INFO] [ca.teamdman.sfm/SFM]: Generated SFM game test: wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall
+[12:00:00] [Server thread/INFO] [ca.teamdman.sfm/SFM]: Selected SFM game test: sfm:wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall
+[12:00:01] [Server thread/INFO] [minecraft/GameTestServer]: 1 required tests failed :(
+[12:00:01] [Server thread/INFO] [minecraft/GameTestServer]: - wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall
+[12:00:01] [Server thread/INFO] [minecraft/GameTestServer]: ====================================
+";
+
+    assert_eq!(
+        extract_sfm_game_test_names(filtered_output),
+        vec!["wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall".to_string()]
+    );
+}
+
+#[test]
 fn graphical_client_runs_use_relaxed_program_timing() {
     assert_eq!(RunKind::Client.game_test_max_program_run_millis(), "1000");
     assert_eq!(
@@ -240,6 +399,13 @@ fn graphical_client_runs_use_relaxed_program_timing() {
         "150"
     );
     assert_eq!(RunKind::Server.game_test_max_program_run_millis(), "150");
+}
+
+#[test]
+fn game_test_server_runs_keep_retry_attempts_for_bisect_consistency() {
+    assert_eq!(run_max_launch_attempts(RunKind::GameTestServer), 3);
+    assert_eq!(run_max_launch_attempts(RunKind::ClientPuppet), 1);
+    assert_eq!(run_max_launch_attempts(RunKind::Client), 1);
 }
 
 #[test]
