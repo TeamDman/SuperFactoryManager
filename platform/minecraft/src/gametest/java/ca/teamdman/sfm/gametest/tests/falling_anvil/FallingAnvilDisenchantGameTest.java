@@ -36,18 +36,19 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
 
-        return "3x4x3";
+        return "5x4x5";
     }
 
     @Override
     public void run(SFMGameTestHelper helper) {
 
         // Place blocks
+        placeBarrierRing(helper);
         placeObsidian(helper);
         placeAnvil(helper); // the anvil will naturally fall
 
         // Spawn items
-        Vec3 itemSpawnPos = helper.absoluteVec(new Vec3(1.5, 3.5, 1.5));
+        Vec3 itemSpawnPos = helper.absoluteVec(new Vec3(2.5, 3.5, 2.5));
         int bookCount = helper.getLevel().getRandom().nextIntBetweenInclusive(2, 256);
 
         spawnBookItemEntities(helper, itemSpawnPos, bookCount);
@@ -59,7 +60,19 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
 
     private static void placeAnvil(SFMGameTestHelper helper) {
 
-        helper.setBlock(new BlockPos(1, 4, 1), Blocks.ANVIL);
+        helper.setBlock(new BlockPos(2, 4, 2), Blocks.ANVIL);
+    }
+
+    private static void placeBarrierRing(SFMGameTestHelper helper) {
+
+        for (int x = 0; x <= 4; x++) {
+            for (int z = 0; z <= 4; z++) {
+                if (x == 0 || x == 4 || z == 0 || z == 4) {
+                    helper.setBlock(new BlockPos(x, 2, z), Blocks.BARRIER);
+                    helper.setBlock(new BlockPos(x, 3, z), Blocks.BARRIER);
+                }
+            }
+        }
     }
 
     private static void spawnEnchantedItem(
@@ -101,7 +114,7 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
             remaining -= toSpawn;
         }
 
-        BlockPos signPos = new BlockPos(1, 2, 0);
+        BlockPos signPos = new BlockPos(2, 2, 1);
         helper.setBlock(signPos, Blocks.ACACIA_WALL_SIGN);
         helper.setSignText(
                 signPos,
@@ -112,7 +125,7 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
 
     private static void placeObsidian(SFMGameTestHelper helper) {
 
-        helper.setBlock(new BlockPos(1, 2, 1), Blocks.OBSIDIAN);
+        helper.setBlock(new BlockPos(2, 2, 2), Blocks.OBSIDIAN);
     }
 
     private static void assertExpectedItemEntitiesFound(
@@ -125,7 +138,7 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
         AABB seekArea = new AABB(new BlockPos((int) itemSpawnPos.x(), (int) itemSpawnPos.y(), (int) itemSpawnPos.z()));
         helper
                 .getLevel()
-                .getEntitiesOfClass(ItemEntity.class, seekArea.inflate(3))
+                .getEntitiesOfClass(ItemEntity.class, seekArea.inflate(5))
                 .forEach(e -> foundItemStacks.add(e.getItem()));
 
         boolean foundDisenchantedAxe = false;
