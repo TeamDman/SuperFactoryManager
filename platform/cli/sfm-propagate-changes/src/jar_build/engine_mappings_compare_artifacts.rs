@@ -1176,7 +1176,7 @@ fn build_artifact_lockfile(
     });
 
     Ok(ArtifactLockfile {
-        schema_version: 1,
+        schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
         minecraft_version: plan.minecraft_version.to_string(),
         maven_cache_dir: portable_cache_path(plan, &plan.maven_cache_dir),
         allow_local_artifact_cache: plan.allow_local_artifact_cache,
@@ -1254,6 +1254,7 @@ fn migrate_locked_artifact(
             .source_build
             .or_else(|| locked.source_build.clone()),
         hash: actual_hash,
+        weak: locked.weak.clone(),
     })
 }
 
@@ -1292,6 +1293,7 @@ fn artifact_lock_entry_from_plan_artifact(
         source_git: artifact.provenance.source_git.clone(),
         source_build: artifact.provenance.source_build.clone(),
         hash: actual_hash,
+        weak: None,
     })
 }
 
@@ -1336,6 +1338,7 @@ fn artifact_lock_entry_from_cache_path(
         source_git: provenance.source_git,
         source_build: provenance.source_build,
         hash: actual_hash,
+        weak: None,
     })
 }
 
@@ -1375,6 +1378,10 @@ fn push_artifact_lock_entry(artifacts: &mut Vec<ArtifactLockEntry>, entry: Artif
         .iter()
         .position(|artifact| artifact.same_locked_artifact(&entry))
     {
+        let mut entry = entry;
+        if entry.weak.is_none() {
+            entry.weak.clone_from(&artifacts[existing].weak);
+        }
         artifacts[existing] = entry;
         return;
     }
@@ -1406,7 +1413,7 @@ fn read_optional_artifact_lockfile(
     }
     let content =
         fs::read_to_string(path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
-    let lockfile: ArtifactLockfile = facet_json::from_str(&content)
+    let lockfile = crate::toolchain_lockfile_schema::upgrade_to_latest(&content)
         .wrap_err_with(|| format!("Failed to parse {}", path.display()))?;
     if lockfile.minecraft_version != minecraft_version {
         eyre::bail!(
