@@ -8,11 +8,10 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.item.PrimedTnt;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -214,7 +213,7 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
             int explosionRadius = scenario.explosionType().explosionRadius();
             return new BlockPos(
                     explosionRadius,
-                    explosionRadius / 2,
+                    scenario.explosionType == ExplosionType.WITHER ? explosionRadius - 1 : explosionRadius / 2,
                     explosionRadius
             );
         }
@@ -258,20 +257,17 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
 
             BlockPos localPos = placeBlock(helper);
             helper.assertTrue(
-                    helper.getLevel().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING),
+                    helper.getLevel().getGameRules().get(GameRules.MOB_GRIEFING),
                     "mobGriefing must be enabled to run wither explosion scenario"
             );
 
-            Vec3 spawnVec = helper.absoluteVec(new Vec3(
+            Vec3 spawnVec = new Vec3(
                     localPos.getX() + 0.5,
-                    localPos.getY() + 2.5,
+                    localPos.getY() - 2.5,
                     localPos.getZ() + 0.5
-            ));
-            WitherBoss wither = EntityType.WITHER.create(helper.getLevel(), EntitySpawnReason.MOB_SUMMONED);
-            assert wither != null;
-            wither.moveOrInterpolateTo(spawnVec, 0, 0);
+            );
+            WitherBoss wither = helper.spawn(EntityType.WITHER, spawnVec);
             wither.makeInvulnerable(); // initialize explosion sequence
-            helper.getLevel().addFreshEntity(wither);
 
             helper.runAfterDelay(
                     250, () -> {
