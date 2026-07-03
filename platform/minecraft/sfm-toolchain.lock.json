@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "minecraft_version": "1.20",
   "maven_cache_dir": "$sfm-cache\\maven",
   "allow_local_artifact_cache": false,
@@ -90,7 +90,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:13fc8058e084e22e01c9fef08a61f4cb9cbb7d4f"
+      "hash": "blake3:13fc8058e084e22e01c9fef08a61f4cb9cbb7d4f",
+      "weak": null
     },
     {
       "coordinate": null,
@@ -102,7 +103,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:6d9a362cd23c7fcb04299779af7a1ad983932ef1"
+      "hash": "blake3:6d9a362cd23c7fcb04299779af7a1ad983932ef1",
+      "weak": null
     },
     {
       "coordinate": "com.electronwill.night-config:core:3.6.4",
@@ -114,7 +116,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:48fc6bae43e80bbaf9c7ee7cb627bf56bc1c5f52"
+      "hash": "blake3:48fc6bae43e80bbaf9c7ee7cb627bf56bc1c5f52",
+      "weak": null
     },
     {
       "coordinate": "com.electronwill.night-config:toml:3.6.4",
@@ -126,7 +129,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:0ecbb5e8d8d3f8cdc7a7ad4c4bfad3ae8366a166"
+      "hash": "blake3:0ecbb5e8d8d3f8cdc7a7ad4c4bfad3ae8366a166",
+      "weak": null
     },
     {
       "coordinate": "com.github.javaparser:javaparser-core:3.26.4",
@@ -138,7 +142,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:1055b7a25b9cf1274901059912a1b7d455197a9b"
+      "hash": "blake3:1055b7a25b9cf1274901059912a1b7d455197a9b",
+      "weak": null
     },
     {
       "coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
@@ -150,7 +155,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c"
+      "hash": "blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c",
+      "weak": null
     },
     {
       "coordinate": "com.google.code.findbugs:jsr305:3.0.2",
@@ -162,7 +168,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:bd3e148a3f405a3a5b7a217b401b494feb8acc81"
+      "hash": "blake3:bd3e148a3f405a3a5b7a217b401b494feb8acc81",
+      "weak": null
     },
     {
       "coordinate": "cpw.mods:bootstraplauncher:1.1.2",
@@ -174,7 +181,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:f8767a36e474ef7a5680b4b6c2805a7bbb26527a"
+      "hash": "blake3:f8767a36e474ef7a5680b4b6c2805a7bbb26527a",
+      "weak": null
     },
     {
       "coordinate": "cpw.mods:modlauncher:10.0.8",
@@ -186,7 +194,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:32ec81da98741f286c7e57a90717037d19226029"
+      "hash": "blake3:32ec81da98741f286c7e57a90717037d19226029",
+      "weak": null
     },
     {
       "coordinate": "cpw.mods:securejarhandler:2.1.6",
@@ -198,7 +207,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:ebd4b76192e0984f5a984fbd504b9482fe9f1c4c"
+      "hash": "blake3:ebd4b76192e0984f5a984fbd504b9482fe9f1c4c",
+      "weak": null
     },
     {
       "coordinate": "curse.maven:the-one-probe-245211:4579432",
@@ -210,7 +220,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:f910a6de3bd349abf4334145de85d801351b808a"
+      "hash": "blake3:f910a6de3bd349abf4334145de85d801351b808a",
+      "weak": null
     },
     {
       "coordinate": "de.oceanlabs.mcp:mcp_config:1.20-20230608.053357@zip",
@@ -222,7 +233,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:881ed184c9c9165d8e9d0c11ea99db90ea48e1a7"
+      "hash": "blake3:881ed184c9c9165d8e9d0c11ea99db90ea48e1a7",
+      "weak": null
     },
     {
       "coordinate": "mezz.jei:jei-1.20-forge:14.0.0.11",
@@ -234,7 +246,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:86b02bb817f9be06a09b3ab565c1cf3e0d0b20bb"
+      "hash": "blake3:86b02bb817f9be06a09b3ab565c1cf3e0d0b20bb",
+      "weak": null
     },
     {
       "coordinate": "net.jodah:typetools:0.8.3",
@@ -246,7 +259,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:0d2b581e50182fee0383175a7c77c28553674569"
+      "hash": "blake3:0d2b581e50182fee0383175a7c77c28553674569",
+      "weak": null
     },
     {
       "coordinate": "net.md-5:SpecialSource:1.11.0:shaded",
@@ -258,7 +272,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:f9134682aaae921bcef5a98a75f058145b0bf113"
+      "hash": "blake3:f9134682aaae921bcef5a98a75f058145b0bf113",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:DiffPatch:2.0.12:all",
@@ -270,7 +285,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:b7e77e00ae83be9b393940915132a021a603ae2a"
+      "hash": "blake3:b7e77e00ae83be9b393940915132a021a603ae2a",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:ForgeAutoRenamingTool:1.0.1:all",
@@ -282,7 +298,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:d74321bf38cbebc09fe4013b4ba326201418d907"
+      "hash": "blake3:d74321bf38cbebc09fe4013b4ba326201418d907",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:JarJarFileSystems:0.3.19",
@@ -294,7 +311,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:81bb636d6b4d5fcaeaba725f4fdd51295e3a3112"
+      "hash": "blake3:81bb636d6b4d5fcaeaba725f4fdd51295e3a3112",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:JarJarMetadata:0.3.19",
@@ -306,7 +324,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:a64653b218b8057450ab0e8974ed379dcdf38ffe"
+      "hash": "blake3:a64653b218b8057450ab0e8974ed379dcdf38ffe",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:JarJarSelector:0.3.19",
@@ -318,7 +337,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:71bf22496551965fd8f064f72c53299cc5a96a47"
+      "hash": "blake3:71bf22496551965fd8f064f72c53299cc5a96a47",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:accesstransformers:8.0.4",
@@ -330,7 +350,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:4585a5f8ed08b450b1d71f44676710c6d7e60fa0"
+      "hash": "blake3:4585a5f8ed08b450b1d71f44676710c6d7e60fa0",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:accesstransformers:8.0.4:fatjar",
@@ -342,7 +363,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:f4aa9ab16713d07df73ed4afc079f926a52803cf"
+      "hash": "blake3:f4aa9ab16713d07df73ed4afc079f926a52803cf",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:binarypatcher:1.1.1:fatjar",
@@ -354,7 +376,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:847606860e4e1c709c0185181d23f7ca4fa18c3e"
+      "hash": "blake3:847606860e4e1c709c0185181d23f7ca4fa18c3e",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:coremods:5.0.1",
@@ -366,7 +389,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:cb774ef499244a7780bce3d5aee4bff40cb80de0"
+      "hash": "blake3:cb774ef499244a7780bce3d5aee4bff40cb80de0",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:eventbus:6.0.3",
@@ -378,7 +402,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:88b5c0520c44078ebb8c1e23bf16a4be822c68e6"
+      "hash": "blake3:88b5c0520c44078ebb8c1e23bf16a4be822c68e6",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:fmlcore:1.20-46.0.10",
@@ -390,7 +415,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:04f62b0afa70d14ac2a7f18f5b3ef02defdfeed7"
+      "hash": "blake3:04f62b0afa70d14ac2a7f18f5b3ef02defdfeed7",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:fmlloader:1.20-46.0.10",
@@ -402,7 +428,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:b28181259d68452d5c3923dbc4478fc690303c82"
+      "hash": "blake3:b28181259d68452d5c3923dbc4478fc690303c82",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:forge:1.20-46.0.10:sources",
@@ -414,7 +441,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:fc18475268136d5f9d276a99574bd5d88ec6cf1d"
+      "hash": "blake3:fc18475268136d5f9d276a99574bd5d88ec6cf1d",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:forge:1.20-46.0.10:universal",
@@ -426,7 +454,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:faeb3364176b5481469942c0af4bffafbea55473"
+      "hash": "blake3:faeb3364176b5481469942c0af4bffafbea55473",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:forge:1.20-46.0.10:userdev",
@@ -438,7 +467,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:9b97fbd8d0dec6bb31f7e376f36d036a914f6bd9"
+      "hash": "blake3:9b97fbd8d0dec6bb31f7e376f36d036a914f6bd9",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:forgeflower:2.0.629.0",
@@ -450,7 +480,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:707672a6f639f006038e7c952df529b5e87f1e64"
+      "hash": "blake3:707672a6f639f006038e7c952df529b5e87f1e64",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:forgespi:7.0.0",
@@ -462,7 +493,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:fc49151ccff103db27ad130897910de06b892ce1"
+      "hash": "blake3:fc49151ccff103db27ad130897910de06b892ce1",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:installertools:1.2.0:fatjar",
@@ -474,7 +506,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:72fa2fcdf36990cfa09c9adf7d0ae8d36a31c6fc"
+      "hash": "blake3:72fa2fcdf36990cfa09c9adf7d0ae8d36a31c6fc",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:installertools:1.3.2:fatjar",
@@ -486,7 +519,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:8b0e6afdedf0c6aa696da2b93ff9914cbfca8eaf"
+      "hash": "blake3:8b0e6afdedf0c6aa696da2b93ff9914cbfca8eaf",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:javafmllanguage:1.20-46.0.10",
@@ -498,7 +532,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:cf9b20931e01287fff6d9cf86ef54d0ecbb07ab7"
+      "hash": "blake3:cf9b20931e01287fff6d9cf86ef54d0ecbb07ab7",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:lowcodelanguage:1.20-46.0.10",
@@ -510,7 +545,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:a34c7bc3cd44c3cb45a8676cf001a87a8d331861"
+      "hash": "blake3:a34c7bc3cd44c3cb45a8676cf001a87a8d331861",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:mclanguage:1.20-46.0.10",
@@ -522,7 +558,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:fcec5968ba975a891d43fc7342ec28e03095d02d"
+      "hash": "blake3:fcec5968ba975a891d43fc7342ec28e03095d02d",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:mergetool:1.1.5:api",
@@ -534,7 +571,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:1fa0441489798d8886d500b4217cac231f33c433"
+      "hash": "blake3:1fa0441489798d8886d500b4217cac231f33c433",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:mergetool:1.1.7:fatjar",
@@ -546,7 +584,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:6ff210a87a8f8766e53999196a69a3500275192b"
+      "hash": "blake3:6ff210a87a8f8766e53999196a69a3500275192b",
+      "weak": null
     },
     {
       "coordinate": "net.minecraftforge:unsafe:0.2.0",
@@ -558,7 +597,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:53cc83cfe5ad1e830ca024b142d85396fb06530c"
+      "hash": "blake3:53cc83cfe5ad1e830ca024b142d85396fb06530c",
+      "weak": null
     },
     {
       "coordinate": "net.minecrell:terminalconsoleappender:1.2.0",
@@ -570,7 +610,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:4d40de2defbf016c8f9d380575792d5d77e0be8e"
+      "hash": "blake3:4d40de2defbf016c8f9d380575792d5d77e0be8e",
+      "weak": null
     },
     {
       "coordinate": "org.abego.treelayout:org.abego.treelayout.core:1.0.3",
@@ -582,7 +623,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8"
+      "hash": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8",
+      "weak": null
     },
     {
       "coordinate": "org.antlr:ST4:4.3",
@@ -594,7 +636,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:596011ad08bfb7561047aef7a29e911ab058bf8f"
+      "hash": "blake3:596011ad08bfb7561047aef7a29e911ab058bf8f",
+      "weak": null
     },
     {
       "coordinate": "org.antlr:antlr-runtime:3.5.2",
@@ -606,7 +649,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:487347db20582bd5c774bdd4ca90f158428d0804"
+      "hash": "blake3:487347db20582bd5c774bdd4ca90f158428d0804",
+      "weak": null
     },
     {
       "coordinate": "org.antlr:antlr4-runtime:4.9.1",
@@ -618,7 +662,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:d7feebdd794d8bca83d142729ec0a8c141ccad95"
+      "hash": "blake3:d7feebdd794d8bca83d142729ec0a8c141ccad95",
+      "weak": null
     },
     {
       "coordinate": "org.antlr:antlr4:4.9.1",
@@ -630,7 +675,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:205027ffc02f2c0d7332957510c6d03e26d6fc59"
+      "hash": "blake3:205027ffc02f2c0d7332957510c6d03e26d6fc59",
+      "weak": null
     },
     {
       "coordinate": "org.apache.maven:maven-artifact:3.8.5",
@@ -642,7 +688,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:492cc125aaaeb811c3938dc741e5d215a77b593a"
+      "hash": "blake3:492cc125aaaeb811c3938dc741e5d215a77b593a",
+      "weak": null
     },
     {
       "coordinate": "org.apiguardian:apiguardian-api:1.1.2",
@@ -654,7 +701,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:441ed3e16cf38b69d79c7511a6f4422b12da102e"
+      "hash": "blake3:441ed3e16cf38b69d79c7511a6f4422b12da102e",
+      "weak": null
     },
     {
       "coordinate": "org.glassfish:javax.json:1.0.4",
@@ -666,7 +714,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:de00c6730d794bee5122234b5b101ce510ffc6be"
+      "hash": "blake3:de00c6730d794bee5122234b5b101ce510ffc6be",
+      "weak": null
     },
     {
       "coordinate": "org.jetbrains:annotations:24.0.1",
@@ -678,7 +727,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:9a3d2fae94bf334d4dc72f71112c47755d37f533"
+      "hash": "blake3:9a3d2fae94bf334d4dc72f71112c47755d37f533",
+      "weak": null
     },
     {
       "coordinate": "org.jline:jline-reader:3.12.1",
@@ -690,7 +740,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:52015aa763c5303696b4c512cfb155710276bdeb"
+      "hash": "blake3:52015aa763c5303696b4c512cfb155710276bdeb",
+      "weak": null
     },
     {
       "coordinate": "org.jline:jline-terminal:3.12.1",
@@ -702,7 +753,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:d6b248905e367f187ed6d41e7a22ba07a39d1a81"
+      "hash": "blake3:d6b248905e367f187ed6d41e7a22ba07a39d1a81",
+      "weak": null
     },
     {
       "coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1",
@@ -714,7 +766,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa"
+      "hash": "blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa",
+      "weak": null
     },
     {
       "coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
@@ -726,7 +779,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce"
+      "hash": "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce",
+      "weak": null
     },
     {
       "coordinate": "org.junit.platform:junit-platform-commons:1.8.1",
@@ -738,7 +792,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:43f785f96ceecfab14da65957cf6fa1a0cd26ee4"
+      "hash": "blake3:43f785f96ceecfab14da65957cf6fa1a0cd26ee4",
+      "weak": null
     },
     {
       "coordinate": "org.junit.platform:junit-platform-console-standalone:1.8.1",
@@ -750,7 +805,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:1b806456ca8a7a09bd65ef672af0b4344611fa3d"
+      "hash": "blake3:1b806456ca8a7a09bd65ef672af0b4344611fa3d",
+      "weak": null
     },
     {
       "coordinate": "org.junit.platform:junit-platform-engine:1.8.1",
@@ -762,7 +818,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:f98f7e2669f9f7661af6ca3d0dfdea913234168a"
+      "hash": "blake3:f98f7e2669f9f7661af6ca3d0dfdea913234168a",
+      "weak": null
     },
     {
       "coordinate": "org.openjdk.jmh:jmh-core:1.37",
@@ -774,7 +831,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15"
+      "hash": "blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15",
+      "weak": null
     },
     {
       "coordinate": "org.openjdk.jmh:jmh-generator-annprocess:1.37",
@@ -786,7 +844,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:74920027bb3f569af240fc283876568793baa2e8"
+      "hash": "blake3:74920027bb3f569af240fc283876568793baa2e8",
+      "weak": null
     },
     {
       "coordinate": "org.openjdk.jmh:jmh-generator-asm:1.37",
@@ -798,7 +857,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:7d990641e58ba333d6533e1575c625105f9114e4"
+      "hash": "blake3:7d990641e58ba333d6533e1575c625105f9114e4",
+      "weak": null
     },
     {
       "coordinate": "org.openjdk.jmh:jmh-generator-bytecode:1.37",
@@ -810,7 +870,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20"
+      "hash": "blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20",
+      "weak": null
     },
     {
       "coordinate": "org.openjdk.jmh:jmh-generator-reflection:1.37",
@@ -822,7 +883,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:080c98f2b44dc69f4112da9a89dca9762f309948"
+      "hash": "blake3:080c98f2b44dc69f4112da9a89dca9762f309948",
+      "weak": null
     },
     {
       "coordinate": "org.openjdk.nashorn:nashorn-core:15.3",
@@ -834,7 +896,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:806783cb808db3ece5325d74a884190030291c06"
+      "hash": "blake3:806783cb808db3ece5325d74a884190030291c06",
+      "weak": null
     },
     {
       "coordinate": "org.opentest4j:opentest4j:1.2.0",
@@ -846,7 +909,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:75de231b7d449ae3feb8ffafac8e8f7dc68d319b"
+      "hash": "blake3:75de231b7d449ae3feb8ffafac8e8f7dc68d319b",
+      "weak": null
     },
     {
       "coordinate": "org.ow2.asm:asm-analysis:9.5",
@@ -858,7 +922,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:74a8529bf90b32cdef97de947562f1d28798bd44"
+      "hash": "blake3:74a8529bf90b32cdef97de947562f1d28798bd44",
+      "weak": null
     },
     {
       "coordinate": "org.ow2.asm:asm-commons:9.5",
@@ -870,7 +935,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:19c89f1f40d3cc9d408a2b2076f904f178de48af"
+      "hash": "blake3:19c89f1f40d3cc9d408a2b2076f904f178de48af",
+      "weak": null
     },
     {
       "coordinate": "org.ow2.asm:asm-tree:9.5",
@@ -882,7 +948,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:e8af669fc7eaae63613912f79a9583026e8ad2de"
+      "hash": "blake3:e8af669fc7eaae63613912f79a9583026e8ad2de",
+      "weak": null
     },
     {
       "coordinate": "org.ow2.asm:asm-util:9.5",
@@ -894,7 +961,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:467583e601278692a3ba40819ad23212ae11d958"
+      "hash": "blake3:467583e601278692a3ba40819ad23212ae11d958",
+      "weak": null
     },
     {
       "coordinate": "org.ow2.asm:asm:9.5",
@@ -906,7 +974,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:56df078607b3ba0ab75201c1feb9da35880f96f5"
+      "hash": "blake3:56df078607b3ba0ab75201c1feb9da35880f96f5",
+      "weak": null
     },
     {
       "coordinate": "org.parchmentmc.data:parchment-1.20.1:2023.09.03@zip",
@@ -918,7 +987,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:7377c87b99143d62500e5344e99926985678cced"
+      "hash": "blake3:7377c87b99143d62500e5344e99926985678cced",
+      "weak": null
     },
     {
       "coordinate": "org.spongepowered:mixin:0.8.5",
@@ -930,7 +1000,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:b19939bbe896a860e0c6785ac6c7c1b5a547defd"
+      "hash": "blake3:b19939bbe896a860e0c6785ac6c7c1b5a547defd",
+      "weak": null
     },
     {
       "coordinate": "org.spongepowered:mixin:0.8.5:processor",
@@ -942,7 +1013,8 @@
       "source_relative_path": null,
       "source_git": null,
       "source_build": null,
-      "hash": "blake3:b4839b346ffef67432425608e4363435dd9acbc6"
+      "hash": "blake3:b4839b346ffef67432425608e4363435dd9acbc6",
+      "weak": null
     }
   ]
 }
