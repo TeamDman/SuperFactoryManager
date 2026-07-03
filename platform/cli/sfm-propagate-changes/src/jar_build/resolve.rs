@@ -196,7 +196,7 @@ impl Resolver {
             if cache_path.is_file() && !self.refresh {
                 let hash = ContentHash::from_path(&cache_path, ContentHashAlgorithm::Blake3)?;
                 let artifact =
-                    Self::cached_artifact_plan(&id, &coordinate, cache_path, &required_for, hash)?;
+                    self.cached_artifact_plan(&id, &coordinate, cache_path, &required_for, hash)?;
                 self.verify_locked_artifact(&coordinate, &artifact)?;
                 tracing::debug!(
                     coordinate = %coordinate,
@@ -315,13 +315,9 @@ impl Resolver {
             return Ok(None);
         };
 
-        let checkout_key = source_build_checkout_key(remote_url, &source_git.commit);
-        let checkout_dir = self
-            .cache_dir
-            .parent()
-            .unwrap_or(&self.cache_dir)
-            .join("source-builds")
-            .join(&checkout_key);
+        let (checkout_dir, portable_source_root) =
+            self.source_build_checkout_paths(remote_url, &source_git.commit, &source_git.root);
+        let _source_build_lock = acquire_artifact_path_lock(&checkout_dir)?;
         materialize_source_build(
             &self.cancellation_token,
             remote_url,
@@ -340,9 +336,6 @@ impl Resolver {
         }
         copy_file_to_path_checked_locked(&source_output, &cache_path, expected_hash)?;
         let hash = ContentHash::from_path(&cache_path, ContentHashAlgorithm::Blake3)?;
-        let portable_source_root = PathBuf::from("$sfm-cache")
-            .join("source-builds")
-            .join(checkout_key);
         let provenance = ArtifactProvenance {
             schema_version: 1,
             source: ArtifactSource::SourceBuild,
@@ -383,6 +376,27 @@ impl Resolver {
             "artifact materialized from source build"
         );
         Ok(Some(artifact))
+    }
+
+    fn source_build_checkout_paths(
+        &self,
+        remote_url: &str,
+        commit: &str,
+        locked_root: &Path,
+    ) -> (PathBuf, PathBuf) {
+        let common_cache_dir = self.cache_dir.parent().unwrap_or(&self.cache_dir);
+        if let Ok(relative) = locked_root.strip_prefix(Path::new("$sfm-cache")) {
+            return (common_cache_dir.join(relative), locked_root.to_path_buf());
+        }
+
+        let checkout_key = source_build_checkout_key(remote_url, commit);
+        let portable_source_root = PathBuf::from("$sfm-cache")
+            .join("source-builds")
+            .join(&checkout_key);
+        (
+            common_cache_dir.join("source-builds").join(checkout_key),
+            portable_source_root,
+        )
     }
 
     fn materializable_locked_artifact(
@@ -586,7 +600,7 @@ impl Resolver {
             }
             _ => ContentHash::from_path(cache_path, ContentHashAlgorithm::Blake3)?,
         };
-        let artifact = Self::cached_artifact_plan(
+        let artifact = self.cached_artifact_plan(
             id,
             coordinate,
             cache_path.to_path_buf(),
@@ -605,12 +619,13 @@ impl Resolver {
 
     fn locked_artifact_hash(&self, coordinate: &MavenCoordinate) -> Option<&ContentHash> {
         let coordinate_text = coordinate.to_string();
-        self.lockfile
+        let locked = self
+            .lockfile
             .as_ref()?
             .artifacts
             .iter()
-            .find(|entry| entry.coordinate.as_deref() == Some(coordinate_text.as_str()))
-            .map(|entry| &entry.hash)
+            .find(|entry| entry.coordinate.as_deref() == Some(coordinate_text.as_str()))?;
+        locked.weak.is_none().then_some(&locked.hash)
     }
 
     fn verify_locked_artifact(
@@ -647,36 +662,40 @@ impl Resolver {
             Some(actual_hash) if actual_hash.algorithm == locked.hash.algorithm => actual_hash,
             _ => ContentHash::from_path(&artifact.cache_path, locked.hash.algorithm)?,
         };
-        if actual_hash != locked.hash {
-            eyre::bail!(
-                "Artifact {} resolved with content hash {}, but sfm-toolchain.lock.json requires {}",
-                coordinate_text,
-                actual_hash,
-                locked.hash
-            );
-        }
+        super::validate_locked_artifact_content(&artifact.cache_path, locked, actual_hash)
+            .wrap_err_with(|| format!("Failed to validate locked artifact {coordinate_text}"))?;
         Ok(())
     }
 
     #[instrument(level = "debug", skip_all)]
     fn cached_artifact_plan(
+        &self,
         id: &ArtifactId,
         coordinate: &MavenCoordinate,
         cache_path: PathBuf,
         required_for: &ArtifactPurpose,
         hash: ContentHash,
     ) -> eyre::Result<ArtifactPlan> {
-        let provenance = read_artifact_provenance(&cache_path)?.unwrap_or_else(|| {
-            artifact_provenance(
-                ArtifactSource::ExistingSfmCacheUnknown,
-                Some(coordinate.to_string()),
-                None,
-                None,
-                None,
-                None,
-                hash,
-            )
-        });
+        let provenance = match read_artifact_provenance(&cache_path)? {
+            Some(provenance) if provenance.hash == hash => provenance,
+            _ => {
+                let provenance = self
+                    .locked_artifact_provenance(coordinate, hash)
+                    .unwrap_or_else(|| {
+                        artifact_provenance(
+                            ArtifactSource::ExistingSfmCacheUnknown,
+                            Some(coordinate.to_string()),
+                            None,
+                            None,
+                            None,
+                            None,
+                            hash,
+                        )
+                    });
+                write_artifact_provenance(&cache_path, &provenance)?;
+                provenance
+            }
+        };
         Ok(ArtifactPlan {
             id: id.clone(),
             coordinate: Some(coordinate.to_string()),
@@ -687,6 +706,29 @@ impl Resolver {
             downloaded: false,
             required_for: required_for.clone(),
             provenance,
+        })
+    }
+
+    fn locked_artifact_provenance(
+        &self,
+        coordinate: &MavenCoordinate,
+        hash: ContentHash,
+    ) -> Option<ArtifactProvenance> {
+        let coordinate_text = coordinate.to_string();
+        let locked = self.lockfile.as_ref()?.artifacts.iter().find(|entry| {
+            entry.coordinate.as_deref() == Some(coordinate_text.as_str()) && entry.hash == hash
+        })?;
+        Some(ArtifactProvenance {
+            schema_version: 1,
+            source: locked.source.clone(),
+            coordinate: locked.coordinate.clone().or(Some(coordinate_text)),
+            repository: locked.repository.clone(),
+            url: locked.url.clone(),
+            original_path: locked.original_path.clone(),
+            source_relative_path: locked.source_relative_path.clone(),
+            source_git: locked.source_git.clone(),
+            source_build: locked.source_build.clone(),
+            hash,
         })
     }
 
@@ -776,6 +818,9 @@ impl Resolver {
             .map(|(configuration, coordinate)| {
                 self.cancellation_token.bail_if_cancelled()?;
                 self.resolve_dependency(configuration, coordinate)
+                    .wrap_err_with(|| {
+                        format!("Failed to resolve dependency {configuration} {coordinate}")
+                    })
             })
             .collect::<Vec<eyre::Result<_>>>()
             .into_iter()

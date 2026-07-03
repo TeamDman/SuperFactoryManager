@@ -652,7 +652,7 @@ fn facet_json_roundtrips_artifact_lockfile_and_provenance() {
     assert_eq!(parsed_provenance.hash, provenance.hash);
 
     let lockfile = ArtifactLockfile {
-        schema_version: 1,
+        schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
         minecraft_version: "1.19.2".to_string(),
         maven_cache_dir: PathBuf::from("build/sfm-toolchain/maven"),
         allow_local_artifact_cache: false,
@@ -679,12 +679,134 @@ fn facet_json_roundtrips_artifact_lockfile_and_provenance() {
             source_git: None,
             source_build: None,
             hash: provenance.hash,
+            weak: None,
         }],
     };
     let json = facet_json::to_string_pretty(&lockfile).expect("lockfile should serialize");
     assert!(json.contains("remote-maven"));
-    let parsed: ArtifactLockfile = facet_json::from_str(&json).expect("lockfile should parse");
+    let parsed = crate::toolchain_lockfile_schema::upgrade_to_latest(&json)
+        .expect("lockfile should parse");
     assert_eq!(parsed.artifacts[0].source, ArtifactSource::RemoteMaven);
+}
+
+#[test]
+fn toolchain_lockfile_v1_upgrades_without_weak_artifacts() {
+        let json = r#"
+{
+    "schema_version": 1,
+    "minecraft_version": "1.19.2",
+    "maven_cache_dir": "build/sfm-toolchain/maven",
+    "allow_local_artifact_cache": false,
+    "repositories": [
+        {
+            "name": "Forge",
+            "url": "https://maven.minecraftforge.net"
+        }
+    ],
+    "dependencies": [],
+    "artifacts": [
+        {
+            "coordinate": "g:a:1",
+            "source": "remote-maven",
+            "repository": "Forge",
+            "url": "https://example.test/a.jar",
+            "cache_path": "a.jar",
+            "original_path": null,
+            "hash": "blake3:0123456789abcdef0123456789abcdef01234567"
+        }
+    ]
+}
+"#;
+
+        let lockfile = crate::toolchain_lockfile_schema::upgrade_to_latest(json)
+                .expect("v1 lockfile should upgrade");
+
+        assert_eq!(
+                lockfile.schema_version,
+                crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION
+        );
+        assert_eq!(lockfile.artifacts.len(), 1);
+        assert_eq!(lockfile.artifacts[0].weak, None);
+}
+
+#[test]
+fn toolchain_lockfile_v1_rejects_weak_artifacts() {
+        let json = r#"
+{
+    "schema_version": 1,
+    "minecraft_version": "1.19.2",
+    "maven_cache_dir": "build/sfm-toolchain/maven",
+    "allow_local_artifact_cache": false,
+    "repositories": [],
+    "dependencies": [],
+    "artifacts": [
+        {
+            "coordinate": "g:a:1",
+            "source": "remote-maven",
+            "repository": "Forge",
+            "url": "https://example.test/a.jar",
+            "cache_path": "a.jar",
+            "original_path": null,
+            "hash": "blake3:0123456789abcdef0123456789abcdef01234567",
+            "weak": {
+                "metadata_path": "META-INF/neoforge.mods.toml",
+                "mod_id": "example",
+                "version": "1.0.0"
+            }
+        }
+    ]
+}
+"#;
+
+        let error = crate::toolchain_lockfile_schema::upgrade_to_latest(json)
+                .expect_err("v1 lockfile with weak should fail");
+
+        assert!(
+                error.to_string().contains("schema_version 1")
+                        && error.to_string().contains("v2-only field `weak`")
+        );
+}
+
+#[test]
+fn toolchain_lockfile_v2_supports_weak_artifacts() {
+        let json = r#"
+{
+    "schema_version": 2,
+    "minecraft_version": "1.19.2",
+    "maven_cache_dir": "build/sfm-toolchain/maven",
+    "allow_local_artifact_cache": false,
+    "repositories": [],
+    "dependencies": [],
+    "artifacts": [
+        {
+            "coordinate": "g:a:1",
+            "source": "remote-maven",
+            "repository": "Forge",
+            "url": "https://example.test/a.jar",
+            "cache_path": "a.jar",
+            "original_path": null,
+            "hash": "blake3:0123456789abcdef0123456789abcdef01234567",
+            "weak": {
+                "metadata_path": "META-INF/neoforge.mods.toml",
+                "mod_id": "example",
+                "version": "1.0.0"
+            }
+        }
+    ]
+}
+"#;
+
+        let lockfile = crate::toolchain_lockfile_schema::upgrade_to_latest(json)
+                .expect("v2 lockfile should parse");
+        let weak = lockfile.artifacts[0]
+                .weak
+                .as_ref()
+                .expect("weak metadata should parse");
+
+        assert_eq!(lockfile.schema_version, 2);
+        assert_eq!(weak.metadata_path, PathBuf::from("META-INF/neoforge.mods.toml"));
+        assert_eq!(weak.mod_id, "example");
+        assert_eq!(weak.version, "1.0.0");
 }
 
 #[test]
@@ -730,7 +852,7 @@ fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
         dynamic_version: false,
     }];
     plan.lockfile = Some(ArtifactLockfile {
-        schema_version: 1,
+        schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
         minecraft_version: plan.minecraft_version.to_string(),
         maven_cache_dir: PathBuf::from("build/sfm-toolchain/maven"),
         allow_local_artifact_cache: false,
@@ -747,6 +869,7 @@ fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
             source_git: None,
             source_build: None,
             hash: legacy_sha1,
+            weak: None,
         }],
     });
 
@@ -1153,7 +1276,7 @@ fn resolver_materializes_locked_artifact_from_source_build() {
         output_path: output_path.clone(),
     };
     let lockfile = ArtifactLockfile {
-        schema_version: 1,
+        schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
         minecraft_version: "1.19.2".to_string(),
         maven_cache_dir: PathBuf::from("$sfm-cache").join("maven"),
         allow_local_artifact_cache: false,
@@ -1180,6 +1303,7 @@ fn resolver_materializes_locked_artifact_from_source_build() {
                 b"not-used-when-refreshing",
                 ContentHashAlgorithm::Blake3,
             ),
+            weak: None,
         }],
     };
 
@@ -1484,7 +1608,7 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         minecraft_libraries_dir: PathBuf::from("sfm-cache/minecraft-toolchain/minecraft/libraries"),
         lockfile_path: PathBuf::from("sfm-toolchain.lock.json"),
         lockfile: Some(ArtifactLockfile {
-            schema_version: 1,
+            schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
             minecraft_version: "1.19.2".to_string(),
             maven_cache_dir: PathBuf::from("build/sfm-toolchain/maven"),
             allow_local_artifact_cache: false,
@@ -1752,6 +1876,7 @@ fn artifact_audit_verifies_sfm_cache_lockfile_artifact() {
             source_git: None,
             source_build: None,
             hash: hash,
+            weak: None,
         }],
         Vec::new(),
     );
@@ -1818,6 +1943,7 @@ fn artifact_audit_warns_or_fails_for_explicit_sources() {
             source_git: None,
             source_build: None,
             hash: hash,
+            weak: None,
         }],
         Vec::new(),
     );
@@ -2280,7 +2406,7 @@ fn write_test_artifact_lockfile(
     dependencies: Vec<DependencyLockEntry>,
 ) {
     let lockfile = ArtifactLockfile {
-        schema_version: 1,
+        schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
         minecraft_version: "1.19.2".to_string(),
         maven_cache_dir: PathBuf::from("$sfm-cache").join("maven"),
         allow_local_artifact_cache: false,
