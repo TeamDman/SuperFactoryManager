@@ -60,6 +60,8 @@ pub enum Command {
     Cache(super::cache::CacheArgs),
     /// `CurseForge` release and file related commands
     Curseforge(super::curseforge::CurseforgeArgs),
+    /// Dependency lockfile maintenance commands
+    Dependency(super::dependency::DependencyArgs),
     /// JDK discovery and selection commands
     Jdk(super::jdk::JdkArgs),
     /// Modrinth release related commands
@@ -88,6 +90,7 @@ impl Command {
             Command::Home(args) => args.invoke(),
             Command::Cache(args) => args.invoke(),
             Command::Curseforge(args) => args.invoke(),
+            Command::Dependency(args) => args.invoke(cancellation_token),
             Command::Jdk(args) => args.invoke(),
             Command::Modrinth(args) => args.invoke(),
             Command::Jar(args) => args.invoke(cancellation_token),
