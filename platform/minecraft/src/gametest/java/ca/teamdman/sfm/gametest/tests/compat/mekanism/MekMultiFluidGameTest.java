@@ -38,11 +38,11 @@ public class MekMultiFluidGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        var a1Pos = new BlockPos(2, 1, 1);
-        var a2Pos = new BlockPos(1, 1, 0);
-        var b1Pos = new BlockPos(1, 1, 2);
-        var b2Pos = new BlockPos(0, 1, 1);
-        var managerPos = new BlockPos(1, 1, 1);
+        var a1Pos = new BlockPos(2, 2, 1);
+        var a2Pos = new BlockPos(1, 2, 0);
+        var b1Pos = new BlockPos(1, 2, 2);
+        var b2Pos = new BlockPos(0, 2, 1);
+        var managerPos = new BlockPos(1, 2, 1);
         helper.setBlock(a1Pos, MekanismBlocks.BASIC_FLUID_TANK.get());
         helper.setBlock(a2Pos, MekanismBlocks.BASIC_FLUID_TANK.get());
         helper.setBlock(b1Pos, MekanismBlocks.BASIC_FLUID_TANK.get());

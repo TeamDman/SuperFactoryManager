@@ -18,6 +18,6 @@ public class LeftRightTopManagerTest extends LeftRightManagerTest {
     @Override
     protected void setupChests(BlockPos offset) {
         super.setupChests(offset);
-        addChest("top", new BlockPos(1, 2, 0).offset(offset));
+        addChest("top", new BlockPos(1, 3, 0).offset(offset));
     }
 }

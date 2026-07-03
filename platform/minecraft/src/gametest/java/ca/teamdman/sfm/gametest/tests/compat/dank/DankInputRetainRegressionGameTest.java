@@ -40,9 +40,9 @@ public class DankInputRetainRegressionGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // Declare positions
-        BlockPos dankPos = new BlockPos(2, 1, 0);
-        BlockPos managerPos = new BlockPos(1, 1, 0);
-        BlockPos chestPos = new BlockPos(0, 1, 0);
+        BlockPos dankPos = new BlockPos(2, 2, 0);
+        BlockPos managerPos = new BlockPos(1, 2, 0);
+        BlockPos chestPos = new BlockPos(0, 2, 0);
 
         // Place dank storage dock
         helper.setBlock(dankPos, ModBlocks.dock);

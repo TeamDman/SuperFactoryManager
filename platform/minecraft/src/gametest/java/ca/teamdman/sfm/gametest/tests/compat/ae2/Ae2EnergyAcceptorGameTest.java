@@ -30,11 +30,11 @@ public class Ae2EnergyAcceptorGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // Layout along Z: [Z=4 Cube] [Z=3 Manager] [Z=2 Energy Acceptor] [Z=1 Dense Cell] [Z=0 Dense Cell]
-        var cubePos = new BlockPos(0, 1, 4);
-        var managerPos = new BlockPos(0, 1, 3);
-        var acceptorPos = new BlockPos(0, 1, 2);
-        var dense1Pos = new BlockPos(0, 1, 1);
-        var dense2Pos = new BlockPos(0, 1, 0);
+        var cubePos = new BlockPos(0, 2, 4);
+        var managerPos = new BlockPos(0, 2, 3);
+        var acceptorPos = new BlockPos(0, 2, 2);
+        var dense1Pos = new BlockPos(0, 2, 1);
+        var dense2Pos = new BlockPos(0, 2, 0);
 
         // Place blocks
         helper.setBlock(cubePos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());

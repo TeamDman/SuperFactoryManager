@@ -35,10 +35,10 @@ public class MoveUsingOrGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        helper.setBlock(new BlockPos(1, 1, 0), SFMBlocks.MANAGER.get());
-        BlockPos rightPos = new BlockPos(0, 1, 0);
+        helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.MANAGER.get());
+        BlockPos rightPos = new BlockPos(0, 2, 0);
         helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
-        BlockPos leftPos = new BlockPos(2, 1, 0);
+        BlockPos leftPos = new BlockPos(2, 2, 0);
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
 
         var rightChest = helper.getItemHandler(rightPos);
@@ -49,7 +49,7 @@ public class MoveUsingOrGameTest extends SFMGameTestDefinition {
         leftChest.insertItem(2, new ItemStack(Blocks.COBBLESTONE, 64), false);
         leftChest.insertItem(3, new ItemStack(Blocks.COBBLESTONE, 64), false);
 
-        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 1, 0), ManagerBlockEntity.class);
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         manager.setProgram("""
                                        EVERY 20 TICKS DO

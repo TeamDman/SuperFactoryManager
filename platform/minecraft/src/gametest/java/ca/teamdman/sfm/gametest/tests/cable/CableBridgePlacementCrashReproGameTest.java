@@ -28,20 +28,20 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        BlockPos managerPos = new BlockPos(1, 1, 3);
-        BlockPos sourcePos = new BlockPos(1, 1, 2);
-        BlockPos targetPos = new BlockPos(1, 1, 4);
+        BlockPos managerPos = new BlockPos(1, 2, 3);
+        BlockPos sourcePos = new BlockPos(1, 2, 2);
+        BlockPos targetPos = new BlockPos(1, 2, 4);
 
         BlockPos[] ringWithoutBridge = new BlockPos[]{
-                new BlockPos(2, 1, 2),
-                new BlockPos(3, 1, 2),
-                new BlockPos(4, 1, 2),
-                new BlockPos(4, 1, 4),
-                new BlockPos(3, 1, 4),
-                new BlockPos(2, 1, 4),
-                new BlockPos(2, 1, 3)
+                new BlockPos(2, 2, 2),
+                new BlockPos(3, 2, 2),
+                new BlockPos(4, 2, 2),
+                new BlockPos(4, 2, 4),
+                new BlockPos(3, 2, 4),
+                new BlockPos(2, 2, 4),
+                new BlockPos(2, 2, 3)
         };
-        BlockPos bridgePos = new BlockPos(4, 1, 3);
+        BlockPos bridgePos = new BlockPos(4, 2, 3);
 
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         helper.setBlock(sourcePos, SFMBlocks.TEST_BARREL.get());
@@ -81,7 +81,7 @@ public class CableBridgePlacementCrashReproGameTest extends SFMGameTestDefinitio
             );
 
             var networkBeforeBridge = CableNetworkManager
-                    .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(2, 1, 3)))
+                    .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(2, 2, 3)))
                     .get();
             helper.assertTrue(
                     networkBeforeBridge.getLevelCapabilityCache().size() > 0,

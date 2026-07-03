@@ -34,11 +34,11 @@ public class RegressionInputRetainBSharedExpandedGameTest extends SFMGameTestDef
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        BlockPos managerPos = new BlockPos(1, 1, 1);
-        BlockPos aPos = new BlockPos(2, 1, 1);
-        BlockPos b1Pos = new BlockPos(4, 1, 1);
-        BlockPos b2Pos = new BlockPos(5, 1, 1);
-        BlockPos b3Pos = new BlockPos(6, 1, 1);
+        BlockPos managerPos = new BlockPos(1, 2, 1);
+        BlockPos aPos = new BlockPos(2, 2, 1);
+        BlockPos b1Pos = new BlockPos(4, 2, 1);
+        BlockPos b2Pos = new BlockPos(5, 2, 1);
+        BlockPos b3Pos = new BlockPos(6, 2, 1);
 
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         helper.setBlock(aPos, SFMBlocks.TEST_BARREL.get());
@@ -47,7 +47,7 @@ public class RegressionInputRetainBSharedExpandedGameTest extends SFMGameTestDef
         helper.setBlock(b3Pos, SFMBlocks.TEST_BARREL.get());
 
         for (int i = 0; i < 6; i++) {
-            helper.setBlock(new BlockPos(1 + i, 1, 2), SFMBlocks.CABLE.get());
+            helper.setBlock(new BlockPos(1 + i, 2, 2), SFMBlocks.CABLE.get());
         }
 
         var a = helper.getItemHandler(aPos);

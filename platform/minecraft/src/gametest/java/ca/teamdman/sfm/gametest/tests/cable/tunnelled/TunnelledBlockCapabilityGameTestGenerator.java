@@ -101,7 +101,7 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
         public void run(SFMGameTestHelper helper) {
 
             // Place the tunnelled block at the center of the test area
-            BlockPos tunnelledPos = new BlockPos(1, 1, 1);
+            BlockPos tunnelledPos = new BlockPos(1, 2, 1);
             // Place the barrel adjacent in the specified direction
             BlockPos barrelPos = tunnelledPos.relative(direction);
 

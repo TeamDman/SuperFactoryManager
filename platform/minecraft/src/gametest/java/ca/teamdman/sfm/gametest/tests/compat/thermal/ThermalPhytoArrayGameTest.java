@@ -59,9 +59,9 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
         var phytoPositions = new ArrayList<BlockPos>();
         var resultChestPositions = new ArrayList<BlockPos>();
         var seedChestPositions = new ArrayList<BlockPos>();
-        var managerPos = new BlockPos(0, 1, 0);
-        var powerPos = new BlockPos(1, 1, 0);
-        var waterPos = new BlockPos(2, 1, 0);
+        var managerPos = new BlockPos(0, 2, 0);
+        var powerPos = new BlockPos(1, 2, 0);
+        var waterPos = new BlockPos(2, 2, 0);
 
         // set up power
         helper.setBlock(powerPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.get());
@@ -80,9 +80,9 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
         SFM.LOGGER.debug("Setting up phytos with block {}", phytoBlock);
         for (int x = 0; x < 25; x++) {
             for (int z = 1; z < 25; z++) {
-                BlockPos cableBelow = new BlockPos(x, 1, z);
+                BlockPos cableBelow = new BlockPos(x, 2, z);
                 helper.setBlock(cableBelow, SFMBlocks.CABLE.get());
-                BlockPos phytoPos = new BlockPos(x, 2, z);
+                BlockPos phytoPos = new BlockPos(x, 3, z);
                 helper.setBlock(phytoPos, phytoBlock.get().value());
                 phytoPositions.add(phytoPos);
                 var phyto = helper.getBlockEntity(phytoPos, MachineInsolatorTile.class);
@@ -94,7 +94,7 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
         // set up destinations
         SFM.LOGGER.debug("Setting up destinations");
         for (int i = 3; i <= 4; i++) {
-            BlockPos pos = new BlockPos(i, 1, 0);
+            BlockPos pos = new BlockPos(i, 2, 0);
             helper.setBlock(pos, SFMBlocks.TEST_BARREL.get());
             resultChestPositions.add(pos);
         }
@@ -102,7 +102,7 @@ public class ThermalPhytoArrayGameTest extends SFMGameTestDefinition {
         // set up ingredients
         //noinspection NonStrictComparisonCanBeEquality
         for (int i = 6; i <= 6; i++) {
-            BlockPos pos = new BlockPos(i, 1, 0);
+            BlockPos pos = new BlockPos(i, 2, 0);
             helper.setBlock(pos, SFMBlocks.TEST_BARREL.get());
             seedChestPositions.add(pos);
             var items = new Item[]{

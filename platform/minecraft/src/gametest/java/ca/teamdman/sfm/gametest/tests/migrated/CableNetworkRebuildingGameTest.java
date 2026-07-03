@@ -29,18 +29,18 @@ public class CableNetworkRebuildingGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        helper.setBlock(new BlockPos(0, 1, 0), SFMBlocks.CABLE.get());
-        helper.setBlock(new BlockPos(1, 1, 0), SFMBlocks.CABLE.get());
-        helper.setBlock(new BlockPos(2, 1, 0), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(0, 2, 0), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(2, 2, 0), SFMBlocks.CABLE.get());
         var network = CableNetworkManager.getOrRegisterNetworkFromCablePosition(
                 helper.getLevel(),
-                helper.absolutePos(new BlockPos(0, 1, 0))
+                helper.absolutePos(new BlockPos(0, 2, 0))
         );
         helper.assertTrue(network.isPresent(), "Network should be built");
         CableNetworkManager.unregisterNetworkForTestingPurposes(network.get());
         network = CableNetworkManager.getOrRegisterNetworkFromCablePosition(
                 helper.getLevel(),
-                helper.absolutePos(new BlockPos(0, 1, 0))
+                helper.absolutePos(new BlockPos(0, 2, 0))
         );
         helper.assertTrue(network.isPresent(), "Network should be rebuilt after clearing");
         helper.assertTrue(network.get().getCableCount() == 3, "Network rebuilding should discover 3 cables");

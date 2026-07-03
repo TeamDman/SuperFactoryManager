@@ -53,8 +53,8 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
     @Override
     public void run(SFMGameTestHelper helper) {
 
-        BlockPos barrelPos = new BlockPos(0, 1, 0);
-        BlockPos hopperPos = new BlockPos(MANAGER_COUNT + 1, 1, 0);
+        BlockPos barrelPos = new BlockPos(0, 2, 0);
+        BlockPos hopperPos = new BlockPos(MANAGER_COUNT + 1, 2, 0);
 
         helper.setBlock(barrelPos, SFMBlocks.TEST_BARREL.get());
         helper.setBlock(
@@ -161,7 +161,7 @@ public class TunnelledManagerHopperLongInterruptedGameTest extends SFMGameTestDe
 
     private static BlockPos managerPos(int index) {
 
-        return new BlockPos(index + 1, 1, 0);
+        return new BlockPos(index + 1, 2, 0);
     }
 
     private static int scheduleAction(

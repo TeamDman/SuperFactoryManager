@@ -139,7 +139,7 @@ public class WitherDestroyToughCableGameTestGenerator extends SFMGameTestGenerat
                 return;
             }
 
-            BlockPos targetBlockLocalPos = new BlockPos(0, 1, 0);
+            BlockPos targetBlockLocalPos = new BlockPos(0, 2, 0);
             helper.setBlock(targetBlockLocalPos, scenario.blockSupplier.get().defaultBlockState());
             scenario.facadeState.ifPresent(mimicBlockState -> helper.setFacade(targetBlockLocalPos, mimicBlockState));
 

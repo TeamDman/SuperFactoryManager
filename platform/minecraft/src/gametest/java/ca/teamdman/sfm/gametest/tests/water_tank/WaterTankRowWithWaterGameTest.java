@@ -50,33 +50,33 @@ public class WaterTankRowWithWaterGameTest extends SFMGameTestDefinition {
         // Build the containment structure with stone
         // Bottom layer (z=0): all stone
         for (int x = 0; x < 7; x++) {
-            helper.setBlock(new BlockPos(x, 1, 0), Blocks.STONE);
+            helper.setBlock(new BlockPos(x, 2, 0), Blocks.STONE);
         }
         // Top layer (z=4): all stone
         for (int x = 0; x < 7; x++) {
-            helper.setBlock(new BlockPos(x, 1, 4), Blocks.STONE);
+            helper.setBlock(new BlockPos(x, 2, 4), Blocks.STONE);
         }
         // Left wall (x=0): all stone
         for (int z = 0; z < 5; z++) {
-            helper.setBlock(new BlockPos(0, 1, z), Blocks.STONE);
+            helper.setBlock(new BlockPos(0, 2, z), Blocks.STONE);
         }
         // Right wall (x=6): all stone
         for (int z = 0; z < 5; z++) {
-            helper.setBlock(new BlockPos(6, 1, z), Blocks.STONE);
+            helper.setBlock(new BlockPos(6, 2, z), Blocks.STONE);
         }
 
         // Place water tanks in the middle row (z=2)
         BlockPos[] tankPositions = new BlockPos[5];
         for (int x = 1; x <= 5; x++) {
-            BlockPos pos = new BlockPos(x, 1, 2);
+            BlockPos pos = new BlockPos(x, 2, 2);
             tankPositions[x - 1] = pos;
             helper.setBlock(pos, SFMBlocks.WATER_TANK.get());
         }
 
         // Place water sources in the rows above and below the tanks (z=1 and z=3)
         for (int x = 1; x <= 5; x++) {
-            BlockPos above = new BlockPos(x, 1, 1);
-            BlockPos below = new BlockPos(x, 1, 3);
+            BlockPos above = new BlockPos(x, 2, 1);
+            BlockPos below = new BlockPos(x, 2, 3);
             helper.setBlock(above, Blocks.WATER);
             helper.setBlock(below, Blocks.WATER);
         }
@@ -101,7 +101,7 @@ public class WaterTankRowWithWaterGameTest extends SFMGameTestDefinition {
 
         // Remove water sources from the top row (z=1)
         for (int x = 1; x <= 5; x++) {
-            helper.setBlock(new BlockPos(x, 1, 1), Blocks.AIR);
+            helper.setBlock(new BlockPos(x, 2, 1), Blocks.AIR);
         }
 
         // Tanks should now be inactive (only 1 water source touching each)
@@ -121,7 +121,7 @@ public class WaterTankRowWithWaterGameTest extends SFMGameTestDefinition {
 
         // Restore water sources to the top row
         for (int x = 1; x <= 5; x++) {
-            helper.setBlock(new BlockPos(x, 1, 1), Blocks.WATER);
+            helper.setBlock(new BlockPos(x, 2, 1), Blocks.WATER);
         }
 
         // Tanks should be active again

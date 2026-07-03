@@ -14,8 +14,8 @@ public class LeftRightManagerTest extends SFMTestBuilder {
     }
 
     protected void setupChests(BlockPos offset) {
-        addChest("left", new BlockPos(2, 1, 0).offset(offset));
-        addChest("right", new BlockPos(0, 1, 0).offset(offset));
+        addChest("left", new BlockPos(2, 2, 0).offset(offset));
+        addChest("right", new BlockPos(0, 2, 0).offset(offset));
     }
 }
 

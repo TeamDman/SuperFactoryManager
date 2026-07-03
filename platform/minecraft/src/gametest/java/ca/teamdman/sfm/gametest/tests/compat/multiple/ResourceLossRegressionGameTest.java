@@ -47,10 +47,10 @@ public class ResourceLossRegressionGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        var managerPos = new BlockPos(1, 1, 1);
+        var managerPos = new BlockPos(1, 2, 1);
         var buttonPos = managerPos.offset(Direction.NORTH.getNormal());
-        var leftPos = new BlockPos(2, 1, 1);
-        var rightPos = new BlockPos(0, 1, 1);
+        var leftPos = new BlockPos(2, 2, 1);
+        var rightPos = new BlockPos(0, 2, 1);
 
         // place and fill the chests
         helper.setBlock(leftPos, MekanismBlocks.CREATIVE_BIN.getBlock());

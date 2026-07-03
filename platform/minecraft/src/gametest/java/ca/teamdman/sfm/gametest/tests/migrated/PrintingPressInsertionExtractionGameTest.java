@@ -36,7 +36,7 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        var pos = new BlockPos(0, 1, 0);
+        var pos = new BlockPos(0, 2, 0);
         helper.setBlock(pos, SFMBlocks.PRINTING_PRESS.get());
         var printingPress = helper.getBlockEntity(pos, PrintingPressBlockEntity.class);
         var player = helper.makeMockPlayer(GameType.SURVIVAL);

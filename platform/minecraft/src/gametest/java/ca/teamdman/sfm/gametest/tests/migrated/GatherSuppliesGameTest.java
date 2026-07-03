@@ -73,7 +73,7 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
         for (int i = 0; i < 24; i++) {
             for (int j = 3; j < 25; j++) {
                 for (int k = 0; k < 3; k++) {
-                    BlockPos pos = new BlockPos(i, k + 1, j);
+                    BlockPos pos = new BlockPos(i, k + 2, j);
                     if (j == 3) {
                         if (k == 0) {
                             helper.setBlock(pos, SFMBlocks.CABLE.get());
@@ -97,15 +97,15 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
         }
 
         // add the crafting station
-        helper.setBlock(new BlockPos(0, 1, 1), Blocks.CRAFTING_TABLE);
-        helper.setBlock(new BlockPos(0, 1, 0), SFMBlocks.TEST_BARREL.get());
-        helper.setBlock(new BlockPos(1, 1, 0), SFMBlocks.CABLE.get());
-        helper.setBlock(new BlockPos(1, 1, 1), SFMBlocks.CABLE.get());
-        helper.setBlock(new BlockPos(1, 1, 2), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(0, 2, 1), Blocks.CRAFTING_TABLE);
+        helper.setBlock(new BlockPos(0, 2, 0), SFMBlocks.TEST_BARREL.get());
+        helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(1, 2, 1), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(1, 2, 2), SFMBlocks.CABLE.get());
 
         // add the manager
-        helper.setBlock(new BlockPos(2, 1, 0), SFMBlocks.MANAGER.get());
-        var manager = helper.getBlockEntity(new BlockPos(2, 1, 0), ManagerBlockEntity.class);
+        helper.setBlock(new BlockPos(2, 2, 0), SFMBlocks.MANAGER.get());
+        var manager = helper.getBlockEntity(new BlockPos(2, 2, 0), ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
 
         // create the program
@@ -202,7 +202,7 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
         // set the labels
         LabelPositionHolder.empty()
                 .addAll("storage", storage.stream().map(helper::absolutePos).toList())
-                .add("chest", helper.absolutePos(new BlockPos(0, 1, 0)))
+                .add("chest", helper.absolutePos(new BlockPos(0, 2, 0)))
                 .save(manager.getDisk());
 
         // load the program
@@ -210,7 +210,7 @@ public class GatherSuppliesGameTest extends SFMGameTestDefinition {
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // the inventory should be stocked with a stack of each item
-            BarrelBlockEntity barrel = helper.getBlockEntity(new BlockPos(0, 1, 0), BarrelBlockEntity.class);
+            BarrelBlockEntity barrel = helper.getBlockEntity(new BlockPos(0, 2, 0), BarrelBlockEntity.class);
             for (Item item : items) {
                 for (int slot = 0; slot < barrel.getContainerSize(); slot++) {
                     ItemStack stack = barrel.getItem(slot);

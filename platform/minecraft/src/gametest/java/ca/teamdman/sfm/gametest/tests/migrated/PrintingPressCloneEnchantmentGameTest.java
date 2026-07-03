@@ -47,11 +47,11 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
     @Override
     public void run(SFMGameTestHelper helper) {
 
-        var printingPos = new BlockPos(1, 1, 1);
-        var pistonPos = new BlockPos(1, 3, 1);
-        var woodPos = new BlockPos(0, 3, 1);
-        var buttonPos = new BlockPos(0, 3, 0);
-        var chestPos = new BlockPos(0, 1, 1);
+        var printingPos = new BlockPos(1, 2, 1);
+        var pistonPos = new BlockPos(1, 4, 1);
+        var woodPos = new BlockPos(0, 4, 1);
+        var buttonPos = new BlockPos(0, 4, 0);
+        var chestPos = new BlockPos(0, 2, 1);
 
         helper.setBlock(printingPos, SFMBlocks.PRINTING_PRESS.get());
         helper.setBlock(pistonPos, Blocks.PISTON.defaultBlockState().setValue(DirectionalBlock.FACING, Direction.DOWN));

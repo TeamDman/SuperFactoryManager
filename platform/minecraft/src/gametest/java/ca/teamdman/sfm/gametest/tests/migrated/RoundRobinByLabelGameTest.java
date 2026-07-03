@@ -37,15 +37,15 @@ public class RoundRobinByLabelGameTest extends SFMGameTestDefinition {
     public void run(SFMGameTestHelper helper) {
         for (int x = 0; x < 3; x++) {
             for (int z = 0; z < 3; z++) {
-                helper.setBlock(x, 0, z, SFMBlocks.CABLE.get());
+                helper.setBlock(x, 1, z, SFMBlocks.CABLE.get());
             }
         }
-        BlockPos managerPos = new BlockPos(0, 1, 2);
-        BlockPos sourcePos = new BlockPos(2, 1, 0);
-        BlockPos a1Pos = new BlockPos(0, 1, 0);
-        BlockPos a2Pos = new BlockPos(0, 1, 1);
-        BlockPos b1Pos = new BlockPos(1, 1, 2);
-        BlockPos b2Pos = new BlockPos(2, 1, 2);
+        BlockPos managerPos = new BlockPos(0, 2, 2);
+        BlockPos sourcePos = new BlockPos(2, 2, 0);
+        BlockPos a1Pos = new BlockPos(0, 2, 0);
+        BlockPos a2Pos = new BlockPos(0, 2, 1);
+        BlockPos b1Pos = new BlockPos(1, 2, 2);
+        BlockPos b2Pos = new BlockPos(2, 2, 2);
 
         // set up inventories
         helper.setBlock(sourcePos, SFMBlocks.TEST_BARREL.get());

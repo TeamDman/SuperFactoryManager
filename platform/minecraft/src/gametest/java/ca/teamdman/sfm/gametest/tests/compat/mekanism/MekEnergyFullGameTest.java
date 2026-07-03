@@ -38,9 +38,9 @@ public class MekEnergyFullGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // designate positions
-        var leftPos = new BlockPos(2, 1, 0);
-        var rightPos = new BlockPos(0, 1, 0);
-        var managerPos = new BlockPos(1, 1, 0);
+        var leftPos = new BlockPos(2, 2, 0);
+        var rightPos = new BlockPos(0, 2, 0);
+        var managerPos = new BlockPos(1, 2, 0);
 
         // set up the world
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.get());

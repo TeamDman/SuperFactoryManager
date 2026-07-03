@@ -40,22 +40,22 @@ public class RegressionCrashTypeMixingGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
         // fill in the blocks needed for the test
-        BlockPos managerPos = new BlockPos(1, 1, 1);
+        BlockPos managerPos = new BlockPos(1, 2, 1);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
 
-        BlockPos left = new BlockPos(2, 1, 1);
+        BlockPos left = new BlockPos(2, 2, 1);
         helper.setBlock(left, SFMBlocks.TEST_BARREL.get());
         // add sticks to the chest
         Container chest = helper.getBlockEntity(left, TestBarrelBlockEntity.class);
         chest.setItem(0, new ItemStack(Items.STICK, 64));
 
-        BlockPos right = new BlockPos(0, 1, 1);
+        BlockPos right = new BlockPos(0, 2, 1);
         helper.setBlock(right, SFMBlocks.TEST_BARREL.get());
 
-        BlockPos front = new BlockPos(1, 1, 2);
+        BlockPos front = new BlockPos(1, 2, 2);
         helper.setBlock(front, Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, 3));
 
-        BlockPos back = new BlockPos(1, 1, 0);
+        BlockPos back = new BlockPos(1, 2, 0);
         helper.setBlock(back, Blocks.CAULDRON);
 
         ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);

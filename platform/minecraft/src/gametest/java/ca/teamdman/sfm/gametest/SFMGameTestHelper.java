@@ -43,11 +43,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.ItemLike;
-import net.minecraft.world.level.block.Mirror;
-import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -331,10 +328,28 @@ public class SFMGameTestHelper extends GameTestHelper {
     @Override
     public BlockPos relativePos(BlockPos pPos) {
 
-        BlockPos blockpos = this.testInfo.getTestOrigin();
-        Rotation rotation = this.testInfo.getRotation(); //.getRotated(Rotation.CLOCKWISE_180); // causes problems idk
-        BlockPos blockpos1 = StructureTemplate.transform(pPos, Mirror.NONE, rotation, blockpos);
-        return blockpos1.subtract(blockpos);
+        return super.relativePos(pPos).above();
+    }
+
+    @Override
+    @MCVersionDependentBehaviour
+    public BlockPos absolutePos(BlockPos relativePos) {
+
+        return super.absolutePos(relativePos.below());
+    }
+
+    @Override
+    @MCVersionDependentBehaviour
+    public Vec3 absoluteVec(Vec3 relativeVec) {
+
+        return super.absoluteVec(relativeVec.subtract(0.0D, 1.0D, 0.0D));
+    }
+
+    @Override
+    @MCVersionDependentBehaviour
+    public Vec3 relativeVec(Vec3 absoluteVec) {
+
+        return super.relativeVec(absoluteVec).add(0.0D, 1.0D, 0.0D);
     }
 
     public void setFacade(

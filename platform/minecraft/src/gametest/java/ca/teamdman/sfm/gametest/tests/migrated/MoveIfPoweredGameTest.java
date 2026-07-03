@@ -33,7 +33,7 @@ public class MoveIfPoweredGameTest extends SFMGameTestDefinition {
 
     @Override
     public void run(SFMGameTestHelper helper) {
-        BlockPos managerPos = new BlockPos(1, 1, 1);
+        BlockPos managerPos = new BlockPos(1, 2, 1);
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         BlockPos leftPos = managerPos.east();
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
