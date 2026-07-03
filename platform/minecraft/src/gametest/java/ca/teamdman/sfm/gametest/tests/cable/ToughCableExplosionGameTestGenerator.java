@@ -213,7 +213,7 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
             int explosionRadius = scenario.explosionType().explosionRadius();
             return new BlockPos(
                     explosionRadius,
-                    explosionRadius / 2,
+                    scenario.explosionType == ExplosionType.WITHER ? explosionRadius - 1 : explosionRadius / 2,
                     explosionRadius
             );
         }
@@ -261,16 +261,13 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
                     "mobGriefing must be enabled to run wither explosion scenario"
             );
 
-            Vec3 spawnVec = helper.absoluteVec(new Vec3(
+            Vec3 spawnVec = new Vec3(
                     localPos.getX() + 0.5,
-                    localPos.getY() + 2.5,
+                    localPos.getY() - 2.5,
                     localPos.getZ() + 0.5
-            ));
-            WitherBoss wither = EntityType.WITHER.create(helper.getLevel());
-            assert wither != null;
-            wither.moveTo(spawnVec.x, spawnVec.y, spawnVec.z, 0, 0);
+            );
+            WitherBoss wither = helper.spawn(EntityType.WITHER, spawnVec);
             wither.makeInvulnerable(); // initialize explosion sequence
-            helper.getLevel().addFreshEntity(wither);
 
             helper.runAfterDelay(
                     250, () -> {
