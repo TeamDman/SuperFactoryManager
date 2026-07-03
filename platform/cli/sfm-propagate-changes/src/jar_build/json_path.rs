@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 #[derive(Clone, Debug, Facet)]
 #[facet(transparent)]
-pub(super) struct JsonPath(String);
+pub(crate) struct JsonPath(String);
 
 impl TryFrom<JsonPath> for PathBuf {
     type Error = String;
@@ -26,7 +26,7 @@ impl TryFrom<&PathBuf> for JsonPath {
 
 #[derive(Clone, Debug, Facet)]
 #[facet(transparent)]
-pub(super) struct JsonOptionalPath(Option<String>);
+pub(crate) struct JsonOptionalPath(Option<String>);
 
 impl TryFrom<JsonOptionalPath> for Option<PathBuf> {
     type Error = String;
