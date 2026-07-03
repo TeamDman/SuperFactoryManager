@@ -2,6 +2,7 @@ pub mod cache;
 mod cli;
 pub mod client;
 pub mod curseforge;
+pub mod dependency;
 pub mod git;
 pub mod github;
 pub mod global_args;

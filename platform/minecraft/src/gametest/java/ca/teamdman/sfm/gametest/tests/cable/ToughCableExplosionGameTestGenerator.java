@@ -12,6 +12,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.item.PrimedTnt;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -222,7 +223,10 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
 
             BlockPos localPos = getPlacementPos();
             helper.setBlock(localPos, scenario.blockSupplier.get().defaultBlockState());
-            verifyResult(helper, localPos, "Should place successfully", true);
+            helper.assertTrue(
+                    helper.getBlockState(localPos).is(scenario.blockSupplier.get()),
+                    "Scenario '" + scenario.name + "' failed to place test block"
+            );
             scenario.facadeState.ifPresent(mimicBlockState -> helper.setFacade(localPos, mimicBlockState));
             return localPos;
         }
@@ -253,6 +257,10 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
             }
 
             BlockPos localPos = placeBlock(helper);
+            helper.assertTrue(
+                    helper.getLevel().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING),
+                    "mobGriefing must be enabled to run wither explosion scenario"
+            );
 
             Vec3 spawnVec = helper.absoluteVec(new Vec3(
                     localPos.getX() + 0.5,
