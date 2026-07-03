@@ -5,6 +5,7 @@ use super::ArtifactPurpose;
 use super::BuildMode;
 use super::BuildOptions;
 use super::CompareOptions;
+use super::DependencyAddOptions;
 use super::RunKind;
 use super::RunOptions;
 use super::RunTestAction;
@@ -30,6 +31,7 @@ use crate::branch_targets::BranchName;
 use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::select_required_worktree_targets;
+use crate::branch_targets::select_single_worktree_target;
 use crate::cancellation::CancellationToken;
 use crate::colour::stable_color;
 use crate::paths::CACHE_DIR;
@@ -1310,6 +1312,142 @@ pub(crate) fn invoke_artifact_audit(
     finish_artifact_audit_summary(total, &reports, &failures)
 }
 
+#[tracing::instrument(
+    level = "info",
+    skip_all,
+    fields(
+        branch = %options.branch,
+        coordinate = %options.coordinate,
+        weak_mod_metadata = options.weak_mod_metadata,
+    )
+)]
+pub(crate) fn invoke_dependency_add(
+    options: &DependencyAddOptions,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
+    let target = select_single_worktree_target(&options.branch)?;
+    let worktree_path = target.worktree_path.as_path().to_path_buf();
+    let minecraft_dir = worktree_path.join("platform").join("minecraft");
+    let properties_path = minecraft_dir.join("gradle.properties");
+    let properties = read_properties(&properties_path)?;
+    let minecraft_version = required_property(&properties, "minecraft_version")?;
+    let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
+    let common_cache_dir = common_toolchain_cache_dir();
+    let mut lockfile = read_optional_artifact_lockfile(&lockfile_path, minecraft_version)?
+        .ok_or_else(|| eyre::eyre!("Artifact lockfile is missing: {}", lockfile_path.display()))?;
+
+    let coordinate = MavenCoordinate::parse(&options.coordinate)?;
+    let coordinate_text = coordinate.to_string();
+    let Some(artifact_index) = lockfile
+        .artifacts
+        .iter()
+        .position(|artifact| artifact.coordinate.as_deref() == Some(coordinate_text.as_str()))
+    else {
+        eyre::bail!(
+            "Artifact {} is not present in {}",
+            coordinate_text,
+            lockfile_path.display()
+        );
+    };
+
+    let artifact_path = current_locked_artifact_path(
+        &lockfile.artifacts[artifact_index],
+        &minecraft_dir,
+        &common_cache_dir,
+    )?;
+    let hash = ContentHash::from_path(&artifact_path, ContentHashAlgorithm::Blake3)?;
+    let weak = if options.weak_mod_metadata {
+        Some(weak_mod_metadata_from_artifact(&artifact_path, options)?)
+    } else {
+        None
+    };
+
+    let artifact = &mut lockfile.artifacts[artifact_index];
+    let old_hash = artifact.hash;
+    artifact.hash = hash;
+    artifact.weak = weak;
+    let weak = artifact.weak.is_some();
+
+    fs::write(&lockfile_path, facet_json::to_string_pretty(&lockfile)?)
+        .wrap_err_with(|| format!("Failed to write {}", lockfile_path.display()))?;
+    tracing::info!(
+        branch = %target.branch,
+        coordinate = %coordinate_text,
+        artifact = %artifact_path.display(),
+        old_hash = %old_hash,
+        new_hash = %hash,
+        weak,
+        "dependency lock entry updated"
+    );
+    Ok(())
+}
+
+fn current_locked_artifact_path(
+    artifact: &ArtifactLockEntry,
+    minecraft_dir: &Path,
+    common_cache_dir: &Path,
+) -> eyre::Result<PathBuf> {
+    let cache_path =
+        resolve_locked_artifact_path(&artifact.cache_path, minecraft_dir, common_cache_dir);
+    if cache_path.is_file() {
+        return Ok(cache_path);
+    }
+    if let (Some(source_git), Some(source_build)) = (&artifact.source_git, &artifact.source_build) {
+        let source_root =
+            resolve_locked_artifact_path(&source_git.root, minecraft_dir, common_cache_dir);
+        let source_output = source_root.join(&source_build.output_path);
+        if source_output.is_file() {
+            return Ok(source_output);
+        }
+    }
+    eyre::bail!(
+        "Locked artifact {} is missing and no source-build output is available",
+        artifact_label(artifact)
+    )
+}
+
+fn weak_mod_metadata_from_artifact(
+    artifact_path: &Path,
+    options: &DependencyAddOptions,
+) -> eyre::Result<WeakArtifactValidation> {
+    let metadata_path = match &options.metadata_path {
+        Some(path) => path.clone(),
+        None => detect_mod_metadata_path(artifact_path)?,
+    };
+    let metadata = read_zip_text_entry(artifact_path, &metadata_path)?;
+    let mod_id = options
+        .mod_id
+        .clone()
+        .or_else(|| metadata_assignment(&metadata, "modId"))
+        .ok_or_else(|| eyre::eyre!("{} has no modId assignment", metadata_path.display()))?;
+    let version = options
+        .version
+        .clone()
+        .or_else(|| metadata_assignment(&metadata, "version"))
+        .ok_or_else(|| eyre::eyre!("{} has no version assignment", metadata_path.display()))?;
+    let weak = WeakArtifactValidation {
+        metadata_path,
+        mod_id,
+        version,
+    };
+    validate_weak_mod_metadata(artifact_path, &weak)?;
+    Ok(weak)
+}
+
+fn detect_mod_metadata_path(artifact_path: &Path) -> eyre::Result<PathBuf> {
+    for metadata_path in ["META-INF/mods.toml", "META-INF/neoforge.mods.toml"] {
+        let path = PathBuf::from(metadata_path);
+        if read_zip_text_entry(artifact_path, &path).is_ok() {
+            return Ok(path);
+        }
+    }
+    eyre::bail!(
+        "Could not find META-INF/mods.toml or META-INF/neoforge.mods.toml in {}",
+        artifact_path.display()
+    )
+}
+
 fn execute_artifact_audit_targets(
     options: &ArtifactAuditOptions,
     targets: Vec<WorktreeTarget>,
@@ -1586,7 +1724,13 @@ fn audit_locked_artifact(
 
     let cache_path =
         resolve_locked_artifact_path(&artifact.cache_path, minecraft_dir, common_cache_dir);
-    if !cache_path.is_file() {
+    let artifact_path = if cache_path.is_file() {
+        cache_path
+    } else if let Ok(source_output) =
+        current_locked_artifact_path(artifact, minecraft_dir, common_cache_dir)
+    {
+        source_output
+    } else {
         report.push_error(
             ArtifactAuditIssueKind::ArtifactMissing,
             artifact.coordinate.clone(),
@@ -1595,29 +1739,47 @@ fn audit_locked_artifact(
             format!("Locked artifact is missing: {}", cache_path.display()),
         );
         return Ok(());
-    }
+    };
 
-    let _cache_read_lock = acquire_artifact_path_read_lock(&cache_path)?;
-    let actual_hash = ContentHash::from_path(&cache_path, artifact.hash.algorithm)?;
+    let _cache_read_lock = acquire_artifact_path_read_lock(&artifact_path)?;
+    let actual_hash = ContentHash::from_path(&artifact_path, artifact.hash.algorithm)?;
     if actual_hash != artifact.hash {
-        report.push_error(
-            ArtifactAuditIssueKind::ArtifactHashMismatch,
-            artifact.coordinate.clone(),
-            Some(artifact.source.clone()),
-            &cache_path,
-            format!(
-                "Locked artifact {} has content hash {}, but lockfile requires {}",
-                cache_path.display(),
-                actual_hash,
-                artifact.hash
-            ),
-        );
-        return Ok(());
+        if let Some(weak) = artifact.weak.as_ref() {
+            validate_weak_mod_metadata(&artifact_path, weak)?;
+            report.push_warning(
+                ArtifactAuditIssueKind::ArtifactHashMismatch,
+                artifact.coordinate.clone(),
+                Some(artifact.source.clone()),
+                &artifact_path,
+                format!(
+                    "Weak artifact {} has content hash {}, but lockfile records {}; mod metadata matched {} {}",
+                    artifact_path.display(),
+                    actual_hash,
+                    artifact.hash,
+                    weak.mod_id,
+                    weak.version
+                ),
+            );
+        } else {
+            report.push_error(
+                ArtifactAuditIssueKind::ArtifactHashMismatch,
+                artifact.coordinate.clone(),
+                Some(artifact.source.clone()),
+                &artifact_path,
+                format!(
+                    "Locked artifact {} has content hash {}, but lockfile requires {}",
+                    artifact_path.display(),
+                    actual_hash,
+                    artifact.hash
+                ),
+            );
+            return Ok(());
+        }
     }
     report.verified_artifacts += 1;
 
-    if let Some(provenance) = read_artifact_provenance(&cache_path)? {
-        audit_artifact_provenance_sidecar(report, artifact, &cache_path, &provenance);
+    if let Some(provenance) = read_artifact_provenance(&artifact_path)? {
+        audit_artifact_provenance_sidecar(report, artifact, &artifact_path, &provenance);
     }
 
     audit_original_source_artifact(report, artifact)?;
@@ -1717,6 +1879,89 @@ fn audit_artifact_provenance_sidecar(
             ),
         );
     }
+}
+
+fn validate_locked_artifact_content(
+    path: &Path,
+    locked: &ArtifactLockEntry,
+    actual_hash: ContentHash,
+) -> eyre::Result<()> {
+    if actual_hash == locked.hash {
+        return Ok(());
+    }
+    if let Some(weak) = locked.weak.as_ref() {
+        validate_weak_mod_metadata(path, weak)?;
+        tracing::warn!(
+            artifact = %path.display(),
+            actual_hash = %actual_hash,
+            locked_hash = %locked.hash,
+            mod_id = weak.mod_id,
+            version = weak.version,
+            "weak artifact hash mismatch accepted after mod metadata validation"
+        );
+        return Ok(());
+    }
+
+    eyre::bail!(
+        "Artifact {} resolved with content hash {}, but sfm-toolchain.lock.json requires {}",
+        locked.coordinate.as_deref().unwrap_or("<unknown>"),
+        actual_hash,
+        locked.hash
+    )
+}
+
+fn validate_weak_mod_metadata(path: &Path, weak: &WeakArtifactValidation) -> eyre::Result<()> {
+    let metadata = read_zip_text_entry(path, &weak.metadata_path)?;
+    let actual_mod_id = metadata_assignment(&metadata, "modId")
+        .ok_or_else(|| eyre::eyre!("{} has no modId assignment", weak.metadata_path.display()))?;
+    let actual_version = metadata_assignment(&metadata, "version")
+        .ok_or_else(|| eyre::eyre!("{} has no version assignment", weak.metadata_path.display()))?;
+
+    if actual_mod_id != weak.mod_id || actual_version != weak.version {
+        eyre::bail!(
+            "Weak artifact {} metadata mismatch in {}: expected modId={} version={}, found modId={} version={}",
+            path.display(),
+            weak.metadata_path.display(),
+            weak.mod_id,
+            weak.version,
+            actual_mod_id,
+            actual_version
+        );
+    }
+    Ok(())
+}
+
+fn read_zip_text_entry(path: &Path, entry_name: &Path) -> eyre::Result<String> {
+    let entry_name = entry_name.to_string_lossy().replace('\\', "/");
+    let bytes = fs::read(path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
+    let cursor = Cursor::new(bytes);
+    let mut archive = ZipArchive::new(cursor)
+        .wrap_err_with(|| format!("Failed to read zip archive {}", path.display()))?;
+    let mut entry = archive
+        .by_name(&entry_name)
+        .wrap_err_with(|| format!("Archive {} missing {entry_name}", path.display()))?;
+    let mut content = String::new();
+    entry
+        .read_to_string(&mut content)
+        .wrap_err_with(|| format!("Failed to read {entry_name} from {}", path.display()))?;
+    Ok(content)
+}
+
+fn metadata_assignment(content: &str, key: &str) -> Option<String> {
+    content.lines().find_map(|line| {
+        let line = line.split('#').next()?.trim();
+        let (left, right) = line.split_once('=')?;
+        if left.trim() != key {
+            return None;
+        }
+        Some(
+            right
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string(),
+        )
+    })
 }
 
 fn audit_original_source_artifact(
@@ -2032,7 +2277,7 @@ struct TargetFailure {
 
 impl TargetFailure {
     fn new(target: &WorktreeTarget, error: &eyre::Report) -> Self {
-        Self::from_message(target, error.to_string())
+        Self::from_message(target, format!("{error:?}"))
     }
 
     fn from_message(target: &WorktreeTarget, error: impl Into<String>) -> Self {

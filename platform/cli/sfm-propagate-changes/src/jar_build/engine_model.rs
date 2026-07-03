@@ -54,9 +54,9 @@ struct BuildPlan {
 }
 
 #[derive(Clone, Debug, Facet)]
-struct Repository {
-    name: String,
-    url: String,
+pub(crate) struct Repository {
+    pub(crate) name: String,
+    pub(crate) url: String,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -121,73 +121,83 @@ struct ArtifactProvenance {
 }
 
 #[derive(Clone, Debug, Facet)]
-struct ArtifactLockfile {
-    schema_version: u32,
-    minecraft_version: String,
+pub(crate) struct ArtifactLockfile {
+    pub(crate) schema_version: u32,
+    pub(crate) minecraft_version: String,
     #[facet(proxy = JsonPath)]
-    maven_cache_dir: PathBuf,
-    allow_local_artifact_cache: bool,
-    repositories: Vec<Repository>,
-    dependencies: Vec<DependencyLockEntry>,
-    artifacts: Vec<ArtifactLockEntry>,
+    pub(crate) maven_cache_dir: PathBuf,
+    pub(crate) allow_local_artifact_cache: bool,
+    pub(crate) repositories: Vec<Repository>,
+    pub(crate) dependencies: Vec<DependencyLockEntry>,
+    pub(crate) artifacts: Vec<ArtifactLockEntry>,
 }
 
 #[derive(Clone, Debug, Facet)]
-struct DependencyLockEntry {
-    configuration: String,
-    notation: String,
-    resolved_notation: String,
-    source: DependencySource,
-    dynamic_version: bool,
+pub(crate) struct DependencyLockEntry {
+    pub(crate) configuration: String,
+    pub(crate) notation: String,
+    pub(crate) resolved_notation: String,
+    pub(crate) source: DependencySource,
+    pub(crate) dynamic_version: bool,
     #[facet(proxy = JsonPath)]
-    cache_path: PathBuf,
+    pub(crate) cache_path: PathBuf,
 }
 
 #[derive(Clone, Debug, Facet)]
-struct ArtifactLockEntry {
-    coordinate: Option<String>,
-    source: ArtifactSource,
-    repository: Option<String>,
-    url: Option<String>,
+pub(crate) struct ArtifactLockEntry {
+    pub(crate) coordinate: Option<String>,
+    pub(crate) source: ArtifactSource,
+    pub(crate) repository: Option<String>,
+    pub(crate) url: Option<String>,
     #[facet(proxy = JsonPath)]
-    cache_path: PathBuf,
+    pub(crate) cache_path: PathBuf,
     #[facet(proxy = JsonOptionalPath)]
-    original_path: Option<PathBuf>,
+    pub(crate) original_path: Option<PathBuf>,
     #[facet(default)]
     #[facet(proxy = JsonOptionalPath)]
-    source_relative_path: Option<PathBuf>,
+    pub(crate) source_relative_path: Option<PathBuf>,
     #[facet(default)]
-    source_git: Option<SourceGitProvenance>,
+    pub(crate) source_git: Option<SourceGitProvenance>,
     #[facet(default)]
-    source_build: Option<SourceBuildProvenance>,
+    pub(crate) source_build: Option<SourceBuildProvenance>,
     #[facet(alias = "sha1")]
-    hash: ContentHash,
-}
-
-#[derive(Clone, Debug, Eq, Facet, PartialEq)]
-struct SourceGitProvenance {
-    #[facet(proxy = JsonPath)]
-    root: PathBuf,
-    commit: String,
-    branch: String,
-    dirty: bool,
+    pub(crate) hash: ContentHash,
     #[facet(default)]
-    remote_url: Option<String>,
+    pub(crate) weak: Option<WeakArtifactValidation>,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
-struct SourceBuildProvenance {
-    build_system: SourceBuildSystem,
-    tasks: Vec<String>,
-    environment: BTreeMap<String, String>,
+pub(crate) struct WeakArtifactValidation {
     #[facet(proxy = JsonPath)]
-    output_path: PathBuf,
+    pub(crate) metadata_path: PathBuf,
+    pub(crate) mod_id: String,
+    pub(crate) version: String,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub(crate) struct SourceGitProvenance {
+    #[facet(proxy = JsonPath)]
+    pub(crate) root: PathBuf,
+    pub(crate) commit: String,
+    pub(crate) branch: String,
+    pub(crate) dirty: bool,
+    #[facet(default)]
+    pub(crate) remote_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub(crate) struct SourceBuildProvenance {
+    pub(crate) build_system: SourceBuildSystem,
+    pub(crate) tasks: Vec<String>,
+    pub(crate) environment: BTreeMap<String, String>,
+    #[facet(proxy = JsonPath)]
+    pub(crate) output_path: PathBuf,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
 #[facet(rename_all = "kebab-case")]
 #[repr(u8)]
-enum SourceBuildSystem {
+pub(crate) enum SourceBuildSystem {
     GradleWrapper,
 }
 
@@ -236,7 +246,7 @@ struct ArtifactPortabilityInput {
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
 #[facet(rename_all = "kebab-case")]
 #[repr(u8)]
-pub(super) enum ArtifactSource {
+pub(crate) enum ArtifactSource {
     RemoteMaven,
     RemoteHttp,
     #[facet(rename = "explicit-artifact-source")]
@@ -334,7 +344,7 @@ struct DependencyPlan {
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
 #[repr(u8)]
-enum DependencySource {
+pub(crate) enum DependencySource {
     CurseMaven,
     Maven,
 }
