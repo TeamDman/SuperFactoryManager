@@ -42,6 +42,7 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
         if (level != null) {
             BlockState state = getBlockState();
             level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_IMMEDIATE);
+            level.getLightEngine().checkBlock(worldPosition);
         }
         requestModelDataUpdate();
     }
@@ -58,6 +59,8 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
         if (tried != null) {
             this.facadeData = tried;
             requestModelDataUpdate();
+            if (level != null)
+                level.getLightEngine().checkBlock(worldPosition);
         }
     }
 

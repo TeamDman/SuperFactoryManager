@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.common.facade;
 
 import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.block.IFacadableBlock;
+import ca.teamdman.sfm.common.block.*;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
@@ -14,13 +14,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-import static ca.teamdman.sfm.common.facade.FacadeTransparency.FACADE_TRANSPARENCY_PROPERTY;
 
 public record ApplyFacadesFacadePlan(
         FacadeData facadeData,
-
-        FacadeTransparency facadeTransparency,
-
         BlockPosSet positions
 ) implements IFacadePlan {
     @SFMLocalizationDatagen
@@ -42,12 +38,20 @@ public record ApplyFacadesFacadePlan(
             BlockState blockState = level.getBlockState(pos);
             Block block = blockState.getBlock();
             if (block instanceof IFacadableBlock facadableBlock) {
+                BlockState facadeBlockState = facadeData.facadeBlockState();
                 BlockState nextBlockState = facadableBlock
                         .getFacadeBlock()
                         .getStateForPlacementByFacadePlan(level, pos)
-                        .setValue(FACADE_TRANSPARENCY_PROPERTY, this.facadeTransparency())
-                        .setValue(LightBlock.LEVEL, facadeData.facadeBlockState().getLightEmission(level, pos));
+                        .setValue(LightBlock.LEVEL, facadeBlockState.getLightEmission(level, pos));
+
+                if (
+                        facadableBlock instanceof CableBlock && !(facadableBlock instanceof FancyCableBlock)
+                ) {
+                    nextBlockState = nextBlockState.setValue(FacadeProperties.SOLID, facadeBlockState.isSolidRender());
+                }
+
                 level.setBlock(pos, nextBlockState, Block.UPDATE_IMMEDIATE | Block.UPDATE_CLIENTS);
+
                 BlockEntity blockEntity = level.getBlockEntity(pos);
                 if (blockEntity instanceof IFacadeBlockEntity facadeBlockEntity) {
                     facadeBlockEntity.updateFacadeData(this.facadeData());
