@@ -16,6 +16,7 @@ pub mod sfm_path;
 pub mod source_audit;
 pub mod state;
 pub mod terminal_output;
+pub mod toolchain_lockfile_schema;
 pub mod worktree;
 
 #[cfg(feature = "tracy_memory")]
