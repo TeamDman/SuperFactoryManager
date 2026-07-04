@@ -135,7 +135,7 @@ public class SFMFontUtils {
             int colour,
             boolean shadow
     ) {
-        graphics.text(font, text, x, y, colour, shadow);
+        graphics.text(font, text, x, y, normalizeLegacyRgb(colour), shadow);
     }
 
     @MCVersionDependentBehaviour
@@ -148,6 +148,14 @@ public class SFMFontUtils {
             int colour,
             boolean shadow
     ) {
-        graphics.text(font, text, x, y, colour, shadow);
+        graphics.text(font, text, x, y, normalizeLegacyRgb(colour), shadow);
+    }
+
+    @MCVersionDependentBehaviour
+    private static int normalizeLegacyRgb(int colour) {
+        if ((colour & 0xFF000000) == 0) {
+            return colour | 0xFF000000;
+        }
+        return colour;
     }
 }
