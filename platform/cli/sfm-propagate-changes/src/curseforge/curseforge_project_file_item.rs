@@ -17,6 +17,8 @@ pub struct CurseforgeProjectFileItem {
     pub game_versions: Vec<String>,
     #[facet(default, rename = "downloadUrl")]
     pub download_url: Option<String>,
+    #[facet(default, rename = "downloadCount")]
+    pub download_count: u64,
     #[facet(default, rename = "fileDate")]
     pub file_date: Option<String>,
     #[facet(default)]
