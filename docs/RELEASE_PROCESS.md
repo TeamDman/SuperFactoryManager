@@ -82,18 +82,21 @@ This phase ensures that the built jar files behave as expected.
 
 Historical anecdotes include builds being successful but with missing textures, missing translation entries, and other behaviour that is not obvious until testing outside of the IDE.
 
-1. Run `sfm-propagate-changes.exe jar update-clients` to ensure each PrismMC instance has the latest jar file
-2. Run `sfm-propagate-changes.exe jar update-servers` to ensure each dedicated server has the latest jar file
-3. Run `sfm-propagate-changes.exe client launch` to open PrismMC
-4. Run `sfm-propagate-changes.exe server launch` to run the dedicated servers
+1. Run `sfm-propagate-changes.exe client set-instances-dir <path>` if the Prism Launcher instances directory has not been configured on this machine
+2. Run `sfm-propagate-changes.exe client sync --branch core --loader pinned` to ensure each Prism Launcher verification instance exists, is tracked, uses the Gradle-inferred loader/JDK from the last clean-slate build plan, and has the latest jar file
+    1. Optional: run `sfm-propagate-changes.exe loader list --branch core` to compare the pinned loader against Prism's recommended/latest metadata before intentionally testing with `--loader recommended` or `--loader latest`
+3. Run `sfm-propagate-changes.exe jar update-servers` to ensure each tracked dedicated server has the latest jar file
+4. Optional: run `sfm-propagate-changes.exe client open` to open Prism Launcher without launching a verification instance
 
 ## Phase 10 - Verification Actualization
 
 The following steps must run for each MC version.
 
-1. Launch version from PrismMC
-2. Multiplayer -> join localhost
-4. Build new setup from scratch to ensure core gameplay loop is functional
+1. Run `sfm-propagate-changes.exe client launch --branch core` to issue Prism Launcher launch requests for the verification instances sequentially
+2. In another terminal, run `sfm-propagate-changes.exe server launch --branch core` to run the dedicated servers sequentially
+3. Launch version from PrismMC
+4. Multiplayer -> join localhost
+5. Build new setup from scratch to ensure core gameplay loop is functional
     1. Place a `sfm:manager` block
     2. Place a `minecraft:chest` block on the left and right of the manager
     3. Right click the manager block to open the GUI
@@ -125,13 +128,13 @@ The following steps must run for each MC version.
     19. Close the GUI
     20. Open the right chest GUI
     21. Assert that the items that have arrived from the left chest
-5. Validate changelog accuracy
+6. Validate changelog accuracy
     1. Run the `/sfm changelog` in the chat
     2. Assert that the headings are correct in the in-game view of [changelog.sfml](../platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml)
     3. Assert that no TODO items remain
-6. Run the `/stop` command in the chat, this will disconnect you from the server
-7. Quit the game
-8. GOTO Phase 8 step 1 for the next version to be tested, if any
+7. Run the `/stop` command in the chat, this will disconnect you from the server
+8. Quit the game
+9. GOTO Phase 8 step 1 for the next version to be tested, if any
 
 ## Phase 11 - Tagging
 
