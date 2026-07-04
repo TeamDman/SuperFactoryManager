@@ -578,6 +578,7 @@ fn execute_build_target(
             write_artifact_lockfile(&plan)?;
         }
         BuildMode::Build => {
+            let _build_cache_lock = acquire_build_cache_lock(options, &plan, "jar build")?;
             execute_build(
                 &plan,
                 options.explain_rebuild,
@@ -605,6 +606,7 @@ fn execute_run_target(
     write_last_plan_output(&plan)?;
     print_plan_summary(&plan);
     cancellation_token.bail_if_cancelled()?;
+    let _build_cache_lock = acquire_build_cache_lock(options, &plan, kind.command_name())?;
     execute_build(
         &plan,
         options.explain_rebuild,
@@ -646,6 +648,7 @@ fn execute_run_test_target(
     write_last_plan_output(&plan)?;
     print_plan_summary(&plan);
     cancellation_token.bail_if_cancelled()?;
+    let _build_cache_lock = acquire_build_cache_lock(options, &plan, "run compile/test")?;
     execute_build(
         &plan,
         options.explain_rebuild,
@@ -670,6 +673,7 @@ fn execute_source_output_target(
     write_last_plan_output(&plan)?;
     print_plan_summary(&plan);
     cancellation_token.bail_if_cancelled()?;
+    let _build_cache_lock = acquire_build_cache_lock(options, &plan, "source output")?;
     execute_build(
         &plan,
         options.explain_rebuild,
@@ -686,6 +690,36 @@ fn build_action_name(options: &BuildOptions) -> &'static str {
         BuildMode::Plan => "jar plan",
         BuildMode::Build => "jar build",
     }
+}
+
+fn acquire_build_cache_lock(
+    options: &BuildOptions,
+    plan: &BuildPlan,
+    operation: &str,
+) -> eyre::Result<ArtifactLock> {
+    let lock_path = build_cache_lock_path(plan);
+    let artifact = format!("{} build cache for {operation}", plan.branch_name);
+    if options.wait_for_build_lock {
+        return ArtifactLock::acquire(&lock_path, artifact);
+    }
+    ArtifactLock::try_acquire(&lock_path, artifact)?.ok_or_else(|| {
+        eyre::eyre!(
+            "SFM build cache for branch {} is already locked by another sfm-propagate-changes process.\n\
+             Worktree: {}\n\
+             Cache: {}\n\
+             Lock: {}\n\
+             Likely cause: an open `sfm-propagate-changes run client`, `run server`, or `run game-test-server` using this branch.\n\
+             Close the running game/server or rerun this command with `--wait-for-build-lock` to wait for it to exit.",
+            plan.branch_name,
+            plan.worktree_path.display(),
+            plan.cache_dir.display(),
+            lock_path.display()
+        )
+    })
+}
+
+fn build_cache_lock_path(plan: &BuildPlan) -> PathBuf {
+    plan.cache_dir.join(".locks").join("build-cache.lock")
 }
 
 fn finish_target_summary(

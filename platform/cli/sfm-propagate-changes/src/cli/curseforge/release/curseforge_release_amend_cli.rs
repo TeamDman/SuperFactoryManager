@@ -32,8 +32,8 @@ use tracing::info;
 /// Arguments for amending CurseForge changelogs for current release jars.
 #[derive(Facet, Debug)]
 pub struct CurseforgeReleaseAmendArgs {
-    /// Branch selector expression. Defaults to core worktrees.
-    #[facet(default, args::named)]
+    /// Branch selector expression.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// CurseForge project ID (defaults to configured default project).
