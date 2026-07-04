@@ -88,6 +88,33 @@ pub(crate) fn resolve_java(
     );
 }
 
+#[instrument]
+pub(crate) fn resolve_exact_java(required_major: u32) -> eyre::Result<ResolvedJava> {
+    let jdks = list_jdks()?;
+    if let Some(jdk) = jdks.iter().find(|jdk| jdk.major_version == required_major) {
+        return Ok(jdk.clone().into_resolved_java());
+    }
+
+    let discovered = if jdks.is_empty() {
+        "none discovered".to_string()
+    } else {
+        jdks.iter()
+            .map(|jdk| {
+                let home = jdk
+                    .home
+                    .as_ref()
+                    .map_or_else(|| "<PATH>".to_string(), |home| home.display().to_string());
+                format!("Java {} at {home}", jdk.major_version)
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    eyre::bail!(
+        "Java {} is required for this Prism runtime, but no exact matching JDK was found ({discovered})",
+        required_major
+    );
+}
+
 pub(crate) fn parse_java_major_version(version_output: &str) -> Option<u32> {
     let quoted = version_output.split('"').nth(1)?;
     let first = quoted.split('.').next()?;
