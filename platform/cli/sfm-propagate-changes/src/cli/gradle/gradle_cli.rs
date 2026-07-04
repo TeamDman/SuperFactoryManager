@@ -2,10 +2,8 @@ use super::GradleLogArgs;
 use super::GradleLogListArgs;
 use super::GradleLogTldrArgs;
 use super::GradleRunArgs;
-use crate::branch_targets::BranchQuery;
 use crate::branch_targets::discover_worktree_targets;
 use crate::cli::git::status::assert_worktrees_clean_or_autocommit_generated;
-use crate::cli::jar::BranchSelector;
 use crate::paths::CACHE_DIR;
 use crate::terminal_output::stderr_text;
 use crate::terminal_output::stdout_blank_line;
@@ -1493,13 +1491,7 @@ impl GradleRunArgs {
             .map(|target| target.branch.to_string())
             .collect();
         let total_worktrees = targets.len();
-        let branch_query = self
-            .branch
-            .clone()
-            .map(BranchSelector::into_query)
-            .transpose()?
-            .unwrap_or(BranchQuery::parse("*")?);
-        let branch_filter_text = self.branch.as_ref().map(ToString::to_string);
+        let branch_query = self.branch.clone().into_query()?;
         let mut excluded_worktree_branches = Vec::new();
         let mut worktrees = Vec::new();
 
@@ -1520,11 +1512,7 @@ impl GradleRunArgs {
         }
 
         if worktrees.is_empty() {
-            if branch_filter_text.is_some() {
-                info!("No worktrees match the requested --branch filter.");
-            } else {
-                info!("No worktrees found.");
-            }
+            info!("No worktrees match the requested --branch filter.");
             return Ok(());
         }
 

@@ -29,8 +29,8 @@ use tracing::info;
 /// Arguments for uploading release jars to CurseForge.
 #[derive(Facet, Debug)]
 pub struct CurseforgeReleaseNowArgs {
-    /// Branch selector expression. Defaults to core worktrees.
-    #[facet(default, args::named)]
+    /// Branch selector expression.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// CurseForge project ID (defaults to configured default project).

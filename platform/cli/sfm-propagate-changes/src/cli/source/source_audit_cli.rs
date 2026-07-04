@@ -9,8 +9,8 @@ use figue as args;
 /// Options for auditing tracked Rust and Java source file sizes.
 #[derive(Facet, Debug, Clone)]
 pub struct SourceAuditArgs {
-    /// Branch selector to audit. Defaults to all worktrees.
-    #[facet(default = default_source_audit_branch(), args::named)]
+    /// Branch selector to audit.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// Source language to audit. Repeat for multiple languages. Defaults to rust and java.
@@ -43,8 +43,4 @@ impl SourceAuditArgs {
     pub fn invoke(self) -> eyre::Result<()> {
         SourceAuditCommand::new(self.into_options()?).invoke()
     }
-}
-
-fn default_source_audit_branch() -> BranchSelector {
-    BranchSelector("*".to_string())
 }

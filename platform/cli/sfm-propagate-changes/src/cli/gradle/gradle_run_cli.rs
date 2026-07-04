@@ -3,15 +3,15 @@ use facet::Facet;
 use figue as args;
 
 /// Gradle command - runs arbitrary gradle tasks in each worktree in strict sequence.
-#[derive(Facet, Debug, Default)]
+#[derive(Facet, Debug)]
 pub struct GradleRunArgs {
     /// Gradle tasks to run (for example: `runData`, `runGameTestServer`, `test`).
     #[facet(args::positional)]
     pub tasks: Vec<String>,
 
-    /// Branch selector for worktrees. Defaults to all worktrees for legacy Gradle orchestration.
-    #[facet(default, args::named)]
-    pub branch: Option<BranchSelector>,
+    /// Branch selector for worktrees.
+    #[facet(args::named)]
+    pub branch: BranchSelector,
 
     /// If set, stream gradle stdout/stderr to the console while tasks run.
     ///

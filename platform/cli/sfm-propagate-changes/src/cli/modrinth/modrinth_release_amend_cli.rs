@@ -22,8 +22,8 @@ use tracing::info;
 /// Arguments for amending Modrinth changelogs for current release jars.
 #[derive(Facet, Debug)]
 pub struct ModrinthReleaseAmendArgs {
-    /// Branch selector used to choose release jar Minecraft versions. Defaults to `core`.
-    #[facet(default, args::named)]
+    /// Branch selector used to choose release jar Minecraft versions.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// Modrinth project id/slug (defaults to Super Factory Manager).

@@ -5,8 +5,8 @@ use figue as args;
 /// Arguments for amending an existing GitHub release.
 #[derive(Facet, Debug)]
 pub struct GithubReleaseAmendArgs {
-    /// Branch selector used to choose release jar Minecraft versions. Defaults to `core`.
-    #[facet(default, args::named)]
+    /// Branch selector used to choose release jar Minecraft versions.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// GitHub repository in owner/name form.
