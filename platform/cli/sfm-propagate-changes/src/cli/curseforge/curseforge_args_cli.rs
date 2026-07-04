@@ -1,4 +1,5 @@
 use super::CurseforgeMinecraftArgs;
+use super::CurseforgePopularArgs;
 use super::CurseforgeProjectArgs;
 use super::CurseforgeReleaseArgs;
 use facet::Facet;
@@ -29,6 +30,8 @@ pub enum CurseforgeCommand {
     Project(CurseforgeProjectArgs),
     /// Minecraft metadata operations
     Minecraft(CurseforgeMinecraftArgs),
+    /// Locally cached popularity operations
+    Popular(CurseforgePopularArgs),
     /// Release metadata validation and upload operations
     Release(CurseforgeReleaseArgs),
 }
@@ -41,6 +44,7 @@ impl CurseforgeCommand {
         match self {
             Self::Project(args) => args.invoke(),
             Self::Minecraft(args) => args.invoke(),
+            Self::Popular(args) => args.invoke(),
             Self::Release(args) => args.invoke(),
         }
     }
