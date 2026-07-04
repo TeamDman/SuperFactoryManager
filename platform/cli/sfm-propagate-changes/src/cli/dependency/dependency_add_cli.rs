@@ -13,7 +13,7 @@ pub struct DependencyAddArgs {
     pub coordinate: String,
 
     /// Branch selector to update. Must match exactly one worktree.
-    #[facet(default, args::named)]
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// Accept byte hash drift when the jar's mod metadata matches.

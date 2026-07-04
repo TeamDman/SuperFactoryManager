@@ -14,8 +14,8 @@ use tracing::info;
 /// Arguments for listing Minecraft game versions from CurseForge.
 #[derive(Facet, Debug)]
 pub struct CurseforgeMinecraftVersionListArgs {
-    /// Branch selector expression. Defaults to core worktrees.
-    #[facet(default, args::named)]
+    /// Branch selector expression.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// CurseForge API token (optional for this endpoint).
