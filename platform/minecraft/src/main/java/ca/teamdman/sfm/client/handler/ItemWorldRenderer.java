@@ -263,7 +263,7 @@ public class ItemWorldRenderer {
 
 //        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
 
-        GpuBuffer gpuBuffer = vboCache.getVBO(
+        VBOCache.VBOEntry entry = vboCache.getVBO(
                 vboKind,
                 positions,
                 event,
@@ -272,6 +272,9 @@ public class ItemWorldRenderer {
                 ARGB.blue(color),
                 ARGB.alpha(color)
         );
+        if (entry == null) return;
+
+        GpuBuffer gpuBuffer = entry.ringBuffer.currentBuffer();
         if (gpuBuffer == null) return;
 
         int vertexCount = positions.size() * 6 /*faces*/ * 4 /*verts per face*/;
@@ -288,7 +291,11 @@ public class ItemWorldRenderer {
 
         Matrix4f viewMatrix = new Matrix4f()
                 .rotate(camera.rotation().invert(new Quaternionf()))
-                .translate((float)-camera.position().x, (float)-camera.position().y, (float)-camera.position().z);
+                .translate(
+                        (float) (entry.origin.getX() - camera.position().x),
+                        (float) (entry.origin.getY() - camera.position().y),
+                        (float) (entry.origin.getZ() - camera.position().z)
+                );
 
         // Write the model-view transform + color modulator into the dynamic-uniforms
         // ring buffer.  This mirrors the Fabric example exactly and is mandatory —
@@ -446,7 +453,7 @@ public class ItemWorldRenderer {
         private final EnumMap<VBOKind, VBOEntry> cache = new EnumMap<>(VBOKind.class);
         private int lastChangeCheckTick = -1;
 
-        public @Nullable GpuBuffer getVBO(
+        public @Nullable VBOEntry getVBO(
                 VBOKind kind,
                 BlockPosSet positions,
                 RenderLevelStageEvent event,
@@ -473,8 +480,10 @@ public class ItemWorldRenderer {
                 if (entry != null) {
                     entry.ringBuffer.close();
                 }
-                MappableRingBuffer ringBuffer = createRingBuffer(positions, r, g, b, a);
-                entry = new VBOEntry(new BlockPosSet(positions), ringBuffer);
+
+                BlockPos origin = getOrigin(positions);
+                MappableRingBuffer ringBuffer = createRingBuffer(positions, origin, r, g, b, a);
+                entry = new VBOEntry(new BlockPosSet(positions), origin, ringBuffer);
                 cache.put(kind, entry);
             }
 
@@ -482,7 +491,7 @@ public class ItemWorldRenderer {
             // This causes flickering?
 //            entry.ringBuffer.rotate();
 
-            return entry.ringBuffer.currentBuffer();
+            return entry;
         }
 
         public void clear() {
@@ -515,6 +524,7 @@ public class ItemWorldRenderer {
         @HelpsWithMinecraftVersionIndependence
         private MappableRingBuffer createRingBuffer(
                 BlockPosSet positions,
+                BlockPos origin,
                 int r,
                 int g,
                 int b,
@@ -526,7 +536,11 @@ public class ItemWorldRenderer {
 
             for (BlockPos blockPos : positions.blockPosIterator()) {
                 poseStack.pushPose();
-                poseStack.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+                poseStack.translate(
+                        blockPos.getX() - origin.getX(),
+                        blockPos.getY() - origin.getY(),
+                        blockPos.getZ() - origin.getZ()
+                );
                 Matrix4f matrix4f = poseStack.last().pose();
                 for (Direction face : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
                     if (!positions.contains(blockPos.relative(face))) {
@@ -568,8 +582,17 @@ public class ItemWorldRenderer {
             );
         }
 
+        private BlockPos getOrigin(BlockPosSet positions) {
+            var iterator = positions.blockPosIterator();
+            if (!iterator.hasNext()) {
+                return BlockPos.ZERO;
+            }
+            return iterator.next().immutable();
+        }
+
         private record VBOEntry(
                 BlockPosSet positions,
+                BlockPos origin,
                 MappableRingBuffer ringBuffer
         ) {}
     }

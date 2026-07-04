@@ -2,6 +2,7 @@ use crate::prism::PrismComponent;
 use crate::prism::PrismLoaderComponent;
 use eyre::Context;
 use facet::Facet;
+use tracing::warn;
 
 const PRISM_META_BASE_URL: &str = "https://meta.prismlauncher.org/v1";
 
@@ -71,7 +72,32 @@ pub fn resolve_loader_component(
         .max_by(|left, right| compare_prism_versions(left, right))
         .map(|version| version.version.clone());
     let selected = match loader_selection {
-        PrismLoaderSelection::Pinned => pinned.version.clone(),
+        PrismLoaderSelection::Pinned => {
+            if versions
+                .iter()
+                .any(|version| version.version == pinned.version)
+            {
+                pinned.version.clone()
+            } else if let Some(version) = recommended_version
+                .clone()
+                .or_else(|| latest_version.clone())
+            {
+                warn!(
+                    minecraft_version,
+                    loader = %index.name,
+                    pinned = %pinned.version,
+                    selected = %version,
+                    "Prism metadata does not include the pinned loader; falling back to a resolvable Prism loader"
+                );
+                version
+            } else {
+                eyre::bail!(
+                    "Prism metadata has no {} loader for Minecraft {minecraft_version}; pinned {} cannot be resolved",
+                    index.name,
+                    pinned.version
+                );
+            }
+        }
         PrismLoaderSelection::Recommended => recommended_version.clone().ok_or_else(|| {
             eyre::eyre!(
                 "Prism metadata has no recommended {} loader for Minecraft {minecraft_version}",
