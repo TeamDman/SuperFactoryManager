@@ -124,9 +124,7 @@ mod tests {
 
     #[test]
     fn parses_top_level_run_clis() {
-        assert_run_cli(&["run", "compile"]);
         assert_run_cli(&["run", "compile", "--branch", "1.19.2"]);
-        assert_run_cli(&["run", "client"]);
         assert_run_cli(&["run", "client", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "client-smoke", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "client-puppet", "--branch", "1.19.2"]);
@@ -193,7 +191,7 @@ mod tests {
 
     #[test]
     fn parses_source_audit_cli() {
-        let cli = figue::from_slice::<Cli>(&["source", "audit"])
+        let cli = figue::from_slice::<Cli>(&["source", "audit", "--branch", "*"])
             .into_result()
             .expect("source audit should parse")
             .get_silent();
@@ -308,10 +306,11 @@ mod tests {
 
     #[test]
     fn parses_client_puppet_keep_open_options() {
-        let bare = figue::from_slice::<Cli>(&["run", "client-puppet", "--keep-open"])
-            .into_result()
-            .expect("bare keep-open should parse")
-            .get_silent();
+        let bare =
+            figue::from_slice::<Cli>(&["run", "client-puppet", "--branch", "core", "--keep-open"])
+                .into_result()
+                .expect("bare keep-open should parse")
+                .get_silent();
         match bare.command {
             Command::Run(crate::cli::run::RunArgs {
                 command: RunCommand::ClientPuppet(args),
@@ -329,6 +328,8 @@ mod tests {
         let valued = figue::from_slice::<Cli>(&[
             "run",
             "client-puppet",
+            "--branch",
+            "core",
             "--keep-open",
             "5m",
             "--filter",
@@ -351,11 +352,17 @@ mod tests {
             command => panic!("expected client-puppet run command, got {command:?}"),
         }
 
-        let numeric_seconds =
-            figue::from_slice::<Cli>(&["run", "client-puppet", "--keep-open", "90"])
-                .into_result()
-                .expect("numeric keep-open seconds should parse")
-                .get_silent();
+        let numeric_seconds = figue::from_slice::<Cli>(&[
+            "run",
+            "client-puppet",
+            "--branch",
+            "core",
+            "--keep-open",
+            "90",
+        ])
+        .into_result()
+        .expect("numeric keep-open seconds should parse")
+        .get_silent();
         match numeric_seconds.command {
             Command::Run(crate::cli::run::RunArgs {
                 command: RunCommand::ClientPuppet(args),
@@ -550,10 +557,17 @@ mod tests {
 
     #[test]
     fn parses_bare_parallel() {
-        let cli = figue::from_slice::<Cli>(&["run", "game-test-server", "--parallel", "--dry-run"])
-            .into_result()
-            .expect("bare parallel should parse")
-            .get_silent();
+        let cli = figue::from_slice::<Cli>(&[
+            "run",
+            "game-test-server",
+            "--branch",
+            "core",
+            "--parallel",
+            "--dry-run",
+        ])
+        .into_result()
+        .expect("bare parallel should parse")
+        .get_silent();
         match cli.command {
             Command::Run(crate::cli::run::RunArgs {
                 command: RunCommand::GameTestServer(command),
@@ -569,6 +583,32 @@ mod tests {
                 );
             }
             command => panic!("expected game-test-server run command, got {command:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_wait_for_build_lock() {
+        let cli = figue::from_slice::<Cli>(&[
+            "run",
+            "compile",
+            "--branch",
+            "core",
+            "--wait-for-build-lock",
+        ])
+        .into_result()
+        .expect("wait-for-build-lock should parse")
+        .get_silent();
+        match cli.command {
+            Command::Run(crate::cli::run::RunArgs {
+                command: RunCommand::Compile(command),
+            }) => {
+                let options = command
+                    .options
+                    .into_options(BuildMode::Build)
+                    .expect("compile options should parse");
+                assert!(options.wait_for_build_lock);
+            }
+            command => panic!("expected compile run command, got {command:?}"),
         }
     }
 
@@ -659,10 +699,11 @@ mod tests {
 
     #[test]
     fn parses_jar_artifact_audit_bare_parallel() {
-        let cli = figue::from_slice::<Cli>(&["jar", "audit-artifacts", "--parallel"])
-            .into_result()
-            .expect("bare artifact audit parallel should parse")
-            .get_silent();
+        let cli =
+            figue::from_slice::<Cli>(&["jar", "audit-artifacts", "--branch", "core", "--parallel"])
+                .into_result()
+                .expect("bare artifact audit parallel should parse")
+                .get_silent();
         match cli.command {
             Command::Jar(crate::cli::jar::JarArgs {
                 command: JarCommand::AuditArtifacts(command),
@@ -683,10 +724,11 @@ mod tests {
 
     #[test]
     fn rejects_zero_parallelism() {
-        let cli = figue::from_slice::<Cli>(&["jar", "build", "--parallel", "0"])
-            .into_result()
-            .expect("zero parallel syntax should parse before domain validation")
-            .get_silent();
+        let cli =
+            figue::from_slice::<Cli>(&["jar", "build", "--branch", "core", "--parallel", "0"])
+                .into_result()
+                .expect("zero parallel syntax should parse before domain validation")
+                .get_silent();
         match cli.command {
             Command::Jar(crate::cli::jar::JarArgs {
                 command: JarCommand::Build(command),
@@ -779,7 +821,6 @@ mod tests {
             }) => {
                 let query = command
                     .branch
-                    .expect("branch selector should be present")
                     .into_query()
                     .expect("branch query should parse");
                 assert_eq!(query.to_string(), "core>=1.21.0");
@@ -790,21 +831,36 @@ mod tests {
     }
 
     #[test]
-    fn omitted_branch_defaults_to_core() {
-        let cli = figue::from_slice::<Cli>(&["jar", "plan"])
-            .into_result()
-            .expect("jar plan should parse without explicit branch")
-            .get_silent();
-        match cli.command {
-            Command::Jar(crate::cli::jar::JarArgs {
-                command: JarCommand::Plan(command),
-            }) => {
-                let options = command
-                    .into_options(BuildMode::Plan)
-                    .expect("default branch query should parse");
-                assert_eq!(options.branch.to_string(), "core");
-            }
-            command => panic!("expected jar plan command, got {command:?}"),
+    fn branch_is_required_for_commands_that_accept_branch() {
+        let commands = [
+            &["run", "compile"][..],
+            &["run", "client"],
+            &["jar", "plan"],
+            &["jar", "build"],
+            &["jar", "compare"],
+            &["jar", "audit-artifacts"],
+            &["gradle", "run", "runData"],
+            &["source", "audit"],
+            &["server", "list"],
+            &["server", "launch"],
+            &["github", "release", "now"],
+            &["github", "release", "amend"],
+            &["modrinth", "release", "check"],
+            &["modrinth", "release", "validate"],
+            &["modrinth", "release", "now"],
+            &["modrinth", "release", "amend"],
+            &["curseforge", "release", "check"],
+            &["curseforge", "release", "validate"],
+            &["curseforge", "release", "now"],
+            &["curseforge", "release", "amend"],
+            &["curseforge", "minecraft", "version", "list"],
+        ];
+
+        for command in commands {
+            assert!(
+                figue::from_slice::<Cli>(command).is_err(),
+                "expected {command:?} to require --branch"
+            );
         }
     }
 

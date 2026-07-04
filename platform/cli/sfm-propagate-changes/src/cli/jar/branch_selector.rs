@@ -18,12 +18,6 @@ impl BranchSelector {
     }
 }
 
-impl Default for BranchSelector {
-    fn default() -> Self {
-        Self("core".to_string())
-    }
-}
-
 impl fmt::Display for BranchSelector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
