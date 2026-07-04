@@ -19,9 +19,4 @@ NAME "Known issues"
 ---- will skip the check for if the item is compostable
 ---- turning the composter into a trash can
 
-
--- For 26.1.2 the ctrl+i slot overlay doesn't fully work #555
----- The exports inspector button works but no other text elements are shown
-
 -- Sorry for any inconveniences :(
-
