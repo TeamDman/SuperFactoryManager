@@ -12,6 +12,7 @@ use crate::branch_targets::select_required_minecraft_versions;
 use crate::branch_targets::select_required_worktree_targets;
 use crate::cli::jar::BranchSelector;
 use crate::cli::jar::JarUpdateClientsArgs;
+use crate::cli::jar::resolve_client_mods_dir;
 use crate::paths::APP_HOME;
 use crate::prism::PrismComponent;
 use crate::prism::PrismInstancePlan;
@@ -377,8 +378,7 @@ pub(super) fn sync_clients(
         };
         let mc_version = version.to_string();
         let instance_dir = prism_instances_root.join(format!("sfm-{mc_version}"));
-        let minecraft_dir = instance_dir.join(".minecraft");
-        let mods_dir = minecraft_dir.join("mods");
+        let mods_dir = resolve_client_mods_dir(&instance_dir, &mc_version)?;
         let instance_plan = crate::prism::instance_plan_for_target(&target, loader_selection)?;
 
         if instance_dir.exists() {

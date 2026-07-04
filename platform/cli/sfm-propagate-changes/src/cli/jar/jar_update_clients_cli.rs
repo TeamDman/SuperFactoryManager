@@ -33,8 +33,13 @@ impl JarUpdateClientsArgs {
                 continue;
             };
 
-            let mods_dir = target.path.join(".minecraft").join("mods");
+            let mods_dir =
+                super::jar_shared::resolve_client_mods_dir(&target.path, &target.mc_version)?;
             super::jar_shared::update_mods_folder_with_jar(&mods_dir, &jar)?;
+            super::jar_shared::remove_sfm_jars_from_other_client_game_dirs(
+                &target.path,
+                &mods_dir,
+            )?;
             updated += 1;
         }
 
