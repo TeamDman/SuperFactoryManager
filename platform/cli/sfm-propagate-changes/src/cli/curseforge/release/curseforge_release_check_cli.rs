@@ -24,8 +24,8 @@ use tracing::info;
 /// Arguments for checking computed CurseForge release metadata.
 #[derive(Facet, Debug)]
 pub struct CurseforgeReleaseCheckArgs {
-    /// Branch selector expression. Defaults to core worktrees.
-    #[facet(default, args::named)]
+    /// Branch selector expression.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// CurseForge project ID (defaults to configured default project).

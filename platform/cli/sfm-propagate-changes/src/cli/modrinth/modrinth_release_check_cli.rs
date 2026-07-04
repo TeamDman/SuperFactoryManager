@@ -18,8 +18,8 @@ use tracing::info;
 /// Arguments for checking computed Modrinth release metadata.
 #[derive(Facet, Debug)]
 pub struct ModrinthReleaseCheckArgs {
-    /// Branch selector used to choose release jar Minecraft versions. Defaults to `core`.
-    #[facet(default, args::named)]
+    /// Branch selector used to choose release jar Minecraft versions.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// Modrinth project id/slug (defaults to Super Factory Manager).

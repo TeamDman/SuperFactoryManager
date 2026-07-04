@@ -42,7 +42,9 @@ use super::apply_game_test_filter_property;
 use super::artifact_lock_path;
 use super::artifact_portability_audit;
 use super::audit_artifact_lockfile;
+use super::acquire_build_cache_lock;
 use super::build_artifact_lockfile;
+use super::build_cache_lock_path;
 use super::compare_version_text;
 use super::copy_file_to_path_checked;
 use super::diagnostic_counts_from_log_text;
@@ -230,6 +232,71 @@ fn client_automation_options_disable_onboarding_and_focus_pause() {
         .expect("skip regular client options");
     assert_eq!(untouched, None);
     assert!(!client_dir.join("options.txt").exists());
+}
+
+#[test]
+fn build_cache_lock_acquires_when_uncontended() {
+    let test_dir = tempfile::Builder::new()
+        .prefix("sfm-build-cache-lock-")
+        .tempdir()
+        .expect("test temp dir should be created");
+    let mut plan = minimal_plan_for_paths();
+    plan.cache_dir = test_dir.path().join("sfm-toolchain");
+    let options = test_build_options(Parallelism::Sequential);
+
+    let lock = acquire_build_cache_lock(&options, &plan, "test build")
+        .expect("uncontended build cache lock should acquire");
+
+    assert_eq!(lock.path(), build_cache_lock_path(&plan).as_path());
+    assert!(build_cache_lock_path(&plan).is_file());
+    drop(lock);
+}
+
+#[test]
+fn build_cache_lock_fails_fast_when_contended() {
+    let test_dir = tempfile::Builder::new()
+        .prefix("sfm-build-cache-lock-contended-")
+        .tempdir()
+        .expect("test temp dir should be created");
+    let mut plan = minimal_plan_for_paths();
+    plan.cache_dir = test_dir.path().join("sfm-toolchain");
+    let options = test_build_options(Parallelism::Sequential);
+    let held_lock =
+        ArtifactLock::acquire(build_cache_lock_path(&plan), "held build cache").expect("held lock");
+
+    let error = acquire_build_cache_lock(&options, &plan, "test build")
+        .expect_err("contended build cache lock should fail fast");
+    let message = error.to_string();
+
+    assert!(message.contains("SFM build cache for branch 1.19.2 is already locked"));
+    assert!(message.contains("--wait-for-build-lock"));
+    drop(held_lock);
+}
+
+#[test]
+fn build_cache_lock_waits_when_requested() {
+    let test_dir = tempfile::Builder::new()
+        .prefix("sfm-build-cache-lock-wait-")
+        .tempdir()
+        .expect("test temp dir should be created");
+    let mut plan = minimal_plan_for_paths();
+    plan.cache_dir = test_dir.path().join("sfm-toolchain");
+    let mut options = test_build_options(Parallelism::Sequential);
+    options.wait_for_build_lock = true;
+    let held_lock =
+        ArtifactLock::acquire(build_cache_lock_path(&plan), "held build cache").expect("held lock");
+    let release_thread = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(40));
+        drop(held_lock);
+    });
+
+    let started = Instant::now();
+    let lock = acquire_build_cache_lock(&options, &plan, "test build")
+        .expect("wait mode should acquire after held lock drops");
+
+    assert!(started.elapsed() >= Duration::from_millis(30));
+    drop(lock);
+    release_thread.join().expect("release thread should finish");
 }
 
 #[test]
@@ -2353,6 +2420,7 @@ fn test_build_options(parallelism: Parallelism) -> BuildOptions {
         require_portable_artifacts: false,
         error_action: ErrorAction::Bail,
         parallelism,
+        wait_for_build_lock: false,
         mode: BuildMode::Plan,
     }
 }

@@ -11,8 +11,8 @@ use std::path::PathBuf;
 /// Options for comparing Gradle and Rust-built jars.
 #[derive(Facet, Debug, Clone)]
 pub struct JarCompareArgs {
-    /// Branch selector to compare. Defaults to `core`.
-    #[facet(default, args::named)]
+    /// Branch selector to compare.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// Override the expected Gradle-built jar path.

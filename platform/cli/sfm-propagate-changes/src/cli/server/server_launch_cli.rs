@@ -5,8 +5,8 @@ use figue as args;
 /// Arguments for launching tracked servers.
 #[derive(Facet, Debug)]
 pub struct ServerLaunchArgs {
-    /// Branch selector used to choose tracked server Minecraft versions. Defaults to `core`.
-    #[facet(default, args::named)]
+    /// Branch selector used to choose tracked server Minecraft versions.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 }
 
