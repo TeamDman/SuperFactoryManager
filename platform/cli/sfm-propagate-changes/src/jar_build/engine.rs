@@ -56,6 +56,7 @@ use std::fs::OpenOptions;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Cursor;
+use std::io::IsTerminal as _;
 use std::io::Read;
 use std::io::Seek;
 use std::io::Write;

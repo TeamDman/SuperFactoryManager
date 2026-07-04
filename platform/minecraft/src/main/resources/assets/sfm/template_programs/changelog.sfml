@@ -15,6 +15,7 @@ NAME "Changelog"
 -- Fix `/sfm config edit server` program cache invalidation #549
 -- Add configurable keymapping for opening the label gun GUI #554
 -- Fix label gun clear modifier tooltip
+-- Fix SFM Classic resource pack not loading on 26.1.2 #548
 -- Fix Ctrl+I container inspector overlay text being invisible on 26.1.2 #555
 
 ---- 4.33.0 ----
