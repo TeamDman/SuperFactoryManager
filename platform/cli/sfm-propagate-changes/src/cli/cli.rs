@@ -64,6 +64,8 @@ pub enum Command {
     Dependency(super::dependency::DependencyArgs),
     /// JDK discovery and selection commands
     Jdk(super::jdk::JdkArgs),
+    /// Prism loader metadata commands
+    Loader(super::loader::LoaderArgs),
     /// Modrinth release related commands
     Modrinth(super::modrinth::ModrinthArgs),
     /// Jar directory and release artifact related commands
@@ -92,6 +94,7 @@ impl Command {
             Command::Curseforge(args) => args.invoke(),
             Command::Dependency(args) => args.invoke(cancellation_token),
             Command::Jdk(args) => args.invoke(),
+            Command::Loader(args) => args.invoke(),
             Command::Modrinth(args) => args.invoke(),
             Command::Jar(args) => args.invoke(cancellation_token),
             Command::Run(args) => args.invoke(cancellation_token),
@@ -835,11 +838,13 @@ mod tests {
         let commands = [
             &["run", "compile"][..],
             &["run", "client"],
+            &["client", "launch"],
             &["jar", "plan"],
             &["jar", "build"],
             &["jar", "compare"],
             &["jar", "audit-artifacts"],
             &["gradle", "run", "runData"],
+            &["loader", "list"],
             &["source", "audit"],
             &["server", "list"],
             &["server", "launch"],
@@ -994,6 +999,30 @@ mod tests {
             .expect("jdk list should parse")
             .get_silent();
         assert!(matches!(cli.command, Command::Jdk(_)));
+    }
+
+    #[test]
+    fn parses_loader_list() {
+        let cli = figue::from_slice::<Cli>(&["loader", "list", "--branch", "core"])
+            .into_result()
+            .expect("loader list should parse")
+            .get_silent();
+        assert!(matches!(cli.command, Command::Loader(_)));
+    }
+
+    #[test]
+    fn parses_client_open_and_launch() {
+        let open = figue::from_slice::<Cli>(&["client", "open"])
+            .into_result()
+            .expect("client open should parse")
+            .get_silent();
+        assert!(matches!(open.command, Command::Client(_)));
+
+        let launch = figue::from_slice::<Cli>(&["client", "launch", "--branch", "core"])
+            .into_result()
+            .expect("client launch should parse")
+            .get_silent();
+        assert!(matches!(launch.command, Command::Client(_)));
     }
 
     #[test]
