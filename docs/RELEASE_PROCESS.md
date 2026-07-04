@@ -158,22 +158,22 @@ This phase makes the new builds available for download on CurseForge.
 
 1. Run CurseForge metadata check command from repo root:
     ```pwsh
-    sfm-propagate-changes.exe curseforge release check
+    sfm-propagate-changes.exe curseforge release check --branch core
     ```
 2. Run CurseForge upload command from repo root:
     ```pwsh
-    sfm-propagate-changes.exe curseforge release now
+    sfm-propagate-changes.exe curseforge release now --branch core
     ```
 
 ## Phase 14 - Publishing to Modrinth
 
 1. Run Modrinth metadata check command from repo root:
     ```pwsh
-    sfm-propagate-changes.exe modrinth release check
+    sfm-propagate-changes.exe modrinth release check --branch core
     ```
 2. Run Modrinth upload command from repo root:
     ```pwsh
-    sfm-propagate-changes.exe modrinth release now
+    sfm-propagate-changes.exe modrinth release now --branch core
     ```
 
 
