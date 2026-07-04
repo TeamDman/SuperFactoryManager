@@ -14,6 +14,9 @@ impl BranchSelector {
     ///
     /// Returns an error when the selector expression is invalid.
     pub fn into_query(self) -> eyre::Result<BranchQuery> {
+        if self.0.trim().eq_ignore_ascii_case("popular") {
+            return crate::cli::curseforge::resolve_cached_popular_branch_query();
+        }
         BranchQuery::parse(&self.0)
     }
 }
