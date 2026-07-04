@@ -83,8 +83,8 @@ This phase ensures that the built jar files behave as expected.
 Historical anecdotes include builds being successful but with missing textures, missing translation entries, and other behaviour that is not obvious until testing outside of the IDE.
 
 1. Run `sfm-propagate-changes.exe client set-instances-dir <path>` if the Prism Launcher instances directory has not been configured on this machine
-2. Run `sfm-propagate-changes.exe client sync --branch core --loader pinned` to ensure each Prism Launcher verification instance exists, is tracked, uses the Gradle-inferred loader/JDK from the last clean-slate build plan, and has the latest jar file
-    1. Optional: run `sfm-propagate-changes.exe loader list --branch core` to compare the pinned loader against Prism's recommended/latest metadata before intentionally testing with `--loader recommended` or `--loader latest`
+2. Run `sfm-propagate-changes.exe client sync --branch core --loader pinned` to ensure each Prism Launcher verification instance exists, is tracked, uses the Gradle-inferred loader/JDK from the last clean-slate build plan when Prism metadata can resolve it, and has the latest jar file
+    1. Optional: run `sfm-propagate-changes.exe loader list --branch core` to compare the pinned loader against Prism's recommended/latest metadata; if Prism metadata does not include a pinned loader, sync will fall back to a resolvable recommended/latest loader
 3. Run `sfm-propagate-changes.exe jar update-servers` to ensure each tracked dedicated server has the latest jar file
 4. Optional: run `sfm-propagate-changes.exe client open` to open Prism Launcher without launching a verification instance
 
@@ -92,8 +92,8 @@ Historical anecdotes include builds being successful but with missing textures, 
 
 The following steps must run for each MC version.
 
-1. Run `sfm-propagate-changes.exe client launch --branch core` to issue Prism Launcher launch requests for the verification instances sequentially
-2. In another terminal, run `sfm-propagate-changes.exe server launch --branch core` to run the dedicated servers sequentially
+1. Run `sfm-propagate-changes.exe client launch --branch popular` to issue Prism Launcher launch requests for the verification instances sequentially
+2. In another terminal, run `sfm-propagate-changes.exe server launch --branch popular` to run the dedicated servers sequentially
 3. Launch version from PrismMC
 4. Multiplayer -> join localhost
 5. Build new setup from scratch to ensure core gameplay loop is functional
