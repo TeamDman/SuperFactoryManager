@@ -81,10 +81,7 @@ impl JarCollectArgs {
                 continue;
             };
 
-            let destination = jar_dir.join(
-                jar.file_name()
-                    .ok_or_else(|| eyre::eyre!("Jar filename missing: {}", jar.display()))?,
-            );
+            let destination = jar_dir.join(super::jar_shared::release_jar_file_name(&jar)?);
 
             std::fs::copy(&jar, &destination).wrap_err_with(|| {
                 format!(
