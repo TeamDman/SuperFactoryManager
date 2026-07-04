@@ -197,7 +197,6 @@ public class ItemWorldRenderer {
 
         // Draw labels
         poseStack.pushPose();
-        poseStack.translate(-camera.position().x, -camera.position().y, -camera.position().z);
         for (Map.Entry<BlockPos, Collection<String>> entry : labelsByPosition.asMap().entrySet()) {
             BlockPos pos = entry.getKey();
             Collection<String> labels = entry.getValue();
@@ -338,7 +337,11 @@ public class ItemWorldRenderer {
             Collection<String> labels
     ) {
         poseStack.pushPose();
-        poseStack.translate(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+        poseStack.translate(
+                pos.getX() + 0.5 - camera.position().x,
+                pos.getY() + 0.5 - camera.position().y,
+                pos.getZ() + 0.5 - camera.position().z
+        );
         poseStack.mulPose(camera.rotation());
         poseStack.mulPose(Axis.YP.rotationDegrees(180));
         poseStack.scale(-0.025f, -0.025f, 0.025f);
