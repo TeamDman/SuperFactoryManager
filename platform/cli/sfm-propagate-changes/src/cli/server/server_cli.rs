@@ -2,8 +2,10 @@ use super::ServerAddArgs;
 use super::ServerLaunchArgs;
 use super::ServerListArgs;
 use super::ServerRemoveArgs;
+use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::select_required_minecraft_versions;
 use crate::cli::jar::BranchSelector;
+use crate::jdk::resolve_exact_java;
 use crate::paths::APP_HOME;
 use crate::worktree::parse_version;
 use eyre::Context;
@@ -183,33 +185,41 @@ pub(super) fn launch_servers(branch: BranchSelector) -> eyre::Result<()> {
             );
         }
 
+        let java = resolve_exact_java(required_server_java_release(&target.mc_version)?)?;
+        let path = prepend_java_to_path(&java.executable)?;
         info!(
             path = %target.path.display(),
             mc_version = %target.mc_version,
+            java = %java.executable.display(),
             "Launching server"
         );
-
         let status = if cfg!(windows) {
-            Command::new("cmd")
-                .args(["/C", "run.bat"])
-                .current_dir(&target.path)
-                .status()
-                .wrap_err_with(|| {
-                    format!(
-                        "Failed to execute run.bat for server target: {}",
-                        target.path.display()
-                    )
-                })?
+            let mut command = Command::new("cmd");
+            command.args(["/C", "run.bat"]);
+            command.current_dir(&target.path);
+            command.env("PATH", &path);
+            if let Some(home) = &java.home {
+                command.env("JAVA_HOME", home);
+            }
+            command.status().wrap_err_with(|| {
+                format!(
+                    "Failed to execute run.bat for server target: {}",
+                    target.path.display()
+                )
+            })?
         } else {
-            Command::new(&run_bat)
-                .current_dir(&target.path)
-                .status()
-                .wrap_err_with(|| {
-                    format!(
-                        "Failed to execute run.bat for server target: {}",
-                        target.path.display()
-                    )
-                })?
+            let mut command = Command::new(&run_bat);
+            command.current_dir(&target.path);
+            command.env("PATH", &path);
+            if let Some(home) = &java.home {
+                command.env("JAVA_HOME", home);
+            }
+            command.status().wrap_err_with(|| {
+                format!(
+                    "Failed to execute run.bat for server target: {}",
+                    target.path.display()
+                )
+            })?
         };
 
         if !status.success() {
@@ -223,6 +233,32 @@ pub(super) fn launch_servers(branch: BranchSelector) -> eyre::Result<()> {
 
     info!("All selected servers exited successfully.");
     Ok(())
+}
+
+fn required_server_java_release(mc_version: &str) -> eyre::Result<u32> {
+    let version = MinecraftVersion::parse(mc_version)?;
+    if version >= MinecraftVersion::parse("26.0.0")? {
+        Ok(25)
+    } else if version >= MinecraftVersion::parse("1.21")? {
+        Ok(21)
+    } else {
+        Ok(17)
+    }
+}
+
+fn prepend_java_to_path(java_executable: &Path) -> eyre::Result<String> {
+    let Some(java_bin) = java_executable.parent() else {
+        eyre::bail!(
+            "Java executable has no parent directory: {}",
+            java_executable.display()
+        );
+    };
+    let current_path = std::env::var_os("PATH").unwrap_or_default();
+    let mut paths = std::env::split_paths(&current_path).collect::<Vec<_>>();
+    paths.insert(0, java_bin.to_path_buf());
+    std::env::join_paths(paths)
+        .wrap_err_with(|| format!("Failed to prepend Java bin to PATH: {}", java_bin.display()))
+        .map(|path| path.to_string_lossy().into_owned())
 }
 
 fn apply_branch_filter(
@@ -352,4 +388,17 @@ fn extract_version_token(input: &str) -> Option<String> {
 
 pub(super) fn normalize_for_match(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::required_server_java_release;
+
+    #[test]
+    fn server_java_release_tracks_minecraft_lines() {
+        assert_eq!(required_server_java_release("1.20.4").unwrap(), 17);
+        assert_eq!(required_server_java_release("1.21").unwrap(), 21);
+        assert_eq!(required_server_java_release("1.21.1").unwrap(), 21);
+        assert_eq!(required_server_java_release("26.1.2").unwrap(), 25);
+    }
 }
