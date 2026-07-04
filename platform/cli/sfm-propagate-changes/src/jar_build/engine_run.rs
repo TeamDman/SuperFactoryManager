@@ -306,6 +306,12 @@ struct LaunchOutput {
     cancelled: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LaunchOutputMode {
+    Terminal,
+    LogFile,
+}
+
 #[derive(Debug)]
 struct CancellableOutput {
     status: ExitStatus,
@@ -2530,6 +2536,8 @@ fn run_launch_command(
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)?;
     }
+    let output_mode = launch_output_mode();
+    let launch_log = prepare_launch_log_file(output_mode, argfile, working_dir, log_path)?;
     let mut child = Command::new(&plan.java.executable)
         .arg(format!("@{}", argfile.display()))
         .current_dir(working_dir)
@@ -2550,11 +2558,29 @@ fn run_launch_command(
         .ok_or_else(|| eyre::eyre!("Failed to capture launch stderr"))?;
     let stdout_branch = plan.branch_name.clone();
     let stderr_branch = plan.branch_name.clone();
+    let stdout_launch_log = launch_log.clone();
+    let stderr_launch_log = launch_log.clone();
     let stdout_thread = thread::spawn(move || {
-        read_launch_stream(stdout, &stdout_branch, "minecraft", "minecraft", "stdout")
+        read_launch_stream(
+            stdout,
+            &stdout_branch,
+            "minecraft",
+            "minecraft",
+            "stdout",
+            output_mode,
+            stdout_launch_log,
+        )
     });
     let stderr_thread = thread::spawn(move || {
-        read_launch_stream(stderr, &stderr_branch, "minecraft", "minecraft", "stderr")
+        read_launch_stream(
+            stderr,
+            &stderr_branch,
+            "minecraft",
+            "minecraft",
+            "stderr",
+            output_mode,
+            stderr_launch_log,
+        )
     });
     let started = Instant::now();
     let mut timed_out = false;
@@ -2587,21 +2613,95 @@ fn run_launch_command(
     let stdout_text = join_launch_stream(stdout_thread, "stdout")?;
     let stderr_text = join_launch_stream(stderr_thread, "stderr")?;
     let combined = format!("{stdout_text}{stderr_text}");
-    let mut log = String::new();
-    writeln!(log, "status={status}")?;
-    writeln!(log, "timed_out={timed_out}")?;
-    writeln!(log, "cancelled={cancelled}")?;
-    writeln!(log, "argfile={}", argfile.display())?;
-    writeln!(log, "working_dir={}", working_dir.display())?;
-    writeln!(log)?;
-    log.push_str(&combined);
-    fs::write(log_path, log).wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+    finish_launch_log(
+        output_mode,
+        launch_log,
+        log_path,
+        argfile,
+        working_dir,
+        status,
+        timed_out,
+        cancelled,
+        &combined,
+    )?;
     Ok(LaunchOutput {
         status,
         combined,
         timed_out,
         cancelled,
     })
+}
+
+fn launch_output_mode() -> LaunchOutputMode {
+    if std::io::stdout().is_terminal() {
+        LaunchOutputMode::Terminal
+    } else {
+        LaunchOutputMode::LogFile
+    }
+}
+
+fn prepare_launch_log_file(
+    output_mode: LaunchOutputMode,
+    argfile: &Path,
+    working_dir: &Path,
+    log_path: &Path,
+) -> eyre::Result<Option<Arc<Mutex<File>>>> {
+    if output_mode == LaunchOutputMode::Terminal {
+        return Ok(None);
+    }
+
+    let mut log =
+        File::create(log_path).wrap_err_with(|| format!("Failed to create {}", log_path.display()))?;
+    writeln!(log, "argfile={}", argfile.display())?;
+    writeln!(log, "working_dir={}", working_dir.display())?;
+    writeln!(log)?;
+    tracing::info!("Minecraft JVM output will be written to {}", log_path.display());
+    Ok(Some(Arc::new(Mutex::new(log))))
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "The launch footer records the child process outcome and its launch context."
+)]
+fn finish_launch_log(
+    output_mode: LaunchOutputMode,
+    launch_log: Option<Arc<Mutex<File>>>,
+    log_path: &Path,
+    argfile: &Path,
+    working_dir: &Path,
+    status: ExitStatus,
+    timed_out: bool,
+    cancelled: bool,
+    combined: &str,
+) -> eyre::Result<()> {
+    match output_mode {
+        LaunchOutputMode::Terminal => {
+            let mut log = String::new();
+            writeln!(log, "status={status}")?;
+            writeln!(log, "timed_out={timed_out}")?;
+            writeln!(log, "cancelled={cancelled}")?;
+            writeln!(log, "argfile={}", argfile.display())?;
+            writeln!(log, "working_dir={}", working_dir.display())?;
+            writeln!(log)?;
+            log.push_str(combined);
+            fs::write(log_path, log)
+                .wrap_err_with(|| format!("Failed to write {}", log_path.display()))?;
+        }
+        LaunchOutputMode::LogFile => {
+            let launch_log =
+                launch_log.ok_or_else(|| eyre::eyre!("Missing launch log file handle"))?;
+            let mut log = launch_log
+                .lock()
+                .map_err(|_poisoned| eyre::eyre!("Launch log file lock was poisoned"))?;
+            writeln!(log)?;
+            writeln!(log, "status={status}")?;
+            writeln!(log, "timed_out={timed_out}")?;
+            writeln!(log, "cancelled={cancelled}")?;
+            log.flush()?;
+            tracing::info!("Minecraft JVM output written to {}", log_path.display());
+        }
+    }
+    Ok(())
 }
 
 #[tracing::instrument(
@@ -2615,18 +2715,45 @@ fn read_launch_stream<R>(
     source: &'static str,
     process: &str,
     stream_name: &'static str,
+    output_mode: LaunchOutputMode,
+    launch_log: Option<Arc<Mutex<File>>>,
 ) -> std::io::Result<String>
 where
     R: Read,
 {
     let mut captured = String::new();
-    for line in BufReader::new(stream).lines() {
-        let line = line?;
-        trace_subprocess_line(source, process, stream_name, &line);
-        captured.push_str(&line);
-        captured.push('\n');
+    match launch_log {
+        Some(launch_log) => {
+            for line in BufReader::new(stream).lines() {
+                let line = line?;
+                if output_mode == LaunchOutputMode::Terminal {
+                    trace_subprocess_line(source, process, stream_name, &line);
+                }
+                write_launch_log_line(&launch_log, &line)?;
+                captured.push_str(&line);
+                captured.push('\n');
+            }
+        }
+        None => {
+            for line in BufReader::new(stream).lines() {
+                let line = line?;
+                if output_mode == LaunchOutputMode::Terminal {
+                    trace_subprocess_line(source, process, stream_name, &line);
+                }
+                captured.push_str(&line);
+                captured.push('\n');
+            }
+        }
     }
     Ok(captured)
+}
+
+fn write_launch_log_line(launch_log: &Arc<Mutex<File>>, line: &str) -> std::io::Result<()> {
+    let mut log = launch_log
+        .lock()
+        .map_err(|_poisoned| std::io::Error::other("launch log file lock was poisoned"))?;
+    writeln!(log, "{line}")?;
+    Ok(())
 }
 
 fn join_launch_stream(
