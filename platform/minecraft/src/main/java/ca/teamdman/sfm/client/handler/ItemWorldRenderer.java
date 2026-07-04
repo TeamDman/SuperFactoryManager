@@ -274,7 +274,7 @@ public class ItemWorldRenderer {
             int color,
             RenderLevelStageEvent event
     ) {
-        VertexBuffer vbo = vboCache.getVBO(
+        VBOCache.VBOEntry entry = vboCache.getVBO(
                 vboKind,
                 positions,
                 event,
@@ -283,20 +283,20 @@ public class ItemWorldRenderer {
                 FastColor.ARGB32.blue(color),
                 FastColor.ARGB32.alpha(color)
         );
-        if (vbo != null) {
+        if (entry != null) {
             poseStack.pushPose();
             // we need to pass in a new destination quaternion to avoid undesired camera mutation
             poseStack.mulPose(event.getCamera().rotation().invert(new Quaternionf()));
             poseStack.translate(
-                    -event.getCamera().getPosition().x,
-                    -event.getCamera().getPosition().y,
-                    -event.getCamera().getPosition().z
+                    entry.origin.getX() - event.getCamera().getPosition().x,
+                    entry.origin.getY() - event.getCamera().getPosition().y,
+                    entry.origin.getZ() - event.getCamera().getPosition().z
             );
 
             // Draw the VBO
-            vbo.bind();
+            entry.vbo.bind();
             assert GameRenderer.getPositionColorShader() != null;
-            vbo.drawWithShader(
+            entry.vbo.drawWithShader(
                     poseStack.last().pose(),
                     event.getProjectionMatrix(),
                     GameRenderer.getPositionColorShader()
@@ -419,7 +419,7 @@ public class ItemWorldRenderer {
         private final EnumMap<VBOKind, VBOEntry> cache = new EnumMap<>(VBOKind.class);
         private int lastChangeCheck = -1;
 
-        public @Nullable VertexBuffer getVBO(
+        public @Nullable VBOEntry getVBO(
                 VBOKind kind,
                 BlockPosSet positions,
                 RenderLevelStageEvent event,
@@ -450,17 +450,19 @@ public class ItemWorldRenderer {
                 }
 
                 // Create a new VBO
-                VertexBuffer vbo = createVBO(positions, r, g, b, a);
+                BlockPos origin = getOrigin(positions);
+                VertexBuffer vbo = createVBO(positions, origin, r, g, b, a);
 
                 // Cache the new VBO
                 entry = new VBOEntry(
                         new BlockPosSet(positions), // create immutable copy just in case
+                        origin,
                         vbo
                 );
                 cache.put(kind, entry);
             }
 
-            return entry.vbo;
+            return entry;
         }
 
         public void clear() {
@@ -481,6 +483,7 @@ public class ItemWorldRenderer {
 
         private VertexBuffer createVBO(
                 BlockPosSet positions,
+                BlockPos origin,
                 int r,
                 int g,
                 int b,
@@ -495,7 +498,11 @@ public class ItemWorldRenderer {
             // Push vertices
             for (BlockPos blockPos : positions.blockPosIterator()) {
                 poseStack.pushPose();
-                poseStack.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+                poseStack.translate(
+                        blockPos.getX() - origin.getX(),
+                        blockPos.getY() - origin.getY(),
+                        blockPos.getZ() - origin.getZ()
+                );
                 Matrix4f matrix4f = poseStack.last().pose();
                 for (Direction face : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
                     if (!positions.contains(blockPos.relative(face))) {
@@ -514,8 +521,17 @@ public class ItemWorldRenderer {
             return vbo;
         }
 
+        private BlockPos getOrigin(BlockPosSet positions) {
+            var iterator = positions.blockPosIterator();
+            if (!iterator.hasNext()) {
+                return BlockPos.ZERO;
+            }
+            return iterator.next().immutable();
+        }
+
         private record VBOEntry(
                 BlockPosSet positions,
+                BlockPos origin,
                 VertexBuffer vbo
         ) {
         }
