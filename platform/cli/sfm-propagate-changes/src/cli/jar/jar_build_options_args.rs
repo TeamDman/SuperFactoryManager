@@ -14,8 +14,8 @@ use std::path::PathBuf;
     reason = "This type is a thin CLI flag container; each bool maps directly to a named flag."
 )]
 pub struct JarBuildOptionsArgs {
-    /// Branch selector to build. Defaults to `core`.
-    #[facet(default, args::named)]
+    /// Branch selector to build.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// Ignore reusable SFM-owned cache state and recompute resolved metadata.
@@ -57,6 +57,10 @@ pub struct JarBuildOptionsArgs {
     /// Run matching targets in parallel. Bare `--parallel` defaults to 10.
     #[facet(default, args::named)]
     pub parallel: Option<Option<usize>>,
+
+    /// Wait for another SFM build/run using the same branch build cache instead of failing fast.
+    #[facet(default = false, args::named)]
+    pub wait_for_build_lock: bool,
 }
 
 impl JarBuildOptionsArgs {
@@ -73,6 +77,7 @@ impl JarBuildOptionsArgs {
             require_portable_artifacts: self.require_portable_artifacts,
             error_action: self.error_action,
             parallelism: Parallelism::from_cli(self.parallel)?,
+            wait_for_build_lock: self.wait_for_build_lock,
             mode,
         })
     }

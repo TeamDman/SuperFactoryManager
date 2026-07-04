@@ -25,8 +25,8 @@ use tracing::info;
 /// Arguments for validating remote CurseForge files against local release jars.
 #[derive(Facet, Debug)]
 pub struct CurseforgeReleaseValidateArgs {
-    /// Branch selector expression. Defaults to core worktrees.
-    #[facet(default, args::named)]
+    /// Branch selector expression.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// CurseForge project ID (defaults to configured default project).

@@ -11,8 +11,8 @@ use std::path::PathBuf;
 /// Options for auditing locked SFM toolchain artifacts.
 #[derive(Facet, Debug, Clone)]
 pub struct JarArtifactAuditArgs {
-    /// Branch selector to audit. Defaults to `core`.
-    #[facet(default, args::named)]
+    /// Branch selector to audit.
+    #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// Optional path to write a structured artifact audit report.
