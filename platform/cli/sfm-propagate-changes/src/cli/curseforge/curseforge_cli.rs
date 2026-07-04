@@ -5,6 +5,7 @@
 //! https://www.curseforge.com/minecraft/mc-mods/super-factory-manager Project ID - 306935
 
 use crate::branch_targets::BranchQuery;
+use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::select_required_minecraft_versions;
 use crate::curseforge::CurseforgeAmendFilePayload;
 use crate::curseforge::CurseforgeGameVersion;
@@ -43,6 +44,7 @@ pub(super) const CURSEFORGE_CORE_API_ROOT: &str = "https://api.curseforge.com/v1
 pub(super) const CURSEFORGE_DEFAULT_PROJECT_FILE: &str = "curseforge_project_id.txt";
 pub(super) const CURSEFORGE_DEFAULT_PROJECT_ID: u64 = 306_935;
 pub(super) const DEFAULT_AMEND_SAFETY_AGE: &str = "30m";
+pub(super) const POPULAR_DOWNLOAD_THRESHOLD: u64 = 1_000;
 pub(super) const CURSEFORGE_AUTHORS_FILES_URL_PREFIX: &str =
     "https://authors.curseforge.com/#/projects";
 
@@ -140,6 +142,56 @@ pub(super) fn fetch_project_files(
     let envelope: CurseforgeProjectFileListEnvelope =
         facet_json::from_str(&body).wrap_err("Failed to parse project files response JSON")?;
     Ok(envelope.data)
+}
+
+pub(crate) fn latest_two_release_files_for_mc<'a>(
+    files: &'a [CurseforgeProjectFileItem],
+    mc_version: &MinecraftVersion,
+) -> Vec<&'a CurseforgeProjectFileItem> {
+    let mut release_files = files
+        .iter()
+        .filter(|file| {
+            file.game_versions
+                .iter()
+                .any(|version| version == mc_version.as_str())
+        })
+        .filter_map(|file| {
+            let version = historical_mod_version_parts(file)?;
+            Some((version, file))
+        })
+        .collect::<Vec<_>>();
+
+    release_files.sort_by(|(left_version, left_file), (right_version, right_file)| {
+        right_version
+            .cmp(left_version)
+            .then_with(|| right_file.id.cmp(&left_file.id))
+    });
+
+    let mut latest_files = Vec::new();
+    let mut seen_versions = BTreeSet::new();
+    for (version, file) in release_files {
+        if !seen_versions.insert(version) {
+            continue;
+        }
+        latest_files.push(file);
+        if latest_files.len() == 2 {
+            break;
+        }
+    }
+
+    latest_files
+}
+
+fn historical_mod_version_parts(file: &CurseforgeProjectFileItem) -> Option<Vec<u32>> {
+    historical_mod_version(file).and_then(|version| parse_dotted_u32_version(&version))
+}
+
+fn parse_dotted_u32_version(version: &str) -> Option<Vec<u32>> {
+    let mut parts = Vec::new();
+    for part in version.split('.') {
+        parts.push(part.parse().ok()?);
+    }
+    (!parts.is_empty()).then_some(parts)
 }
 
 pub(super) fn build_resolved_metadata_plans(
