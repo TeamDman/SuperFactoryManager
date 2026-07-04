@@ -1,6 +1,5 @@
 use crate::branch_targets::WorktreeTarget;
-use crate::jar_build::json_path::JsonOptionalPath;
-use crate::jar_build::json_path::JsonPath;
+use crate::jdk::resolve_exact_java;
 use crate::prism::meta::PrismLoaderSelection;
 use crate::prism::meta::resolve_loader_component;
 use crate::prism::meta::resolve_lwjgl_component;
@@ -62,19 +61,8 @@ pub struct PrismComponent {
 struct LastBuildPlan {
     branch_name: String,
     minecraft_version: String,
-    java: LastBuildJavaPlan,
+    java_release: u32,
     loader_toolchain: LastBuildLoaderToolchainPlan,
-}
-
-#[derive(Debug, Facet)]
-struct LastBuildJavaPlan {
-    #[facet(proxy = JsonPath)]
-    executable: PathBuf,
-    #[facet(default)]
-    #[facet(proxy = JsonOptionalPath)]
-    home: Option<PathBuf>,
-    version_output: String,
-    major_version: u32,
 }
 
 #[derive(Debug, Facet)]
@@ -98,15 +86,16 @@ pub fn instance_plan_for_target(
         loader_selection,
     )?;
     let lwjgl = resolve_lwjgl_component(&plan.minecraft_version)?;
+    let runtime_java = resolve_exact_java(plan.java_release)?;
     Ok(PrismInstancePlan {
         branch: plan.branch_name,
         minecraft_version: plan.minecraft_version,
         loader,
         java: PrismJavaPlan {
-            executable: plan.java.executable,
-            home: plan.java.home,
-            major_version: plan.java.major_version,
-            version_output: plan.java.version_output,
+            executable: runtime_java.executable,
+            home: runtime_java.home,
+            major_version: runtime_java.major_version,
+            version_output: runtime_java.version_output,
         },
         lwjgl,
     })
