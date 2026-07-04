@@ -21,5 +21,6 @@ pub struct BuildOptions {
     pub require_portable_artifacts: bool,
     pub error_action: ErrorAction,
     pub parallelism: Parallelism,
+    pub wait_for_build_lock: bool,
     pub mode: BuildMode,
 }
