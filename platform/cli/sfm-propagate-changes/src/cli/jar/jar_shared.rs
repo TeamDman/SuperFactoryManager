@@ -104,6 +104,7 @@ pub(super) fn pick_jar_for_mod_version(
     mod_version: &str,
 ) -> eyre::Result<Option<PathBuf>> {
     let suffix = format!("-{mod_version}.jar");
+    let rust_suffix = format!("-{mod_version}-rust.jar");
 
     let mut candidates: Vec<PathBuf> = std::fs::read_dir(libs_dir)?
         .filter_map(Result::ok)
@@ -116,15 +117,26 @@ pub(super) fn pick_jar_for_mod_version(
                 && path
                     .file_name()
                     .and_then(OsStr::to_str)
-                    .is_some_and(|name| name.ends_with(&suffix))
+                    .is_some_and(|name| name.ends_with(&suffix) || name.ends_with(&rust_suffix))
         })
         .collect();
 
     candidates.sort_by(|a, b| {
         let a_name = a.file_name().and_then(OsStr::to_str).unwrap_or_default();
         let b_name = b.file_name().and_then(OsStr::to_str).unwrap_or_default();
-        a_name.cmp(b_name)
+        let a_is_rust = a_name.ends_with(&rust_suffix);
+        let b_is_rust = b_name.ends_with(&rust_suffix);
+        a_is_rust.cmp(&b_is_rust).then_with(|| a_name.cmp(b_name))
     });
 
     Ok(candidates.into_iter().next())
+}
+
+pub(super) fn release_jar_file_name(jar: &Path) -> eyre::Result<String> {
+    let file_name = jar
+        .file_name()
+        .and_then(OsStr::to_str)
+        .ok_or_else(|| eyre::eyre!("Jar filename missing or invalid UTF-8: {}", jar.display()))?;
+
+    Ok(file_name.replace("-rust.jar", ".jar"))
 }
