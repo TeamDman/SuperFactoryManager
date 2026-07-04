@@ -11,6 +11,7 @@ pub mod modrinth;
 pub mod one_password;
 pub mod panic;
 pub mod paths;
+pub mod prism;
 pub mod propagate;
 pub mod sfm_path;
 pub mod source_audit;
