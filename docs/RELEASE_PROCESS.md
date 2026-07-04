@@ -15,11 +15,11 @@ To make a release, something should have changed about the mod.
 These steps must be performed at the start of the release process.
 
 1. Bring [known_issues.sfml](../platform/minecraft/src/main/resources/assets/sfm/template_programs/known_issues.sfml) up to date
-3. Bump `mod_version` in [gradle.properties](../platform/minecraft/gradle.properties)
-4. Ensure heading correctness in [changelog.sfml](../platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml) (remove any indications of this being a pre-release)
-5. Bring [thank_you.sfml](../platform/minecraft/src/main/resources/assets/sfm/template_programs/thank_you.sfml) up to date with the names of any new patrons
-6. Commit changes to git
-7. Run `sfm-propagate-changes.exe git merge` to ensure all MC versions have all the latest SFM code
+2. Bump `mod_version` in [gradle.properties](../platform/minecraft/gradle.properties)
+3. Ensure heading correctness in [changelog.sfml](../platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml) (remove any indications of this being a pre-release)
+4. Bring [thank_you.sfml](../platform/minecraft/src/main/resources/assets/sfm/template_programs/thank_you.sfml) up to date with the names of any new patrons
+5. Commit changes to git
+6. Run `sfm-propagate-changes.exe git merge` to ensure all MC versions have all the latest SFM code
 
 ## Phase 2 - Running Datagen
 
@@ -106,7 +106,8 @@ The following steps must run for each MC version.
 
 1. Run `sfm-propagate-changes.exe git merge`
 2. Run `sfm-propagate-changes.exe git tag`
-2. Run `sfm-propagate-changes.exe git push --tags`
+3. Run `sfm-propagate-changes.exe git push --tags`
+4. Run `sfm-propagate-changes.exe git push`
 
 ## Phase 8 - Publishing to GitHub
 
