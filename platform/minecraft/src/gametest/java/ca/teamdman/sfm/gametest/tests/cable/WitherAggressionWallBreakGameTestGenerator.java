@@ -123,6 +123,12 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
         }
 
         @Override
+        public String batchName() {
+
+            return "witherAggro";
+        }
+
+        @Override
         public int maxTicks() {
 
             return 260;
