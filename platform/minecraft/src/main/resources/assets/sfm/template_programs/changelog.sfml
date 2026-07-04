@@ -11,6 +11,7 @@ NAME "Changelog"
 -- Introduce uk_ua localizations, thanks @Tenwoc #529
 -- Make fancy cables waterloggable, thanks @myrolorin #541
 -- Fix falling anvil items spawning in corner, thanks @Qther #536
+-- Fix falling anvil experience shard JEI catalyst display using hardcoded obsidian instead of the configured tag #532
 -- Fix `/sfm config edit server` program cache invalidation #549
 -- Add configurable keymapping for opening the label gun GUI #554
 -- Fix label gun clear modifier tooltip
