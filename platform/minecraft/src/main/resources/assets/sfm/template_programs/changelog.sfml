@@ -17,6 +17,7 @@ NAME "Changelog"
 -- Fix label gun clear modifier tooltip
 -- Fix SFM Classic resource pack not loading on 26.1.2 #548
 -- Fix Ctrl+I container inspector overlay text being invisible on 26.1.2 #555
+-- Thank you @Terusia for the support!
 
 ---- 4.33.0 ----
 -- Update to 26.1.2
