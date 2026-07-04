@@ -52,7 +52,7 @@ These checks must be completed before committing release preparation changes.
 
 This phase handles ensuring generated sources are up-to-date.
 
-1. Run `sfm-propagate-changes.exe run data --parallel` to ensure all generated resources are up to date for each MC version.
+1. Run `sfm-propagate-changes.exe run data --parallel --branch '*'` to ensure all generated resources are up to date for each MC version.
     - This was previously `sfm-propagate-changes.exe gradle run runData`.
 2. Run `sfm-propagate-changes.exe git status` to ensure all changes under [src/generated](../platform/minecraft/src/generated/) are committed
 3. Run `sfm-propagate-changes.exe git merge` to ensure merge stability after committing generated files; each branch must keep its own src/generated files during the merge; reject incoming
@@ -61,16 +61,17 @@ This phase handles ensuring generated sources are up-to-date.
 
 This phase ensures that there is no unexpected behaviour in the mod.
 
-1. Run `sfm-propagate-changes.exe run game-test-server --parallel` to ensure all game tests are passing
+1. Run `sfm-propagate-changes.exe run game-test-server --parallel --branch '*'` to ensure all game tests are passing
     - This was previously `sfm-propagate-changes.exe gradle run runGameTestServer`
 
 ## Phase 8 - Building Jarfiles
 
 This phase produces the `.jar` files that users will add to their instance's `mods` directory
 
-1. Run `sfm-propagate-changes.exe gradle run build` to build the jar and ensure all unit tests are passing for each MC version
-2. Run `sfm-propagate-changes.exe jar dir clean` to prepare the destination directory
-3. Run `sfm-propagate-changes.exe jar collect` to collect all the built jar files in one location
+1. Run `sfm-propagate-changes.exe run test --parallel --branch '*'` to ensure all unit tests are passing for each MC version
+2. Run `sfm-propagate-changes.exe jar build --parallel --branch '*'` to build the jar for each MC version
+3. Run `sfm-propagate-changes.exe jar dir clean` to prepare the destination directory
+4. Run `sfm-propagate-changes.exe jar collect` to collect all the built jar files in one location
 
 ## Phase 9 - Verification Preparation
 
