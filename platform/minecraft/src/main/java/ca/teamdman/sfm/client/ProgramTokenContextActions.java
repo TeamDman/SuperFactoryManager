@@ -28,9 +28,9 @@ public class ProgramTokenContextActions {
         var parser = new SFMLParser(tokens);
         var builder = new ASTBuilder();
         try {
-            builder.visitProgram(parser.program());
+            var program = builder.visitProgram(parser.program());
             SFM.LOGGER.info("Gathering context actions for cursor position {}", cursorPosition);
-            return getElementsAroundCursor(cursorPosition, builder)
+            var contextAction = getElementsAroundCursor(cursorPosition, builder)
                     .map(pair -> getContextAction(
                             programString,
                             builder,
@@ -41,6 +41,10 @@ public class ProgramTokenContextActions {
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .findFirst();
+            // ASTBuilder stores node locations as weak references, so keep the parsed root reachable
+            // until after cursor lookup has finished.
+            program.name();
+            return contextAction;
         } catch (Throwable t) {
             return Optional.of(() -> SFMScreenChangeHelpers.showProgramEditScreen("-- Encountered error, program parse failed:\n--"
                                                                                   + t.getMessage()));
