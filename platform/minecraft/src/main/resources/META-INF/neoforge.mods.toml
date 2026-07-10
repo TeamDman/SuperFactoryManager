@@ -96,3 +96,8 @@ side="BOTH"
 modId = "mekanism"
 type="optional"
 versionRange = "[10.3.2,)"
+
+[[dependencies.${ mod_id }]]
+modId = "ars_nouveau"
+type="optional"
+versionRange = "[5.10.0,)"
