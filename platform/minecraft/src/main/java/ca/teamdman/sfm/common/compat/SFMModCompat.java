@@ -16,6 +16,8 @@ public class SFMModCompat {
         return isModLoaded("ae2");
     }
 
+    public static boolean isArsLoaded() {return isModLoaded("ars_nouveau");}
+
     public static boolean isModLoaded(String modid) {
         return ModList.get().getModContainerById(modid).isPresent();
     }

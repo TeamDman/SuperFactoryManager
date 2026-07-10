@@ -66,4 +66,6 @@ dependencies {
     compileOnly "org.appliedenergistics:appliedenergistics2:19.2.15:api"
 
     implementation "curse.maven:building-gadgets-298187:6850515"
+
+    implementation "com.hollingsworth.ars_nouveau:ars_nouveau-1.21.1:5.12.1.1381"
 }

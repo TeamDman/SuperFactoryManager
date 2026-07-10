@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
+import ca.teamdman.sfm.common.compat.SFMArsCompat;
 import ca.teamdman.sfm.common.compat.SFMMekanismCompat;
 import ca.teamdman.sfm.common.compat.SFMModCompat;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
@@ -48,6 +49,10 @@ public class SFMResourceTypes {
     static {
         if (SFMModCompat.isMekanismLoaded()) {
             SFMMekanismCompat.registerResourceTypes(REGISTERER);
+        }
+
+        if (SFMModCompat.isArsLoaded()) {
+            SFMArsCompat.registerResourceTypes(REGISTERER);
         }
     }
 

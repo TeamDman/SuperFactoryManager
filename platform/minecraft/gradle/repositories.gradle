@@ -44,4 +44,15 @@ repositories {
         url 'https://maven.covers1624.net/'
         // https://nexus.covers1624.net/#browse/browse:cofh-releases
     }
+
+    maven {
+        name = 'GeckoLib'
+        url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+        content {
+            includeGroup("software.bernie.geckolib")
+        }
+    }
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net/' }
+    }
 }
