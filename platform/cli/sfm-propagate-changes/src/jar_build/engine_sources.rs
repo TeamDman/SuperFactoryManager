@@ -84,14 +84,7 @@ fn resolve_antlr_classpath(
     resolver: &Resolver,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
-    let dependency_script = context
-        .plan
-        .minecraft_dir
-        .join("gradle")
-        .join("dependencies")
-        .join(context.plan.minecraft_version.as_str())
-        .join("dependencies.gradle");
-    let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
+    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
     context.bail_if_cancelled()?;
     let antlr_version = dependencies
         .iter()
@@ -245,6 +238,8 @@ fn run_antlr(
         grammar_root.join("sfml").join("SFML.g4"),
         grammar_root.join("toml").join("TomlLexer.g4"),
         grammar_root.join("toml").join("TomlParser.g4"),
+        grammar_root.join("antlr4").join("ANTLRv4Lexer.g4"),
+        grammar_root.join("antlr4").join("ANTLRv4Parser.g4"),
     ];
     for grammar in &grammars {
         context.bail_if_cancelled()?;
@@ -409,20 +404,13 @@ fn resolve_compile_dependencies(
     resolver: &Resolver,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
-    let dependency_script = context
-        .plan
-        .minecraft_dir
-        .join("gradle")
-        .join("dependencies")
-        .join(context.plan.minecraft_version.as_str())
-        .join("dependencies.gradle");
-    let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
+    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
     context.bail_if_cancelled()?;
     let mut artifacts = Vec::new();
     for dependency in dependencies
         .iter()
         .filter(|dependency| {
-            !dependency.fg_deobf
+            !dependency.loader_managed()
                 && matches!(
                     dependency.configuration.as_str(),
                     "implementation" | "compileOnly" | "annotationProcessor"

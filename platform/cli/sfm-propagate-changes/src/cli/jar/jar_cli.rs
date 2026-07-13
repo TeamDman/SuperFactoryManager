@@ -5,7 +5,6 @@ use super::JarCompareArgs;
 use super::JarDirArgs;
 use super::JarListArgs;
 use super::JarPlanArgs;
-use super::JarSourcesArgs;
 use super::JarUpdateClientsArgs;
 use super::JarUpdateServersArgs;
 use crate::cancellation::CancellationToken;
@@ -41,20 +40,18 @@ pub enum JarCommand {
     Build(JarBuildArgs),
     /// Compare the Gradle jar against the Rust-built jar
     Compare(JarCompareArgs),
-    /// Output transformed source jar paths or expanded source file trees
-    Sources(JarSourcesArgs),
     /// Verify locked artifact cache and source provenance
-    #[facet(rename = "audit-artifacts")]
+    #[facet]
     AuditArtifacts(JarArtifactAuditArgs),
     /// Collect jars from each MC version based on that version's `mod_version`
     Collect(JarCollectArgs),
     /// List jars in the configured jar directory
     List(JarListArgs),
     /// Remove old SFM jar(s) and copy tracked-version jar to each tracked client mods folder
-    #[facet(rename = "update-clients")]
+    #[facet]
     UpdateClients(JarUpdateClientsArgs),
     /// Remove old SFM jar(s) and copy tracked-version jar to each tracked server mods folder
-    #[facet(rename = "update-servers")]
+    #[facet]
     UpdateServers(JarUpdateServersArgs),
 }
 
@@ -68,7 +65,6 @@ impl JarCommand {
             JarCommand::Plan(args) => args.invoke(cancellation_token),
             JarCommand::Build(args) => args.invoke(cancellation_token),
             JarCommand::Compare(args) => args.invoke(cancellation_token),
-            JarCommand::Sources(args) => args.invoke(cancellation_token),
             JarCommand::AuditArtifacts(args) => args.invoke(cancellation_token),
             JarCommand::Collect(args) => args.invoke(),
             JarCommand::List(args) => args.invoke(),

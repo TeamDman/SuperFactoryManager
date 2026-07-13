@@ -5,8 +5,20 @@ use std::fmt;
 use std::ops::Deref;
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
-#[facet(transparent)]
+#[facet(proxy = String)]
 pub struct BranchSelector(pub String);
+
+impl From<String> for BranchSelector {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&BranchSelector> for String {
+    fn from(value: &BranchSelector) -> Self {
+        value.0.clone()
+    }
+}
 
 impl BranchSelector {
     /// Parse this CLI selector into the branch query model.

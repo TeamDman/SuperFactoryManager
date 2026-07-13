@@ -41,7 +41,7 @@ pub struct RunGameTestBisectArgs {
     pub target: String,
 
     /// Stop after this many game-test-server launches.
-    #[facet(rename = "max-runs", default, args::named)]
+    #[facet(default, args::named)]
     pub max_runs: Option<usize>,
 }
 
