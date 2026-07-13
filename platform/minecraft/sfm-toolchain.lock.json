@@ -51,6 +51,39 @@
   ],
   "dependencies": [
     {
+      "id": "antlr",
+      "kind": "tool",
+      "role": "build",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.antlr:antlr4:4.13.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "codegen"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-antlr-antlr4-4-13-1-7a222484",
+            "resolved_coordinate": "org.antlr:antlr4:4.13.1",
+            "expected_hash": "blake3:7a222484ba088298bdc3b4b26294420eb69c36d6",
+            "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.13.1\\antlr4-4.13.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
       "id": "javaparser",
       "kind": "library",
       "role": "test",
@@ -229,39 +262,6 @@
             "resolved_coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
             "expected_hash": "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce",
             "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-engine\\5.8.1\\junit-jupiter-engine-5.8.1.jar"
-          },
-          "source_providers": []
-        }
-      ]
-    },
-    {
-      "id": "junit-platform-launcher",
-      "kind": "library",
-      "role": "test",
-      "display_name": null,
-      "project_url": null,
-      "notes": null,
-      "components": [
-        {
-          "id": "main",
-          "declaration": {
-            "acquisition": {
-              "maven": {
-                "requested_coordinate": "org.junit.platform:junit-platform-launcher:1.8.1",
-                "repository_id": "forge"
-              }
-            },
-            "scopes": [
-              "test-runtime"
-            ],
-            "artifact_treatment": "plain",
-            "data_run_policy": "exclude"
-          },
-          "derived_checks": {
-            "artifact_id": "org-junit-platform-junit-platform-launcher-1-8-1-738f602f",
-            "resolved_coordinate": "org.junit.platform:junit-platform-launcher:1.8.1",
-            "expected_hash": "blake3:738f602f34820afb35f70aea342bfc73c305b44d",
-            "cache_path": "$sfm-cache\\maven\\org/junit/platform\\junit-platform-launcher\\1.8.1\\junit-platform-launcher-1.8.1.jar"
           },
           "source_providers": []
         }
@@ -1067,8 +1067,8 @@
         "toolchain"
       ],
       "coordinate": "org.antlr:antlr-runtime:3.5.3",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/antlr/antlr-runtime/3.5.3/antlr-runtime-3.5.3.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/antlr/antlr-runtime/3.5.3/antlr-runtime-3.5.3.jar",
       "hash": "blake3:5526b5bc53f5aaae0721d086d88c31a5af88572f",
       "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr-runtime\\3.5.3\\antlr-runtime-3.5.3.jar",
       "provenance": "remote-maven",
@@ -1081,8 +1081,8 @@
         "toolchain"
       ],
       "coordinate": "org.antlr:antlr4:4.13.1",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/antlr/antlr4/4.13.1/antlr4-4.13.1.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/antlr/antlr4/4.13.1/antlr4-4.13.1.jar",
       "hash": "blake3:7a222484ba088298bdc3b4b26294420eb69c36d6",
       "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.13.1\\antlr4-4.13.1.jar",
       "provenance": "remote-maven",
@@ -1137,8 +1137,8 @@
         "toolchain"
       ],
       "coordinate": "org.antlr:ST4:4.3.4",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/antlr/ST4/4.3.4/ST4-4.3.4.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/antlr/ST4/4.3.4/ST4-4.3.4.jar",
       "hash": "blake3:f2e791b074daaebc422756dfbb334023640e3f99",
       "cache_path": "$sfm-cache\\maven\\org\\antlr\\ST4\\4.3.4\\ST4-4.3.4.jar",
       "provenance": "remote-maven",
@@ -1393,23 +1393,6 @@
       "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.jar",
       "hash": "blake3:f98f7e2669f9f7661af6ca3d0dfdea913234168a",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-engine\\1.8.1\\junit-platform-engine-1.8.1.jar",
-      "provenance": "remote-maven",
-      "weak": null
-    },
-    {
-      "id": "org-junit-platform-junit-platform-launcher-1-8-1-738f602f",
-      "owner": {
-        "dependency_id": "junit-platform-launcher",
-        "component_id": "main"
-      },
-      "purposes": [
-        "test"
-      ],
-      "coordinate": "org.junit.platform:junit-platform-launcher:1.8.1",
-      "repository_id": "forge",
-      "url": "https://maven.minecraftforge.net/org/junit/platform/junit-platform-launcher/1.8.1/junit-platform-launcher-1.8.1.jar",
-      "hash": "blake3:738f602f34820afb35f70aea342bfc73c305b44d",
-      "cache_path": "$sfm-cache\\maven\\org/junit/platform\\junit-platform-launcher\\1.8.1\\junit-platform-launcher-1.8.1.jar",
       "provenance": "remote-maven",
       "weak": null
     },
