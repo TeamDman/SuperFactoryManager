@@ -86,11 +86,7 @@ fn resolve_antlr_classpath(
     context.bail_if_cancelled()?;
     let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
     context.bail_if_cancelled()?;
-    let antlr_version = dependencies
-        .iter()
-        .find(|dependency| dependency.configuration == "antlr")
-        .map_or("4.9.1", |dependency| dependency.coordinate.version.as_str());
-    let coordinates = antlr_classpath_coordinates(antlr_version)?;
+    let coordinates = antlr_classpath_coordinates(antlr_tool_version(&dependencies))?;
     let coordinate_refs = coordinates.iter().map(String::as_str).collect::<Vec<_>>();
     resolve_coordinates_for_classpath(
         context,
