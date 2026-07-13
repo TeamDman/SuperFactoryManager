@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -62,26 +62,26 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
 
     @Override
     public void render(
-            PoseStack poseStack,
+            GuiGraphics guiGraphics,
             int mouseX,
             int mouseY,
             float partialTick
     ) {
-        this.renderBackground(poseStack);
+        this.renderBackground(guiGraphics);
         int panelWidth = 220;
         int panelHeight = panelHeight();
         int left = this.width / 2 - panelWidth / 2;
         int top = this.height / 2 - panelHeight / 2;
         int right = left + panelWidth;
         int bottom = top + panelHeight;
-        fill(poseStack, left, top, right, bottom, PANEL);
-        fill(poseStack, left, top, right, top + 1, BORDER);
-        fill(poseStack, left, bottom - 1, right, bottom, BORDER);
-        fill(poseStack, left, top, left + 1, bottom, BORDER);
-        fill(poseStack, right - 1, top, right, bottom, BORDER);
-        drawCenteredString(poseStack, this.font, this.title.copy().withStyle(ChatFormatting.BOLD), this.width / 2, top + 12, TEXT);
-        drawCenteredString(poseStack, this.font, "IDE-only launch tools", this.width / 2, top + 26, MUTED);
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        guiGraphics.fill( left, top, right, bottom, PANEL);
+        guiGraphics.fill( left, top, right, top + 1, BORDER);
+        guiGraphics.fill( left, bottom - 1, right, bottom, BORDER);
+        guiGraphics.fill( left, top, left + 1, bottom, BORDER);
+        guiGraphics.fill( right - 1, top, right, bottom, BORDER);
+        guiGraphics.drawCenteredString( this.font, this.title.copy().withStyle(ChatFormatting.BOLD), this.width / 2, top + 12, TEXT);
+        guiGraphics.drawCenteredString( this.font, "IDE-only launch tools", this.width / 2, top + 26, MUTED);
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     private static int panelHeight() {
