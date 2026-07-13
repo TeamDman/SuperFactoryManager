@@ -446,6 +446,44 @@ impl Resolver {
         expected_hash: Option<&ContentHash>,
         attempted: &mut Vec<String>,
     ) -> eyre::Result<Option<ArtifactPlan>> {
+        if let Some(locked) = self.locked_remote_artifact(coordinate) {
+            let url = locked
+                .url
+                .as_deref()
+                .expect("locked remote artifact has a URL");
+            attempted.push(url.to_string());
+            let download_result = download_to_path_overwrite_locked(
+                &self.cancellation_token,
+                &self.client,
+                url,
+                cache_path,
+                self.refresh,
+                expected_hash,
+            );
+            match download_result {
+                Ok(()) => {
+                    let artifact = self.locked_remote_artifact_plan(
+                        id,
+                        coordinate,
+                        locked,
+                        cache_path.to_path_buf(),
+                        required_for,
+                    )?;
+                    self.verify_locked_artifact(coordinate, &artifact)?;
+                    tracing::info!(
+                        coordinate = %coordinate,
+                        repository = artifact.repository.as_deref(),
+                        cache_path = %artifact.cache_path.display(),
+                        hash = artifact.sha1.as_ref().map(ToString::to_string),
+                        "artifact downloaded from locked URL"
+                    );
+                    return Ok(Some(artifact));
+                }
+                Err(error) if self.cancellation_token.is_cancelled() => return Err(error),
+                Err(error) => attempted.push(format!("{url} ({error:#})")),
+            }
+        }
+
         for repo in self.candidate_repositories(coordinate) {
             let _repo_span = tracing::debug_span!(
                 "resolve_artifact_remote_candidate",
@@ -520,6 +558,24 @@ impl Resolver {
             return Ok(Some(artifact));
         }
         Ok(None)
+    }
+
+    fn locked_remote_artifact(&self, coordinate: &MavenCoordinate) -> Option<&ArtifactLockEntry> {
+        let coordinate_text = coordinate.to_string();
+        self.lockfile
+            .as_ref()
+            .or(self.materialization_lockfile.as_ref())?
+            .artifacts
+            .iter()
+            .find(|artifact| {
+                artifact.coordinate.as_deref() == Some(coordinate_text.as_str())
+                    && matches!(
+                        artifact.source,
+                        ArtifactSource::RemoteMaven | ArtifactSource::RemoteHttp
+                    )
+                    && artifact.url.is_some()
+                    && artifact.weak.is_none()
+            })
     }
 
     fn explicit_artifact_source_fallback(
@@ -774,6 +830,44 @@ impl Resolver {
             coordinate: Some(coordinate.to_string()),
             repository: Some(repo.name.clone()),
             url: Some(url),
+            sha1: Some(hash),
+            cache_path,
+            downloaded: true,
+            required_for: required_for.clone(),
+            provenance,
+        })
+    }
+
+    fn locked_remote_artifact_plan(
+        &self,
+        id: &ArtifactId,
+        coordinate: &MavenCoordinate,
+        locked: &ArtifactLockEntry,
+        cache_path: PathBuf,
+        required_for: &ArtifactPurpose,
+    ) -> eyre::Result<ArtifactPlan> {
+        let hash = ContentHash::from_path(&cache_path, ContentHashAlgorithm::Blake3)?;
+        let provenance = ArtifactProvenance {
+            schema_version: 1,
+            source: locked.source.clone(),
+            coordinate: locked
+                .coordinate
+                .clone()
+                .or_else(|| Some(coordinate.to_string())),
+            repository: locked.repository.clone(),
+            url: locked.url.clone(),
+            original_path: locked.original_path.clone(),
+            source_relative_path: locked.source_relative_path.clone(),
+            source_git: locked.source_git.clone(),
+            source_build: locked.source_build.clone(),
+            hash,
+        };
+        write_artifact_provenance(&cache_path, &provenance)?;
+        Ok(ArtifactPlan {
+            id: id.clone(),
+            coordinate: Some(coordinate.to_string()),
+            repository: provenance.repository.clone(),
+            url: provenance.url.clone(),
             sha1: Some(hash),
             cache_path,
             downloaded: true,
