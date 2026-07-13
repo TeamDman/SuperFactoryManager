@@ -53,6 +53,8 @@ impl DependencyComponentAddArgs {
             maven: Some(self.maven),
             curseforge_project: None,
             curseforge_file: None,
+            kind: None,
+            role: None,
             curseforge_api_key: None,
             curseforge_token: None,
             curseforge_op_secret: None,
