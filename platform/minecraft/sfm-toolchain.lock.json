@@ -45,6 +45,10 @@
       "url": "https://repo.spongepowered.org/repository/maven-public"
     },
     {
+      "id": "squiddev",
+      "url": "https://squiddev.cc/maven"
+    },
+    {
       "id": "thermal",
       "url": "https://maven.covers1624.net"
     }
@@ -82,6 +86,60 @@
             "cache_path": "$sfm-cache\\maven\\curse\\maven\\architectury-api-419699\\5137938\\architectury-api-419699-5137938.jar"
           },
           "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "cc-tweaked",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "CC:Tweaked",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "cc.tweaked:cc-tweaked-1.20.1-forge:1.111.0",
+                "repository_id": "squiddev"
+              }
+            },
+            "scopes": [
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "cc-tweaked-cc-tweaked-1-20-1-forge-1-111-0-0832fbc4",
+            "resolved_coordinate": "cc.tweaked:cc-tweaked-1.20.1-forge:1.111.0",
+            "expected_hash": "blake3:0832fbc4995e0949cbc1a2fafdec1b6ab7cff7f9",
+            "cache_path": "$sfm-cache\\maven\\cc/tweaked\\cc-tweaked-1.20.1-forge\\1.111.0\\cc-tweaked-1.20.1-forge-1.111.0.jar"
+          },
+          "source_providers": [
+            {
+              "maven-sources": {
+                "id": "maven-sources",
+                "declaration": {
+                  "requested_coordinate": "cc.tweaked:cc-tweaked-1.20.1-forge:1.111.0:sources",
+                  "repository_id": "squiddev",
+                  "roots": [
+                    "main/dan200/computercraft"
+                  ]
+                },
+                "derived_checks": {
+                  "resolved_coordinate": "cc.tweaked:cc-tweaked-1.20.1-forge:1.111.0:sources",
+                  "url": "https://squiddev.cc/maven/cc/tweaked/cc-tweaked-1.20.1-forge/1.111.0/cc-tweaked-1.20.1-forge-1.111.0-sources.jar",
+                  "hash": "blake3:9aa4c74acf6c5ac41be7646265acf4a5bdec446c",
+                  "archive_cache_path": "$sfm-cache/sources\\maven\\cc.tweaked-cc-tweaked-1.20.1-forge-1.111.0-sourc-5e0db6ff5ae1e1f7\\9aa4c74acf6c5ac41be7646265acf4a5bdec446c\\sources.jar",
+                  "tree_cache_path": "$sfm-cache/sources\\maven\\cc.tweaked-cc-tweaked-1.20.1-forge-1.111.0-sourc-5e0db6ff5ae1e1f7\\9aa4c74acf6c5ac41be7646265acf4a5bdec446c\\tree"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -274,6 +332,40 @@
       ]
     },
     {
+      "id": "javaparser",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "com-github-javaparser-javaparser-symbol-solver-core-3-26-4-49a73863",
+            "resolved_coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+            "expected_hash": "blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c",
+            "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-symbol-solver-core\\3.26.4\\javaparser-symbol-solver-core-3.26.4.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
       "id": "jei",
       "kind": "mod",
       "role": "integration",
@@ -302,6 +394,189 @@
             "resolved_coordinate": "mezz.jei:jei-1.20.1-forge:15.12.3.54",
             "expected_hash": "blake3:a41dd28c16d9d52b4742951a08dee5bb8213a0b5",
             "cache_path": "$sfm-cache\\maven\\mezz\\jei\\jei-1.20.1-forge\\15.12.3.54\\jei-1.20.1-forge-15.12.3.54.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "jmh",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "generator-annprocess",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-annotation-processor",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-openjdk-jmh-jmh-generator-annprocess-1-37-74920027",
+            "resolved_coordinate": "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+            "expected_hash": "blake3:74920027bb3f569af240fc283876568793baa2e8",
+            "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-annprocess\\1.37\\jmh-generator-annprocess-1.37.jar"
+          },
+          "source_providers": []
+        },
+        {
+          "id": "generator-bytecode",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-openjdk-jmh-jmh-generator-bytecode-1-37-c8a36f0c",
+            "resolved_coordinate": "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+            "expected_hash": "blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20",
+            "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-bytecode\\1.37\\jmh-generator-bytecode-1.37.jar"
+          },
+          "source_providers": []
+        },
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.openjdk.jmh:jmh-core:1.37",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-openjdk-jmh-jmh-core-1-37-43f8ac51",
+            "resolved_coordinate": "org.openjdk.jmh:jmh-core:1.37",
+            "expected_hash": "blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15",
+            "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-core\\1.37\\jmh-core-1.37.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "junit-jupiter",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-junit-jupiter-junit-jupiter-api-5-8-1-9f0864e5",
+            "resolved_coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1",
+            "expected_hash": "blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa",
+            "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-api\\5.8.1\\junit-jupiter-api-5.8.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "junit-jupiter-engine",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-junit-jupiter-junit-jupiter-engine-5-8-1-d59cd0ab",
+            "resolved_coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
+            "expected_hash": "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce",
+            "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-engine\\5.8.1\\junit-jupiter-engine-5.8.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "junit-platform-launcher",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.junit.platform:junit-platform-launcher:1.8.1",
+                "repository_id": "forge"
+              }
+            },
+            "scopes": [
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-junit-platform-junit-platform-launcher-1-8-1-738f602f",
+            "resolved_coordinate": "org.junit.platform:junit-platform-launcher:1.8.1",
+            "expected_hash": "blake3:738f602f34820afb35f70aea342bfc73c305b44d",
+            "cache_path": "$sfm-cache\\maven\\org/junit/platform\\junit-platform-launcher\\1.8.1\\junit-platform-launcher-1.8.1.jar"
           },
           "source_providers": []
         }
@@ -483,6 +758,23 @@
     }
   ],
   "artifacts": [
+    {
+      "id": "cc-tweaked-cc-tweaked-1-20-1-forge-1-111-0-0832fbc4",
+      "owner": {
+        "dependency_id": "cc-tweaked",
+        "component_id": "main"
+      },
+      "purposes": [
+        "gametest"
+      ],
+      "coordinate": "cc.tweaked:cc-tweaked-1.20.1-forge:1.111.0",
+      "repository_id": "squiddev",
+      "url": "https://squiddev.cc/maven/cc/tweaked/cc-tweaked-1.20.1-forge/1.111.0/cc-tweaked-1.20.1-forge-1.111.0.jar",
+      "hash": "blake3:0832fbc4995e0949cbc1a2fafdec1b6ab7cff7f9",
+      "cache_path": "$sfm-cache\\maven\\cc/tweaked\\cc-tweaked-1.20.1-forge\\1.111.0\\cc-tweaked-1.20.1-forge-1.111.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
     {
       "id": "com-electronwill-night-config-core-3-6-4-48fc6bae",
       "owner": null,
@@ -1408,6 +1700,23 @@
       "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.jar",
       "hash": "blake3:f98f7e2669f9f7661af6ca3d0dfdea913234168a",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-engine\\1.8.1\\junit-platform-engine-1.8.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-junit-platform-junit-platform-launcher-1-8-1-738f602f",
+      "owner": {
+        "dependency_id": "junit-platform-launcher",
+        "component_id": "main"
+      },
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "org.junit.platform:junit-platform-launcher:1.8.1",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/junit/platform/junit-platform-launcher/1.8.1/junit-platform-launcher-1.8.1.jar",
+      "hash": "blake3:738f602f34820afb35f70aea342bfc73c305b44d",
+      "cache_path": "$sfm-cache\\maven\\org/junit/platform\\junit-platform-launcher\\1.8.1\\junit-platform-launcher-1.8.1.jar",
       "provenance": "remote-maven",
       "weak": null
     },
