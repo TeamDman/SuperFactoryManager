@@ -999,6 +999,8 @@ fn resolve_loader_toolchain(
             LoaderToolchainKind::ForgeGradleForge
         } else if coordinate.group == "net.neoforged" && coordinate.artifact == "forge" {
             LoaderToolchainKind::ForgeGradleNeoForgeGroup
+        } else if coordinate.group == "net.neoforged" && coordinate.artifact == "neoforge" {
+            LoaderToolchainKind::NeoGradleUserdev
         } else {
             eyre::bail!(
                 "Unsupported ForgeGradle minecraft dependency: {}",
