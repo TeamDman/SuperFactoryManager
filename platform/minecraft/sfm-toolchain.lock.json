@@ -55,6 +55,39 @@
   ],
   "dependencies": [
     {
+      "id": "antlr",
+      "kind": "tool",
+      "role": "build",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.antlr:antlr4:4.9.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "codegen"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-antlr-antlr4-4-9-1-205027ff",
+            "resolved_coordinate": "org.antlr:antlr4:4.9.1",
+            "expected_hash": "blake3:205027ffc02f2c0d7332957510c6d03e26d6fc59",
+            "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.9.1\\antlr4-4.9.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
       "id": "architectury-api",
       "kind": "mod",
       "role": "integration",
