@@ -1,7 +1,14 @@
+use crate::jar_build::ArtifactLockEntry;
+use crate::jar_build::ArtifactLockfile;
+use crate::jar_build::ArtifactSource;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3;
+use crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3;
+use crate::toolchain_lockfile_schema::version::v3::ArtifactPurposeV3;
+use crate::toolchain_lockfile_schema::version::v3::ArtifactV3;
 use crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3;
 use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 impl ArtifactLockfileV3 {
     pub(crate) fn to_canonical_json(&self) -> eyre::Result<String> {
@@ -63,6 +70,87 @@ impl ArtifactLockfileV3 {
         Ok(refreshed)
     }
 
+    /// Merges an explicitly refreshed build graph into a maintained v3 lockfile.
+    ///
+    /// The v3 document remains declaration-owned: dependency declarations, artifact
+    /// ownership, purposes, and source-provider configuration are never inferred
+    /// from the build graph. The graph may, however, add generated toolchain
+    /// artifacts which are required to reproduce compilation (for example the
+    /// ANTLR runtime resolved from an `antlr4` code-generation dependency).
+    pub(crate) fn refresh_resolved_artifacts(
+        &self,
+        resolved: &ArtifactLockfile,
+    ) -> eyre::Result<Self> {
+        self.validate()?;
+        let mut refreshed = self.clone();
+        let mut matched = vec![false; resolved.artifacts.len()];
+
+        for artifact in &mut refreshed.artifacts {
+            let Some((index, resolved_artifact)) = resolved
+                .artifacts
+                .iter()
+                .enumerate()
+                .find(|(_, candidate)| same_artifact_identity(artifact, candidate))
+            else {
+                continue;
+            };
+            matched[index] = true;
+            refresh_artifact_evidence(artifact, resolved_artifact);
+        }
+
+        let mut used_ids: BTreeSet<_> = refreshed
+            .artifacts
+            .iter()
+            .map(|artifact| artifact.id.clone())
+            .collect();
+        for (index, artifact) in resolved.artifacts.iter().enumerate() {
+            if matched[index] {
+                continue;
+            }
+            refreshed.artifacts.push(ArtifactV3 {
+                id: artifact_id_for_resolved_artifact(artifact, &mut used_ids),
+                owner: None,
+                purposes: vec![ArtifactPurposeV3::Toolchain],
+                coordinate: artifact.coordinate.clone(),
+                repository_id: artifact.repository.clone(),
+                url: artifact.url.clone(),
+                hash: artifact.hash,
+                cache_path: artifact.cache_path.clone(),
+                provenance: provenance_from_artifact_source(&artifact.source),
+                weak: artifact.weak.as_ref().map(|weak| {
+                    crate::toolchain_lockfile_schema::version::v3::WeakArtifactValidationV3 {
+                        metadata_path: weak.metadata_path.clone(),
+                        mod_id: weak.mod_id.clone(),
+                        version: weak.version.clone(),
+                    }
+                }),
+            });
+        }
+
+        for dependency in &mut refreshed.dependencies {
+            for component in &mut dependency.components {
+                let artifact = refreshed
+                    .artifacts
+                    .iter()
+                    .find(|artifact| artifact.id == component.derived_checks.artifact_id)
+                    .expect("v3 validation guarantees component artifact references");
+                component
+                    .derived_checks
+                    .resolved_coordinate
+                    .clone_from(&artifact.coordinate);
+                component.derived_checks.expected_hash = artifact.hash;
+                component
+                    .derived_checks
+                    .cache_path
+                    .clone_from(&artifact.cache_path);
+            }
+        }
+
+        refreshed.canonicalize();
+        refreshed.validate()?;
+        Ok(refreshed)
+    }
+
     fn canonicalize(&mut self) {
         self.repositories
             .sort_by(|left, right| left.id.cmp(&right.id));
@@ -89,6 +177,96 @@ impl ArtifactLockfileV3 {
             artifact.purposes.dedup();
         }
     }
+}
+
+fn same_artifact_identity(artifact: &ArtifactV3, candidate: &ArtifactLockEntry) -> bool {
+    match (&artifact.coordinate, &candidate.coordinate) {
+        (Some(left), Some(right)) => left == right,
+        _ => artifact.cache_path == candidate.cache_path,
+    }
+}
+
+fn refresh_artifact_evidence(artifact: &mut ArtifactV3, resolved: &ArtifactLockEntry) {
+    artifact.coordinate.clone_from(&resolved.coordinate);
+    artifact.repository_id.clone_from(&resolved.repository);
+    artifact.url.clone_from(&resolved.url);
+    artifact.hash = resolved.hash;
+    artifact.cache_path.clone_from(&resolved.cache_path);
+    artifact.provenance = provenance_from_artifact_source(&resolved.source);
+    artifact.weak = resolved.weak.as_ref().map(|weak| {
+        crate::toolchain_lockfile_schema::version::v3::WeakArtifactValidationV3 {
+            metadata_path: weak.metadata_path.clone(),
+            mod_id: weak.mod_id.clone(),
+            version: weak.version.clone(),
+        }
+    });
+}
+
+fn provenance_from_artifact_source(source: &ArtifactSource) -> ArtifactProvenanceV3 {
+    match source {
+        ArtifactSource::RemoteMaven => ArtifactProvenanceV3::RemoteMaven,
+        ArtifactSource::RemoteHttp => ArtifactProvenanceV3::RemoteHttp,
+        ArtifactSource::SourceBuild => ArtifactProvenanceV3::SourceBuild,
+        ArtifactSource::ExplicitSource
+        | ArtifactSource::LocalM2Cache
+        | ArtifactSource::LocalGradleModuleCache
+        | ArtifactSource::ExistingSfmCacheUnknown => ArtifactProvenanceV3::ToolchainGenerated,
+    }
+}
+
+fn artifact_id_for_resolved_artifact(
+    artifact: &ArtifactLockEntry,
+    used_ids: &mut BTreeSet<String>,
+) -> String {
+    let identity = artifact
+        .coordinate
+        .as_deref()
+        .or_else(|| {
+            artifact
+                .cache_path
+                .file_stem()
+                .and_then(|value| value.to_str())
+        })
+        .map_or_else(|| "artifact".to_owned(), portable_id);
+    unique_id(
+        &format!("{identity}-{}", artifact.hash.short_hex(8)),
+        used_ids,
+    )
+}
+
+fn portable_id(value: &str) -> String {
+    let mut result = String::new();
+    let mut separator = false;
+    for character in value.chars() {
+        if character.is_ascii_alphanumeric() {
+            result.push(character.to_ascii_lowercase());
+            separator = false;
+        } else if !result.is_empty() && !separator {
+            result.push('-');
+            separator = true;
+        }
+    }
+    while result.ends_with('-') {
+        result.pop();
+    }
+    if result.is_empty() {
+        "item".to_owned()
+    } else {
+        result
+    }
+}
+
+fn unique_id(base: &str, used_ids: &mut BTreeSet<String>) -> String {
+    if used_ids.insert(base.to_owned()) {
+        return base.to_owned();
+    }
+    for suffix in 2usize.. {
+        let candidate = format!("{base}-{suffix}");
+        if used_ids.insert(candidate.clone()) {
+            return candidate;
+        }
+    }
+    unreachable!("unbounded numeric suffixes must yield a unique ID")
 }
 
 fn refresh_component_derived_state(
@@ -176,6 +354,8 @@ fn replace_provider_derived_checks(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::jar_build::hash::ContentHash;
+    use crate::jar_build::hash::ContentHashAlgorithm;
     use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
     use crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3;
     use crate::toolchain_lockfile_schema::version::v3::GitSourceDeclarationV3;
@@ -261,6 +441,92 @@ mod tests {
             .expect_err("missing provider must fail");
 
         assert!(error.to_string().contains("missing source provider"));
+    }
+
+    #[test]
+    fn explicit_build_refresh_adds_generated_artifacts_without_changing_declarations() {
+        let maintained = lockfile();
+        let maintained_component = component(&maintained, "cc-tweaked").clone();
+        let maintained_artifact = maintained
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.id == maintained_component.derived_checks.artifact_id)
+            .expect("CC:Tweaked artifact")
+            .clone();
+        let refreshed_hash =
+            ContentHash::from_bytes(b"refreshed CC:Tweaked", ContentHashAlgorithm::Blake3);
+        let generated_hash =
+            ContentHash::from_bytes(b"generated ANTLR", ContentHashAlgorithm::Blake3);
+        let generated_coordinate = "org.antlr:antlr4:4.9.1";
+        let generated_repository_id = maintained
+            .repositories
+            .first()
+            .expect("fixture repository")
+            .id
+            .clone();
+        let resolved = ArtifactLockfile {
+            schema_version: 2,
+            minecraft_version: "1.19.2".to_owned(),
+            maven_cache_dir: PathBuf::from("$sfm-cache/maven"),
+            allow_local_artifact_cache: false,
+            repositories: Vec::new(),
+            dependencies: Vec::new(),
+            artifacts: vec![
+                ArtifactLockEntry {
+                    coordinate: maintained_artifact.coordinate.clone(),
+                    source: ArtifactSource::RemoteMaven,
+                    repository: maintained_artifact.repository_id.clone(),
+                    url: maintained_artifact.url.clone(),
+                    cache_path: maintained_artifact.cache_path.clone(),
+                    original_path: None,
+                    source_relative_path: None,
+                    source_git: None,
+                    source_build: None,
+                    hash: refreshed_hash,
+                    weak: None,
+                },
+                ArtifactLockEntry {
+                    coordinate: Some(generated_coordinate.to_owned()),
+                    source: ArtifactSource::RemoteMaven,
+                    repository: Some(generated_repository_id),
+                    url: Some("https://repo.example/antlr4-4.9.1.jar".to_owned()),
+                    cache_path: PathBuf::from(
+                        "$sfm-cache/maven/org/antlr/antlr4/4.9.1/antlr4-4.9.1.jar",
+                    ),
+                    original_path: None,
+                    source_relative_path: None,
+                    source_git: None,
+                    source_build: None,
+                    hash: generated_hash,
+                    weak: None,
+                },
+            ],
+        };
+
+        let refreshed = maintained
+            .refresh_resolved_artifacts(&resolved)
+            .expect("explicit build refresh should validate");
+        let refreshed_component = component(&refreshed, "cc-tweaked");
+        assert_eq!(
+            refreshed_component.declaration,
+            maintained_component.declaration
+        );
+        assert_eq!(
+            refreshed_component.source_providers,
+            maintained_component.source_providers
+        );
+        assert_eq!(
+            refreshed_component.derived_checks.expected_hash,
+            refreshed_hash
+        );
+        let generated = refreshed
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.coordinate.as_deref() == Some(generated_coordinate))
+            .expect("generated ANTLR artifact");
+        assert_eq!(generated.hash, generated_hash);
+        assert_eq!(generated.owner, None);
+        assert_eq!(generated.purposes, vec![ArtifactPurposeV3::Toolchain]);
     }
 
     #[test]
