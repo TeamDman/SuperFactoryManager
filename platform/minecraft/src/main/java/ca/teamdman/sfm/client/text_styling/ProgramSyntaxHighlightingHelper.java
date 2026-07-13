@@ -16,6 +16,30 @@ import java.util.List;
 public class ProgramSyntaxHighlightingHelper {
 
     public static List<MutableComponent> withSyntaxHighlighting(String programString, boolean showContextActionHints) {
+        List<TokenHighlight> highlights = getTokenHighlights(programString);
+        List<MutableComponent> textComponents = new ArrayList<>();
+        MutableComponent lineComponent = Component.empty();
+        for (TokenHighlight highlight : highlights) {
+            // the token may contain newlines in it, so we need to split it up
+            String[] lines = highlight.text().split("\n", -1);
+            for (int i = 0; i < lines.length; i++) {
+                if (i != 0) {
+                    textComponents.add(lineComponent);
+                    lineComponent = Component.empty();
+                }
+                String line = lines[i];
+                if (!line.isEmpty()) {
+                    var text = Component.literal(line).withStyle(getStyle(highlight.token(), showContextActionHints));
+                    lineComponent = lineComponent.append(text);
+                }
+            }
+        }
+        textComponents.add(lineComponent);
+
+        return textComponents;
+    }
+
+    public static List<TokenHighlight> getTokenHighlights(String programString) {
         SFMLLexer lexer = new SFMLLexer(CharStreams.fromString(programString));
         lexer.INCLUDE_UNUSED = true;
         CommonTokenStream tokens = new CommonTokenStream(lexer) {
@@ -38,28 +62,13 @@ public class ProgramSyntaxHighlightingHelper {
                 }
             }
         };
-        List<MutableComponent> textComponents = new ArrayList<>();
-        MutableComponent lineComponent = Component.empty();
+        List<TokenHighlight> highlights = new ArrayList<>();
         tokens.fill();
         for (Token token : tokens.getTokens()) {
             if (token.getType() == SFMLLexer.EOF) break;
-            // the token may contain newlines in it, so we need to split it up
-            String[] lines = token.getText().split("\n", -1);
-            for (int i = 0; i < lines.length; i++) {
-                if (i != 0) {
-                    textComponents.add(lineComponent);
-                    lineComponent = Component.empty();
-                }
-                String line = lines[i];
-                if (!line.isEmpty()) {
-                    var text = Component.literal(line).withStyle(getStyle(token, showContextActionHints));
-                    lineComponent = lineComponent.append(text);
-                }
-            }
+            highlights.add(new TokenHighlight(token.getStartIndex(), token.getStopIndex(), token.getText(), getColour(token), token));
         }
-        textComponents.add(lineComponent);
-
-        return textComponents;
+        return highlights;
     }
 
     private static Style getStyle(Token token, boolean showContextActionHints) {
@@ -159,5 +168,14 @@ public class ProgramSyntaxHighlightingHelper {
             default:
                 return ChatFormatting.WHITE;
         }
+    }
+
+    public record TokenHighlight(
+            int startIndex,
+            int stopIndex,
+            String text,
+            ChatFormatting colour,
+            Token token
+    ) {
     }
 }

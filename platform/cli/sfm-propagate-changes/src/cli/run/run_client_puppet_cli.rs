@@ -21,7 +21,7 @@ pub struct RunClientPuppetArgs {
     pub filter: Option<String>,
 
     /// Keep the client open after tests pass. Bare `--keep-open` keeps it open forever; a value accepts humantime durations like `30s` or `5m`.
-    #[facet(rename = "keep-open", default, args::named)]
+    #[facet(default, args::named)]
     pub keep_open: Option<Option<String>>,
 }
 
@@ -43,6 +43,7 @@ impl RunClientPuppetArgs {
                 game_test_filter: filter,
                 game_test_bisect: None,
                 client_puppet_keep_open,
+                ..RunOptions::default()
             },
             cancellation_token,
         )

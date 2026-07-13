@@ -1,5 +1,8 @@
+pub mod audit;
 pub mod cache;
 mod cli;
+#[cfg(test)]
+mod cli_to_args_tests;
 pub mod client;
 pub mod curseforge;
 pub mod dependency;
@@ -15,6 +18,5 @@ pub mod modrinth;
 pub mod repo_root;
 pub mod run;
 pub mod server;
-pub mod source;
 
 pub use cli::*;

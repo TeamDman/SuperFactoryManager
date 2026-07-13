@@ -34,6 +34,12 @@ public class SFMTextEditorConfigScreen extends Screen {
     );
 
     @SFMLocalizationDatagen
+    public static final LocalizationEntry PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_DRAW = new LocalizationEntry(
+            "gui.sfm.program_editor_config.preferred_editor.draw",
+            "Draw"
+    );
+
+    @SFMLocalizationDatagen
     public static final LocalizationEntry PROGRAM_EDITOR_CONFIG_SCREEN_TITLE = new LocalizationEntry(
             "gui.sfm.program_editor_config.title",
             "Program Editor Config"
@@ -93,6 +99,8 @@ public class SFMTextEditorConfigScreen extends Screen {
     private Button preferredEditorV1Button;
 
     private Button preferredEditorV2Button;
+
+    private Button preferredEditorDrawButton;
 
     public SFMTextEditorConfigScreen(
             ISFMTextEditScreen parent,
@@ -260,10 +268,22 @@ public class SFMTextEditorConfigScreen extends Screen {
                             updateButtonStates();
                         })
                         .build();
+        preferredEditorDrawButton =
+                new SFMButtonBuilder()
+                        .setPosition(x + 2 * (buttonWidth + buttonSpacing), y + 2 * spacing)
+                        .setSize(buttonWidth, buttonHeight)
+                        .setText(PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_DRAW)
+                        .setOnPress(button -> {
+                            //noinspection OptionalGetWithoutIsPresent
+                            config.preferredEditor.set(SFMTextEditors.DRAW.getId().get().location().toString());
+                            updateButtonStates();
+                        })
+                        .build();
         if (editorSelectorFeatureFlag) {
             // This behaviour is not ready for release.
             this.addRenderableWidget(preferredEditorV1Button);
             this.addRenderableWidget(preferredEditorV2Button);
+            this.addRenderableWidget(preferredEditorDrawButton);
         }
 
 
@@ -296,6 +316,8 @@ public class SFMTextEditorConfigScreen extends Screen {
         preferredEditorV1Button.active = !currentEditor.equals(SFMTextEditors.V1.getId().get().location().toString());
         //noinspection OptionalGetWithoutIsPresent
         preferredEditorV2Button.active = !currentEditor.equals(SFMTextEditors.V2.getId().get().location().toString());
+        //noinspection OptionalGetWithoutIsPresent
+        preferredEditorDrawButton.active = !currentEditor.equals(SFMTextEditors.DRAW.getId().get().location().toString());
     }
 
 }

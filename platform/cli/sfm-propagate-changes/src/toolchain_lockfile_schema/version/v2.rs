@@ -9,6 +9,12 @@ use crate::jar_build::WeakArtifactValidation;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::json_path::JsonOptionalPath;
 use crate::jar_build::json_path::JsonPath;
+use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
+use crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3;
+use crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3;
+use crate::toolchain_lockfile_schema::version::v3::DependencyKindV3;
+use crate::toolchain_lockfile_schema::version::v3::DependencyRoleV3;
+use crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3;
 use facet::Facet;
 use std::path::PathBuf;
 
@@ -22,6 +28,52 @@ pub(crate) struct ArtifactLockfileV2 {
     pub(crate) repositories: Vec<Repository>,
     pub(crate) dependencies: Vec<DependencyLockEntry>,
     pub(crate) artifacts: Vec<ArtifactLockEntryV2>,
+    #[facet(default)]
+    pub(crate) migration_hints: Option<MigrationHintsV2>,
+}
+
+#[derive(Clone, Debug, Facet)]
+pub(crate) struct MigrationHintsV2 {
+    #[facet(default)]
+    pub(crate) minecraft_dependency_id: Option<String>,
+    #[facet(default)]
+    pub(crate) loader_dependency_id: Option<String>,
+    #[facet(default)]
+    pub(crate) dependencies: Vec<DependencyMigrationHintV2>,
+}
+
+#[derive(Clone, Debug, Facet)]
+pub(crate) struct DependencyMigrationHintV2 {
+    pub(crate) id: String,
+    #[facet(default)]
+    pub(crate) kind: Option<DependencyKindV3>,
+    #[facet(default)]
+    pub(crate) role: Option<DependencyRoleV3>,
+    #[facet(default)]
+    pub(crate) display_name: Option<String>,
+    #[facet(default)]
+    pub(crate) project_url: Option<String>,
+    #[facet(default)]
+    pub(crate) notes: Option<String>,
+    #[facet(default)]
+    pub(crate) components: Vec<ComponentMigrationHintV2>,
+}
+
+#[derive(Clone, Debug, Facet)]
+pub(crate) struct ComponentMigrationHintV2 {
+    pub(crate) id: String,
+    #[facet(default)]
+    pub(crate) legacy_dependency_indices: Vec<usize>,
+    #[facet(default)]
+    pub(crate) acquisition: Option<ComponentAcquisitionV3>,
+    #[facet(default)]
+    pub(crate) legacy_artifact_index: Option<usize>,
+    #[facet(default)]
+    pub(crate) scopes: Option<Vec<DependencyScopeV3>>,
+    #[facet(default)]
+    pub(crate) artifact_treatment: Option<ArtifactTreatmentV3>,
+    #[facet(default)]
+    pub(crate) data_run_policy: Option<DataRunPolicyV3>,
 }
 
 #[derive(Clone, Debug, Facet)]
@@ -57,6 +109,7 @@ impl ArtifactLockfileV2 {
             repositories,
             dependencies,
             artifacts,
+            ..
         } = self;
 
         ArtifactLockfile {
