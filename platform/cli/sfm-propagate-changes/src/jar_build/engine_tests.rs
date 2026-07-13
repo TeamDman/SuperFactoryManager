@@ -635,7 +635,7 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
     );
 
     let neogradle = vec![super::ParsedDependency {
-        configuration: "implementation".to_string(),
+        configuration: "minecraft".to_string(),
         coordinate: MavenCoordinate::parse("net.neoforged:neoforge:20.2.86")
             .expect("coordinate should parse"),
         artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
