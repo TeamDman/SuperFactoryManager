@@ -55,6 +55,12 @@ pub struct DependencyAddArgs {
     /// Exact `CurseForge` file ID. Requires `--curseforge-project`.
     #[facet(default, args::named)]
     pub curseforge_file: Option<u64>,
+    /// Semantic dependency kind. Defaults to `mod`.
+    #[facet(default, args::named)]
+    pub(crate) kind: Option<DependencyKindV3>,
+    /// Semantic dependency role. Defaults to `integration`.
+    #[facet(default, args::named)]
+    pub(crate) role: Option<DependencyRoleV3>,
     /// `CurseForge` Core API key used only to validate exact project/file metadata.
     #[facet(default, args::named)]
     pub curseforge_api_key: Option<String>,
@@ -185,8 +191,8 @@ fn add_dependency(
     }
     inventory.lockfile.dependencies.push(DependencyV3 {
         id: args.id.clone(),
-        kind: DependencyKindV3::Mod,
-        role: DependencyRoleV3::Integration,
+        kind: args.kind.unwrap_or(DependencyKindV3::Mod),
+        role: args.role.unwrap_or(DependencyRoleV3::Integration),
         display_name: args.display_name.clone(),
         project_url: args.project_url.clone(),
         notes: args.notes.clone(),
@@ -221,45 +227,91 @@ pub(super) fn add_component(
     }
     let coordinate = MavenCoordinate::parse(maven_coordinate(args)?)?;
     coordinate.require_exact()?;
-    if inventory
+    let matching_artifact = inventory
         .lockfile
         .artifacts
         .iter()
-        .any(|artifact| artifact.coordinate.as_deref() == Some(coordinate.canonical.as_str()))
-    {
-        eyre::bail!("Artifact '{}' is already locked.", coordinate.canonical);
-    }
-
-    let resolved = resolve_artifact(
-        &inventory,
-        &coordinate,
-        args.repository.as_deref(),
-        cancellation_token,
-        fetcher,
-    )?;
-
-    let hash = ContentHash::from_bytes(&resolved.bytes, ContentHashAlgorithm::Blake3);
-    let portable_cache_path = coordinate.portable_cache_path();
-    let cache_path = inventory.local_path(&portable_cache_path);
-    write_cache_file_atomically(&cache_path, &resolved.bytes)?;
-    let artifact_id = format!(
-        "{}-{}",
-        portable_id(&coordinate.canonical),
-        hash.short_hex(8)
-    );
-    if inventory
-        .lockfile
-        .artifacts
-        .iter()
-        .any(|artifact| artifact.id == artifact_id)
-    {
-        eyre::bail!("Generated artifact ID '{artifact_id}' already exists.");
-    }
-    let evidence = LockedComponentEvidence {
-        hash,
-        cache_path: portable_cache_path,
-        artifact_id,
+        .find(|artifact| artifact.coordinate.as_deref() == Some(coordinate.canonical.as_str()));
+    let (resolved, evidence, append_artifact) = if let Some(artifact) = matching_artifact {
+        if artifact.owner.is_some() {
+            eyre::bail!(
+                "Artifact '{}' is already locked by another component.",
+                coordinate.canonical
+            );
+        }
+        let repository_id = artifact.repository_id.clone().ok_or_else(|| {
+            eyre::eyre!(
+                "Locked artifact '{}' has no repository ID.",
+                coordinate.canonical
+            )
+        })?;
+        if args
+            .repository
+            .as_deref()
+            .is_some_and(|selected| selected != repository_id.as_str())
+        {
+            eyre::bail!(
+                "Locked artifact '{}' belongs to repository '{}', not the requested '{}'.",
+                coordinate.canonical,
+                repository_id,
+                args.repository.as_deref().unwrap_or_default()
+            );
+        }
+        let url = artifact.url.clone().ok_or_else(|| {
+            eyre::eyre!(
+                "Locked artifact '{}' has no download URL.",
+                coordinate.canonical
+            )
+        })?;
+        (
+            ResolvedMavenArtifact {
+                repository_id,
+                url,
+                bytes: Vec::new(),
+            },
+            LockedComponentEvidence {
+                hash: artifact.hash.clone(),
+                cache_path: artifact.cache_path.clone(),
+                artifact_id: artifact.id.clone(),
+            },
+            false,
+        )
+    } else {
+        let resolved = resolve_artifact(
+            &inventory,
+            &coordinate,
+            args.repository.as_deref(),
+            cancellation_token,
+            fetcher,
+        )?;
+        let hash = ContentHash::from_bytes(&resolved.bytes, ContentHashAlgorithm::Blake3);
+        let portable_cache_path = coordinate.portable_cache_path();
+        let cache_path = inventory.local_path(&portable_cache_path);
+        write_cache_file_atomically(&cache_path, &resolved.bytes)?;
+        let artifact_id = format!(
+            "{}-{}",
+            portable_id(&coordinate.canonical),
+            hash.short_hex(8)
+        );
+        if inventory
+            .lockfile
+            .artifacts
+            .iter()
+            .any(|artifact| artifact.id == artifact_id)
+        {
+            eyre::bail!("Generated artifact ID '{artifact_id}' already exists.");
+        }
+        (
+            resolved,
+            LockedComponentEvidence {
+                hash,
+                cache_path: portable_cache_path,
+                artifact_id,
+            },
+            true,
+        )
     };
+    let hash = evidence.hash.clone();
     append_lock_entries(
         &mut inventory,
         args,
@@ -267,6 +319,7 @@ pub(super) fn add_component(
         &coordinate,
         &resolved,
         evidence,
+        append_artifact,
     );
     let output = inventory.lockfile.to_canonical_json()?;
     write_lockfile_atomically(
@@ -408,6 +461,7 @@ fn append_lock_entries(
     coordinate: &MavenCoordinate,
     resolved: &ResolvedMavenArtifact,
     evidence: LockedComponentEvidence,
+    append_artifact: bool,
 ) {
     let scopes: Vec<_> = args
         .scope
@@ -446,6 +500,9 @@ fn append_lock_entries(
         .expect("component mutation validates dependency")
         .components
         .push(component);
+    if !append_artifact {
+        return;
+    }
     inventory.lockfile.artifacts.push(ArtifactV3 {
         id: evidence.artifact_id,
         owner: Some(ArtifactOwnerV3 {
@@ -511,8 +568,8 @@ fn append_curseforge_lock_entries(
     };
     inventory.lockfile.dependencies.push(DependencyV3 {
         id: args.id.clone(),
-        kind: DependencyKindV3::Mod,
-        role: DependencyRoleV3::Integration,
+        kind: args.kind.unwrap_or(DependencyKindV3::Mod),
+        role: args.role.unwrap_or(DependencyRoleV3::Integration),
         display_name: args
             .display_name
             .clone()
