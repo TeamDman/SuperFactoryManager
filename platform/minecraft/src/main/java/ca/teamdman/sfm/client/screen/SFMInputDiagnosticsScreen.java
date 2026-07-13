@@ -2,7 +2,7 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
@@ -273,35 +273,35 @@ public class SFMInputDiagnosticsScreen extends Screen {
 
     @Override
     public void render(
-            PoseStack poseStack,
+            GuiGraphics guiGraphics,
             int mouseX,
             int mouseY,
             float partialTick
     ) {
-        this.renderBackground(poseStack);
-        fill(poseStack, 0, 0, this.width, this.height, BACKGROUND);
+        this.renderBackground(guiGraphics);
+        guiGraphics.fill( 0, 0, this.width, this.height, BACKGROUND);
 
         int left = 8;
         int top = 8;
         int right = this.width - 8;
         int bottom = this.height - 32;
-        fill(poseStack, left, top, right, bottom, PANEL);
-        fill(poseStack, left, top, right, top + 1, BORDER);
-        fill(poseStack, left, bottom - 1, right, bottom, BORDER);
-        fill(poseStack, left, top, left + 1, bottom, BORDER);
-        fill(poseStack, right - 1, top, right, bottom, BORDER);
+        guiGraphics.fill( left, top, right, bottom, PANEL);
+        guiGraphics.fill( left, top, right, top + 1, BORDER);
+        guiGraphics.fill( left, bottom - 1, right, bottom, BORDER);
+        guiGraphics.fill( left, top, left + 1, bottom, BORDER);
+        guiGraphics.fill( right - 1, top, right, bottom, BORDER);
 
-        drawString(poseStack, this.font, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT);
-        drawString(
-                poseStack,
+        guiGraphics.drawString( this.font, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT);
+        guiGraphics.drawString(
+                
                 this.font,
                 "Events received by the Minecraft screen. Press keys or click inside this window.",
                 left + 8,
                 top + 22,
                 MUTED
         );
-        drawString(
-                poseStack,
+        guiGraphics.drawString(
+                
                 this.font,
                 "Active modifiers: " + activeModifiers(),
                 left + 8,
@@ -317,13 +317,13 @@ public class SFMInputDiagnosticsScreen extends Screen {
         int startInclusive = Math.max(0, endExclusive - maxLines);
         int y = eventTop;
         for (int i = startInclusive; i < endExclusive; i++) {
-            drawString(poseStack, this.font, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT);
+            guiGraphics.drawString( this.font, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT);
             y += lineHeight;
         }
         if (events.isEmpty()) {
-            drawString(poseStack, this.font, "No input events yet.", left + 8, eventTop, MUTED);
+            guiGraphics.drawString( this.font, "No input events yet.", left + 8, eventTop, MUTED);
         }
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     private void log(
