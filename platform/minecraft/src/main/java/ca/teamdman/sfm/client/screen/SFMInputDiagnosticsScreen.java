@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.ChatFormatting;
@@ -261,24 +262,27 @@ public class SFMInputDiagnosticsScreen extends Screen {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean mouseScrolled(
             double mouseX,
             double mouseY,
-            double delta
+            double deltaX,
+            double deltaY
     ) {
-        log("mouseScrolled x=%.1f y=%.1f delta=%.1f active=%s", mouseX, mouseY, delta, activeModifiers());
-        scrollOffset = Math.max(0, scrollOffset + (delta > 0 ? 1 : -1));
+        log("mouseScrolled x=%.1f y=%.1f dx=%.1f dy=%.1f active=%s", mouseX, mouseY, deltaX, deltaY, activeModifiers());
+        scrollOffset = Math.max(0, scrollOffset + (deltaY > 0 ? 1 : -1));
         return true;
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public void render(
             GuiGraphics guiGraphics,
             int mouseX,
             int mouseY,
             float partialTick
     ) {
-        this.renderBackground(guiGraphics);
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.fill( 0, 0, this.width, this.height, BACKGROUND);
 
         int left = 8;

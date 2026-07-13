@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -61,13 +62,14 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public void render(
             GuiGraphics guiGraphics,
             int mouseX,
             int mouseY,
             float partialTick
     ) {
-        this.renderBackground(guiGraphics);
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         int panelWidth = 220;
         int panelHeight = panelHeight();
         int left = this.width / 2 - panelWidth / 2;
