@@ -63,7 +63,7 @@ fn execute_build(
         &[
             "Maven repositories",
             VERSION_MANIFEST_URL,
-            "dependencies.gradle",
+            "sfm-toolchain.lock.json",
         ],
         &[
             plan.maven_cache_dir.clone(),
@@ -629,7 +629,7 @@ fn execute_run(
     )?;
     let modules = resolve_forge_userdev_modules(&context, &resolver)?;
     context.bail_if_cancelled()?;
-    let launch_classpath = resolve_run_classpath(&context, &resolver, kind)?;
+    let launch_classpath = resolve_run_classpath(&context, &resolver, kind, run_options)?;
     context.bail_if_cancelled()?;
     let run_cache_artifact_paths = run_lockfile_cache_artifact_paths(&launch_classpath, &modules);
     write_artifact_lockfile_with_extra_cache_paths(plan, &run_cache_artifact_paths)?;
@@ -643,7 +643,7 @@ fn execute_run(
     };
     context.bail_if_cancelled()?;
 
-    let source_roots = run_source_roots(&context, kind)?;
+    let source_roots = run_source_roots(&context, kind, run_options)?;
     let mcp_mappings = run_mcp_mappings(plan);
     let module_path = join_classpath(&modules);
     let minecraft_classpath_file_text = minecraft_classpath_file.display().to_string();
@@ -704,6 +704,7 @@ fn execute_run(
             automation_mode.to_string(),
         );
     }
+    apply_client_title_screen_property(&mut properties, kind, run_options);
     apply_client_puppet_keep_open_property(&mut properties, kind, run_options);
     let launch_timeout = kind.launch_timeout(run_options);
 
@@ -719,8 +720,15 @@ fn execute_run(
     );
     jvm_args.extend([
         "-XX:+IgnoreUnrecognizedVMOptions".to_string(),
+        "-XX:+AllowEnhancedClassRedefinition".to_string(),
         "-XX:+AllowRedefinitionToAddDeleteMethods".to_string(),
     ]);
+    if matches!(kind, RunKind::Client) && let Some(port) = run_options.client_hotswap_port {
+        jvm_args.push(format!(
+            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=127.0.0.1:{port}"
+        ));
+        tracing::info!(port, "client hotswap JDWP enabled");
+    }
 
     let mut program_args = run_config
         .args
@@ -747,7 +755,7 @@ fn execute_run(
         .chain(modules.iter().cloned())
         .collect::<Vec<_>>();
     if launch_main.starts_with("net.neoforged.fml.startup.") {
-        java_classpath_inputs.extend(run_source_root_paths(&context, kind)?);
+        java_classpath_inputs.extend(run_source_root_paths(&context, kind, run_options)?);
     }
     let java_classpath = dedup_paths_preserve_order(java_classpath_inputs);
     let mut java_args = Vec::new();
@@ -1944,14 +1952,7 @@ fn resolve_test_dependency_classpath(
     kind: TestClasspathKind,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
-    let dependency_script = context
-        .plan
-        .minecraft_dir
-        .join("gradle")
-        .join("dependencies")
-        .join(context.plan.minecraft_version.as_str())
-        .join("dependencies.gradle");
-    let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
+    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
     let configurations: &[&str] = match kind {
         TestClasspathKind::Compile => &["testImplementation", "testCompileOnly"],
         TestClasspathKind::Runtime => &["testImplementation", "testRuntimeOnly"],
@@ -1959,7 +1960,8 @@ fn resolve_test_dependency_classpath(
     let roots = dependencies
         .iter()
         .filter(|dependency| {
-            !dependency.fg_deobf && configurations.contains(&dependency.configuration.as_str())
+            !dependency.loader_managed()
+                && configurations.contains(&dependency.configuration.as_str())
         })
         .map(|dependency| {
             (
@@ -2015,14 +2017,7 @@ fn resolve_junit_console_standalone(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
 ) -> eyre::Result<ArtifactPlan> {
-    let dependency_script = context
-        .plan
-        .minecraft_dir
-        .join("gradle")
-        .join("dependencies")
-        .join(context.plan.minecraft_version.as_str())
-        .join("dependencies.gradle");
-    let dependencies = parse_dependency_script(&dependency_script, &context.plan.properties)?;
+    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
     let platform_version = junit_platform_version(&dependencies)?;
     let coordinate = MavenCoordinate::parse(&format!(
         "org.junit.platform:junit-platform-console-standalone:{platform_version}"
@@ -2137,6 +2132,23 @@ fn apply_client_puppet_keep_open_property(
     properties.insert(
         "sfm.clientRun.keepOpenSeconds".to_string(),
         run_options.client_puppet_keep_open.property_seconds(),
+    );
+}
+
+fn apply_client_title_screen_property(
+    properties: &mut BTreeMap<String, String>,
+    kind: RunKind,
+    run_options: &RunOptions,
+) {
+    if !matches!(kind, RunKind::Client) {
+        return;
+    }
+    let Some(title_screen) = run_options.client_title_screen else {
+        return;
+    };
+    properties.insert(
+        "sfm.clientRun.titleScreen".to_string(),
+        title_screen.property_value().to_string(),
     );
 }
 
@@ -3070,10 +3082,11 @@ fn resolve_run_classpath(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
     kind: RunKind,
+    run_options: &RunOptions,
 ) -> eyre::Result<RunClasspath> {
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         let _span = tracing::debug_span!("resolve_run_classpath_neogradle").entered();
-        return resolve_neogradle_run_classpath(context, resolver, kind);
+        return resolve_neogradle_run_classpath(context, resolver, kind, run_options);
     }
 
     let mut legacy = Vec::new();
@@ -3100,14 +3113,25 @@ fn resolve_run_classpath(
         let _span = tracing::debug_span!("resolve_run_classpath_forge_userdev_libraries").entered();
         legacy.extend(resolve_forge_userdev_libraries(context, resolver)?);
     };
-    {
+    if should_include_project_run_dependencies(kind, run_options) {
         let _span = tracing::debug_span!("resolve_run_classpath_plain_dependencies").entered();
         legacy.extend(resolve_run_plain_dependencies(context, resolver, kind)?);
-    };
+    } else {
+        tracing::info!(
+            kind = kind.command_name(),
+            "solo client launch: skipping plain dependency jars"
+        );
+    }
 
-    let userdev_mods = {
+    let userdev_mods = if should_include_project_run_dependencies(kind, run_options) {
         let _span = tracing::debug_span!("resolve_run_classpath_deobf_dependencies").entered();
         resolve_run_deobf_dependencies(context, resolver, kind)?
+    } else {
+        tracing::info!(
+            kind = kind.command_name(),
+            "solo client launch: skipping deobfuscated dependency mod jars"
+        );
+        Vec::new()
     };
     let legacy = {
         let _span =
@@ -3138,6 +3162,7 @@ fn resolve_neogradle_run_classpath(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
     kind: RunKind,
+    run_options: &RunOptions,
 ) -> eyre::Result<RunClasspath> {
     let mut legacy = Vec::new();
     {
@@ -3171,11 +3196,16 @@ fn resolve_neogradle_run_classpath(
             tracing::debug_span!("resolve_neogradle_run_classpath_test_libraries").entered();
         userdev_mods.extend(resolve_forge_userdev_test_libraries(context, resolver)?);
     }
-    {
+    if should_include_project_run_dependencies(kind, run_options) {
         let _span =
             tracing::debug_span!("resolve_neogradle_run_classpath_run_dependencies").entered();
         userdev_mods.extend(resolve_neogradle_run_dependencies(context, kind)?);
-    };
+    } else {
+        tracing::info!(
+            kind = kind.command_name(),
+            "solo client launch: skipping NeoGradle dependency mod jars"
+        );
+    }
 
     let legacy = {
         let _span = tracing::debug_span!(
@@ -3202,6 +3232,20 @@ fn resolve_neogradle_run_classpath(
         legacy,
         userdev_mods,
     })
+}
+
+pub(super) fn should_include_project_run_dependencies(
+    kind: RunKind,
+    run_options: &RunOptions,
+) -> bool {
+    !is_solo_client_like_launch(kind, run_options)
+}
+
+fn is_solo_client_like_launch(
+    kind: RunKind,
+    run_options: &RunOptions,
+) -> bool {
+    run_options.client_solo && matches!(kind, RunKind::Client | RunKind::ClientSmoke)
 }
 
 #[expect(
@@ -3454,28 +3498,17 @@ fn resolve_run_plain_dependencies(
 ) -> eyre::Result<Vec<PathBuf>> {
     let _span = tracing::debug_span!("resolve_run_plain_dependencies", kind = %kind.command_name())
         .entered();
-    let dependency_script = context
-        .plan
-        .minecraft_dir
-        .join("gradle")
-        .join("dependencies")
-        .join(context.plan.minecraft_version.as_str())
-        .join("dependencies.gradle");
-    let dependencies = {
-        let _span = tracing::debug_span!(
-            "resolve_run_plain_dependencies_parse_script",
-            script = %dependency_script.display()
-        )
-        .entered();
-        parse_dependency_script(&dependency_script, &context.plan.properties)?
-    };
-    let configurations = run_dependency_configurations(kind);
+    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
     let mut artifacts = Vec::new();
     for (index, dependency) in dependencies
         .iter()
         .filter(|dependency| {
-            !dependency.fg_deobf
-                && configurations.contains(&dependency.configuration.as_str())
+            !dependency.loader_managed()
+                && dependency_selected_for_run(
+                    &dependency.configuration,
+                    dependency.data_run_policy,
+                    kind,
+                )
                 && !is_api_classifier(&dependency.coordinate)
         })
         .enumerate()
@@ -3532,13 +3565,20 @@ fn resolve_run_deobf_dependencies(
         .entered();
         ContentHash::from_path(&mapping_path, ContentHashAlgorithm::Blake3)?
     };
-    let configurations = run_dependency_configurations(kind);
     let mut selected = Vec::new();
     for dependency in context
         .plan
         .dependencies
         .iter()
-        .filter(|dependency| configurations.contains(&dependency.configuration.as_str()))
+        .filter(|dependency| {
+            dependency.artifact_treatment
+                == crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
+                && dependency_selected_for_run(
+                    &dependency.configuration,
+                    dependency.data_run_policy,
+                    kind,
+                )
+        })
     {
         let coordinate = MavenCoordinate::parse(&dependency.resolved_notation)?;
         if is_api_classifier(&coordinate) {
@@ -3603,11 +3643,13 @@ fn resolve_neogradle_run_dependencies(
         tracing::debug_span!("resolve_neogradle_run_dependencies", kind = %kind.command_name())
             .entered();
     let dependency_output = context.plan.cache_dir.join("dependencies");
-    let configurations = run_dependency_configurations(kind);
     let mut output = Vec::new();
-
     for dependency in context.plan.dependencies.iter().filter(|dependency| {
-        configurations.contains(&dependency.configuration.as_str())
+        dependency_selected_for_run(
+            &dependency.configuration,
+            dependency.data_run_policy,
+            kind,
+        )
             && MavenCoordinate::parse(&dependency.resolved_notation)
                 .is_ok_and(|coordinate| !is_api_classifier(&coordinate))
     }) {
@@ -3676,29 +3718,71 @@ fn write_classpath_file(path: &Path, classpath: &[PathBuf]) -> eyre::Result<()> 
         .wrap_err_with(|| format!("Failed to write {}", path.display()))
 }
 
-fn run_source_roots(context: &ExecutionContext<'_>, kind: RunKind) -> eyre::Result<String> {
+fn run_source_roots(
+    context: &ExecutionContext<'_>,
+    kind: RunKind,
+    run_options: &RunOptions,
+) -> eyre::Result<String> {
     let mod_id = required_property(&context.plan.properties, "mod_id")?;
-    let existing_roots = run_source_root_paths(context, kind)?;
-    let separator = if cfg!(windows) { ";" } else { ":" };
-    Ok(existing_roots
+    let existing_roots = run_source_root_paths(context, kind, run_options)?;
+    let roots = existing_roots
         .into_iter()
-        .map(|path| format!("{mod_id}%%{}", path.display()))
+        .map(|path| path.display().to_string())
         .collect::<Vec<_>>()
-        .join(separator))
+        .join(";");
+    Ok(format!("{mod_id}%%{roots}"))
+}
+
+fn dependency_selected_for_run(
+    configuration: &str,
+    data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
+    kind: RunKind,
+) -> bool {
+    if matches!(kind, RunKind::Data) {
+        return data_run_policy
+            == crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include
+            && matches!(
+                configuration,
+                "implementation" | "compileOnly" | "runtimeOnly" | "jarJar"
+            );
+    }
+    run_dependency_configurations(kind).contains(&configuration)
 }
 
 fn run_source_root_paths(
     context: &ExecutionContext<'_>,
     kind: RunKind,
+    run_options: &RunOptions,
+) -> eyre::Result<Vec<PathBuf>> {
+    let source_roots = run_project_source_roots(context, kind, run_options)?;
+    let combined_root = context
+        .plan
+        .cache_dir
+        .join("project")
+        .join("run-mod-root")
+        .join(kind.command_name());
+    reset_cache_directory(&context.plan.cache_dir, &combined_root)?;
+    for source_root in source_roots {
+        copy_directory_contents(context, &source_root, &combined_root)?;
+    }
+    Ok(vec![combined_root])
+}
+
+fn run_project_source_roots(
+    context: &ExecutionContext<'_>,
+    kind: RunKind,
+    run_options: &RunOptions,
 ) -> eyre::Result<Vec<PathBuf>> {
     let project_root = context.plan.cache_dir.join("project");
     let mut roots = vec![
         project_root.join("staged-resources"),
         project_root.join("classes"),
     ];
-    let source_set = kind.optional_source_set();
-    roots.push(project_root.join(source_set).join("resources"));
-    roots.push(project_root.join(source_set).join("classes"));
+    if !is_solo_client_like_launch(kind, run_options) {
+        let source_set = kind.optional_source_set();
+        roots.push(project_root.join(source_set).join("resources"));
+        roots.push(project_root.join(source_set).join("classes"));
+    }
 
     let existing_roots = roots
         .into_iter()
@@ -3709,6 +3793,35 @@ fn run_source_root_paths(
     }
 
     Ok(existing_roots)
+}
+
+fn copy_directory_contents(
+    context: &ExecutionContext<'_>,
+    source: &Path,
+    destination: &Path,
+) -> eyre::Result<()> {
+    context.assert_allowed_input(source)?;
+    fs::create_dir_all(destination)
+        .wrap_err_with(|| format!("Failed to create {}", destination.display()))?;
+    for file in collect_files_under_cancellable(context, source)? {
+        context.bail_if_cancelled()?;
+        let relative = file
+            .strip_prefix(source)
+            .wrap_err_with(|| format!("Failed to relativize {}", file.display()))?;
+        let output = destination.join(relative);
+        if let Some(parent) = output.parent() {
+            fs::create_dir_all(parent)
+                .wrap_err_with(|| format!("Failed to create {}", parent.display()))?;
+        }
+        fs::copy(&file, &output).wrap_err_with(|| {
+            format!(
+                "Failed to copy {} to {}",
+                file.display(),
+                output.display()
+            )
+        })?;
+    }
+    Ok(())
 }
 
 fn kind_extra_program_args(plan: &BuildPlan, kind: RunKind) -> eyre::Result<Vec<String>> {

@@ -41,7 +41,7 @@ pub struct CurseforgeReleaseAmendArgs {
     pub project: Option<u64>,
 
     /// CurseForge Core API key; if omitted, CURSEFORGE_CORE_API_KEY is used.
-    #[facet(default, args::named, rename = "api-key")]
+    #[facet(default, args::named)]
     pub api_key: Option<String>,
 
     /// CurseForge API token; if omitted, CURSEFORGE_API_TOKEN is used, then 1Password lookup.
@@ -49,15 +49,15 @@ pub struct CurseforgeReleaseAmendArgs {
     pub token: Option<String>,
 
     /// 1Password secret reference used when credentials are omitted.
-    #[facet(default, args::named, rename = "op-secret")]
+    #[facet(default, args::named)]
     pub op_secret: Option<String>,
 
     /// Refuse amending files older than this age (examples: 30m, 2h, 45s).
-    #[facet(default, args::named, rename = "safety-age")]
+    #[facet(default, args::named)]
     pub safety_age: Option<String>,
 
     /// Resolve remote target and print the amend plan without updating CurseForge.
-    #[facet(default, args::named, rename = "dry-run")]
+    #[facet(default, args::named)]
     pub dry_run: bool,
 }
 

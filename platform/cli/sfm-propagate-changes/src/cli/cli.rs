@@ -44,6 +44,8 @@ impl Cli {
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum Command {
+    /// Audit tracked Rust and Java source file sizes.
+    Audit(super::audit::AuditArgs),
     /// Run arbitrary gradle task(s) for each worktree in strict sequence
     Gradle(super::gradle::GradleArgs),
     /// Client instance tracking and management commands
@@ -74,8 +76,6 @@ pub enum Command {
     Run(super::run::RunArgs),
     /// Repo root related commands
     RepoRoot(super::repo_root::RepoRootArgs),
-    /// Source code audit commands
-    Source(super::source::SourceArgs),
 }
 
 impl Command {
@@ -84,6 +84,7 @@ impl Command {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         match self {
+            Command::Audit(args) => args.invoke(),
             Command::Gradle(args) => args.invoke(),
             Command::Client(args) => args.invoke(),
             Command::Server(args) => args.invoke(),
@@ -99,7 +100,6 @@ impl Command {
             Command::Jar(args) => args.invoke(cancellation_token),
             Command::Run(args) => args.invoke(cancellation_token),
             Command::RepoRoot(args) => args.invoke(),
-            Command::Source(args) => args.invoke(),
         }
     }
 }
@@ -108,18 +108,19 @@ impl Command {
 mod tests {
     use super::Cli;
     use crate::cli::Command;
+    use crate::cli::dependency::DependencyCommand;
+    use crate::cli::dependency::DependencySourceCommand;
+    use crate::cli::dependency::DependencySourceProviderCommand;
     use crate::cli::git::GitCommand;
     use crate::cli::gradle::GradleCommand;
     use crate::cli::jar::JarCommand;
     use crate::cli::run::RunCommand;
     use crate::cli::run::RunGameTestServerCliCommand;
     use crate::cli::run::RunTestCliCommand;
-    use crate::cli::source::SourceCommand;
     use crate::jar_build::BuildMode;
     use crate::jar_build::ClientPuppetKeepOpen;
     use crate::jar_build::ErrorAction;
     use crate::jar_build::Parallelism;
-    use crate::jar_build::SourceOutputLayout;
     use crate::source_audit::SourceLanguage;
     use facet::Facet;
     use figue as args;
@@ -129,6 +130,16 @@ mod tests {
     fn parses_top_level_run_clis() {
         assert_run_cli(&["run", "compile", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "client", "--branch", "1.19.2"]);
+        assert_run_cli(&["run", "client", "--branch", "1.19.2", "--text-editor"]);
+        assert_run_cli(&["run", "client", "--branch", "1.19.2", "--input-diag"]);
+        assert_run_cli(&[
+            "run",
+            "client",
+            "--branch",
+            "1.19.2",
+            "--title-screen",
+            "input-diag",
+        ]);
         assert_run_cli(&["run", "client-smoke", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "client-puppet", "--branch", "1.19.2"]);
         assert_run_cli(&[
@@ -193,15 +204,14 @@ mod tests {
     }
 
     #[test]
-    fn parses_source_audit_cli() {
-        let cli = figue::from_slice::<Cli>(&["source", "audit", "--branch", "*"])
+    fn parses_top_level_audit_cli() {
+        let cli = figue::from_slice::<Cli>(&["audit", "--branch", "*"])
             .into_result()
-            .expect("source audit should parse")
+            .expect("top-level audit should parse")
             .get_silent();
-        let Command::Source(args) = cli.command else {
-            panic!("expected source command");
+        let Command::Audit(args) = cli.command else {
+            panic!("expected audit command");
         };
-        let SourceCommand::Audit(args) = args.command;
         assert_eq!(args.branch.as_ref(), "*");
         assert!(args.language.is_empty());
         assert!(args.lang.is_empty());
@@ -209,9 +219,8 @@ mod tests {
     }
 
     #[test]
-    fn parses_source_audit_filters() {
+    fn parses_top_level_audit_filters() {
         let cli = figue::from_slice::<Cli>(&[
-            "source",
             "audit",
             "--branch",
             ">=1.19.2",
@@ -223,12 +232,11 @@ mod tests {
             "1200",
         ])
         .into_result()
-        .expect("source audit filters should parse")
+        .expect("top-level audit filters should parse")
         .get_silent();
-        let Command::Source(args) = cli.command else {
-            panic!("expected source command");
+        let Command::Audit(args) = cli.command else {
+            panic!("expected audit command");
         };
-        let SourceCommand::Audit(args) = args.command;
         assert_eq!(args.branch.as_ref(), ">=1.19.2");
         assert_eq!(args.language, vec![SourceLanguage::Rust]);
         assert_eq!(args.lang, vec![SourceLanguage::Java]);
@@ -526,39 +534,6 @@ mod tests {
     }
 
     #[test]
-    fn parses_jar_sources_filetree_layout() {
-        let cli = figue::from_slice::<Cli>(&[
-            "jar",
-            "sources",
-            "--branch",
-            "1.19.2",
-            "--layout",
-            "filetree",
-            "--parallel",
-            "2",
-        ])
-        .into_result()
-        .expect("jar sources filetree should parse")
-        .get_silent();
-        match cli.command {
-            Command::Jar(crate::cli::jar::JarArgs {
-                command: JarCommand::Sources(command),
-            }) => {
-                let options = command
-                    .into_options(BuildMode::Build)
-                    .expect("jar sources options should parse");
-                assert_eq!(options.build.branch.to_string(), "1.19.2");
-                assert_eq!(options.layout, SourceOutputLayout::Filetree);
-                assert_eq!(
-                    options.build.parallelism,
-                    Parallelism::Parallel { limit: 2 }
-                );
-            }
-            command => panic!("expected jar sources command, got {command:?}"),
-        }
-    }
-
-    #[test]
     fn parses_bare_parallel() {
         let cli = figue::from_slice::<Cli>(&[
             "run",
@@ -834,6 +809,424 @@ mod tests {
     }
 
     #[test]
+    fn parses_dependency_migrate_check_with_explicit_branch() {
+        let cli =
+            figue::from_slice::<Cli>(&["dependency", "migrate", "--branch", "1.19.2", "--check"])
+                .into_result()
+                .expect("dependency migrate should parse")
+                .get_silent();
+        match cli.command {
+            Command::Dependency(crate::cli::dependency::DependencyArgs {
+                command: DependencyCommand::Migrate(args),
+            }) => {
+                assert_eq!(args.branch.as_ref(), "1.19.2");
+                assert!(args.check);
+            }
+            command => panic!("expected dependency migrate command, got {command:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_dependency_list_and_show_with_explicit_branch() {
+        let list = figue::from_slice::<Cli>(&["dependency", "list", "--branch", "1.19.2"])
+            .into_result()
+            .expect("dependency list should parse")
+            .get_silent();
+        assert!(matches!(
+            list.command,
+            Command::Dependency(crate::cli::dependency::DependencyArgs {
+                command: DependencyCommand::List(_),
+            })
+        ));
+
+        let show =
+            figue::from_slice::<Cli>(&["dependency", "show", "cc-tweaked", "--branch", "1.19.2"])
+                .into_result()
+                .expect("dependency show should parse")
+                .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Show(args),
+        }) = show.command
+        else {
+            panic!("expected dependency show command");
+        };
+        assert_eq!(args.id, "cc-tweaked");
+        assert_eq!(args.branch.as_ref(), "1.19.2");
+    }
+
+    #[test]
+    fn parses_dependency_artifact_accept_and_rejects_legacy_add() {
+        let cli = figue::from_slice::<Cli>(&[
+            "dependency",
+            "artifact",
+            "accept",
+            "cc-tweaked/main",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()
+        .expect("dependency artifact accept should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Artifact(artifact),
+        }) = cli.command
+        else {
+            panic!("expected dependency artifact command");
+        };
+        let crate::cli::dependency::DependencyArtifactCommand::Accept(args) = artifact.command;
+        assert_eq!(args.target, "cc-tweaked/main");
+        assert_eq!(args.branch.as_ref(), "1.19.2");
+    }
+
+    #[test]
+    fn parses_dependency_add_as_v3_declaration_creation() {
+        let cli = figue::from_slice::<Cli>(&[
+            "dependency",
+            "add",
+            "cc-tweaked",
+            "--branch",
+            "1.19.2",
+            "--maven",
+            "org.squiddev:cc-tweaked-1.19.2:1.101.3",
+            "--repository",
+            "squiddev",
+            "--scope",
+            "compile",
+            "--scope",
+            "runtime",
+            "--scope",
+            "gametest-compile",
+            "--scope",
+            "gametest-runtime",
+            "--artifact-treatment",
+            "loader-managed-mod",
+        ])
+        .into_result()
+        .expect("dependency add should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Add(args),
+        }) = cli.command
+        else {
+            panic!("expected dependency add command");
+        };
+        assert_eq!(args.id, "cc-tweaked");
+        assert_eq!(args.branch.as_ref(), "1.19.2");
+        assert_eq!(
+            args.maven.as_deref(),
+            Some("org.squiddev:cc-tweaked-1.19.2:1.101.3")
+        );
+        assert_eq!(args.scope.len(), 4);
+        assert_eq!(
+            args.artifact_treatment,
+            Some(crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod)
+        );
+        figue::from_slice::<Cli>(&[
+            "dependency",
+            "add",
+            "curse.maven:cc-tweaked-282001:4433584",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()
+        .expect_err("dependency add requires structured declaration options");
+    }
+
+    #[test]
+    fn parses_dependency_remove_with_component_target() {
+        let cli = figue::from_slice::<Cli>(&[
+            "dependency",
+            "remove",
+            "applied-energistics-2/api",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()
+        .expect("dependency remove should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Remove(args),
+        }) = cli.command
+        else {
+            panic!("expected dependency remove command");
+        };
+        assert_eq!(args.target, "applied-energistics-2/api");
+        assert_eq!(args.branch.as_ref(), "1.19.2");
+    }
+
+    #[test]
+    fn parses_dependency_component_add() {
+        let cli = figue::from_slice::<Cli>(&[
+            "dependency",
+            "component",
+            "add",
+            "mekanism",
+            "api",
+            "--branch",
+            "1.19.2",
+            "--maven",
+            "mekanism:Mekanism:1.19.2-10.3.9.13:api",
+            "--repository",
+            "modmaven",
+            "--scope",
+            "compile",
+            "--artifact-treatment",
+            "plain",
+        ])
+        .into_result()
+        .expect("dependency component add should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Component(component),
+        }) = cli.command
+        else {
+            panic!("expected dependency component command");
+        };
+        let crate::cli::dependency::DependencyComponentCommand::Add(args) = component.command;
+        assert_eq!(args.dependency, "mekanism");
+        assert_eq!(args.component, "api");
+        assert_eq!(args.branch.as_ref(), "1.19.2");
+        assert_eq!(
+            args.scope,
+            [crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3::Compile]
+        );
+        assert_eq!(
+            args.artifact_treatment,
+            Some(crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain)
+        );
+    }
+
+    #[test]
+    fn parses_dependency_refresh_all_and_targeted() {
+        let all = figue::from_slice::<Cli>(&["dependency", "refresh", "--branch", "1.19.2"])
+            .into_result()
+            .expect("dependency refresh all should parse")
+            .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Refresh(args),
+        }) = all.command
+        else {
+            panic!("expected dependency refresh command");
+        };
+        assert_eq!(args.target, None);
+
+        let targeted = figue::from_slice::<Cli>(&[
+            "dependency",
+            "refresh",
+            "cc-tweaked/main",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()
+        .expect("targeted dependency refresh should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Refresh(args),
+        }) = targeted.command
+        else {
+            panic!("expected targeted dependency refresh command");
+        };
+        assert_eq!(args.target.as_deref(), Some("cc-tweaked/main"));
+        assert_eq!(args.branch.as_ref(), "1.19.2");
+    }
+
+    #[test]
+    fn parses_dependency_source_configuration_and_cache_with_explicit_branch() {
+        let configure = figue::from_slice::<Cli>(&[
+            "dependency",
+            "source",
+            "configure",
+            "cc-tweaked",
+            "--branch",
+            "1.19.2",
+            "--maven-sources",
+            "--root",
+            "dan200/computercraft",
+            "--prefer",
+        ])
+        .into_result()
+        .expect("source configure should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Source(source),
+        }) = configure.command
+        else {
+            panic!("expected dependency source command");
+        };
+        let DependencySourceCommand::Configure(args) = source.command else {
+            panic!("expected source configure command");
+        };
+        assert!(args.maven_sources);
+        assert_eq!(args.root, ["dan200/computercraft"]);
+        assert!(args.prefer);
+
+        let decompile = figue::from_slice::<Cli>(&[
+            "dependency",
+            "source",
+            "configure",
+            "mekanism/main",
+            "--branch",
+            "1.19.2",
+            "--decompile",
+            "--decompiler",
+            "vineflower/main",
+        ])
+        .into_result()
+        .expect("decompile source configure should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Source(source),
+        }) = decompile.command
+        else {
+            panic!("expected dependency source command");
+        };
+        let DependencySourceCommand::Configure(args) = source.command else {
+            panic!("expected source configure command");
+        };
+        assert!(args.decompile);
+        assert_eq!(args.decompiler.as_deref(), Some("vineflower/main"));
+
+        let cache_audit = figue::from_slice::<Cli>(&[
+            "dependency",
+            "source",
+            "cache",
+            "audit",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()
+        .expect("source cache audit should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Source(source),
+        }) = cache_audit.command
+        else {
+            panic!("expected dependency source command");
+        };
+        assert!(matches!(source.command, DependencySourceCommand::Cache(_)));
+    }
+
+    #[test]
+    fn parses_dependency_source_provider_and_acquisition_with_explicit_branch() {
+        let providers = figue::from_slice::<Cli>(&[
+            "dependency",
+            "source",
+            "provider",
+            "list",
+            "cc-tweaked",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()
+        .expect("provider list should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Source(source),
+        }) = providers.command
+        else {
+            panic!("expected dependency source command");
+        };
+        let DependencySourceCommand::Provider(provider) = source.command else {
+            panic!("expected provider command");
+        };
+        let DependencySourceProviderCommand::List(args) = provider.command;
+        assert_eq!(args.target.as_deref(), Some("cc-tweaked"));
+
+        let acquire = figue::from_slice::<Cli>(&[
+            "dependency",
+            "source",
+            "acquire",
+            "cc-tweaked",
+            "--provider",
+            "maven-sources",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()
+        .expect("source acquire should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Source(source),
+        }) = acquire.command
+        else {
+            panic!("expected dependency source command");
+        };
+        let DependencySourceCommand::Acquire(args) = source.command else {
+            panic!("expected source acquire command");
+        };
+        assert_eq!(
+            args.provider,
+            Some(crate::cli::dependency::DependencySourceProviderSelector::MavenSources)
+        );
+        assert_eq!(args.target.as_deref(), Some("cc-tweaked"));
+        assert!(!args.all);
+
+        let acquire_all = figue::from_slice::<Cli>(&[
+            "dependency",
+            "source",
+            "acquire",
+            "--all",
+            "--provider",
+            "any",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()
+        .expect("all source acquire should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Source(source),
+        }) = acquire_all.command
+        else {
+            panic!("expected dependency source command");
+        };
+        let DependencySourceCommand::Acquire(args) = source.command else {
+            panic!("expected source acquire command");
+        };
+        assert_eq!(args.target, None);
+        assert!(args.all);
+        assert_eq!(
+            args.provider,
+            Some(crate::cli::dependency::DependencySourceProviderSelector::Any)
+        );
+    }
+
+    #[test]
+    fn parses_dependency_source_search_with_explicit_branch() {
+        let search = figue::from_slice::<Cli>(&[
+            "dependency",
+            "source",
+            "search",
+            "IPeripheralProvider",
+            "--dependency",
+            "cc-tweaked",
+            "--dependency",
+            "minecraft",
+            "--provider-id",
+            "upstream",
+            "--require-complete",
+            "--branch",
+            "1.19.2",
+        ])
+        .into_result()
+        .expect("source search should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Source(source),
+        }) = search.command
+        else {
+            panic!("expected dependency source command");
+        };
+        let DependencySourceCommand::Search(args) = source.command else {
+            panic!("expected source search command");
+        };
+        assert_eq!(args.pattern, "IPeripheralProvider");
+        assert_eq!(args.dependency, ["cc-tweaked", "minecraft"]);
+        assert_eq!(args.provider_id.as_deref(), Some("upstream"));
+        assert!(args.require_complete);
+    }
+
+    #[test]
     fn branch_is_required_for_commands_that_accept_branch() {
         let commands = [
             &["run", "compile"][..],
@@ -843,9 +1236,12 @@ mod tests {
             &["jar", "build"],
             &["jar", "compare"],
             &["jar", "audit-artifacts"],
+            &["dependency", "migrate"],
+            &["dependency", "list"],
+            &["dependency", "show", "cc-tweaked"],
             &["gradle", "run", "runData"],
             &["loader", "list"],
-            &["source", "audit"],
+            &["audit"],
             &["server", "list"],
             &["server", "launch"],
             &["github", "release", "now"],
@@ -867,6 +1263,12 @@ mod tests {
                 "expected {command:?} to require --branch"
             );
         }
+    }
+
+    #[test]
+    fn obsolete_source_commands_are_rejected() {
+        assert!(figue::from_slice::<Cli>(&["jar", "sources", "--branch", "1.19.2"]).is_err());
+        assert!(figue::from_slice::<Cli>(&["source", "audit", "--branch", "1.19.2"]).is_err());
     }
 
     #[test]

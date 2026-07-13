@@ -29,6 +29,7 @@ use super::write_artifact_provenance;
 use crate::cancellation::CancellationToken;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
+use crate::source_cache::SourceCacheLayout;
 use eyre::Context;
 use rayon::prelude::*;
 use reqwest::blocking::Client;
@@ -315,7 +316,7 @@ impl Resolver {
             return Ok(None);
         };
 
-        let (checkout_dir, portable_source_root) =
+        let (checkout_dir, portable_source_root, repository_dir) =
             self.source_build_checkout_paths(remote_url, &source_git.commit, &source_git.root);
         let _source_build_lock = acquire_artifact_path_lock(&checkout_dir)?;
         materialize_source_build(
@@ -324,6 +325,7 @@ impl Resolver {
             &source_git.commit,
             source_build,
             &checkout_dir,
+            &repository_dir,
         )?;
         self.cancellation_token.bail_if_cancelled()?;
         let source_output = checkout_dir.join(&source_build.output_path);
@@ -383,19 +385,34 @@ impl Resolver {
         remote_url: &str,
         commit: &str,
         locked_root: &Path,
-    ) -> (PathBuf, PathBuf) {
+    ) -> (PathBuf, PathBuf, PathBuf) {
         let common_cache_dir = self.cache_dir.parent().unwrap_or(&self.cache_dir);
         if let Ok(relative) = locked_root.strip_prefix(Path::new("$sfm-cache")) {
-            return (common_cache_dir.join(relative), locked_root.to_path_buf());
+            let repository = SourceCacheLayout::git(remote_url, commit).repository;
+            let repository_relative = repository
+                .strip_prefix(Path::new("$sfm-cache"))
+                .expect("source cache layout is rooted at $sfm-cache");
+            return (
+                common_cache_dir.join(relative),
+                locked_root.to_path_buf(),
+                common_cache_dir.join(repository_relative),
+            );
         }
 
         let checkout_key = source_build_checkout_key(remote_url, commit);
         let portable_source_root = PathBuf::from("$sfm-cache")
-            .join("source-builds")
+            .join("source-builds-gix")
             .join(&checkout_key);
+        let repository = SourceCacheLayout::git(remote_url, commit).repository;
+        let repository_relative = repository
+            .strip_prefix(Path::new("$sfm-cache"))
+            .expect("source cache layout is rooted at $sfm-cache");
         (
-            common_cache_dir.join("source-builds").join(checkout_key),
+            common_cache_dir
+                .join("source-builds-gix")
+                .join(checkout_key),
             portable_source_root,
+            common_cache_dir.join(repository_relative),
         )
     }
 
@@ -850,6 +867,10 @@ impl Resolver {
 
         Ok(DependencyPlan {
             configuration: configuration.to_string(),
+            artifact_treatment:
+                crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+            data_run_policy:
+                crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
             notation: coordinate.to_string(),
             resolved_notation: resolved.to_string(),
             source,
@@ -944,6 +965,8 @@ impl Resolver {
             &["Parchment"]
         } else if coordinate.group == "org.spongepowered" {
             &["Sponge", "Maven Central"]
+        } else if coordinate.group == "org.squiddev" {
+            &["SquidDev"]
         } else if coordinate.group == "net.minecraftforge" || coordinate.group == "de.oceanlabs.mcp"
         {
             &["Forge"]

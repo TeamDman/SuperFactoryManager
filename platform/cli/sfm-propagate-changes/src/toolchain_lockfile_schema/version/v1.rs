@@ -6,7 +6,7 @@ use crate::jar_build::SourceGitProvenance;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::json_path::JsonOptionalPath;
 use crate::jar_build::json_path::JsonPath;
-use crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION;
+use crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION;
 use crate::toolchain_lockfile_schema::version::v2::ArtifactLockEntryV2;
 use crate::toolchain_lockfile_schema::version::v2::ArtifactLockfileV2;
 use facet::Facet;
@@ -58,7 +58,7 @@ impl ArtifactLockfileV1 {
         } = self;
 
         ArtifactLockfileV2 {
-            schema_version: LATEST_SCHEMA_VERSION,
+            schema_version: ENGINE_SCHEMA_VERSION,
             minecraft_version,
             maven_cache_dir,
             allow_local_artifact_cache,
@@ -68,6 +68,7 @@ impl ArtifactLockfileV1 {
                 .into_iter()
                 .map(ArtifactLockEntryV1::upgrade)
                 .collect(),
+            migration_hints: None,
         }
     }
 }

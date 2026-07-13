@@ -16,15 +16,15 @@ pub struct JarArtifactAuditArgs {
     pub branch: BranchSelector,
 
     /// Optional path to write a structured artifact audit report.
-    #[facet(rename = "report-json", default, args::named)]
+    #[facet(default, args::named)]
     pub report_json: Option<PathBuf>,
 
     /// Fail when any locked artifact depends on local-only or unknown provenance.
-    #[facet(rename = "require-portable-artifacts", default = false, args::named)]
+    #[facet(default = false, args::named)]
     pub require_portable_artifacts: bool,
 
     /// Failure behavior for multi-target selectors: `bail` or `continue`.
-    #[facet(rename = "error-action", default, args::named)]
+    #[facet(default, args::named)]
     pub error_action: ErrorAction,
 
     /// Run matching targets in parallel. Bare `--parallel` defaults to 10.

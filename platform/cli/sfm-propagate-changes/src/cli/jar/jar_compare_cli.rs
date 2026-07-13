@@ -16,23 +16,23 @@ pub struct JarCompareArgs {
     pub branch: BranchSelector,
 
     /// Override the expected Gradle-built jar path.
-    #[facet(rename = "gradle-jar", default, args::named)]
+    #[facet(default, args::named)]
     pub gradle_jar: Option<PathBuf>,
 
     /// Override the expected Rust-built `-rust.jar` path.
-    #[facet(rename = "rust-jar", default, args::named)]
+    #[facet(default, args::named)]
     pub rust_jar: Option<PathBuf>,
 
     /// Optional path to write a structured comparison report.
-    #[facet(rename = "report-json", default, args::named)]
+    #[facet(default, args::named)]
     pub report_json: Option<PathBuf>,
 
     /// Compare manifest timestamp-style values instead of ignoring them.
-    #[facet(rename = "strict-manifest", default = false, args::named)]
+    #[facet(default = false, args::named)]
     pub strict_manifest: bool,
 
     /// Failure behavior for multi-target selectors: `bail` or `continue`.
-    #[facet(rename = "error-action", default, args::named)]
+    #[facet(default, args::named)]
     pub error_action: ErrorAction,
 
     /// Run matching targets in parallel. Bare `--parallel` defaults to 10.
