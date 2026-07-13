@@ -39,6 +39,7 @@ use super::SourceBuildSystem;
 use super::TargetJarCompareReport;
 use super::apply_client_puppet_keep_open_property;
 use super::apply_game_test_filter_property;
+use super::apply_client_title_screen_property;
 use super::artifact_lock_path;
 use super::artifact_portability_audit;
 use super::audit_artifact_lockfile;
@@ -55,9 +56,7 @@ use super::execute_targets_parallel_with_cancellation;
 use super::extract_client_puppet_failure;
 use super::extract_client_puppet_pass_count;
 use super::extract_failed_gametest_names;
-use super::extract_quoted;
 use super::extract_sfm_game_test_names;
-use super::interpolate_properties;
 use super::is_excluded_source;
 use super::minecraft_library_jars_from_version_json;
 use super::normalize_manifest_bytes;
@@ -73,7 +72,9 @@ use super::run_dependency_configurations;
 use super::run_max_launch_attempts;
 use super::rust_output_jar_path;
 use super::set_minecraft_option;
+use super::should_include_project_run_dependencies;
 use super::should_keep_split_minecraft_runtime_entry;
+use super::should_package_project_entry;
 use super::source_build_checkout_key;
 use super::source_git_provenance;
 use super::write_compare_reports;
@@ -86,6 +87,7 @@ use crate::branch_targets::WorktreePath;
 use crate::branch_targets::WorktreeTarget;
 use crate::cancellation::CancellationToken;
 use crate::jar_build::ClientPuppetKeepOpen;
+use crate::jar_build::ClientTitleScreen;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
 use crate::jar_build::hash::ContentHash;
@@ -167,18 +169,6 @@ fn parses_parchment_date_first_and_mc_first_versions() {
             .expect("mc-first parchment coordinate should parse")
             .to_string(),
         "org.parchmentmc.data:parchment-1.19.3:2023.03.12@zip"
-    );
-}
-
-#[test]
-fn extracts_single_or_double_quoted_notation() {
-    assert_eq!(
-        extract_quoted("fg.deobf('mezz.jei:jei-1.19.2-forge:11.6.0.1018')"),
-        Some("mezz.jei:jei-1.19.2-forge:11.6.0.1018".to_string())
-    );
-    assert_eq!(
-        extract_quoted("antlr \"org.antlr:antlr4:4.9.1\""),
-        Some("org.antlr:antlr4:4.9.1".to_string())
     );
 }
 
@@ -346,6 +336,46 @@ fn game_test_run_filter_sets_selection_property_for_game_test_runners() {
 }
 
 #[test]
+fn solo_client_dependency_exclusion_applies_to_client_smoke() {
+    let solo_options = RunOptions {
+        client_solo: true,
+        ..RunOptions::default()
+    };
+    let normal_options = RunOptions::default();
+
+    assert!(!should_include_project_run_dependencies(
+        RunKind::Client,
+        &solo_options
+    ));
+    assert!(!should_include_project_run_dependencies(
+        RunKind::ClientSmoke,
+        &solo_options
+    ));
+    assert!(should_include_project_run_dependencies(
+        RunKind::ClientPuppet,
+        &solo_options
+    ));
+    assert!(should_include_project_run_dependencies(
+        RunKind::GameTestServer,
+        &solo_options
+    ));
+    assert!(should_include_project_run_dependencies(
+        RunKind::Client,
+        &normal_options
+    ));
+}
+
+#[test]
+fn release_jar_excludes_dev_only_client_smoke_harness() {
+    assert!(!should_package_project_entry(
+        "ca/teamdman/sfm/client/handler/SFMClientSmokeRunHarness.class"
+    ));
+    assert!(should_package_project_entry(
+        "ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.class"
+    ));
+}
+
+#[test]
 fn client_puppet_keep_open_sets_seconds_property() {
     let mut default_properties = BTreeMap::new();
     apply_client_puppet_keep_open_property(
@@ -386,6 +416,42 @@ fn client_puppet_keep_open_sets_seconds_property() {
         },
     );
     assert!(!client_properties.contains_key("sfm.clientRun.keepOpenSeconds"));
+}
+
+#[test]
+fn client_title_screen_sets_title_screen_property() {
+    let run_options = RunOptions {
+        client_title_screen: Some(ClientTitleScreen::InputDiag),
+        ..RunOptions::default()
+    };
+    let mut client_properties = BTreeMap::new();
+    apply_client_title_screen_property(
+        &mut client_properties,
+        RunKind::Client,
+        &run_options,
+    );
+    assert_eq!(
+        client_properties
+            .get("sfm.clientRun.titleScreen")
+            .map(String::as_str),
+        Some("input-diag")
+    );
+
+    let mut smoke_properties = BTreeMap::new();
+    apply_client_title_screen_property(
+        &mut smoke_properties,
+        RunKind::ClientSmoke,
+        &run_options,
+    );
+    assert!(!smoke_properties.contains_key("sfm.clientRun.titleScreen"));
+
+    let mut disabled_properties = BTreeMap::new();
+    apply_client_title_screen_property(
+        &mut disabled_properties,
+        RunKind::Client,
+        &RunOptions::default(),
+    );
+    assert!(!disabled_properties.contains_key("sfm.clientRun.titleScreen"));
 }
 
 #[test]
@@ -539,7 +605,8 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
         configuration: "minecraft".to_string(),
         coordinate: MavenCoordinate::parse("net.minecraftforge:forge:1.19.2-43.4.0")
             .expect("coordinate should parse"),
-        fg_deobf: false,
+        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     }];
     let forge_plan = resolve_loader_toolchain(&forge, "1.19.2", "43.4.0")
         .expect("forge toolchain should resolve");
@@ -553,7 +620,8 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
         configuration: "minecraft".to_string(),
         coordinate: MavenCoordinate::parse("net.neoforged:forge:1.20.1-47.1.65")
             .expect("coordinate should parse"),
-        fg_deobf: false,
+        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     }];
     let transitional_plan = resolve_loader_toolchain(&transitional_neoforge, "1.20.1", "47.1.65")
         .expect("transitional neoforge toolchain should resolve");
@@ -570,7 +638,8 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
         configuration: "implementation".to_string(),
         coordinate: MavenCoordinate::parse("net.neoforged:neoforge:20.2.86")
             .expect("coordinate should parse"),
-        fg_deobf: false,
+        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     }];
     let neogradle_plan = resolve_loader_toolchain(&neogradle, "1.20.2", "20.2.86")
         .expect("neogradle toolchain should resolve");
@@ -595,7 +664,8 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
         configuration: "implementation".to_string(),
         coordinate: MavenCoordinate::parse("mekanism:Mekanism:1.19.2-10.3.8.477:api")
             .expect("coordinate should parse"),
-        fg_deobf: false,
+        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     };
     assert!(super::should_plan_project_dependency(
         &forge_toolchain,
@@ -606,7 +676,8 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
         configuration: "minecraft".to_string(),
         coordinate: MavenCoordinate::parse("net.minecraftforge:forge:1.19.2-43.4.0")
             .expect("coordinate should parse"),
-        fg_deobf: false,
+        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     };
     assert!(!super::should_plan_project_dependency(
         &forge_toolchain,
@@ -617,7 +688,8 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
         configuration: "testImplementation".to_string(),
         coordinate: MavenCoordinate::parse("org.junit.jupiter:junit-jupiter-api:5.10.0")
             .expect("coordinate should parse"),
-        fg_deobf: false,
+        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     };
     assert!(!super::should_plan_project_dependency(
         &forge_toolchain,
@@ -626,17 +698,74 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
 }
 
 #[test]
-fn interpolates_gradle_style_properties() {
-    let mut properties = BTreeMap::new();
-    properties.insert("minecraft_version".to_string(), "1.19.2".to_string());
-    properties.insert("neo_version".to_string(), "43.4.0".to_string());
+fn forge_deobfuscation_only_transforms_loader_managed_mods() {
+    let mut dependency = DependencyPlan {
+        configuration: "implementation".to_owned(),
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy:
+            crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
+        notation: "example:api:1".to_owned(),
+        resolved_notation: "example:api:1".to_owned(),
+        source: DependencySource::Maven,
+        cache_path: PathBuf::from("api.jar"),
+        url: None,
+        dynamic_version: false,
+    };
+    assert!(!super::requires_forge_dependency_deobf(&dependency));
+    dependency.artifact_treatment =
+        crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod;
+    assert!(super::requires_forge_dependency_deobf(&dependency));
+}
+
+#[test]
+fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
+    let lockfile = crate::toolchain_lockfile_schema::read_current(include_str!(
+        "../../../../minecraft/sfm-toolchain.lock.json"
+    ))
+    .expect("v3 fixture");
+    let projected = super::project_v3_dependencies(&lockfile).expect("v3 projection");
+
+    let cc: Vec<_> = projected
+        .iter()
+        .filter(|dependency| {
+            dependency.coordinate.to_string()
+                == "org.squiddev:cc-tweaked-1.19.2:1.101.3"
+        })
+        .collect();
+    assert_eq!(cc.len(), 2);
+    assert!(cc.iter().all(|dependency| dependency.loader_managed()));
+    assert!(cc.iter().all(|dependency| {
+        dependency.data_run_policy
+            == crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude
+    }));
     assert_eq!(
-        interpolate_properties(
-            "net.minecraftforge:forge:${minecraft_version}-${neo_version}",
-            &properties
-        ),
-        "net.minecraftforge:forge:1.19.2-43.4.0"
+        cc.iter()
+            .map(|dependency| dependency.configuration.as_str())
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["gametestImplementation", "implementation"])
     );
+
+    let mekanism_api = projected
+        .iter()
+        .find(|dependency| {
+            dependency.coordinate.to_string()
+                == "mekanism:Mekanism:1.19.2-10.3.8.477:api"
+        })
+        .expect("Mekanism API projection");
+    assert_eq!(mekanism_api.configuration, "implementation");
+    assert!(!mekanism_api.loader_managed());
+    assert!(projected.iter().any(|dependency| {
+        dependency.configuration == "minecraft"
+            && dependency.coordinate.to_string() == "net.minecraftforge:forge:1.19.2-43.4.0"
+    }));
+    assert!(projected.iter().any(|dependency| {
+        dependency.configuration == "antlr"
+            && dependency.coordinate.to_string() == "org.antlr:antlr4:4.9.1"
+    }));
+    assert!(!projected.iter().any(|dependency| {
+        dependency.coordinate.to_string() == "org.vineflower:vineflower:1.12.0"
+    }));
 }
 
 #[test]
@@ -719,7 +848,7 @@ fn facet_json_roundtrips_artifact_lockfile_and_provenance() {
     assert_eq!(parsed_provenance.hash, provenance.hash);
 
     let lockfile = ArtifactLockfile {
-        schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
+        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
         minecraft_version: "1.19.2".to_string(),
         maven_cache_dir: PathBuf::from("build/sfm-toolchain/maven"),
         allow_local_artifact_cache: false,
@@ -790,7 +919,7 @@ fn toolchain_lockfile_v1_upgrades_without_weak_artifacts() {
 
         assert_eq!(
                 lockfile.schema_version,
-                crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION
+                crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION
         );
         assert_eq!(lockfile.artifacts.len(), 1);
         assert_eq!(lockfile.artifacts[0].weak, None);
@@ -911,6 +1040,8 @@ fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
     plan.artifacts = Vec::new();
     plan.dependencies = vec![DependencyPlan {
         configuration: "implementation".to_string(),
+        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
         notation: "g:a:1".to_string(),
         resolved_notation: "g:a:1".to_string(),
         source: DependencySource::Maven,
@@ -919,7 +1050,7 @@ fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
         dynamic_version: false,
     }];
     plan.lockfile = Some(ArtifactLockfile {
-        schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
+        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
         minecraft_version: plan.minecraft_version.to_string(),
         maven_cache_dir: PathBuf::from("build/sfm-toolchain/maven"),
         allow_local_artifact_cache: false,
@@ -1160,6 +1291,72 @@ fn resolver_cache_hit_waits_for_writer_lock_before_reading() {
 }
 
 #[test]
+fn resolver_reuses_validated_cursemaven_cache_offline() {
+    let test_dir = TestDir::new("resolver-cursemaven-offline-cache");
+    let coordinate = MavenCoordinate::parse("curse.maven:mekanism-268560:4644795")
+        .expect("CurseMaven coordinate should parse");
+    let bytes = b"validated CurseMaven artifact";
+    let hash = ContentHash::from_bytes(bytes, ContentHashAlgorithm::Blake3);
+    let lockfile = ArtifactLockfile {
+        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
+        minecraft_version: "1.19.2".to_owned(),
+        maven_cache_dir: PathBuf::from("$sfm-cache/maven"),
+        allow_local_artifact_cache: false,
+        repositories: vec![Repository {
+            name: "cursemaven".to_owned(),
+            url: "http://127.0.0.1:1".to_owned(),
+        }],
+        dependencies: Vec::new(),
+        artifacts: vec![ArtifactLockEntry {
+            coordinate: Some(coordinate.to_string()),
+            source: ArtifactSource::RemoteMaven,
+            repository: Some("cursemaven".to_owned()),
+            url: Some(
+                "https://www.cursemaven.com/curse/maven/mekanism-268560/4644795/mekanism-268560-4644795.jar"
+                    .to_owned(),
+            ),
+            cache_path: PathBuf::from(
+                "$sfm-cache/maven/curse/maven/mekanism-268560/4644795/mekanism-268560-4644795.jar",
+            ),
+            original_path: None,
+            source_relative_path: None,
+            source_git: None,
+            source_build: None,
+            hash,
+            weak: None,
+        }],
+    };
+    let resolver = Resolver::new(
+        test_dir.path.join("maven"),
+        lockfile.repositories.clone(),
+        false,
+        false,
+        Vec::new(),
+        Some(lockfile),
+        None,
+        test_cancellation_token(),
+    )
+    .expect("resolver should build");
+    let cache_path = resolver.cache_path_for(&coordinate);
+    fs::create_dir_all(cache_path.parent().expect("cache parent should exist"))
+        .expect("cache parent should be created");
+    fs::write(&cache_path, bytes).expect("validated cache artifact should be written");
+
+    let artifact = resolver
+        .resolve_artifact(
+            ArtifactId::from("mekanism-main"),
+            &coordinate,
+            ArtifactPurpose::from("runtime"),
+        )
+        .expect("valid cache should resolve without contacting the unavailable repository");
+
+    assert!(!artifact.downloaded);
+    assert_eq!(artifact.provenance.source, ArtifactSource::RemoteMaven);
+    assert_eq!(artifact.repository.as_deref(), Some("cursemaven"));
+    assert_eq!(artifact.sha1, Some(hash));
+}
+
+#[test]
 fn resolver_imports_from_explicit_project_artifact_source() {
     let test_dir = TestDir::new("resolver-explicit-artifact-source");
     let source_root = test_dir.path.join("source-project");
@@ -1343,7 +1540,7 @@ fn resolver_materializes_locked_artifact_from_source_build() {
         output_path: output_path.clone(),
     };
     let lockfile = ArtifactLockfile {
-        schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
+        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
         minecraft_version: "1.19.2".to_string(),
         maven_cache_dir: PathBuf::from("$sfm-cache").join("maven"),
         allow_local_artifact_cache: false,
@@ -1409,7 +1606,7 @@ fn resolver_materializes_locked_artifact_from_source_build() {
             .map(|source_git| source_git.root.clone()),
         Some(
             PathBuf::from("$sfm-cache")
-                .join("source-builds")
+                .join("source-builds-gix")
                 .join(checkout_key)
         )
     );
@@ -1675,7 +1872,7 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         minecraft_libraries_dir: PathBuf::from("sfm-cache/minecraft-toolchain/minecraft/libraries"),
         lockfile_path: PathBuf::from("sfm-toolchain.lock.json"),
         lockfile: Some(ArtifactLockfile {
-            schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
+            schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
             minecraft_version: "1.19.2".to_string(),
             maven_cache_dir: PathBuf::from("build/sfm-toolchain/maven"),
             allow_local_artifact_cache: false,
@@ -1744,6 +1941,8 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         }),
         dependencies: vec![DependencyPlan {
             configuration: "implementation".to_string(),
+            artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+            data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
             notation: "g:a:1".to_string(),
             resolved_notation: "g:a:1".to_string(),
             source: DependencySource::Maven,
@@ -1884,6 +2083,8 @@ fn artifact_portability_audit_reads_dependency_provenance() {
     plan.artifacts.clear();
     plan.dependencies = vec![DependencyPlan {
         configuration: "implementation".to_string(),
+        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
         notation: "example:local-only:1.0.0".to_string(),
         resolved_notation: "example:local-only:1.0.0".to_string(),
         source: DependencySource::Maven,
@@ -1942,7 +2143,7 @@ fn artifact_audit_verifies_sfm_cache_lockfile_artifact() {
             source_relative_path: None,
             source_git: None,
             source_build: None,
-            hash: hash,
+            hash,
             weak: None,
         }],
         Vec::new(),
@@ -2009,7 +2210,7 @@ fn artifact_audit_warns_or_fails_for_explicit_sources() {
             source_relative_path: None,
             source_git: None,
             source_build: None,
-            hash: hash,
+            hash,
             weak: None,
         }],
         Vec::new(),
@@ -2111,7 +2312,7 @@ fn compare_report_json_preserves_single_shape_and_wraps_multi_target_reports() {
 }
 
 #[test]
-fn facet_json_parses_upstream_config_shapes() {
+fn facet_json_parses_mojang_version_config_shape() {
     let manifest: MojangVersionManifest = facet_json::from_str(
         r#"{"versions":[{"id":"1.19.2","url":"https://example.test/1.19.2.json"}]}"#,
     )
@@ -2140,7 +2341,10 @@ fn facet_json_parses_upstream_config_shapes() {
         PathBuf::from("D:/sfm-cache/minecraft-toolchain/minecraft/libraries/g/a/1/a.jar")
     );
     assert_eq!(version_json.asset_index.expect("asset index").id, "1.19");
+}
 
+#[test]
+fn facet_json_parses_forge_userdev_config_shapes() {
     let forge: ForgeUserdevConfig = facet_json::from_str(
         r#"{
                 "spec": 1,
@@ -2206,7 +2410,10 @@ fn facet_json_parses_upstream_config_shapes() {
         "net.neoforged.fml.startup.DataClient"
     );
     assert_eq!(RunKind::Data.userdev_names(), &["data", "clientData"]);
+}
 
+#[test]
+fn facet_json_parses_mcp_config_shape() {
     let mcp: McpConfigJson = facet_json::from_str(
             r#"{
                 "data": {"mappings": "config/joined.tsrg", "inject": "config/inject/", "patches": {"joined": "patches/joined/"}},
@@ -2222,7 +2429,10 @@ fn facet_json_parses_upstream_config_shapes() {
         mcp.functions["rename"].version.as_deref(),
         Some("net.minecraftforge:ForgeAutoRenamingTool:0.1.22:all")
     );
+}
 
+#[test]
+fn facet_json_parses_parchment_config_shape() {
     let parchment: ParchmentData = facet_json::from_str(
             r#"{"classes":[{"name":"net/minecraft/Test","methods":[{"name":"run","descriptor":"()V","parameters":[{"index":1,"name":"level"}]}]}]}"#,
         )
@@ -2243,6 +2453,32 @@ fn datagen_launch_uses_only_bundled_library_dependency_configurations() {
             .iter()
             .any(|configuration| configuration == &"runtimeOnly")
     );
+}
+
+#[test]
+fn datagen_dependency_selection_requires_explicit_include_policy() {
+    use crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3;
+
+    assert!(!super::dependency_selected_for_run(
+        "implementation",
+        DataRunPolicyV3::Exclude,
+        RunKind::Data
+    ));
+    assert!(super::dependency_selected_for_run(
+        "implementation",
+        DataRunPolicyV3::Include,
+        RunKind::Data
+    ));
+    assert!(!super::dependency_selected_for_run(
+        "testImplementation",
+        DataRunPolicyV3::Include,
+        RunKind::Data
+    ));
+    assert!(super::dependency_selected_for_run(
+        "runtimeOnly",
+        DataRunPolicyV3::Exclude,
+        RunKind::Client
+    ));
 }
 
 #[test]
@@ -2474,7 +2710,7 @@ fn write_test_artifact_lockfile(
     dependencies: Vec<DependencyLockEntry>,
 ) {
     let lockfile = ArtifactLockfile {
-        schema_version: crate::toolchain_lockfile_schema::LATEST_SCHEMA_VERSION,
+        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
         minecraft_version: "1.19.2".to_string(),
         maven_cache_dir: PathBuf::from("$sfm-cache").join("maven"),
         allow_local_artifact_cache: false,

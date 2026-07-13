@@ -1,0 +1,113 @@
+import groovy.json.JsonSlurper
+
+def sfmLockfilePath = file('sfm-toolchain.lock.json')
+if (!sfmLockfilePath.isFile()) {
+    throw new GradleException("Missing schema v3 dependency lockfile: ${sfmLockfilePath}")
+}
+
+def sfmLockfile = new JsonSlurper().parse(sfmLockfilePath)
+if (sfmLockfile.schema_version != 3) {
+    throw new GradleException("Gradle dependency projection requires schema version 3")
+}
+
+def sfmNeoGradle = pluginManager.hasPlugin('net.neoforged.gradle.userdev')
+def sfmRunData = gradle.startParameter.taskNames.any { it.toLowerCase().contains('rundata') }
+        || findProperty('sfmDependencyProjectionMode') == 'data'
+def sfmSeen = new LinkedHashSet<String>()
+def sfmProjection = []
+
+def sfmScopeConfigurations = { Collection scopes ->
+    def values = scopes as Set
+    def configurations = []
+    if (values.contains('annotation-processor')) configurations << 'annotationProcessor'
+    if (values.contains('codegen')) configurations << 'antlr'
+    if (values.contains('test-annotation-processor')) configurations << 'testAnnotationProcessor'
+    if (values.contains('bundle')) configurations << 'jarJar'
+
+    def addPair = { String compileScope, String runtimeScope,
+                    String compileOnly, String runtimeOnly, String combined ->
+        def compile = values.contains(compileScope)
+        def runtime = values.contains(runtimeScope)
+        if (compile && runtime) configurations << combined
+        else if (compile) configurations << compileOnly
+        else if (runtime) configurations << runtimeOnly
+    }
+    addPair('compile', 'runtime', 'compileOnly', 'runtimeOnly', 'implementation')
+    addPair('gametest-compile', 'gametest-runtime',
+            'gametestCompileOnly', 'gametestRuntimeOnly', 'gametestImplementation')
+    addPair('test-compile', 'test-runtime',
+            'testCompileOnly', 'testRuntimeOnly', 'testImplementation')
+    configurations
+}
+
+def sfmBaseLoaderCoordinate = { String coordinate ->
+    def parts = coordinate.split(':') as List
+    if (parts.size() == 4 && parts.last() == 'userdev') {
+        parts = parts.take(3)
+    }
+    parts.join(':')
+}
+
+def sfmAdd = { String configuration, String coordinate, String treatment,
+               String dependencyId, String componentId, String kind, String policy ->
+    def key = "${configuration}|${coordinate}"
+    if (!sfmSeen.add(key)) return
+    def notation = coordinate
+    if (!sfmNeoGradle && treatment == 'loader-managed-mod') {
+        notation = fg.deobf(coordinate)
+    }
+    dependencies.add(configuration, notation)
+    sfmProjection << [configuration: configuration, coordinate: coordinate,
+                      dependency: dependencyId, component: componentId,
+                      kind: kind, policy: policy, treatment: treatment]
+}
+
+sfmLockfile.dependencies.each { dependency ->
+    if (dependency.id == sfmLockfile.platform.minecraft_dependency) return
+    dependency.components.each { component ->
+        def coordinate = component.derived_checks.resolved_coordinate
+        if (!coordinate) {
+            throw new GradleException("Missing resolved coordinate for ${dependency.id}/${component.id}")
+        }
+        if (dependency.id == sfmLockfile.platform.loader_dependency) {
+            sfmAdd(sfmNeoGradle ? 'implementation' : 'minecraft',
+                    sfmBaseLoaderCoordinate(coordinate), 'plain',
+                    dependency.id, component.id, dependency.kind,
+                    component.declaration.data_run_policy)
+            return
+        }
+        def effectiveScopes = component.declaration.scopes
+        if (sfmRunData && dependency.kind == 'mod'
+                && component.declaration.data_run_policy != 'include') {
+            effectiveScopes = effectiveScopes.findAll { it == 'compile' }
+        }
+        sfmScopeConfigurations(effectiveScopes).each { configuration ->
+            sfmAdd(configuration, coordinate, component.declaration.artifact_treatment,
+                    dependency.id, component.id, dependency.kind,
+                    component.declaration.data_run_policy)
+        }
+    }
+}
+
+ext.sfmProjectedDependencies = sfmProjection.asImmutable()
+
+tasks.register('verifySfmDependencyProjection') {
+    group = 'verification'
+    doLast {
+        def loaderConfiguration = sfmNeoGradle ? 'implementation' : 'minecraft'
+        assert sfmProjection.any {
+            it.dependency == sfmLockfile.platform.loader_dependency
+                    && it.configuration == loaderConfiguration
+        }
+        assert sfmProjection.collect { "${it.configuration}|${it.coordinate}" }.toSet().size()
+                == sfmProjection.size()
+        if (sfmRunData) {
+            assert !sfmProjection.any {
+                it.kind == 'mod' && it.policy != 'include'
+                        && it.configuration in ['implementation', 'runtimeOnly',
+                                                'gametestImplementation', 'gametestRuntimeOnly']
+            }
+        }
+        logger.lifecycle("Verified ${sfmProjection.size()} schema v3 Gradle dependency projections (${sfmNeoGradle ? 'neogradle' : 'forgegradle'}, ${sfmRunData ? 'data' : 'normal'}).")
+    }
+}

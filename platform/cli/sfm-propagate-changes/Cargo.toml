@@ -19,12 +19,12 @@ ctrlc = "3.5.1"
 directories-next = "2.0.0"
 dunce = "1.0.5"
 eyre = "0.6.12"
-facet = "=0.46.5"
-facet-json = "=0.46.1"
-facet-styx = "=4.0.0"
-figue = { package = "teamy-figue", version = "=5.2.0" }
+facet = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet" }
+facet-json = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-json" }
+facet-styx = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-styx" }
+figue = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "figue", features = ["arbitrary"] }
 glob = "0.3.3"
-gix = { version = "0.84.0", default-features = false, features = ["index", "sha1"] }
+gix = { version = "0.84.0", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "index", "sha1", "worktree-stream"] }
 humansize = "2.1.3"
 humantime = "2.1.0"
 open = { version = "5.3.3", features = ["shellexecute-on-windows"] }
@@ -33,11 +33,12 @@ ratatui = "0.30.0"
 rayon = "1.12.0"
 reqwest = { version = "0.12.24", default-features = false, features = ["blocking", "multipart", "rustls-tls"] }
 sha1 = "0.10.6"
+tempfile = "3.27.0"
 tokio = { version = "1.49.0", features = ["full"] }
 tracing = "0.1.44"
 tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
-tracing-tracy = { version = "0.11.4", optional = true }
+tracing-tracy = { version = "0.11.4", optional = true, default-features = false, features = ["enable", "system-tracing", "context-switch-tracing", "sampling", "code-transfer", "callstack-inlines", "only-localhost"] }
 tracy-client = { version = "0.18.4", optional = true, default-features = false }
 zip = { version = "2.4.2", default-features = false, features = ["deflate"] }
 
@@ -46,7 +47,6 @@ teamy-windows = "0.9.0"
 
 [dev-dependencies]
 arbitrary = { version = "1.4.2", features = ["derive"] }
-tempfile = "3.27.0"
 
 [features]
 default = []
@@ -85,6 +85,9 @@ assertions_on_result_states = "warn"
 clone_on_ref_ptr = "warn"
 deref_by_slicing = "warn"
 disallowed_script_idents = "allow" # facet macros use Unicode identifiers
+disallowed_methods = "forbid"
+disallowed_types = "forbid"
+disallowed_macros = "forbid"
 empty_drop = "warn"
 empty_enum_variants_with_brackets = "warn"
 empty_structs_with_brackets = "warn"

@@ -143,7 +143,7 @@ pub struct CurseforgePopularSyncArgs {
     pub project: Option<u64>,
 
     /// CurseForge Core API key; if omitted, CURSEFORGE_CORE_API_KEY is used.
-    #[facet(default, args::named, rename = "api-key")]
+    #[facet(default, args::named)]
     pub api_key: Option<String>,
 
     /// CurseForge API token; if omitted, CURSEFORGE_API_TOKEN is used, then 1Password lookup.
@@ -151,7 +151,7 @@ pub struct CurseforgePopularSyncArgs {
     pub token: Option<String>,
 
     /// 1Password secret reference used when token is omitted.
-    #[facet(default, args::named, rename = "op-secret")]
+    #[facet(default, args::named)]
     pub op_secret: Option<String>,
 
     /// Minimum public downloads across the latest two release files for a Minecraft version.

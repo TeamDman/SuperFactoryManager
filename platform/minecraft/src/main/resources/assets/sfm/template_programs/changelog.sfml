@@ -6,6 +6,17 @@ NAME "Changelog"
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
+---- 4.35.0 PRE ----
+-- Fix draw canvas selection highlights covering unselected gaps between glyphs
+-- Fix draw canvas spaces being stored as glyphs and blank-line Backspace/Delete deleting the wrong glyph
+-- Add draw canvas keyboard shortcuts for zooming, panning, reset zoom, and fitting content
+-- Improve draw canvas insert/delete shifting and add Ctrl+Backspace/Ctrl+Delete word deletion
+-- Improve draw canvas Enter/edge-arrow navigation and raw input diagnostics
+-- Change draw canvas camera panning to the numpad and add Alt+Arrow/Ctrl+Alt+Arrow crosshair insertion
+-- Add copy and paste support to the draw canvas
+-- Improve draw canvas selection highlight positioning while panning
+-- Add a draw canvas Done button tooltip for the Shift+Enter shortcut
+
 ---- 4.34.0 ----
 -- Update zh_cn localizations, thanks @ZHAY10086 #526
 -- Introduce uk_ua localizations, thanks @Tenwoc #529
