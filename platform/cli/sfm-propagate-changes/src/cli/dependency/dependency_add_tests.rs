@@ -143,6 +143,80 @@ fn add_resolves_into_injected_cache_and_writes_complete_v3_declaration() {
 }
 
 #[test]
+fn add_adopts_matching_unowned_migrated_artifact_without_fetching() {
+    let directory = tempfile::tempdir().expect("temp directory");
+    let cache_home = CacheHome(directory.path().join("isolated-cache"));
+    let mut lockfile = read_current(include_str!(
+        "../../../../../minecraft/sfm-toolchain.lock.json"
+    ))
+    .expect("v3 fixture");
+    let coordinate = "com.github.javaparser:javaparser-symbol-solver-core:3.26.4";
+    let expected_artifact = lockfile
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.coordinate.as_deref() == Some(coordinate))
+        .expect("unowned JavaParser artifact");
+    let expected_artifact_id = expected_artifact.id.clone();
+    let expected_hash = expected_artifact.hash.clone();
+    assert!(expected_artifact.owner.is_none());
+    lockfile
+        .dependencies
+        .retain(|dependency| dependency.id != "javaparser");
+    let input = lockfile.to_canonical_json().expect("fixture JSON");
+    let lockfile_path = directory.path().join("sfm-toolchain.lock.json");
+    std::fs::write(&lockfile_path, &input).expect("fixture lockfile");
+    let inventory = DependencyInventory {
+        target: WorktreeTarget {
+            branch: BranchName::from("1.19.2"),
+            worktree_path: WorktreePath::from(directory.path().to_path_buf()),
+            core: true,
+            mc_version: None,
+        },
+        lockfile_path: lockfile_path.clone(),
+        cache_home,
+        original_input: input,
+        lockfile,
+    };
+    let mut dependency_args = args(coordinate);
+    dependency_args.id = "javaparser".to_owned();
+    dependency_args.kind = Some(DependencyKindV3::Library);
+    dependency_args.role = Some(DependencyRoleV3::Test);
+    dependency_args.scope = vec![
+        DependencyScopeV3::TestCompile,
+        DependencyScopeV3::TestRuntime,
+    ];
+    dependency_args.repository = Some("maven-central".to_owned());
+    dependency_args.artifact_treatment = Some(ArtifactTreatmentV3::Plain);
+
+    let report = add_dependency(
+        inventory,
+        &dependency_args,
+        &CancellationToken::new(),
+        &FixtureFetcher {
+            expected_url: "must-not-fetch".to_owned(),
+            bytes: Vec::new(),
+        },
+    )
+    .expect("unowned artifact should be adopted");
+
+    assert_eq!(report.hash, expected_hash);
+    let written =
+        read_current(&std::fs::read_to_string(lockfile_path).expect("updated lockfile read"))
+            .expect("updated v3 lockfile");
+    let dependency = written
+        .dependencies
+        .iter()
+        .find(|dependency| dependency.id == "javaparser")
+        .expect("JavaParser declaration");
+    assert_eq!(dependency.kind, DependencyKindV3::Library);
+    assert_eq!(dependency.role, DependencyRoleV3::Test);
+    assert_eq!(
+        dependency.components[0].derived_checks.artifact_id,
+        expected_artifact_id
+    );
+}
+
+#[test]
 fn add_rejects_dynamic_and_malformed_coordinates() {
     let coordinate = MavenCoordinate::parse("example:mod:1.+").expect("coordinate shape");
     assert!(coordinate.require_exact().is_err());
@@ -333,6 +407,8 @@ fn args(coordinate: &str) -> DependencyAddArgs {
         maven: Some(coordinate.to_owned()),
         curseforge_project: None,
         curseforge_file: None,
+        kind: None,
+        role: None,
         curseforge_api_key: None,
         curseforge_token: None,
         curseforge_op_secret: None,
@@ -357,6 +433,8 @@ fn curseforge_args() -> DependencyAddArgs {
         maven: None,
         curseforge_project: Some(268_560),
         curseforge_file: Some(4_644_795),
+        kind: None,
+        role: None,
         curseforge_api_key: None,
         curseforge_token: None,
         curseforge_op_secret: None,
