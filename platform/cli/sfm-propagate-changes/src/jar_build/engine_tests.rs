@@ -600,6 +600,19 @@ fn source_excludes_match_files_and_directories() {
 }
 
 #[test]
+fn project_tools_include_default_antlr_classpath_without_a_declared_codegen_dependency() {
+    let mut coordinates = Vec::new();
+
+    super::add_project_tool_coordinates(&mut coordinates, &[])
+        .expect("default ANTLR toolchain should be supported");
+
+    assert_eq!(coordinates.len(), 8);
+    assert!(coordinates.iter().any(|(id, coordinate, _)| {
+        id.0 == "antlr-tool" && coordinate.to_string() == "org.antlr:antlr4:4.9.1"
+    }));
+}
+
+#[test]
 fn detects_loader_toolchain_from_versioned_dependencies() {
     let forge = vec![super::ParsedDependency {
         configuration: "minecraft".to_string(),

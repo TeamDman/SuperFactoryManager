@@ -1046,14 +1046,25 @@ fn write_artifact_lockfile_with_extra_cache_paths(
     plan: &BuildPlan,
     extra_cache_paths: &[PathBuf],
 ) -> eyre::Result<()> {
-    if std::fs::read_to_string(&plan.lockfile_path)
+    if let Some(current) = std::fs::read_to_string(&plan.lockfile_path)
         .ok()
         .and_then(|input| crate::toolchain_lockfile_schema::read_current(&input).ok())
-        .is_some()
     {
+        if plan.refresh {
+            let resolved = build_artifact_lockfile(plan, extra_cache_paths)?;
+            let refreshed = current.refresh_resolved_artifacts(&resolved)?;
+            fs::write(&plan.lockfile_path, refreshed.to_canonical_json()?)
+                .wrap_err_with(|| format!("Failed to write {}", plan.lockfile_path.display()))?;
+            tracing::info!(
+                "Schema v3 lockfile: {} ({} artifacts after explicit refresh)",
+                plan.lockfile_path.display(),
+                refreshed.artifacts.len()
+            );
+            return Ok(());
+        }
         tracing::debug!(
             lockfile = %plan.lockfile_path.display(),
-            "schema v3 lockfile is declaration-owned; legacy build output will not rewrite it"
+            "schema v3 lockfile is declaration-owned; use --refresh to update resolved artifact evidence"
         );
         return Ok(());
     }
