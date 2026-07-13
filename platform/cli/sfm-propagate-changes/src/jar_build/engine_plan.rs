@@ -819,25 +819,31 @@ fn add_project_tool_coordinates(
                 dependency.coordinate.clone(),
                 ArtifactPurpose::from("Mixin refmap generation"),
             ));
-        } else if dependency.configuration == "antlr" {
-            for (index, coordinate) in antlr_classpath_coordinates(&dependency.coordinate.version)?
-                .into_iter()
-                .enumerate()
-            {
-                let artifact_id = if index == 0 {
-                    "antlr-tool".to_string()
-                } else {
-                    format!("antlr-tool-dependency-{index}")
-                };
-                coordinates.push((
-                    ArtifactId::from(artifact_id),
-                    MavenCoordinate::parse(&coordinate)?,
-                    ArtifactPurpose::from("ANTLR grammar generation"),
-                ));
-            }
         }
     }
+    for (index, coordinate) in antlr_classpath_coordinates(antlr_tool_version(dependencies))?
+        .into_iter()
+        .enumerate()
+    {
+        let artifact_id = if index == 0 {
+            "antlr-tool".to_string()
+        } else {
+            format!("antlr-tool-dependency-{index}")
+        };
+        coordinates.push((
+            ArtifactId::from(artifact_id),
+            MavenCoordinate::parse(&coordinate)?,
+            ArtifactPurpose::from("ANTLR grammar generation"),
+        ));
+    }
     Ok(())
+}
+
+fn antlr_tool_version(dependencies: &[ParsedDependency]) -> &str {
+    dependencies
+        .iter()
+        .find(|dependency| dependency.configuration == "antlr")
+        .map_or("4.9.1", |dependency| dependency.coordinate.version.as_str())
 }
 
 fn add_project_compile_annotation_coordinates(
