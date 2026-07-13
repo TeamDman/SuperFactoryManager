@@ -51,6 +51,39 @@
   ],
   "dependencies": [
     {
+      "id": "antlr",
+      "kind": "tool",
+      "role": "build",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.antlr:antlr4:4.13.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "codegen"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-antlr-antlr4-4-13-1-7a222484",
+            "resolved_coordinate": "org.antlr:antlr4:4.13.1",
+            "expected_hash": "blake3:7a222484ba088298bdc3b4b26294420eb69c36d6",
+            "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.13.1\\antlr4-4.13.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
       "id": "javaparser",
       "kind": "library",
       "role": "test",
