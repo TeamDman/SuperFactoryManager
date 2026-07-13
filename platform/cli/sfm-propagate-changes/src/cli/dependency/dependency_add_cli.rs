@@ -516,6 +516,8 @@ fn append_lock_entries(
         hash: evidence.hash,
         cache_path: evidence.cache_path,
         provenance: ArtifactProvenanceV3::RemoteMaven,
+        source_git: None,
+        source_build: None,
         weak: None,
     });
 }
@@ -596,6 +598,8 @@ fn append_curseforge_lock_entries(
         hash: inputs.evidence.hash,
         cache_path: inputs.evidence.cache_path,
         provenance: ArtifactProvenanceV3::RemoteMaven,
+        source_git: None,
+        source_build: None,
         weak: None,
     });
 }
