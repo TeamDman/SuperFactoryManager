@@ -297,7 +297,7 @@ public class SFMInputDiagnosticsScreen extends Screen {
 
         guiGraphics.drawString( this.font, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT);
         guiGraphics.drawString(
-                
+
                 this.font,
                 "Events received by the Minecraft screen. Press keys or click inside this window.",
                 left + 8,
@@ -305,7 +305,7 @@ public class SFMInputDiagnosticsScreen extends Screen {
                 MUTED
         );
         guiGraphics.drawString(
-                
+
                 this.font,
                 "Active modifiers: " + activeModifiers(),
                 left + 8,
