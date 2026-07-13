@@ -116,6 +116,7 @@ impl Resolver {
             .map(|(id, coordinate, required_for)| {
                 self.cancellation_token.bail_if_cancelled()?;
                 self.resolve_artifact(id.clone(), coordinate, required_for.clone())
+                    .wrap_err_with(|| format!("Failed to resolve core coordinate {coordinate}"))
             })
             .collect::<Vec<eyre::Result<_>>>()
             .into_iter()
