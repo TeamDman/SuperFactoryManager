@@ -23,7 +23,7 @@ pub struct CurseforgeMinecraftVersionListArgs {
     pub token: Option<String>,
 
     /// 1Password secret reference used when token is omitted and env var is missing.
-    #[facet(default, args::named, rename = "op-secret")]
+    #[facet(default, args::named)]
     pub op_secret: Option<String>,
 }
 

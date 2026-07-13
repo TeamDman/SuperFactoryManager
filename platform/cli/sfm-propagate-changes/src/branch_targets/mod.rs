@@ -23,6 +23,7 @@ pub use exact_branch::ExactBranch;
 pub use minecraft_version::MinecraftVersion;
 pub use minecraft_version_selection::select_required_minecraft_versions;
 pub use target_discovery::discover_worktree_targets;
+pub use target_selection::require_single_worktree_target;
 pub use target_selection::select_required_worktree_targets;
 pub use target_selection::select_single_worktree_target;
 pub use target_selection::select_worktree_targets;

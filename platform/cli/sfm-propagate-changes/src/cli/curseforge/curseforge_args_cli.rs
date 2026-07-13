@@ -1,4 +1,5 @@
 use super::CurseforgeMinecraftArgs;
+use super::CurseforgeModArgs;
 use super::CurseforgePopularArgs;
 use super::CurseforgeProjectArgs;
 use super::CurseforgeReleaseArgs;
@@ -30,6 +31,8 @@ pub enum CurseforgeCommand {
     Project(CurseforgeProjectArgs),
     /// Minecraft metadata operations
     Minecraft(CurseforgeMinecraftArgs),
+    /// Read-only mod discovery operations
+    Mod(CurseforgeModArgs),
     /// Locally cached popularity operations
     Popular(CurseforgePopularArgs),
     /// Release metadata validation and upload operations
@@ -44,6 +47,7 @@ impl CurseforgeCommand {
         match self {
             Self::Project(args) => args.invoke(),
             Self::Minecraft(args) => args.invoke(),
+            Self::Mod(args) => args.invoke(),
             Self::Popular(args) => args.invoke(),
             Self::Release(args) => args.invoke(),
         }

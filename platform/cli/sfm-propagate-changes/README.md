@@ -4,6 +4,50 @@
 
 This tool is responsible for executing the git merge commands that apply changes to later versions of Minecraft.
 
+## Schema v3 dependency and source workflow
+
+The maintained dependency intent and generated resolution checks live together in each branch's
+`platform/minecraft/sfm-toolchain.lock.json`. Use an explicit `--branch <Minecraft version>` for
+dependency, source, and run commands. Work on the oldest supported branch first; use the tool's
+Git propagation workflow only after that branch's gates pass.
+
+Gradle is a compatibility consumer of this schema v3 lockfile. The Gradle scripts project locked
+coordinates and semantic scopes into the active ForgeGradle or NeoGradle dialect; do not maintain
+versioned dependency declarations separately in Gradle files.
+
+Binary artifacts and materialized source trees are managed cache state. By default they are kept
+in the platform cache directory; set `SFM_PROPAGATE_CHANGES_CACHE` to use an isolated cache. The
+portable `$sfm-cache` paths recorded in the lockfile resolve beneath that cache and must not be
+replaced with machine-specific paths.
+
+Inspect providers before acquiring sources:
+
+```pwsh
+cargo run -- dependency source provider list cc-tweaked --branch 1.19.2
+cargo run -- dependency source acquire cc-tweaked --provider any --branch 1.19.2
+cargo run -- dependency source search IPeripheralProvider --dependency cc-tweaked --branch 1.19.2
+```
+
+Search never acquires sources. If a requested provider has no materialized root, it reports the
+gap and prints the typed `dependency source acquire` command needed to populate it.
+
+`CurseForge` discovery is deliberately separate from lockfile mutation. Search projects and list
+version/loader-filtered files with `curseforge mod search` and `curseforge mod files`, then choose
+the exact IDs yourself. `dependency add` accepts both `--curseforge-project` and
+`--curseforge-file`, validates them through the Core API, and resolves only the resulting
+CurseMaven coordinate. Core API credentials resolve from `--api-key`, then
+`CURSEFORGE_CORE_API_KEY`, then an explicit or configured `1Password` secret. For a sequence of
+read-only discovery commands, set that environment variable once in the current shell instead of
+placing a key on the command line:
+
+```pwsh
+$env:CURSEFORGE_CORE_API_KEY = & op read '<your-1password-secret-reference>'
+cargo run -- curseforge mod search Mekanism --minecraft 1.19.2 --loader forge
+cargo run -- curseforge mod files 268560 --minecraft 1.19.2 --loader forge
+```
+
+This keeps the key out of command history and prompts `1Password` only once for that shell.
+
 For example:
 
 Exists:

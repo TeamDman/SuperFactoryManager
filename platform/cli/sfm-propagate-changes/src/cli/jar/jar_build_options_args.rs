@@ -23,35 +23,35 @@ pub struct JarBuildOptionsArgs {
     pub refresh: bool,
 
     /// Print the reason each graph node is considered dirty.
-    #[facet(rename = "explain-rebuild", default = false, args::named)]
+    #[facet(default = false, args::named)]
     pub explain_rebuild: bool,
 
     /// Optional path to write the resolved build plan JSON.
-    #[facet(rename = "plan-json", default, args::named)]
+    #[facet(default, args::named)]
     pub plan_json: Option<PathBuf>,
 
     /// Optional Java home to use for tool execution. Defaults to `JAVA_HOME`, then java on PATH.
-    #[facet(rename = "java-home", default, args::named)]
+    #[facet(default, args::named)]
     pub java_home: Option<PathBuf>,
 
     /// Resolve and prepare as much as possible, then skip the final build or launch action.
-    #[facet(rename = "dry-run", default = false, args::named)]
+    #[facet(default = false, args::named)]
     pub dry_run: bool,
 
     /// Allow bootstrapping missing artifacts from local .m2 or Gradle module caches.
-    #[facet(rename = "allow-local-artifact-cache", default = false, args::named)]
+    #[facet(default = false, args::named)]
     pub allow_local_artifact_cache: bool,
 
     /// Explicit local artifact sources, such as Maven repository roots, project roots, or build/libs directories.
-    #[facet(rename = "artifact-source", default, args::named)]
+    #[facet(default, args::named, args::alias = "artifact-source")]
     pub artifact_sources: Vec<PathBuf>,
 
     /// Fail if any locked artifact depends on local-only or unknown provenance.
-    #[facet(rename = "require-portable-artifacts", default = false, args::named)]
+    #[facet(default = false, args::named)]
     pub require_portable_artifacts: bool,
 
     /// Failure behavior for multi-target selectors: `bail` or `continue`.
-    #[facet(rename = "error-action", default, args::named)]
+    #[facet(default, args::named)]
     pub error_action: ErrorAction,
 
     /// Run matching targets in parallel. Bare `--parallel` defaults to 10.

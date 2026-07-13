@@ -35,11 +35,11 @@ pub struct ModrinthReleaseAmendArgs {
     pub token: Option<String>,
 
     /// 1Password secret reference used when token is omitted.
-    #[facet(default, args::named, rename = "op-secret")]
+    #[facet(default, args::named)]
     pub op_secret: Option<String>,
 
     /// Resolve remote target and print the amend plan without updating Modrinth.
-    #[facet(default, args::named, rename = "dry-run")]
+    #[facet(default, args::named)]
     pub dry_run: bool,
 }
 

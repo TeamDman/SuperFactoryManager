@@ -23,7 +23,7 @@ pub struct GlobalArgs {
     pub log_file: Option<PathBuf>,
 
     /// Request graceful cancellation after the named tracing/Tracy zone closes.
-    #[facet(rename = "stop-after", default, args::named)]
+    #[facet(default, args::named)]
     pub stop_after: Option<String>,
 }
 
