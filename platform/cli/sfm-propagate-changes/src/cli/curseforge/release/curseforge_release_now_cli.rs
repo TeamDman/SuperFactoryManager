@@ -42,11 +42,11 @@ pub struct CurseforgeReleaseNowArgs {
     pub token: Option<String>,
 
     /// 1Password secret reference used for Core API key lookup.
-    #[facet(default, args::named, rename = "op-secret")]
+    #[facet(default, args::named)]
     pub op_secret: Option<String>,
 
     /// Print planned uploads and metadata without uploading.
-    #[facet(default, args::named, rename = "dry-run")]
+    #[facet(default, args::named)]
     pub dry_run: bool,
 }
 

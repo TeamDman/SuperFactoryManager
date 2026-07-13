@@ -8,7 +8,7 @@ use figue as args;
 
 /// Options for auditing tracked Rust and Java source file sizes.
 #[derive(Facet, Debug, Clone)]
-pub struct SourceAuditArgs {
+pub struct AuditArgs {
     /// Branch selector to audit.
     #[facet(args::named)]
     pub branch: BranchSelector,
@@ -22,11 +22,11 @@ pub struct SourceAuditArgs {
     pub lang: Vec<SourceLanguage>,
 
     /// Warn when a tracked source file has more than this many lines.
-    #[facet(rename = "max-lines", default, args::named)]
+    #[facet(default, args::named)]
     pub max_lines: SourceLineLimit,
 }
 
-impl SourceAuditArgs {
+impl AuditArgs {
     pub(crate) fn into_options(self) -> eyre::Result<SourceAuditOptions> {
         let mut languages = self.language;
         languages.extend(self.lang);

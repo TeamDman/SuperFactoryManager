@@ -33,7 +33,7 @@ pub struct CurseforgeReleaseCheckArgs {
     pub project: Option<u64>,
 
     /// CurseForge Core API key; if omitted, CURSEFORGE_CORE_API_KEY is used.
-    #[facet(default, args::named, rename = "api-key")]
+    #[facet(default, args::named)]
     pub api_key: Option<String>,
 
     /// CurseForge API token; if omitted, CURSEFORGE_API_TOKEN is used, then 1Password lookup.
@@ -41,7 +41,7 @@ pub struct CurseforgeReleaseCheckArgs {
     pub token: Option<String>,
 
     /// 1Password secret reference used when credentials are omitted.
-    #[facet(default, args::named, rename = "op-secret")]
+    #[facet(default, args::named)]
     pub op_secret: Option<String>,
 }
 

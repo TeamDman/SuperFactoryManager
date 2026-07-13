@@ -14,6 +14,7 @@ ext.sfmJarManifestConfigured = true
 
 // Example for how to get properties into the manifest for reading at runtime.
 jar {
+    exclude "ca/teamdman/sfm/client/handler/SFMClientSmokeRunHarness.class"
     manifest {
         attributes([
                 "Specification-Title"     : mod_id,

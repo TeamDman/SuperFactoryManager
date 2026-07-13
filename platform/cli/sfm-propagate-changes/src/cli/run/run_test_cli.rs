@@ -15,7 +15,7 @@ pub struct RunTestArgs {
     pub options: JarBuildOptionsArgs,
 
     /// Show captured stdout/stderr from successful tests.
-    #[facet(rename = "no-capture", default = false, args::named)]
+    #[facet(default = false, args::named)]
     pub no_capture: bool,
 
     /// Run or list only tests whose display name, class, method, or unique id contains this text.
