@@ -403,18 +403,20 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean mouseScrolled(
             double mouseX,
             double mouseY,
-            double delta
+            double deltaX,
+            double deltaY
     ) {
-        if (delta == 0.0D) {
-            return super.mouseScrolled(mouseX, mouseY, delta);
+        if (deltaY == 0.0D) {
+            return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
         }
         if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
             double focusX = grammarScreenToCanvasX(mouseX);
             double focusY = grammarScreenToCanvasY(mouseY);
-            double scaleFactor = Math.pow(ZOOM_STEP, delta);
+            double scaleFactor = Math.pow(ZOOM_STEP, deltaY);
             grammarZoom = Mth.clamp(grammarZoom * scaleFactor, MIN_ZOOM, MAX_ZOOM);
             grammarCameraX = focusX - (mouseX - grammarPanelCenterX()) / grammarZoom;
             grammarCameraY = focusY - (mouseY - grammarPanelCenterY()) / grammarZoom;
@@ -424,7 +426,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
         double focusX = screenToCanvasX(mouseX);
         double focusY = screenToCanvasY(mouseY);
-        double scaleFactor = Math.pow(ZOOM_STEP, delta);
+        double scaleFactor = Math.pow(ZOOM_STEP, deltaY);
         zoom = Mth.clamp(zoom * scaleFactor, MIN_ZOOM, MAX_ZOOM);
         cameraX = focusX - (mouseX - this.width / 2.0D) / zoom;
         cameraY = focusY - (mouseY - this.height / 2.0D) / zoom;
