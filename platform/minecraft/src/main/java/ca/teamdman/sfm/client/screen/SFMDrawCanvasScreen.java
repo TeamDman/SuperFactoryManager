@@ -7,6 +7,7 @@ import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
@@ -1177,6 +1178,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 
+    @MCVersionDependentBehaviour
     private void renderGlyphSelectionHighlights(PoseStack poseStack) {
         List<CanvasRect> mask = new ArrayList<>();
         for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
@@ -1193,10 +1195,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         for (CanvasRect rect : unionRects(mask)) {
             SFMScreenRenderUtils.renderHighlight(
                     poseStack,
-                    rect.left(),
-                    rect.top(),
-                    Math.max(rect.left() + 1.0D, rect.right()),
-                    Math.max(rect.top() + 1.0D, rect.bottom())
+                    Mth.floor(rect.left()),
+                    Mth.floor(rect.top()),
+                    Mth.ceil(Math.max(rect.left() + 1.0D, rect.right())),
+                    Mth.ceil(Math.max(rect.top() + 1.0D, rect.bottom()))
             );
         }
     }
@@ -2024,6 +2026,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 
+    @MCVersionDependentBehaviour
     private void renderGrammarGlyphSelectionHighlights(PoseStack poseStack) {
         List<CanvasRect> mask = new ArrayList<>();
         int left = grammarPanelLeft();
@@ -2044,10 +2047,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         for (CanvasRect rect : unionRects(mask)) {
             SFMScreenRenderUtils.renderHighlight(
                     poseStack,
-                    rect.left(),
-                    rect.top(),
-                    Math.max(rect.left() + 1.0D, rect.right()),
-                    Math.max(rect.top() + 1.0D, rect.bottom())
+                    Mth.floor(rect.left()),
+                    Mth.floor(rect.top()),
+                    Mth.ceil(Math.max(rect.left() + 1.0D, rect.right())),
+                    Mth.ceil(Math.max(rect.top() + 1.0D, rect.bottom()))
             );
         }
     }
@@ -2239,6 +2242,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private static class CanvasFocusTarget extends Button {
         private final boolean showWhenFocused;
 
+        @MCVersionDependentBehaviour
         public CanvasFocusTarget(
                 int x,
                 int y,
@@ -2246,22 +2250,23 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 int height,
                 boolean showWhenFocused
         ) {
-            super(x, y, width, height, Component.empty(), button -> { });
+            super(x, y, width, height, Component.empty(), button -> { }, Button.DEFAULT_NARRATION);
             this.showWhenFocused = showWhenFocused;
         }
 
         @Override
-        public void renderButton(
+        @MCVersionDependentBehaviour
+        public void renderWidget(
                 PoseStack poseStack,
                 int mouseX,
                 int mouseY,
                 float partialTick
         ) {
             if (showWhenFocused && isFocused()) {
-                fill(poseStack, this.x, this.y, this.x + this.width, this.y + 1, FOCUS_BORDER);
-                fill(poseStack, this.x, this.y + this.height - 1, this.x + this.width, this.y + this.height, FOCUS_BORDER);
-                fill(poseStack, this.x, this.y, this.x + 1, this.y + this.height, FOCUS_BORDER);
-                fill(poseStack, this.x + this.width - 1, this.y, this.x + this.width, this.y + this.height, FOCUS_BORDER);
+                fill(poseStack, this.getX(), this.getY(), this.getX() + this.width, this.getY() + 1, FOCUS_BORDER);
+                fill(poseStack, this.getX(), this.getY() + this.height - 1, this.getX() + this.width, this.getY() + this.height, FOCUS_BORDER);
+                fill(poseStack, this.getX(), this.getY(), this.getX() + 1, this.getY() + this.height, FOCUS_BORDER);
+                fill(poseStack, this.getX() + this.width - 1, this.getY(), this.getX() + this.width, this.getY() + this.height, FOCUS_BORDER);
             }
         }
 
