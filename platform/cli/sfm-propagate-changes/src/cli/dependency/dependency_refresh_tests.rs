@@ -133,6 +133,20 @@ fn platform_only_target_has_no_refreshable_remote_artifacts() {
     );
 }
 
+#[test]
+fn curseforge_refresh_candidate_retains_exact_project_and_file() {
+    let (inventory, _) = fixture();
+    let candidates =
+        refresh_candidates(&inventory, Some("mekanism")).expect("Mekanism refresh candidates");
+    assert!(candidates.values().any(|candidate| {
+        candidate.curseforge_file
+            == Some((
+                CurseforgeProjectId(268_560),
+                CurseforgeProjectFileId(4_644_795),
+            ))
+    }));
+}
+
 fn fixture() -> (DependencyInventory, tempfile::TempDir) {
     let directory = tempfile::tempdir().expect("temp directory");
     let input = include_str!("../../../../../minecraft/sfm-toolchain.lock.json");

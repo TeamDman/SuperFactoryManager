@@ -1370,6 +1370,69 @@ fn resolver_reuses_validated_cursemaven_cache_offline() {
 }
 
 #[test]
+fn resolver_refreshes_cursemaven_from_locked_url_before_repository_candidates() {
+    let test_dir = TestDir::new("resolver-cursemaven-locked-direct-url");
+    let coordinate = MavenCoordinate::parse("curse.maven:jade-324717:8068368")
+        .expect("CurseMaven coordinate should parse");
+    let bytes = b"locked direct CurseForge artifact";
+    let hash = ContentHash::from_bytes(bytes, ContentHashAlgorithm::Blake3);
+    let (url, server) = serve_http_bodies(vec![bytes.to_vec()]);
+    let lockfile = ArtifactLockfile {
+        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
+        minecraft_version: "26.1.2".to_owned(),
+        maven_cache_dir: PathBuf::from("$sfm-cache/maven"),
+        allow_local_artifact_cache: false,
+        repositories: vec![Repository {
+            name: "CurseMaven".to_owned(),
+            url: "http://127.0.0.1:1".to_owned(),
+        }],
+        dependencies: Vec::new(),
+        artifacts: vec![ArtifactLockEntry {
+            coordinate: Some(coordinate.to_string()),
+            source: ArtifactSource::RemoteMaven,
+            repository: Some("CurseMaven".to_owned()),
+            url: Some(url.clone()),
+            cache_path: PathBuf::from(
+                "$sfm-cache/maven/curse/maven/jade-324717/8068368/jade-324717-8068368.jar",
+            ),
+            original_path: None,
+            source_relative_path: None,
+            source_git: None,
+            source_build: None,
+            hash,
+            weak: None,
+        }],
+    };
+    let resolver = Resolver::new(
+        test_dir.path.join("maven"),
+        lockfile.repositories.clone(),
+        true,
+        false,
+        Vec::new(),
+        None,
+        Some(lockfile),
+        test_cancellation_token(),
+    )
+    .expect("resolver should build");
+
+    let artifact = resolver
+        .resolve_artifact(
+            ArtifactId::from("jade-main"),
+            &coordinate,
+            ArtifactPurpose::from("runtime"),
+        )
+        .expect("locked URL should refresh without contacting the unavailable repository");
+    server.join().expect("test server should finish");
+
+    assert!(artifact.downloaded);
+    assert_eq!(fs::read(&artifact.cache_path).expect("artifact should read"), bytes);
+    assert_eq!(artifact.provenance.source, ArtifactSource::RemoteMaven);
+    assert_eq!(artifact.repository.as_deref(), Some("CurseMaven"));
+    assert_eq!(artifact.url.as_deref(), Some(url.as_str()));
+    assert_eq!(artifact.sha1, Some(hash));
+}
+
+#[test]
 fn resolver_imports_from_explicit_project_artifact_source() {
     let test_dir = TestDir::new("resolver-explicit-artifact-source");
     let source_root = test_dir.path.join("source-project");

@@ -117,6 +117,8 @@ impl ArtifactLockfileV3 {
                 hash: artifact.hash,
                 cache_path: artifact.cache_path.clone(),
                 provenance: provenance_from_artifact_source(&artifact.source),
+                source_git: artifact.source_git.clone(),
+                source_build: artifact.source_build.clone(),
                 weak: artifact.weak.as_ref().map(|weak| {
                     crate::toolchain_lockfile_schema::version::v3::WeakArtifactValidationV3 {
                         metadata_path: weak.metadata_path.clone(),
@@ -193,6 +195,8 @@ fn refresh_artifact_evidence(artifact: &mut ArtifactV3, resolved: &ArtifactLockE
     artifact.hash = resolved.hash;
     artifact.cache_path.clone_from(&resolved.cache_path);
     artifact.provenance = provenance_from_artifact_source(&resolved.source);
+    artifact.source_git.clone_from(&resolved.source_git);
+    artifact.source_build.clone_from(&resolved.source_build);
     artifact.weak = resolved.weak.as_ref().map(|weak| {
         crate::toolchain_lockfile_schema::version::v3::WeakArtifactValidationV3 {
             metadata_path: weak.metadata_path.clone(),

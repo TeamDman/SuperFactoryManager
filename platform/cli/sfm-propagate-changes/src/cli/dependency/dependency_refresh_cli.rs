@@ -4,12 +4,18 @@ use super::dependency_add_cli::write_cache_file_atomically;
 use super::dependency_context::load_inventory;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
+use crate::curseforge::CurseforgeApiSecret;
+use crate::curseforge::CurseforgeHttpClient;
+use crate::curseforge::CurseforgeProjectFileId;
+use crate::curseforge::CurseforgeProjectId;
+use crate::curseforge::CurseforgeProjectMetadata;
 use crate::dependency_inventory::DependencyInventory;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3;
+use crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3;
 use crate::toolchain_lockfile_write::write_lockfile_atomically;
 use facet::Facet;
 use figue as args;
@@ -64,6 +70,7 @@ struct RefreshCandidate {
     artifact_id: String,
     url: String,
     cache_path: std::path::PathBuf,
+    curseforge_file: Option<(CurseforgeProjectId, CurseforgeProjectFileId)>,
 }
 
 fn refresh_dependencies(
@@ -79,9 +86,11 @@ fn refresh_dependencies(
     let mut reports = Vec::new();
     for candidate in candidates.values() {
         cancellation_token.bail_if_cancelled()?;
-        let bytes = fetcher
-            .fetch(&candidate.url, cancellation_token)?
-            .ok_or_else(|| eyre::eyre!("Remote artifact not found: {}", candidate.url))?;
+        let (bytes, resolved_url, direct_curseforge_download) =
+            match fetcher.fetch(&candidate.url, cancellation_token)? {
+                Some(bytes) => (bytes, candidate.url.clone(), false),
+                None => fetch_curseforge_fallback(candidate, cancellation_token, fetcher)?,
+            };
         let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
         let local_path = inventory.local_path(&candidate.cache_path);
         write_cache_file_atomically(&local_path, &bytes)?;
@@ -94,6 +103,10 @@ fn refresh_dependencies(
         let old_hash = artifact.hash;
         artifact.hash = hash;
         artifact.weak = None;
+        if direct_curseforge_download {
+            artifact.url = Some(resolved_url);
+            artifact.provenance = ArtifactProvenanceV3::RemoteHttp;
+        }
         for dependency in &mut inventory.lockfile.dependencies {
             for component in &mut dependency.components {
                 if component.derived_checks.artifact_id == candidate.artifact_id {
@@ -140,9 +153,38 @@ fn refresh_candidates(
                 artifact_id: artifact.id.clone(),
                 url,
                 cache_path: artifact.cache_path.clone(),
+                curseforge_file: match &component.declaration.acquisition {
+                    ComponentAcquisitionV3::CurseForge(acquisition) => Some((
+                        CurseforgeProjectId(acquisition.project_id),
+                        CurseforgeProjectFileId(acquisition.file_id),
+                    )),
+                    _ => None,
+                },
             });
     }
     Ok(candidates)
+}
+
+fn fetch_curseforge_fallback(
+    candidate: &RefreshCandidate,
+    cancellation_token: &CancellationToken,
+    fetcher: &dyn ArtifactFetcher,
+) -> eyre::Result<(Vec<u8>, String, bool)> {
+    let Some((project_id, file_id)) = candidate.curseforge_file else {
+        eyre::bail!("Remote artifact not found: {}", candidate.url);
+    };
+    let (api_key, _) = CurseforgeApiSecret::resolve_core(None, None, None)?;
+    let client = CurseforgeHttpClient::new_core_api(&api_key)?;
+    let file = client.fetch_project_file(project_id, file_id)?;
+    let url = file.download_url.ok_or_else(|| {
+        eyre::eyre!(
+            "CurseForge file {file_id} does not provide a direct download URL after its CurseMaven mirror was unavailable."
+        )
+    })?;
+    let bytes = fetcher.fetch(&url, cancellation_token)?.ok_or_else(|| {
+        eyre::eyre!("CurseForge direct download was not found for file {file_id}: {url}")
+    })?;
+    Ok((bytes, url, true))
 }
 
 fn selected_components<'a>(

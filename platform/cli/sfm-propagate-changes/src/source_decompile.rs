@@ -535,6 +535,8 @@ mod tests {
                 hash: ContentHash::from_bytes(b"placeholder", ContentHashAlgorithm::Blake3),
                 cache_path: PathBuf::from(cache_path),
                 provenance: ArtifactProvenanceV3::RemoteMaven,
+                source_git: None,
+                source_build: None,
                 weak: None,
             });
         }

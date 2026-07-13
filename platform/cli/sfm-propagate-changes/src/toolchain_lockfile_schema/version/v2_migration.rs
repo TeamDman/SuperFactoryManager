@@ -371,6 +371,8 @@ fn migrate_artifacts(
                 hash: artifact.hash,
                 cache_path: artifact.cache_path.clone(),
                 provenance: artifact_provenance(artifact),
+                source_git: artifact.source_git.clone(),
+                source_build: artifact.source_build.clone(),
                 weak: artifact.weak.as_ref().map(|weak| WeakArtifactValidationV3 {
                     metadata_path: weak.metadata_path.clone(),
                     mod_id: weak.mod_id.clone(),
@@ -999,6 +1001,8 @@ fn diagnostic(
 mod tests {
     use super::*;
     use crate::jar_build::Repository;
+    use crate::jar_build::SourceBuildProvenance;
+    use crate::jar_build::SourceGitProvenance;
     use crate::jar_build::WeakArtifactValidation;
     use crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION;
     use crate::toolchain_lockfile_schema::version::v2::DependencyMigrationHintV2;
@@ -1098,6 +1102,68 @@ mod tests {
         let reparsed: ArtifactLockfileV3 =
             facet_json::from_str(&json).expect("serialized v3 should parse");
         reparsed.validate().expect("serialized v3 should validate");
+    }
+
+    #[test]
+    fn migration_preserves_source_build_recipe() {
+        let dependencies = vec![
+            complete_dependency("minecraft", DependencyKindV3::Minecraft, 0),
+            complete_dependency("forge", DependencyKindV3::Loader, 1),
+        ];
+        let mut lockfile = lockfile(
+            vec![
+                legacy_row("implementation", "net.minecraft:minecraft:1.19.2"),
+                legacy_row("implementation", "net.minecraftforge:forge:1.19.2-43.4.0"),
+            ],
+            Some(MigrationHintsV2 {
+                minecraft_dependency_id: Some("minecraft".to_owned()),
+                loader_dependency_id: Some("forge".to_owned()),
+                dependencies,
+            }),
+        );
+        lockfile.artifacts[1].source_git = Some(SourceGitProvenance {
+            root: PathBuf::from("$sfm-cache/source-builds/forge"),
+            commit: "deadbeef".to_owned(),
+            branch: "main".to_owned(),
+            dirty: false,
+            remote_url: Some("https://example.invalid/forge.git".to_owned()),
+        });
+        lockfile.artifacts[1].source_build = Some(
+            facet_json::from_str::<SourceBuildProvenance>(
+                r#"{
+                    "build_system": "gradle-wrapper",
+                    "tasks": ["jar"],
+                    "environment": {"BUILD_NUMBER": "1"},
+                    "output_path": "build/libs/forge.jar"
+                }"#,
+            )
+            .expect("source-build fixture should parse"),
+        );
+
+        let migrated = lockfile.migrate_to_v3().expect("migration should succeed");
+        let artifact = migrated
+            .artifacts
+            .iter()
+            .find(|artifact| {
+                artifact.coordinate.as_deref() == Some("net.minecraftforge:forge:1.19.2-43.4.0")
+            })
+            .expect("source-build artifact should migrate");
+
+        assert_eq!(artifact.provenance, ArtifactProvenanceV3::SourceBuild);
+        assert_eq!(
+            artifact
+                .source_git
+                .as_ref()
+                .map(|source_git| source_git.commit.as_str()),
+            Some("deadbeef")
+        );
+        assert_eq!(
+            artifact
+                .source_build
+                .as_ref()
+                .map(|source_build| source_build.tasks.as_slice()),
+            Some(["jar".to_owned()].as_slice())
+        );
     }
 
     fn complete_dependency(
