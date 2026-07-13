@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
 import com.google.common.collect.Sets;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -502,6 +503,27 @@ public class SFMLTests {
         for (int i = 0; i < lines.length; i++) {
             assertEquals(lines[i], colouredLines.get(i).getString());
         }
+    }
+
+    @Test
+    public void syntaxHighlightingTokenRanges() {
+        var rawInput = "EVERY 20 TICKS DO\nEND";
+
+        var highlights = ProgramSyntaxHighlightingHelper.getTokenHighlights(rawInput);
+
+        var every = highlights.stream()
+                .filter(highlight -> highlight.text().equals("EVERY"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(0, every.startIndex());
+        assertEquals(4, every.stopIndex());
+        assertEquals(ChatFormatting.BLUE, every.colour());
+
+        var ticks = highlights.stream()
+                .filter(highlight -> highlight.text().equals("TICKS"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(ChatFormatting.GOLD, ticks.colour());
     }
 
 

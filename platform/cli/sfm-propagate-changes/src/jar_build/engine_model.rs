@@ -249,9 +249,9 @@ struct ArtifactPortabilityInput {
 pub(crate) enum ArtifactSource {
     RemoteMaven,
     RemoteHttp,
-    #[facet(rename = "explicit-artifact-source")]
+    #[facet]
     ExplicitSource,
-    #[facet(rename = "source-build")]
+    #[facet]
     SourceBuild,
     LocalM2Cache,
     LocalGradleModuleCache,
@@ -333,6 +333,9 @@ struct McpConfigPlan {
 #[derive(Clone, Debug, Facet)]
 struct DependencyPlan {
     configuration: String,
+    artifact_treatment:
+        crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
+    data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
     notation: String,
     resolved_notation: String,
     source: DependencySource,
@@ -720,4 +723,3 @@ impl std::fmt::Display for MavenCoordinate {
         Ok(())
     }
 }
-

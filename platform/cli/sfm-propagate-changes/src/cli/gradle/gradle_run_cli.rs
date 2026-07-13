@@ -16,13 +16,13 @@ pub struct GradleRunArgs {
     /// If set, stream gradle stdout/stderr to the console while tasks run.
     ///
     /// By default logs are written to cache files only and not streamed.
-    #[facet(rename = "show-logs", args::named, default = false)]
+    #[facet(args::named, default = false)]
     pub show_logs: bool,
 
     /// If set, continue with later branches after a task failure.
     ///
     /// Remaining tasks for the failed branch are marked as skipped.
-    #[facet(rename = "continue-on-error", args::named, default = false)]
+    #[facet(args::named, default = false)]
     pub continue_on_error: bool,
 }
 
