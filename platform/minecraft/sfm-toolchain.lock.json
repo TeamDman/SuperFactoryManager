@@ -52,8 +52,8 @@
   "dependencies": [
     {
       "id": "antlr",
-      "kind": "library",
-      "role": "library",
+      "kind": "tool",
+      "role": "build",
       "display_name": null,
       "project_url": null,
       "notes": null,
@@ -63,21 +63,21 @@
           "declaration": {
             "acquisition": {
               "maven": {
-                "requested_coordinate": "org.antlr:antlr4-runtime:4.13.1",
+                "requested_coordinate": "org.antlr:antlr4:4.13.1",
                 "repository_id": "maven-central"
               }
             },
             "scopes": [
-              "bundle"
+              "codegen"
             ],
             "artifact_treatment": "plain",
-            "data_run_policy": "include"
+            "data_run_policy": "exclude"
           },
           "derived_checks": {
-            "artifact_id": "org-antlr-antlr4-runtime-4-13-1-ee9769fc",
-            "resolved_coordinate": "org.antlr:antlr4-runtime:4.13.1",
-            "expected_hash": "blake3:ee9769fc09bea7288037d4f210a5f0e0a8aa0b90",
-            "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4-runtime\\4.13.1\\antlr4-runtime-4.13.1.jar"
+            "artifact_id": "org-antlr-antlr4-4-13-1-7a222484",
+            "resolved_coordinate": "org.antlr:antlr4:4.13.1",
+            "expected_hash": "blake3:7a222484ba088298bdc3b4b26294420eb69c36d6",
+            "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.13.1\\antlr4-4.13.1.jar"
           },
           "source_providers": []
         }
@@ -185,6 +185,40 @@
       ]
     },
     {
+      "id": "javaparser",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "com-github-javaparser-javaparser-symbol-solver-core-3-26-4-49a73863",
+            "resolved_coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+            "expected_hash": "blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c",
+            "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-symbol-solver-core\\3.26.4\\javaparser-symbol-solver-core-3.26.4.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
       "id": "jei",
       "kind": "mod",
       "role": "integration",
@@ -212,6 +246,189 @@
             "resolved_coordinate": "mezz.jei:jei-26.1.2-neoforge:29.5.0.27",
             "expected_hash": "blake3:c106ad3e93268f6747f1e196d34c769f7fe218ac",
             "cache_path": "$sfm-cache\\maven\\mezz\\jei\\jei-26.1.2-neoforge\\29.5.0.27\\jei-26.1.2-neoforge-29.5.0.27.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "jmh",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "generator-annprocess",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-annotation-processor",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-openjdk-jmh-jmh-generator-annprocess-1-37-74920027",
+            "resolved_coordinate": "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+            "expected_hash": "blake3:74920027bb3f569af240fc283876568793baa2e8",
+            "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-annprocess\\1.37\\jmh-generator-annprocess-1.37.jar"
+          },
+          "source_providers": []
+        },
+        {
+          "id": "generator-bytecode",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-openjdk-jmh-jmh-generator-bytecode-1-37-c8a36f0c",
+            "resolved_coordinate": "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+            "expected_hash": "blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20",
+            "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-bytecode\\1.37\\jmh-generator-bytecode-1.37.jar"
+          },
+          "source_providers": []
+        },
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.openjdk.jmh:jmh-core:1.37",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-openjdk-jmh-jmh-core-1-37-43f8ac51",
+            "resolved_coordinate": "org.openjdk.jmh:jmh-core:1.37",
+            "expected_hash": "blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15",
+            "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-core\\1.37\\jmh-core-1.37.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "junit-jupiter",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-junit-jupiter-junit-jupiter-api-5-8-1-9f0864e5",
+            "resolved_coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1",
+            "expected_hash": "blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa",
+            "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-api\\5.8.1\\junit-jupiter-api-5.8.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "junit-jupiter-engine",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-junit-jupiter-junit-jupiter-engine-5-8-1-d59cd0ab",
+            "resolved_coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
+            "expected_hash": "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce",
+            "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-engine\\5.8.1\\junit-jupiter-engine-5.8.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "junit-platform-launcher",
+      "kind": "library",
+      "role": "test",
+      "display_name": null,
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.junit.platform:junit-platform-launcher:1.8.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-junit-platform-junit-platform-launcher-1-8-1-738f602f",
+            "resolved_coordinate": "org.junit.platform:junit-platform-launcher:1.8.1",
+            "expected_hash": "blake3:738f602f34820afb35f70aea342bfc73c305b44d",
+            "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-launcher\\1.8.1\\junit-platform-launcher-1.8.1.jar"
           },
           "source_providers": []
         }
@@ -646,6 +863,23 @@
       "hash": "blake3:512f02bc3ae5a9113511befb1b6d7ac306656801",
       "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar",
       "provenance": "source-build",
+      "source_git": {
+        "root": "$sfm-cache\\source-builds\\557dd8a088c05d5fb40abed165349ab01e256254",
+        "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
+        "branch": "26.1",
+        "dirty": false,
+        "remote_url": "https://github.com/mekanism/Mekanism/"
+      },
+      "source_build": {
+        "build_system": "gradle-wrapper",
+        "tasks": [
+          "apiJar"
+        ],
+        "environment": {
+          "BUILD_NUMBER": "86"
+        },
+        "output_path": "build\\libs\\Mekanism-26.1.2-10.8.0.86-api.jar"
+      },
       "weak": null
     },
     {
@@ -663,6 +897,23 @@
       "hash": "blake3:fa5d96536fb3195b1a113d1d9e30695927d76378",
       "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar",
       "provenance": "source-build",
+      "source_git": {
+        "root": "$sfm-cache\\source-builds\\557dd8a088c05d5fb40abed165349ab01e256254",
+        "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
+        "branch": "26.1",
+        "dirty": false,
+        "remote_url": "https://github.com/mekanism/Mekanism/"
+      },
+      "source_build": {
+        "build_system": "gradle-wrapper",
+        "tasks": [
+          "jar"
+        ],
+        "environment": {
+          "BUILD_NUMBER": "86"
+        },
+        "output_path": "build\\libs\\Mekanism-26.1.2-10.8.0.86.jar"
+      },
       "weak": {
         "metadata_path": "META-INF/neoforge.mods.toml",
         "mod_id": "mekanism",
@@ -1000,9 +1251,12 @@
     },
     {
       "id": "org-antlr-antlr4-4-13-1-7a222484",
-      "owner": null,
+      "owner": {
+        "dependency_id": "antlr",
+        "component_id": "main"
+      },
       "purposes": [
-        "toolchain"
+        "build"
       ],
       "coordinate": "org.antlr:antlr4:4.13.1",
       "repository_id": "maven-central",
@@ -1014,12 +1268,9 @@
     },
     {
       "id": "org-antlr-antlr4-runtime-4-13-1-ee9769fc",
-      "owner": {
-        "dependency_id": "antlr",
-        "component_id": "main"
-      },
+      "owner": null,
       "purposes": [
-        "build"
+        "toolchain"
       ],
       "coordinate": "org.antlr:antlr4-runtime:4.13.1",
       "repository_id": "maven-central",
