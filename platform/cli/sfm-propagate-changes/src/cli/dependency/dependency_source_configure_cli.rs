@@ -8,10 +8,17 @@ use crate::source_git::configure_git_sources;
 use crate::source_git::validate_requested_git_revision;
 use crate::source_maven::configure_maven_sources;
 use crate::terminal_output::stdout_line;
+use crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3;
+use crate::toolchain_lockfile_schema::version::v3::DependencyKindV3;
+use crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceDeclarationV3;
+use crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceDerivedChecksV3;
+use crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceProviderV3;
 use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
+use crate::toolchain_lockfile_schema::version::v3::ToolchainComponentKindV3;
 use crate::toolchain_lockfile_write::write_lockfile_atomically;
 use facet::Facet;
 use figue as args;
+use std::path::PathBuf;
 
 #[derive(Facet, Debug)]
 pub struct DependencySourceConfigureArgs {
@@ -30,6 +37,9 @@ pub struct DependencySourceConfigureArgs {
     /// Configure deterministic Vineflower fallback sources from locked binaries.
     #[facet(default = false, args::named)]
     pub decompile: bool,
+    /// Configure the deterministic Minecraft/loader source pipeline.
+    #[facet(default = false, args::named)]
+    pub platform_pipeline: bool,
     /// Dependency or dependency/component containing the locked decompiler (defaults to vineflower).
     #[facet(default, args::named)]
     pub decompiler: Option<String>,
@@ -86,6 +96,11 @@ enum SourceConfiguration {
         roots: Vec<String>,
         prefer: bool,
     },
+    PlatformPipeline {
+        branch: BranchSelector,
+        roots: Vec<String>,
+        prefer: bool,
+    },
     Git {
         branch: BranchSelector,
         remote: String,
@@ -102,6 +117,7 @@ impl SourceConfiguration {
             maven_sources,
             maven_coordinate,
             decompile,
+            platform_pipeline,
             decompiler,
             git_url,
             git_revision,
@@ -118,12 +134,20 @@ impl SourceConfiguration {
         if usize::from(maven_sources)
             + usize::from(maven_coordinate.is_some())
             + usize::from(decompile)
+            + usize::from(platform_pipeline)
             + usize::from(git_url.is_some())
             != 1
         {
             eyre::bail!(
-                "Specify exactly one of --maven-sources, --maven-coordinate, --decompile, or --git-url."
+                "Specify exactly one of --maven-sources, --maven-coordinate, --decompile, --platform-pipeline, or --git-url."
             );
+        }
+        if platform_pipeline {
+            return Ok(Self::PlatformPipeline {
+                branch,
+                roots: root,
+                prefer,
+            });
         }
         if decompile {
             return Ok(Self::Decompile {
@@ -160,6 +184,7 @@ impl SourceConfiguration {
         match self {
             Self::Maven { branch, .. }
             | Self::Decompile { branch, .. }
+            | Self::PlatformPipeline { branch, .. }
             | Self::Git { branch, .. } => branch.clone(),
         }
     }
@@ -168,6 +193,7 @@ impl SourceConfiguration {
         match self {
             Self::Maven { prefer, .. }
             | Self::Decompile { prefer, .. }
+            | Self::PlatformPipeline { prefer, .. }
             | Self::Git { prefer, .. } => *prefer,
         }
     }
@@ -244,7 +270,96 @@ fn configure_source_provider(
             configure_decompile_sources(inventory, component, decompiler_component, roots)
                 .map(SourceProviderV3::Decompile)
         }
+        SourceConfiguration::PlatformPipeline { roots, .. } => {
+            configure_platform_pipeline_sources(inventory, selected, roots)
+        }
     }
+}
+
+fn configure_platform_pipeline_sources(
+    inventory: &crate::dependency_inventory::DependencyInventory,
+    selected: ConfiguredComponent,
+    roots: Vec<String>,
+) -> eyre::Result<SourceProviderV3> {
+    let selected_dependency = &inventory.lockfile.dependencies[selected.dependency_index];
+    let kind = match selected_dependency.kind {
+        DependencyKindV3::Minecraft => ToolchainComponentKindV3::Minecraft,
+        DependencyKindV3::Loader => ToolchainComponentKindV3::Loader,
+        _ => eyre::bail!(
+            "Platform pipelines may only be configured for the Minecraft or loader dependency, not '{}'.",
+            selected_dependency.id
+        ),
+    };
+    let minecraft_dependency = inventory
+        .lockfile
+        .dependencies
+        .iter()
+        .find(|dependency| dependency.id == inventory.lockfile.platform.minecraft_dependency)
+        .ok_or_else(|| eyre::eyre!("The configured Minecraft platform dependency is missing."))?;
+    let loader_dependency = inventory
+        .lockfile
+        .dependencies
+        .iter()
+        .find(|dependency| dependency.id == inventory.lockfile.platform.loader_dependency)
+        .ok_or_else(|| eyre::eyre!("The configured loader platform dependency is missing."))?;
+    let minecraft_version =
+        platform_requested_version(minecraft_dependency, ToolchainComponentKindV3::Minecraft)?;
+    let loader_version =
+        platform_requested_version(loader_dependency, ToolchainComponentKindV3::Loader)?;
+    let (fingerprint, tree_cache_path) = if loader_dependency.id == "neoforge" {
+        (
+            format!("neogradle-{loader_version}"),
+            PathBuf::from(format!(
+                "build/sfm-toolchain/neoform/{minecraft_version}/classes/gameSourcesWithNeoForge.filetree"
+            )),
+        )
+    } else {
+        (
+            format!("forgegradle-{loader_version}"),
+            PathBuf::from(format!(
+                "build/sfm-toolchain/forge/{minecraft_version}/sources/combined-deobfuscated.filetree"
+            )),
+        )
+    };
+    let id = match kind {
+        ToolchainComponentKindV3::Minecraft => "minecraft-pipeline",
+        ToolchainComponentKindV3::Loader => "loader-pipeline",
+    };
+    Ok(SourceProviderV3::PlatformPipeline(
+        PlatformPipelineSourceProviderV3 {
+            id: id.to_owned(),
+            declaration: PlatformPipelineSourceDeclarationV3 { kind, roots },
+            derived_checks: PlatformPipelineSourceDerivedChecksV3 {
+                fingerprint,
+                tree_cache_path,
+            },
+        },
+    ))
+}
+
+fn platform_requested_version(
+    dependency: &crate::toolchain_lockfile_schema::version::v3::DependencyV3,
+    expected_kind: ToolchainComponentKindV3,
+) -> eyre::Result<&str> {
+    dependency
+        .components
+        .iter()
+        .find_map(|component| match &component.declaration.acquisition {
+            ComponentAcquisitionV3::Toolchain(acquisition) if acquisition.kind == expected_kind => {
+                Some(acquisition.requested_version.as_str())
+            }
+            _ => None,
+        })
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "Platform dependency '{}' has no {} toolchain component.",
+                dependency.id,
+                match expected_kind {
+                    ToolchainComponentKindV3::Minecraft => "Minecraft",
+                    ToolchainComponentKindV3::Loader => "loader",
+                }
+            )
+        })
 }
 
 fn replace_source_provider(
@@ -346,6 +461,20 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn platform_pipeline_configuration_is_explicit() {
+        let mut input = args(None);
+        input.git_url = None;
+        input.platform_pipeline = true;
+        let configuration =
+            SourceConfiguration::from_args(input).expect("platform pipeline should be accepted");
+
+        assert!(matches!(
+            configuration,
+            SourceConfiguration::PlatformPipeline { prefer: true, .. }
+        ));
+    }
+
     fn args(git_revision: Option<&str>) -> DependencySourceConfigureArgs {
         DependencySourceConfigureArgs {
             target: "cc-tweaked".to_owned(),
@@ -353,6 +482,7 @@ mod tests {
             maven_sources: false,
             maven_coordinate: None,
             decompile: false,
+            platform_pipeline: false,
             decompiler: None,
             git_url: Some("https://github.com/cc-tweaked/CC-Tweaked.git".to_owned()),
             git_revision: git_revision.map(ToOwned::to_owned),
