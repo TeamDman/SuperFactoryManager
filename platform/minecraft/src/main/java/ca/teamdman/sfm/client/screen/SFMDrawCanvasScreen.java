@@ -82,7 +82,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private static final int EMBEDDED_DOCUMENT_BORDER = 0xFF7C8A9B;
     private static final int EMBEDDED_DOCUMENT_HANDLE = 0xFFE6EDF3;
     private static final int INSERT_DRAG_LINE = 0xFF60A5FA;
-    private static final ResourceLocation SFML_GRAMMAR_RESOURCE = new ResourceLocation(SFM.MOD_ID, "grammar/sfml/sfml.g4");
+    private static final ResourceLocation SFML_GRAMMAR_RESOURCE = sfmlGrammarResource();
+
+    @MCVersionDependentBehaviour
+    private static ResourceLocation sfmlGrammarResource() {
+        return ResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "grammar/sfml/sfml.g4");
+    }
 
     private final Screen previousScreen;
     private final ISFMTextEditScreenOpenContext openContext;
