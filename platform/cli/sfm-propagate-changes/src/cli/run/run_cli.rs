@@ -4,6 +4,7 @@ use super::RunClientSmokeArgs;
 use super::RunCompileArgs;
 use super::RunDataArgs;
 use super::RunGameTestServerArgs;
+use super::RunHotswapArgs;
 use super::RunServerArgs;
 use super::RunTestArgs;
 use crate::cancellation::CancellationToken;
@@ -36,18 +37,20 @@ pub enum RunCommand {
     /// Launch the Forge client userdev run config
     Client(RunClientArgs),
     /// Launch the Forge client userdev run config and exit when the title screen opens
-    #[facet(rename = "client-smoke")]
+    #[facet]
     ClientSmoke(RunClientSmokeArgs),
     /// Launch the Forge client userdev run config and run SFM game tests in an integrated client
-    #[facet(rename = "client-puppet")]
+    #[facet]
     ClientPuppet(RunClientPuppetArgs),
     /// Launch the Forge server userdev run config
     Server(RunServerArgs),
     /// Launch the Forge datagen userdev run config
     Data(RunDataArgs),
     /// Launch the Forge game test server userdev run config
-    #[facet(rename = "game-test-server")]
+    #[facet]
     GameTestServer(RunGameTestServerArgs),
+    /// Compile changed classes and hotswap them into a running JDWP-enabled client
+    Hotswap(RunHotswapArgs),
     /// Compile and run the Java `JUnit` test source set
     Test(RunTestArgs),
 }
@@ -65,6 +68,7 @@ impl RunCommand {
             RunCommand::Server(args) => args.invoke(cancellation_token),
             RunCommand::Data(args) => args.invoke(cancellation_token),
             RunCommand::GameTestServer(args) => args.invoke(cancellation_token),
+            RunCommand::Hotswap(args) => args.invoke(cancellation_token),
             RunCommand::Test(args) => args.invoke(cancellation_token),
         }
     }

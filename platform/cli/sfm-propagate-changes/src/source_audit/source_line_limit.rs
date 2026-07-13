@@ -3,8 +3,20 @@ use facet::Facet;
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, Eq, Facet, Ord, PartialEq, PartialOrd)]
-#[facet(transparent)]
+#[facet(proxy = usize)]
 pub struct SourceLineLimit(pub usize);
+
+impl From<usize> for SourceLineLimit {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&SourceLineLimit> for usize {
+    fn from(value: &SourceLineLimit) -> Self {
+        value.0
+    }
+}
 
 impl SourceLineLimit {
     #[must_use]

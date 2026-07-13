@@ -1,3 +1,6 @@
+use facet::Facet;
+use std::fmt;
+use std::str::FromStr;
 use std::time::Duration;
 
 #[derive(Clone, Debug, Default)]
@@ -5,6 +8,52 @@ pub struct RunOptions {
     pub game_test_filter: Option<String>,
     pub game_test_bisect: Option<GameTestBisectOptions>,
     pub client_puppet_keep_open: ClientPuppetKeepOpen,
+    pub client_title_screen: Option<ClientTitleScreen>,
+    pub client_solo: bool,
+    pub client_hotswap_port: Option<u16>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Facet, PartialEq)]
+#[facet(rename_all = "kebab-case")]
+#[repr(u8)]
+pub enum ClientTitleScreen {
+    TextEditor,
+    InputDiag,
+    DrawCanvas,
+}
+
+impl ClientTitleScreen {
+    #[must_use]
+    pub const fn property_value(self) -> &'static str {
+        match self {
+            Self::TextEditor => "text-editor",
+            Self::InputDiag => "input-diag",
+            Self::DrawCanvas => "draw-canvas",
+        }
+    }
+}
+
+impl fmt::Display for ClientTitleScreen {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.property_value())
+    }
+}
+
+impl FromStr for ClientTitleScreen {
+    type Err = eyre::Report;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input.trim().to_ascii_lowercase().as_str() {
+            "text-editor" | "text_editor" | "editor" => Ok(Self::TextEditor),
+            "input-diag" | "input_diag" | "input-diagnostics" | "key-diag" | "key-debug" => {
+                Ok(Self::InputDiag)
+            }
+            "draw-canvas" | "draw_canvas" | "draw" | "canvas" => Ok(Self::DrawCanvas),
+            _ => eyre::bail!(
+                "Invalid --title-screen '{input}'. Expected 'text-editor', 'input-diag', or 'draw-canvas'."
+            ),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

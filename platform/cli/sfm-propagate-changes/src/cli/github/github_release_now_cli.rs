@@ -14,7 +14,7 @@ pub struct GithubReleaseNowArgs {
     pub repo: Option<String>,
 
     /// Print the resolved release plan without calling `gh`.
-    #[facet(default, args::named, rename = "dry-run")]
+    #[facet(default, args::named)]
     pub dry_run: bool,
 
     /// Skip the interactive confirmation prompt.
