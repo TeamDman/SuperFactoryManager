@@ -1356,8 +1356,8 @@ fn project_v3_artifact_lockfile(
             cache_path: artifact.cache_path.clone(),
             original_path: None,
             source_relative_path: None,
-            source_git: None,
-            source_build: None,
+            source_git: artifact.source_git.clone(),
+            source_build: artifact.source_build.clone(),
             hash: artifact.hash,
             weak: artifact.weak.as_ref().map(|weak| WeakArtifactValidation {
                 metadata_path: weak.metadata_path.clone(),
