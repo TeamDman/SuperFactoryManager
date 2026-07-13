@@ -538,8 +538,8 @@
         "toolchain"
       ],
       "coordinate": "net.neoforged:bus:7.2.0",
-      "repository_id": "neoforged",
-      "url": "https://maven.neoforged.net/releases/net/neoforged/bus/7.2.0/bus-7.2.0.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/neoforged/bus/7.2.0/bus-7.2.0.jar",
       "hash": "blake3:d879350b0b07af896fffa6759d8b13373b43156e",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\bus\\7.2.0\\bus-7.2.0.jar",
       "provenance": "remote-maven",
@@ -822,10 +822,24 @@
         "toolchain"
       ],
       "coordinate": "org.abego.treelayout:org.abego.treelayout.core:1.0.3",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/abego/treelayout/org.abego.treelayout.core/1.0.3/org.abego.treelayout.core-1.0.3.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/abego/treelayout/org.abego.treelayout.core/1.0.3/org.abego.treelayout.core-1.0.3.jar",
       "hash": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8",
       "cache_path": "$sfm-cache\\maven\\org\\abego\\treelayout\\org.abego.treelayout.core\\1.0.3\\org.abego.treelayout.core-1.0.3.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-antlr-antlr-runtime-3-5-2-487347db",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.antlr:antlr-runtime:3.5.2",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar",
+      "hash": "blake3:487347db20582bd5c774bdd4ca90f158428d0804",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr-runtime\\3.5.2\\antlr-runtime-3.5.2.jar",
       "provenance": "remote-maven",
       "weak": null
     },
@@ -858,16 +872,44 @@
       "weak": null
     },
     {
+      "id": "org-antlr-antlr4-4-9-1-205027ff",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.antlr:antlr4:4.9.1",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/antlr/antlr4/4.9.1/antlr4-4.9.1.jar",
+      "hash": "blake3:205027ffc02f2c0d7332957510c6d03e26d6fc59",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.9.1\\antlr4-4.9.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
       "id": "org-antlr-antlr4-runtime-4-13-1-ee9769fc",
       "owner": null,
       "purposes": [
         "toolchain"
       ],
       "coordinate": "org.antlr:antlr4-runtime:4.13.1",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.13.1/antlr4-runtime-4.13.1.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/antlr/antlr4-runtime/4.13.1/antlr4-runtime-4.13.1.jar",
       "hash": "blake3:ee9769fc09bea7288037d4f210a5f0e0a8aa0b90",
       "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4-runtime\\4.13.1\\antlr4-runtime-4.13.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-antlr-antlr4-runtime-4-9-1-d7feebdd",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.antlr:antlr4-runtime:4.9.1",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/antlr/antlr4-runtime/4.9.1/antlr4-runtime-4.9.1.jar",
+      "hash": "blake3:d7feebdd794d8bca83d142729ec0a8c141ccad95",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4-runtime\\4.9.1\\antlr4-runtime-4.9.1.jar",
       "provenance": "remote-maven",
       "weak": null
     },
@@ -886,14 +928,28 @@
       "weak": null
     },
     {
+      "id": "org-antlr-st4-4-3-596011ad",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.antlr:ST4:4.3",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/antlr/ST4/4.3/ST4-4.3.jar",
+      "hash": "blake3:596011ad08bfb7561047aef7a29e911ab058bf8f",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\ST4\\4.3\\ST4-4.3.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
       "id": "org-apache-commons-commons-lang3-3-12-0-da4d0fa0",
       "owner": null,
       "purposes": [
         "toolchain"
       ],
       "coordinate": "org.apache.commons:commons-lang3:3.12.0",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar",
       "hash": "blake3:da4d0fa0e146331977ab2eddd0d0fe48f05aa52e",
       "cache_path": "$sfm-cache\\maven\\org\\apache\\commons\\commons-lang3\\3.12.0\\commons-lang3-3.12.0.jar",
       "provenance": "remote-maven",
@@ -906,8 +962,8 @@
         "toolchain"
       ],
       "coordinate": "org.apache.logging.log4j:log4j-api:2.19.0",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-api/2.19.0/log4j-api-2.19.0.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/apache/logging/log4j/log4j-api/2.19.0/log4j-api-2.19.0.jar",
       "hash": "blake3:6036255706ef54c9fb10d78c6d3322bdd8e5f4b1",
       "cache_path": "$sfm-cache\\maven\\org\\apache\\logging\\log4j\\log4j-api\\2.19.0\\log4j-api-2.19.0.jar",
       "provenance": "remote-maven",
@@ -920,8 +976,8 @@
         "toolchain"
       ],
       "coordinate": "org.apache.logging.log4j:log4j-core:2.19.0",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.19.0/log4j-core-2.19.0.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/apache/logging/log4j/log4j-core/2.19.0/log4j-core-2.19.0.jar",
       "hash": "blake3:72c46add99835f68ba44614a3c61dc6f291eb11e",
       "cache_path": "$sfm-cache\\maven\\org\\apache\\logging\\log4j\\log4j-core\\2.19.0\\log4j-core-2.19.0.jar",
       "provenance": "remote-maven",
@@ -934,8 +990,8 @@
         "toolchain"
       ],
       "coordinate": "org.apache.maven:maven-artifact:3.8.5",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/apache/maven/maven-artifact/3.8.5/maven-artifact-3.8.5.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/apache/maven/maven-artifact/3.8.5/maven-artifact-3.8.5.jar",
       "hash": "blake3:492cc125aaaeb811c3938dc741e5d215a77b593a",
       "cache_path": "$sfm-cache\\maven\\org\\apache\\maven\\maven-artifact\\3.8.5\\maven-artifact-3.8.5.jar",
       "provenance": "remote-maven",
@@ -962,8 +1018,8 @@
         "toolchain"
       ],
       "coordinate": "org.checkerframework:checker-qual:3.12.0",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar",
       "hash": "blake3:e506f0ed0b0df2a6ece0bbb90b342ccb09e20161",
       "cache_path": "$sfm-cache\\maven\\org\\checkerframework\\checker-qual\\3.12.0\\checker-qual-3.12.0.jar",
       "provenance": "remote-maven",
@@ -976,10 +1032,24 @@
         "toolchain"
       ],
       "coordinate": "org.codehaus.plexus:plexus-utils:3.3.0",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/codehaus/plexus/plexus-utils/3.3.0/plexus-utils-3.3.0.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/codehaus/plexus/plexus-utils/3.3.0/plexus-utils-3.3.0.jar",
       "hash": "blake3:983ea86b0ad4c1859ea828d439f865d20b5014dd",
       "cache_path": "$sfm-cache\\maven\\org\\codehaus\\plexus\\plexus-utils\\3.3.0\\plexus-utils-3.3.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-glassfish-javax-json-1-0-4-de00c673",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.glassfish:javax.json:1.0.4",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/glassfish/javax.json/1.0.4/javax.json-1.0.4.jar",
+      "hash": "blake3:de00c6730d794bee5122234b5b101ce510ffc6be",
+      "cache_path": "$sfm-cache\\maven\\org\\glassfish\\javax.json\\1.0.4\\javax.json-1.0.4.jar",
       "provenance": "remote-maven",
       "weak": null
     },
@@ -990,8 +1060,8 @@
         "toolchain"
       ],
       "coordinate": "org.jetbrains:annotations:22.0.0",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/jetbrains/annotations/22.0.0/annotations-22.0.0.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/jetbrains/annotations/22.0.0/annotations-22.0.0.jar",
       "hash": "blake3:067ed59ef2e2211f01556e273ad693488379f9dc",
       "cache_path": "$sfm-cache\\maven\\org\\jetbrains\\annotations\\22.0.0\\annotations-22.0.0.jar",
       "provenance": "remote-maven",
@@ -1004,8 +1074,8 @@
         "toolchain"
       ],
       "coordinate": "org.jetbrains:annotations:24.0.1",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/jetbrains/annotations/24.0.1/annotations-24.0.1.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/jetbrains/annotations/24.0.1/annotations-24.0.1.jar",
       "hash": "blake3:9a3d2fae94bf334d4dc72f71112c47755d37f533",
       "cache_path": "$sfm-cache\\maven\\org\\jetbrains\\annotations\\24.0.1\\annotations-24.0.1.jar",
       "provenance": "remote-maven",
@@ -1018,8 +1088,8 @@
         "toolchain"
       ],
       "coordinate": "org.jline:jline-reader:3.12.1",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/jline/jline-reader/3.12.1/jline-reader-3.12.1.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/jline/jline-reader/3.12.1/jline-reader-3.12.1.jar",
       "hash": "blake3:52015aa763c5303696b4c512cfb155710276bdeb",
       "cache_path": "$sfm-cache\\maven\\org\\jline\\jline-reader\\3.12.1\\jline-reader-3.12.1.jar",
       "provenance": "remote-maven",
@@ -1032,8 +1102,8 @@
         "toolchain"
       ],
       "coordinate": "org.jline:jline-terminal:3.12.1",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/jline/jline-terminal/3.12.1/jline-terminal-3.12.1.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/jline/jline-terminal/3.12.1/jline-terminal-3.12.1.jar",
       "hash": "blake3:d6b248905e367f187ed6d41e7a22ba07a39d1a81",
       "cache_path": "$sfm-cache\\maven\\org\\jline\\jline-terminal\\3.12.1\\jline-terminal-3.12.1.jar",
       "provenance": "remote-maven",
@@ -1186,8 +1256,8 @@
         "toolchain"
       ],
       "coordinate": "org.openjdk.nashorn:nashorn-core:15.4",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/openjdk/nashorn/nashorn-core/15.4/nashorn-core-15.4.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/openjdk/nashorn/nashorn-core/15.4/nashorn-core-15.4.jar",
       "hash": "blake3:b1cded0a306035a1e3b9e508686ce07812351525",
       "cache_path": "$sfm-cache\\maven\\org\\openjdk\\nashorn\\nashorn-core\\15.4\\nashorn-core-15.4.jar",
       "provenance": "remote-maven",
@@ -1214,8 +1284,8 @@
         "toolchain"
       ],
       "coordinate": "org.ow2.asm:asm:9.5",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.5/asm-9.5.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/ow2/asm/asm/9.5/asm-9.5.jar",
       "hash": "blake3:56df078607b3ba0ab75201c1feb9da35880f96f5",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm\\9.5\\asm-9.5.jar",
       "provenance": "remote-maven",
@@ -1228,8 +1298,8 @@
         "toolchain"
       ],
       "coordinate": "org.ow2.asm:asm-analysis:9.5",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/9.5/asm-analysis-9.5.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/ow2/asm/asm-analysis/9.5/asm-analysis-9.5.jar",
       "hash": "blake3:74a8529bf90b32cdef97de947562f1d28798bd44",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-analysis\\9.5\\asm-analysis-9.5.jar",
       "provenance": "remote-maven",
@@ -1242,8 +1312,8 @@
         "toolchain"
       ],
       "coordinate": "org.ow2.asm:asm-commons:9.5",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/9.5/asm-commons-9.5.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/ow2/asm/asm-commons/9.5/asm-commons-9.5.jar",
       "hash": "blake3:19c89f1f40d3cc9d408a2b2076f904f178de48af",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-commons\\9.5\\asm-commons-9.5.jar",
       "provenance": "remote-maven",
@@ -1256,8 +1326,8 @@
         "toolchain"
       ],
       "coordinate": "org.ow2.asm:asm-tree:9.5",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/9.5/asm-tree-9.5.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/ow2/asm/asm-tree/9.5/asm-tree-9.5.jar",
       "hash": "blake3:e8af669fc7eaae63613912f79a9583026e8ad2de",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-tree\\9.5\\asm-tree-9.5.jar",
       "provenance": "remote-maven",
@@ -1270,8 +1340,8 @@
         "toolchain"
       ],
       "coordinate": "org.ow2.asm:asm-util:9.5",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-util/9.5/asm-util-9.5.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/ow2/asm/asm-util/9.5/asm-util-9.5.jar",
       "hash": "blake3:467583e601278692a3ba40819ad23212ae11d958",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-util\\9.5\\asm-util-9.5.jar",
       "provenance": "remote-maven",
@@ -1284,8 +1354,8 @@
         "toolchain"
       ],
       "coordinate": "org.slf4j:slf4j-api:2.0.9",
-      "repository_id": "maven-central",
-      "url": "https://repo1.maven.org/maven2/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar",
       "hash": "blake3:1f4a497cc597e5a68fa151804aeff0a9f927dccb",
       "cache_path": "$sfm-cache\\maven\\org\\slf4j\\slf4j-api\\2.0.9\\slf4j-api-2.0.9.jar",
       "provenance": "remote-maven",
@@ -1298,8 +1368,8 @@
         "toolchain"
       ],
       "coordinate": "org.spongepowered:mixin:0.8.5",
-      "repository_id": "sponge",
-      "url": "https://repo.spongepowered.org/repository/maven-public/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar",
       "hash": "blake3:b19939bbe896a860e0c6785ac6c7c1b5a547defd",
       "cache_path": "$sfm-cache\\maven\\org\\spongepowered\\mixin\\0.8.5\\mixin-0.8.5.jar",
       "provenance": "remote-maven",
@@ -1315,8 +1385,8 @@
         "build"
       ],
       "coordinate": "org.spongepowered:mixin:0.8.5:processor",
-      "repository_id": "sponge",
-      "url": "https://repo.spongepowered.org/repository/maven-public/org/spongepowered/mixin/0.8.5/mixin-0.8.5-processor.jar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/spongepowered/mixin/0.8.5/mixin-0.8.5-processor.jar",
       "hash": "blake3:b4839b346ffef67432425608e4363435dd9acbc6",
       "cache_path": "$sfm-cache\\maven\\org\\spongepowered\\mixin\\0.8.5\\mixin-0.8.5-processor.jar",
       "provenance": "remote-maven",
