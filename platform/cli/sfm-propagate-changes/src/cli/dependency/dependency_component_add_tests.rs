@@ -75,6 +75,8 @@ fn adding_mekanism_api_preserves_main_component() {
         maven: Some(coordinate.to_owned()),
         curseforge_project: None,
         curseforge_file: None,
+        kind: None,
+        role: None,
         curseforge_api_key: None,
         curseforge_token: None,
         curseforge_op_secret: None,

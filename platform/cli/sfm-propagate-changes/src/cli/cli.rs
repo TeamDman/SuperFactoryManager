@@ -888,6 +888,10 @@ mod tests {
             "1.19.2",
             "--maven",
             "org.squiddev:cc-tweaked-1.19.2:1.101.3",
+            "--kind",
+            "mod",
+            "--role",
+            "integration",
             "--repository",
             "squiddev",
             "--scope",
@@ -917,6 +921,14 @@ mod tests {
             Some("org.squiddev:cc-tweaked-1.19.2:1.101.3")
         );
         assert_eq!(args.scope.len(), 4);
+        assert_eq!(
+            args.kind,
+            Some(crate::toolchain_lockfile_schema::version::v3::DependencyKindV3::Mod)
+        );
+        assert_eq!(
+            args.role,
+            Some(crate::toolchain_lockfile_schema::version::v3::DependencyRoleV3::Integration)
+        );
         assert_eq!(
             args.artifact_treatment,
             Some(crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod)
