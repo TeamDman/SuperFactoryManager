@@ -100,6 +100,10 @@ if (!runningRunData) {
     implementation fg.deobf("appeng:appliedenergistics2-forge:12.9.9")
     compileOnly fg.deobf("appeng:appliedenergistics2-forge:12.9.9:api")
 
+    implementation fg.deobf("org.squiddev:cc-tweaked-1.19.2:1.101.3")
+    runtimeOnly fg.deobf("org.squiddev:cc-tweaked-1.19.2:1.101.3")
+    gametestImplementation fg.deobf("org.squiddev:cc-tweaked-1.19.2:1.101.3")
+
 
     // don't use cursemaven for CoFH since the maven gives better IDE inspections
 //    // https://legacy.curseforge.com/minecraft/mc-mods/thermal-foundation/files/4382373

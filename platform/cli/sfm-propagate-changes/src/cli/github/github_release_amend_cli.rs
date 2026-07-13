@@ -14,7 +14,7 @@ pub struct GithubReleaseAmendArgs {
     pub repo: Option<String>,
 
     /// Print the resolved amend plan without calling `gh`.
-    #[facet(default, args::named, rename = "dry-run")]
+    #[facet(default, args::named)]
     pub dry_run: bool,
 
     /// Skip the interactive confirmation prompt.

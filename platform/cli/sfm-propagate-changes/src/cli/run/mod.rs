@@ -5,6 +5,7 @@ mod run_client_smoke_cli;
 mod run_compile_cli;
 mod run_data_cli;
 mod run_game_test_server_cli;
+mod run_hotswap_cli;
 mod run_server_cli;
 mod run_test_cli;
 
@@ -15,5 +16,6 @@ pub use run_client_smoke_cli::*;
 pub use run_compile_cli::*;
 pub use run_data_cli::*;
 pub use run_game_test_server_cli::*;
+pub use run_hotswap_cli::*;
 pub use run_server_cli::*;
 pub use run_test_cli::*;

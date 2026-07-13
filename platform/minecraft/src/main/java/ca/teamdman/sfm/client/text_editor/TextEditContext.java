@@ -225,6 +225,23 @@ public record TextEditContext(
                 line.insert(gapIndex, text);
             }
         });
+        ArrayDeque<Cursor> advancedCursors = new ArrayDeque<>();
+        for (Cursor cursor : multiCursor().cursors()) {
+            IntList lineCarets = caretsByLine.get(cursor.head().lineIndex());
+            int insertedTextBeforeOrAtCursor = 0;
+            for (int gapIndex : lineCarets) {
+                if (gapIndex <= cursor.head().gapIndex()) {
+                    insertedTextBeforeOrAtCursor += text.length();
+                }
+            }
+            Caret newCaret = new Caret(
+                    cursor.head().lineIndex(),
+                    cursor.head().gapIndex() + insertedTextBeforeOrAtCursor
+            );
+            advancedCursors.add(new Cursor(newCaret, newCaret));
+        }
+        multiCursor().cursors().clear();
+        multiCursor().cursors().addAll(advancedCursors);
         assertInvariants();
     }
 
