@@ -2,9 +2,6 @@ package ca.teamdman.sfm.gametest.tests.compat.computercraft;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.DiskItem;
-import ca.teamdman.sfm.common.item.FormItem;
-import ca.teamdman.sfm.common.item.LabelGunItem;
-import ca.teamdman.sfm.common.item.LabelGunItem.LabelGunViewMode;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
@@ -31,10 +28,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
+import java.util.StringJoiner;
+import java.util.stream.IntStream;
 
-/**
- * Exercises the SFM network peripheral through CC:Tweaked's real Lua runtime.
- */
+/** Exercises mutable SFM handles through CC:Tweaked's real Lua runtime. */
 @SFMGameTest
 @MCVersionDependentBehaviour // CC internal GameTest fixture API
 public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefinition {
@@ -45,6 +42,12 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
     }
 
     @Override
+    public int maxTicks() {
+
+        return 300;
+    }
+
+    @Override
     public void run(SFMGameTestHelper helper) {
 
         BlockPos computerPos = new BlockPos(1, 2, 1);
@@ -52,6 +55,7 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
         BlockPos entryCablePos = new BlockPos(2, 2, 1);
         BlockPos firstManagerPos = new BlockPos(3, 2, 1);
         BlockPos secondManagerPos = new BlockPos(5, 2, 1);
+        BlockPos sourcePos = new BlockPos(0, 2, 1);
 
         helper.setBlock(computerPos, normalComputerFacing(Direction.EAST));
         helper.setBlock(chestPos, Blocks.CHEST);
@@ -61,22 +65,16 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
         helper.setBlock(secondManagerPos, SFMBlocks.MANAGER.get());
 
         ManagerBlockEntity firstManager = helper.getBlockEntity(firstManagerPos, ManagerBlockEntity.class);
-        ItemStack disk = new ItemStack(SFMItems.DISK.get());
-        firstManager.setItem(0, disk);
-        DiskItem.setProgramName(disk, "CC Lua network test");
-        DiskItem.setProgram(disk, "NAME \"CC Lua network test\"");
-        LabelPositionHolder
-                .from(disk)
-                .add("source", helper.absolutePos(new BlockPos(0, 2, 1)))
-                .save(disk);
+        ItemStack managerDisk = new ItemStack(SFMItems.DISK.get());
+        firstManager.setItem(0, managerDisk);
+        DiskItem.setProgram(managerDisk, "NAME \"CC Lua network test\"");
+        firstManager.rebuildProgramAndUpdateDisk();
+        LabelPositionHolder.from(managerDisk).add("source", helper.absolutePos(sourcePos)).save(managerDisk);
+        firstManager.rebuildProgramAndUpdateDisk();
 
         ChestBlockEntity chest = helper.getBlockEntity(chestPos, ChestBlockEntity.class);
-        chest.setItem(0, disk.copy());
-        ItemStack labelGun = new ItemStack(SFMItems.LABEL_GUN.get());
-        LabelGunItem.setActiveLabel(labelGun, "source");
-        LabelGunItem.setViewMode(labelGun, LabelGunViewMode.SHOW_ONLY_TARGETED_BLOCK);
-        chest.setItem(1, labelGun);
-        chest.setItem(2, FormItem.createFormFromReference(new ItemStack(net.minecraft.world.item.Items.DIAMOND, 2)));
+        chest.setItem(0, managerDisk.copy());
+        chest.setItem(1, new ItemStack(SFMItems.LABEL_GUN.get()));
 
         ComputerBlockEntity computerBlockEntity = helper.getBlockEntity(computerPos, ComputerBlockEntity.class);
         ServerComputer computer = computerBlockEntity.createServerComputer();
@@ -85,35 +83,52 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
                 assert(peripheral.getType("front") == "sfm_network", "unexpected peripheral type")
 
                 local managers = network.getManagers()
-                assert(#managers == 2, "expected two network managers")
+                assert(managers.count() == 2, "expected two network managers")
+                assert(managers[1] == nil, "manager collection was materialised as an array table")
 
-                local manager = assert(managers[1], "first manager missing")
-                assert(manager.state == "running", "manager state was not readable")
-                local disk = assert(manager.disk, "manager disk missing")
-                assert(disk.name == "CC Lua network test", "disk name was not readable")
-                assert(disk.program == 'NAME "CC Lua network test"', "disk program was not readable")
-                assert(disk.labels.source[1].x == %d, "disk labels were not readable")
+                local manager = assert(managers.get(1), "first manager missing")
+                local x, y, z = manager.position()
+                assert(x == %d and y == %d and z == %d, "manager position was not readable")
+                assert(manager.state() == "running", "manager state was not readable")
+                local disk = assert(manager.disk(), "manager disk missing")
+                assert(disk.getProgram() == 'NAME "CC Lua network test"', "disk program was not readable")
+                local managerLabels = disk.labels()
+                assert(managerLabels.labelCount() == 1 and managerLabels.labelName(1) == "source", "manager labels were not readable")
+                local sourceX = managerLabels.position("source", 1)
+                assert(sourceX == %d, "manager label position was not readable")
+
+                local ok, status = disk.setProgram("EVERY 20 TICKS DO")
+                assert(ok and status == "invalid_program", "invalid disk source was not retained with diagnostics")
+                assert(disk.setProgram('NAME "CC Lua network test"'), "valid disk source could not be restored")
 
                 local chest = assert(peripheral.wrap("top"), "chest peripheral was not available")
-                local diskDetail = assert(chest.getItemDetail(1, true), "disk detail was missing")
-                assert(diskDetail.sfm.kind == "program_disk", "disk SFM detail kind was missing")
-                assert(diskDetail.sfm.name == "CC Lua network test", "disk SFM detail name was missing")
-                assert(diskDetail.sfm.labels.source[1].x == %d, "disk SFM detail labels were missing")
+                assert(chest.getItemDetail(1, true).sfm == nil, "legacy sfm item detail table still exists")
+                local chestDisk = assert(chest.getSfmDisk(1), "disk handle was not added to normal inventory peripheral")
+                local labels = chestDisk.labels()
+                for index = 1, 17 do
+                    assert(labels.add("label_" .. index, index, 1, 0))
+                end
+                for index = 1, 65 do
+                    assert(labels.add("large", index, 2, 0))
+                end
+                assert(labels.save(), "disk label session did not save")
+                local savedLabels = chestDisk.labels()
+                local savedLabelCount = savedLabels.labelCount()
+                assert(savedLabelCount == 19, "large label collection was capped: " .. tostring(savedLabelCount) .. " first=" .. tostring(savedLabels.labelName(1)))
+                assert(savedLabels.positionCount("large") == 65, "large position collection was capped")
 
-                local labelGunDetail = assert(chest.getItemDetail(2, true), "label gun detail was missing")
-                assert(labelGunDetail.sfm.kind == "label_gun", "label gun SFM detail kind was missing")
-                assert(labelGunDetail.sfm.activeLabel == "source", "label gun SFM active label was missing")
-                assert(labelGunDetail.sfm.viewMode == "show_only_targeted_block", "label gun SFM view mode was missing")
-
-                local formDetail = assert(chest.getItemDetail(3, true), "form detail was missing")
-                assert(formDetail.sfm.kind == "printing_form", "form SFM detail kind was missing")
-                assert(formDetail.sfm.reference.name == "minecraft:diamond", "form SFM reference was missing")
-                assert(formDetail.sfm.reference.count == 2, "form SFM reference count was missing")
+                local gun = assert(chest.getSfmLabelGun(2), "label gun handle was not added to normal inventory peripheral")
+                assert(gun.setActiveLabel("source"), "could not set active label")
+                assert(gun.setViewMode("show_only_targeted_block"), "could not set label gun view mode")
+                assert(gun.getActiveLabel() == "source", "active label was not saved")
+                assert(gun.getViewMode() == "show_only_targeted_block", "view mode was not saved")
 
                 redstone.setOutput("top", true)
                 """.formatted(
-                helper.absolutePos(new BlockPos(0, 2, 1)).getX(),
-                helper.absolutePos(new BlockPos(0, 2, 1)).getX()
+                helper.absolutePos(firstManagerPos).getX(),
+                helper.absolutePos(firstManagerPos).getY(),
+                helper.absolutePos(firstManagerPos).getZ(),
+                helper.absolutePos(sourcePos).getX()
         ));
         computerBlockEntity.updateInputsImmediately();
         computer.turnOn();
@@ -121,7 +136,7 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
         helper.succeedWhen(() -> {
             helper.assertTrue(
                     computer.getRedstoneOutput(ComputerSide.TOP) == 15,
-                    "CC:Tweaked Lua program did not complete; inspect the computer terminal for its assertion error"
+                    "CC:Tweaked Lua program did not complete:\n" + terminalContents(computer)
             );
             helper.succeed();
         });
@@ -136,7 +151,7 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
         return computer.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, facing);
     }
 
-    private static void writeStartupProgram(
+    static void writeStartupProgram(
             SFMGameTestHelper helper,
             ServerComputer computer,
             String program
@@ -159,5 +174,15 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to write CC:Tweaked test startup.lua", e);
         }
+    }
+
+    static String terminalContents(ServerComputer computer) {
+
+        var terminal = computer.getTerminalState().create();
+        StringJoiner lines = new StringJoiner("\\n");
+        IntStream.range(0, terminal.getHeight())
+                .mapToObj(index -> terminal.getLine(index).toString())
+                .forEach(lines::add);
+        return lines.toString();
     }
 }
