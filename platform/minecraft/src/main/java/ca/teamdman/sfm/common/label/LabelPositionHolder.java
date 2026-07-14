@@ -133,6 +133,19 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
         );
     }
 
+    /**
+     * Returns an owned label view without creating an item tag or mutating the label cache.
+     */
+    public static LabelPositionHolder fromReadOnly(ItemStack stack) {
+
+        var cached = CACHE.get(stack);
+        if (cached != null) {
+            return cached.toOwned();
+        }
+        var tag = stack.getTag();
+        return tag == null ? empty() : deserialize(tag.getCompound("sfm:labels"));
+    }
+
     public static LabelPositionHolder empty() {
 
         return new LabelPositionHolder();

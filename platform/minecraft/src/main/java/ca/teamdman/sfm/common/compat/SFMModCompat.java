@@ -16,6 +16,10 @@ public class SFMModCompat {
         return isModLoaded("ae2");
     }
 
+    public static boolean isComputerCraftLoaded() {
+        return isModLoaded("computercraft");
+    }
+
     public static boolean isModLoaded(String modid) {
         return ModList.get().getModContainerById(modid).isPresent();
     }
