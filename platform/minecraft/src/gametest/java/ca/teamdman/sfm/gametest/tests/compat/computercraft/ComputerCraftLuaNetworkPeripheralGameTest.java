@@ -8,39 +8,50 @@ import ca.teamdman.sfm.common.item.LabelGunItem.LabelGunViewMode;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import dan200.computercraft.api.ComputerCraftAPI;
-import dan200.computercraft.api.filesystem.IWritableMount;
+import dan200.computercraft.api.filesystem.MountConstants;
+import dan200.computercraft.api.filesystem.WritableMount;
 import dan200.computercraft.core.computer.ComputerSide;
-import dan200.computercraft.shared.computer.blocks.TileComputerBase;
+import dan200.computercraft.shared.ModRegistry;
+import dan200.computercraft.shared.computer.blocks.ComputerBlockEntity;
 import dan200.computercraft.shared.computer.core.ServerComputer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.locks.LockSupport;
+import java.util.stream.IntStream;
 
 /**
  * Exercises the SFM network peripheral through CC:Tweaked's real Lua runtime.
  */
 @SFMGameTest
+@MCVersionDependentBehaviour // CC:Tweaked 1.113.1+ internal GameTest fixture API
 public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
 
         return "7x4x3";
+    }
+
+    @Override
+    public int maxTicks() {
+
+        // CC:Tweaked 1.113.1 waits 50 computer ticks before launching a newly powered computer.
+        return 200;
     }
 
     @Override
@@ -77,9 +88,10 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
         chest.setItem(1, labelGun);
         chest.setItem(2, FormItem.createFormFromReference(new ItemStack(net.minecraft.world.item.Items.DIAMOND, 2)));
 
-        TileComputerBase computerBlockEntity = helper.getBlockEntity(computerPos, TileComputerBase.class);
-        ServerComputer computer = computerBlockEntity.createServerComputer();
-        writeStartupProgram(helper, computer, """
+        helper.runAfterDelay(1, () -> {
+            ComputerBlockEntity computerBlockEntity = helper.getBlockEntity(computerPos, ComputerBlockEntity.class);
+            ServerComputer computer = computerBlockEntity.createServerComputer();
+            writeStartupProgram(helper, computer, """
                 local network = assert(peripheral.wrap("front"), "SFM cable was not exposed on the computer front")
                 assert(peripheral.getType("front") == "sfm_network", "unexpected peripheral type")
 
@@ -110,25 +122,38 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
                 assert(formDetail.sfm.reference.count == 2, "form SFM reference count was missing")
 
                 redstone.setOutput("top", true)
-                """.formatted(
+                    """.formatted(
                 helper.absolutePos(new BlockPos(0, 2, 1)).getX(),
                 helper.absolutePos(new BlockPos(0, 2, 1)).getX()
-        ));
-        computerBlockEntity.updateInputsImmediately();
-        computer.turnOn();
+            ));
+            computerBlockEntity.updateInputsImmediately();
+            computer.turnOn();
 
-        helper.succeedWhen(() -> {
-            helper.assertTrue(
-                    computer.getRedstoneOutput(ComputerSide.TOP) == 15,
-                    "CC:Tweaked Lua program did not complete; inspect the computer terminal for its assertion error"
-            );
-            helper.succeed();
+            helper.succeedWhen(() -> {
+                // The headless GameTest server advances ticks much faster than wall time, while CC's Lua VM runs on its worker thread.
+                LockSupport.parkNanos(1_000_000L);
+                helper.assertTrue(
+                        computer.getRedstoneOutput(ComputerSide.TOP) == 15,
+                        "CC:Tweaked Lua program did not complete (state=" + computer.getState()
+                                + ", on=" + computer.isOn() + "):\n" + terminalContents(computer)
+                );
+                helper.succeed();
+            });
         });
+    }
+
+    private static String terminalContents(ServerComputer computer) {
+
+        var terminal = computer.getTerminalState().create();
+        return IntStream.range(0, terminal.getHeight())
+                .mapToObj(line -> terminal.getLine(line).toString())
+                .reduce((first, second) -> first + "\n" + second)
+                .orElse("<empty terminal>");
     }
 
     private static BlockState normalComputerFacing(Direction facing) {
 
-        Block computer = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("computercraft", "computer_normal"));
+        Block computer = ModRegistry.Blocks.COMPUTER_NORMAL.get();
         if (computer == null) {
             throw new IllegalStateException("CC:Tweaked normal computer block was not registered");
         }
@@ -141,8 +166,8 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
             String program
     ) {
 
-        IWritableMount mount = ComputerCraftAPI.createSaveDirMount(
-                helper.getLevel(),
+        WritableMount mount = ComputerCraftAPI.createSaveDirMount(
+                helper.getLevel().getServer(),
                 "computer/" + computer.getID(),
                 1_000_000
         );
@@ -151,7 +176,7 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
         }
 
         try (
-                var channel = mount.openForWrite("startup.lua");
+                var channel = mount.openFile("startup.lua", MountConstants.WRITE_OPTIONS);
                 var output = Channels.newOutputStream(channel)
         ) {
             output.write(program.getBytes(StandardCharsets.UTF_8));

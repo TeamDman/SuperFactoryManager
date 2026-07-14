@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMDataComponents;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.BlockPosIterator;
 import ca.teamdman.sfm.common.util.BlockPosSet;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -134,16 +135,17 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
     }
 
     /**
-     * Returns an owned label view without creating an item tag or mutating the label cache.
+     * Returns an owned label view without mutating the label cache.
      */
+    @MCVersionDependentBehaviour // 1.21+ stores labels in item components
     public static LabelPositionHolder fromReadOnly(ItemStack stack) {
 
         var cached = CACHE.get(stack);
         if (cached != null) {
             return cached.toOwned();
         }
-        var tag = stack.getTag();
-        return tag == null ? empty() : deserialize(tag.getCompound("sfm:labels"));
+        LabelPositionHolder labels = stack.get(SFMDataComponents.LABEL_POSITION_HOLDER);
+        return labels == null ? empty() : labels.toOwned();
     }
 
     public static LabelPositionHolder empty() {

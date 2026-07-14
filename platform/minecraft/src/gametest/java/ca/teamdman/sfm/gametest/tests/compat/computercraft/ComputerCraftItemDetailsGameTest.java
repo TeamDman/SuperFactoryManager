@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.item.LabelGunItem.LabelGunViewMode;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
@@ -17,6 +18,7 @@ import net.minecraft.world.item.Items;
 import java.util.Map;
 
 @SFMGameTest
+@MCVersionDependentBehaviour // 1.21+ uses typed item components instead of mutable NBT
 public class ComputerCraftItemDetailsGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
@@ -28,9 +30,12 @@ public class ComputerCraftItemDetailsGameTest extends SFMGameTestDefinition {
     public void run(SFMGameTestHelper helper) {
 
         ItemStack blankDisk = new ItemStack(SFMItems.DISK.get());
-        helper.assertTrue(!blankDisk.hasTag(), "Fresh disk unexpectedly had NBT");
+        ItemStack blankDiskBeforeDetails = blankDisk.copy();
         Map<String, Object> blankDiskDetails = VanillaDetailRegistries.ITEM_STACK.getDetails(blankDisk);
-        helper.assertTrue(!blankDisk.hasTag(), "Read-only CC item detail created disk NBT");
+        helper.assertTrue(
+                ItemStack.isSameItemSameComponents(blankDisk, blankDiskBeforeDetails),
+                "Read-only CC item detail changed a blank disk's item components"
+        );
         helper.assertTrue(
                 "program_disk".equals(sfmDetails(blankDiskDetails).get("kind")),
                 "CC detailed item query did not expose an SFM program disk"
@@ -73,14 +78,6 @@ public class ComputerCraftItemDetailsGameTest extends SFMGameTestDefinition {
                         && ((java.util.List<?>) boundedLabels.get("a")).size() == 64
                         && Boolean.TRUE.equals(largeDiskSfm.get("labelsTruncated")),
                 "Detailed labels were not bounded with a truncation marker"
-        );
-
-        ItemStack malformedDisk = new ItemStack(SFMItems.DISK.get());
-        malformedDisk.getOrCreateTag().putString("sfm:labels", "malformed");
-        Map<String, Object> malformedDiskSfm = sfmDetails(VanillaDetailRegistries.ITEM_STACK.getDetails(malformedDisk));
-        helper.assertTrue(
-                ((Map<?, ?>) malformedDiskSfm.get("labels")).isEmpty(),
-                "Malformed label data was not rejected safely"
         );
 
         ItemStack labelGun = new ItemStack(SFMItems.LABEL_GUN.get());
