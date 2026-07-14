@@ -33,6 +33,12 @@ public class SFM {
             "Super Factory Manager"
     );
 
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void registerComputerCraftTurtleUpgrades() {
+
+        // CC:Tweaked sources are retained but excluded because this branch has no compatible runtime.
+    }
+
     public SFM() {
 
         var bus = FMLJavaModLoadingContext
@@ -43,6 +49,8 @@ public class SFM {
         SFMBlocks.register(bus);
 
         SFMItems.register(bus);
+
+        registerComputerCraftTurtleUpgrades();
 
         SFMCreativeTabs.register(bus);
 
