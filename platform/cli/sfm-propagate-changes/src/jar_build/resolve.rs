@@ -446,42 +446,15 @@ impl Resolver {
         expected_hash: Option<&ContentHash>,
         attempted: &mut Vec<String>,
     ) -> eyre::Result<Option<ArtifactPlan>> {
-        if let Some(locked) = self.locked_remote_artifact(coordinate) {
-            let url = locked
-                .url
-                .as_deref()
-                .expect("locked remote artifact has a URL");
-            attempted.push(url.to_string());
-            let download_result = download_to_path_overwrite_locked(
-                &self.cancellation_token,
-                &self.client,
-                url,
-                cache_path,
-                self.refresh,
-                expected_hash,
-            );
-            match download_result {
-                Ok(()) => {
-                    let artifact = self.locked_remote_artifact_plan(
-                        id,
-                        coordinate,
-                        locked,
-                        cache_path.to_path_buf(),
-                        required_for,
-                    )?;
-                    self.verify_locked_artifact(coordinate, &artifact)?;
-                    tracing::info!(
-                        coordinate = %coordinate,
-                        repository = artifact.repository.as_deref(),
-                        cache_path = %artifact.cache_path.display(),
-                        hash = artifact.sha1.as_ref().map(ToString::to_string),
-                        "artifact downloaded from locked URL"
-                    );
-                    return Ok(Some(artifact));
-                }
-                Err(error) if self.cancellation_token.is_cancelled() => return Err(error),
-                Err(error) => attempted.push(format!("{url} ({error:#})")),
-            }
+        if let Some(artifact) = self.download_locked_remote_artifact(
+            id,
+            coordinate,
+            cache_path,
+            required_for,
+            expected_hash,
+            attempted,
+        )? {
+            return Ok(Some(artifact));
         }
 
         for repo in self.candidate_repositories(coordinate) {
@@ -558,6 +531,57 @@ impl Resolver {
             return Ok(Some(artifact));
         }
         Ok(None)
+    }
+
+    fn download_locked_remote_artifact(
+        &self,
+        id: &ArtifactId,
+        coordinate: &MavenCoordinate,
+        cache_path: &Path,
+        required_for: &ArtifactPurpose,
+        expected_hash: Option<&ContentHash>,
+        attempted: &mut Vec<String>,
+    ) -> eyre::Result<Option<ArtifactPlan>> {
+        let Some(locked) = self.locked_remote_artifact(coordinate) else {
+            return Ok(None);
+        };
+        let url = locked
+            .url
+            .as_deref()
+            .expect("locked remote artifact has a URL");
+        attempted.push(url.to_string());
+        match download_to_path_overwrite_locked(
+            &self.cancellation_token,
+            &self.client,
+            url,
+            cache_path,
+            self.refresh,
+            expected_hash,
+        ) {
+            Ok(()) => {
+                let artifact = Self::locked_remote_artifact_plan(
+                    id,
+                    coordinate,
+                    locked,
+                    cache_path.to_path_buf(),
+                    required_for,
+                )?;
+                self.verify_locked_artifact(coordinate, &artifact)?;
+                tracing::info!(
+                    coordinate = %coordinate,
+                    repository = artifact.repository.as_deref(),
+                    cache_path = %artifact.cache_path.display(),
+                    hash = artifact.sha1.as_ref().map(ToString::to_string),
+                    "artifact downloaded from locked URL"
+                );
+                Ok(Some(artifact))
+            }
+            Err(error) if self.cancellation_token.is_cancelled() => Err(error),
+            Err(error) => {
+                attempted.push(format!("{url} ({error:#})"));
+                Ok(None)
+            }
+        }
     }
 
     fn locked_remote_artifact(&self, coordinate: &MavenCoordinate) -> Option<&ArtifactLockEntry> {
@@ -839,7 +863,6 @@ impl Resolver {
     }
 
     fn locked_remote_artifact_plan(
-        &self,
         id: &ArtifactId,
         coordinate: &MavenCoordinate,
         locked: &ArtifactLockEntry,

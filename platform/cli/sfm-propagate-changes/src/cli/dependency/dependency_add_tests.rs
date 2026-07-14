@@ -214,6 +214,15 @@ fn add_adopts_matching_unowned_migrated_artifact_without_fetching() {
         dependency.components[0].derived_checks.artifact_id,
         expected_artifact_id
     );
+    assert_eq!(
+        written
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.coordinate.as_deref() == Some(coordinate))
+            .and_then(|artifact| artifact.owner.as_ref())
+            .map(|owner| (owner.dependency_id.as_str(), owner.component_id.as_str())),
+        Some(("javaparser", "main"))
+    );
 }
 
 #[test]

@@ -371,51 +371,7 @@ impl ArtifactLockfileV3 {
                 require_nonempty(&weak.mod_id, "weak validation mod id")?;
                 require_nonempty(&weak.version, "weak validation version")?;
             }
-            match artifact.provenance {
-                ArtifactProvenanceV3::SourceBuild => {
-                    let source_git = artifact.source_git.as_ref().ok_or_else(|| {
-                        eyre::eyre!(
-                            "source-build artifact `{}` is missing its locked Git provenance",
-                            artifact.id
-                        )
-                    })?;
-                    let source_build = artifact.source_build.as_ref().ok_or_else(|| {
-                        eyre::eyre!(
-                            "source-build artifact `{}` is missing its locked build recipe",
-                            artifact.id
-                        )
-                    })?;
-                    validate_portable_path(&source_git.root, "source-build Git root")?;
-                    require_nonempty(&source_git.commit, "source-build Git commit")?;
-                    require_nonempty(&source_git.branch, "source-build Git branch")?;
-                    require_nonempty(
-                        source_git.remote_url.as_deref().unwrap_or_default(),
-                        "source-build Git remote URL",
-                    )?;
-                    if source_git.dirty {
-                        eyre::bail!(
-                            "source-build artifact `{}` must not depend on a dirty Git checkout",
-                            artifact.id
-                        );
-                    }
-                    if source_build.tasks.is_empty()
-                        || source_build.tasks.iter().any(|task| task.trim().is_empty())
-                    {
-                        eyre::bail!(
-                            "source-build artifact `{}` must declare non-empty build tasks",
-                            artifact.id
-                        );
-                    }
-                    validate_portable_path(&source_build.output_path, "source-build output path")?;
-                }
-                _ if artifact.source_git.is_some() || artifact.source_build.is_some() => {
-                    eyre::bail!(
-                        "non-source-build artifact `{}` must not carry source-build provenance",
-                        artifact.id
-                    );
-                }
-                _ => {}
-            }
+            validate_artifact_provenance(artifact)?;
         }
 
         let dependency_ids = collect_unique_ids(
@@ -474,6 +430,54 @@ impl ArtifactLockfileV3 {
             DependencyKindV3::Loader,
         )?;
         Ok(())
+    }
+}
+
+fn validate_artifact_provenance(artifact: &ArtifactV3) -> eyre::Result<()> {
+    match artifact.provenance {
+        ArtifactProvenanceV3::SourceBuild => {
+            let source_git = artifact.source_git.as_ref().ok_or_else(|| {
+                eyre::eyre!(
+                    "source-build artifact `{}` is missing its locked Git provenance",
+                    artifact.id
+                )
+            })?;
+            let source_build = artifact.source_build.as_ref().ok_or_else(|| {
+                eyre::eyre!(
+                    "source-build artifact `{}` is missing its locked build recipe",
+                    artifact.id
+                )
+            })?;
+            validate_portable_path(&source_git.root, "source-build Git root")?;
+            require_nonempty(&source_git.commit, "source-build Git commit")?;
+            require_nonempty(&source_git.branch, "source-build Git branch")?;
+            require_nonempty(
+                source_git.remote_url.as_deref().unwrap_or_default(),
+                "source-build Git remote URL",
+            )?;
+            if source_git.dirty {
+                eyre::bail!(
+                    "source-build artifact `{}` must not depend on a dirty Git checkout",
+                    artifact.id
+                );
+            }
+            if source_build.tasks.is_empty()
+                || source_build.tasks.iter().any(|task| task.trim().is_empty())
+            {
+                eyre::bail!(
+                    "source-build artifact `{}` must declare non-empty build tasks",
+                    artifact.id
+                );
+            }
+            validate_portable_path(&source_build.output_path, "source-build output path")
+        }
+        _ if artifact.source_git.is_some() || artifact.source_build.is_some() => {
+            eyre::bail!(
+                "non-source-build artifact `{}` must not carry source-build provenance",
+                artifact.id
+            );
+        }
+        _ => Ok(()),
     }
 }
 
