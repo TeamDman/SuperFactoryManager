@@ -477,13 +477,7 @@ fn read_source_excludes(
     source_set: &str,
 ) -> eyre::Result<Vec<String>> {
     context.bail_if_cancelled()?;
-    let path = context
-        .plan
-        .minecraft_dir
-        .join("gradle")
-        .join("source-excludes")
-        .join(context.plan.minecraft_version.as_str())
-        .join(format!("{source_set}-java.txt"));
+    let path = source_exclude_file_path(context, source_set);
     if !path.exists() {
         return Ok(Vec::new());
     }
@@ -496,6 +490,16 @@ fn read_source_excludes(
         .filter(|line| !line.is_empty() && !line.starts_with('#'))
         .map(|line| line.replace('\\', "/"))
         .collect())
+}
+
+fn source_exclude_file_path(context: &ExecutionContext<'_>, source_set: &str) -> PathBuf {
+    context
+        .plan
+        .minecraft_dir
+        .join("gradle")
+        .join("source-excludes")
+        .join(context.plan.minecraft_version.as_str())
+        .join(format!("{source_set}-java.txt"))
 }
 
 fn is_excluded_source(relative: &str, excludes: &[String]) -> bool {
