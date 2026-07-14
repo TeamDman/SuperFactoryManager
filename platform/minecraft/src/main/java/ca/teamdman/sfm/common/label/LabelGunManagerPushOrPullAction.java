@@ -17,30 +17,16 @@ public record LabelGunManagerPushOrPullAction(
 ) implements LabelGunPlan {
     @Override
     public void run() {
-        var disk = manager.getDisk();
-        if (disk == null) {
-            return;
-        }
         if (msg.isPullModifierActive()) {
-            // start with labels from disk
-            var newLabels = LabelPositionHolder.from(disk).toOwned();
-            // ensure script-referenced labels are included
-            manager.getReferencedLabels().forEach(newLabels::addReferencedLabel);
-            // save to gun
-            newLabels.save(gunStack);
-            // give feedback to player
-            new ClientboundLabelGunUseResponsePacket(ClientboundLabelGunUseResponsePacket.Behaviour.Pulled)
-                    .sendToPlayer(player);
+            if (LabelGunActions.pull(gunStack, manager).success()) {
+                new ClientboundLabelGunUseResponsePacket(ClientboundLabelGunUseResponsePacket.Behaviour.Pulled)
+                        .sendToPlayer(player);
+            }
         } else {
-            // save gun labels to disk
-            gunLabels.save(disk);
-            // rebuild program
-            manager.rebuildProgramAndUpdateDisk();
-            // mark manager dirty
-            manager.setChanged();
-            // give feedback to player
-            new ClientboundLabelGunUseResponsePacket(ClientboundLabelGunUseResponsePacket.Behaviour.Pushed)
-                    .sendToPlayer(player);
+            if (LabelGunActions.push(gunStack, manager).success()) {
+                new ClientboundLabelGunUseResponsePacket(ClientboundLabelGunUseResponsePacket.Behaviour.Pushed)
+                        .sendToPlayer(player);
+            }
         }
     }
 }

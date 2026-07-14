@@ -1,150 +1,169 @@
 # CC:Tweaked integration (1.19.2)
 
-SFM 1.19.2 supports a read-only CC:Tweaked view of an SFM cable network and
-adds SFM data to CC:Tweaked detailed item queries. The integration is optional:
-SFM continues to load normally when CC:Tweaked is not installed.
+SFM's optional CC:Tweaked integration exposes mutable, structured handles for
+SFM program disks and label guns. It does not expose raw SFM NBT or return a
+large snapshot table for a network's managers or labels.
 
-This document describes the 1.19.2 contract tested with CC:Tweaked 1.101.3.
+This contract is tested against CC:Tweaked 1.101.3 on Minecraft 1.19.2.
 
 ## Availability on maintained SFM versions
 
-The Lua contract in this document is the common contract for every active
-entry below. SFM keeps the CC:Tweaked source in every version branch: a
-version-specific source-exclude list, rather than a Git deletion, determines
-whether that branch compiles and packages the optional integration. This keeps
-the feature's history available for later forward merges.
+The source remains in every maintained branch. A version-specific source
+exclude controls whether a branch packages it, preserving the history needed
+for forward merges.
 
 | Minecraft version | CC:Tweaked version | Status |
 | --- | --- | --- |
-| 1.19.2 | 1.101.3 | Supported and GameTested. |
-| 1.19.4 | 1.108.0 | Supported and GameTested with Forge 45.0.42. |
-| 1.20 | 1.105.0 | Supported and GameTested. |
-| 1.20.1 | 1.111.0 | Supported and GameTested. |
-| 1.20.4 | 1.110.2 | Supported and GameTested. |
-| 1.21.1 | 1.113.1 | Supported and GameTested. |
-| 1.20.2, 1.20.3, 26.1.2 | — | Not packaged: no compatible locked CC:Tweaked runtime; the source is excluded, not removed. |
-| 1.21.0 | 1.111.0 | Not packaged: the only published runtime is incompatible with the branch's NeoForge 21.0.143 runtime. The source is excluded, not removed. |
+| 1.19.2 | 1.101.3 | Supported. |
+| 1.19.4 | 1.108.0 | Supported with Forge 45.0.42. |
+| 1.20 | 1.105.0 | Supported. |
+| 1.20.1 | 1.111.0 | Supported. |
+| 1.20.4 | 1.110.2 | Supported. |
+| 1.21.1 | 1.113.1 | Supported. |
+| 1.20.2, 1.20.3, 1.21.0, 26.1.2 | — | Source retained but not packaged because no compatible locked runtime is available. |
 
-The 1.21.0 exclusion is an upstream binary-compatibility limitation, not a
-different Lua contract. SFM's lockfile records the incompatible artifact and
-its sources so the eventual compatible release can be evaluated reproducibly.
+## Cable-network managers
 
-## Cable-network peripheral
-
-Place a normal computer directly against an SFM cable or manager block. A
-manager is also a member of its cable network, so either is a valid entrypoint.
-The adjacent side exposes a peripheral of type `sfm_network`.
+Touch a computer to an SFM cable or manager. The side has a peripheral of type
+`sfm_network`.
 
 ```lua
-local network = assert(peripheral.wrap("front"), "No SFM cable network on the front")
+local network = assert(peripheral.wrap("front"))
 assert(peripheral.getType("front") == "sfm_network")
 
-for index, manager in ipairs(network.getManagers()) do
-  print(index, manager.position.x, manager.position.y, manager.position.z, manager.state)
+local managers = network.getManagers()
+for index = 1, managers.count() do
+  local manager = assert(managers.get(index))
+  local x, y, z = manager.position()
+  print(index, x, y, z, manager.state())
 end
 ```
 
-`getManagers()` takes no arguments and returns a one-indexed Lua array of up
-to the first sixteen currently loaded managers in that cable network. Its order
-is deterministic by block position. `getManagerCount()` returns the total
-loaded-manager count, so scripts can detect when `getManagers()` was capped.
-An otherwise valid cable network with no managers returns an empty array and a
-count of zero.
+`getManagers()` returns a live collection object, not an array table.
+`count()` and `get(index)` are one-indexed and deterministic by block
+position. A manager exposes:
 
-Each manager is represented as:
+- `position()` → `x, y, z`
+- `state()` → `no_disk`, `no_program`, `invalid_program`, or `running`
+- `disk()` → a disk handle. Its first read or write returns `nil, "no_disk"` or
+  `false, "no_disk"` if the manager has no disk at that point.
 
-```lua
-{
-  position = { x = integer, y = integer, z = integer },
-  state = "no_disk" | "no_program" | "invalid_program" | "running",
-  disk = nil | {
-    name = string,
-    nameTruncated = boolean,
-    program = string,
-    programTruncated = boolean,
-    labels = {
-      [label_name] = {
-        { x = integer, y = integer, z = integer },
-        -- more positions in deterministic order
-      }
-    },
-    labelsTruncated = boolean
-  }
-}
-```
+The manager handle is tied to the cable the computer originally touched.
+Every operation rechecks topology. After a split, a retained manager or disk
+handle returns `nil, "manager_unreachable"` for reads or
+`false, "manager_unreachable"` for writes and makes no change.
 
-The peripheral resolves the cable network again on every call. It therefore
-reflects cable splits and joins. If its touched cable is removed, a retained
-peripheral object returns an empty manager list; a newly discovered peripheral
-will normally be absent from that side.
+## Disk, gun, and label handles
 
-This first release is deliberately read-only. It provides no Lua method to
-write a program, add/remove labels, or edit SFM item NBT.
-
-### Payload limits
-
-To keep a peripheral call safe for a computer's Lua memory, `getManagers()`
-returns at most sixteen managers. Each returned text field is at most 8,192
-characters; its adjacent `*Truncated` field is `true` when a longer value was
-cut. A label table contains at most sixteen labels with at most 64 positions
-per label. Label names longer than 8,192 characters are omitted. In either
-label case, `labelsTruncated` is `true`. The returned label and position order
-remains deterministic.
-
-## SFM item details
-
-CC:Tweaked inventories and turtles expose the SFM table when callers request
-detailed item data:
+Normal CC:Tweaked inventory peripherals gain these one-indexed methods:
 
 ```lua
 local chest = assert(peripheral.wrap("top"))
-local detail = assert(chest.getItemDetail(1, true))
-local sfm = detail.sfm
+local disk = assert(chest.getSfmDisk(1))
+local gun = assert(chest.getSfmLabelGun(2))
 ```
 
-`detail.sfm` is present only for an SFM program disk, label gun, or printing
-form. It never contains raw SFM NBT.
+The factory methods return a handle immediately so CC:Tweaked preserves it as
+an object rather than serialising it through a main-thread result. Its first
+read or write confirms that the selected slot contains the required item; a
+wrong item reports `not_disk` or `not_label_gun`. The handle then stays
+attached to that exact item stack. If its slot is replaced, a later read
+returns `nil, "target_changed"` and a write returns `false, "target_changed"`.
 
-| Item | `detail.sfm` fields |
-| --- | --- |
-| Program disk | `kind = "program_disk"`, `name`, `nameTruncated`, `program`, `programTruncated`, `labels`, `labelsTruncated` |
-| Label gun | `kind = "label_gun"`, `activeLabel`, `activeLabelTruncated`, `viewMode`, `labels`, `labelsTruncated` |
-| Printing form | `kind = "printing_form"`, `reference = { name, count }` |
+Disk handles provide:
 
-`labels` has the same label-to-position-table shape as the network peripheral.
-The payload limits and truncation fields above apply to detailed items too.
-`viewMode` is the lowercase enum name, such as
-`"show_only_targeted_block"`. A form without a valid stored reference returns
-an empty `reference` table. Blank disks, forms, and label guns return their
-default data without creating NBT or changing the item.
+```lua
+local source = disk.getProgram()
+local ok, status = disk.setProgram('NAME "Example"')
+-- `status` is "invalid_program" when the source was stored but did not compile.
+local labels = assert(disk.labels())
+```
 
-## Turtle inventories
+`setProgram` always stores the requested source and refreshes normal SFM
+diagnostics. Valid source returns `true`; invalid source returns
+`true, "invalid_program"`. A manager disk additionally follows the manager's
+normal state, lint, synchronization, and persistence lifecycle.
 
-On the Forge-era supported versions, CC:Tweaked turtles expose their ordinary
-item-handler capability. In the later NeoForge variants, CC:Tweaked's turtle
-is a public Minecraft `Container` but does not publish NeoForge's item-handler
-capability. SFM registers a narrow adapter for CC:Tweaked's normal and
-advanced turtle blocks that exposes that same inventory through the loader's
-standard item-handler wrapper. It uses only public Minecraft, loader, and
-CC:Tweaked APIs.
+Label-gun handles provide `getActiveLabel()`, `setActiveLabel(label)`,
+`clearActiveLabel()`, `getViewMode()`, `setViewMode(view_mode)`, and
+`labels()`. View-mode values are `show_all`,
+`show_only_active_label_and_targeted_block`, and
+`show_only_targeted_block`.
 
-In either case, place a turtle directly next to an SFM cable, label it on the
-manager disk as usual, and use it as an SFM input or output. Disconnected
-turtles are not reachable through the cable network.
+`labels()` returns an owned `LabelPositionHolder` editor. It is deliberately
+not a Lua table:
 
-## Tested examples
+```lua
+local labels = assert(disk.labels())
+for i = 1, labels.labelCount() do
+  local name = labels.labelName(i)
+  for position = 1, labels.positionCount(name) do
+    local x, y, z = labels.position(name, position)
+    print(name, x, y, z)
+  end
+end
 
-The GameTest suite proves all of the following against a live CC:Tweaked
-installation:
+assert(labels.add("ore", 10, 64, 10))
+assert(labels.remove("ore", 10, 64, 10))
+assert(labels.removeLabel("old_name"))
+assert(labels.clear())
+assert(labels.save())
+```
 
-- a real computer runs `peripheral.wrap("front")`, calls `getManagers()`, and
-  reads program/label data;
-- the same computer queries disk, label-gun, and printing-form data through a
-  real chest peripheral's `getItemDetail(slot, true)` call;
-- manager and cable entrypoints, empty networks, cable splits/rejoins, and
-  entry-cable removal follow the contract above; and
-- oversized program/label data is bounded and marked, malformed stored label
-  data is ignored safely, and an over-limit cable network reports its full
-  manager count while bounding the returned manager table; and
-- SFM moves items through a cable network into a live turtle while leaving a
-  disconnected turtle untouched.
+The editor also has `contains(label, x, y, z)`. Reads and edits operate on its
+owned snapshot. Only `save()` writes it back, replacing the source's complete
+label holder with last-writer-wins semantics. There is no CC-specific paging,
+label count, or positions-per-label limit. Label names must be nonblank and no
+longer than SFM's native 256-character limit.
+
+Mutations return `true` on success or `false, <code>` when rejected. Common
+codes are `invalid_label`, `invalid_view_mode`, `target_changed`,
+`manager_unreachable`, `no_disk`, `not_label_gun`, `not_manager`, and
+`invalid_direction`.
+
+`getItemDetail(slot, true)` no longer includes `detail.sfm`. Printing forms
+are intentionally outside the mutable CC surface.
+
+## Turtle labeler upgrade
+
+An unmodified SFM label gun can be equipped as the `sfm_labeler` turtle
+peripheral upgrade. It must be blank: CC:Tweaked's normal upgrade suitability
+check rejects a gun carrying SFM label-gun NBT, preventing that state from
+being discarded during `turtle.equipLeft()` or `turtle.equipRight()`.
+
+The upgrade is an editor/action tool; it does not store a label gun itself.
+Put the actual label gun or disk in the turtle inventory and select it before
+calling the peripheral.
+
+```lua
+-- Equip a blank label gun first, then select a separate working label gun.
+local labeler = assert(peripheral.wrap("left"))
+assert(peripheral.getType("left") == "sfm_labeler")
+
+local gun = assert(labeler.labelGun())
+assert(gun.setActiveLabel("furnaces"))
+assert(labeler.toggle("front", true)) -- true uses player-equivalent contiguous targeting
+assert(labeler.clearActive("front", true))
+assert(labeler.clearAll("front", false))
+assert(labeler.pick("front", false))
+assert(labeler.push("up"))
+assert(labeler.pull("up"))
+```
+
+`disk()` and `labelGun()` acquire handles for the selected turtle slot. As
+with inventory handles, their first use confirms the selected item type.
+`toggle`, `clearActive`, `clearAll`, and `pick` accept `front`, `up`, or
+`down`, plus an optional contiguous boolean. `push` and `pull` target a
+manager in that direction. Actions execute through the turtle command queue,
+so they remain ordered with turtle movement and use the selected inventory
+slot when executed. Contiguous targeting uses exactly the same connected,
+cable-adjacent block selection as the player label gun.
+
+## GameTest coverage
+
+The CC:Tweaked GameTests cover manager topology and stale handles, real Lua
+network/inventory calls, no `detail.sfm` regression, native-size label reads,
+invalid-program diagnostics, owned-session overwrite behavior, and a real
+turtle's upgrade/command queue/contiguous label/push/pull flow. Production
+integration uses only `dan200.computercraft.api`; test fixtures may use
+CC:Tweaked internals to boot a real computer or turtle.
