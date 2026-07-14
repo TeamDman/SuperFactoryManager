@@ -8,7 +8,10 @@ import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.ConfirmScreen;
@@ -17,7 +20,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
@@ -82,11 +85,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private static final int EMBEDDED_DOCUMENT_BORDER = 0xFF7C8A9B;
     private static final int EMBEDDED_DOCUMENT_HANDLE = 0xFFE6EDF3;
     private static final int INSERT_DRAG_LINE = 0xFF60A5FA;
-    private static final ResourceLocation SFML_GRAMMAR_RESOURCE = sfmlGrammarResource();
+    private static final Identifier SFML_GRAMMAR_RESOURCE = sfmlGrammarResource();
 
     @MCVersionDependentBehaviour
-    private static ResourceLocation sfmlGrammarResource() {
-        return ResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "grammar/sfml/sfml.g4");
+    private static Identifier sfmlGrammarResource() {
+        return Identifier.fromNamespaceAndPath(SFM.MOD_ID, "grammar/sfml/sfml.g4");
     }
 
     private final Screen previousScreen;
@@ -232,8 +235,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
     @Override
-    public void render(
-            GuiGraphics guiGraphics,
+    @MCVersionDependentBehaviour
+    public void extractRenderState(
+            GuiGraphicsExtractor guiGraphics,
             int mouseX,
             int mouseY,
             float partialTick
@@ -263,7 +267,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         if (grammarPanelVisible) {
             renderGrammarPanel(guiGraphics);
         }
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
         if (draggingGrammarInsert) {
             renderGrammarInsertDrag(guiGraphics, mouseX, mouseY);
         }
@@ -281,11 +285,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean mouseClicked(
-            double mouseX,
-            double mouseY,
-            int button
+            MouseButtonEvent event,
+            boolean doubleClick
     ) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && sfmlButton != null && sfmlButton.isMouseOver(mouseX, mouseY)) {
             beginGrammarInsertDrag(mouseX, mouseY);
             return true;
@@ -294,7 +301,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             focusMainCanvas();
             return true;
         }
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && super.mouseClicked(mouseX, mouseY, button)) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && super.mouseClicked(event, doubleClick)) {
             return true;
         }
         if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
@@ -315,9 +322,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return true;
         }
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            if (hasAltDown()) {
+            if (event.hasAltDown()) {
                 model().addCursor(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
-            } else if (hasControlDown()) {
+            } else if (event.hasControlDown()) {
                 model().setAllCursors(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
             } else {
                 model().setActiveCursors(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
@@ -326,17 +333,19 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             rememberCursorPosition();
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean mouseDragged(
-            double mouseX,
-            double mouseY,
-            int button,
+            MouseButtonEvent event,
             double dragX,
             double dragY
     ) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (panning && button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
             cameraX = panAnchorCameraX - (mouseX - panAnchorMouseX) / zoom;
             cameraY = panAnchorCameraY - (mouseY - panAnchorMouseY) / zoom;
@@ -363,7 +372,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 focusGrammarPanel();
                 return true;
             }
-            if (hasAltDown()) {
+            if (event.hasAltDown()) {
                 model().addCursorAvoidingCrowding(
                         screenToCanvasX(mouseX),
                         screenToCanvasY(mouseY),
@@ -377,15 +386,17 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             rememberCursorPosition();
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean mouseReleased(
-            double mouseX,
-            double mouseY,
-            int button
+            MouseButtonEvent event
     ) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && panning) {
             panning = false;
             return true;
@@ -404,7 +415,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             finishGrammarInsertDrag(mouseX, mouseY);
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
@@ -441,10 +452,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean charTyped(
-            char codePoint,
-            int modifiers
+            CharacterEvent event
     ) {
+        int codePoint = event.codepoint();
         if (suppressNextNumpadPanChar) {
             suppressNextNumpadPanChar = false;
             if (codePoint >= '0' && codePoint <= '9') {
@@ -453,24 +465,26 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             }
         }
         if (Character.isISOControl(codePoint)) {
-            return super.charTyped(codePoint, modifiers);
+            return super.charTyped(event);
         }
         if (isGrammarPanelFocused()) {
             return true;
         }
-        String text = Character.toString(codePoint);
-        rememberInputEvent(String.format("charTyped '%s' U+%04X modifiers=%s", text, (int) codePoint, modifierText(modifiers)));
+        String text = event.codepointAsString();
+        rememberInputEvent(String.format("charTyped '%s' U+%04X", text, codePoint));
         model().typeGlyph(text, this.font.width(text), this.font.lineHeight);
         rememberCursorPosition();
         return true;
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean keyPressed(
-            int keyCode,
-            int scanCode,
-            int modifiers
+            KeyEvent event
     ) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
         rememberInputEvent(String.format("keyPressed key=%d scan=%d modifiers=%s", keyCode, scanCode, modifierText(modifiers)));
         if (keyCode == GLFW.GLFW_KEY_F3) {
             diagnosticControlsVisible = !diagnosticControlsVisible;
@@ -478,7 +492,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return true;
         }
         if (isGrammarPanelFocused()) {
-            return handleGrammarPanelKeyPressed(keyCode, modifiers);
+            return handleGrammarPanelKeyPressed(event);
         }
         if (keyCode == GLFW.GLFW_KEY_F1) {
             model().focusPreviousCursor((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
@@ -493,11 +507,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         if (handleCameraShortcut(keyCode, modifiers)) {
             return true;
         }
-        if (Screen.isCopy(keyCode)) {
+        if (event.isCopy()) {
             copyCanvasTextToClipboard();
             return true;
         }
-        if (Screen.isPaste(keyCode)) {
+        if (event.isPaste()) {
             pasteClipboardText();
             return true;
         }
@@ -604,26 +618,30 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             }
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean keyReleased(
-            int keyCode,
-            int scanCode,
-            int modifiers
+            KeyEvent event
     ) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
         rememberInputEvent(String.format("keyReleased key=%d scan=%d modifiers=%s", keyCode, scanCode, modifierText(modifiers)));
         if (isNumpadPanKey(keyCode)) {
             suppressNextNumpadPanChar = false;
         }
-        return super.keyReleased(keyCode, scanCode, modifiers);
+        return super.keyReleased(event);
     }
 
+    @MCVersionDependentBehaviour
     private boolean handleGrammarPanelKeyPressed(
-            int keyCode,
-            int modifiers
+            KeyEvent event
     ) {
+        int keyCode = event.key();
+        int modifiers = event.modifiers();
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
                 saveAndClose();
@@ -641,11 +659,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         if (handleGrammarCameraShortcut(keyCode, modifiers)) {
             return true;
         }
-        if (Screen.isCopy(keyCode)) {
+        if (event.isCopy()) {
             copyGrammarTextToClipboard();
             return true;
         }
-        if (Screen.isPaste(keyCode)) {
+        if (event.isPaste()) {
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_A && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
@@ -1109,7 +1127,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         panAnchorCameraY = cameraY;
     }
 
-    private void renderGrid(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderGrid(GuiGraphicsExtractor guiGraphics) {
         double step = visibleGridStep();
         double leftCanvas = screenToCanvasX(0);
         double rightCanvas = screenToCanvasX(this.width);
@@ -1159,7 +1178,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         return step;
     }
 
-    private void renderGlyphs(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderGlyphs(GuiGraphicsExtractor guiGraphics) {
         Map<SFMDrawCanvasModel.CanvasGlyph, Integer> glyphColours = SFMDrawCanvasSyntaxHighlightingHelper.buildSyntaxHighlightColours(
                 model().glyphs(),
                 this.font.width(" "),
@@ -1167,15 +1187,16 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 GLYPH
         );
         for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(canvasToScreenX(glyph.x()), canvasToScreenY(glyph.y()), 0.0D);
-            guiGraphics.pose().scale((float) zoom, (float) zoom, 1.0F);
-            guiGraphics.drawString( this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH));
-            guiGraphics.pose().popPose();
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().translate((float) canvasToScreenX(glyph.x()), (float) canvasToScreenY(glyph.y()));
+            guiGraphics.pose().scale((float) zoom, (float) zoom);
+            drawString(guiGraphics, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH));
+            guiGraphics.pose().popMatrix();
         }
     }
 
-    private void renderGlyphBoundingBoxes(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderGlyphBoundingBoxes(GuiGraphicsExtractor guiGraphics) {
         for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
             int left = (int) Math.floor(canvasToScreenX(glyph.x()));
             int top = (int) Math.floor(canvasToScreenY(glyph.y()));
@@ -1186,7 +1207,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
     @MCVersionDependentBehaviour
-    private void renderGlyphSelectionHighlights(GuiGraphics guiGraphics) {
+    private void renderGlyphSelectionHighlights(GuiGraphicsExtractor guiGraphics) {
         List<CanvasRect> mask = new ArrayList<>();
         for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
             if (uniqueCursorInGlyphBounds(glyph) == null) {
@@ -1293,7 +1314,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         return merged;
     }
 
-    private void renderCursorTrail(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderCursorTrail(GuiGraphicsExtractor guiGraphics) {
         int count = cursorTrail.size();
         for (int i = 0; i < count; i++) {
             CanvasPoint point = cursorTrail.get(i);
@@ -1307,14 +1329,16 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 
-    private void renderEmbeddedDocuments(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderEmbeddedDocuments(GuiGraphicsExtractor guiGraphics) {
         for (EmbeddedDocument document : embeddedDocuments) {
             renderEmbeddedDocument(guiGraphics, document);
         }
     }
 
+    @MCVersionDependentBehaviour
     private void renderEmbeddedDocument(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             EmbeddedDocument document
     ) {
         int left = (int) Math.floor(canvasToScreenX(document.canvasX));
@@ -1329,13 +1353,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         drawRectOutline(guiGraphics, left, top, right, bottom, EMBEDDED_DOCUMENT_BORDER);
         int titleWidth = this.font.width(document.title);
         guiGraphics.fill( left, top - 14, Math.min(right, left + titleWidth + 12), top, PANEL_TAB_BACKGROUND);
-        guiGraphics.drawString( this.font, Component.literal(document.title), left + 6, top - 11, HUD_TEXT);
+        drawString(guiGraphics, Component.literal(document.title), left + 6, top - 11, HUD_TEXT);
         renderEmbeddedDocumentGlyphs(guiGraphics, document, left, top, right, bottom);
         renderEmbeddedDocumentHandles(guiGraphics, left, top, right, bottom);
     }
 
+    @MCVersionDependentBehaviour
     private void renderEmbeddedDocumentGlyphs(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             EmbeddedDocument document,
             int left,
             int top,
@@ -1357,16 +1382,17 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             if (screenX > right || screenX + glyph.width() * scale < left || screenY > bottom || screenY + this.font.lineHeight * scale < top) {
                 continue;
             }
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(screenX, screenY, 0.0D);
-            guiGraphics.pose().scale((float) scale, (float) scale, 1.0F);
-            guiGraphics.drawString( this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH));
-            guiGraphics.pose().popPose();
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().translate((float) screenX, (float) screenY);
+            guiGraphics.pose().scale((float) scale, (float) scale);
+            drawString(guiGraphics, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH));
+            guiGraphics.pose().popMatrix();
         }
     }
 
+    @MCVersionDependentBehaviour
     private void renderEmbeddedDocumentHandles(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             int left,
             int top,
             int right,
@@ -1379,8 +1405,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         guiGraphics.fill( right - handle, bottom - handle, right + handle, bottom + handle, EMBEDDED_DOCUMENT_HANDLE);
     }
 
+    @MCVersionDependentBehaviour
     private void renderGrammarInsertDrag(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             int mouseX,
             int mouseY
     ) {
@@ -1404,8 +1431,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         );
     }
 
+    @MCVersionDependentBehaviour
     private void drawDashedLine(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             int startX,
             int startY,
             int endX,
@@ -1427,8 +1455,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 
+    @MCVersionDependentBehaviour
     private void drawRectOutline(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             int left,
             int top,
             int right,
@@ -1441,7 +1470,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         guiGraphics.fill( right - 1, top, right, bottom, color);
     }
 
-    private void renderCanvasCursor(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderCanvasCursor(GuiGraphicsExtractor guiGraphics) {
         for (int i = 0; i < model().cursors().size(); i++) {
             SFMDrawCanvasModel.CanvasCursor cursor = model().cursors().get(i);
             if (!hideSelection && isUniqueCursorInAnyGlyphBounds(cursor)) {
@@ -1451,8 +1481,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 
+    @MCVersionDependentBehaviour
     private void renderCanvasCursor(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             SFMDrawCanvasModel.CanvasCursor cursor,
             boolean focused
     ) {
@@ -1466,8 +1497,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         drawCrosshair(guiGraphics, mouseX, mouseY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
     }
 
+    @MCVersionDependentBehaviour
     private void drawCrosshair(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             int mouseX,
             int mouseY,
             int size,
@@ -1589,7 +1621,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 
-    private void renderHud(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderHud(GuiGraphicsExtractor guiGraphics) {
         int left = 8;
         int top = diagnosticControlsVisible ? 104 : 8;
         int right = 226;
@@ -1600,9 +1633,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         guiGraphics.fill( left, top, left + 1, bottom, HUD_BORDER);
         guiGraphics.fill( right - 1, top, right, bottom, HUD_BORDER);
 
-        guiGraphics.drawString( this.font, this.title, left + 8, top + 7, HUD_TEXT);
-        guiGraphics.drawString(
-                this.font,
+        drawString(guiGraphics, this.title, left + 8, top + 7, HUD_TEXT);
+        drawString(guiGraphics,
                 String.format(
                         "cursor %.1f, %.1f  zoom %.2fx",
                         model().cursorCanvasX(),
@@ -1615,7 +1647,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         );
     }
 
-    private void renderInputDiagnostics(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderInputDiagnostics(GuiGraphicsExtractor guiGraphics) {
         if (inputEvents.isEmpty()) {
             return;
         }
@@ -1632,7 +1665,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         guiGraphics.fill( right - 1, top, right, bottom, HUD_BORDER);
         int y = top + 6;
         for (String event : inputEvents) {
-            guiGraphics.drawString( this.font, event, left + 6, y, HUD_MUTED);
+            drawString(guiGraphics, event, left + 6, y, HUD_MUTED);
             y += lineHeight;
         }
     }
@@ -1830,8 +1863,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         grammarModel.moveCursorToDocumentStart();
     }
 
+    @MCVersionDependentBehaviour
     private String readGrammarResource() {
-        Map<ResourceLocation, Resource> resources = Minecraft.getInstance()
+        Map<Identifier, Resource> resources = Minecraft.getInstance()
                 .getResourceManager()
                 .listResources("grammar/sfml", location -> location.equals(SFML_GRAMMAR_RESOURCE));
         Resource resource = resources.get(SFML_GRAMMAR_RESOURCE);
@@ -1983,7 +2017,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         return (screenY - grammarPanelCenterY()) / grammarZoom + grammarCameraY;
     }
 
-    private void renderGrammarPanel(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderGrammarPanel(GuiGraphicsExtractor guiGraphics) {
         loadGrammarContent();
         initializeGrammarCamera();
         int left = grammarPanelLeft();
@@ -1996,7 +2031,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int tabHeight = 16;
         guiGraphics.fill( left + 8, top - tabHeight, left + 8 + tabWidth, top, PANEL_TAB_BACKGROUND);
         drawRectOutline(guiGraphics, left + 8, top - tabHeight, left + 8 + tabWidth, top + 1, HUD_BORDER);
-        guiGraphics.drawString( this.font, Component.literal("SFML.g4"), left + 14, top - tabHeight + 4, HUD_TEXT);
+        drawString(guiGraphics, Component.literal("SFML.g4"), left + 14, top - tabHeight + 4, HUD_TEXT);
 
         renderGrammarGlyphs(guiGraphics);
         if (!hideSelection) {
@@ -2007,7 +2042,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         drawRectOutline(guiGraphics, left, top, right, bottom, isGrammarPanelFocused() ? FOCUS_BORDER : HUD_BORDER);
     }
 
-    private void renderGrammarGlyphs(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderGrammarGlyphs(GuiGraphicsExtractor guiGraphics) {
         Map<SFMDrawCanvasModel.CanvasGlyph, Integer> glyphColours = SFMDrawCanvasSyntaxHighlightingHelper.buildAntlrGrammarHighlightColours(
                 grammarModel.glyphs(),
                 this.font.width(" "),
@@ -2024,16 +2060,16 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             if (screenX > right || screenX + glyph.width() * grammarZoom < left || screenY > bottom || screenY + this.font.lineHeight * grammarZoom < top) {
                 continue;
             }
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(screenX, screenY, 0.0D);
-            guiGraphics.pose().scale((float) grammarZoom, (float) grammarZoom, 1.0F);
-            guiGraphics.drawString( this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH));
-            guiGraphics.pose().popPose();
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().translate((float) screenX, (float) screenY);
+            guiGraphics.pose().scale((float) grammarZoom, (float) grammarZoom);
+            drawString(guiGraphics, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH));
+            guiGraphics.pose().popMatrix();
         }
     }
 
     @MCVersionDependentBehaviour
-    private void renderGrammarGlyphSelectionHighlights(GuiGraphics guiGraphics) {
+    private void renderGrammarGlyphSelectionHighlights(GuiGraphicsExtractor guiGraphics) {
         List<CanvasRect> mask = new ArrayList<>();
         int left = grammarPanelLeft();
         int top = grammarPanelTop();
@@ -2061,7 +2097,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 
-    private void renderGrammarCanvasCursor(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderGrammarCanvasCursor(GuiGraphicsExtractor guiGraphics) {
         for (int i = 0; i < grammarModel.cursors().size(); i++) {
             SFMDrawCanvasModel.CanvasCursor cursor = grammarModel.cursors().get(i);
             if (!hideSelection && isUniqueCursorInAnyGlyphBounds(grammarModel, cursor)) {
@@ -2081,7 +2118,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 
-    private void renderReadOnlyMessage(GuiGraphics guiGraphics) {
+    @MCVersionDependentBehaviour
+    private void renderReadOnlyMessage(GuiGraphicsExtractor guiGraphics) {
         Component message = DRAW_CANVAS_READ_ONLY_DOCUMENT.getComponent();
         int width = this.font.width(message);
         int left = (this.width - width) / 2 - 8;
@@ -2090,7 +2128,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int bottom = top + this.font.lineHeight + 10;
         guiGraphics.fill( left, top, right, bottom, HUD_BACKGROUND);
         drawRectOutline(guiGraphics, left, top, right, bottom, HUD_BORDER);
-        guiGraphics.drawString( this.font, message, left + 8, top + 5, HUD_TEXT);
+        drawString(guiGraphics, message, left + 8, top + 5, HUD_TEXT);
     }
 
     private void copyGrammarTextToClipboard() {
@@ -2214,6 +2252,28 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         BOTTOM_RIGHT
     }
 
+    @MCVersionDependentBehaviour
+    private void drawString(
+            GuiGraphicsExtractor guiGraphics,
+            Component text,
+            int x,
+            int y,
+            int color
+    ) {
+        guiGraphics.textRenderer().accept(x, y, text.copy().withStyle(style -> style.withColor(color)));
+    }
+
+    @MCVersionDependentBehaviour
+    private void drawString(
+            GuiGraphicsExtractor guiGraphics,
+            String text,
+            int x,
+            int y,
+            int color
+    ) {
+        drawString(guiGraphics, Component.literal(text), x, y, color);
+    }
+
     record CanvasRect(
             double left,
             double top,
@@ -2262,8 +2322,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
         @Override
         @MCVersionDependentBehaviour
-        public void renderWidget(
-                GuiGraphics guiGraphics,
+        protected void extractContents(
+                GuiGraphicsExtractor guiGraphics,
                 int mouseX,
                 int mouseY,
                 float partialTick
@@ -2277,20 +2337,20 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
 
         @Override
+        @MCVersionDependentBehaviour
         public boolean mouseClicked(
-                double mouseX,
-                double mouseY,
-                int button
+                MouseButtonEvent event,
+                boolean doubleClick
         ) {
             return false;
         }
 
         @Override
+        @MCVersionDependentBehaviour
         public boolean keyPressed(
-                int keyCode,
-                int scanCode,
-                int modifiers
+                KeyEvent event
         ) {
+            int keyCode = event.key();
             return keyCode == GLFW.GLFW_KEY_SPACE
                    || keyCode == GLFW.GLFW_KEY_ENTER
                    || keyCode == GLFW.GLFW_KEY_KP_ENTER;

@@ -2,7 +2,8 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.TextAlignment;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -63,13 +64,12 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
 
     @Override
     @MCVersionDependentBehaviour
-    public void render(
-            GuiGraphics guiGraphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor guiGraphics,
             int mouseX,
             int mouseY,
             float partialTick
     ) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         int panelWidth = 220;
         int panelHeight = panelHeight();
         int left = this.width / 2 - panelWidth / 2;
@@ -81,12 +81,34 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
         guiGraphics.fill( left, bottom - 1, right, bottom, BORDER);
         guiGraphics.fill( left, top, left + 1, bottom, BORDER);
         guiGraphics.fill( right - 1, top, right, bottom, BORDER);
-        guiGraphics.drawCenteredString( this.font, this.title.copy().withStyle(ChatFormatting.BOLD), this.width / 2, top + 12, TEXT);
-        guiGraphics.drawCenteredString( this.font, "IDE-only launch tools", this.width / 2, top + 26, MUTED);
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        drawCenteredString(guiGraphics, this.title.copy().withStyle(ChatFormatting.BOLD), this.width / 2, top + 12, TEXT);
+        drawCenteredString(guiGraphics, "IDE-only launch tools", this.width / 2, top + 26, MUTED);
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     private static int panelHeight() {
         return 76 + (SFMTitleScreenDevScreen.values().length + 1) * 26;
+    }
+
+    @MCVersionDependentBehaviour
+    private void drawCenteredString(
+            GuiGraphicsExtractor guiGraphics,
+            Component text,
+            int x,
+            int y,
+            int color
+    ) {
+        guiGraphics.textRenderer().accept(TextAlignment.CENTER, x, y, text.copy().withStyle(style -> style.withColor(color)));
+    }
+
+    @MCVersionDependentBehaviour
+    private void drawCenteredString(
+            GuiGraphicsExtractor guiGraphics,
+            String text,
+            int x,
+            int y,
+            int color
+    ) {
+        drawCenteredString(guiGraphics, Component.literal(text), x, y, color);
     }
 }

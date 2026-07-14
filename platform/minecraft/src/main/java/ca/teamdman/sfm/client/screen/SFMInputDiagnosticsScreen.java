@@ -3,7 +3,10 @@ package ca.teamdman.sfm.client.screen;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.platform.InputConstants;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
@@ -88,12 +91,13 @@ public class SFMInputDiagnosticsScreen extends Screen {
                 .build());
     }
 
+    @MCVersionDependentBehaviour
     private void installRawScrollCallback() {
         if (rawScrollCallback != null) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
-        rawScrollCallbackWindow = minecraft.getWindow().getWindow();
+        rawScrollCallbackWindow = minecraft.getWindow().handle();
         rawScrollCallback = (window, xOffset, yOffset) -> {
             if (window == rawScrollCallbackWindow && minecraft.screen == this) {
                 log(
@@ -111,12 +115,13 @@ public class SFMInputDiagnosticsScreen extends Screen {
         log("screen.raw_scroll_callback.install window=%d", rawScrollCallbackWindow);
     }
 
+    @MCVersionDependentBehaviour
     private void installRawKeyCallback() {
         if (rawKeyCallback != null) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
-        rawKeyCallbackWindow = minecraft.getWindow().getWindow();
+        rawKeyCallbackWindow = minecraft.getWindow().handle();
         rawKeyCallback = (window, key, scanCode, action, modifiers) -> {
             if (window == rawKeyCallbackWindow && minecraft.screen == this) {
                 log(
@@ -169,11 +174,13 @@ public class SFMInputDiagnosticsScreen extends Screen {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean keyPressed(
-            int keyCode,
-            int scanCode,
-            int modifiers
+            KeyEvent event
     ) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
         log(
                 "keyPressed key=%d scan=%d name=%s modifiers=%s active=%s",
                 keyCode,
@@ -190,11 +197,13 @@ public class SFMInputDiagnosticsScreen extends Screen {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean keyReleased(
-            int keyCode,
-            int scanCode,
-            int modifiers
+            KeyEvent event
     ) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
         log(
                 "keyReleased key=%d scan=%d name=%s modifiers=%s active=%s",
                 keyCode,
@@ -207,48 +216,55 @@ public class SFMInputDiagnosticsScreen extends Screen {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean charTyped(
-            char codePoint,
-            int modifiers
+            CharacterEvent event
     ) {
+        int codePoint = event.codepoint();
         log(
-                "charTyped char=%s codepoint=U+%04X modifiers=%s active=%s",
+                "charTyped char=%s codepoint=U+%04X active=%s",
                 charDisplay(codePoint),
-                (int) codePoint,
-                modifierMask(modifiers),
+                codePoint,
                 activeModifiers()
         );
         return true;
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean mouseClicked(
-            double mouseX,
-            double mouseY,
-            int button
+            MouseButtonEvent event,
+            boolean doubleClick
     ) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         log("mouseClicked x=%.1f y=%.1f button=%d active=%s", mouseX, mouseY, button, activeModifiers());
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean mouseReleased(
-            double mouseX,
-            double mouseY,
-            int button
+            MouseButtonEvent event
     ) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         log("mouseReleased x=%.1f y=%.1f button=%d active=%s", mouseX, mouseY, button, activeModifiers());
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean mouseDragged(
-            double mouseX,
-            double mouseY,
-            int button,
+            MouseButtonEvent event,
             double dragX,
             double dragY
     ) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         log(
                 "mouseDragged x=%.1f y=%.1f button=%d dx=%.1f dy=%.1f active=%s",
                 mouseX,
@@ -258,7 +274,7 @@ public class SFMInputDiagnosticsScreen extends Screen {
                 dragY,
                 activeModifiers()
         );
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
@@ -276,13 +292,12 @@ public class SFMInputDiagnosticsScreen extends Screen {
 
     @Override
     @MCVersionDependentBehaviour
-    public void render(
-            GuiGraphics guiGraphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor guiGraphics,
             int mouseX,
             int mouseY,
             float partialTick
     ) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.fill( 0, 0, this.width, this.height, BACKGROUND);
 
         int left = 8;
@@ -295,18 +310,14 @@ public class SFMInputDiagnosticsScreen extends Screen {
         guiGraphics.fill( left, top, left + 1, bottom, BORDER);
         guiGraphics.fill( right - 1, top, right, bottom, BORDER);
 
-        guiGraphics.drawString( this.font, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT);
-        guiGraphics.drawString(
-
-                this.font,
+        drawString(guiGraphics, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT);
+        drawString(guiGraphics,
                 "Events received by the Minecraft screen. Press keys or click inside this window.",
                 left + 8,
                 top + 22,
                 MUTED
         );
-        guiGraphics.drawString(
-
-                this.font,
+        drawString(guiGraphics,
                 "Active modifiers: " + activeModifiers(),
                 left + 8,
                 top + 34,
@@ -321,13 +332,13 @@ public class SFMInputDiagnosticsScreen extends Screen {
         int startInclusive = Math.max(0, endExclusive - maxLines);
         int y = eventTop;
         for (int i = startInclusive; i < endExclusive; i++) {
-            guiGraphics.drawString( this.font, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT);
+            drawString(guiGraphics, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT);
             y += lineHeight;
         }
         if (events.isEmpty()) {
-            guiGraphics.drawString( this.font, "No input events yet.", left + 8, eventTop, MUTED);
+            drawString(guiGraphics, "No input events yet.", left + 8, eventTop, MUTED);
         }
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     private void log(
@@ -351,24 +362,26 @@ public class SFMInputDiagnosticsScreen extends Screen {
         return this.font.plainSubstrByWidth(value, Math.max(0, width - this.font.width("..."))) + "...";
     }
 
+    @MCVersionDependentBehaviour
     private static String keyName(
             int keyCode,
             int scanCode
     ) {
         try {
-            return InputConstants.getKey(keyCode, scanCode).getDisplayName().getString();
+            return InputConstants.getKey(new KeyEvent(keyCode, scanCode, 0)).getDisplayName().getString();
         } catch (RuntimeException ignored) {
             return "<unknown>";
         }
     }
 
-    private static String charDisplay(char codePoint) {
+    @MCVersionDependentBehaviour
+    private static String charDisplay(int codePoint) {
         return switch (codePoint) {
             case '\n' -> "\\n";
             case '\r' -> "\\r";
             case '\t' -> "\\t";
             case '\b' -> "\\b";
-            default -> "'" + codePoint + "'";
+            default -> "'" + Character.toString(codePoint) + "'";
         };
     }
 
@@ -393,12 +406,42 @@ public class SFMInputDiagnosticsScreen extends Screen {
         };
     }
 
+    @MCVersionDependentBehaviour
     private static String activeModifiers() {
         List<String> names = new ArrayList<>();
-        if (Screen.hasShiftDown()) names.add("shift");
-        if (Screen.hasControlDown()) names.add("control");
-        if (Screen.hasAltDown()) names.add("alt");
+        long windowHandle = Minecraft.getInstance().getWindow().handle();
+        if (isModifierDown(windowHandle, GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT)) names.add("shift");
+        if (isModifierDown(windowHandle, GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL)) names.add("control");
+        if (isModifierDown(windowHandle, GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT)) names.add("alt");
         if (names.isEmpty()) return "none";
         return String.join("+", names);
+    }
+
+    @MCVersionDependentBehaviour
+    private static boolean isModifierDown(long windowHandle, int leftKey, int rightKey) {
+        return GLFW.glfwGetKey(windowHandle, leftKey) == GLFW.GLFW_PRESS
+               || GLFW.glfwGetKey(windowHandle, rightKey) == GLFW.GLFW_PRESS;
+    }
+
+    @MCVersionDependentBehaviour
+    private void drawString(
+            GuiGraphicsExtractor guiGraphics,
+            Component text,
+            int x,
+            int y,
+            int color
+    ) {
+        guiGraphics.textRenderer().accept(x, y, text.copy().withStyle(style -> style.withColor(color)));
+    }
+
+    @MCVersionDependentBehaviour
+    private void drawString(
+            GuiGraphicsExtractor guiGraphics,
+            String text,
+            int x,
+            int y,
+            int color
+    ) {
+        drawString(guiGraphics, Component.literal(text), x, y, color);
     }
 }
