@@ -82,6 +82,15 @@ public class DiskItem extends Item {
                 .getString("sfm:program");
     }
 
+    /**
+     * Reads the stored program without creating an NBT tag on an otherwise blank disk.
+     */
+    public static String getProgramStringReadOnly(ItemStack stack) {
+
+        var tag = stack.getTag();
+        return tag == null ? "" : tag.getString("sfm:program");
+    }
+
     public static void setProgram(
             ItemStack stack,
             String program
@@ -235,6 +244,15 @@ public class DiskItem extends Item {
         return stack
                 .getOrCreateTag()
                 .getString("sfm:name");
+    }
+
+    /**
+     * Reads the stored program name without creating an NBT tag on an otherwise blank disk.
+     */
+    public static String getProgramNameReadOnly(ItemStack stack) {
+
+        var tag = stack.getTag();
+        return tag == null ? "" : tag.getString("sfm:name");
     }
 
     public static void setProgramName(
