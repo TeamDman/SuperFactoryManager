@@ -17,6 +17,8 @@ use gix::bstr::ByteSlice;
 use std::path::Path;
 use std::path::PathBuf;
 
+const SFM_PRODUCTION_JAVA_PREFIX: &str = "platform/minecraft/src/main/java/ca/teamdman/sfm/";
+
 #[derive(Debug)]
 pub struct SourceAuditCommand {
     options: SourceAuditOptions,
@@ -116,9 +118,58 @@ impl SourceAuditCommand {
                     self.options.max_lines,
                 ));
             }
+
+            if language == SourceLanguage::Java && repo_path.starts_with(SFM_PRODUCTION_JAVA_PREFIX)
+            {
+                audit_direct_mod_event_annotations(
+                    &mut report,
+                    branch,
+                    &repo_path,
+                    line_count,
+                    &content,
+                );
+            }
         }
 
         Ok(report)
+    }
+}
+
+fn audit_direct_mod_event_annotations(
+    report: &mut BranchSourceAuditReport,
+    branch: &str,
+    repo_path: &str,
+    line_count: SourceLineCount,
+    content: &str,
+) {
+    for (line_index, line) in content.lines().enumerate() {
+        let trimmed = line.trim_start();
+        let Some(annotation) = direct_mod_event_annotation_name(trimmed) else {
+            continue;
+        };
+        let column = line.len() - trimmed.len() + 1;
+        report.push_problem(SourceProblem::direct_mod_event_annotation(
+            branch,
+            repo_path,
+            line_count,
+            annotation,
+            line_index + 1,
+            column,
+        ));
+    }
+}
+
+fn direct_mod_event_annotation_name(line: &str) -> Option<&'static str> {
+    let annotation = line.trim_start().strip_prefix('@')?;
+    let name = annotation
+        .split(|character: char| {
+            !(character.is_ascii_alphanumeric() || character == '_' || character == '.')
+        })
+        .next()?;
+    match name.rsplit('.').next()? {
+        "EventBusSubscriber" => Some("EventBusSubscriber"),
+        "SubscribeEvent" => Some("SubscribeEvent"),
+        _ => None,
     }
 }
 
@@ -206,6 +257,7 @@ mod tests {
     use crate::branch_targets::WorktreeTarget;
     use crate::source_audit::SourceAuditOptions;
     use crate::source_audit::SourceLineLimit;
+    use crate::source_audit::SourceProblem;
     use eyre::Context;
     use std::fs;
     use std::process::Command;
@@ -238,6 +290,73 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(audited_paths, vec!["tracked.rs"]);
+        Ok(())
+    }
+
+    #[test]
+    fn reports_direct_mod_event_annotations_but_allows_sfm_wrapper() -> eyre::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let root = temp.path();
+        let java_path =
+            root.join("platform/minecraft/src/main/java/ca/teamdman/sfm/EventHandler.java");
+        fs::create_dir_all(
+            java_path
+                .parent()
+                .expect("Java source should have a parent"),
+        )?;
+        fs::write(
+            &java_path,
+            r#"
+            package ca.teamdman.sfm;
+
+            @SFMSubscribeEvent
+            class WrappedHandler {}
+
+            @Mod.EventBusSubscriber
+            class DirectBusHandler {
+                @SubscribeEvent
+                void onEvent() {}
+            }
+
+            // @SubscribeEvent is not an annotation.
+            "#,
+        )?;
+        run_git(root, &["init"])?;
+        run_git(root, &["add", "platform"])?;
+
+        let command = SourceAuditCommand::new(SourceAuditOptions {
+            branch: BranchQuery::parse("*")?,
+            languages: Vec::new(),
+            max_lines: SourceLineLimit(1000),
+            version_surfaces: false,
+        });
+        let target = WorktreeTarget::from_parts(
+            BranchName::from("1.19.2"),
+            WorktreePath::from(root.to_path_buf()),
+        )?;
+
+        let report = command.audit_target(&target)?;
+        assert_eq!(report.problems.len(), 2);
+        let warnings = report
+            .problems
+            .iter()
+            .map(SourceProblem::warning_line)
+            .collect::<Vec<_>>();
+        assert!(
+            warnings
+                .iter()
+                .any(|warning| warning.contains("annotation=@EventBusSubscriber"))
+        );
+        assert!(
+            warnings
+                .iter()
+                .any(|warning| warning.contains("annotation=@SubscribeEvent"))
+        );
+        assert!(
+            warnings
+                .iter()
+                .all(|warning| warning.contains("replacement=@SFMSubscribeEvent"))
+        );
         Ok(())
     }
 
