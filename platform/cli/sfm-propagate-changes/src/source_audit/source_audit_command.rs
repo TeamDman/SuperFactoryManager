@@ -153,9 +153,15 @@ fn emit_version_surface_report(report: &VersionSurfaceAuditReport) -> eyre::Resu
         stdout_line(format!(
             "  {} cli-warnings={} java-warnings={}",
             branch.branch,
-            branch.cli_commits.len(),
+            branch.cli_warning_count(),
             branch.unbounded_java_changes.len()
         ))?;
+        if !branch.cli_source_matches_baseline {
+            stdout_line(format!(
+                "  WARN CLI source differs from 1.19.2: branch={}",
+                branch.branch
+            ))?;
+        }
         for commit in branch.cli_commits.iter().take(10) {
             stdout_line(format!(
                 "  WARN CLI change outside 1.19.2: branch={} commit={} {}",
@@ -168,7 +174,11 @@ fn emit_version_surface_report(report: &VersionSurfaceAuditReport) -> eyre::Resu
                 branch.branch, change.path, change.base_range, change.target_range
             ))?;
         }
-        let omitted_cli = branch.cli_commits.len().saturating_sub(10);
+        let shown_cli_warnings =
+            branch.cli_commits.len().min(10) + usize::from(!branch.cli_source_matches_baseline);
+        let omitted_cli = branch
+            .cli_warning_count()
+            .saturating_sub(shown_cli_warnings);
         let omitted_java = branch.unbounded_java_changes.len().saturating_sub(20);
         if omitted_cli > 0 || omitted_java > 0 {
             stdout_line(format!(
