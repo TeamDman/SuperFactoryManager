@@ -58,7 +58,7 @@ cargo run -- audit --branch core --version-surfaces
 ```
 
 The report warns about CLI commits made directly on later version branches (including merge
-resolutions that modify the CLI) and Java diff hunks outside an
+resolutions that modify the CLI), any later CLI source tree that differs from `1.19.2`, and Java diff hunks outside an
 `@MCVersionDependentBehaviour` declaration. Propagation merges whose CLI tree exactly matches a
 parent are treated as expected propagation, not warnings. The audit is advisory so existing Java
 surface-area debt remains visible without blocking unrelated work.
