@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.gametest.tests.compat.computercraft;
 
+import ca.teamdman.sfm.common.compat.computercraft.SFMManagerCollectionHandle;
 import ca.teamdman.sfm.common.compat.computercraft.SFMNetworkPeripheral;
 import ca.teamdman.sfm.common.compat.computercraft.SFMNetworkPeripheralProvider;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
@@ -9,6 +10,7 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 
+/** Ensures manager discovery is no longer bounded by the former table-payload cap. */
 @SFMGameTest
 public class ComputerCraftPayloadLimitsGameTest extends SFMGameTestDefinition {
     private static final SFMNetworkPeripheralProvider PROVIDER = new SFMNetworkPeripheralProvider();
@@ -33,13 +35,11 @@ public class ComputerCraftPayloadLimitsGameTest extends SFMGameTestDefinition {
                 .getPeripheral(helper.getLevel(), helper.absolutePos(new BlockPos(0, 2, 1)), Direction.NORTH)
                 .resolve()
                 .orElseThrow();
+        SFMManagerCollectionHandle managers = peripheral.getManagers();
+        helper.assertTrue(managers.count() == 17, "Manager collection did not include every loaded manager");
         helper.assertTrue(
-                peripheral.getManagerCount() == 17,
-                "The manager count did not include every loaded manager in the cable network"
-        );
-        helper.assertTrue(
-                peripheral.getManagers().size() == SFMNetworkPeripheral.MAX_MANAGER_RESULTS,
-                "The network peripheral did not bound its manager payload"
+                managers.get(17).position().length == 3,
+                "Manager collection did not expose its final entry"
         );
         helper.succeed();
     }

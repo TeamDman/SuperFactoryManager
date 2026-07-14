@@ -17,21 +17,7 @@ public record LabelGunToggleLabelAction(
 ) implements LabelGunPlan {
     @Override
     public void run() {
-        // if any missing label, make all blocks have label, otherwise remove label from all those blocks
-        if (activeLabel.isEmpty()) {
-            return;
-        }
-        BlockPosSet existing = gunLabels.getPositions(activeLabel);
-        boolean anyMissing = targets.positions().longStream().anyMatch(p -> !existing.contains(p));
-
-        // apply or strip label from all positions
-        if (anyMissing) {
-            gunLabels.addAll(activeLabel, targets.positions().blockPosIterator());
-        } else {
-            targets.positions().forEach(p -> gunLabels.remove(activeLabel, p));
-        }
-        // write changes to label gun
-        gunLabels.save(gunStack);
+        LabelGunActions.toggle(level, gunStack, msg.pos(), msg.isContiguousModifierActive());
 
     }
 }

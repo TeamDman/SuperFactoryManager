@@ -51,13 +51,11 @@ public record LabelGunUnsetBlockLabelsAction(
 
     @Override
     public void run() {
-        // we are removing labels
         if (msg.isPickBlockModifierActive()) {
-            targets.positions().forEach(p -> gunLabels.remove(activeLabel, p));
+            LabelGunActions.clearActive(level, gunStack, msg.pos(), msg.isContiguousModifierActive());
         } else {
-            targets.positions().forEach(gunLabels::removeAll);
+            LabelGunActions.clearAll(level, gunStack, msg.pos(), msg.isContiguousModifierActive());
         }
-        gunLabels.save(gunStack);
     }
 
     @Override
