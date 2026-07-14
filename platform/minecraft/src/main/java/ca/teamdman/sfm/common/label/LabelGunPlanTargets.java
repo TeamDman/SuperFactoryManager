@@ -23,11 +23,25 @@ public record LabelGunPlanTargets(
             Level level,
             ServerboundLabelGunUsePacket msg
     ) {
-        // get the block type of the target position
-        Block targetBlock = level.getBlockState(msg.pos()).getBlock();
 
-        if (!msg.isContiguousModifierActive()) {
-            return new LabelGunPlanTargets(BlockPosSet.of(msg.pos()), new BlockPosSet());
+        return getTargets(level, msg.pos(), msg.isContiguousModifierActive());
+    }
+
+    /**
+     * Finds the same target set used by a player label gun without requiring a player packet.
+     * This is used by automation such as CC:Tweaked turtles so contiguous selection stays
+     * behaviourally identical to the player tool.
+     */
+    public static LabelGunPlanTargets getTargets(
+            Level level,
+            BlockPos targetPos,
+            boolean contiguous
+    ) {
+        // get the block type of the target position
+        Block targetBlock = level.getBlockState(targetPos).getBlock();
+
+        if (!contiguous) {
+            return new LabelGunPlanTargets(BlockPosSet.of(targetPos), new BlockPosSet());
         }
         BlockPosSet targets;
 
@@ -36,12 +50,12 @@ public record LabelGunPlanTargets(
         if (level.isClientSide()) {
             // There are no cable networks on the client, so we need to discover the cable positions
             // We need to know this to determine how large the change is and if we need to ask the client for confirmation
-            get3DNeighbours(msg.pos())
+            get3DNeighbours(targetPos)
                     .filter(pos -> CableNetwork.isCable(level, pos))
                     .flatMap(cablePos -> CableNetwork.discoverCables(level, cablePos))
                     .forEach(cablePositions::add);
         } else {
-            get3DNeighbours(msg.pos())
+            get3DNeighbours(targetPos)
                     .map(suspected_cable_pos -> CableNetworkManager.getOrRegisterNetworkFromCablePosition(
                             level,
                             suspected_cable_pos
@@ -66,7 +80,7 @@ public record LabelGunPlanTargets(
                                     .filter(p -> level.getBlockState(p).getBlock() == targetBlock)
                                     .filter(isAdjacentToCable)
                                     .forEach(nextQueue);
-                        }, msg.pos()
+                        }, targetPos
                 )
                 .collect(BlockPosSet.collector());
         return new LabelGunPlanTargets(targets, warnBecauseNoCableNeighbour);
