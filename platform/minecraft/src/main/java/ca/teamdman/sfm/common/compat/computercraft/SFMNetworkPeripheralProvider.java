@@ -30,4 +30,5 @@ public final class SFMNetworkPeripheralProvider implements IBlockCapabilityProvi
         if (CableNetworkManager.getOrRegisterNetworkFromCablePosition(level, pos).isEmpty()) return null;
         return new SFMNetworkPeripheral(level, pos.immutable());
     }
+
 }
