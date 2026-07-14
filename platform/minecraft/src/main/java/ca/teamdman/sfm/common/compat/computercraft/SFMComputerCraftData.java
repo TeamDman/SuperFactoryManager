@@ -3,9 +3,10 @@ package ca.teamdman.sfm.common.compat.computercraft;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -17,6 +18,7 @@ import java.util.TreeMap;
 /**
  * Converts SFM domain state into deterministic tables supported by CC:Tweaked's Lua conversion.
  */
+@MCVersionDependentBehaviour // Forge registries moved to vanilla built-in registries
 final class SFMComputerCraftData {
     static final int MAX_LABELS = 16;
     static final int MAX_POSITIONS_PER_LABEL = 64;
@@ -110,7 +112,7 @@ final class SFMComputerCraftData {
         if (stack.isEmpty()) return Map.of();
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("name", ForgeRegistries.ITEMS.getKey(stack.getItem()).toString());
+        result.put("name", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
         result.put("count", stack.getCount());
         return result;
     }
