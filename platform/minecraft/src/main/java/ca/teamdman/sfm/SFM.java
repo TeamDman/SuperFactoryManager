@@ -3,6 +3,8 @@ package ca.teamdman.sfm;
 import ca.teamdman.sfm.client.registry.SFMMenuScreens;
 import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
+import ca.teamdman.sfm.common.compat.SFMModCompat;
+import ca.teamdman.sfm.common.compat.computercraft.ComputerCraftIntegration;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.event_bus.SFMAutomaticEventSubscriber;
 import ca.teamdman.sfm.common.event_bus.SFMEventBus;
@@ -69,6 +71,12 @@ public class SFM {
         bus.addListener((FMLClientSetupEvent e) -> SFMMenuScreens.register());
 
         bus.addListener((FMLCommonSetupEvent e) -> SFMPackets.register());
+
+        bus.addListener((FMLCommonSetupEvent e) -> {
+            if (SFMModCompat.isComputerCraftLoaded()) {
+                e.enqueueWork(ComputerCraftIntegration::register);
+            }
+        });
 
         SFMAutomaticEventSubscriber.attachEventBusSubscribers();
     }
