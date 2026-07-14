@@ -117,7 +117,7 @@
             "artifact_id": "cc-tweaked-cc-tweaked-1-20-4-forge-1-110-2-0fefba45",
             "resolved_coordinate": "cc.tweaked:cc-tweaked-1.20.4-forge:1.110.2",
             "expected_hash": "blake3:0fefba45e7931d8539f6ba6cd5f3a276bf396667",
-            "cache_path": "$sfm-cache\\maven\\cc/tweaked\\cc-tweaked-1.20.4-forge\\1.110.2\\cc-tweaked-1.20.4-forge-1.110.2.jar"
+            "cache_path": "$sfm-cache\\maven\\cc\\tweaked\\cc-tweaked-1.20.4-forge\\1.110.2\\cc-tweaked-1.20.4-forge-1.110.2.jar"
           },
           "source_providers": [
             {
@@ -567,6 +567,22 @@
   ],
   "artifacts": [
     {
+      "id": "ant-ant-optional-1-5-3-1-d38c08d6",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "ant:ant-optional:1.5.3-1",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/ant/ant-optional/1.5.3-1/ant-optional-1.5.3-1.jar",
+      "hash": "blake3:d38c08d6ed7b690c4c220658560d801bc0acd3d7",
+      "cache_path": "$sfm-cache\\maven\\ant\\ant-optional\\1.5.3-1\\ant-optional-1.5.3-1.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "cc-tweaked-cc-tweaked-1-20-4-forge-1-110-2-0fefba45",
       "owner": {
         "dependency_id": "cc-tweaked",
@@ -581,7 +597,23 @@
       "repository_id": "squiddev",
       "url": "https://squiddev.cc/maven/cc/tweaked/cc-tweaked-1.20.4-forge/1.110.2/cc-tweaked-1.20.4-forge-1.110.2.jar",
       "hash": "blake3:0fefba45e7931d8539f6ba6cd5f3a276bf396667",
-      "cache_path": "$sfm-cache\\maven\\cc/tweaked\\cc-tweaked-1.20.4-forge\\1.110.2\\cc-tweaked-1.20.4-forge-1.110.2.jar",
+      "cache_path": "$sfm-cache\\maven\\cc\\tweaked\\cc-tweaked-1.20.4-forge\\1.110.2\\cc-tweaked-1.20.4-forge-1.110.2.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "cc-tweaked-cobalt-0-9-2-f4c948d8",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "cc.tweaked:cobalt:0.9.2",
+      "repository_id": "squiddev",
+      "url": "https://squiddev.cc/maven/cc/tweaked/cobalt/0.9.2/cobalt-0.9.2.jar",
+      "hash": "blake3:f4c948d86d216fed08bef7688916b87f7d21d2ee",
+      "cache_path": "$sfm-cache\\maven\\cc\\tweaked\\cobalt\\0.9.2\\cobalt-0.9.2.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
@@ -780,6 +812,22 @@
       "weak": null
     },
     {
+      "id": "com-jcraft-jzlib-1-1-3-962933fd",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "com.jcraft:jzlib:1.1.3",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/com/jcraft/jzlib/1.1.3/jzlib-1.1.3.jar",
+      "hash": "blake3:962933fd1e214e9f0cd12b29c0d54df82f56a164",
+      "cache_path": "$sfm-cache\\maven\\com\\jcraft\\jzlib\\1.1.3\\jzlib-1.1.3.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "com-machinezoo-noexception-noexception-1-7-1-c726e16b",
       "owner": null,
       "purposes": [
@@ -924,6 +972,166 @@
       "url": "https://maven.minecraftforge.net/io/github/llamalad7/mixinextras-neoforge/0.3.5/mixinextras-neoforge-0.3.5.jar",
       "hash": "blake3:f02d24442f8cd48fa6688f4fc31f1a3c5ea4c47e",
       "cache_path": "$sfm-cache\\maven\\io\\github\\llamalad7\\mixinextras-neoforge\\0.3.5\\mixinextras-neoforge-0.3.5.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-buffer-4-1-97-final-96f7dfba",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-buffer:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-buffer/4.1.97.Final/netty-buffer-4.1.97.Final.jar",
+      "hash": "blake3:96f7dfbae3dab57a10298f62b16fc823334b5964",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-buffer\\4.1.97.Final\\netty-buffer-4.1.97.Final.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-codec-4-1-97-final-928b8cec",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-codec:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-codec/4.1.97.Final/netty-codec-4.1.97.Final.jar",
+      "hash": "blake3:928b8cec27ba1679b5d809a6a352c361e0ff2945",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-codec\\4.1.97.Final\\netty-codec-4.1.97.Final.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-codec-http-4-1-97-final-c820cfd9",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-codec-http:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-codec-http/4.1.97.Final/netty-codec-http-4.1.97.Final.jar",
+      "hash": "blake3:c820cfd9d1db1862ccf21175219300e2d68c83b9",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-codec-http\\4.1.97.Final\\netty-codec-http-4.1.97.Final.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-codec-socks-4-1-97-final-8650670c",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-codec-socks:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-codec-socks/4.1.97.Final/netty-codec-socks-4.1.97.Final.jar",
+      "hash": "blake3:8650670c3557022cc4767973f6a8c6ed9c8628d8",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-codec-socks\\4.1.97.Final\\netty-codec-socks-4.1.97.Final.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-common-4-1-97-final-37f4ffb0",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-common:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-common/4.1.97.Final/netty-common-4.1.97.Final.jar",
+      "hash": "blake3:37f4ffb0e84b3d7867cc8f90ce9cfec70211f9ac",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-common\\4.1.97.Final\\netty-common-4.1.97.Final.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-handler-4-1-97-final-ba8951f4",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-handler:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-handler/4.1.97.Final/netty-handler-4.1.97.Final.jar",
+      "hash": "blake3:ba8951f43a76b2ce33d91bc6e2c5948e5f90df3c",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-handler\\4.1.97.Final\\netty-handler-4.1.97.Final.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-handler-proxy-4-1-97-final-6734c8c6",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-handler-proxy:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-handler-proxy/4.1.97.Final/netty-handler-proxy-4.1.97.Final.jar",
+      "hash": "blake3:6734c8c65ef17f5b9f75daef69701381ef6d29e4",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-handler-proxy\\4.1.97.Final\\netty-handler-proxy-4.1.97.Final.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-resolver-4-1-97-final-6d658821",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-resolver:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-resolver/4.1.97.Final/netty-resolver-4.1.97.Final.jar",
+      "hash": "blake3:6d658821527d390c690ea0cff5dd643d75da8d44",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-resolver\\4.1.97.Final\\netty-resolver-4.1.97.Final.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-transport-4-1-97-final-004ac1b7",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-transport:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-transport/4.1.97.Final/netty-transport-4.1.97.Final.jar",
+      "hash": "blake3:004ac1b781ef0d0cf01869667245c844dc9bc48d",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-transport\\4.1.97.Final\\netty-transport-4.1.97.Final.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "io-netty-netty-transport-native-unix-common-4-1-97-final-ebce67e4",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "io.netty:netty-transport-native-unix-common:4.1.97.Final",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/io/netty/netty-transport-native-unix-common/4.1.97.Final/netty-transport-native-unix-common-4.1.97.Final.jar",
+      "hash": "blake3:ebce67e42382ec00f972151d8df21caf301f7537",
+      "cache_path": "$sfm-cache\\maven\\io\\netty\\netty-transport-native-unix-common\\4.1.97.Final\\netty-transport-native-unix-common-4.1.97.Final.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
@@ -1475,6 +1683,22 @@
       "url": "https://maven.minecraftforge.net/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar",
       "hash": "blake3:e506f0ed0b0df2a6ece0bbb90b342ccb09e20161",
       "cache_path": "$sfm-cache\\maven\\org\\checkerframework\\checker-qual\\3.12.0\\checker-qual-3.12.0.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "org-codehaus-groovy-groovy-3-0-9-6b8a8b59",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.codehaus.groovy:groovy:3.0.9",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/org/codehaus/groovy/groovy/3.0.9/groovy-3.0.9.jar",
+      "hash": "blake3:6b8a8b59d8e87d5a3df9708d56d48d67a9e27c3d",
+      "cache_path": "$sfm-cache\\maven\\org\\codehaus\\groovy\\groovy\\3.0.9\\groovy-3.0.9.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,

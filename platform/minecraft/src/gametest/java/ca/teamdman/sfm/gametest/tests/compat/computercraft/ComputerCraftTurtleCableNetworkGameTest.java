@@ -4,14 +4,15 @@ import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
-import dan200.computercraft.shared.Registry;
+import dan200.computercraft.shared.ModRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.Objects;
 
@@ -19,6 +20,7 @@ import java.util.Objects;
  * Moves items into a live CC:Tweaked turtle through an SFM cable network.
  */
 @SFMGameTest
+@MCVersionDependentBehaviour // CC:Tweaked 1.110.2+ internal GameTest fixture API
 public class ComputerCraftTurtleCableNetworkGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
@@ -40,8 +42,8 @@ public class ComputerCraftTurtleCableNetworkGameTest extends SFMGameTestDefiniti
         helper.setBlock(firstCablePos, SFMBlocks.CABLE.get());
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         helper.setBlock(secondCablePos, SFMBlocks.CABLE.get());
-        helper.setBlock(connectedTurtlePos, Registry.ModBlocks.TURTLE_NORMAL.get());
-        helper.setBlock(disconnectedTurtlePos, Registry.ModBlocks.TURTLE_NORMAL.get());
+        helper.setBlock(connectedTurtlePos, ModRegistry.Blocks.TURTLE_NORMAL.get());
+        helper.setBlock(disconnectedTurtlePos, ModRegistry.Blocks.TURTLE_NORMAL.get());
 
         IItemHandler source = helper.getItemHandler(sourcePos);
         IItemHandler connectedTurtle = helper.getItemHandler(connectedTurtlePos);

@@ -4,7 +4,8 @@ import ca.teamdman.sfm.common.item.FormItem;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
-import dan200.computercraft.api.detail.IDetailProvider;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import dan200.computercraft.api.detail.DetailProvider;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nonnull;
@@ -15,7 +16,8 @@ import java.util.Map;
 /**
  * Adds one namespaced, read-only SFM table to CC:Tweaked's detailed item output.
  */
-final class SFMItemDetailProvider implements IDetailProvider<ItemStack> {
+@MCVersionDependentBehaviour // CC:Tweaked 1.108.0+
+final class SFMItemDetailProvider implements DetailProvider<ItemStack> {
     @Override
     public void provideDetails(
             @Nonnull Map<? super String, Object> data,
