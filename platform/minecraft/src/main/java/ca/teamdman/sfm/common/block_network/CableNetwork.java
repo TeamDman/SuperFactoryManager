@@ -14,6 +14,7 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -162,6 +163,23 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
 
     public LongSet getCablePositionsRaw() {
         return members().keySet();
+    }
+
+    /**
+     * Returns the currently loaded managers that are members of this cable network.
+     *
+     * The ordering is deterministic so external integrations can present a stable list without
+     * selecting an arbitrary manager from a multi-manager network.
+     */
+    public Stream<ManagerBlockEntity> getManagers() {
+
+        return getCablePositions()
+                .stream()
+                .map(BlockPos::immutable)
+                .sorted(Comparator.comparingLong(BlockPos::asLong))
+                .map(getLevel()::getBlockEntity)
+                .filter(ManagerBlockEntity.class::isInstance)
+                .map(ManagerBlockEntity.class::cast);
     }
 
     @Override
