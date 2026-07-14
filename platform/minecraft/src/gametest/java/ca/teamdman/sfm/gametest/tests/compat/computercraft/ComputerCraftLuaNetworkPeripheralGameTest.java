@@ -8,24 +8,24 @@ import ca.teamdman.sfm.common.item.LabelGunItem.LabelGunViewMode;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import dan200.computercraft.api.ComputerCraftAPI;
-import dan200.computercraft.api.filesystem.IWritableMount;
+import dan200.computercraft.api.filesystem.WritableMount;
 import dan200.computercraft.core.computer.ComputerSide;
-import dan200.computercraft.shared.computer.blocks.TileComputerBase;
+import dan200.computercraft.shared.ModRegistry;
+import dan200.computercraft.shared.computer.blocks.ComputerBlockEntity;
 import dan200.computercraft.shared.computer.core.ServerComputer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
  * Exercises the SFM network peripheral through CC:Tweaked's real Lua runtime.
  */
 @SFMGameTest
+@MCVersionDependentBehaviour // CC internal GameTest fixture API
 public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
@@ -77,7 +78,7 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
         chest.setItem(1, labelGun);
         chest.setItem(2, FormItem.createFormFromReference(new ItemStack(net.minecraft.world.item.Items.DIAMOND, 2)));
 
-        TileComputerBase computerBlockEntity = helper.getBlockEntity(computerPos, TileComputerBase.class);
+        ComputerBlockEntity computerBlockEntity = helper.getBlockEntity(computerPos, ComputerBlockEntity.class);
         ServerComputer computer = computerBlockEntity.createServerComputer();
         writeStartupProgram(helper, computer, """
                 local network = assert(peripheral.wrap("front"), "SFM cable was not exposed on the computer front")
@@ -128,7 +129,7 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
 
     private static BlockState normalComputerFacing(Direction facing) {
 
-        Block computer = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("computercraft", "computer_normal"));
+        Block computer = ModRegistry.Blocks.COMPUTER_NORMAL.get();
         if (computer == null) {
             throw new IllegalStateException("CC:Tweaked normal computer block was not registered");
         }
@@ -141,8 +142,8 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
             String program
     ) {
 
-        IWritableMount mount = ComputerCraftAPI.createSaveDirMount(
-                helper.getLevel(),
+        WritableMount mount = ComputerCraftAPI.createSaveDirMount(
+                helper.getLevel().getServer(),
                 "computer/" + computer.getID(),
                 1_000_000
         );

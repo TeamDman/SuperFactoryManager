@@ -3,10 +3,12 @@ package ca.teamdman.sfm.gametest.tests.compat.computercraft;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
-import dan200.computercraft.ComputerCraft;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import dan200.computercraft.api.ComputerCraftAPI;
-import dan200.computercraft.shared.Registry;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Blocks;
 
 @SFMGameTest
 public class ComputerCraftDependencySmokeGameTest extends SFMGameTestDefinition {
@@ -16,10 +18,11 @@ public class ComputerCraftDependencySmokeGameTest extends SFMGameTestDefinition 
     }
 
     @Override
+    @MCVersionDependentBehaviour // CC:Tweaked 1.105.0+
     public void run(SFMGameTestHelper helper) {
         helper.assertTrue(
-                "computercraft".equals(ComputerCraft.MOD_ID),
-                "Unexpected CC:Tweaked mod id: " + ComputerCraft.MOD_ID
+                "computercraft".equals(ComputerCraftAPI.MOD_ID),
+                "Unexpected CC:Tweaked mod id: " + ComputerCraftAPI.MOD_ID
         );
         helper.assertTrue(
                 ComputerCraftAPI.getInstalledVersion() != null,
@@ -28,15 +31,19 @@ public class ComputerCraftDependencySmokeGameTest extends SFMGameTestDefinition 
 
         var turtlePos = new BlockPos(0, 2, 0);
         var diskDrivePos = new BlockPos(1, 2, 0);
-        helper.setBlock(turtlePos, Registry.ModBlocks.TURTLE_NORMAL.get());
-        helper.setBlock(diskDrivePos, Registry.ModBlocks.DISK_DRIVE.get());
+        var turtle = BuiltInRegistries.BLOCK.get(new ResourceLocation(ComputerCraftAPI.MOD_ID, "turtle_normal"));
+        var diskDrive = BuiltInRegistries.BLOCK.get(new ResourceLocation(ComputerCraftAPI.MOD_ID, "disk_drive"));
+        helper.assertTrue(turtle != Blocks.AIR, "CC:Tweaked did not register turtle_normal");
+        helper.assertTrue(diskDrive != Blocks.AIR, "CC:Tweaked did not register disk_drive");
+        helper.setBlock(turtlePos, turtle);
+        helper.setBlock(diskDrivePos, diskDrive);
 
         helper.assertTrue(
-                helper.getBlockState(turtlePos).is(Registry.ModBlocks.TURTLE_NORMAL.get()),
+                helper.getBlockState(turtlePos).is(turtle),
                 "Failed to place a CC:Tweaked turtle"
         );
         helper.assertTrue(
-                helper.getBlockState(diskDrivePos).is(Registry.ModBlocks.DISK_DRIVE.get()),
+                helper.getBlockState(diskDrivePos).is(diskDrive),
                 "Failed to place a CC:Tweaked disk drive"
         );
         helper.succeed();
