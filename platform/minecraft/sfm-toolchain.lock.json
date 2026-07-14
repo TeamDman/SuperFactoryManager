@@ -127,7 +127,7 @@
       "kind": "mod",
       "role": "integration",
       "display_name": "CC:Tweaked",
-      "project_url": null,
+      "project_url": "https://github.com/cc-tweaked/CC-Tweaked",
       "notes": null,
       "components": [
         {
@@ -140,6 +140,8 @@
               }
             },
             "scopes": [
+              "compile",
+              "runtime",
               "gametest-compile",
               "gametest-runtime"
             ],
@@ -176,9 +178,7 @@
                 "declaration": {
                   "requested_coordinate": "cc.tweaked:cc-tweaked-1.20.1-forge:1.111.0:sources",
                   "repository_id": "squiddev",
-                  "roots": [
-                    "main/dan200/computercraft"
-                  ]
+                  "roots": []
                 },
                 "derived_checks": {
                   "resolved_coordinate": "cc.tweaked:cc-tweaked-1.20.1-forge:1.111.0:sources",
@@ -782,6 +782,8 @@
         "component_id": "main"
       },
       "purposes": [
+        "build",
+        "runtime",
         "gametest"
       ],
       "coordinate": "cc.tweaked:cc-tweaked-1.20.1-forge:1.111.0",
