@@ -23,7 +23,7 @@ impl VersionSurfaceAuditReport {
     pub fn cli_warning_count(&self) -> usize {
         self.branches
             .iter()
-            .map(|branch| branch.cli_commits.len())
+            .map(VersionSurfaceBranchReport::cli_warning_count)
             .sum()
     }
 
@@ -39,8 +39,16 @@ impl VersionSurfaceAuditReport {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VersionSurfaceBranchReport {
     pub branch: String,
+    pub cli_source_matches_baseline: bool,
     pub cli_commits: Vec<LaterBranchCliCommit>,
     pub unbounded_java_changes: Vec<UnboundedJavaChange>,
+}
+
+impl VersionSurfaceBranchReport {
+    #[must_use]
+    pub fn cli_warning_count(&self) -> usize {
+        self.cli_commits.len() + usize::from(!self.cli_source_matches_baseline)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -134,6 +142,11 @@ fn audit_branch(
     let target_commit = branch_commit_id(&repository, target.branch.as_str())?;
     Ok(VersionSurfaceBranchReport {
         branch: target.branch.to_string(),
+        cli_source_matches_baseline: cli_source_matches_baseline(
+            &repository,
+            baseline_commit,
+            target_commit,
+        )?,
         cli_commits: later_branch_cli_commits(&repository, baseline_commit, target_commit)?,
         unbounded_java_changes: unbounded_java_changes(
             &repository,
@@ -141,6 +154,17 @@ fn audit_branch(
             target_commit,
         )?,
     })
+}
+
+fn cli_source_matches_baseline(
+    repository: &gix::Repository,
+    baseline: gix::hash::ObjectId,
+    target: gix::hash::ObjectId,
+) -> eyre::Result<bool> {
+    Ok(
+        tree_path_id_without_cache(repository, baseline, CLI_SOURCE_ROOT)?
+            == tree_path_id_without_cache(repository, target, CLI_SOURCE_ROOT)?,
+    )
 }
 
 fn later_branch_cli_commits(
@@ -283,13 +307,21 @@ fn tree_path_id(
     if let Some(id) = cache.get(&commit_id) {
         return Ok(*id);
     }
-    let commit = repository.find_commit(commit_id)?;
-    let tree = commit.tree()?;
-    let id = tree
-        .lookup_entry_by_path(path)?
-        .map(|entry| entry.object_id());
+    let id = tree_path_id_without_cache(repository, commit_id, path)?;
     cache.insert(commit_id, id);
     Ok(id)
+}
+
+fn tree_path_id_without_cache(
+    repository: &gix::Repository,
+    commit_id: gix::hash::ObjectId,
+    path: &str,
+) -> eyre::Result<Option<gix::hash::ObjectId>> {
+    let commit = repository.find_commit(commit_id)?;
+    let tree = commit.tree()?;
+    Ok(tree
+        .lookup_entry_by_path(path)?
+        .map(|entry| entry.object_id()))
 }
 
 fn commit_subject(commit: &gix::Commit<'_>) -> eyre::Result<String> {
@@ -440,6 +472,7 @@ mod tests {
     use super::ChangedLineRange;
     use super::annotated_regions;
     use super::branch_commit_id;
+    use super::cli_source_matches_baseline;
     use super::java_diff_hunks;
     use super::later_branch_cli_commits;
     use super::unbounded_java_changes;
@@ -513,6 +546,7 @@ mod tests {
         let commits = later_branch_cli_commits(&repository, baseline, target)?;
         assert_eq!(commits.len(), 1);
         assert_eq!(commits[0].subject, "change later branch");
+        assert!(!cli_source_matches_baseline(&repository, baseline, target)?);
 
         let changes = unbounded_java_changes(&repository, baseline, target)?;
         assert_eq!(changes.len(), 1);
@@ -566,6 +600,7 @@ mod tests {
         let baseline = branch_commit_id(&repository, "1.19.2")?;
         let target = branch_commit_id(&repository, "1.20.1")?;
         assert!(later_branch_cli_commits(&repository, baseline, target)?.is_empty());
+        assert!(cli_source_matches_baseline(&repository, baseline, target)?);
         Ok(())
     }
 
@@ -611,6 +646,7 @@ mod tests {
             commits[0].subject,
             "Propagate changes: merge 1.19.2 into 1.20.1"
         );
+        assert!(!cli_source_matches_baseline(&repository, baseline, target)?);
         Ok(())
     }
 
