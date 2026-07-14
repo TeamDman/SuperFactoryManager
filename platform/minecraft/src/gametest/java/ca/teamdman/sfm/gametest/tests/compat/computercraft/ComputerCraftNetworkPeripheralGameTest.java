@@ -1,6 +1,10 @@
 package ca.teamdman.sfm.gametest.tests.compat.computercraft;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.compat.computercraft.SFMDiskHandle;
+import ca.teamdman.sfm.common.compat.computercraft.SFMLabelPositionHolderHandle;
+import ca.teamdman.sfm.common.compat.computercraft.SFMManagerCollectionHandle;
+import ca.teamdman.sfm.common.compat.computercraft.SFMManagerHandle;
 import ca.teamdman.sfm.common.compat.computercraft.SFMNetworkPeripheral;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -13,10 +17,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import dan200.computercraft.api.peripheral.PeripheralCapability;
-
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import net.minecraft.world.level.block.Blocks;
 
 @SFMGameTest
 public class ComputerCraftNetworkPeripheralGameTest extends SFMGameTestDefinition {
@@ -41,15 +43,18 @@ public class ComputerCraftNetworkPeripheralGameTest extends SFMGameTestDefinitio
         helper.setBlock(managerlessCablePos, SFMBlocks.CABLE.get());
 
         ManagerBlockEntity firstManager = helper.getBlockEntity(firstManagerPos, ManagerBlockEntity.class);
-        ItemStack disk = new ItemStack(SFMItems.DISK.get());
-        firstManager.setItem(0, disk);
+        ItemStack firstDisk = new ItemStack(SFMItems.DISK.get());
+        firstManager.setItem(0, firstDisk);
         firstManager.setProgram("NAME \"CC network test\"");
-        LabelPositionHolder
-                .from(disk)
-                .add("source", helper.absolutePos(new BlockPos(0, 2, 0)))
-                .save(disk);
+        LabelPositionHolder.from(firstDisk).add("source", helper.absolutePos(new BlockPos(0, 2, 0))).save(firstDisk);
 
-        var peripheral = Objects.requireNonNull(
+        ManagerBlockEntity secondManager = helper.getBlockEntity(secondManagerPos, ManagerBlockEntity.class);
+        ItemStack secondDisk = new ItemStack(SFMItems.DISK.get());
+        DiskItem.setProgram(secondDisk, "NAME \"CC stale manager test\"");
+        secondManager.setItem(0, secondDisk);
+        secondManager.rebuildProgramAndUpdateDisk();
+
+        SFMNetworkPeripheral peripheral = (SFMNetworkPeripheral) Objects.requireNonNull(
                 helper.getLevel().getCapability(
                         PeripheralCapability.get(),
                         helper.absolutePos(cablePos),
@@ -58,16 +63,30 @@ public class ComputerCraftNetworkPeripheralGameTest extends SFMGameTestDefinitio
                 "SFM cable did not expose an SFM network peripheral"
         );
         helper.assertTrue(
-                peripheral instanceof SFMNetworkPeripheral,
-                "SFM cable did not expose an SFM network peripheral"
-        );
-        helper.assertTrue(
                 SFMNetworkPeripheral.TYPE.equals(peripheral.getType()),
                 "SFM cable peripheral reported an unexpected type: " + peripheral.getType()
         );
 
-        List<Map<String, Object>> managers = ((SFMNetworkPeripheral) peripheral).getManagers();
-        helper.assertTrue(managers.size() == 2, "SFM network did not enumerate both connected managers");
+        SFMManagerCollectionHandle managers = peripheral.getManagers();
+        helper.assertTrue(managers.count() == 2, "Network manager collection did not enumerate both managers");
+        SFMManagerHandle first = managers.get(1);
+        helper.assertTrue(first != null, "First manager handle was missing");
+        Object[] position = first.position();
+        helper.assertTrue(
+                Integer.valueOf(helper.absolutePos(firstManagerPos).getX()).equals(position[0]),
+                "Manager handle did not expose a deterministic position"
+        );
+        helper.assertTrue("running".equals(first.state()[0]), "Manager handle did not expose state");
+
+        SFMDiskHandle disk = first.disk();
+        helper.assertTrue(disk != null, "Manager handle did not acquire its disk");
+        helper.assertTrue(
+                "NAME \"CC network test\"".equals(disk.getProgram()[0]),
+                "Disk handle did not expose source"
+        );
+        SFMLabelPositionHolderHandle labels = disk.labels();
+        helper.assertTrue(labels != null, "Disk labels were not a handle");
+        helper.assertTrue(labels.labelCount() == 1 && "source".equals(labels.labelName(1)), "Disk labels were unreadable");
 
         var directManagerPeripheral = Objects.requireNonNull(
                 helper.getLevel().getCapability(
@@ -78,7 +97,7 @@ public class ComputerCraftNetworkPeripheralGameTest extends SFMGameTestDefinitio
                 "SFM manager did not expose an SFM network peripheral"
         );
         helper.assertTrue(
-                ((SFMNetworkPeripheral) directManagerPeripheral).getManagers().size() == 2,
+                ((SFMNetworkPeripheral) directManagerPeripheral).getManagers().count() == 2,
                 "An SFM manager did not expose the network reached through its own cable membership"
         );
 
@@ -91,51 +110,24 @@ public class ComputerCraftNetworkPeripheralGameTest extends SFMGameTestDefinitio
                 "Managerless SFM cable did not expose an SFM network peripheral"
         );
         helper.assertTrue(
-                ((SFMNetworkPeripheral) managerlessPeripheral).getManagers().isEmpty(),
+                ((SFMNetworkPeripheral) managerlessPeripheral).getManagers().count() == 0,
                 "A managerless SFM cable did not expose the documented empty network view"
         );
 
-        Map<String, Object> firstManagerDetails = managers.get(0);
-        Map<?, ?> position = (Map<?, ?>) firstManagerDetails.get("position");
+        SFMManagerHandle second = managers.get(2);
+        SFMDiskHandle staleDisk = second.disk();
+        helper.setBlock(bridgeCablePos, Blocks.AIR);
+        helper.assertTrue(peripheral.getManagers().count() == 1, "Peripheral did not re-resolve after a split");
+        Object[] staleResult = staleDisk.setProgram("NAME \"should not save\"");
         helper.assertTrue(
-                Integer.valueOf(helper.absolutePos(firstManagerPos).getX()).equals(position.get("x")),
-                "Manager enumeration was not deterministic"
-        );
-        helper.assertTrue(
-                "running".equals(firstManagerDetails.get("state")),
-                "Manager state was not exposed as read-only network data"
-        );
-
-        Map<?, ?> diskDetails = (Map<?, ?>) firstManagerDetails.get("disk");
-        helper.assertTrue(diskDetails != null, "Manager disk was not exposed through the network");
-        helper.assertTrue(
-                "CC network test".equals(diskDetails.get("name")),
-                "Disk name was not exposed through the network"
-        );
-        helper.assertTrue(
-                "NAME \"CC network test\"".equals(diskDetails.get("program")),
-                "Disk program was not exposed through the network"
-        );
-        Map<?, ?> labels = (Map<?, ?>) diskDetails.get("labels");
-        helper.assertTrue(labels.containsKey("source"), "Disk labels were not exposed through the network");
-
-        helper.setBlock(bridgeCablePos, net.minecraft.world.level.block.Blocks.AIR);
-        helper.assertTrue(
-                ((SFMNetworkPeripheral) peripheral).getManagers().size() == 1,
-                "Peripheral did not re-resolve to its split cable network"
+                Boolean.FALSE.equals(staleResult[0]) && "manager_unreachable".equals(staleResult[1]),
+                "A split manager disk handle did not reject mutation"
         );
 
         helper.setBlock(bridgeCablePos, SFMBlocks.CABLE.get());
-        helper.assertTrue(
-                ((SFMNetworkPeripheral) peripheral).getManagers().size() == 2,
-                "Peripheral did not re-resolve after its cable networks rejoined"
-        );
-
-        helper.setBlock(cablePos, net.minecraft.world.level.block.Blocks.AIR);
-        helper.assertTrue(
-                ((SFMNetworkPeripheral) peripheral).getManagers().isEmpty(),
-                "Peripheral retained a stale cable network after its entry cable was removed"
-        );
+        helper.assertTrue(peripheral.getManagers().count() == 2, "Peripheral did not re-resolve after a rejoin");
+        helper.setBlock(cablePos, Blocks.AIR);
+        helper.assertTrue(peripheral.getManagers().count() == 0, "Peripheral retained its removed entry cable");
         helper.succeed();
     }
 }

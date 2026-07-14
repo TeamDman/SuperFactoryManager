@@ -6,7 +6,8 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import dan200.computercraft.api.ComputerCraftAPI;
-import dan200.computercraft.api.detail.VanillaDetailRegistries;
+import dan200.computercraft.api.client.turtle.RegisterTurtleModellersEvent;
+import dan200.computercraft.api.client.turtle.TurtleUpgradeModeller;
 import dan200.computercraft.api.peripheral.PeripheralCapability;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.Container;
@@ -22,23 +23,24 @@ import net.neoforged.neoforge.items.wrapper.InvWrapper;
  */
 @MCVersionDependentBehaviour // CC:Tweaked 1.111.0+ uses NeoForge block capabilities
 public final class ComputerCraftIntegration {
-    private static boolean detailsRegistered;
+    private static boolean registered;
 
     private ComputerCraftIntegration() {
 
     }
 
-    private static void registerDetails() {
+    private static void registerIntegration() {
 
-        if (detailsRegistered) return;
-        VanillaDetailRegistries.ITEM_STACK.addProvider(new SFMItemDetailProvider());
-        detailsRegistered = true;
+        if (registered) return;
+        ComputerCraftAPI.registerGenericSource(new SFMInventoryMethods());
+        registered = true;
     }
 
     @SFMSubscribeEvent
     private static void onCommonSetup(FMLCommonSetupEvent event) {
+
         if (SFMModCompat.isComputerCraftLoaded()) {
-            event.enqueueWork(ComputerCraftIntegration::registerDetails);
+            event.enqueueWork(ComputerCraftIntegration::registerIntegration);
         }
     }
 
@@ -92,5 +94,13 @@ public final class ComputerCraftIntegration {
                 normalTurtle,
                 advancedTurtle
         );
+    }
+
+    @SFMSubscribeEvent
+    private static void registerTurtleModeller(RegisterTurtleModellersEvent event) {
+
+        if (SFMModCompat.isComputerCraftLoaded()) {
+            event.register(SFMComputerCraftTurtleUpgrades.LABELER.get(), TurtleUpgradeModeller.flatItem());
+        }
     }
 }
