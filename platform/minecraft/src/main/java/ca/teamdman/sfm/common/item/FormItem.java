@@ -54,6 +54,16 @@ public class FormItem extends Item implements TooltipProvider {
         return components.getOrDefault(SFMDataComponents.FORM_REFERENCE.get(), ItemStackBox.EMPTY).stack();
     }
 
+    /**
+     * Reads the form reference without creating NBT on an otherwise blank form.
+     */
+    @MCVersionDependentBehaviour
+    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {
+
+        var tag = stack.getTag();
+        return tag == null ? ItemStack.EMPTY : ItemStack.of(tag.getCompound("reference"));
+    }
+
     @MCVersionDependentBehaviour
     public static ItemStack getCopiedReferenceFromForm(ItemStack stack) {
         return getBorrowedReferenceFromForm(stack).copy();

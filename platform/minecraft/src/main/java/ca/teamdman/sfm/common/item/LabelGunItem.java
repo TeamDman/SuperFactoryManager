@@ -195,6 +195,14 @@ public class LabelGunItem extends Item implements TooltipProvider {
     }
 
     /**
+     * Reads the view mode without creating NBT on an otherwise blank label gun.
+     */
+    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {
+
+        return getViewMode(stack);
+    }
+
+    /**
      * Sets the view mode in NBT.
      */
     public static void setViewMode(

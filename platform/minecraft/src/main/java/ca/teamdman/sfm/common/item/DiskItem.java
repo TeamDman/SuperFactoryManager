@@ -82,6 +82,15 @@ public class DiskItem extends Item implements TooltipProvider {
         return stack.getOrDefault(SFMDataComponents.PROGRAM_STRING.get(), "");
     }
 
+    /**
+     * Reads the stored program without creating an NBT tag on an otherwise blank disk.
+     */
+    public static String getProgramStringReadOnly(ItemStack stack) {
+
+        var tag = stack.getTag();
+        return tag == null ? "" : tag.getString("sfm:program");
+    }
+
     public static void setProgram(
             ItemStack stack,
             String programString
@@ -213,6 +222,15 @@ public class DiskItem extends Item implements TooltipProvider {
                         .map(MutableComponent::create)
                         .collect(Collectors.toList())
         );
+    }
+
+    /**
+     * Reads the stored program name without creating an NBT tag on an otherwise blank disk.
+     */
+    public static String getProgramNameReadOnly(ItemStack stack) {
+
+        var tag = stack.getTag();
+        return tag == null ? "" : tag.getString("sfm:name");
     }
 
     public static void setProgramName(

@@ -135,6 +135,18 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
         return new LabelPositionHolder(immutableLabelPositionHolder);
     }
 
+    /**
+     * Returns an owned label view without mutating the label cache.
+     */
+    public static LabelPositionHolder fromReadOnly(ItemStack stack) {
+
+        var cached = CACHE.get(stack);
+        if (cached != null) {
+            return cached.toOwned();
+        }
+        return from((DataComponentGetter) stack);
+    }
+
     public static LabelPositionHolder empty() {
 
         return new LabelPositionHolder();

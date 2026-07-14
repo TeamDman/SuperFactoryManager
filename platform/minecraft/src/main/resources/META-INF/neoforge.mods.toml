@@ -96,3 +96,10 @@ side="BOTH"
 modId = "mekanism"
 type="optional"
 versionRange = "[10.8.0,)"
+
+[[dependencies.${ mod_id }]]
+modId = "computercraft"
+type="optional"
+versionRange = "[1.101.3,)"
+ordering = "AFTER"
+side = "BOTH"

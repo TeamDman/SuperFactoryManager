@@ -340,6 +340,18 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
         return State.RUNNING;
     }
 
+    /**
+     * Computes manager state without creating NBT on a blank disk.
+     */
+    public State getStateReadOnly() {
+
+        var disk = getDisk();
+        if (disk == null) return State.NO_DISK;
+        if (DiskItem.getProgramStringReadOnly(disk).isBlank()) return State.NO_PROGRAM;
+        if (program == null) return State.INVALID_PROGRAM;
+        return State.RUNNING;
+    }
+
     public @Nullable String getProgramString() {
 
         var disk = getDisk();

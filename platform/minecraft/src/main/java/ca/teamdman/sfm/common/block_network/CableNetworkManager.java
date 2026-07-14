@@ -88,6 +88,14 @@ public class CableNetworkManager {
         return Optional.ofNullable(network);
     }
 
+    /**
+     * Finds the currently tracked cable network without constructing or modifying one.
+     */
+    public static Optional<CableNetwork> getNetworkFromCablePosition(Level level, BlockPos pos) {
+        if (level.isClientSide()) return Optional.empty();
+        return Optional.ofNullable(NETWORK_MANAGER.getNetwork(level, pos));
+    }
+
     public static List<BlockPos> getBadCableCachePositions(Level level) {
 
         return NETWORK_MANAGER.getNetworksForLevel(level)
