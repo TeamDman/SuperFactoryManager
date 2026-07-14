@@ -179,6 +179,21 @@ public class LabelGunItem extends Item {
     public static LabelGunViewMode getViewMode(ItemStack stack) {
 
         int ordinal = stack.getOrCreateTag().getInt("sfm:label_gun_view_mode");
+        return getViewModeFromOrdinal(ordinal);
+    }
+
+    /**
+     * Reads the view mode without creating NBT on an otherwise blank label gun.
+     */
+    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {
+
+        var tag = stack.getTag();
+        int ordinal = tag == null ? 0 : tag.getInt("sfm:label_gun_view_mode");
+        return getViewModeFromOrdinal(ordinal);
+    }
+
+    private static LabelGunViewMode getViewModeFromOrdinal(int ordinal) {
+
         // fallback if out of bounds or missing
         if (ordinal < 0 || ordinal >= LabelGunViewMode.values().length) {
             return LabelGunViewMode.SHOW_ALL;

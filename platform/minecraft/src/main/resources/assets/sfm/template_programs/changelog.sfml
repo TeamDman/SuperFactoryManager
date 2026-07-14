@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add CC:Tweaked cable-network peripherals, structured SFM item details, and turtle inventory support
 -- Fix draw canvas selection highlights covering unselected gaps between glyphs
 -- Fix draw canvas spaces being stored as glyphs and blank-line Backspace/Delete deleting the wrong glyph
 -- Add draw canvas keyboard shortcuts for zooming, panning, reset zoom, and fitting content
