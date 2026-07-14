@@ -24,7 +24,7 @@ facet-json = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d
 facet-styx = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-styx" }
 figue = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "figue", features = ["arbitrary"] }
 glob = "0.3.3"
-gix = { version = "0.84.0", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "index", "sha1", "worktree-stream"] }
+gix = { version = "0.84.0", default-features = false, features = ["blob-diff", "blocking-http-transport-reqwest-rust-tls", "index", "sha1", "worktree-stream"] }
 humansize = "2.1.3"
 humantime = "2.1.0"
 open = { version = "5.3.3", features = ["shellexecute-on-windows"] }
