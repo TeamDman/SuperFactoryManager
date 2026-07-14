@@ -12,6 +12,7 @@ use eyre::Context;
 use eyre::bail;
 use std::fmt::Write;
 use std::io::BufRead;
+use std::io::IsTerminal;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -242,6 +243,12 @@ fn partition_conflicts(files: &[String]) -> (Vec<&String>, Vec<&String>) {
 
 /// Prompt user with Y/n question (defaults to yes)
 fn prompt_yes_no(question: &str) -> eyre::Result<bool> {
+    if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
+        bail!(
+            "Cannot prompt to auto-resolve merge conflicts because standard input/output is not a terminal. Resolve the conflicts manually, then rerun `sfm-propagate-changes git merge`."
+        );
+    }
+
     stdout_prompt(format!("{question} [Y/n] "))?;
 
     let mut input = String::new();

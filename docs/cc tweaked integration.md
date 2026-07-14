@@ -6,6 +6,29 @@ SFM continues to load normally when CC:Tweaked is not installed.
 
 This document describes the 1.19.2 contract tested with CC:Tweaked 1.101.3.
 
+## Availability on maintained SFM versions
+
+The Lua contract in this document is the common contract for every active
+entry below. SFM keeps the CC:Tweaked source in every version branch: a
+version-specific source-exclude list, rather than a Git deletion, determines
+whether that branch compiles and packages the optional integration. This keeps
+the feature's history available for later forward merges.
+
+| Minecraft version | CC:Tweaked version | Status |
+| --- | --- | --- |
+| 1.19.2 | 1.101.3 | Supported and GameTested. |
+| 1.19.4 | 1.108.0 | Supported and GameTested with Forge 45.0.42. |
+| 1.20 | 1.105.0 | Supported and GameTested. |
+| 1.20.1 | 1.111.0 | Supported and GameTested. |
+| 1.20.4 | 1.110.2 | Supported and GameTested. |
+| 1.21.1 | 1.113.1 | Supported and GameTested. |
+| 1.20.2, 1.20.3, 26.1.2 | — | Not packaged: no compatible locked CC:Tweaked runtime; the source is excluded, not removed. |
+| 1.21.0 | 1.111.0 | Not packaged: the only published runtime is incompatible with the branch's NeoForge 21.0.143 runtime. The source is excluded, not removed. |
+
+The 1.21.0 exclusion is an upstream binary-compatibility limitation, not a
+different Lua contract. SFM's lockfile records the incompatible artifact and
+its sources so the eventual compatible release can be evaluated reproducibly.
+
 ## Cable-network peripheral
 
 Place a normal computer directly against an SFM cable or manager block. A
@@ -97,10 +120,17 @@ default data without creating NBT or changing the item.
 
 ## Turtle inventories
 
-CC:Tweaked turtles expose their ordinary Forge item-handler capability. No
-special SFM adapter is necessary: place a turtle directly next to an SFM cable,
-label it on the manager disk as usual, and use it as an SFM input or output.
-Disconnected turtles are not reachable through the cable network.
+On the Forge-era supported versions, CC:Tweaked turtles expose their ordinary
+item-handler capability. In the later NeoForge variants, CC:Tweaked's turtle
+is a public Minecraft `Container` but does not publish NeoForge's item-handler
+capability. SFM registers a narrow adapter for CC:Tweaked's normal and
+advanced turtle blocks that exposes that same inventory through the loader's
+standard item-handler wrapper. It uses only public Minecraft, loader, and
+CC:Tweaked APIs.
+
+In either case, place a turtle directly next to an SFM cable, label it on the
+manager disk as usual, and use it as an SFM input or output. Disconnected
+turtles are not reachable through the cable network.
 
 ## Tested examples
 

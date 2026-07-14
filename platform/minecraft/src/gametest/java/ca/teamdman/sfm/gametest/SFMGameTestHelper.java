@@ -21,13 +21,6 @@ import ca.teamdman.sfml.ast.ASTBuilder;
 import ca.teamdman.sfml.ast.BoolExpr;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
-import mekanism.api.RelativeSide;
-import mekanism.common.lib.transmitter.TransmissionType;
-import mekanism.common.tile.base.TileEntityMekanism;
-import mekanism.common.tile.component.TileComponentConfig;
-import mekanism.common.tile.component.config.ConfigInfo;
-import mekanism.common.tile.component.config.DataType;
-import mekanism.common.tile.prefab.TileEntityConfigurableMachine;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestAssertException;
@@ -522,29 +515,6 @@ public class SFMGameTestHelper extends GameTestHelper {
         } else {
             throw new IllegalArgumentException("Expected either a Container or IItemHandler but got "
                                                + inventory.getClass());
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends TileEntityMekanism> T getAndPrepMekTile(BlockPos mekanismPos) {
-        var tile = getBlockEntity(mekanismPos, TileEntityConfigurableMachine.class);
-        if (tile instanceof TileEntityConfigurableMachine mek) {
-            set_all_io(mek.getConfig());
-            return (T) mek;
-//        } else if (tile instanceof TileEntityBin bin) {
-        }
-        return (T) tile;
-    }
-
-    public static void set_all_io(TileComponentConfig config) {
-        for (TransmissionType type : TransmissionType.values()) {
-            ConfigInfo info = config.getConfig(type);
-            if (info != null) {
-                for (RelativeSide side : RelativeSide.values()) {
-                    info.setDataType(DataType.INPUT_OUTPUT, side);
-                    config.sideChanged(type, side);
-                }
-            }
         }
     }
 

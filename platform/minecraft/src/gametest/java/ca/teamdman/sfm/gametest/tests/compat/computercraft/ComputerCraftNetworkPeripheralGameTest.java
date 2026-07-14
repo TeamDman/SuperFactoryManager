@@ -2,7 +2,6 @@ package ca.teamdman.sfm.gametest.tests.compat.computercraft;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.compat.computercraft.SFMNetworkPeripheral;
-import ca.teamdman.sfm.common.compat.computercraft.SFMNetworkPeripheralProvider;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
@@ -13,14 +12,14 @@ import ca.teamdman.sfm.gametest.SFMGameTestHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
+import dan200.computercraft.api.peripheral.PeripheralCapability;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @SFMGameTest
 public class ComputerCraftNetworkPeripheralGameTest extends SFMGameTestDefinition {
-    private static final SFMNetworkPeripheralProvider PROVIDER = new SFMNetworkPeripheralProvider();
-
     @Override
     public String template() {
 
@@ -50,10 +49,14 @@ public class ComputerCraftNetworkPeripheralGameTest extends SFMGameTestDefinitio
                 .add("source", helper.absolutePos(new BlockPos(0, 2, 0)))
                 .save(disk);
 
-        var peripheral = PROVIDER
-                .getPeripheral(helper.getLevel(), helper.absolutePos(cablePos), Direction.NORTH)
-                .resolve()
-                .orElseThrow();
+        var peripheral = Objects.requireNonNull(
+                helper.getLevel().getCapability(
+                        PeripheralCapability.get(),
+                        helper.absolutePos(cablePos),
+                        Direction.NORTH
+                ),
+                "SFM cable did not expose an SFM network peripheral"
+        );
         helper.assertTrue(
                 peripheral instanceof SFMNetworkPeripheral,
                 "SFM cable did not expose an SFM network peripheral"
@@ -66,19 +69,27 @@ public class ComputerCraftNetworkPeripheralGameTest extends SFMGameTestDefinitio
         List<Map<String, Object>> managers = ((SFMNetworkPeripheral) peripheral).getManagers();
         helper.assertTrue(managers.size() == 2, "SFM network did not enumerate both connected managers");
 
-        var directManagerPeripheral = PROVIDER
-                .getPeripheral(helper.getLevel(), helper.absolutePos(firstManagerPos), Direction.NORTH)
-                .resolve()
-                .orElseThrow();
+        var directManagerPeripheral = Objects.requireNonNull(
+                helper.getLevel().getCapability(
+                        PeripheralCapability.get(),
+                        helper.absolutePos(firstManagerPos),
+                        Direction.NORTH
+                ),
+                "SFM manager did not expose an SFM network peripheral"
+        );
         helper.assertTrue(
                 ((SFMNetworkPeripheral) directManagerPeripheral).getManagers().size() == 2,
                 "An SFM manager did not expose the network reached through its own cable membership"
         );
 
-        var managerlessPeripheral = PROVIDER
-                .getPeripheral(helper.getLevel(), helper.absolutePos(managerlessCablePos), Direction.NORTH)
-                .resolve()
-                .orElseThrow();
+        var managerlessPeripheral = Objects.requireNonNull(
+                helper.getLevel().getCapability(
+                        PeripheralCapability.get(),
+                        helper.absolutePos(managerlessCablePos),
+                        Direction.NORTH
+                ),
+                "Managerless SFM cable did not expose an SFM network peripheral"
+        );
         helper.assertTrue(
                 ((SFMNetworkPeripheral) managerlessPeripheral).getManagers().isEmpty(),
                 "A managerless SFM cable did not expose the documented empty network view"
