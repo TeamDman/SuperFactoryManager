@@ -1801,6 +1801,10 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     let mut main_fingerprint_paths = classpath.clone();
     main_fingerprint_paths.extend(sources.iter().cloned());
     main_fingerprint_paths.push(argfile.clone());
+    let main_source_excludes = source_exclude_file_path(context, "main");
+    if main_source_excludes.is_file() {
+        main_fingerprint_paths.push(main_source_excludes);
+    }
     context.bail_if_cancelled()?;
     let main_fingerprint = {
         let _span = tracing::debug_span!(
@@ -2200,6 +2204,10 @@ fn compile_optional_java_source_set(
     );
     let mut fingerprint_paths = sources.clone();
     fingerprint_paths.push(argfile.clone());
+    let source_excludes = source_exclude_file_path(context, source_set);
+    if source_excludes.is_file() {
+        fingerprint_paths.push(source_excludes);
+    }
     context.bail_if_cancelled()?;
     let fingerprint = {
         let _span = tracing::debug_span!(

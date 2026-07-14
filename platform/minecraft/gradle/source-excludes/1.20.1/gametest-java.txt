@@ -3,5 +3,6 @@ ca/teamdman/sfm/gametest/tests/ai/**
 ca/teamdman/sfm/gametest/tests/compat/ae2/**
 ca/teamdman/sfm/gametest/tests/compat/dank/**
 ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/**
+ca/teamdman/sfm/gametest/tests/compat/mekanism/**
 ca/teamdman/sfm/gametest/tests/compat/multiple/**
 ca/teamdman/sfm/gametest/tests/compat/thermal/**
