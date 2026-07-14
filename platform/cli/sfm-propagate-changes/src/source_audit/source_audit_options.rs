@@ -7,6 +7,7 @@ pub struct SourceAuditOptions {
     pub branch: BranchQuery,
     pub languages: Vec<SourceLanguage>,
     pub max_lines: SourceLineLimit,
+    pub version_surfaces: bool,
 }
 
 impl SourceAuditOptions {
