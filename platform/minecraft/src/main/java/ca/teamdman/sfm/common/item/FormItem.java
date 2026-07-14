@@ -55,13 +55,12 @@ public class FormItem extends Item implements TooltipProvider {
     }
 
     /**
-     * Reads the form reference without creating NBT on an otherwise blank form.
+     * Reads the form reference without creating data on an otherwise blank form.
      */
     @MCVersionDependentBehaviour
     public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {
 
-        var tag = stack.getTag();
-        return tag == null ? ItemStack.EMPTY : ItemStack.of(tag.getCompound("reference"));
+        return getBorrowedReferenceFromForm(stack);
     }
 
     @MCVersionDependentBehaviour

@@ -15,6 +15,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfm.common.util.SFMItemUtils;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.ChatFormatting;
@@ -83,12 +84,12 @@ public class DiskItem extends Item implements TooltipProvider {
     }
 
     /**
-     * Reads the stored program without creating an NBT tag on an otherwise blank disk.
+     * Reads the stored program without creating data on an otherwise blank disk.
      */
+    @MCVersionDependentBehaviour // 1.21+ stores program data in item components
     public static String getProgramStringReadOnly(ItemStack stack) {
 
-        var tag = stack.getTag();
-        return tag == null ? "" : tag.getString("sfm:program");
+        return stack.getOrDefault(SFMDataComponents.PROGRAM_STRING.get(), "");
     }
 
     public static void setProgram(
@@ -225,12 +226,12 @@ public class DiskItem extends Item implements TooltipProvider {
     }
 
     /**
-     * Reads the stored program name without creating an NBT tag on an otherwise blank disk.
+     * Reads the stored program name without creating data on an otherwise blank disk.
      */
+    @MCVersionDependentBehaviour // 1.21+ stores program data in item components
     public static String getProgramNameReadOnly(ItemStack stack) {
 
-        var tag = stack.getTag();
-        return tag == null ? "" : tag.getString("sfm:name");
+        return getProgramName(stack);
     }
 
     public static void setProgramName(
