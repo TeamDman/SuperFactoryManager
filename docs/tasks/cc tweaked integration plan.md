@@ -1,6 +1,6 @@
 # CC:Tweaked Integration Plan
 
-**Plan status:** Active
+**Plan status:** Complete
 
 **Primary implementation branch:** `1.19.2`
 
@@ -681,7 +681,33 @@ turtle behavior, and tested Lua examples. Added the player-visible feature to
 **Completion criteria:** A player can build a supported topology and write a
 Lua program without reading Java source or guessing at item NBT.
 
-### [ ] 6.2 Propagate the completed 1.19.2 feature forward
+### [x] 6.2 Propagate the completed 1.19.2 feature forward
+
+**Completion notes:** Completed on 2026-07-13. The 1.19.2 implementation,
+documentation, and CLI cache-correctness changes were committed deliberately,
+then propagated oldest-first with `sfm-propagate-changes.exe git merge`. The
+shared commits are `6ff7db197` (source excludes participate in the Java
+compiler cache fingerprint), `025dfeab3` (availability and turtle-adapter
+documentation), and `7c75a93fb` (refuse an interactive merge prompt when
+stdin/stdout is not a terminal). The last change prevents an automated merge
+from hanging on `stdin.read_line` as happened during this propagation.
+
+Version-specific commits retain the current branch's tested API behavior:
+`16f88cc16` updates 1.19.4 to Forge 45.0.42 for CC:Tweaked 1.108.0;
+`10ed5b25a`, `7d76dcb0d`, `771d2d98e`, `d0232c420`, `b25fd5248`, and
+`6af32cbc9` carry the required version adaptations through 26.1.2. Conflicts
+were resolved by retaining each newer branch's loader/version behavior and
+grafting the shared intent. The later NeoForge adapters are explicitly
+`@MCVersionDependentBehaviour`; they expose a turtle's public Minecraft
+`Container` through the loader item-handler wrapper without importing a
+CC:Tweaked internal class.
+
+CC:Tweaked source is retained in every version branch. The source-exclude
+lists select compilation/runtime availability for 1.20.2, 1.20.3, 1.21.0, and
+26.1.2 rather than deleting the integration from those histories. The
+post-propagation version-surface audit exited successfully with zero
+later-branch CLI warnings. Its remaining Java warnings pre-date this feature
+and are recorded baseline version-surface debt.
 
 **Work:**
 
@@ -702,7 +728,23 @@ cargo run -- audit --branch core --version-surfaces
 integration, its version-specific code is bounded by explicit adapters, and
 the CLI has no later-branch-only change.
 
-### [ ] 6.3 Run cross-version acceptance
+### [x] 6.3 Run cross-version acceptance
+
+**Completion notes:** Completed on 2026-07-13 after propagation. The project
+CLI successfully ran `run compile --branch core --parallel=3 --error-action
+continue`, compiling every core branch. The focused `computer_craft_*`
+GameTest selector passed on the active integration lines: 1.19.2 (CC:Tweaked
+1.101.3), 1.19.4 (1.108.0 with Forge 45.0.42), 1.20 (1.105.0), 1.20.1
+(1.111.0), 1.20.4 (1.110.2), and 1.21.1 (1.113.1). This includes real Lua
+invocation, item details, topology, and turtle transfer coverage.
+
+No CC GameTest was run on the deliberately unavailable lines. 1.20.2,
+1.20.3, and 26.1.2 have no compatible locked runtime; their retained source is
+excluded. 1.21.0's sole published CC:Tweaked 1.111.0 runtime is incompatible
+with NeoForge 21.0.143, so its retained source and GameTests are excluded and
+the dependency is compile-only. The successful compile gate proves those
+exclusions leave the SFM branch buildable. The exact availability table is in
+`docs/cc tweaked integration.md`.
 
 **Work:**
 
