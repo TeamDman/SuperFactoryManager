@@ -817,16 +817,20 @@ cargo run -- run game-test-server --branch 1.19.2 --filter computer_craft_depend
 
 ## Phase 6: Make Gradle a schema v3 compatibility consumer
 
-### [~] 6.1 Inventory and test the Gradle dependency dialects
+### [x] 6.1 Inventory and test the Gradle dependency dialects
 
-**Completion notes:** The consumer now distinguishes ForgeGradle from NeoGradle by the applied `net.neoforged.gradle.userdev` plugin rather than by Minecraft version. The `1.19.2` ForgeGradle path is exercised by real Gradle builds and the projection verification task. A read-only worktree inventory on 2026-07-13 classifies every supported branch: ForgeGradle through `1.20.1`, then NeoGradle from `1.20.2` onward. Every non-primary branch still has a schema-v2 lockfile, so propagation and representative dialect execution remain Phase 12.1/12.5 gates rather than safe actions on the current dirty worktree.
+**Completion notes:** Completed on 2026-07-13. The consumer distinguishes ForgeGradle from
+NeoGradle by the applied `net.neoforged.gradle.userdev` plugin rather than by Minecraft version.
+The cross-version Cargo compile gates now exercise schema-v3 locks on all supported branches:
+ForgeGradle through 1.20.1 and NeoGradle from 1.20.2 onward. Representative data and `jar plan`
+gates passed for 1.19.2, 1.20.2, and 26.1.2, proving both adapter paths and the current dialect.
 
 **Current dialect matrix:**
 
 | Branches | Dialect | Loader declaration | Mod treatment | Status |
 | --- | --- | --- | --- | --- |
-| 1.19.2, 1.19.4, 1.20, 1.20.1 | ForgeGradle | `minecraft` | `fg.deobf` for `loader-managed-mod` only | 1.19.2 tested; later branches await v3 propagation |
-| 1.20.2, 1.20.3, 1.20.4, 1.21.0, 1.21.1, 26.1.2 | NeoGradle userdev | `implementation` | Plain Gradle notation | Adapter implemented; branch execution awaits v3 propagation |
+| 1.19.2, 1.19.4, 1.20, 1.20.1 | ForgeGradle | `minecraft` | `fg.deobf` for `loader-managed-mod` only | Compiled with intentional v3 locks |
+| 1.20.2, 1.20.3, 1.20.4, 1.21.0, 1.21.1, 26.1.2 | NeoGradle userdev | `implementation` | Plain Gradle notation | Compiled with intentional v3 locks |
 
 **Known samples:**
 
@@ -859,9 +863,16 @@ cargo run -- run game-test-server --branch 1.19.2 --filter computer_craft_depend
 
 **Completion criteria:** Gradle obtains all active dependency and repository declarations from schema v3.
 
-### [~] 6.3 Implement version/loader-specific Gradle adapters
+### [x] 6.3 Implement version/loader-specific Gradle adapters
 
-**Completion notes:** Implemented two small plugin-selected paths in `dependencies-from-lock.gradle`: ForgeGradle uses `minecraft` for the loader and applies `fg.deobf` only to `loader-managed-mod` components; NeoGradle userdev uses `implementation` and never references `fg.deobf`. Shared scope mapping covers compile/runtime, test, game-test, annotation processors, ANTLR code generation, and `jarJar`. Data projection drops excluded mods from runtime/game-test configurations while retaining compile scope as `compileOnly`, which lets SFM's compatibility sources compile without loading those mods during data generation. The remaining completion gate is executing this adapter on each distinct branch dialect in Phase 12.
+**Completion notes:** Completed on 2026-07-13. `dependencies-from-lock.gradle` contains two
+small plugin-selected paths: ForgeGradle uses `minecraft` for the loader and applies `fg.deobf`
+only to `loader-managed-mod` components; NeoGradle userdev uses `implementation` and never
+references `fg.deobf`. Shared scope mapping covers compile/runtime, test, game-test, annotation
+processors, ANTLR code generation, and `jarJar`. Data projection drops excluded mods from
+runtime/game-test configurations while retaining compile scope as `compileOnly`. The cross-version
+compile, representative data, and `jar plan` gates now validate these adapters across every
+supported dialect.
 
 **Required adapter responsibilities:**
 
@@ -1495,15 +1506,19 @@ they are started.
 
 ## Phase 12: Propagate, document, and remove obsolete surfaces
 
-### [~] 12.1 Propagate the v3 implementation through supported branches
+### [x] 12.1 Propagate the v3 implementation through supported branches
 
-**Completion notes:** The primary 1.19.2 implementation is complete and its full Rust gate
-passes. A 2026-07-13 propagation-readiness check found all nine newer version worktrees clean;
-they still contain schema-v2 lockfiles and await the intentional v3 migration. The 1.19.2
-worktree contains the uncommitted v3 implementation, so no merge has been attempted. The dirty
-feature worktree is intentionally non-versioned and excluded from propagation. Record the
-primary commit plus each resulting merge and dialect-specific adaptation here once propagation is
-authorized.
+**Completion notes:** Completed on 2026-07-13. The primary implementation was committed through
+`f4649919e`, `f82a04e2a`, and `94a394215`, then propagated oldest-first with
+`sfm-propagate-changes.exe git merge`. Final clean merge heads are 1.19.4 `660b1fa61`, 1.20
+`b93e3031f`, 1.20.1 `63010fe4f`, 1.20.2 `2bae2b6bb`, 1.20.3 `e2099b2b6`, 1.20.4
+`b7ebfeac3`, 1.21.0 `aaa332b17`, 1.21.1 `6e8293fb6`, and 26.1.2 `cc93e3bab`. All ten
+intentional lockfiles now use schema v3. Conflicts were resolved by retaining newer-branch
+behavior. Version-specific Java adapters are explicitly marked with
+`@MCVersionDependentBehaviour`: 1.19.4 GUI widgets, 1.20+ `GuiGraphics`, 1.21 grammar-resource
+construction, and the 26.1.2 extracted GUI/event API. Each supported branch compiles through the
+Cargo CLI. The 1.20.1 CC:Tweaked source provider is additionally locked at
+`refs/tags/v1.20.1-1.111.0` / `209b1ddbf9bc0396481d39ac5cdb8e7234714ae2`.
 
 **Work:**
 
@@ -1515,17 +1530,16 @@ authorized.
 
 **Completion criteria:** Every supported branch reads/writes v3 and selects a tested dependency/Gradle dialect.
 
-### [~] 12.2 Update repository guidance and command documentation
+### [x] 12.2 Update repository guidance and command documentation
 
 **Completion notes:** Primary 1.19.2 guidance was updated on 2026-07-13. `docs/AGENTS.md` now
 uses the typed platform-source acquisition command instead of the removed `jar sources` command;
 the CLI README documents explicit branch selection, portable/cache behavior, source
 acquisition-versus-search, Gradle's schema-v3 consumer role, and deliberate CurseForge discovery
 before exact-ID mutation. It now also documents the one-prompt, process-local
-`CURSEFORGE_CORE_API_KEY` workflow for a sequence of read-only discovery commands. A repository
-documentation scan finds no stale `jar sources` or
-`source audit` primary workflow outside this historical plan. Keep this item in progress until the
-supported-branch propagation and final documentation review in Phase 12 are complete.
+`CURSEFORGE_CORE_API_KEY` workflow for a sequence of read-only discovery commands. The final
+post-propagation repository documentation scan finds no stale `jar sources` or `source audit`
+primary workflow outside this historical plan.
 
 **Affected paths:**
 
@@ -1543,7 +1557,7 @@ supported-branch propagation and final documentation review in Phase 12 are comp
 
 **Completion criteria:** Repository instructions contain no stale primary workflow using removed commands.
 
-### [~] 12.3 Remove obsolete code and compatibility artifacts
+### [x] 12.3 Remove obsolete code and compatibility artifacts
 
 **Completion notes:** The primary branch was re-audited on 2026-07-13. The removed `jar sources`
 and top-level `source audit` commands have no remaining CLI/help references; the only retained
@@ -1551,9 +1565,9 @@ audit implementation is the intentional top-level `audit` backend. The productio
 dependency parser is absent, managed Git source acquisition contains no clone/checkout subprocess,
 and the remaining source `DependencySourceCommand` is the active nested `dependency source`
 command rather than a compatibility wrapper. Two stale client `--solo` help strings that named
-`dependencies.gradle` now correctly describe schema-v3 lockfile dependencies. Retained
-historical versioned dependency files remain inactive migration references until cross-branch
-propagation is completed; finalize this item after that Phase 12 review.
+`dependencies.gradle` now correctly describe schema-v3 lockfile dependencies. The final
+post-propagation scan confirms retained historical versioned dependency files are inactive
+migration references, not active handwritten dependency declarations.
 
 **Candidates:**
 
@@ -1566,18 +1580,18 @@ propagation is completed; finalize this item after that Phase 12 review.
 
 **Completion criteria:** `rg` finds no obsolete command variants, help text, parser tests, or source-build Git subprocess labels.
 
-### [~] 12.4 Run final Rust quality and behavior gates
+### [x] 12.4 Run final Rust quality and behavior gates
 
 **Completion notes:** The primary 1.19.2 gate set was re-run from the current Cargo source tree
-on 2026-07-13. `check-all.ps1` passed with 249 tests passed, 0 failed, and 1 ignored. The
+on 2026-07-13. `check-all.ps1` passed with 256 tests passed, 0 failed, and 1 ignored. The
 lockfile-facing commands `dependency list`, `dependency show cc-tweaked`, provider list,
 idempotent source acquire, and complete `IPeripheralProvider` search all succeeded; the latter
 returned both managed Git and Maven-source roots. `run compile`, `run test`, `run data`, and the
 filtered `computer_craft_dependency_smoke` GameTest all exited successfully. The corrected
 `run client --help` describes `--solo` in terms of schema-v3 lockfile dependencies. Live,
 read-only Core API discovery returned Mekanism project `268560` and all nine matching 1.19.2
-Forge files, including `4644795`. Retain this item as in progress until the same behavior is
-demonstrated for the propagated branch dialects.
+Forge files, including `4644795`. The search unit requires normal Windows filesystem access for
+its temporary ripgrep child process; with that normal environment the full gate passed.
 
 **Required validation:**
 
@@ -1596,9 +1610,18 @@ cargo run -- run game-test-server --branch 1.19.2 --filter computer_craft_depend
 
 **Completion criteria:** All commands pass from the local Rust CLI source tree, not a potentially stale PATH installation.
 
-### [ ] 12.5 Run cross-version acceptance gates
+### [x] 12.5 Run cross-version acceptance gates
 
-**Completion notes:** _Not started. Record each branch result and adapter-specific failures/fixes here._
+**Completion notes:** Completed on 2026-07-13. `cargo run -- run compile --branch <branch>`
+passed for 1.19.2, 1.19.4, 1.20, 1.20.1, 1.20.2, 1.20.3, 1.20.4, 1.21.0, 1.21.1, and 26.1.2.
+Representative data runs passed for early Forge (1.19.2), the intermediate NeoForge dialect
+(1.20.2), and current NeoForge (26.1.2); the 26.1.2 run established that ANTLR code generation
+and its bundled runtime must remain separate components. `dependency list` and `dependency show
+minecraft` passed for all ten branches. Minecraft platform-source acquisition passed for the
+ForgeGradle, NeoGradle, and current NeoGradle pipelines (1.19.2, 1.20.2, and 26.1.2), and
+`jar plan` passed for the same representative dialects. Complete and incomplete no-fetch search
+behavior is covered by isolated-cache acceptance. These results exercise each Gradle dialect
+without relying on obsolete `fg.deobf` behavior.
 
 **Work:**
 
@@ -1611,7 +1634,7 @@ cargo run -- run game-test-server --branch 1.19.2 --filter computer_craft_depend
 
 **Completion criteria:** No supported branch relies on early-Forge `fg.deobf` behavior where its loader no longer provides it.
 
-### [~] 12.6 Confirm repository and cache portability
+### [x] 12.6 Confirm repository and cache portability
 
 **Completion notes:** Primary 1.19.2 isolated-cache acceptance was completed on 2026-07-13.
 With an absent `SFM_PROPAGATE_CHANGES_CACHE`, `dependency source search --require-complete`
@@ -1621,9 +1644,12 @@ public remote and a complete Git-only `IPeripheralProvider` search succeeded, wi
 checkout. A separate cache was populated with only the two locked Mekanism binaries and locked
 Vineflower binary; its initially incomplete search made no source state, then explicit `api` and
 `main` Vineflower acquisition recreated searchable source trees without a network fetch. The ten
-current supported-worktree lockfiles contain no absolute Windows path value. The remaining gate is
-to prove one managed bare repository satisfies multiple propagated branch revisions after every
-supported branch has its intentional v3 lockfile.
+current supported-worktree lockfiles contain no absolute Windows path value. The final
+cross-branch proof locks the 1.20.1 CC:Tweaked Git provider at
+`refs/tags/v1.20.1-1.111.0` / `209b1ddbf9bc0396481d39ac5cdb8e7234714ae2` with its `projects`
+root. Acquiring it and the 1.19.2 provider yielded exactly one managed CC:Tweaked bare repository
+and two independent materialized trees for the distinct commits; a complete no-fetch
+`ComputerCraftAPI` search succeeded in the 1.20.1 tree. No user checkout is required.
 
 **Work:**
 
