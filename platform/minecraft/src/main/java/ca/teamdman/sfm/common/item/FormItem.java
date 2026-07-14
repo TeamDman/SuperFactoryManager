@@ -42,6 +42,16 @@ public class FormItem extends Item {
         return ItemStack.of(stack.getOrCreateTag().getCompound("reference"));
     }
 
+    /**
+     * Reads the form reference without creating NBT on an otherwise blank form.
+     */
+    @MCVersionDependentBehaviour
+    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {
+
+        var tag = stack.getTag();
+        return tag == null ? ItemStack.EMPTY : ItemStack.of(tag.getCompound("reference"));
+    }
+
 
     @MCVersionDependentBehaviour
     public static ItemStack getCopiedReferenceFromForm(ItemStack stack) {
