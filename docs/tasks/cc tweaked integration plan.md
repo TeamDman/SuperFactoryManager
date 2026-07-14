@@ -2,6 +2,11 @@
 
 **Plan status:** Complete
 
+> The read-only table/item-detail contract recorded here was superseded by
+> [`cc tweaked mutation plan.md`](cc%20tweaked%20mutation%20plan.md). Keep this
+> document as the completed dependency, availability, and original-integration
+> record.
+
 **Primary implementation branch:** `1.19.2`
 
 **Last updated:** 2026-07-13
