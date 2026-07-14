@@ -45,6 +45,10 @@
       "url": "https://repo.spongepowered.org/repository/maven-public"
     },
     {
+      "id": "squiddev",
+      "url": "https://squiddev.cc/maven"
+    },
+    {
       "id": "thermal",
       "url": "https://maven.covers1624.net"
     }
@@ -80,6 +84,77 @@
             "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.13.1\\antlr4-4.13.1.jar"
           },
           "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "cc-tweaked",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "CC:Tweaked",
+      "project_url": "https://github.com/cc-tweaked/CC-Tweaked",
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "cc.tweaked:cc-tweaked-1.21-forge:1.111.0",
+                "repository_id": "squiddev"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "cc-tweaked-cc-tweaked-1-21-forge-1-111-0-76054faa",
+            "resolved_coordinate": "cc.tweaked:cc-tweaked-1.21-forge:1.111.0",
+            "expected_hash": "blake3:76054faad385f217b37d605119992726c59fe100",
+            "cache_path": "$sfm-cache\\maven\\cc/tweaked\\cc-tweaked-1.21-forge\\1.111.0\\cc-tweaked-1.21-forge-1.111.0.jar"
+          },
+          "source_providers": [
+            {
+              "git": {
+                "id": "git",
+                "declaration": {
+                  "remote_url": "https://github.com/cc-tweaked/CC-Tweaked",
+                  "requested_revision": "refs/tags/v1.21-1.111.0",
+                  "roots": [
+                    "projects"
+                  ]
+                },
+                "derived_checks": {
+                  "commit": "efd9a0f315ad2608cd0c9f3a5e24f186469c981d",
+                  "repository_cache_path": "$sfm-cache/sources\\git/repositories\\https---github.com-cc-tweaked-cc-tweaked-fe1d9fad5f40253f.git",
+                  "tree_cache_path": "$sfm-cache/sources\\git/trees\\https---github.com-cc-tweaked-cc-tweaked-fe1d9fad5f40253f\\efd9a0f315ad2608cd0c9f3a5e24f186469c981d-1623fee8e83e5203"
+                }
+              }
+            },
+            {
+              "maven-sources": {
+                "id": "maven-sources",
+                "declaration": {
+                  "requested_coordinate": "cc.tweaked:cc-tweaked-1.21-forge:1.111.0:sources",
+                  "repository_id": "squiddev",
+                  "roots": []
+                },
+                "derived_checks": {
+                  "resolved_coordinate": "cc.tweaked:cc-tweaked-1.21-forge:1.111.0:sources",
+                  "url": "https://squiddev.cc/maven/cc/tweaked/cc-tweaked-1.21-forge/1.111.0/cc-tweaked-1.21-forge-1.111.0-sources.jar",
+                  "hash": "blake3:9f5df05e0951a3b87020324ea7db33ae1ea25a95",
+                  "archive_cache_path": "$sfm-cache/sources\\maven\\cc.tweaked-cc-tweaked-1.21-forge-1.111.0-sources-4177e686191a341b\\9f5df05e0951a3b87020324ea7db33ae1ea25a95\\sources.jar",
+                  "tree_cache_path": "$sfm-cache/sources\\maven\\cc.tweaked-cc-tweaked-1.21-forge-1.111.0-sources-4177e686191a341b\\9f5df05e0951a3b87020324ea7db33ae1ea25a95\\tree"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -490,6 +565,27 @@
   ],
   "artifacts": [
     {
+      "id": "cc-tweaked-cc-tweaked-1-21-forge-1-111-0-76054faa",
+      "owner": {
+        "dependency_id": "cc-tweaked",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "cc.tweaked:cc-tweaked-1.21-forge:1.111.0",
+      "repository_id": "squiddev",
+      "url": "https://squiddev.cc/maven/cc/tweaked/cc-tweaked-1.21-forge/1.111.0/cc-tweaked-1.21-forge-1.111.0.jar",
+      "hash": "blake3:76054faad385f217b37d605119992726c59fe100",
+      "cache_path": "$sfm-cache\\maven\\cc/tweaked\\cc-tweaked-1.21-forge\\1.111.0\\cc-tweaked-1.21-forge-1.111.0.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "com-electronwill-night-config-core-3-8-0-c177c69b",
       "owner": null,
       "purposes": [
@@ -501,6 +597,8 @@
       "hash": "blake3:c177c69becf938cdced21a69144b70f3d8e80612",
       "cache_path": "$sfm-cache\\maven\\com\\electronwill\\night-config\\core\\3.8.0\\core-3.8.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -515,6 +613,8 @@
       "hash": "blake3:5e98efaadb2cc88ae964cf1f7d0c5cab8afa5577",
       "cache_path": "$sfm-cache\\maven\\com\\electronwill\\night-config\\toml\\3.8.0\\toml-3.8.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -529,6 +629,8 @@
       "hash": "blake3:1055b7a25b9cf1274901059912a1b7d455197a9b",
       "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-core\\3.26.4\\javaparser-core-3.26.4.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -543,6 +645,8 @@
       "hash": "blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c",
       "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-symbol-solver-core\\3.26.4\\javaparser-symbol-solver-core-3.26.4.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -557,6 +661,8 @@
       "hash": "blake3:bd3e148a3f405a3a5b7a217b401b494feb8acc81",
       "cache_path": "$sfm-cache\\maven\\com\\google\\code\\findbugs\\jsr305\\3.0.2\\jsr305-3.0.2.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -571,6 +677,8 @@
       "hash": "blake3:cf68fb2a3ebfe2130073a7cfaf32b0d00c957e35",
       "cache_path": "$sfm-cache\\maven\\com\\google\\code\\gson\\gson\\2.10.1\\gson-2.10.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -585,6 +693,8 @@
       "hash": "blake3:a8e8f8466c936be31b761e289ebeaf4ebbbd414a",
       "cache_path": "$sfm-cache\\maven\\com\\google\\errorprone\\error_prone_annotations\\2.18.0\\error_prone_annotations-2.18.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -599,6 +709,8 @@
       "hash": "blake3:ef22899364361f72dab03ee9a344ab2e1e13215a",
       "cache_path": "$sfm-cache\\maven\\com\\google\\guava\\failureaccess\\1.0.1\\failureaccess-1.0.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -613,6 +725,8 @@
       "hash": "blake3:33b9499ca7f8233c78923e1cacdcb125226445f7",
       "cache_path": "$sfm-cache\\maven\\com\\google\\guava\\guava\\32.1.2-jre\\guava-32.1.2-jre.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -627,6 +741,8 @@
       "hash": "blake3:f0d8d49877fa2594423ab164830d5658a8e03a0f",
       "cache_path": "$sfm-cache\\maven\\com\\google\\guava\\listenablefuture\\9999.0-empty-to-avoid-conflict-with-guava\\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -641,6 +757,8 @@
       "hash": "blake3:81287bd914038a3f72d8f5ac7e5858eaac99d869",
       "cache_path": "$sfm-cache\\maven\\com\\google\\j2objc\\j2objc-annotations\\2.8\\j2objc-annotations-2.8.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -655,6 +773,8 @@
       "hash": "blake3:72f3ca071e66c446e43d010806d3822573e69022",
       "cache_path": "$sfm-cache\\maven\\com\\ibm\\icu\\icu4j\\72.1\\icu4j-72.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -669,6 +789,8 @@
       "hash": "blake3:c726e16b01bef81b9b7f32817e0467113b00dabf",
       "cache_path": "$sfm-cache\\maven\\com\\machinezoo\\noexception\\noexception\\1.7.1\\noexception-1.7.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -683,6 +805,8 @@
       "hash": "blake3:053fc3450bc7579fcd1fb3e5055753ad01a820ba",
       "cache_path": "$sfm-cache\\maven\\com\\mojang\\logging\\1.2.7\\logging-1.2.7.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -697,6 +821,8 @@
       "hash": "blake3:f101a9bedfa2b371de65f5458928942e046f0204",
       "cache_path": "$sfm-cache\\maven\\commons-io\\commons-io\\2.15.1\\commons-io-2.15.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -711,6 +837,8 @@
       "hash": "blake3:89c5345b15075b80c932c5b7c9620ec0b929e0ae",
       "cache_path": "$sfm-cache\\maven\\cpw\\mods\\bootstraplauncher\\2.0.2\\bootstraplauncher-2.0.2.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -725,6 +853,8 @@
       "hash": "blake3:1f434a99d96d689f20057e6524f3cdd966a0a415",
       "cache_path": "$sfm-cache\\maven\\cpw\\mods\\modlauncher\\11.0.4\\modlauncher-11.0.4.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -739,6 +869,8 @@
       "hash": "blake3:3a1b24c8ab4a48250ad183b9844a1cadb2194c7d",
       "cache_path": "$sfm-cache\\maven\\cpw\\mods\\securejarhandler\\3.0.8\\securejarhandler-3.0.8.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -756,6 +888,8 @@
       "hash": "blake3:fa231d6b25c59947eec311684fd59ed685537591",
       "cache_path": "$sfm-cache\\maven\\curse\\maven\\mekanism-268560\\5552293\\mekanism-268560-5552293.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -770,6 +904,8 @@
       "hash": "blake3:f02d24442f8cd48fa6688f4fc31f1a3c5ea4c47e",
       "cache_path": "$sfm-cache\\maven\\io\\github\\llamalad7\\mixinextras-neoforge\\0.3.5\\mixinextras-neoforge-0.3.5.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -787,6 +923,8 @@
       "hash": "blake3:afab6c7f435b1b94f47134bb4f50c389d6bcc262",
       "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\1.21-10.6.6.53\\Mekanism-1.21-10.6.6.53-api.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -804,6 +942,8 @@
       "hash": "blake3:002b7b9d753b5f79337efaf30ca27977b867ef7b",
       "cache_path": "$sfm-cache\\maven\\mezz\\jei\\jei-1.21-neoforge\\19.8.2.99\\jei-1.21-neoforge-19.8.2.99.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -818,6 +958,8 @@
       "hash": "blake3:a97558116257b8de9488682eb88b65c92ad34bf9",
       "cache_path": "$sfm-cache\\maven\\net\\fabricmc\\sponge-mixin\\0.14.0+mixin.0.8.6\\sponge-mixin-0.14.0+mixin.0.8.6.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -832,6 +974,8 @@
       "hash": "blake3:f4c1ed2af614b2ae7a8087e96fa6f9fd4b986f9f",
       "cache_path": "$sfm-cache\\maven\\net\\jodah\\typetools\\0.6.3\\typetools-0.6.3.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -846,6 +990,8 @@
       "hash": "blake3:3f82db20b59b41eedeb4a6002cb49ae259aae07e",
       "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\srgutils\\0.4.15\\srgutils-0.4.15.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -860,6 +1006,8 @@
       "hash": "blake3:4a42e7d39b5bc4060a06585975270d472345a0a0",
       "cache_path": "$sfm-cache\\maven\\net\\minecrell\\terminalconsoleappender\\1.3.0\\terminalconsoleappender-1.3.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -874,6 +1022,8 @@
       "hash": "blake3:49186ce636dee5b7c7773bd99b3cd1d5bd897b00",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\accesstransformers\\10.0.1\\accesstransformers-10.0.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -888,6 +1038,8 @@
       "hash": "blake3:4f9eeccdcade17d09aab2d9dd34a7d5e7491dfaf",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\accesstransformers\\at-modlauncher\\10.0.1\\at-modlauncher-10.0.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -902,6 +1054,8 @@
       "hash": "blake3:ac03697272b50b481a1b4c9a0f214a110f2afb5f",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\bus\\8.0.1\\bus-8.0.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -916,6 +1070,8 @@
       "hash": "blake3:82b7ab5f7768773510cf73cdf903003d8923ac82",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\coremods\\7.0.3\\coremods-7.0.3.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -930,6 +1086,8 @@
       "hash": "blake3:21d2ebf424a79f3e375039be91bd3fe5aa1bd730",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\fancymodloader\\earlydisplay\\4.0.21\\earlydisplay-4.0.21.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -944,6 +1102,8 @@
       "hash": "blake3:3b43de9926073473ed7272bec23518b6e63958e9",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\fancymodloader\\junit-fml\\4.0.21\\junit-fml-4.0.21.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -958,6 +1118,8 @@
       "hash": "blake3:d8dd2d43e2967aa19298757a3f227c97d506e061",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\fancymodloader\\loader\\4.0.21\\loader-4.0.21.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -972,6 +1134,8 @@
       "hash": "blake3:5059d0f9cd4cb0d58c34ff6ac24efec02409921b",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\JarJarFileSystems\\0.4.1\\JarJarFileSystems-0.4.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -986,6 +1150,8 @@
       "hash": "blake3:78f1c9b4c676b1b2ede0dbe36a58c01a1cb893ba",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\JarJarMetadata\\0.4.1\\JarJarMetadata-0.4.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1000,6 +1166,8 @@
       "hash": "blake3:15822c0826da7b53cbeab5bc12a8c37f0f0f4df4",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\JarJarSelector\\0.4.1\\JarJarSelector-0.4.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1014,6 +1182,8 @@
       "hash": "blake3:39d0a6e58ddcf38f9b56f2a9d2fbf393427491b7",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\mergetool\\2.0.3\\mergetool-2.0.3-api.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1028,6 +1198,8 @@
       "hash": "blake3:f457fa34c3a1d74f4d3ba6f8a2a39b396f72413f",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoforge\\21.0.143\\neoforge-21.0.143-sources.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1042,6 +1214,8 @@
       "hash": "blake3:a3e154b7b04c66c8872af2ffc10818e3d5994467",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoforge\\21.0.143\\neoforge-21.0.143-universal.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1060,6 +1234,8 @@
       "hash": "blake3:80adfede0c23d4cf520a6cf7c30af66f0248147d",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoforge\\21.0.143\\neoforge-21.0.143-userdev.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1074,6 +1250,8 @@
       "hash": "blake3:6e1d2309b587f8d17c1573994195b90a40b56ebc",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoform\\1.21-20240613.152323\\neoform-1.21-20240613.152323.zip",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1088,6 +1266,8 @@
       "hash": "blake3:008acc741f349d2b57d6c393f3cb248974143a1a",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\neoform-runtime\\2.0.19\\neoform-runtime-2.0.19-all.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1102,6 +1282,8 @@
       "hash": "blake3:dc72a5098b10099a13ed4b5bd7e739bd7c90f111",
       "cache_path": "$sfm-cache\\maven\\net\\neoforged\\testframework\\21.0.143\\testframework-21.0.143.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1116,6 +1298,8 @@
       "hash": "blake3:c9f31de9dc51d72c8f1173842455542005d524e5",
       "cache_path": "$sfm-cache\\maven\\net\\sf\\jopt-simple\\jopt-simple\\5.0.4\\jopt-simple-5.0.4.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1130,6 +1314,8 @@
       "hash": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8",
       "cache_path": "$sfm-cache\\maven\\org\\abego\\treelayout\\org.abego.treelayout.core\\1.0.3\\org.abego.treelayout.core-1.0.3.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1144,6 +1330,8 @@
       "hash": "blake3:5526b5bc53f5aaae0721d086d88c31a5af88572f",
       "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr-runtime\\3.5.3\\antlr-runtime-3.5.3.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1158,6 +1346,8 @@
       "hash": "blake3:7a222484ba088298bdc3b4b26294420eb69c36d6",
       "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.13.1\\antlr4-4.13.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1172,6 +1362,8 @@
       "hash": "blake3:ee9769fc09bea7288037d4f210a5f0e0a8aa0b90",
       "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4-runtime\\4.13.1\\antlr4-runtime-4.13.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1186,6 +1378,8 @@
       "hash": "blake3:f2e791b074daaebc422756dfbb334023640e3f99",
       "cache_path": "$sfm-cache\\maven\\org\\antlr\\ST4\\4.3.4\\ST4-4.3.4.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1200,6 +1394,8 @@
       "hash": "blake3:0f79a6681f4413f569fe78e76591569007382e33",
       "cache_path": "$sfm-cache\\maven\\org\\apache\\commons\\commons-lang3\\3.14.0\\commons-lang3-3.14.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1214,6 +1410,8 @@
       "hash": "blake3:08cfbdfda7cf9224d73190a96cd16bde2751004d",
       "cache_path": "$sfm-cache\\maven\\org\\apache\\logging\\log4j\\log4j-api\\2.22.1\\log4j-api-2.22.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1228,6 +1426,8 @@
       "hash": "blake3:2cc28f1ba577ae2f9680d0df389603beb8e6a2d8",
       "cache_path": "$sfm-cache\\maven\\org\\apache\\logging\\log4j\\log4j-core\\2.22.1\\log4j-core-2.22.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1242,6 +1442,8 @@
       "hash": "blake3:bf049986e3fc729881730ea525d1b23b6969c6e5",
       "cache_path": "$sfm-cache\\maven\\org\\apache\\logging\\log4j\\log4j-slf4j2-impl\\2.22.1\\log4j-slf4j2-impl-2.22.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1256,6 +1458,8 @@
       "hash": "blake3:492cc125aaaeb811c3938dc741e5d215a77b593a",
       "cache_path": "$sfm-cache\\maven\\org\\apache\\maven\\maven-artifact\\3.8.5\\maven-artifact-3.8.5.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1270,6 +1474,8 @@
       "hash": "blake3:441ed3e16cf38b69d79c7511a6f4422b12da102e",
       "cache_path": "$sfm-cache\\maven\\org\\apiguardian\\apiguardian-api\\1.1.2\\apiguardian-api-1.1.2.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1284,6 +1490,8 @@
       "hash": "blake3:e88bee75a8e32a0604fb26cb780de5c1d3e47059",
       "cache_path": "$sfm-cache\\maven\\org\\checkerframework\\checker-qual\\3.33.0\\checker-qual-3.33.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1298,6 +1506,8 @@
       "hash": "blake3:983ea86b0ad4c1859ea828d439f865d20b5014dd",
       "cache_path": "$sfm-cache\\maven\\org\\codehaus\\plexus\\plexus-utils\\3.3.0\\plexus-utils-3.3.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1312,6 +1522,8 @@
       "hash": "blake3:9a3d2fae94bf334d4dc72f71112c47755d37f533",
       "cache_path": "$sfm-cache\\maven\\org\\jetbrains\\annotations\\24.0.1\\annotations-24.0.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1326,6 +1538,8 @@
       "hash": "blake3:6bae1099696eca92bda09d1f56ff1955d01e9800",
       "cache_path": "$sfm-cache\\maven\\org\\jline\\jline-reader\\3.20.0\\jline-reader-3.20.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1340,6 +1554,8 @@
       "hash": "blake3:582b11eaef411bba8353f05f91472cb6ba30f668",
       "cache_path": "$sfm-cache\\maven\\org\\jline\\jline-terminal\\3.20.0\\jline-terminal-3.20.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1354,6 +1570,8 @@
       "hash": "blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-api\\5.8.1\\junit-jupiter-api-5.8.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1368,6 +1586,8 @@
       "hash": "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-engine\\5.8.1\\junit-jupiter-engine-5.8.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1382,6 +1602,8 @@
       "hash": "blake3:7759ca76b225617375161ef5de29f78fe2fc4341",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-commons\\1.10.2\\junit-platform-commons-1.10.2.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1396,6 +1618,8 @@
       "hash": "blake3:43f785f96ceecfab14da65957cf6fa1a0cd26ee4",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-commons\\1.8.1\\junit-platform-commons-1.8.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1410,6 +1634,8 @@
       "hash": "blake3:1b806456ca8a7a09bd65ef672af0b4344611fa3d",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-console-standalone\\1.8.1\\junit-platform-console-standalone-1.8.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1424,6 +1650,8 @@
       "hash": "blake3:0c4199c63ca00b63eef30ed0b2c1ecce10dc2dfc",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-engine\\1.10.2\\junit-platform-engine-1.10.2.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1438,6 +1666,8 @@
       "hash": "blake3:f98f7e2669f9f7661af6ca3d0dfdea913234168a",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-engine\\1.8.1\\junit-platform-engine-1.8.1.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1452,6 +1682,8 @@
       "hash": "blake3:a5c85638cb5d72a1ebabe90759bee19967f70377",
       "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-launcher\\1.10.2\\junit-platform-launcher-1.10.2.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1466,6 +1698,8 @@
       "hash": "blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15",
       "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-core\\1.37\\jmh-core-1.37.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1480,6 +1714,8 @@
       "hash": "blake3:74920027bb3f569af240fc283876568793baa2e8",
       "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-annprocess\\1.37\\jmh-generator-annprocess-1.37.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1494,6 +1730,8 @@
       "hash": "blake3:7d990641e58ba333d6533e1575c625105f9114e4",
       "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-asm\\1.37\\jmh-generator-asm-1.37.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1508,6 +1746,8 @@
       "hash": "blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20",
       "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-bytecode\\1.37\\jmh-generator-bytecode-1.37.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1522,6 +1762,8 @@
       "hash": "blake3:080c98f2b44dc69f4112da9a89dca9762f309948",
       "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-reflection\\1.37\\jmh-generator-reflection-1.37.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1536,6 +1778,8 @@
       "hash": "blake3:b1cded0a306035a1e3b9e508686ce07812351525",
       "cache_path": "$sfm-cache\\maven\\org\\openjdk\\nashorn\\nashorn-core\\15.4\\nashorn-core-15.4.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1550,6 +1794,8 @@
       "hash": "blake3:75de231b7d449ae3feb8ffafac8e8f7dc68d319b",
       "cache_path": "$sfm-cache\\maven\\org\\opentest4j\\opentest4j\\1.2.0\\opentest4j-1.2.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1564,6 +1810,8 @@
       "hash": "blake3:50f6f48b074663ec93b10e28ceabf9db90bf7e2b",
       "cache_path": "$sfm-cache\\maven\\org\\opentest4j\\opentest4j\\1.3.0\\opentest4j-1.3.0.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1578,6 +1826,8 @@
       "hash": "blake3:56df078607b3ba0ab75201c1feb9da35880f96f5",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm\\9.5\\asm-9.5.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1592,6 +1842,8 @@
       "hash": "blake3:74a8529bf90b32cdef97de947562f1d28798bd44",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-analysis\\9.5\\asm-analysis-9.5.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1606,6 +1858,8 @@
       "hash": "blake3:19c89f1f40d3cc9d408a2b2076f904f178de48af",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-commons\\9.5\\asm-commons-9.5.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1620,6 +1874,8 @@
       "hash": "blake3:e8af669fc7eaae63613912f79a9583026e8ad2de",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-tree\\9.5\\asm-tree-9.5.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1634,6 +1890,8 @@
       "hash": "blake3:467583e601278692a3ba40819ad23212ae11d958",
       "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-util\\9.5\\asm-util-9.5.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1648,6 +1906,8 @@
       "hash": "blake3:6f3759520a765b480acc17c217204bdf4e1f62b3",
       "cache_path": "$sfm-cache\\maven\\org\\parchmentmc\\data\\parchment-1.20.6\\2024.05.01\\parchment-1.20.6-2024.05.01.zip",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1662,6 +1922,8 @@
       "hash": "blake3:1f4a497cc597e5a68fa151804aeff0a9f927dccb",
       "cache_path": "$sfm-cache\\maven\\org\\slf4j\\slf4j-api\\2.0.9\\slf4j-api-2.0.9.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1679,6 +1941,8 @@
       "hash": "blake3:b4839b346ffef67432425608e4363435dd9acbc6",
       "cache_path": "$sfm-cache\\maven\\org\\spongepowered\\mixin\\0.8.5\\mixin-0.8.5-processor.jar",
       "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1697,6 +1961,8 @@
       "hash": "blake3:9ad8075cda6506ddd5dfed5d04a8933621928beb",
       "cache_path": "$sfm-cache\\minecraft\\versions\\1.21\\version.json",
       "provenance": "remote-http",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     },
     {
@@ -1711,6 +1977,8 @@
       "hash": "blake3:13fc8058e084e22e01c9fef08a61f4cb9cbb7d4f",
       "cache_path": "$sfm-cache\\minecraft\\metadata\\version_manifest_v2.json",
       "provenance": "remote-http",
+      "source_git": null,
+      "source_build": null,
       "weak": null
     }
   ]
