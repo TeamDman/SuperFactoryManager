@@ -5,7 +5,10 @@ use super::SourceAuditReport;
 use super::SourceLanguage;
 use super::SourceLineCount;
 use super::SourceProblem;
+use super::VersionSurfaceAuditReport;
+use super::audit_version_surfaces;
 use crate::branch_targets::WorktreeTarget;
+use crate::branch_targets::discover_worktree_targets;
 use crate::branch_targets::select_required_worktree_targets;
 use crate::terminal_output::stdout_blank_line;
 use crate::terminal_output::stdout_line;
@@ -32,8 +35,8 @@ impl SourceAuditCommand {
         let targets = select_required_worktree_targets(&self.options.branch)?;
         let mut report = SourceAuditReport::default();
 
-        for target in targets {
-            let branch_report = self.audit_target(&target)?;
+        for target in &targets {
+            let branch_report = self.audit_target(target)?;
             for problem in &branch_report.problems {
                 stdout_line(problem.warning_line())?;
             }
@@ -57,6 +60,12 @@ impl SourceAuditCommand {
                     problem.line_count, problem.detected, problem.language
                 ))?;
             }
+        }
+
+        if self.options.version_surfaces {
+            let version_targets = include_version_surface_baseline(targets)?;
+            let version_report = audit_version_surfaces(&version_targets)?;
+            emit_version_surface_report(&version_report)?;
         }
 
         Ok(())
@@ -113,6 +122,63 @@ impl SourceAuditCommand {
     }
 }
 
+fn include_version_surface_baseline(
+    mut targets: Vec<WorktreeTarget>,
+) -> eyre::Result<Vec<WorktreeTarget>> {
+    if targets
+        .iter()
+        .any(|target| target.branch.as_str() == "1.19.2")
+    {
+        return Ok(targets);
+    }
+
+    let baseline = discover_worktree_targets()?
+        .into_iter()
+        .find(|target| target.branch.as_str() == "1.19.2")
+        .ok_or_else(|| eyre::eyre!("Version-surface audit requires the 1.19.2 worktree."))?;
+    targets.push(baseline);
+    Ok(targets)
+}
+
+fn emit_version_surface_report(report: &VersionSurfaceAuditReport) -> eyre::Result<()> {
+    stdout_blank_line()?;
+    stdout_line(format!(
+        "Version surface audit: baseline={} branches={} cli-warnings={} java-warnings={}",
+        report.baseline_branch,
+        report.branches.len(),
+        report.cli_warning_count(),
+        report.java_warning_count()
+    ))?;
+    for branch in &report.branches {
+        stdout_line(format!(
+            "  {} cli-warnings={} java-warnings={}",
+            branch.branch,
+            branch.cli_commits.len(),
+            branch.unbounded_java_changes.len()
+        ))?;
+        for commit in branch.cli_commits.iter().take(10) {
+            stdout_line(format!(
+                "  WARN CLI change outside 1.19.2: branch={} commit={} {}",
+                branch.branch, commit.id, commit.subject
+            ))?;
+        }
+        for change in branch.unbounded_java_changes.iter().take(20) {
+            stdout_line(format!(
+                "  WARN Java change outside @MCVersionDependentBehaviour: branch={} path={} base={} target={}",
+                branch.branch, change.path, change.base_range, change.target_range
+            ))?;
+        }
+        let omitted_cli = branch.cli_commits.len().saturating_sub(10);
+        let omitted_java = branch.unbounded_java_changes.len().saturating_sub(20);
+        if omitted_cli > 0 || omitted_java > 0 {
+            stdout_line(format!(
+                "  ... {omitted_cli} CLI and {omitted_java} Java warnings omitted"
+            ))?;
+        }
+    }
+    Ok(())
+}
+
 fn repo_path_to_filesystem_path(worktree_path: &Path, repo_path: &str) -> PathBuf {
     repo_path
         .split('/')
@@ -147,6 +213,7 @@ mod tests {
             branch: BranchQuery::parse("*")?,
             languages: Vec::new(),
             max_lines: SourceLineLimit(1),
+            version_surfaces: false,
         });
         let target = WorktreeTarget::from_parts(
             BranchName::from("1.19.2"),
