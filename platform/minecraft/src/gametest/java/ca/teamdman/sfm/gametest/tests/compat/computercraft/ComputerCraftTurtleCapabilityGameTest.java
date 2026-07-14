@@ -3,7 +3,8 @@ package ca.teamdman.sfm.gametest.tests.compat.computercraft;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
-import dan200.computercraft.shared.Registry;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import dan200.computercraft.shared.ModRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -13,6 +14,7 @@ import net.minecraftforge.items.IItemHandler;
  * Proves SFM's normal capability discovery sees a live CC:Tweaked turtle inventory.
  */
 @SFMGameTest
+@MCVersionDependentBehaviour // CC internal GameTest fixture API
 public class ComputerCraftTurtleCapabilityGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
@@ -24,7 +26,7 @@ public class ComputerCraftTurtleCapabilityGameTest extends SFMGameTestDefinition
     public void run(SFMGameTestHelper helper) {
 
         BlockPos turtlePos = new BlockPos(1, 2, 0);
-        helper.setBlock(turtlePos, Registry.ModBlocks.TURTLE_NORMAL.get());
+        helper.setBlock(turtlePos, ModRegistry.Blocks.TURTLE_NORMAL.get());
 
         IItemHandler turtleInventory = helper.getItemHandler(turtlePos);
         helper.assertTrue(

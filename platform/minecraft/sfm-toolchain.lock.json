@@ -117,7 +117,7 @@
             "artifact_id": "cc-tweaked-cc-tweaked-1-19-4-forge-1-108-0-15ce3e57",
             "resolved_coordinate": "cc.tweaked:cc-tweaked-1.19.4-forge:1.108.0",
             "expected_hash": "blake3:15ce3e57f63677df4f2d7db09ccb2e387bbd2a85",
-            "cache_path": "$sfm-cache\\maven\\cc/tweaked\\cc-tweaked-1.19.4-forge\\1.108.0\\cc-tweaked-1.19.4-forge-1.108.0.jar"
+            "cache_path": "$sfm-cache\\maven\\cc\\tweaked\\cc-tweaked-1.19.4-forge\\1.108.0\\cc-tweaked-1.19.4-forge-1.108.0.jar"
           },
           "source_providers": [
             {
@@ -172,7 +172,7 @@
             "acquisition": {
               "toolchain": {
                 "kind": "loader",
-                "requested_version": "1.19.4-45.0.9"
+                "requested_version": "1.19.4-45.0.42"
               }
             },
             "scopes": [
@@ -183,10 +183,10 @@
             "data_run_policy": "include"
           },
           "derived_checks": {
-            "artifact_id": "net-minecraftforge-forge-1-19-4-45-0-9-userdev-38dbd9c4",
-            "resolved_coordinate": "net.minecraftforge:forge:1.19.4-45.0.9:userdev",
-            "expected_hash": "blake3:38dbd9c49b2c85a68f99e53e84d5ae727fa05aa0",
-            "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.4-45.0.9\\forge-1.19.4-45.0.9-userdev.jar"
+            "artifact_id": "net-minecraftforge-forge-1-19-4-45-0-42-userdev-72b4532b",
+            "resolved_coordinate": "net.minecraftforge:forge:1.19.4-45.0.42:userdev",
+            "expected_hash": "blake3:72b4532b8f8f6145066dd0b9391303f32f5914ad",
+            "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.4-45.0.42\\forge-1.19.4-45.0.42-userdev.jar"
           },
           "source_providers": [
             {
@@ -197,7 +197,7 @@
                   "roots": []
                 },
                 "derived_checks": {
-                  "fingerprint": "forgegradle-1.19.4-45.0.9",
+                  "fingerprint": "forgegradle-1.19.4-45.0.42",
                   "tree_cache_path": "build/sfm-toolchain/forge/1.19.4/sources/combined-deobfuscated.filetree"
                 }
               }
@@ -557,7 +557,7 @@
       "repository_id": "squiddev",
       "url": "https://squiddev.cc/maven/cc/tweaked/cc-tweaked-1.19.4-forge/1.108.0/cc-tweaked-1.19.4-forge-1.108.0.jar",
       "hash": "blake3:15ce3e57f63677df4f2d7db09ccb2e387bbd2a85",
-      "cache_path": "$sfm-cache\\maven\\cc/tweaked\\cc-tweaked-1.19.4-forge\\1.108.0\\cc-tweaked-1.19.4-forge-1.108.0.jar",
+      "cache_path": "$sfm-cache\\maven\\cc\\tweaked\\cc-tweaked-1.19.4-forge\\1.108.0\\cc-tweaked-1.19.4-forge-1.108.0.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
@@ -875,6 +875,22 @@
       "weak": null
     },
     {
+      "id": "net-minecraftforge-fmlcore-1-19-4-45-0-42-4e8a36f9",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:fmlcore:1.19.4-45.0.42",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/fmlcore/1.19.4-45.0.42/fmlcore-1.19.4-45.0.42.jar",
+      "hash": "blake3:4e8a36f9717075351e21e08616b67ffcf92edd3d",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\fmlcore\\1.19.4-45.0.42\\fmlcore-1.19.4-45.0.42.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "net-minecraftforge-fmlcore-1-19-4-45-0-9-2349437d",
       "owner": null,
       "purposes": [
@@ -891,6 +907,22 @@
       "weak": null
     },
     {
+      "id": "net-minecraftforge-fmlloader-1-19-4-45-0-42-5f128cdc",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:fmlloader:1.19.4-45.0.42",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/fmlloader/1.19.4-45.0.42/fmlloader-1.19.4-45.0.42.jar",
+      "hash": "blake3:5f128cdc7c79ba7736bb4f637af9415da94500ea",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\fmlloader\\1.19.4-45.0.42\\fmlloader-1.19.4-45.0.42.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "net-minecraftforge-fmlloader-1-19-4-45-0-9-f48012e9",
       "owner": null,
       "purposes": [
@@ -901,6 +933,58 @@
       "url": "https://maven.minecraftforge.net/net/minecraftforge/fmlloader/1.19.4-45.0.9/fmlloader-1.19.4-45.0.9.jar",
       "hash": "blake3:f48012e9bce17c7f094b6fe394eb30666d274559",
       "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\fmlloader\\1.19.4-45.0.9\\fmlloader-1.19.4-45.0.9.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-forge-1-19-4-45-0-42-sources-3cb4be2e",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:forge:1.19.4-45.0.42:sources",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.19.4-45.0.42/forge-1.19.4-45.0.42-sources.jar",
+      "hash": "blake3:3cb4be2ef4f0949a8447ccfc0a8ebb57eee01936",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.4-45.0.42\\forge-1.19.4-45.0.42-sources.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-forge-1-19-4-45-0-42-universal-c56d9a74",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:forge:1.19.4-45.0.42:universal",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.19.4-45.0.42/forge-1.19.4-45.0.42-universal.jar",
+      "hash": "blake3:c56d9a742ddcd469b75f1ac3f85e4f38a92a967c",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.4-45.0.42\\forge-1.19.4-45.0.42-universal.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-forge-1-19-4-45-0-42-userdev-72b4532b",
+      "owner": {
+        "dependency_id": "forge",
+        "component_id": "userdev"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "net.minecraftforge:forge:1.19.4-45.0.42:userdev",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.19.4-45.0.42/forge-1.19.4-45.0.42-userdev.jar",
+      "hash": "blake3:72b4532b8f8f6145066dd0b9391303f32f5914ad",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.4-45.0.42\\forge-1.19.4-45.0.42-userdev.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
@@ -933,26 +1017,6 @@
       "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.19.4-45.0.9/forge-1.19.4-45.0.9-universal.jar",
       "hash": "blake3:6bf3f6ca0c57332ff6b56923edaf71fd5d8ee4e9",
       "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.4-45.0.9\\forge-1.19.4-45.0.9-universal.jar",
-      "provenance": "remote-maven",
-      "source_git": null,
-      "source_build": null,
-      "weak": null
-    },
-    {
-      "id": "net-minecraftforge-forge-1-19-4-45-0-9-userdev-38dbd9c4",
-      "owner": {
-        "dependency_id": "forge",
-        "component_id": "userdev"
-      },
-      "purposes": [
-        "build",
-        "runtime"
-      ],
-      "coordinate": "net.minecraftforge:forge:1.19.4-45.0.9:userdev",
-      "repository_id": "forge",
-      "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.19.4-45.0.9/forge-1.19.4-45.0.9-userdev.jar",
-      "hash": "blake3:38dbd9c49b2c85a68f99e53e84d5ae727fa05aa0",
-      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.4-45.0.9\\forge-1.19.4-45.0.9-userdev.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
@@ -1087,6 +1151,22 @@
       "weak": null
     },
     {
+      "id": "net-minecraftforge-javafmllanguage-1-19-4-45-0-42-6858af46",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:javafmllanguage:1.19.4-45.0.42",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/javafmllanguage/1.19.4-45.0.42/javafmllanguage-1.19.4-45.0.42.jar",
+      "hash": "blake3:6858af464a0b36c684f5b25b135c4cce94b02014",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\javafmllanguage\\1.19.4-45.0.42\\javafmllanguage-1.19.4-45.0.42.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "net-minecraftforge-javafmllanguage-1-19-4-45-0-9-48480f31",
       "owner": null,
       "purposes": [
@@ -1103,6 +1183,22 @@
       "weak": null
     },
     {
+      "id": "net-minecraftforge-lowcodelanguage-1-19-4-45-0-42-b5a18d2b",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:lowcodelanguage:1.19.4-45.0.42",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/lowcodelanguage/1.19.4-45.0.42/lowcodelanguage-1.19.4-45.0.42.jar",
+      "hash": "blake3:b5a18d2b368db583bf2328f0381696d65d754130",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\lowcodelanguage\\1.19.4-45.0.42\\lowcodelanguage-1.19.4-45.0.42.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "net-minecraftforge-lowcodelanguage-1-19-4-45-0-9-53a0864b",
       "owner": null,
       "purposes": [
@@ -1113,6 +1209,22 @@
       "url": "https://maven.minecraftforge.net/net/minecraftforge/lowcodelanguage/1.19.4-45.0.9/lowcodelanguage-1.19.4-45.0.9.jar",
       "hash": "blake3:53a0864b9e080afe9a4ff75e39e05a48cc13c0a4",
       "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\lowcodelanguage\\1.19.4-45.0.9\\lowcodelanguage-1.19.4-45.0.9.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-mclanguage-1-19-4-45-0-42-a5eef70a",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:mclanguage:1.19.4-45.0.42",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/mclanguage/1.19.4-45.0.42/mclanguage-1.19.4-45.0.42.jar",
+      "hash": "blake3:a5eef70aeaa2a797a37992d7d855c1e6692a4711",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\mclanguage\\1.19.4-45.0.42\\mclanguage-1.19.4-45.0.42.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
