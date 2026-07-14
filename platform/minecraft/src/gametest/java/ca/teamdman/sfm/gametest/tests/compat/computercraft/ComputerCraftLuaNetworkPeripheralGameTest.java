@@ -32,6 +32,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.IntStream;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Exercises the SFM network peripheral through CC:Tweaked's real Lua runtime.
@@ -43,6 +45,13 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
     public String template() {
 
         return "7x4x3";
+    }
+
+    @Override
+    public int maxTicks() {
+
+        // CC:Tweaked 1.110.2 waits 50 computer ticks before launching a newly powered computer.
+        return 200;
     }
 
     @Override
@@ -112,20 +121,33 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
                 assert(formDetail.sfm.reference.count == 2, "form SFM reference count was missing")
 
                 redstone.setOutput("top", true)
-                """.formatted(
+                    """.formatted(
                 helper.absolutePos(new BlockPos(0, 2, 1)).getX(),
                 helper.absolutePos(new BlockPos(0, 2, 1)).getX()
-        ));
-        computerBlockEntity.updateInputsImmediately();
-        computer.turnOn();
+            ));
+            computerBlockEntity.updateInputsImmediately();
+            computer.turnOn();
 
-        helper.succeedWhen(() -> {
-            helper.assertTrue(
-                    computer.getRedstoneOutput(ComputerSide.TOP) == 15,
-                    "CC:Tweaked Lua program did not complete; inspect the computer terminal for its assertion error"
-            );
-            helper.succeed();
+            helper.succeedWhen(() -> {
+                // The headless GameTest server advances ticks much faster than wall time, while CC's Lua VM runs on its worker thread.
+                LockSupport.parkNanos(1_000_000L);
+                helper.assertTrue(
+                        computer.getRedstoneOutput(ComputerSide.TOP) == 15,
+                        "CC:Tweaked Lua program did not complete (state=" + computer.getState()
+                                + ", on=" + computer.isOn() + "):\n" + terminalContents(computer)
+                );
+                helper.succeed();
+            });
         });
+    }
+
+    private static String terminalContents(ServerComputer computer) {
+
+        var terminal = computer.getTerminalState().create();
+        return IntStream.range(0, terminal.getHeight())
+                .mapToObj(line -> terminal.getLine(line).toString())
+                .reduce((first, second) -> first + "\n" + second)
+                .orElse("<empty terminal>");
     }
 
     private static BlockState normalComputerFacing(Direction facing) {
