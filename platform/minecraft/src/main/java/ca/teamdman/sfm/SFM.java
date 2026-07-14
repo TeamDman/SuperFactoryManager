@@ -3,8 +3,6 @@ package ca.teamdman.sfm;
 import ca.teamdman.sfm.client.registry.SFMMenuScreens;
 import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
-import ca.teamdman.sfm.common.compat.SFMModCompat;
-import ca.teamdman.sfm.common.compat.computercraft.SFMComputerCraftTurtleUpgrades;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.event_bus.SFMAutomaticEventSubscriber;
 import ca.teamdman.sfm.common.event_bus.SFMEventBus;
@@ -47,10 +45,6 @@ public class SFM {
         SFMItems.register(bus);
 
         SFMCreativeTabs.register(bus);
-
-        if (SFMModCompat.isComputerCraftLoaded()) {
-            SFMComputerCraftTurtleUpgrades.register(bus);
-        }
 
         SFMResourceTypes.register(bus);
 
