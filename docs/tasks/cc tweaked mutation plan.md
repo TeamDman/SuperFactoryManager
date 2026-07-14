@@ -1,6 +1,6 @@
 # CC:Tweaked Mutable Handles and Turtle Labeler Plan
 
-**Plan status:** Implemented on `1.19.2`; validation and forward propagation pending.
+**Plan status:** Completed 2026-07-14; forward-propagated and validated on every maintained branch.
 
 ## Goal
 
@@ -38,3 +38,17 @@ that uses the turtle's selected inventory item.
   real loader/API differences.
 - Compile every core branch and run focused CC GameTests only on branches that
   package a compatible locked CC:Tweaked runtime.
+
+## Completion evidence
+
+- Every core branch compiles: 1.19.2, 1.19.4, 1.20, 1.20.1, 1.20.2, 1.20.3,
+  1.20.4, 1.21.0, 1.21.1, and 26.1.2.
+- Focused real-mod CC:Tweaked GameTests pass on each supported runtime: 9 tests
+  on 1.19.2, 1.19.4, 1.20, and 1.20.1; 8 tests on 1.20.4 and 1.21.1. The full
+  1.19.2 suite also passed all 228 required tests.
+- 1.20.2, 1.20.3, 1.21.0, and 26.1.2 retain CC source but exclude it from the
+  toolchain because no compatible locked runtime is available.
+- `SFM.registerComputerCraftTurtleUpgrades()` is the sole bootstrap variation.
+  Its `@MCVersionDependentBehaviour` body registers the upgrade on supported
+  runtimes and is deliberately empty on source-excluded versions.
+- The final version-surface audit exits successfully with zero CLI warnings.
