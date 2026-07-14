@@ -20,6 +20,10 @@ use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
 
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Independent command-line switches are not coupled application state."
+)]
 #[derive(Facet, Debug)]
 pub struct DependencySourceConfigureArgs {
     /// Dependency or dependency/component to configure.
