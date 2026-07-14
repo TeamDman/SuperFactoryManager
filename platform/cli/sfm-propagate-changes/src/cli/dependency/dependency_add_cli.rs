@@ -227,12 +227,46 @@ pub(super) fn add_component(
     }
     let coordinate = MavenCoordinate::parse(maven_coordinate(args)?)?;
     coordinate.require_exact()?;
+    let (resolved, evidence, append_artifact) =
+        resolve_component_artifact(&inventory, args, &coordinate, cancellation_token, fetcher)?;
+    let hash = evidence.hash;
+    append_lock_entries(
+        &mut inventory,
+        args,
+        component_id,
+        &coordinate,
+        &resolved,
+        evidence,
+        append_artifact,
+    );
+    let output = inventory.lockfile.to_canonical_json()?;
+    write_lockfile_atomically(
+        &inventory.lockfile_path,
+        &inventory.original_input,
+        output.as_bytes(),
+    )?;
+    Ok(DependencyAddReport {
+        dependency_id: args.id.clone(),
+        component_id: component_id.to_owned(),
+        coordinate: coordinate.canonical,
+        repository_id: resolved.repository_id,
+        hash,
+    })
+}
+
+fn resolve_component_artifact(
+    inventory: &DependencyInventory,
+    args: &DependencyAddArgs,
+    coordinate: &MavenCoordinate,
+    cancellation_token: &CancellationToken,
+    fetcher: &dyn ArtifactFetcher,
+) -> eyre::Result<(ResolvedMavenArtifact, LockedComponentEvidence, bool)> {
     let matching_artifact = inventory
         .lockfile
         .artifacts
         .iter()
         .find(|artifact| artifact.coordinate.as_deref() == Some(coordinate.canonical.as_str()));
-    let (resolved, evidence, append_artifact) = if let Some(artifact) = matching_artifact {
+    if let Some(artifact) = matching_artifact {
         if artifact.owner.is_some() {
             eyre::bail!(
                 "Artifact '{}' is already locked by another component.",
@@ -263,77 +297,54 @@ pub(super) fn add_component(
                 coordinate.canonical
             )
         })?;
-        (
+        return Ok((
             ResolvedMavenArtifact {
                 repository_id,
                 url,
                 bytes: Vec::new(),
             },
             LockedComponentEvidence {
-                hash: artifact.hash.clone(),
+                hash: artifact.hash,
                 cache_path: artifact.cache_path.clone(),
                 artifact_id: artifact.id.clone(),
             },
             false,
-        )
-    } else {
-        let resolved = resolve_artifact(
-            &inventory,
-            &coordinate,
-            args.repository.as_deref(),
-            cancellation_token,
-            fetcher,
-        )?;
-        let hash = ContentHash::from_bytes(&resolved.bytes, ContentHashAlgorithm::Blake3);
-        let portable_cache_path = coordinate.portable_cache_path();
-        let cache_path = inventory.local_path(&portable_cache_path);
-        write_cache_file_atomically(&cache_path, &resolved.bytes)?;
-        let artifact_id = format!(
-            "{}-{}",
-            portable_id(&coordinate.canonical),
-            hash.short_hex(8)
-        );
-        if inventory
-            .lockfile
-            .artifacts
-            .iter()
-            .any(|artifact| artifact.id == artifact_id)
-        {
-            eyre::bail!("Generated artifact ID '{artifact_id}' already exists.");
-        }
-        (
-            resolved,
-            LockedComponentEvidence {
-                hash,
-                cache_path: portable_cache_path,
-                artifact_id,
-            },
-            true,
-        )
-    };
-    let hash = evidence.hash.clone();
-    append_lock_entries(
-        &mut inventory,
-        args,
-        component_id,
-        &coordinate,
-        &resolved,
-        evidence,
-        append_artifact,
-    );
-    let output = inventory.lockfile.to_canonical_json()?;
-    write_lockfile_atomically(
-        &inventory.lockfile_path,
-        &inventory.original_input,
-        output.as_bytes(),
+        ));
+    }
+
+    let resolved = resolve_artifact(
+        inventory,
+        coordinate,
+        args.repository.as_deref(),
+        cancellation_token,
+        fetcher,
     )?;
-    Ok(DependencyAddReport {
-        dependency_id: args.id.clone(),
-        component_id: component_id.to_owned(),
-        coordinate: coordinate.canonical,
-        repository_id: resolved.repository_id,
-        hash,
-    })
+    let hash = ContentHash::from_bytes(&resolved.bytes, ContentHashAlgorithm::Blake3);
+    let portable_cache_path = coordinate.portable_cache_path();
+    let cache_path = inventory.local_path(&portable_cache_path);
+    write_cache_file_atomically(&cache_path, &resolved.bytes)?;
+    let artifact_id = format!(
+        "{}-{}",
+        portable_id(&coordinate.canonical),
+        hash.short_hex(8)
+    );
+    if inventory
+        .lockfile
+        .artifacts
+        .iter()
+        .any(|artifact| artifact.id == artifact_id)
+    {
+        eyre::bail!("Generated artifact ID '{artifact_id}' already exists.");
+    }
+    Ok((
+        resolved,
+        LockedComponentEvidence {
+            hash,
+            cache_path: portable_cache_path,
+            artifact_id,
+        },
+        true,
+    ))
 }
 
 fn maven_coordinate(args: &DependencyAddArgs) -> eyre::Result<&str> {
@@ -501,6 +512,17 @@ fn append_lock_entries(
         .components
         .push(component);
     if !append_artifact {
+        let artifact = inventory
+            .lockfile
+            .artifacts
+            .iter_mut()
+            .find(|artifact| artifact.id == evidence.artifact_id)
+            .expect("existing artifact evidence references a locked artifact");
+        artifact.owner = Some(ArtifactOwnerV3 {
+            dependency_id: args.id.clone(),
+            component_id: component_id.to_owned(),
+        });
+        artifact.purposes = purposes;
         return;
     }
     inventory.lockfile.artifacts.push(ArtifactV3 {
@@ -767,8 +789,9 @@ fn purposes_for_scopes(scopes: &[DependencyScopeV3]) -> Vec<ArtifactPurposeV3> {
         purposes.insert(match scope {
             DependencyScopeV3::AnnotationProcessor
             | DependencyScopeV3::Codegen
-            | DependencyScopeV3::Compile => ArtifactPurposeV3::Build,
-            DependencyScopeV3::Runtime | DependencyScopeV3::Bundle => ArtifactPurposeV3::Runtime,
+            | DependencyScopeV3::Compile
+            | DependencyScopeV3::Bundle => ArtifactPurposeV3::Build,
+            DependencyScopeV3::Runtime => ArtifactPurposeV3::Runtime,
             DependencyScopeV3::GametestCompile | DependencyScopeV3::GametestRuntime => {
                 ArtifactPurposeV3::Gametest
             }
