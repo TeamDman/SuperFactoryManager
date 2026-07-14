@@ -48,6 +48,21 @@ cargo run -- curseforge mod files 268560 --minecraft 1.19.2 --loader forge
 
 This keeps the key out of command history and prompts `1Password` only once for that shell.
 
+## Cross-version source audit
+
+After making a change on `1.19.2`, check its propagation boundary before merging it into later
+versions:
+
+```pwsh
+cargo run -- audit --branch core --version-surfaces
+```
+
+The report warns about CLI commits made directly on later version branches (including merge
+resolutions that modify the CLI) and Java diff hunks outside an
+`@MCVersionDependentBehaviour` declaration. Propagation merges whose CLI tree exactly matches a
+parent are treated as expected propagation, not warnings. The audit is advisory so existing Java
+surface-area debt remains visible without blocking unrelated work.
+
 For example:
 
 Exists:

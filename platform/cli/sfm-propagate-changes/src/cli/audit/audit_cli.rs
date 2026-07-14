@@ -6,7 +6,7 @@ use crate::source_audit::SourceLineLimit;
 use facet::Facet;
 use figue as args;
 
-/// Options for auditing tracked Rust and Java source file sizes.
+/// Options for auditing tracked source files and cross-version change surfaces.
 #[derive(Facet, Debug, Clone)]
 pub struct AuditArgs {
     /// Branch selector to audit.
@@ -24,6 +24,10 @@ pub struct AuditArgs {
     /// Warn when a tracked source file has more than this many lines.
     #[facet(default, args::named)]
     pub max_lines: SourceLineLimit,
+
+    /// Compare selected version branches with 1.19.2 and warn about CLI or unbounded Java changes.
+    #[facet(default = false, args::named)]
+    pub version_surfaces: bool,
 }
 
 impl AuditArgs {
@@ -34,6 +38,7 @@ impl AuditArgs {
             branch: self.branch.into_query()?,
             languages,
             max_lines: self.max_lines,
+            version_surfaces: self.version_surfaces,
         })
     }
 
