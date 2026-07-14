@@ -6,6 +6,9 @@ This tool is responsible for executing the git merge commands that apply changes
 
 ## Schema v3 dependency and source workflow
 
+For the complete acquisition, cache, and no-fetch source-search guide, see
+[Dependency and Source Workflow](../../../docs/dependency%20and%20source%20workflow.md).
+
 The maintained dependency intent and generated resolution checks live together in each branch's
 `platform/minecraft/sfm-toolchain.lock.json`. Use an explicit `--branch <Minecraft version>` for
 dependency, source, and run commands. Work on the oldest supported branch first; use the tool's
