@@ -30,6 +30,7 @@ fn typed_top_level_audit_command_roundtrips() {
             language: vec![SourceLanguage::Rust, SourceLanguage::Java],
             lang: Vec::new(),
             max_lines: SourceLineLimit(1200),
+            version_surfaces: true,
         }),
         builtins: figue::FigueBuiltins::default(),
     };
@@ -47,6 +48,7 @@ fn typed_top_level_audit_command_roundtrips() {
             "java",
             "--max-lines",
             "1200",
+            "--version-surfaces",
         ]
     );
 
@@ -64,6 +66,7 @@ fn typed_top_level_audit_command_roundtrips() {
         [SourceLanguage::Rust, SourceLanguage::Java]
     );
     assert_eq!(parsed.max_lines, SourceLineLimit(1200));
+    assert!(parsed.version_surfaces);
 
     let display = command
         .to_args_string()

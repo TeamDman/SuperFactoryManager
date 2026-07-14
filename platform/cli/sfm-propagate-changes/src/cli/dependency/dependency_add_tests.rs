@@ -157,7 +157,7 @@ fn add_adopts_matching_unowned_migrated_artifact_without_fetching() {
         .find(|artifact| artifact.coordinate.as_deref() == Some(coordinate))
         .expect("unowned JavaParser artifact");
     let expected_artifact_id = expected_artifact.id.clone();
-    let expected_hash = expected_artifact.hash.clone();
+    let expected_hash = expected_artifact.hash;
     assert!(expected_artifact.owner.is_none());
     lockfile
         .dependencies
