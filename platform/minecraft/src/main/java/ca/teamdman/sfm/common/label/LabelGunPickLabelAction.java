@@ -22,20 +22,6 @@ public record LabelGunPickLabelAction(
 ) implements LabelGunPlan {
     @Override
     public void run() {
-        // pick the next label in the list to become active
-        Set<String> allLabels = new HashSet<>();
-        targets.positions().forEach(p -> allLabels.addAll(gunLabels.getLabels(p)));
-        if (allLabels.isEmpty()) {
-            return;
-        }
-
-        var labelsList = new ArrayList<>(allLabels);
-        labelsList.sort(Comparator.naturalOrder());
-        var index = (labelsList.indexOf(activeLabel) + 1) % labelsList.size();
-        var nextLabel = labelsList.get(index);
-        LabelGunItem.setActiveLabel(gunStack, nextLabel);
-
-        // write changes to label gun
-        gunLabels.save(gunStack);
+        LabelGunActions.pick(level, gunStack, msg.pos(), msg.isContiguousModifierActive());
     }
 }

@@ -5,7 +5,8 @@ import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import dan200.computercraft.api.ComputerCraftAPI;
-import dan200.computercraft.api.detail.VanillaDetailRegistries;
+import dan200.computercraft.api.client.turtle.RegisterTurtleModellersEvent;
+import dan200.computercraft.api.client.turtle.TurtleUpgradeModeller;
 import dan200.computercraft.api.peripheral.PeripheralCapability;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -17,28 +18,27 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.items.wrapper.InvWrapper;
 
-/**
- * Registers SFM's public CC:Tweaked integration points once CC:Tweaked is known to be loaded.
- */
-@MCVersionDependentBehaviour // CC:Tweaked 1.110.2+ uses NeoForge block capabilities
+/** Registers SFM's public CC:Tweaked integration points once CC:Tweaked is known to be loaded. */
+@MCVersionDependentBehaviour // CC:Tweaked 1.110.2+ uses NeoForge block capabilities and turtle modeller events
 public final class ComputerCraftIntegration {
-    private static boolean detailsRegistered;
+    private static boolean registered;
 
     private ComputerCraftIntegration() {
 
     }
 
-    private static void registerDetails() {
+    private static void registerIntegration() {
 
-        if (detailsRegistered) return;
-        VanillaDetailRegistries.ITEM_STACK.addProvider(new SFMItemDetailProvider());
-        detailsRegistered = true;
+        if (registered) return;
+        ComputerCraftAPI.registerGenericSource(new SFMInventoryMethods());
+        registered = true;
     }
 
     @SFMSubscribeEvent
     private static void onCommonSetup(FMLCommonSetupEvent event) {
+
         if (SFMModCompat.isComputerCraftLoaded()) {
-            event.enqueueWork(ComputerCraftIntegration::registerDetails);
+            event.enqueueWork(ComputerCraftIntegration::registerIntegration);
         }
     }
 
@@ -72,8 +72,6 @@ public final class ComputerCraftIntegration {
     /**
      * CC:Tweaked 1.110.2 turtles implement Minecraft's public {@link Container}
      * contract but do not register NeoForge's item-handler capability themselves.
-     * Publishing this narrow adapter is what lets SFM move items to and from a
-     * turtle without using a CC:Tweaked internal type.
      */
     private static void registerTurtleInventoryCapabilities(RegisterCapabilitiesEvent event) {
 
@@ -93,5 +91,13 @@ public final class ComputerCraftIntegration {
                 normalTurtle,
                 advancedTurtle
         );
+    }
+
+    @SFMSubscribeEvent
+    private static void registerTurtleModeller(RegisterTurtleModellersEvent event) {
+
+        if (SFMModCompat.isComputerCraftLoaded()) {
+            event.register(SFMComputerCraftTurtleUpgrades.LABELER.get(), TurtleUpgradeModeller.flatItem());
+        }
     }
 }
