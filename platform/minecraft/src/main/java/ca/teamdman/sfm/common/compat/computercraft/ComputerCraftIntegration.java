@@ -1,17 +1,14 @@
 package ca.teamdman.sfm.common.compat.computercraft;
 
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.compat.SFMModCompat;
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import dan200.computercraft.api.ForgeComputerCraftAPI;
 import dan200.computercraft.api.detail.VanillaDetailRegistries;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 
 /**
  * Registers SFM's public CC:Tweaked integration points once CC:Tweaked is known to be loaded.
  */
-@Mod.EventBusSubscriber(modid = SFM.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class ComputerCraftIntegration {
     private static boolean registered;
 
@@ -27,7 +24,7 @@ public final class ComputerCraftIntegration {
         registered = true;
     }
 
-    @SubscribeEvent
+    @SFMSubscribeEvent
     public static void onCommonSetup(FMLCommonSetupEvent event) {
         if (SFMModCompat.isComputerCraftLoaded()) {
             event.enqueueWork(ComputerCraftIntegration::register);
