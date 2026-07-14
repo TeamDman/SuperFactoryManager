@@ -1,4 +1,6 @@
 # Paths are relative to src/gametest/java.
+# CC:Tweaked has no compatible 1.20.3 Forge release.
+ca/teamdman/sfm/gametest/tests/compat/computercraft/**
 ca/teamdman/sfm/gametest/tests/ai/**
 ca/teamdman/sfm/gametest/tests/compat/ae2/**
 ca/teamdman/sfm/gametest/tests/compat/dank/**

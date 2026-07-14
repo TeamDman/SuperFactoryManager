@@ -1,4 +1,6 @@
 # Paths are relative to src/main/java.
+# CC:Tweaked has no compatible 26.1.2 NeoForge release.
+ca/teamdman/sfm/common/compat/computercraft/**
 ca/teamdman/sfm/common/resourcetype/exclude/**
 ca/teamdman/sfm/common/capability/ae2/InterfaceCapabilityProvider.java
 ca/teamdman/sfm/common/block/BatteryBlock.java
