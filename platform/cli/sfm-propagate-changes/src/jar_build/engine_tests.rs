@@ -38,6 +38,7 @@ use super::SourceBuildProvenance;
 use super::SourceBuildSystem;
 use super::TargetJarCompareReport;
 use super::apply_client_puppet_keep_open_property;
+use super::apply_game_puppet_filter_property;
 use super::apply_game_test_filter_property;
 use super::apply_client_title_screen_property;
 use super::artifact_lock_path;
@@ -71,6 +72,7 @@ use super::resolve_loader_toolchain;
 use super::run_dependency_configurations;
 use super::run_max_launch_attempts;
 use super::rust_output_jar_path;
+use super::preview_program_args;
 use super::set_minecraft_option;
 use super::should_include_project_run_dependencies;
 use super::should_keep_split_minecraft_runtime_entry;
@@ -79,6 +81,7 @@ use super::source_build_checkout_key;
 use super::source_git_provenance;
 use super::write_compare_reports;
 use super::write_unique_temp_file;
+use super::validate_game_puppet_completion;
 use crate::artifact_lock::ArtifactLock;
 use crate::branch_targets::BranchName;
 use crate::branch_targets::BranchQuery;
@@ -333,6 +336,62 @@ fn game_test_run_filter_sets_selection_property_for_game_test_runners() {
         },
     );
     assert!(!blank_properties.contains_key("sfm.gametestSelection"));
+}
+
+#[test]
+fn game_puppet_preview_uses_its_own_selection_property_and_viewport() {
+    let run_options = RunOptions {
+        game_puppet_filter: Some(" move_1_stack_direct_walkthrough ".to_string()),
+        preview_width: 1600,
+        preview_height: 900,
+        ..RunOptions::default()
+    };
+    let mut preview_properties = BTreeMap::new();
+    apply_game_puppet_filter_property(
+        &mut preview_properties,
+        RunKind::GameTestPreview,
+        &run_options,
+    );
+    assert_eq!(
+        preview_properties
+            .get("sfm.gamePuppetSelection")
+            .map(String::as_str),
+        Some("move_1_stack_direct_walkthrough")
+    );
+    assert_eq!(
+        preview_program_args(RunKind::GameTestPreview, &run_options),
+        vec![
+            "--width".to_string(),
+            "1600".to_string(),
+            "--height".to_string(),
+            "900".to_string(),
+        ]
+    );
+
+    let mut client_puppet_properties = BTreeMap::new();
+    apply_game_puppet_filter_property(
+        &mut client_puppet_properties,
+        RunKind::ClientPuppet,
+        &run_options,
+    );
+    assert!(!client_puppet_properties.contains_key("sfm.gamePuppetSelection"));
+    assert!(preview_program_args(RunKind::ClientPuppet, &run_options).is_empty());
+}
+
+#[test]
+fn game_puppet_completion_requires_an_explicit_success_marker() {
+    let launch_log = Path::new("preview-launch.log");
+    assert!(validate_game_puppet_completion(
+        "SFM_GAME_PUPPET_COMPLETE failed=0 total=1",
+        launch_log
+    )
+    .is_ok());
+    assert!(validate_game_puppet_completion(
+        "SFM_GAME_PUPPET_FAILED puppet=example action=capture error=timeout\nSFM_GAME_PUPPET_COMPLETE failed=1 total=1",
+        launch_log
+    )
+    .is_err());
+    assert!(validate_game_puppet_completion("ordinary client exit", launch_log).is_err());
 }
 
 #[test]

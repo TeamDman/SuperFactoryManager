@@ -6,8 +6,11 @@ use std::time::Duration;
 #[derive(Clone, Debug, Default)]
 pub struct RunOptions {
     pub game_test_filter: Option<String>,
+    pub game_puppet_filter: Option<String>,
     pub game_test_bisect: Option<GameTestBisectOptions>,
     pub client_puppet_keep_open: ClientPuppetKeepOpen,
+    pub preview_width: u16,
+    pub preview_height: u16,
     pub client_title_screen: Option<ClientTitleScreen>,
     pub client_solo: bool,
     pub client_hotswap_port: Option<u16>,

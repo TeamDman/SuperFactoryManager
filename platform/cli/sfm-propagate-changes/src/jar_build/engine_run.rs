@@ -166,7 +166,7 @@ fn execute_build(
 impl RunKind {
     const fn userdev_name(self) -> &'static str {
         match self {
-            Self::Client | Self::ClientSmoke | Self::ClientPuppet => "client",
+            Self::Client | Self::ClientSmoke | Self::ClientPuppet | Self::GameTestPreview => "client",
             Self::Server => "server",
             Self::Data => "data",
             Self::GameTestServer => "gameTestServer",
@@ -177,7 +177,7 @@ impl RunKind {
     const fn userdev_names(self) -> &'static [&'static str] {
         match self {
             Self::Data => &["data", "clientData"],
-            Self::Client | Self::ClientSmoke | Self::ClientPuppet => &["client"],
+            Self::Client | Self::ClientSmoke | Self::ClientPuppet | Self::GameTestPreview => &["client"],
             Self::Server => &["server"],
             Self::GameTestServer => &["gameTestServer"],
             Self::Test => &["test"],
@@ -189,6 +189,7 @@ impl RunKind {
             Self::Client => "runClient",
             Self::ClientSmoke => "runClientSmoke",
             Self::ClientPuppet => "runClientPuppet",
+            Self::GameTestPreview => "runGameTestPreview",
             Self::Server => "runServer",
             Self::Data => "runData",
             Self::GameTestServer => "runGameTestServer",
@@ -201,6 +202,7 @@ impl RunKind {
             Self::Client => "run",
             Self::ClientSmoke => "runClientSmoke",
             Self::ClientPuppet => "runClientPuppet",
+            Self::GameTestPreview => "runGameTestPreview",
             Self::Server => "runServer",
             Self::Data => "runData",
             Self::GameTestServer => "runGameTest",
@@ -213,6 +215,7 @@ impl RunKind {
             Self::Client
             | Self::ClientSmoke
             | Self::ClientPuppet
+            | Self::GameTestPreview
             | Self::Server
             | Self::GameTestServer => "gametest",
             Self::Data => "datagen",
@@ -226,6 +229,7 @@ impl RunKind {
             Self::Client
                 | Self::ClientSmoke
                 | Self::ClientPuppet
+                | Self::GameTestPreview
                 | Self::Server
                 | Self::GameTestServer
         )
@@ -233,7 +237,7 @@ impl RunKind {
 
     const fn game_test_max_program_run_millis(self) -> &'static str {
         match self {
-            Self::Client | Self::ClientSmoke | Self::ClientPuppet => "1000",
+            Self::Client | Self::ClientSmoke | Self::ClientPuppet | Self::GameTestPreview => "1000",
             Self::Server | Self::GameTestServer | Self::Data | Self::Test => "150",
         }
     }
@@ -242,6 +246,7 @@ impl RunKind {
         match self {
             Self::ClientSmoke => Some("smoke"),
             Self::ClientPuppet => Some("puppet"),
+            Self::GameTestPreview => Some("game-puppet"),
             _ => None,
         }
     }
@@ -249,7 +254,7 @@ impl RunKind {
     fn launch_timeout(self, run_options: &RunOptions) -> Option<Duration> {
         match self {
             Self::ClientSmoke => Some(Duration::from_mins(2)),
-            Self::ClientPuppet => client_puppet_launch_timeout(run_options),
+            Self::ClientPuppet | Self::GameTestPreview => client_puppet_launch_timeout(run_options),
             _ => None,
         }
     }
@@ -606,8 +611,8 @@ fn execute_run(
     if matches!(kind, RunKind::GameTestServer) {
         clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
     }
-    if matches!(kind, RunKind::ClientPuppet) {
-        clean_client_puppet_world(&plan.minecraft_dir, &working_dir)?;
+    if matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview) {
+        clean_client_automation_world(&plan.minecraft_dir, &working_dir, kind)?;
     }
     let automation_options_path =
         prepare_client_automation_options(&plan.minecraft_dir, &working_dir, kind)?;
@@ -698,6 +703,7 @@ fn execute_run(
         );
     }
     apply_game_test_filter_property(&mut properties, kind, run_options);
+    apply_game_puppet_filter_property(&mut properties, kind, run_options);
     if let Some(automation_mode) = kind.automation_mode() {
         properties.insert(
             "sfm.clientRun.mode".to_string(),
@@ -736,6 +742,7 @@ fn execute_run(
         .map(|arg| replace_placeholders(arg, &replacements))
         .collect::<Vec<_>>();
     program_args.extend(kind_extra_program_args(plan, kind)?);
+    program_args.extend(preview_program_args(kind, run_options));
     if !matches!(kind, RunKind::Data) {
         program_args.extend(["--mixin.config".to_string(), "sfm.mixins.json".to_string()]);
     }
@@ -828,8 +835,8 @@ fn execute_run(
             clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
             tracing::info!("Game-test server attempt {attempt}/{max_launch_attempts}");
         }
-        if matches!(kind, RunKind::ClientPuppet) {
-            clean_client_puppet_world(&plan.minecraft_dir, &working_dir)?;
+        if matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview) {
+            clean_client_automation_world(&plan.minecraft_dir, &working_dir, kind)?;
         }
         let attempt_output = run_launch_command(
             &context.cancellation_token,
@@ -965,6 +972,19 @@ fn execute_run(
             );
         }
         tracing::info!("Validated client puppet completed {pass_count} required game tests.");
+    }
+    if matches!(kind, RunKind::GameTestPreview) {
+        validate_game_puppet_completion(&launch_output.combined, &launch_log)?;
+        let manifest = publish_game_puppet_preview_artifacts(
+            plan,
+            &working_dir,
+            run_options,
+            &launch_output.combined,
+        )?;
+        tracing::info!(
+            artifact_manifest = %manifest.display(),
+            "Published game puppet preview artifacts"
+        );
     }
     Ok(())
 }
@@ -2107,7 +2127,10 @@ fn apply_game_test_filter_property(
     kind: RunKind,
     run_options: &RunOptions,
 ) {
-    if !matches!(kind, RunKind::ClientPuppet | RunKind::GameTestServer) {
+    if !matches!(
+        kind,
+        RunKind::ClientPuppet | RunKind::GameTestPreview | RunKind::GameTestServer
+    ) {
         return;
     }
     let Some(selection) = run_options
@@ -2126,13 +2149,32 @@ fn apply_client_puppet_keep_open_property(
     kind: RunKind,
     run_options: &RunOptions,
 ) {
-    if !matches!(kind, RunKind::ClientPuppet) {
+    if !matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview) {
         return;
     }
     properties.insert(
         "sfm.clientRun.keepOpenSeconds".to_string(),
         run_options.client_puppet_keep_open.property_seconds(),
     );
+}
+
+fn apply_game_puppet_filter_property(
+    properties: &mut BTreeMap<String, String>,
+    kind: RunKind,
+    run_options: &RunOptions,
+) {
+    if !matches!(kind, RunKind::GameTestPreview) {
+        return;
+    }
+    let Some(selection) = run_options
+        .game_puppet_filter
+        .as_deref()
+        .map(str::trim)
+        .filter(|selection| !selection.is_empty())
+    else {
+        return;
+    };
+    properties.insert("sfm.gamePuppetSelection".to_string(), selection.to_string());
 }
 
 fn apply_client_title_screen_property(
@@ -2450,20 +2492,55 @@ fn clean_gametest_server_world(minecraft_dir: &Path, working_dir: &Path) -> eyre
     Ok(())
 }
 
-fn clean_client_puppet_world(minecraft_dir: &Path, working_dir: &Path) -> eyre::Result<()> {
-    if working_dir.file_name().and_then(|name| name.to_str()) != Some("runClientPuppet")
+fn clean_client_automation_world(
+    minecraft_dir: &Path,
+    working_dir: &Path,
+    kind: RunKind,
+) -> eyre::Result<()> {
+    let expected_working_dir = match kind {
+        RunKind::ClientPuppet => "runClientPuppet",
+        RunKind::GameTestPreview => "runGameTestPreview",
+        _ => eyre::bail!("Refusing to clean world for non-client-automation run kind"),
+    };
+    if working_dir.file_name().and_then(|name| name.to_str()) != Some(expected_working_dir)
         || !working_dir.starts_with(minecraft_dir)
     {
         eyre::bail!(
-            "Refusing to clean unexpected client puppet working directory: {}",
+            "Refusing to clean unexpected client automation working directory: {}",
             working_dir.display()
         );
     }
 
-    let world_dir = working_dir.join("saves").join("sfm_client_puppet");
-    if world_dir.exists() {
-        fs::remove_dir_all(&world_dir)
-            .wrap_err_with(|| format!("Failed to remove {}", world_dir.display()))?;
+    let saves_dir = working_dir.join("saves");
+    match kind {
+        RunKind::ClientPuppet => {
+            let world_dir = saves_dir.join("sfm_client_puppet");
+            if world_dir.exists() {
+                fs::remove_dir_all(&world_dir)
+                    .wrap_err_with(|| format!("Failed to remove {}", world_dir.display()))?;
+            }
+        }
+        RunKind::GameTestPreview if saves_dir.is_dir() => {
+            for entry in fs::read_dir(&saves_dir)
+                .wrap_err_with(|| format!("Failed to read {}", saves_dir.display()))?
+            {
+                let entry = entry?;
+                let file_name = entry.file_name();
+                let name = file_name.to_string_lossy();
+                if name.starts_with("sfm_game_puppet_") && entry.file_type()?.is_dir() {
+                    let world_dir = entry.path();
+                    fs::remove_dir_all(&world_dir)
+                        .wrap_err_with(|| format!("Failed to remove {}", world_dir.display()))?;
+                }
+            }
+        }
+        RunKind::GameTestPreview => {}
+        _ => unreachable!("run kind validated above"),
+    }
+    let screenshots_dir = working_dir.join("screenshots");
+    if matches!(kind, RunKind::GameTestPreview) && screenshots_dir.exists() {
+        fs::remove_dir_all(&screenshots_dir)
+            .wrap_err_with(|| format!("Failed to remove {}", screenshots_dir.display()))?;
     }
     Ok(())
 }
@@ -2473,7 +2550,10 @@ fn prepare_client_automation_options(
     working_dir: &Path,
     kind: RunKind,
 ) -> eyre::Result<Option<PathBuf>> {
-    if !matches!(kind, RunKind::ClientSmoke | RunKind::ClientPuppet) {
+    if !matches!(
+        kind,
+        RunKind::ClientSmoke | RunKind::ClientPuppet | RunKind::GameTestPreview
+    ) {
         return Ok(None);
     }
     if !working_dir.starts_with(minecraft_dir) {
@@ -3234,6 +3314,407 @@ fn resolve_neogradle_run_classpath(
     })
 }
 
+fn validate_game_puppet_completion(output: &str, launch_log: &Path) -> eyre::Result<()> {
+    if output.contains("SFM_GAME_PUPPET_FAILED") {
+        eyre::bail!(
+            "runGameTestPreview reported a game puppet failure. See {}",
+            launch_log.display()
+        );
+    }
+    if !output.contains("SFM_GAME_PUPPET_COMPLETE failed=0") {
+        eyre::bail!(
+            "runGameTestPreview exited successfully but did not report successful puppet completion. See {}",
+            launch_log.display()
+        );
+    }
+    tracing::info!("Validated game puppet preview completion.");
+    Ok(())
+}
+
+#[derive(Debug)]
+struct GamePuppetPreviewArtifact {
+    puppet_name: String,
+    capture_name: String,
+    figure_number: u32,
+    relative_path: PathBuf,
+    width: u32,
+    height: u32,
+    hash: ContentHash,
+    metadata: GamePuppetPreviewCaptureMetadata,
+}
+
+#[derive(Clone, Debug, Default)]
+struct GamePuppetPreviewCaptureMetadata {
+    figure_number: Option<u32>,
+    camera: Option<GamePuppetPreviewCamera>,
+    screen: Option<String>,
+    hud_hidden: Option<bool>,
+}
+
+#[derive(Clone, Debug)]
+struct GamePuppetPreviewCamera {
+    x: f64,
+    y: f64,
+    z: f64,
+    yaw: f64,
+    pitch: f64,
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "Preview artifact publication deliberately keeps validation and manifest inputs together."
+)]
+fn publish_game_puppet_preview_artifacts(
+    plan: &BuildPlan,
+    working_dir: &Path,
+    run_options: &RunOptions,
+    launch_output: &str,
+) -> eyre::Result<PathBuf> {
+    let staging_dir = working_dir.join("screenshots");
+    if !staging_dir.is_dir() {
+        eyre::bail!(
+            "runGameTestPreview completed without a screenshot staging directory: {}",
+            staging_dir.display()
+        );
+    }
+    let artifact_root = plan
+        .cache_dir
+        .join("artifacts")
+        .join("game-test-preview");
+    if artifact_root.exists() {
+        fs::remove_dir_all(&artifact_root)
+            .wrap_err_with(|| format!("Failed to clear {}", artifact_root.display()))?;
+    }
+    fs::create_dir_all(&artifact_root)
+        .wrap_err_with(|| format!("Failed to create {}", artifact_root.display()))?;
+
+    let mut staging_paths = fs::read_dir(&staging_dir)
+        .wrap_err_with(|| format!("Failed to read {}", staging_dir.display()))?
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .filter_map(|entry| {
+            entry
+                .file_type()
+                .ok()
+                .filter(std::fs::FileType::is_file)
+                .map(|_| entry.path())
+        })
+        .collect::<Vec<_>>();
+    staging_paths.sort();
+    let capture_metadata = parse_game_puppet_capture_metadata(launch_output);
+
+    let mut artifacts = Vec::new();
+    let mut used_figure_numbers = BTreeSet::new();
+    for staging_path in staging_paths {
+        let file_name = staging_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| eyre::eyre!("Screenshot filename was not valid UTF-8: {}", staging_path.display()))?;
+        let Some((puppet_name, capture_with_extension)) = file_name.split_once("__") else {
+            eyre::bail!("Unexpected preview screenshot filename: {file_name}");
+        };
+        let Some(capture_name) = capture_with_extension.strip_suffix(".png") else {
+            eyre::bail!("Preview screenshot was not a PNG: {file_name}");
+        };
+        if !is_safe_preview_name(puppet_name) || !is_safe_preview_name(capture_name) {
+            eyre::bail!("Preview screenshot filename was not safely namespaced: {file_name}");
+        }
+
+        let bytes = fs::read(&staging_path)
+            .wrap_err_with(|| format!("Failed to read {}", staging_path.display()))?;
+        let (width, height) = png_dimensions(&bytes)
+            .ok_or_else(|| eyre::eyre!("Preview screenshot was not a valid PNG: {}", staging_path.display()))?;
+        let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
+
+        let metadata = capture_metadata
+            .get(&(puppet_name.to_string(), capture_name.to_string()))
+            .cloned()
+            .unwrap_or_default();
+        let figure_number = metadata.figure_number.ok_or_else(|| {
+            eyre::eyre!(
+                "Preview screenshot did not report a positive figure number: {file_name}"
+            )
+        })?;
+        if !used_figure_numbers.insert(figure_number) {
+            eyre::bail!(
+                "Preview screenshots reported duplicate figure number {figure_number}: {file_name}"
+            );
+        }
+        let relative_path = PathBuf::from(puppet_name).join(game_puppet_preview_artifact_file_name(
+            figure_number,
+            capture_name,
+        ));
+        let destination = artifact_root.join(&relative_path);
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .wrap_err_with(|| format!("Failed to create {}", parent.display()))?;
+        }
+        fs::copy(&staging_path, &destination).wrap_err_with(|| {
+            format!(
+                "Failed to copy preview screenshot {} to {}",
+                staging_path.display(),
+                destination.display()
+            )
+        })?;
+        tracing::info!(preview_artifact = %destination.display(), "Game puppet preview artifact");
+        artifacts.push(GamePuppetPreviewArtifact {
+            puppet_name: puppet_name.to_string(),
+            capture_name: capture_name.to_string(),
+            figure_number,
+            relative_path,
+            width,
+            height,
+            hash,
+            metadata,
+        });
+    }
+    if artifacts.is_empty() {
+        eyre::bail!("runGameTestPreview completed without any reported screenshots");
+    }
+    artifacts.sort_by_key(|artifact| artifact.figure_number);
+
+    let manifest_path = artifact_root.join("preview-manifest.json");
+    let manifest = render_game_puppet_preview_manifest(plan, run_options, &artifacts);
+    fs::write(&manifest_path, manifest)
+        .wrap_err_with(|| format!("Failed to write {}", manifest_path.display()))?;
+    Ok(manifest_path)
+}
+
+fn parse_game_puppet_capture_metadata(
+    launch_output: &str,
+) -> BTreeMap<(String, String), GamePuppetPreviewCaptureMetadata> {
+    let mut captures = BTreeMap::new();
+    for line in launch_output
+        .lines()
+        .filter(|line| line.contains("SFM_GAME_PUPPET_CAPTURE_QUEUED"))
+    {
+        let fields = line
+            .split_whitespace()
+            .filter_map(|field| field.split_once('='))
+            .collect::<BTreeMap<_, _>>();
+        let Some((puppet, capture)) = fields
+            .get("puppet")
+            .zip(fields.get("capture"))
+            .filter(|(puppet, capture)| {
+                is_safe_preview_name(puppet) && is_safe_preview_name(capture)
+            })
+        else {
+            continue;
+        };
+        let metadata = GamePuppetPreviewCaptureMetadata {
+            figure_number: fields
+                .get("figure")
+                .and_then(|value| value.parse::<u32>().ok())
+                .filter(|value| *value > 0),
+            camera: parse_game_puppet_preview_camera(&fields),
+            screen: fields
+                .get("screen")
+                .filter(|screen| !screen.is_empty())
+                .map(|screen| (*screen).to_string()),
+            hud_hidden: fields.get("hud_hidden").and_then(|value| match *value {
+                "true" => Some(true),
+                "false" => Some(false),
+                _ => None,
+            }),
+        };
+        captures.insert(((*puppet).to_string(), (*capture).to_string()), metadata);
+    }
+    captures
+}
+
+fn game_puppet_preview_artifact_file_name(figure_number: u32, capture_name: &str) -> String {
+    format!("figure_{figure_number:02}_{capture_name}.png")
+}
+
+fn parse_game_puppet_preview_camera(
+    fields: &BTreeMap<&str, &str>,
+) -> Option<GamePuppetPreviewCamera> {
+    let parse = |name| fields.get(name)?.parse::<f64>().ok().filter(|value| value.is_finite());
+    Some(GamePuppetPreviewCamera {
+        x: parse("camera_x")?,
+        y: parse("camera_y")?,
+        z: parse("camera_z")?,
+        yaw: parse("camera_yaw")?,
+        pitch: parse("camera_pitch")?,
+    })
+}
+
+fn is_safe_preview_name(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-'))
+}
+
+fn png_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
+    const PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
+    if bytes.len() < 24 || bytes[..8] != PNG_SIGNATURE || bytes[12..16] != *b"IHDR" {
+        return None;
+    }
+    let width = u32::from_be_bytes(bytes[16..20].try_into().ok()?);
+    let height = u32::from_be_bytes(bytes[20..24].try_into().ok()?);
+    (width > 0 && height > 0).then_some((width, height))
+}
+
+fn render_game_puppet_preview_manifest(
+    plan: &BuildPlan,
+    run_options: &RunOptions,
+    artifacts: &[GamePuppetPreviewArtifact],
+) -> String {
+    let mut output = String::from("{\n");
+    writeln!(&mut output, "  \"branch\": {},", json_string(plan.branch_name.as_ref()))
+        .expect("writing manifest to String cannot fail");
+    writeln!(
+        &mut output,
+        "  \"minecraftVersion\": {},",
+        json_string(plan.minecraft_version.as_ref())
+    )
+    .expect("writing manifest to String cannot fail");
+    writeln!(
+        &mut output,
+        "  \"puppetSelection\": {},",
+        json_string(run_options.game_puppet_filter.as_deref().unwrap_or_default())
+    )
+    .expect("writing manifest to String cannot fail");
+    writeln!(
+        &mut output,
+        "  \"viewport\": {{ \"width\": {}, \"height\": {} }},",
+        run_options.preview_width,
+        run_options.preview_height
+    )
+    .expect("writing manifest to String cannot fail");
+    output.push_str(
+        "  \"captureProfile\": { \"nativeMainRenderTarget\": true, \"hideHud\": true, \"clearTransientOverlays\": true },\n",
+    );
+    output.push_str("  \"captures\": [\n");
+    for (index, artifact) in artifacts.iter().enumerate() {
+        let camera = artifact.metadata.camera.as_ref().map_or_else(
+            || "null".to_string(),
+            |camera| {
+                format!(
+                    "{{ \"x\": {}, \"y\": {}, \"z\": {}, \"yaw\": {}, \"pitch\": {} }}",
+                    camera.x, camera.y, camera.z, camera.yaw, camera.pitch
+                )
+            },
+        );
+        let screen = artifact
+            .metadata
+            .screen
+            .as_deref()
+            .map_or_else(|| "null".to_string(), json_string);
+        let hud_hidden = artifact
+            .metadata
+            .hud_hidden
+            .map_or_else(|| "null".to_string(), |value| value.to_string());
+        writeln!(
+            &mut output,
+            "    {{ \"puppet\": {}, \"figure\": {}, \"capture\": {}, \"path\": {}, \"width\": {}, \"height\": {}, \"hash\": {}, \"camera\": {}, \"screen\": {}, \"hudHidden\": {} }}{}",
+            json_string(&artifact.puppet_name),
+            artifact.figure_number,
+            json_string(&artifact.capture_name),
+            json_string(&artifact.relative_path.to_string_lossy().replace('\\', "/")),
+            artifact.width,
+            artifact.height,
+            json_string(&artifact.hash.to_string()),
+            camera,
+            screen,
+            hud_hidden,
+            if index + 1 == artifacts.len() { "" } else { "," }
+        )
+        .expect("writing manifest to String cannot fail");
+    }
+    output.push_str("  ]\n}\n");
+    output
+}
+
+fn json_string(value: &str) -> String {
+    let mut output = String::with_capacity(value.len() + 2);
+    output.push('"');
+    for character in value.chars() {
+        match character {
+            '"' => output.push_str("\\\""),
+            '\\' => output.push_str("\\\\"),
+            '\n' => output.push_str("\\n"),
+            '\r' => output.push_str("\\r"),
+            '\t' => output.push_str("\\t"),
+            character if character.is_control() => {
+                write!(&mut output, "\\u{:04x}", character as u32)
+                    .expect("writing JSON escape to String cannot fail");
+            }
+            character => output.push(character),
+        }
+    }
+    output.push('"');
+    output
+}
+
+#[cfg(test)]
+mod game_puppet_preview_tests {
+    use super::game_puppet_preview_artifact_file_name;
+    use super::is_safe_preview_name;
+    use super::json_string;
+    use super::parse_game_puppet_capture_metadata;
+    use super::png_dimensions;
+
+    #[test]
+    fn preview_names_are_confined_to_the_artifact_namespace() {
+        assert!(is_safe_preview_name("move_1_stack_direct"));
+        assert!(is_safe_preview_name("overview-07"));
+        assert!(!is_safe_preview_name(""));
+        assert!(!is_safe_preview_name("../escape"));
+        assert!(!is_safe_preview_name("not a capture"));
+        assert!(!is_safe_preview_name("UPPERCASE"));
+    }
+
+    #[test]
+    fn preview_artifact_file_names_begin_with_the_caption_figure_number() {
+        assert_eq!(
+            game_puppet_preview_artifact_file_name(1, "overview-00"),
+            "figure_01_overview-00.png"
+        );
+        assert_eq!(
+            game_puppet_preview_artifact_file_name(12, "disk-program"),
+            "figure_12_disk-program.png"
+        );
+    }
+
+    #[test]
+    fn png_dimensions_require_a_complete_ihdr() {
+        let mut png = vec![137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13];
+        png.extend_from_slice(b"IHDR");
+        png.extend_from_slice(&1280_u32.to_be_bytes());
+        png.extend_from_slice(&720_u32.to_be_bytes());
+        assert_eq!(png_dimensions(&png), Some((1280, 720)));
+        assert_eq!(png_dimensions(&png[..23]), None);
+        assert_eq!(png_dimensions(&[0; 24]), None);
+    }
+
+    #[test]
+    fn json_strings_escape_path_and_control_characters() {
+        assert_eq!(json_string("a\\b\n\"c\""), "\"a\\\\b\\n\\\"c\\\"\"");
+    }
+
+    #[test]
+    fn capture_metadata_is_read_from_the_structured_client_marker() {
+        let metadata = parse_game_puppet_capture_metadata(
+            "SFM_GAME_PUPPET_CAPTURE_QUEUED puppet=move_1_stack_direct_walkthrough capture=overview-00 file=move_1_stack_direct_walkthrough__overview-00.png figure=1 camera_x=7.5 camera_y=-52.5 camera_z=0.5 camera_yaw=90.0 camera_pitch=35.5 screen=world hud_hidden=true",
+        );
+        let capture = metadata
+            .get(&(
+                "move_1_stack_direct_walkthrough".to_string(),
+                "overview-00".to_string(),
+            ))
+            .expect("capture metadata should be indexed by puppet and capture");
+        let camera = capture.camera.as_ref().expect("camera pose should be recorded");
+        assert_eq!(camera.x, 7.5);
+        assert_eq!(camera.y, -52.5);
+        assert_eq!(camera.yaw, 90.0);
+        assert_eq!(capture.figure_number, Some(1));
+        assert_eq!(capture.screen.as_deref(), Some("world"));
+        assert_eq!(capture.hud_hidden, Some(true));
+    }
+}
+
 pub(super) fn should_include_project_run_dependencies(
     kind: RunKind,
     run_options: &RunOptions,
@@ -3694,6 +4175,7 @@ fn run_dependency_configurations(kind: RunKind) -> &'static [&'static str] {
         RunKind::Client
         | RunKind::ClientSmoke
         | RunKind::ClientPuppet
+        | RunKind::GameTestPreview
         | RunKind::Server
         | RunKind::GameTestServer => &[
             "implementation",
@@ -3847,6 +4329,18 @@ fn kind_extra_program_args(plan: &BuildPlan, kind: RunKind) -> eyre::Result<Vec<
             .display()
             .to_string(),
     ])
+}
+
+fn preview_program_args(kind: RunKind, run_options: &RunOptions) -> Vec<String> {
+    if !matches!(kind, RunKind::GameTestPreview) {
+        return Vec::new();
+    }
+    vec![
+        "--width".to_string(),
+        run_options.preview_width.to_string(),
+        "--height".to_string(),
+        run_options.preview_height.to_string(),
+    ]
 }
 
 #[expect(

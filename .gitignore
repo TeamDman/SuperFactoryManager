@@ -50,4 +50,5 @@ forge*changelog.txt
 runServer
 runs
 runClientPuppet
+runGameTestPreview
 run_client_puppet

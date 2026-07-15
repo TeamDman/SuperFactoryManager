@@ -3,6 +3,7 @@ pub enum RunKind {
     Client,
     ClientSmoke,
     ClientPuppet,
+    GameTestPreview,
     Server,
     Data,
     GameTestServer,

@@ -3,6 +3,7 @@ package ca.teamdman.sfm.gametest;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHarness;
 import com.mojang.brigadier.Command;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.PauseScreen;
@@ -34,6 +35,7 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
@@ -51,7 +53,7 @@ public class SFMClientRunHarness {
     private static boolean keepOpen = false;
     private static int exitTicksRemaining = -1;
     private static int exitCountdownSecondAnnounced = -1;
-    private static MultipleTestTracker activeTracker = null;
+    private static @Nullable MultipleTestTracker activeTracker = null;
     private static int activeRequiredCount = 0;
     private static int activeTotalCount = 0;
 
@@ -63,6 +65,11 @@ public class SFMClientRunHarness {
         }
 
         if (preventPuppetPauseScreen(event, mode)) {
+            return;
+        }
+
+        if (mode == Mode.GAME_PUPPET && event.getNewScreen() instanceof TitleScreen) {
+            SFMGamePuppetHarness.onTitleScreenOpened();
             return;
         }
 
@@ -78,7 +85,7 @@ public class SFMClientRunHarness {
     }
 
     private static boolean preventPuppetPauseScreen(ScreenEvent.Opening event, Mode mode) {
-        if (mode == Mode.PUPPET && event.getNewScreen() instanceof PauseScreen) {
+        if ((mode == Mode.PUPPET || mode == Mode.GAME_PUPPET) && event.getNewScreen() instanceof PauseScreen) {
             SFM.LOGGER.info("SFM_CLIENT_PUPPET_PREVENTING_PAUSE_SCREEN");
             event.setNewScreen(null);
             return true;
@@ -102,7 +109,16 @@ public class SFMClientRunHarness {
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || mode() != Mode.PUPPET) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+
+        Mode mode = mode();
+        if (mode == Mode.GAME_PUPPET) {
+            SFMGamePuppetHarness.onClientTick();
+            return;
+        }
+        if (mode != Mode.PUPPET) {
             return;
         }
 
@@ -346,12 +362,14 @@ public class SFMClientRunHarness {
     private static Mode mode() {
         return switch (System.getProperty(MODE_PROPERTY, "")) {
             case "puppet" -> Mode.PUPPET;
+            case "game-puppet" -> Mode.GAME_PUPPET;
             default -> Mode.NONE;
         };
     }
 
     private enum Mode {
         NONE,
-        PUPPET
+        PUPPET,
+        GAME_PUPPET
     }
 }

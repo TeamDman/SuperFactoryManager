@@ -21,7 +21,12 @@ public abstract class SFMGameTestDefinition {
     }
 
     public String testName() {
-        return toSnakeCase(getClass().getSimpleName().replaceAll("GameTest$", ""));
+        return testNameFor(getClass());
+    }
+
+    public static String testNameFor(Class<?> clazz) {
+
+        return toSnakeCase(clazz.getSimpleName().replaceAll("GameTest$", ""));
     }
 
     public int maxTicks() {
@@ -65,7 +70,7 @@ public abstract class SFMGameTestDefinition {
         );
     }
 
-    private String toSnakeCase(String input) {
+    private static String toSnakeCase(String input) {
         return
                 input.replaceAll("([a-zA-Z])(\\d+)", "$1_$2")
                         .replaceAll("(\\d+)([a-zA-Z])", "$1_$2")

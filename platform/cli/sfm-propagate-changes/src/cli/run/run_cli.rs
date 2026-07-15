@@ -3,6 +3,7 @@ use super::RunClientPuppetArgs;
 use super::RunClientSmokeArgs;
 use super::RunCompileArgs;
 use super::RunDataArgs;
+use super::RunGameTestPreviewArgs;
 use super::RunGameTestServerArgs;
 use super::RunHotswapArgs;
 use super::RunServerArgs;
@@ -42,6 +43,9 @@ pub enum RunCommand {
     /// Launch the Forge client userdev run config and run SFM game tests in an integrated client
     #[facet]
     ClientPuppet(RunClientPuppetArgs),
+    /// Launch the Forge client and run selected SFM game puppet definitions
+    #[facet]
+    GameTestPreview(RunGameTestPreviewArgs),
     /// Launch the Forge server userdev run config
     Server(RunServerArgs),
     /// Launch the Forge datagen userdev run config
@@ -65,6 +69,7 @@ impl RunCommand {
             RunCommand::Client(args) => args.invoke(cancellation_token),
             RunCommand::ClientSmoke(args) => args.invoke(cancellation_token),
             RunCommand::ClientPuppet(args) => args.invoke(cancellation_token),
+            RunCommand::GameTestPreview(args) => args.invoke(cancellation_token),
             RunCommand::Server(args) => args.invoke(cancellation_token),
             RunCommand::Data(args) => args.invoke(cancellation_token),
             RunCommand::GameTestServer(args) => args.invoke(cancellation_token),

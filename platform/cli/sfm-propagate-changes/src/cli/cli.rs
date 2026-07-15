@@ -150,6 +150,14 @@ mod tests {
             "--filter",
             "wither_aggro_*",
         ]);
+        assert_run_cli(&[
+            "run",
+            "game-test-preview",
+            "--branch",
+            "1.19.2",
+            "--puppet",
+            "move_1_stack_direct_walkthrough",
+        ]);
         assert_run_cli(&["run", "server", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "data", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "game-test-server", "--branch", "1.19.2"]);
@@ -312,6 +320,35 @@ mod tests {
                 );
             }
             command => panic!("expected client-puppet run command, got {command:?}"),
+        }
+
+        let game_test_preview = figue::from_slice::<Cli>(&[
+            "run",
+            "game-test-preview",
+            "--branch",
+            "1.19.2",
+            "--puppet",
+            "move_1_stack_direct_walkthrough,other_*",
+            "--width",
+            "1600",
+            "--height",
+            "900",
+        ])
+        .into_result()
+        .expect("game test preview arguments should parse")
+        .get_silent();
+        match game_test_preview.command {
+            Command::Run(crate::cli::run::RunArgs {
+                command: RunCommand::GameTestPreview(args),
+            }) => {
+                assert_eq!(
+                    args.puppet,
+                    "move_1_stack_direct_walkthrough,other_*".to_string()
+                );
+                assert_eq!(args.width, Some(1600));
+                assert_eq!(args.height, Some(900));
+            }
+            command => panic!("expected game-test-preview run command, got {command:?}"),
         }
     }
 
@@ -1556,6 +1593,7 @@ mod tests {
                     | RunCommand::Client(_)
                     | RunCommand::ClientSmoke(_)
                     | RunCommand::ClientPuppet(_)
+                    | RunCommand::GameTestPreview(_)
                     | RunCommand::Server(_)
                     | RunCommand::Data(_)
                     | RunCommand::GameTestServer(_)
