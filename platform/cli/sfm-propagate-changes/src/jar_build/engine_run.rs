@@ -3351,13 +3351,57 @@ struct GamePuppetPreviewCaptureMetadata {
     hud_hidden: Option<bool>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Facet)]
 struct GamePuppetPreviewCamera {
     x: f64,
     y: f64,
     z: f64,
     yaw: f64,
     pitch: f64,
+}
+
+#[derive(Debug, Facet)]
+struct GamePuppetPreviewManifest {
+    branch: String,
+    #[facet(rename = "minecraftVersion")]
+    minecraft_version: String,
+    #[facet(rename = "puppetSelection")]
+    puppet_selection: String,
+    viewport: GamePuppetPreviewViewport,
+    #[facet(rename = "captureProfile")]
+    capture_profile: GamePuppetPreviewCaptureProfile,
+    captures: Vec<GamePuppetPreviewManifestCapture>,
+}
+
+#[derive(Debug, Facet)]
+struct GamePuppetPreviewViewport {
+    width: u16,
+    height: u16,
+}
+
+#[derive(Debug, Facet)]
+struct GamePuppetPreviewCaptureProfile {
+    #[facet(rename = "nativeMainRenderTarget")]
+    native_main_render_target: bool,
+    #[facet(rename = "hideHud")]
+    hide_hud: bool,
+    #[facet(rename = "clearTransientOverlays")]
+    clear_transient_overlays: bool,
+}
+
+#[derive(Debug, Facet)]
+struct GamePuppetPreviewManifestCapture {
+    puppet: String,
+    figure: u32,
+    capture: String,
+    path: String,
+    width: u32,
+    height: u32,
+    hash: ContentHash,
+    camera: Option<GamePuppetPreviewCamera>,
+    screen: Option<String>,
+    #[facet(rename = "hudHidden")]
+    hud_hidden: Option<bool>,
 }
 
 #[expect(
@@ -3474,7 +3518,7 @@ fn publish_game_puppet_preview_artifacts(
     artifacts.sort_by_key(|artifact| artifact.figure_number);
 
     let manifest_path = artifact_root.join("preview-manifest.json");
-    let manifest = render_game_puppet_preview_manifest(plan, run_options, &artifacts);
+    let manifest = render_game_puppet_preview_manifest(plan, run_options, &artifacts)?;
     fs::write(&manifest_path, manifest)
         .wrap_err_with(|| format!("Failed to write {}", manifest_path.display()))?;
     Ok(manifest_path)
@@ -3560,99 +3604,49 @@ fn render_game_puppet_preview_manifest(
     plan: &BuildPlan,
     run_options: &RunOptions,
     artifacts: &[GamePuppetPreviewArtifact],
-) -> String {
-    let mut output = String::from("{\n");
-    writeln!(&mut output, "  \"branch\": {},", json_string(plan.branch_name.as_ref()))
-        .expect("writing manifest to String cannot fail");
-    writeln!(
-        &mut output,
-        "  \"minecraftVersion\": {},",
-        json_string(plan.minecraft_version.as_ref())
-    )
-    .expect("writing manifest to String cannot fail");
-    writeln!(
-        &mut output,
-        "  \"puppetSelection\": {},",
-        json_string(run_options.game_puppet_filter.as_deref().unwrap_or_default())
-    )
-    .expect("writing manifest to String cannot fail");
-    writeln!(
-        &mut output,
-        "  \"viewport\": {{ \"width\": {}, \"height\": {} }},",
-        run_options.preview_width,
-        run_options.preview_height
-    )
-    .expect("writing manifest to String cannot fail");
-    output.push_str(
-        "  \"captureProfile\": { \"nativeMainRenderTarget\": true, \"hideHud\": true, \"clearTransientOverlays\": true },\n",
-    );
-    output.push_str("  \"captures\": [\n");
-    for (index, artifact) in artifacts.iter().enumerate() {
-        let camera = artifact.metadata.camera.as_ref().map_or_else(
-            || "null".to_string(),
-            |camera| {
-                format!(
-                    "{{ \"x\": {}, \"y\": {}, \"z\": {}, \"yaw\": {}, \"pitch\": {} }}",
-                    camera.x, camera.y, camera.z, camera.yaw, camera.pitch
-                )
-            },
-        );
-        let screen = artifact
-            .metadata
-            .screen
-            .as_deref()
-            .map_or_else(|| "null".to_string(), json_string);
-        let hud_hidden = artifact
-            .metadata
-            .hud_hidden
-            .map_or_else(|| "null".to_string(), |value| value.to_string());
-        writeln!(
-            &mut output,
-            "    {{ \"puppet\": {}, \"figure\": {}, \"capture\": {}, \"path\": {}, \"width\": {}, \"height\": {}, \"hash\": {}, \"camera\": {}, \"screen\": {}, \"hudHidden\": {} }}{}",
-            json_string(&artifact.puppet_name),
-            artifact.figure_number,
-            json_string(&artifact.capture_name),
-            json_string(&artifact.relative_path.to_string_lossy().replace('\\', "/")),
-            artifact.width,
-            artifact.height,
-            json_string(&artifact.hash.to_string()),
-            camera,
-            screen,
-            hud_hidden,
-            if index + 1 == artifacts.len() { "" } else { "," }
-        )
-        .expect("writing manifest to String cannot fail");
-    }
-    output.push_str("  ]\n}\n");
-    output
-}
-
-fn json_string(value: &str) -> String {
-    let mut output = String::with_capacity(value.len() + 2);
-    output.push('"');
-    for character in value.chars() {
-        match character {
-            '"' => output.push_str("\\\""),
-            '\\' => output.push_str("\\\\"),
-            '\n' => output.push_str("\\n"),
-            '\r' => output.push_str("\\r"),
-            '\t' => output.push_str("\\t"),
-            character if character.is_control() => {
-                write!(&mut output, "\\u{:04x}", character as u32)
-                    .expect("writing JSON escape to String cannot fail");
-            }
-            character => output.push(character),
-        }
-    }
-    output.push('"');
-    output
+) -> eyre::Result<String> {
+    let manifest = GamePuppetPreviewManifest {
+        branch: plan.branch_name.as_ref().to_string(),
+        minecraft_version: plan.minecraft_version.as_ref().to_string(),
+        puppet_selection: run_options.game_puppet_filter.clone().unwrap_or_default(),
+        viewport: GamePuppetPreviewViewport {
+            width: run_options.preview_width,
+            height: run_options.preview_height,
+        },
+        capture_profile: GamePuppetPreviewCaptureProfile {
+            native_main_render_target: true,
+            hide_hud: true,
+            clear_transient_overlays: true,
+        },
+        captures: artifacts
+            .iter()
+            .map(|artifact| GamePuppetPreviewManifestCapture {
+                puppet: artifact.puppet_name.clone(),
+                figure: artifact.figure_number,
+                capture: artifact.capture_name.clone(),
+                path: artifact.relative_path.to_string_lossy().replace('\\', "/"),
+                width: artifact.width,
+                height: artifact.height,
+                hash: artifact.hash,
+                camera: artifact.metadata.camera.clone(),
+                screen: artifact.metadata.screen.clone(),
+                hud_hidden: artifact.metadata.hud_hidden,
+            })
+            .collect(),
+    };
+    Ok(facet_json::to_string_pretty(&manifest)?)
 }
 
 #[cfg(test)]
 mod game_puppet_preview_tests {
+    use super::ContentHash;
+    use super::ContentHashAlgorithm;
+    use super::GamePuppetPreviewCaptureProfile;
+    use super::GamePuppetPreviewManifest;
+    use super::GamePuppetPreviewManifestCapture;
+    use super::GamePuppetPreviewViewport;
     use super::game_puppet_preview_artifact_file_name;
     use super::is_safe_preview_name;
-    use super::json_string;
     use super::parse_game_puppet_capture_metadata;
     use super::png_dimensions;
 
@@ -3690,8 +3684,43 @@ mod game_puppet_preview_tests {
     }
 
     #[test]
-    fn json_strings_escape_path_and_control_characters() {
-        assert_eq!(json_string("a\\b\n\"c\""), "\"a\\\\b\\n\\\"c\\\"\"");
+    fn preview_manifest_uses_facet_json_with_the_stable_external_field_names() {
+        let hash = ContentHash::from_bytes(b"preview", ContentHashAlgorithm::Blake3);
+        let manifest = GamePuppetPreviewManifest {
+            branch: "1.19.2".to_string(),
+            minecraft_version: "1.19.2".to_string(),
+            puppet_selection: "move_1_stack_direct_walkthrough".to_string(),
+            viewport: GamePuppetPreviewViewport {
+                width: 1280,
+                height: 720,
+            },
+            capture_profile: GamePuppetPreviewCaptureProfile {
+                native_main_render_target: true,
+                hide_hud: true,
+                clear_transient_overlays: true,
+            },
+            captures: vec![GamePuppetPreviewManifestCapture {
+                puppet: "move_1_stack_direct_walkthrough".to_string(),
+                figure: 1,
+                capture: "overview-00".to_string(),
+                path: "move_1_stack_direct_walkthrough/figure_01_overview-00.png".to_string(),
+                width: 1280,
+                height: 807,
+                hash,
+                camera: None,
+                screen: Some("SFM \"editor\"".to_string()),
+                hud_hidden: Some(true),
+            }],
+        };
+
+        let json = facet_json::to_string_pretty(&manifest).expect("preview manifest should serialize");
+        assert!(json.contains("\"minecraftVersion\": \"1.19.2\""));
+        assert!(json.contains("\"puppetSelection\": \"move_1_stack_direct_walkthrough\""));
+        assert!(json.contains("\"nativeMainRenderTarget\": true"));
+        assert!(json.contains("\"hudHidden\": true"));
+        assert!(json.contains(&format!("\"hash\": \"{hash}\"")));
+        assert!(json.contains("\"screen\": \"SFM \\\"editor\\\"\""));
+        assert!(!json.contains("minecraft_version"));
     }
 
     #[test]
