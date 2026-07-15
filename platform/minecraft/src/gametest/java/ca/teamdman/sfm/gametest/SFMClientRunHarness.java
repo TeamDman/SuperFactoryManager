@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHarness;
+import ca.teamdman.sfm.SFMProperties;
 import com.mojang.brigadier.Command;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.PauseScreen;
@@ -41,8 +42,6 @@ import java.util.Collection;
 import java.util.List;
 
 public class SFMClientRunHarness {
-    private static final String MODE_PROPERTY = "sfm.clientRun.mode";
-    private static final String KEEP_OPEN_SECONDS_PROPERTY = "sfm.clientRun.keepOpenSeconds";
     private static final String PUPPET_WORLD_ID = "sfm_client_puppet";
     private static final String PUPPET_WORLD_NAME = "SFM Client Puppet";
 
@@ -59,8 +58,8 @@ public class SFMClientRunHarness {
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onTitleScreenOpen(ScreenEvent.Opening event) {
-        Mode mode = mode();
-        if (mode == Mode.NONE) {
+        SFMProperties.ClientRunMode mode = SFMProperties.clientRunMode();
+        if (mode == SFMProperties.ClientRunMode.NONE) {
             return;
         }
 
@@ -68,7 +67,7 @@ public class SFMClientRunHarness {
             return;
         }
 
-        if (mode == Mode.GAME_PUPPET && event.getNewScreen() instanceof TitleScreen) {
+        if (mode == SFMProperties.ClientRunMode.GAME_PUPPET && event.getNewScreen() instanceof TitleScreen) {
             SFMGamePuppetHarness.onTitleScreenOpened();
             return;
         }
@@ -78,14 +77,14 @@ public class SFMClientRunHarness {
         }
 
         titleScreenHandled = true;
-        if (mode == Mode.PUPPET) {
+        if (mode == SFMProperties.ClientRunMode.PUPPET) {
             SFM.LOGGER.info("SFM_CLIENT_PUPPET_TITLE_READY");
             startPuppetWorld();
         }
     }
 
-    private static boolean preventPuppetPauseScreen(ScreenEvent.Opening event, Mode mode) {
-        if ((mode == Mode.PUPPET || mode == Mode.GAME_PUPPET) && event.getNewScreen() instanceof PauseScreen) {
+    private static boolean preventPuppetPauseScreen(ScreenEvent.Opening event, SFMProperties.ClientRunMode mode) {
+        if (mode.isPuppet() && event.getNewScreen() instanceof PauseScreen) {
             SFM.LOGGER.info("SFM_CLIENT_PUPPET_PREVENTING_PAUSE_SCREEN");
             event.setNewScreen(null);
             return true;
@@ -95,7 +94,7 @@ public class SFMClientRunHarness {
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onRegisterCommands(RegisterCommandsEvent event) {
-        if (mode() != Mode.PUPPET) {
+        if (SFMProperties.clientRunMode() != SFMProperties.ClientRunMode.PUPPET) {
             return;
         }
 
@@ -113,12 +112,12 @@ public class SFMClientRunHarness {
             return;
         }
 
-        Mode mode = mode();
-        if (mode == Mode.GAME_PUPPET) {
+        SFMProperties.ClientRunMode mode = SFMProperties.clientRunMode();
+        if (mode == SFMProperties.ClientRunMode.GAME_PUPPET) {
             SFMGamePuppetHarness.onClientTick();
             return;
         }
-        if (mode != Mode.PUPPET) {
+        if (mode != SFMProperties.ClientRunMode.PUPPET) {
             return;
         }
 
@@ -356,20 +355,6 @@ public class SFMClientRunHarness {
     }
 
     private static int keepOpenSeconds() {
-        return Integer.getInteger(KEEP_OPEN_SECONDS_PROPERTY, 10);
-    }
-
-    private static Mode mode() {
-        return switch (System.getProperty(MODE_PROPERTY, "")) {
-            case "puppet" -> Mode.PUPPET;
-            case "game-puppet" -> Mode.GAME_PUPPET;
-            default -> Mode.NONE;
-        };
-    }
-
-    private enum Mode {
-        NONE,
-        PUPPET,
-        GAME_PUPPET
+        return SFMProperties.clientRunKeepOpenSeconds(10);
     }
 }

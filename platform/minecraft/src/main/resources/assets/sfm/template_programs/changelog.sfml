@@ -8,6 +8,7 @@ NAME "Changelog"
 
 ---- 4.35.0 PRE ----
 -- Add captioned, numbered developer GameTest preview screenshots
+-- Keep the OS cursor free during developer client-puppet runs
 -- Rework CC:Tweaked support with mutable disk/label-gun handles and the Labeler turtle upgrade
 -- Add CC:Tweaked cable-network peripherals, structured SFM item details, and turtle inventory support
 -- Fix draw canvas selection highlights covering unselected gaps between glyphs

@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.ProgramTokenContextActions;
 import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
+import ca.teamdman.sfm.SFMProperties;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
 import com.google.common.collect.Sets;
 import net.minecraft.ChatFormatting;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -731,7 +731,7 @@ public class SFMLTests {
     @Test
     public void demos() throws IOException {
         var examplesPath = findDirectoryUpwards("examples");
-        assertNotNull(examplesPath, "Could not locate examples directory starting from " + System.getProperty("user.dir"));
+        assertNotNull(examplesPath, "Could not locate examples directory starting from " + SFMProperties.userDirectory());
         var found = 0;
         try (var ds = Files.newDirectoryStream(examplesPath)) {
             for (var entryPath : ds) {
@@ -749,7 +749,7 @@ public class SFMLTests {
     @Test
     public void templates() throws IOException {
         var examplesPath = findDirectoryUpwards("src/main/resources/assets/sfm/template_programs");
-        assertNotNull(examplesPath, "Could not locate template programs directory starting from " + System.getProperty("user.dir"));
+        assertNotNull(examplesPath, "Could not locate template programs directory starting from " + SFMProperties.userDirectory());
         var found = 0;
         try (var ds = Files.newDirectoryStream(examplesPath)) {
             for (var entryPath : ds) {
@@ -780,7 +780,7 @@ public class SFMLTests {
     }
 
     private static Path findDirectoryUpwards(String relativePath) {
-        Path cwd = Paths.get(System.getProperty("user.dir"));
+        Path cwd = SFMProperties.userDirectory();
         System.out.println("Starting search for " + relativePath + " from " + cwd);
         for (int i = 0; i < 5; i++) {
             Path candidate = cwd.resolve(relativePath);

@@ -3,6 +3,7 @@ package ca.teamdman.sfm.gametest;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
+import ca.teamdman.sfm.SFMProperties;
 import net.minecraft.gametest.framework.GameTestRegistry;
 import net.minecraft.gametest.framework.TestFunction;
 import net.minecraftforge.event.RegisterGameTestsEvent;
@@ -14,8 +15,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class SFMGameTestDiscovery {
-    private static final String GAME_TEST_SELECTION_PROPERTY = "sfm.gametestSelection";
-
     @SFMSubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
         // Discover our tests
@@ -71,7 +70,7 @@ public class SFMGameTestDiscovery {
 
     private static Collection<SFMGameTestDefinition> filterSelectedTests(Collection<SFMGameTestDefinition> tests) {
 
-        String rawSelection = System.getProperty(GAME_TEST_SELECTION_PROPERTY, "").trim();
+        String rawSelection = SFMProperties.gameTestSelection();
         if (rawSelection.isEmpty()) {
             return tests;
         }

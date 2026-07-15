@@ -2,6 +2,7 @@ package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
+import ca.teamdman.sfm.SFMProperties;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -15,8 +16,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public final class SFMGamePuppetDiscovery {
-    private static final String GAME_PUPPET_SELECTION_PROPERTY = "sfm.gamePuppetSelection";
-
     private SFMGamePuppetDiscovery() {
     }
 
@@ -73,7 +72,7 @@ public final class SFMGamePuppetDiscovery {
     private static Collection<SFMDiscoveredGamePuppet> filterSelectedPuppets(
             Collection<SFMDiscoveredGamePuppet> puppets
     ) {
-        String rawSelection = System.getProperty(GAME_PUPPET_SELECTION_PROPERTY, "").trim();
+        String rawSelection = SFMProperties.gamePuppetSelection();
         if (rawSelection.isEmpty()) {
             throw new IllegalStateException(
                     "No SFM game puppet selection was supplied. Use --puppet <name> when launching run game-test-preview."

@@ -3,6 +3,7 @@ package ca.teamdman.sfm.gametest.puppet;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestDiscovery;
+import ca.teamdman.sfm.SFMProperties;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.server.IntegratedServer;
@@ -30,7 +31,6 @@ import java.util.List;
  * the next one begins, while the same client process remains alive.
  */
 public final class SFMGamePuppetHarness {
-    public static final String KEEP_OPEN_SECONDS_PROPERTY = "sfm.clientRun.keepOpenSeconds";
     public static final String WORLD_ID_PREFIX = "sfm_game_puppet_";
     public static final String WORLD_NAME_PREFIX = "SFM Game Puppet: ";
     public static final int ACTION_TIMEOUT_TICKS = 20 * 60;
@@ -168,7 +168,7 @@ public final class SFMGamePuppetHarness {
                 failedPuppetCount,
                 selectedPuppets.size()
         );
-        int keepOpenSeconds = Integer.getInteger(KEEP_OPEN_SECONDS_PROPERTY, 25);
+        int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(25);
         if (keepOpenSeconds < 0) {
             SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_OPEN");
             return;

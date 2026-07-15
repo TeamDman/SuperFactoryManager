@@ -16,6 +16,7 @@ import ca.teamdman.sfm.common.program.IProgramHooks;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMItemUtils;
+import ca.teamdman.sfm.SFMProperties;
 import ca.teamdman.sfml.ast.ASTBuilder;
 import ca.teamdman.sfml.ast.BoolExpr;
 import ca.teamdman.sfml.ast.Program;
@@ -59,10 +60,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 public class SFMGameTestHelper extends GameTestHelper {
-    private static final long MAX_PROGRAM_RUN_MILLIS = Long.getLong(
-            "sfm.gametest.maxProgramRunMillis",
-            80L
-    );
+    private static final long MAX_PROGRAM_RUN_MILLIS = SFMProperties.gameTestMaxProgramRunMillis(80L);
 
     public SFMGameTestHelper(
             GameTestHelper helper

@@ -2,13 +2,13 @@ package ca.teamdman.sfm.test.draw;
 
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasModel;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasSyntaxHighlightingHelper;
+import ca.teamdman.sfm.SFMProperties;
 import net.minecraft.ChatFormatting;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -87,7 +87,7 @@ public class SFMDrawCanvasSyntaxHighlightingTests {
     @Test
     public void templateProgramsRoundTripThroughProjection() throws IOException {
         Path templatesPath = findDirectoryUpwards("src/main/resources/assets/sfm/template_programs");
-        assertNotNull(templatesPath, "Could not locate template programs directory starting from " + System.getProperty("user.dir"));
+        assertNotNull(templatesPath, "Could not locate template programs directory starting from " + SFMProperties.userDirectory());
 
         int found = 0;
         try (var ds = Files.newDirectoryStream(templatesPath)) {
@@ -163,7 +163,7 @@ public class SFMDrawCanvasSyntaxHighlightingTests {
     }
 
     private static Path findDirectoryUpwards(String relativePath) {
-        Path cwd = Paths.get(System.getProperty("user.dir"));
+        Path cwd = SFMProperties.userDirectory();
         for (int i = 0; i < 5; i++) {
             Path candidate = cwd.resolve(relativePath);
             if (Files.isDirectory(candidate)) {
