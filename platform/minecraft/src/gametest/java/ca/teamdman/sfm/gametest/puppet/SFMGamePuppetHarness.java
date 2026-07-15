@@ -168,7 +168,7 @@ public final class SFMGamePuppetHarness {
                 failedPuppetCount,
                 selectedPuppets.size()
         );
-        int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(25);
+        int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(1);
         if (keepOpenSeconds < 0) {
             SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_OPEN");
             return;
