@@ -38,20 +38,16 @@ pub enum RunCommand {
     /// Launch the Forge client userdev run config
     Client(RunClientArgs),
     /// Launch the Forge client userdev run config and exit when the title screen opens
-    #[facet]
     ClientSmoke(RunClientSmokeArgs),
     /// Launch the Forge client userdev run config and run SFM game tests in an integrated client
-    #[facet]
     ClientPuppet(RunClientPuppetArgs),
     /// Launch the Forge client and run selected SFM game puppet definitions
-    #[facet]
     GameTestPreview(RunGameTestPreviewArgs),
     /// Launch the Forge server userdev run config
     Server(RunServerArgs),
     /// Launch the Forge datagen userdev run config
     Data(RunDataArgs),
     /// Launch the Forge game test server userdev run config
-    #[facet]
     GameTestServer(RunGameTestServerArgs),
     /// Compile changed classes and hotswap them into a running JDWP-enabled client
     Hotswap(RunHotswapArgs),

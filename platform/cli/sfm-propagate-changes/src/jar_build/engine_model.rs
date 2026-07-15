@@ -249,9 +249,7 @@ struct ArtifactPortabilityInput {
 pub(crate) enum ArtifactSource {
     RemoteMaven,
     RemoteHttp,
-    #[facet]
     ExplicitSource,
-    #[facet]
     SourceBuild,
     LocalM2Cache,
     LocalGradleModuleCache,

@@ -41,17 +41,14 @@ pub enum JarCommand {
     /// Compare the Gradle jar against the Rust-built jar
     Compare(JarCompareArgs),
     /// Verify locked artifact cache and source provenance
-    #[facet]
     AuditArtifacts(JarArtifactAuditArgs),
     /// Collect jars from each MC version based on that version's `mod_version`
     Collect(JarCollectArgs),
     /// List jars in the configured jar directory
     List(JarListArgs),
     /// Remove old SFM jar(s) and copy tracked-version jar to each tracked client mods folder
-    #[facet]
     UpdateClients(JarUpdateClientsArgs),
     /// Remove old SFM jar(s) and copy tracked-version jar to each tracked server mods folder
-    #[facet]
     UpdateServers(JarUpdateServersArgs),
 }
 

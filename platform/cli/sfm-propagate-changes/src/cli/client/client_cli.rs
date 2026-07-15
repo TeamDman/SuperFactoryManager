@@ -73,16 +73,12 @@ pub enum ClientCommand {
     /// List tracked client directories matching a glob pattern
     List(ClientListArgs),
     /// Set the launcher executable path used by `client open` and `client launch`
-    #[facet]
     SetLauncher(ClientSetLauncherArgs),
     /// Show the configured launcher executable path
-    #[facet]
     GetLauncher(ClientGetLauncherArgs),
     /// Set the Prism Launcher instances directory managed by `client sync`
-    #[facet]
     SetInstancesDir(ClientSetInstancesDirArgs),
     /// Show the configured Prism Launcher instances directory
-    #[facet]
     GetInstancesDir(ClientGetInstancesDirArgs),
     /// Create, track, and update SFM verification client instances
     Sync(ClientSyncArgs),
