@@ -19,8 +19,8 @@ When merging, the default behaviour should be "keep existing" and subsequently m
 Instead of `./gradlew build`, use `sfm-propagate-changes run compile`
 Instead of `./gradlew runClient_teamy`, use `sfm-propagate-changes run client`
 Instead of `./gradlew runDatagen`, use `sfm-propagate-changes run data`
-Instead of `./gradlew runGameTestServer`, use `sfm-propagate-changes run game-test-server`
-Instead of `./gradlew test`, use `sfm-propagate-changes run test`
+Instead of `./gradlew runGameTestServer`, use `sfm-propagate-changes game-test run-server`
+Instead of `./gradlew test`, use `sfm-propagate-changes test run`
 
 The `sfm-propagate-changes` source code is [here](../platform/cli/sfm-propagate-changes/src/cli/cli.rs)
 

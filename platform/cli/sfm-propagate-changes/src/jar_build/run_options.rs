@@ -7,8 +7,10 @@ use std::time::Duration;
 pub struct RunOptions {
     pub game_test_filter: Option<String>,
     pub game_puppet_filter: Option<String>,
+    pub game_puppet_game_test: Option<String>,
     pub game_test_bisect: Option<GameTestBisectOptions>,
     pub client_puppet_keep_open: ClientPuppetKeepOpen,
+    pub game_puppet_keep_open: GamePuppetKeepOpen,
     pub preview_width: u16,
     pub preview_height: u16,
     pub client_title_screen: Option<ClientTitleScreen>,
@@ -118,6 +120,56 @@ impl Default for ClientPuppetKeepOpen {
     fn default() -> Self {
         Self::Countdown {
             seconds: Self::DEFAULT_COUNTDOWN_SECONDS,
+        }
+    }
+}
+
+/// Optional final-world hold for a game-puppet preview.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum GamePuppetKeepOpen {
+    /// Return to title immediately when the final puppet succeeds.
+    #[default]
+    None,
+    /// Hold the final puppet world for a finite duration before returning to title.
+    Countdown { seconds: u64 },
+    /// Leave the final puppet world open until the user closes the client.
+    Forever,
+}
+
+impl GamePuppetKeepOpen {
+    /// # Errors
+    ///
+    /// Returns an error when a supplied keep-open duration is invalid.
+    pub fn from_cli(value: Option<Option<String>>) -> eyre::Result<Self> {
+        match value {
+            None => Ok(Self::None),
+            Some(None) => Ok(Self::Forever),
+            Some(Some(raw)) => {
+                let trimmed = raw.trim();
+                if trimmed.is_empty() {
+                    eyre::bail!("--keep-open duration must not be empty");
+                }
+                Ok(Self::Countdown {
+                    seconds: duration_to_property_seconds(parse_keep_open_duration(trimmed)?)?,
+                })
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn property_seconds(self) -> i32 {
+        match self {
+            Self::None => 0,
+            Self::Countdown { seconds } => i32::try_from(seconds).unwrap_or(i32::MAX),
+            Self::Forever => -1,
+        }
+    }
+
+    #[must_use]
+    pub const fn countdown_seconds(self) -> Option<u64> {
+        match self {
+            Self::Countdown { seconds } => Some(seconds),
+            Self::None | Self::Forever => None,
         }
     }
 }

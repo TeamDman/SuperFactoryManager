@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add IDE developer-menu actions to create a persistent preset world, optionally running all SFM GameTests
 -- Add captioned, numbered developer GameTest preview screenshots
 -- Keep the OS cursor free during developer client-puppet runs
 -- Rework CC:Tweaked support with mutable disk/label-gun handles and the Labeler turtle upgrade

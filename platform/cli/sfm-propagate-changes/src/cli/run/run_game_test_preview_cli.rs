@@ -1,8 +1,7 @@
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
-use crate::jar_build::BuildOptions;
-use crate::jar_build::ClientPuppetKeepOpen;
+use crate::jar_build::GamePuppetKeepOpen;
 use crate::jar_build::RunCommand;
 use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
@@ -20,6 +19,10 @@ pub struct RunGameTestPreviewArgs {
     #[facet(args::named)]
     pub puppet: String,
 
+    /// Exact SFM `GameTest` id supplied to a parameterized puppet. Accepts `sfm:<name>` or `<name>`.
+    #[facet(default, args::named)]
+    pub game_test: Option<String>,
+
     /// Window width used for native screenshot captures.
     #[facet(default, args::named)]
     pub width: Option<u16>,
@@ -34,34 +37,79 @@ pub struct RunGameTestPreviewArgs {
 }
 
 impl RunGameTestPreviewArgs {
-    pub(crate) fn into_options(self, mode: BuildMode) -> eyre::Result<BuildOptions> {
-        self.options.into_options(mode)
-    }
-
     /// # Errors
     ///
     /// Returns an error if planning, building, launching, or puppet validation fails.
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
-        let puppet_filter = self.puppet.trim().to_string();
-        if puppet_filter.is_empty() {
-            eyre::bail!("--puppet must not be empty");
-        }
-        let (preview_width, preview_height) = validate_viewport(self.width, self.height)?;
-        let client_puppet_keep_open = ClientPuppetKeepOpen::from_cli(self.keep_open.clone())?;
-        RunCommand::with_run_options(
-            self.into_options(BuildMode::Build)?,
-            RunKind::GameTestPreview,
-            RunOptions {
-                game_puppet_filter: Some(puppet_filter),
-                client_puppet_keep_open,
-                preview_width,
-                preview_height,
-                ..RunOptions::default()
-            },
+        invoke_game_puppet(
+            self.options,
+            &self.puppet,
+            self.game_test,
+            self.width,
+            self.height,
+            self.keep_open,
             cancellation_token,
         )
-        .invoke()
     }
+}
+
+/// Invoke a selected game-puppet preview from any CLI entry point.
+///
+/// # Errors
+///
+/// Returns an error if arguments are invalid or the preview build or launch fails.
+#[expect(
+    clippy::option_option,
+    reason = "Figue represents a named optional value as absent, bare, or supplied."
+)]
+pub(crate) fn invoke_game_puppet(
+    options: JarBuildOptionsArgs,
+    puppet: &str,
+    game_test: Option<String>,
+    width: Option<u16>,
+    height: Option<u16>,
+    keep_open: Option<Option<String>>,
+    cancellation_token: CancellationToken,
+) -> eyre::Result<()> {
+    let puppet_filter = puppet.trim();
+    if puppet_filter.is_empty() {
+        eyre::bail!("puppet selector must not be empty");
+    }
+    let game_puppet_game_test = normalize_game_puppet_game_test(game_test)?;
+    let (preview_width, preview_height) = validate_viewport(width, height)?;
+    let game_puppet_keep_open = GamePuppetKeepOpen::from_cli(keep_open)?;
+    RunCommand::with_run_options(
+        options.into_options(BuildMode::Build)?,
+        RunKind::GameTestPreview,
+        RunOptions {
+            game_puppet_filter: Some(puppet_filter.to_string()),
+            game_puppet_game_test,
+            game_puppet_keep_open,
+            preview_width,
+            preview_height,
+            ..RunOptions::default()
+        },
+        cancellation_token,
+    )
+    .invoke()
+}
+
+fn normalize_game_puppet_game_test(game_test: Option<String>) -> eyre::Result<Option<String>> {
+    let Some(game_test) = game_test else {
+        return Ok(None);
+    };
+    let normalized = game_test.trim();
+    if normalized.is_empty() {
+        eyre::bail!("--game-test must not be empty");
+    }
+    let normalized = normalized.strip_prefix("sfm:").unwrap_or(normalized);
+    if normalized.contains(':') {
+        eyre::bail!("--game-test must use the sfm namespace: {game_test:?}");
+    }
+    if normalized.contains(['*', '?', ',']) {
+        eyre::bail!("--game-test must identify exactly one GameTest: {game_test:?}");
+    }
+    Ok(Some(normalized.to_string()))
 }
 
 fn validate_viewport(width: Option<u16>, height: Option<u16>) -> eyre::Result<(u16, u16)> {
@@ -80,6 +128,7 @@ fn validate_viewport(width: Option<u16>, height: Option<u16>) -> eyre::Result<(u
 
 #[cfg(test)]
 mod tests {
+    use super::normalize_game_puppet_game_test;
     use super::validate_viewport;
 
     #[test]
@@ -89,7 +138,17 @@ mod tests {
             validate_viewport(Some(1600), Some(900)).unwrap(),
             (1600, 900)
         );
-        assert!(validate_viewport(Some(319), Some(720)).is_err());
-        assert!(validate_viewport(Some(1280), Some(319)).is_err());
+        let _ = validate_viewport(Some(319), Some(720)).unwrap_err();
+        let _ = validate_viewport(Some(1280), Some(319)).unwrap_err();
+    }
+
+    #[test]
+    fn parameterized_puppet_game_test_is_exact_and_namespace_normalized() {
+        assert_eq!(
+            normalize_game_puppet_game_test(Some(" sfm:move_1_stack_direct ".to_string())).unwrap(),
+            Some("move_1_stack_direct".to_string())
+        );
+        let _ = normalize_game_puppet_game_test(Some("other:test".to_string())).unwrap_err();
+        let _ = normalize_game_puppet_game_test(Some("move_*".to_string())).unwrap_err();
     }
 }

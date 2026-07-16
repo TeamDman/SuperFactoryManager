@@ -254,10 +254,29 @@ impl RunKind {
     fn launch_timeout(self, run_options: &RunOptions) -> Option<Duration> {
         match self {
             Self::ClientSmoke => Some(Duration::from_mins(2)),
-            Self::ClientPuppet | Self::GameTestPreview => client_puppet_launch_timeout(run_options),
+            Self::ClientPuppet => client_puppet_launch_timeout(run_options),
+            Self::GameTestPreview => game_puppet_launch_timeout(run_options),
             _ => None,
         }
     }
+}
+
+fn game_puppet_launch_timeout(run_options: &RunOptions) -> Option<Duration> {
+    if matches!(
+        run_options.game_puppet_keep_open,
+        crate::jar_build::GamePuppetKeepOpen::Forever
+    ) {
+        return None;
+    }
+    let keep_open_seconds = run_options
+        .game_puppet_keep_open
+        .countdown_seconds()
+        .unwrap_or_default();
+    Some(
+        Duration::from_mins(15)
+            .checked_add(Duration::from_secs(keep_open_seconds))
+            .unwrap_or(Duration::MAX),
+    )
 }
 
 fn client_puppet_launch_timeout(run_options: &RunOptions) -> Option<Duration> {
@@ -704,6 +723,7 @@ fn execute_run(
     }
     apply_game_test_filter_property(&mut properties, kind, run_options);
     apply_game_puppet_filter_property(&mut properties, kind, run_options);
+    apply_game_puppet_game_test_property(&mut properties, kind, run_options);
     if let Some(automation_mode) = kind.automation_mode() {
         properties.insert(
             "sfm.clientRun.mode".to_string(),
@@ -711,7 +731,7 @@ fn execute_run(
         );
     }
     apply_client_title_screen_property(&mut properties, kind, run_options);
-    apply_client_puppet_keep_open_property(&mut properties, kind, run_options);
+    apply_client_automation_timing_properties(&mut properties, kind, run_options);
     let launch_timeout = kind.launch_timeout(run_options);
 
     let mut jvm_args = properties
@@ -2144,18 +2164,27 @@ fn apply_game_test_filter_property(
     properties.insert("sfm.gametestSelection".to_string(), selection.to_string());
 }
 
-fn apply_client_puppet_keep_open_property(
+fn apply_client_automation_timing_properties(
     properties: &mut BTreeMap<String, String>,
     kind: RunKind,
     run_options: &RunOptions,
 ) {
-    if !matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview) {
-        return;
+    match kind {
+        RunKind::ClientPuppet => {
+            properties.insert(
+                "sfm.clientRun.keepOpenSeconds".to_string(),
+                run_options.client_puppet_keep_open.property_seconds(),
+            );
+        }
+        RunKind::GameTestPreview => {
+            properties.insert(
+                "sfm.clientRun.keepOpenSeconds".to_string(),
+                run_options.game_puppet_keep_open.property_seconds().to_string(),
+            );
+            properties.insert("sfm.clientRun.titleExitSeconds".to_string(), "1".to_string());
+        }
+        _ => {}
     }
-    properties.insert(
-        "sfm.clientRun.keepOpenSeconds".to_string(),
-        run_options.client_puppet_keep_open.property_seconds(),
-    );
 }
 
 fn apply_game_puppet_filter_property(
@@ -2175,6 +2204,25 @@ fn apply_game_puppet_filter_property(
         return;
     };
     properties.insert("sfm.gamePuppetSelection".to_string(), selection.to_string());
+}
+
+fn apply_game_puppet_game_test_property(
+    properties: &mut BTreeMap<String, String>,
+    kind: RunKind,
+    run_options: &RunOptions,
+) {
+    if !matches!(kind, RunKind::GameTestPreview) {
+        return;
+    }
+    let Some(game_test) = run_options
+        .game_puppet_game_test
+        .as_deref()
+        .map(str::trim)
+        .filter(|game_test| !game_test.is_empty())
+    else {
+        return;
+    };
+    properties.insert("sfm.gamePuppet.gameTest".to_string(), game_test.to_string());
 }
 
 fn apply_client_title_screen_property(
@@ -3367,6 +3415,8 @@ struct GamePuppetPreviewManifest {
     minecraft_version: String,
     #[facet(rename = "puppetSelection")]
     puppet_selection: String,
+    #[facet(rename = "gameTest")]
+    game_test: Option<String>,
     viewport: GamePuppetPreviewViewport,
     #[facet(rename = "captureProfile")]
     capture_profile: GamePuppetPreviewCaptureProfile,
@@ -3609,6 +3659,7 @@ fn render_game_puppet_preview_manifest(
         branch: plan.branch_name.as_ref().to_string(),
         minecraft_version: plan.minecraft_version.as_ref().to_string(),
         puppet_selection: run_options.game_puppet_filter.clone().unwrap_or_default(),
+        game_test: run_options.game_puppet_game_test.clone(),
         viewport: GamePuppetPreviewViewport {
             width: run_options.preview_width,
             height: run_options.preview_height,
@@ -3690,6 +3741,7 @@ mod game_puppet_preview_tests {
             branch: "1.19.2".to_string(),
             minecraft_version: "1.19.2".to_string(),
             puppet_selection: "move_1_stack_direct_walkthrough".to_string(),
+            game_test: None,
             viewport: GamePuppetPreviewViewport {
                 width: 1280,
                 height: 720,
@@ -3735,9 +3787,9 @@ mod game_puppet_preview_tests {
             ))
             .expect("capture metadata should be indexed by puppet and capture");
         let camera = capture.camera.as_ref().expect("camera pose should be recorded");
-        assert_eq!(camera.x, 7.5);
-        assert_eq!(camera.y, -52.5);
-        assert_eq!(camera.yaw, 90.0);
+        assert!((camera.x - 7.5).abs() < f64::EPSILON);
+        assert!((camera.y + 52.5).abs() < f64::EPSILON);
+        assert!((camera.yaw - 90.0).abs() < f64::EPSILON);
         assert_eq!(capture.figure_number, Some(1));
         assert_eq!(capture.screen.as_deref(), Some("world"));
         assert_eq!(capture.hud_hidden, Some(true));

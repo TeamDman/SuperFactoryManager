@@ -2,7 +2,7 @@ package ca.teamdman.sfm.test.draw;
 
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasModel;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasSyntaxHighlightingHelper;
-import ca.teamdman.sfm.SFMProperties;
+import ca.teamdman.sfm.properties.SFMProperties;
 import net.minecraft.ChatFormatting;
 import org.junit.jupiter.api.Test;
 

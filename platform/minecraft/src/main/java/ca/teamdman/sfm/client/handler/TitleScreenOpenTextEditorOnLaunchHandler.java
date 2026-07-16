@@ -2,7 +2,7 @@ package ca.teamdman.sfm.client.handler;
 
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
-import ca.teamdman.sfm.SFMProperties;
+import ca.teamdman.sfm.properties.SFMProperties;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraftforge.client.event.ScreenEvent;
 

@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.mixins;
 
-import ca.teamdman.sfm.SFMProperties;
+import ca.teamdman.sfm.properties.SFMProperties;
 import net.minecraft.client.MouseHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

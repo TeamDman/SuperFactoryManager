@@ -4,7 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHarness;
-import ca.teamdman.sfm.SFMProperties;
+import ca.teamdman.sfm.properties.SFMProperties;
 import com.mojang.brigadier.Command;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.PauseScreen;
@@ -49,6 +49,8 @@ public class SFMClientRunHarness {
     private static boolean puppetWorldCreationStarted = false;
     private static boolean puppetTestsStarted = false;
     private static boolean puppetTestsCompleted = false;
+    private static boolean pauseOnLostFocusCaptured = false;
+    private static boolean pauseOnLostFocusBeforeAutomation = false;
     private static boolean keepOpen = false;
     private static int exitTicksRemaining = -1;
     private static int exitCountdownSecondAnnounced = -1;
@@ -84,8 +86,17 @@ public class SFMClientRunHarness {
     }
 
     private static boolean preventPuppetPauseScreen(ScreenEvent.Opening event, SFMProperties.ClientRunMode mode) {
-        if (mode.isPuppet() && event.getNewScreen() instanceof PauseScreen) {
+        if (mode == SFMProperties.ClientRunMode.PUPPET
+            && isClientGameTestAutomationActive()
+            && event.getNewScreen() instanceof PauseScreen) {
             SFM.LOGGER.info("SFM_CLIENT_PUPPET_PREVENTING_PAUSE_SCREEN");
+            event.setNewScreen(null);
+            return true;
+        }
+        if (mode == SFMProperties.ClientRunMode.GAME_PUPPET
+            && SFMGamePuppetHarness.isAutomationActive()
+            && event.getNewScreen() instanceof PauseScreen) {
+            SFM.LOGGER.info("SFM_GAME_PUPPET_PREVENTING_PAUSE_SCREEN");
             event.setNewScreen(null);
             return true;
         }
@@ -122,8 +133,10 @@ public class SFMClientRunHarness {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
-        keepPuppetRuntimeUnpaused(minecraft);
-        dismissPuppetPauseScreen(minecraft);
+        if (isClientGameTestAutomationActive()) {
+            keepPuppetRuntimeUnpaused(minecraft);
+            dismissPuppetPauseScreen(minecraft);
+        }
         IntegratedServer server = minecraft.getSingleplayerServer();
         if (puppetWorldCreationStarted && !puppetTestsStarted && server != null && server.isReady() && minecraft.player != null) {
             puppetTestsStarted = true;
@@ -139,11 +152,22 @@ public class SFMClientRunHarness {
     }
 
     private static void keepPuppetRuntimeUnpaused(Minecraft minecraft) {
+        if (!pauseOnLostFocusCaptured) {
+            pauseOnLostFocusCaptured = true;
+            pauseOnLostFocusBeforeAutomation = minecraft.options.pauseOnLostFocus;
+        }
         if (minecraft.options.pauseOnLostFocus) {
             SFM.LOGGER.info("SFM_CLIENT_PUPPET_DISABLING_PAUSE_ON_LOST_FOCUS");
             minecraft.options.pauseOnLostFocus = false;
-            minecraft.options.save();
         }
+    }
+
+    private static void restorePuppetRuntimeOptions() {
+        if (!pauseOnLostFocusCaptured) {
+            return;
+        }
+        Minecraft.getInstance().options.pauseOnLostFocus = pauseOnLostFocusBeforeAutomation;
+        pauseOnLostFocusCaptured = false;
     }
 
     private static void dismissPuppetPauseScreen(Minecraft minecraft) {
@@ -267,6 +291,8 @@ public class SFMClientRunHarness {
     }
 
     private static void schedulePuppetExit(String resultMessage) {
+        puppetTestsCompleted = true;
+        restorePuppetRuntimeOptions();
         int keepOpenSeconds = keepOpenSeconds();
         if (keepOpenSeconds < 0) {
             keepOpen = true;
@@ -355,6 +381,10 @@ public class SFMClientRunHarness {
     }
 
     private static int keepOpenSeconds() {
-        return SFMProperties.clientRunKeepOpenSeconds(10);
+        return SFMProperties.clientRunKeepOpenSeconds(25);
+    }
+
+    private static boolean isClientGameTestAutomationActive() {
+        return !puppetTestsCompleted;
     }
 }

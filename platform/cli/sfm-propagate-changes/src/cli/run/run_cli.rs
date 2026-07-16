@@ -1,13 +1,8 @@
 use super::RunClientArgs;
-use super::RunClientPuppetArgs;
-use super::RunClientSmokeArgs;
 use super::RunCompileArgs;
 use super::RunDataArgs;
-use super::RunGameTestPreviewArgs;
-use super::RunGameTestServerArgs;
 use super::RunHotswapArgs;
 use super::RunServerArgs;
-use super::RunTestArgs;
 use crate::cancellation::CancellationToken;
 use facet::Facet;
 use figue as args;
@@ -37,22 +32,12 @@ pub enum RunCommand {
     Compile(RunCompileArgs),
     /// Launch the Forge client userdev run config
     Client(RunClientArgs),
-    /// Launch the Forge client userdev run config and exit when the title screen opens
-    ClientSmoke(RunClientSmokeArgs),
-    /// Launch the Forge client userdev run config and run SFM game tests in an integrated client
-    ClientPuppet(RunClientPuppetArgs),
-    /// Launch the Forge client and run selected SFM game puppet definitions
-    GameTestPreview(RunGameTestPreviewArgs),
     /// Launch the Forge server userdev run config
     Server(RunServerArgs),
     /// Launch the Forge datagen userdev run config
     Data(RunDataArgs),
-    /// Launch the Forge game test server userdev run config
-    GameTestServer(RunGameTestServerArgs),
     /// Compile changed classes and hotswap them into a running JDWP-enabled client
     Hotswap(RunHotswapArgs),
-    /// Compile and run the Java `JUnit` test source set
-    Test(RunTestArgs),
 }
 
 impl RunCommand {
@@ -63,14 +48,9 @@ impl RunCommand {
         match self {
             RunCommand::Compile(args) => args.invoke(cancellation_token),
             RunCommand::Client(args) => args.invoke(cancellation_token),
-            RunCommand::ClientSmoke(args) => args.invoke(cancellation_token),
-            RunCommand::ClientPuppet(args) => args.invoke(cancellation_token),
-            RunCommand::GameTestPreview(args) => args.invoke(cancellation_token),
             RunCommand::Server(args) => args.invoke(cancellation_token),
             RunCommand::Data(args) => args.invoke(cancellation_token),
-            RunCommand::GameTestServer(args) => args.invoke(cancellation_token),
             RunCommand::Hotswap(args) => args.invoke(cancellation_token),
-            RunCommand::Test(args) => args.invoke(cancellation_token),
         }
     }
 }

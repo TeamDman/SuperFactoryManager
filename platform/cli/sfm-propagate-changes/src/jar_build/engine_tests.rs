@@ -37,7 +37,8 @@ use super::RunOptions;
 use super::SourceBuildProvenance;
 use super::SourceBuildSystem;
 use super::TargetJarCompareReport;
-use super::apply_client_puppet_keep_open_property;
+use super::apply_client_automation_timing_properties;
+use super::apply_game_puppet_game_test_property;
 use super::apply_game_puppet_filter_property;
 use super::apply_game_test_filter_property;
 use super::apply_client_title_screen_property;
@@ -58,6 +59,7 @@ use super::extract_client_puppet_failure;
 use super::extract_client_puppet_pass_count;
 use super::extract_failed_gametest_names;
 use super::extract_sfm_game_test_names;
+use super::game_puppet_launch_timeout;
 use super::is_excluded_source;
 use super::minecraft_library_jars_from_version_json;
 use super::normalize_manifest_bytes;
@@ -92,6 +94,7 @@ use crate::cancellation::CancellationToken;
 use crate::jar_build::ClientPuppetKeepOpen;
 use crate::jar_build::ClientTitleScreen;
 use crate::jar_build::ErrorAction;
+use crate::jar_build::GamePuppetKeepOpen;
 use crate::jar_build::Parallelism;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
@@ -342,6 +345,7 @@ fn game_test_run_filter_sets_selection_property_for_game_test_runners() {
 fn game_puppet_preview_uses_its_own_selection_property_and_viewport() {
     let run_options = RunOptions {
         game_puppet_filter: Some(" move_1_stack_direct_walkthrough ".to_string()),
+        game_puppet_game_test: Some(" move_1_stack_direct ".to_string()),
         preview_width: 1600,
         preview_height: 900,
         ..RunOptions::default()
@@ -357,6 +361,17 @@ fn game_puppet_preview_uses_its_own_selection_property_and_viewport() {
             .get("sfm.gamePuppetSelection")
             .map(String::as_str),
         Some("move_1_stack_direct_walkthrough")
+    );
+    apply_game_puppet_game_test_property(
+        &mut preview_properties,
+        RunKind::GameTestPreview,
+        &run_options,
+    );
+    assert_eq!(
+        preview_properties
+            .get("sfm.gamePuppet.gameTest")
+            .map(String::as_str),
+        Some("move_1_stack_direct")
     );
     assert_eq!(
         preview_program_args(RunKind::GameTestPreview, &run_options),
@@ -375,17 +390,23 @@ fn game_puppet_preview_uses_its_own_selection_property_and_viewport() {
         &run_options,
     );
     assert!(!client_puppet_properties.contains_key("sfm.gamePuppetSelection"));
+    apply_game_puppet_game_test_property(
+        &mut client_puppet_properties,
+        RunKind::ClientPuppet,
+        &run_options,
+    );
+    assert!(!client_puppet_properties.contains_key("sfm.gamePuppet.gameTest"));
     assert!(preview_program_args(RunKind::ClientPuppet, &run_options).is_empty());
 }
 
 #[test]
 fn game_puppet_completion_requires_an_explicit_success_marker() {
     let launch_log = Path::new("preview-launch.log");
-    assert!(validate_game_puppet_completion(
+    validate_game_puppet_completion(
         "SFM_GAME_PUPPET_COMPLETE failed=0 total=1",
         launch_log
     )
-    .is_ok());
+    .unwrap();
     assert!(validate_game_puppet_completion(
         "SFM_GAME_PUPPET_FAILED puppet=example action=capture error=timeout\nSFM_GAME_PUPPET_COMPLETE failed=1 total=1",
         launch_log
@@ -435,9 +456,9 @@ fn release_jar_excludes_dev_only_client_smoke_harness() {
 }
 
 #[test]
-fn client_puppet_keep_open_sets_seconds_property() {
+fn client_automation_timing_sets_expected_properties() {
     let mut default_properties = BTreeMap::new();
-    apply_client_puppet_keep_open_property(
+    apply_client_automation_timing_properties(
         &mut default_properties,
         RunKind::ClientPuppet,
         &RunOptions::default(),
@@ -450,7 +471,7 @@ fn client_puppet_keep_open_sets_seconds_property() {
     );
 
     let mut forever_properties = BTreeMap::new();
-    apply_client_puppet_keep_open_property(
+    apply_client_automation_timing_properties(
         &mut forever_properties,
         RunKind::ClientPuppet,
         &RunOptions {
@@ -465,8 +486,49 @@ fn client_puppet_keep_open_sets_seconds_property() {
         Some("-1")
     );
 
+    let mut preview_properties = BTreeMap::new();
+    apply_client_automation_timing_properties(
+        &mut preview_properties,
+        RunKind::GameTestPreview,
+        &RunOptions::default(),
+    );
+    assert_eq!(
+        preview_properties
+            .get("sfm.clientRun.keepOpenSeconds")
+            .map(String::as_str),
+        Some("0")
+    );
+    assert_eq!(
+        preview_properties
+            .get("sfm.clientRun.titleExitSeconds")
+            .map(String::as_str),
+        Some("1")
+    );
+
+    let mut preview_hold_properties = BTreeMap::new();
+    apply_client_automation_timing_properties(
+        &mut preview_hold_properties,
+        RunKind::GameTestPreview,
+        &RunOptions {
+            game_puppet_keep_open: GamePuppetKeepOpen::Countdown { seconds: 300 },
+            ..RunOptions::default()
+        },
+    );
+    assert_eq!(
+        preview_hold_properties
+            .get("sfm.clientRun.keepOpenSeconds")
+            .map(String::as_str),
+        Some("300")
+    );
+    assert_eq!(
+        preview_hold_properties
+            .get("sfm.clientRun.titleExitSeconds")
+            .map(String::as_str),
+        Some("1")
+    );
+
     let mut client_properties = BTreeMap::new();
-    apply_client_puppet_keep_open_property(
+    apply_client_automation_timing_properties(
         &mut client_properties,
         RunKind::Client,
         &RunOptions {
@@ -475,6 +537,28 @@ fn client_puppet_keep_open_sets_seconds_property() {
         },
     );
     assert!(!client_properties.contains_key("sfm.clientRun.keepOpenSeconds"));
+}
+
+#[test]
+fn game_puppet_launch_timeout_keeps_the_watchdog_unless_held_forever() {
+    assert_eq!(
+        game_puppet_launch_timeout(&RunOptions::default()),
+        Some(Duration::from_mins(15))
+    );
+    assert_eq!(
+        game_puppet_launch_timeout(&RunOptions {
+            game_puppet_keep_open: GamePuppetKeepOpen::Countdown { seconds: 300 },
+            ..RunOptions::default()
+        }),
+        Some(Duration::from_mins(20))
+    );
+    assert_eq!(
+        game_puppet_launch_timeout(&RunOptions {
+            game_puppet_keep_open: GamePuppetKeepOpen::Forever,
+            ..RunOptions::default()
+        }),
+        None
+    );
 }
 
 #[test]

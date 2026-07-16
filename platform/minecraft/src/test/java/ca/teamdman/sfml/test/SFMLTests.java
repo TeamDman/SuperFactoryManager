@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.ProgramTokenContextActions;
 import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
-import ca.teamdman.sfm.SFMProperties;
+import ca.teamdman.sfm.properties.SFMProperties;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
 import com.google.common.collect.Sets;
 import net.minecraft.ChatFormatting;

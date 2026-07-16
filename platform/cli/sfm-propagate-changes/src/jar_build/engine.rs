@@ -9,6 +9,7 @@ use super::RunKind;
 use super::RunOptions;
 use super::RunTestAction;
 use super::RunTestOptions;
+use super::SourceCatalogQuery;
 use super::SourceIdentifierMappingPath;
 use super::SourceJarPath;
 use super::SourceOutputCacheRoot;
@@ -184,6 +185,24 @@ pub(crate) fn invoke_run(
     )
 }
 
+/// # Errors
+///
+/// Returns an error when the requested source catalog cannot be resolved or queried.
+pub(crate) fn invoke_source_catalog(
+    options: &BuildOptions,
+    query: &SourceCatalogQuery,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
+    let targets = resolve_build_targets(options)?;
+    cancellation_token.bail_if_cancelled()?;
+    for target in targets {
+        cancellation_token.bail_if_cancelled()?;
+        print_static_java_catalog_for_target(&target, query)?;
+    }
+    Ok(())
+}
+
 #[tracing::instrument(
     level = "info",
     skip_all,
@@ -314,6 +333,11 @@ fn execute_run_targets(
                 kind = kind.command_name(),
             )
             .entered();
+            if matches!(kind, RunKind::GameTestPreview)
+                && let Some(selection) = run_options.game_puppet_filter.as_deref()
+            {
+                validate_static_puppet_selection_for_target(target, selection)?;
+            }
             execute_run_target(options, kind, run_options, target, cancellation_token)
         },
     )
@@ -720,7 +744,7 @@ fn acquire_build_cache_lock(
              Worktree: {}\n\
              Cache: {}\n\
              Lock: {}\n\
-             Likely cause: an open `sfm-propagate-changes run client`, `run server`, or `run game-test-server` using this branch.\n\
+             Likely cause: an open `sfm-propagate-changes run client`, `run server`, or `game-test run-server` using this branch.\n\
              Close the running game/server or rerun this command with `--wait-for-build-lock` to wait for it to exit.",
             plan.branch_name,
             plan.worktree_path.display(),
@@ -2228,4 +2252,5 @@ include!("engine_plan.rs");
 include!("engine_run.rs");
 include!("engine_execute.rs");
 include!("engine_sources.rs");
+include!("engine_source_catalog.rs");
 include!("engine_mappings_compare_artifacts.rs");

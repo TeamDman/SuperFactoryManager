@@ -49,6 +49,24 @@ public final class SFMGamePuppetHelper {
         }
     }
 
+    /**
+     * Captures the completed GameTest around the center of its actual structure bounds.
+     */
+    public void captureGameTestOrbit(
+            String capturePrefix,
+            int count,
+            Component caption
+    ) {
+        if (count < 1) {
+            throw new IllegalArgumentException("Orbit capture count must be at least one");
+        }
+        for (int index = 0; index < count; index++) {
+            double angle = Math.PI * 2D * index / count;
+            add(new PositionGameTestOrbitCameraPuppetAction(angle));
+            capture(String.format("%s-%02d", capturePrefix, index), caption);
+        }
+    }
+
     public void captureContainerAt(String captureName, BlockPos localTarget, Component caption) {
         captureBlockScreen(captureName, localTarget, ContainerScreen.class, true, caption);
     }

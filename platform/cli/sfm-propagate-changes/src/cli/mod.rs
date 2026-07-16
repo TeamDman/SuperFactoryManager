@@ -6,6 +6,7 @@ mod cli_to_args_tests;
 pub mod client;
 pub mod curseforge;
 pub mod dependency;
+pub mod game_test;
 pub mod git;
 pub mod github;
 pub mod global_args;
@@ -15,8 +16,10 @@ pub mod jar;
 pub mod jdk;
 pub mod loader;
 pub mod modrinth;
+pub mod puppet;
 pub mod repo_root;
 pub mod run;
 pub mod server;
+pub mod test;
 
 pub use cli::*;

@@ -477,13 +477,30 @@ fn read_source_excludes(
     source_set: &str,
 ) -> eyre::Result<Vec<String>> {
     context.bail_if_cancelled()?;
-    let path = source_exclude_file_path(context, source_set);
+    let excludes = read_source_excludes_for_minecraft_dir(
+        &context.plan.minecraft_dir,
+        context.plan.minecraft_version.as_str(),
+        source_set,
+    )?;
+    context.bail_if_cancelled()?;
+    Ok(excludes)
+}
+
+fn read_source_excludes_for_minecraft_dir(
+    minecraft_dir: &Path,
+    minecraft_version: &str,
+    source_set: &str,
+) -> eyre::Result<Vec<String>> {
+    let path = minecraft_dir
+        .join("gradle")
+        .join("source-excludes")
+        .join(minecraft_version)
+        .join(format!("{source_set}-java.txt"));
     if !path.exists() {
         return Ok(Vec::new());
     }
     let excludes_text =
         fs::read_to_string(&path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
-    context.bail_if_cancelled()?;
     Ok(excludes_text
         .lines()
         .map(str::trim)

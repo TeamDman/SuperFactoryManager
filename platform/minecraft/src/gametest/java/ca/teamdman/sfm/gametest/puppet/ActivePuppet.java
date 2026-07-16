@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.MultipleTestTracker;
 
 import java.util.HashMap;
@@ -24,6 +25,8 @@ public final class ActivePuppet {
     public volatile MultipleTestTracker gameTestTracker;
 
     public volatile BlockPos gameTestOrigin;
+
+    public volatile GameTestInfo gameTestInfo;
 
     public volatile Throwable gameTestStartFailure;
 

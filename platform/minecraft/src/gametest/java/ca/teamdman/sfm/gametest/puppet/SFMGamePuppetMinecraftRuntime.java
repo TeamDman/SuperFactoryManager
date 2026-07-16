@@ -15,6 +15,7 @@ import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.MultipleTestTracker;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -30,6 +31,7 @@ import net.minecraft.world.level.levelgen.WorldGenSettings;
 import net.minecraft.world.level.levelgen.presets.WorldPreset;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.io.File;
@@ -135,6 +137,23 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 
         BlockPos absoluteTarget = absolute(localTarget);
         Vec3 target = Vec3.atCenterOf(absoluteTarget);
+        Vec3 camera = target.add(Math.cos(angleRadians) * radius, height, Math.sin(angleRadians) * radius);
+        teleportAndLook(camera, target);
+    }
+
+    @Override
+    public void positionGameTestOrbitCamera(double angleRadians) {
+        GameTestInfo gameTestInfo = active.gameTestInfo;
+        if (gameTestInfo == null) {
+            throw new IllegalStateException("No completed GameTest is available for orbit capture");
+        }
+        AABB bounds = gameTestInfo.getStructureBounds();
+        if (bounds == null) {
+            throw new IllegalStateException("Completed GameTest has no structure bounds for orbit capture");
+        }
+        Vec3 target = bounds.getCenter();
+        double radius = Math.max(7D, Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ) + 4D);
+        double height = Math.max(5D, bounds.maxY - bounds.minY + 3D);
         Vec3 camera = target.add(Math.cos(angleRadians) * radius, height, Math.sin(angleRadians) * radius);
         teleportAndLook(camera, target);
     }

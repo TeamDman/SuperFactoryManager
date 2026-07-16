@@ -216,7 +216,7 @@ or replaced by the functional tests in this plan.
 **Validation:**
 
 ```pwsh
-cargo run -- run game-test-server --branch 1.19.2 --filter computer_craft_dependency_smoke
+cargo run -- game-test run-server --branch 1.19.2 --filter computer_craft_dependency_smoke
 ```
 
 ### [x] 0.2 Establish authoritative source access
@@ -656,9 +656,9 @@ required tests.
 
 ```pwsh
 cargo run -- run compile --branch 1.19.2
-cargo run -- run game-test-server --branch 1.19.2 --filter computer_craft_dependency_smoke
-cargo run -- run game-test-server --branch 1.19.2 --filter 'computer_craft_*'
-cargo run -- run game-test-server --branch 1.19.2
+cargo run -- game-test run-server --branch 1.19.2 --filter computer_craft_dependency_smoke
+cargo run -- game-test run-server --branch 1.19.2 --filter 'computer_craft_*'
+cargo run -- game-test run-server --branch 1.19.2
 ```
 
 **Completion criteria:** The compile, dependency smoke, focused integration,

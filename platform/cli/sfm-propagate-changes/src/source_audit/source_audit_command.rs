@@ -103,9 +103,18 @@ impl SourceAuditCommand {
             }
 
             let fs_path = repo_path_to_filesystem_path(worktree_path, &repo_path);
-            let content = std::fs::read_to_string(&fs_path).wrap_err_with(|| {
-                format!("Failed to read tracked source file {}", fs_path.display())
-            })?;
+            let content = match std::fs::read_to_string(&fs_path) {
+                Ok(content) => content,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    tracing::debug!(path = %fs_path.display(), "skipping tracked source deleted from working tree");
+                    continue;
+                }
+                Err(error) => {
+                    return Err(error).wrap_err_with(|| {
+                        format!("Failed to read tracked source file {}", fs_path.display())
+                    });
+                }
+            };
             let line_count = SourceLineCount::from_text(&content);
             report.push_file(AuditedSourceFile::new(&repo_path, language, line_count));
 
@@ -294,6 +303,32 @@ mod tests {
     }
 
     #[test]
+    fn gix_index_scan_skips_tracked_files_deleted_from_the_working_tree() -> eyre::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let root = temp.path();
+        let deleted_path = root.join("deleted.rs");
+        fs::write(&deleted_path, "fn deleted() {}\n")?;
+        run_git(root, &["init"])?;
+        run_git(root, &["add", "deleted.rs"])?;
+        fs::remove_file(deleted_path)?;
+
+        let command = SourceAuditCommand::new(SourceAuditOptions {
+            branch: BranchQuery::parse("*")?,
+            languages: Vec::new(),
+            max_lines: SourceLineLimit(1),
+            version_surfaces: false,
+        });
+        let target = WorktreeTarget::from_parts(
+            BranchName::from("1.19.2"),
+            WorktreePath::from(root.to_path_buf()),
+        )?;
+
+        let report = command.audit_target(&target)?;
+        assert!(report.audited_files.is_empty());
+        Ok(())
+    }
+
+    #[test]
     fn reports_direct_mod_event_annotations_but_allows_sfm_wrapper() -> eyre::Result<()> {
         let temp = tempfile::tempdir()?;
         let root = temp.path();
@@ -306,7 +341,7 @@ mod tests {
         )?;
         fs::write(
             &java_path,
-            r#"
+            r"
             package ca.teamdman.sfm;
 
             @SFMSubscribeEvent
@@ -319,7 +354,7 @@ mod tests {
             }
 
             // @SubscribeEvent is not an annotation.
-            "#,
+            ",
         )?;
         run_git(root, &["init"])?;
         run_git(root, &["add", "platform"])?;

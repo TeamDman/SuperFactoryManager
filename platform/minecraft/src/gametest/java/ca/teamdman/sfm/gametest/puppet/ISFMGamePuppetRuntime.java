@@ -10,6 +10,8 @@ public interface ISFMGamePuppetRuntime {
 
     void positionOrbitCamera(BlockPos localTarget, double radius, double height, double angleRadians);
 
+    void positionGameTestOrbitCamera(double angleRadians);
+
     void positionForBlockUse(BlockPos localTarget);
 
     void useBlock(BlockPos localTarget);

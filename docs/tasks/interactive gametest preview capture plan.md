@@ -4,6 +4,11 @@
 `Move1StackDirect` visual acceptance run is complete (2026-07-15). Broader
 failure-path and cross-version coverage remains planned.
 
+**Superseded for command and lifecycle ownership:**
+[Client execution, developer-world, and static test catalog cleanup plan](client%20execution%20cleanup%20plan.md).
+This document remains the implementation history for the original preview
+capture work.
+
 ## Goal
 
 Add a dedicated SFM run command that launches one visible, isolated

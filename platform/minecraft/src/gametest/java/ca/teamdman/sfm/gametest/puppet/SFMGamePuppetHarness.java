@@ -3,7 +3,7 @@ package ca.teamdman.sfm.gametest.puppet;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestDiscovery;
-import ca.teamdman.sfm.SFMProperties;
+import ca.teamdman.sfm.properties.SFMProperties;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.server.IntegratedServer;
@@ -43,7 +43,10 @@ public final class SFMGamePuppetHarness {
     private static boolean completed;
     private static int nextPuppetIndex;
     private static int failedPuppetCount;
+    private static int finalWorldHoldTicksRemaining = -1;
     private static int exitTicksRemaining = -1;
+    private static boolean pauseOnLostFocusCaptured;
+    private static boolean pauseOnLostFocusBeforeAutomation;
     private static List<SFMDiscoveredGamePuppet> selectedPuppets = List.of();
     private static ActivePuppet activePuppet;
 
@@ -82,10 +85,16 @@ public final class SFMGamePuppetHarness {
 
     public static void onClientTick() {
         Minecraft minecraft = Minecraft.getInstance();
-        keepRuntimeUnpaused(minecraft);
+        if (!completed) {
+            keepRuntimeUnpaused(minecraft);
+        }
 
         if (completed) {
             tickAutoExit();
+            return;
+        }
+        if (finalWorldHoldTicksRemaining >= 0) {
+            tickFinalWorldHold(minecraft);
             return;
         }
         if (awaitingTitleScreen || activePuppet == null) {
@@ -106,7 +115,7 @@ public final class SFMGamePuppetHarness {
             if (active.helper.tick(new SFMGamePuppetMinecraftRuntime(active, minecraft))) {
                 active.success = true;
                 SFM.LOGGER.info("SFM_GAME_PUPPET_SUCCEEDED puppet={}", active.definition.puppetName());
-                returnToTitle(minecraft);
+                completeSuccessfulPuppet(minecraft, active);
             }
         } catch (Throwable throwable) {
             failActivePuppet(active, throwable);
@@ -158,23 +167,56 @@ public final class SFMGamePuppetHarness {
         minecraft.clearLevel(new TitleScreen());
     }
 
+    private static void completeSuccessfulPuppet(Minecraft minecraft, ActivePuppet active) {
+        if (nextPuppetIndex < selectedPuppets.size()) {
+            returnToTitle(minecraft);
+            return;
+        }
+
+        int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(0);
+        if (keepOpenSeconds < 0) {
+            activePuppet = null;
+            completed = true;
+            restoreRuntimeOptions(minecraft);
+            SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_FINAL_WORLD_OPEN");
+            return;
+        }
+        if (keepOpenSeconds > 0) {
+            activePuppet = null;
+            finalWorldHoldTicksRemaining = keepOpenSeconds * 20;
+            SFM.LOGGER.info("SFM_GAME_PUPPET_FINAL_WORLD_HOLD_PENDING seconds={}", keepOpenSeconds);
+            return;
+        }
+        returnToTitle(minecraft);
+    }
+
+    private static void tickFinalWorldHold(Minecraft minecraft) {
+        if (finalWorldHoldTicksRemaining-- > 0) {
+            return;
+        }
+        finalWorldHoldTicksRemaining = -1;
+        SFM.LOGGER.info("SFM_GAME_PUPPET_FINAL_WORLD_HOLD_COMPLETE");
+        returnToTitle(minecraft);
+    }
+
     private static void finishRun() {
         if (completed) {
             return;
         }
         completed = true;
+        restoreRuntimeOptions(Minecraft.getInstance());
         SFM.LOGGER.info(
                 "SFM_GAME_PUPPET_COMPLETE failed={} total={}",
                 failedPuppetCount,
                 selectedPuppets.size()
         );
-        int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(1);
-        if (keepOpenSeconds < 0) {
-            SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_OPEN");
+        int titleExitSeconds = SFMProperties.clientRunTitleExitSeconds(25);
+        if (titleExitSeconds < 0) {
+            SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_TITLE_OPEN");
             return;
         }
-        exitTicksRemaining = keepOpenSeconds * 20;
-        SFM.LOGGER.info("SFM_GAME_PUPPET_EXIT_PENDING seconds={}", keepOpenSeconds);
+        exitTicksRemaining = titleExitSeconds * 20;
+        SFM.LOGGER.info("SFM_GAME_PUPPET_EXIT_PENDING seconds={}", titleExitSeconds);
     }
 
     private static void tickAutoExit() {
@@ -217,10 +259,25 @@ public final class SFMGamePuppetHarness {
     }
 
     private static void keepRuntimeUnpaused(Minecraft minecraft) {
+        if (!pauseOnLostFocusCaptured) {
+            pauseOnLostFocusCaptured = true;
+            pauseOnLostFocusBeforeAutomation = minecraft.options.pauseOnLostFocus;
+        }
         if (minecraft.options.pauseOnLostFocus) {
             minecraft.options.pauseOnLostFocus = false;
-            minecraft.options.save();
         }
+    }
+
+    private static void restoreRuntimeOptions(Minecraft minecraft) {
+        if (!pauseOnLostFocusCaptured) {
+            return;
+        }
+        minecraft.options.pauseOnLostFocus = pauseOnLostFocusBeforeAutomation;
+        pauseOnLostFocusCaptured = false;
+    }
+
+    public static boolean isAutomationActive() {
+        return initialized && !completed;
     }
 
     public static GameRules createWorldGameRules(MinecraftServer server) {
@@ -270,6 +327,7 @@ public final class SFMGamePuppetHarness {
             }
             GameTestInfo info = new ArrayList<>(started).get(0);
             active.gameTestOrigin = info.getStructureBlockPos();
+            active.gameTestInfo = info;
             active.gameTestTracker = new MultipleTestTracker(started);
             active.gameTestTracker.addFailureListener(failed -> SFM.LOGGER.error(
                     "SFM_GAME_PUPPET_GAME_TEST_FAILED puppet={} test={} error={}",
