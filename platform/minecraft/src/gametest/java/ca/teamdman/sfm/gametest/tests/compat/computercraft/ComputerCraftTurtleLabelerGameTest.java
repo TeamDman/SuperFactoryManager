@@ -68,7 +68,7 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         ItemStack nonBlankGun = new ItemStack(SFMItems.LABEL_GUN.get());
         LabelGunItem.setActiveLabel(nonBlankGun, "non_blank");
         helper.assertTrue(
-                TurtleUpgrades.instance().get(nonBlankGun) == null,
+                !hasTurtleUpgrade(nonBlankGun),
                 "A label gun carrying state was incorrectly accepted for turtle equip"
         );
 
@@ -161,6 +161,11 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
     @MCVersionDependentBehaviour
     private static ITurtleUpgrade findTurtleUpgrade(ItemStack itemStack) {
         return TurtleUpgrades.instance().get(itemStack);
+    }
+
+    @MCVersionDependentBehaviour
+    private static boolean hasTurtleUpgrade(ItemStack itemStack) {
+        return TurtleUpgrades.instance().get(itemStack) != null;
     }
 
 }
