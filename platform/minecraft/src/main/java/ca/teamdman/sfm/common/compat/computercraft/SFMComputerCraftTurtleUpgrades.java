@@ -12,7 +12,7 @@ public final class SFMComputerCraftTurtleUpgrades {
     private static final SFMDeferredRegister<TurtleUpgradeSerialiser<?>> REGISTERER =
             new SFMDeferredRegisterBuilder<TurtleUpgradeSerialiser<?>>()
                     .namespace(SFM.MOD_ID)
-                    .registry(TurtleUpgradeSerialiser.REGISTRY_ID)
+                    .registry(TurtleUpgradeSerialiser.registryId())
                     .build();
 
     public static final SFMRegistryObject<TurtleUpgradeSerialiser<?>, TurtleUpgradeSerialiser<SFMLabelerTurtleUpgrade>>

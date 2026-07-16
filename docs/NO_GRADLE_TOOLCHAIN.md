@@ -566,7 +566,7 @@ Public CLI status:
 - `run client --branch 1.19.2` builds the Rust-owned outputs, then launches Forge's `client` userdev run config.
 - `run server --branch 1.19.2` builds the Rust-owned outputs, then launches Forge's `server` userdev run config.
 - `run data --branch 1.19.2` builds the Rust-owned outputs, then launches Forge's `data` userdev run config.
-- `run game-test-server --branch 1.19.2` builds the Rust-owned outputs, then launches Forge's `gameTestServer` userdev run config.
+- `game-test run-server --branch 1.19.2` builds the Rust-owned outputs, then launches Forge's `gameTestServer` userdev run config.
 - `jar plan` and `jar build` now accept `--java-home <path>`.
 - `jar plan` and `jar build` now write `platform/minecraft/sfm-toolchain.lock.json`.
 - `jar plan` and `jar build` enforce `platform/minecraft/sfm-toolchain.lock.json` unless `--refresh` is supplied.
@@ -574,9 +574,18 @@ Public CLI status:
 
 Run command status:
 
-- The command names use the CLI's kebab-case style, but map directly to the familiar Gradle/IDEA names: `runClient`, `runServer`, `runData`, and `runGameTestServer`.
+- The command names use the CLI's kebab-case style, but map directly to the familiar Gradle/IDEA names: `run client`, `run server`, `run data`, and `game-test run-server`.
 - Each run command executes the existing Rust `jar build` path first, so launched code comes from SFM-owned outputs instead of Gradle `build/classes` or `build/resources`.
 - Forge userdev `config.json` remains the source of truth for launch target, main class, module path, JVM opens/exports, properties, and environment placeholders.
+
+### Client, test, and puppet commands
+
+- `run client` opens an ordinary interactive Forge client. `run client --smoke` verifies it reaches the title screen and exits. `run client --puppet <selector>` is identical to `puppet run <selector>`.
+- `sfm:game_test_orbit_capture` is a reusable eight-angle overview puppet: run `puppet run game_test_orbit_capture --game-test sfm:move_1_stack_direct --branch 1.19.2` to capture one exact GameTest. Its camera derives from the completed test structure's bounds. It complements, rather than replaces, purpose-built walkthrough puppets that interact with blocks or screens.
+- `test run` runs JUnit. `game-test run-client` runs the SFM GameTest suite in an integrated client; `game-test run-server` runs it in Forge's headless GameTest server.
+- `test list|show`, `game-test list|show`, and `puppet list|show` inspect the selected branch's Java source before a userdev launch. The catalog honors the version's source exclusions and marks `@SFMGameTestGenerator` entries dynamic, because generated children only exist at runtime.
+- A puppet selector is statically preflighted before build/userdev. `--keep-open N` holds only its final world for `N`; bare `--keep-open` leaves that final world open. Without it, the puppet returns to the title screen and exits after one second.
+- In an IDE normal client, **SFM Dev** on the title screen exposes **Create Dev World** and **Create Dev World + Run GameTests**. These create a new timestamped persistent superflat creative/hard world; they are not puppet automation and do not change cursor, pause, saving, or exit behavior.
 - Runtime launch state is written under:
 
 ```text
@@ -797,9 +806,9 @@ Version-aware toolchain status:
 Current multi-version validation snapshot:
 
 1. `jar build --branch core --dry-run --parallel --error-action continue` resolves and prepares every core worktree without invoking Gradle.
-2. `run game-test-server --branch core --dry-run --parallel --error-action continue` resolves run setup for every core worktree.
+2. `game-test run-server --branch core --dry-run --parallel --error-action continue` resolves run setup for every core worktree.
 3. `run client --branch core --dry-run --parallel --error-action continue` resolves graphical launch setup for every core worktree.
-4. `run client-puppet --branch core --parallel --error-action continue` has passed live across the core worktrees with non-zero SFM game-test counts.
+4. `game-test run-client --branch core --parallel --error-action continue` has passed live across the core worktrees with non-zero SFM game-test counts.
 5. `jar audit-artifacts --branch core --parallel --error-action continue --require-portable-artifacts` verifies that locked artifacts are fresh-slate portable.
 
 Immediate next review checklist:
