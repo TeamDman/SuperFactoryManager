@@ -83,7 +83,8 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                             .registryOrThrow(Registries.WORLD_PRESET)
                             .getHolderOrThrow(WorldPresets.FLAT)
                             .value()
-                            .createWorldDimensions()
+                            .createWorldDimensions(),
+                    minecraft.screen
             );
             return false;
         }
