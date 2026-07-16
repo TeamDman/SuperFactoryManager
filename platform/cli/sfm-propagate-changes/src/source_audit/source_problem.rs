@@ -26,6 +26,9 @@ pub(crate) enum AuditRuleDiagnostic {
         receiver_expression: String,
         caller_context: String,
     },
+    ParseFailure {
+        parser: &'static str,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -137,6 +140,13 @@ impl SourceProblem {
                 caller_context,
             }) => format!(
                 "{} unresolved audit rule call: rule={rule:?} member={member} receiver={receiver_expression:?} caller={caller_context:?} lang={} detected={} emitted-by={}",
+                "WARN".yellow().bold(),
+                self.language,
+                self.detected,
+                self.emitted_by
+            ),
+            SourceProblemKind::AuditRule(AuditRuleDiagnostic::ParseFailure { parser }) => format!(
+                "{} audit rule parse failure: parser={parser} lang={} detected={} emitted-by={}",
                 "WARN".yellow().bold(),
                 self.language,
                 self.detected,
