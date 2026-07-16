@@ -661,6 +661,19 @@ receive scoped receiver resolution. `sfm.audit_rules` is the authoritative
 declarative policy; Rust implements only its grammar, matching, scoped
 resolution, and diagnostics.
 
+**Audit foundation (2026-07-16):** `platform/minecraft/sfm.audit_rules` now
+declares the Font/GuiGraphics policy and `audit --font-render-surface` loads it
+for every SFM Java source set, including GameTest sources. The Rust resolver
+handles imports, fields, parameters, lexical locals, `var` aliases,
+same-package/static types, and casts; it reports an unresolved receiver
+expression rather than treating incomplete source knowledge as permission.
+Focused fixtures cover rule parsing, permits, descriptor matching, imported
+and static types, shadowing, aliases, unrelated same-named methods, and
+GameTest scanning. The initial 1.19.2 audit reports 26 expected direct or
+unresolved renderer calls, including the known caption bypass at
+`SFMGamePuppetMinecraftRuntime.java:372` (`minecraft.font.draw`). Caption
+refactoring and cross-version propagation remain pending in this phase.
+
 ## Phase 5 — Close the release contract and prepare metadata
 
 ### [~] 5.1 Decide the release scope, version, and support statement
