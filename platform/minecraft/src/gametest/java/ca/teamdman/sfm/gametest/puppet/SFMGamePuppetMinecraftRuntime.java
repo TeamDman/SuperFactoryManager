@@ -2,6 +2,7 @@ package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -54,6 +55,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean createFreshFlatWorld() {
 
         if (!active.worldCreationStarted) {
@@ -338,6 +340,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         );
     }
 
+    @MCVersionDependentBehaviour
     private void renderCaption(
             TextureTarget captureTarget,
             PuppetCaptureFigureCaptionLayout captionLayout
