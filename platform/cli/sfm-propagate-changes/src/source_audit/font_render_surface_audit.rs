@@ -953,6 +953,7 @@ mod tests {
         DENY CALL net.minecraft.client.gui.Font draw *
         DENY CALL net.minecraft.client.gui.GuiGraphics drawString *
         DENY CALL net.minecraft.client.gui.screens.Screen drawString *
+        DENY CALL net.minecraft.client.gui.screens.Screen drawCenteredString *
         DENY CALL example.StringView <init> (II)V
         PERMIT CALLER ca.teamdman.sfm.client.screen.SFMFontUtils * *
     ";
@@ -1130,14 +1131,15 @@ mod tests {
                     drawString(null, null, "caption", 0, 0, 0);
                     this.drawString(null, null, "caption", 0, 0, 0);
                     super.drawString(null, null, "caption", 0, 0, 0);
+                    drawCenteredString(null, null, "caption", 0, 0, 0);
                 }
             }
             "#,
         );
-        assert_eq!(warnings.len(), 3, "warnings: {warnings:?}");
+        assert_eq!(warnings.len(), 4, "warnings: {warnings:?}");
         assert!(warnings.iter().all(|warning| {
             warning.contains("audit rule violation")
-                && warning.contains("net.minecraft.client.gui.screens.Screen drawString")
+                && warning.contains("net.minecraft.client.gui.screens.Screen")
         }));
     }
 

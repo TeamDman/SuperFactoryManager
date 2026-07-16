@@ -291,22 +291,24 @@ public class SFMInputDiagnosticsScreen extends Screen {
         guiGraphics.fill( left, top, left + 1, bottom, BORDER);
         guiGraphics.fill( right - 1, top, right, bottom, BORDER);
 
-        guiGraphics.drawString( this.font, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT);
-        guiGraphics.drawString(
-
+        SFMFontUtils.draw(guiGraphics, this.font, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT, true);
+        SFMFontUtils.draw(
+                guiGraphics,
                 this.font,
                 "Events received by the Minecraft screen. Press keys or click inside this window.",
                 left + 8,
                 top + 22,
-                MUTED
+                MUTED,
+                true
         );
-        guiGraphics.drawString(
-
+        SFMFontUtils.draw(
+                guiGraphics,
                 this.font,
                 "Active modifiers: " + activeModifiers(),
                 left + 8,
                 top + 34,
-                MUTED
+                MUTED,
+                true
         );
 
         int eventTop = top + 52;
@@ -317,11 +319,11 @@ public class SFMInputDiagnosticsScreen extends Screen {
         int startInclusive = Math.max(0, endExclusive - maxLines);
         int y = eventTop;
         for (int i = startInclusive; i < endExclusive; i++) {
-            guiGraphics.drawString( this.font, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT);
+            SFMFontUtils.draw(guiGraphics, this.font, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT, true);
             y += lineHeight;
         }
         if (events.isEmpty()) {
-            guiGraphics.drawString( this.font, "No input events yet.", left + 8, eventTop, MUTED);
+            SFMFontUtils.draw(guiGraphics, this.font, "No input events yet.", left + 8, eventTop, MUTED, true);
         }
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
