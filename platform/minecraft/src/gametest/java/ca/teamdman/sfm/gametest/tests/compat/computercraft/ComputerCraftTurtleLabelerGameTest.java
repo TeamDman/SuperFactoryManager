@@ -59,7 +59,8 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
 
         ItemStack blankGun = new ItemStack(SFMItems.LABEL_GUN.get());
-        ITurtleUpgrade upgrade = TurtleUpgrades.instance().get(blankGun);
+        var upgradeData = TurtleUpgrades.instance().get(blankGun);
+        ITurtleUpgrade upgrade = upgradeData == null ? null : upgradeData.upgrade();
         helper.assertTrue(
                 upgrade != null && upgrade.getUpgradeID().equals(new ResourceLocation("sfm", "labeler")),
                 "The blank SFM label gun was not registered as the turtle labeler upgrade"

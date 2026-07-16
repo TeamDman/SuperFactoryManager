@@ -53,7 +53,6 @@ public class SFM {
         SFMItems.register(bus);
 
         SFMCreativeTabs.register(bus);
-
         registerComputerCraftTurtleUpgrades();
 
         SFMResourceTypes.register(bus);
