@@ -60,7 +60,8 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
 
         ItemStack blankGun = new ItemStack(SFMItems.LABEL_GUN.get());
-        ITurtleUpgrade upgrade = findTurtleUpgrade(helper, blankGun);
+        TurtleBlockEntity turtle = helper.getBlockEntity(turtlePos, TurtleBlockEntity.class);
+        ITurtleUpgrade upgrade = equipTurtleUpgrade(helper, turtle, blankGun);
         helper.assertTrue(
                 upgrade instanceof SFMLabelerTurtleUpgrade,
                 "The blank SFM label gun was not registered as the turtle labeler upgrade"
@@ -72,8 +73,6 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
                 "A label gun carrying state was incorrectly accepted for turtle equip"
         );
 
-        TurtleBlockEntity turtle = helper.getBlockEntity(turtlePos, TurtleBlockEntity.class);
-        turtle.getAccess().setUpgrade(TurtleSide.LEFT, upgradeData);
         ItemStack runtimeGun = new ItemStack(SFMItems.LABEL_GUN.get());
         turtle.setItem(0, runtimeGun);
         turtle.getAccess().setSelectedSlot(0);
@@ -159,8 +158,14 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
     }
 
     @MCVersionDependentBehaviour
-    private static ITurtleUpgrade findTurtleUpgrade(SFMGameTestHelper helper, ItemStack itemStack) {
+    private static ITurtleUpgrade equipTurtleUpgrade(
+            SFMGameTestHelper helper,
+            TurtleBlockEntity turtle,
+            ItemStack itemStack
+    ) {
+
         var upgradeData = TurtleUpgrades.instance().get(helper.getLevel().registryAccess(), itemStack);
+        turtle.getAccess().setUpgrade(TurtleSide.LEFT, upgradeData);
         return upgradeData == null ? null : upgradeData.upgrade();
     }
 
