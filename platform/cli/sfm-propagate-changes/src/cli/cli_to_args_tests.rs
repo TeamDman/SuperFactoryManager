@@ -29,7 +29,7 @@ fn typed_top_level_audit_command_roundtrips() {
             branch: BranchSelector("popular AND >= 1.20.4".to_string()),
             language: vec![SourceLanguage::Rust, SourceLanguage::Java],
             lang: Vec::new(),
-            max_lines: SourceLineLimit(1200),
+            max_lines: Some(SourceLineLimit(1200)),
             version_surfaces: true,
             font_render_surface: true,
         }),
@@ -67,7 +67,7 @@ fn typed_top_level_audit_command_roundtrips() {
         parsed.language,
         [SourceLanguage::Rust, SourceLanguage::Java]
     );
-    assert_eq!(parsed.max_lines, SourceLineLimit(1200));
+    assert_eq!(parsed.max_lines, Some(SourceLineLimit(1200)));
     assert!(parsed.version_surfaces);
     assert!(parsed.font_render_surface);
 
