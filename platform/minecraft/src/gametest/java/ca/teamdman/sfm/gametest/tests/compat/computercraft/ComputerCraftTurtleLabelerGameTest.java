@@ -160,8 +160,7 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
 
     @MCVersionDependentBehaviour
     private static ITurtleUpgrade findTurtleUpgrade(ItemStack itemStack) {
-        var upgradeData = TurtleUpgrades.instance().get(itemStack);
-        return upgradeData == null ? null : upgradeData.upgrade();
+        return TurtleUpgrades.instance().get(itemStack);
     }
 
     @MCVersionDependentBehaviour
