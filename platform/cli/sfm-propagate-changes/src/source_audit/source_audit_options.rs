@@ -8,6 +8,7 @@ pub struct SourceAuditOptions {
     pub languages: Vec<SourceLanguage>,
     pub max_lines: SourceLineLimit,
     pub version_surfaces: bool,
+    pub font_render_surface: bool,
 }
 
 impl SourceAuditOptions {
