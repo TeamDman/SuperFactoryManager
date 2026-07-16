@@ -4,7 +4,7 @@ This plan tracks the Tracy profiling pass for the Rust-owned Minecraft toolchain
 
 ## Goal
 
-Make the non-Gradle setup work performed before and around `sfm-propagate-changes run client|client-smoke|client-puppet|server|data|game-test-server` visible in Tracy captures. The immediate target is not optimization; it is repeatable measurement that can identify cache misses, slow Java tool invocations, unnecessary rebuilds, artifact resolution delays, and launch setup costs on successive stochastic runs.
+Make the non-Gradle setup work performed before and around `sfm-propagate-changes run client [--smoke|--puppet <selector>]|server|data`, `game-test run-client|run-server`, and `test run` visible in Tracy captures. The immediate target is not optimization; it is repeatable measurement that can identify cache misses, slow Java tool invocations, unnecessary rebuilds, artifact resolution delays, and launch setup costs on successive stochastic runs.
 
 ## Completion Criteria
 
@@ -24,7 +24,7 @@ Make the non-Gradle setup work performed before and around `sfm-propagate-change
   - run classpath/source-root/assets setup.
   - run JVM argfile construction.
   - handoff into the launched Minecraft JVM.
-  - game-test/client-puppet validation.
+  - GameTest/client-puppet validation.
 - A docs note records lessons that should be backported into `G:\Programming\Repos\teamy-rust-cli`.
 - `G:\Programming\Repos\teamy-profiler` is documented as a future path for faster `.tracy` analysis when `tracy-csvexport.exe` is too slow.
 
@@ -57,8 +57,8 @@ Make the non-Gradle setup work performed before and around `sfm-propagate-change
 - 2026-06-13: Added coarse spans/events around command entry, plan creation, resolver/artifact decisions, downloads, build node execution, Java tool calls, run classpath/assets setup, run setup completion, Minecraft JVM launch, packaging, and lockfile writes. Per-dependency and download-request detail is gated behind `tracing_detailed`.
 - 2026-06-13: Verified `cargo check --all-features`, `cargo clippy --all-features -- -D warnings`, `cargo test --all-features`, and `platform/cli/sfm-propagate-changes/check-all.ps1`.
 - 2026-06-13: Ran `platform/cli/sfm-propagate-changes/run-profiler.ps1 -NoOpenProfiler jar plan --branch 1.19.2`. It produced `platform/cli/sfm-propagate-changes/tracy/2026-06-13_23-49-54.tracy`.
-- 2026-06-13: Ran `platform/cli/sfm-propagate-changes/run-profiler.ps1 -NoOpenProfiler run game-test-server --branch 1.19.2`. It produced `platform/cli/sfm-propagate-changes/tracy/2026-06-13_23-51-46.tracy` and validated 219 required game tests passed.
-- 2026-06-14: Added `--dry-run` to shared jar build options. `jar build --dry-run` resolves the plan and lockfile without executing build nodes; `run ... --dry-run` builds and prepares launch files, then skips the Minecraft JVM. The profiler wrapper now defaults to `run game-test-server --branch 1.19.2 --dry-run`.
+- 2026-06-13: Ran `platform/cli/sfm-propagate-changes/run-profiler.ps1 -NoOpenProfiler game-test run-server --branch 1.19.2`. It produced `platform/cli/sfm-propagate-changes/tracy/2026-06-13_23-51-46.tracy` and validated 219 required game tests passed.
+- 2026-06-14: Added `--dry-run` to shared jar build options. `jar build --dry-run` resolves the plan and lockfile without executing build nodes; `run ... --dry-run` builds and prepares launch files, then skips the Minecraft JVM. The profiler wrapper now defaults to `game-test run-server --branch 1.19.2 --dry-run`.
 
 ## First Capture Observation
 
@@ -71,7 +71,7 @@ The `jar plan --branch 1.19.2` smoke capture proved the harness and showed immed
 
 This is not an optimization pass, but the result suggests lockfile/provenance serialization and artifact-state collection should be one of the first later investigations.
 
-The `run game-test-server --branch 1.19.2` capture proved the run setup path and showed these coarse timings from the console/csv summary:
+The `game-test run-server --branch 1.19.2` capture proved the run setup path and showed these coarse timings from the console/csv summary:
 
 - Rust-owned build replay took about 31 seconds before run setup.
 - MCPConfig joined and Forge userdev nodes were cache hits at about 62 ms and 229 ms.

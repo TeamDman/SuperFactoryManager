@@ -11,6 +11,7 @@ keywords = ["cli", "git", "minecraft", "worktree"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
+arborium-java = "=2.18.1"
 base64 = "0.22.1"
 blake3 = "1.8.5"
 chrono = "0.4.43"
@@ -35,6 +36,7 @@ reqwest = { version = "0.12.24", default-features = false, features = ["blocking
 sha1 = "0.10.6"
 tempfile = "3.27.0"
 tokio = { version = "1.49.0", features = ["full"] }
+tree-sitter-patched-arborium = "=0.25.10"
 tracing = "0.1.44"
 tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }

@@ -186,7 +186,7 @@ if (-not $csvExportCommand) {
 }
 
 if (-not $QueryArgs -or $QueryArgs.Count -eq 0) {
-	$QueryArgs = @("run", "game-test-server", "--mc", "1.19.2", "--dry-run")
+	$QueryArgs = @("game-test", "run-server", "--branch", "1.19.2", "--dry-run")
 }
 
 $features = @("tracy", "tracing_detailed")
