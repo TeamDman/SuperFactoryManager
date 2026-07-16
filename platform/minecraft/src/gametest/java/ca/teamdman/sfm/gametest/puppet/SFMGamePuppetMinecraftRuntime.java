@@ -282,13 +282,18 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         buttons.get(1).onPress(new net.minecraft.client.input.KeyEvent(257, 0, 0));
     }
 
+    @MCVersionDependentBehaviour
     private BlockPos absolute(BlockPos local) {
 
         BlockPos origin = active.gameTestOrigin;
         if (origin == null) {
             throw new IllegalStateException("No completed GameTest origin is available");
         }
-        return origin.offset(local);
+        // SFMGameTestHelper compensates for this version's GameTest coordinate
+        // convention by passing relativePos.below() to the vanilla helper.  Puppet
+        // positions share the public SFM GameTest coordinate system, so they must
+        // apply the same conversion before addressing the live world.
+        return origin.offset(local.below());
     }
 
     private void prepareCleanCaptureHud() {
