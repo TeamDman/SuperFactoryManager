@@ -29,8 +29,8 @@ pub struct AuditArgs {
     #[facet(default = false, args::named)]
     pub version_surfaces: bool,
 
-    /// Audit Java text-rendering calls against the declarative `sfm.audit_rules` policy.
-    #[facet(default = false, args::named)]
+    /// Audit Java text-rendering calls against the declarative `sfm.audit_rules` policy. Enabled by default; use `--no-font-render-surface` only for focused diagnostic runs.
+    #[facet(default = true, args::named)]
     pub font_render_surface: bool,
 }
 
