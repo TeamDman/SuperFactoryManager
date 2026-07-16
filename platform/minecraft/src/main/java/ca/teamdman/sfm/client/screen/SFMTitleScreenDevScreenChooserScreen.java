@@ -4,7 +4,6 @@ import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.developer.SFMDeveloperWorldLauncher;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.TextAlignment;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -98,8 +97,10 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
         guiGraphics.fill( left, bottom - 1, right, bottom, BORDER);
         guiGraphics.fill( left, top, left + 1, bottom, BORDER);
         guiGraphics.fill( right - 1, top, right, bottom, BORDER);
-        drawCenteredString(guiGraphics, this.title.copy().withStyle(ChatFormatting.BOLD), this.width / 2, top + 12, TEXT);
-        drawCenteredString(guiGraphics, "IDE-only launch tools", this.width / 2, top + 26, MUTED);
+        Component title = this.title.copy().withStyle(ChatFormatting.BOLD);
+        SFMFontUtils.draw(guiGraphics, this.font, title, this.width / 2 - this.font.width(title) / 2, top + 12, TEXT, true);
+        String subtitle = "IDE-only launch tools";
+        SFMFontUtils.draw(guiGraphics, this.font, subtitle, this.width / 2 - this.font.width(subtitle) / 2, top + 26, MUTED, true);
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
 
@@ -107,25 +108,4 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
         return 76 + (SFMTitleScreenDevScreen.values().length + 3) * 26;
     }
 
-    @MCVersionDependentBehaviour
-    private void drawCenteredString(
-            GuiGraphicsExtractor guiGraphics,
-            Component text,
-            int x,
-            int y,
-            int color
-    ) {
-        guiGraphics.textRenderer().accept(TextAlignment.CENTER, x, y, text.copy().withStyle(style -> style.withColor(color)));
-    }
-
-    @MCVersionDependentBehaviour
-    private void drawCenteredString(
-            GuiGraphicsExtractor guiGraphics,
-            String text,
-            int x,
-            int y,
-            int color
-    ) {
-        drawCenteredString(guiGraphics, Component.literal(text), x, y, color);
-    }
 }

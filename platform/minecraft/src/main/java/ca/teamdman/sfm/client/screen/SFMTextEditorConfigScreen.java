@@ -126,35 +126,43 @@ public class SFMTextEditorConfigScreen extends Screen {
 
         int y = this.height / 2 - 65;
         int x = this.width / 2 - 150; // Shifted to the left for centering
-        graphics.text(
-                font,
+        SFMFontUtils.draw(
+                graphics,
+                this.font,
                 PROGRAM_EDITOR_CONFIG_LINE_NUMBERS.getComponent(),
                 x,
                 y,
-                0xFFFFFFFF
+                0xFFFFFFFF,
+                true
         );
-        graphics.text(
-                font,
+        SFMFontUtils.draw(
+                graphics,
+                this.font,
                 PROGRAM_EDITOR_CONFIG_INTELLISENSE.getComponent(),
                 x,
                 y + 50,
-                0xFFFFFFFF
+                0xFFFFFFFF,
+                true
         );
         if (editorSelectorFeatureFlag) {
-            graphics.text(
-                    font,
+            SFMFontUtils.draw(
+                    graphics,
+                    this.font,
                     PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR.getComponent(),
                     x,
                     y + 100,
-                    0xFFFFFFFF
+                    0xFFFFFFFF,
+                    true
             );
         }
-        graphics.centeredText(
-                font,
+        SFMFontUtils.draw(
+                graphics,
+                this.font,
                 this.title,
-                this.width / 2,
+                this.width / 2 - this.font.width(this.title) / 2,
                 15,
-                0xFFFFFFFF
+                0xFFFFFFFF,
+                true
         ); // Ensure title is still displayed
     }
 

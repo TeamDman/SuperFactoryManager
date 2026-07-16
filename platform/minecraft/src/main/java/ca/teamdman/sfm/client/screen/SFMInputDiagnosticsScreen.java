@@ -310,18 +310,24 @@ public class SFMInputDiagnosticsScreen extends Screen {
         guiGraphics.fill( left, top, left + 1, bottom, BORDER);
         guiGraphics.fill( right - 1, top, right, bottom, BORDER);
 
-        drawString(guiGraphics, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT);
-        drawString(guiGraphics,
+        SFMFontUtils.draw(guiGraphics, this.font, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT, true);
+        SFMFontUtils.draw(
+                guiGraphics,
+                this.font,
                 "Events received by the Minecraft screen. Press keys or click inside this window.",
                 left + 8,
                 top + 22,
-                MUTED
+                MUTED,
+                true
         );
-        drawString(guiGraphics,
+        SFMFontUtils.draw(
+                guiGraphics,
+                this.font,
                 "Active modifiers: " + activeModifiers(),
                 left + 8,
                 top + 34,
-                MUTED
+                MUTED,
+                true
         );
 
         int eventTop = top + 52;
@@ -332,11 +338,11 @@ public class SFMInputDiagnosticsScreen extends Screen {
         int startInclusive = Math.max(0, endExclusive - maxLines);
         int y = eventTop;
         for (int i = startInclusive; i < endExclusive; i++) {
-            drawString(guiGraphics, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT);
+            SFMFontUtils.draw(guiGraphics, this.font, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT, true);
             y += lineHeight;
         }
         if (events.isEmpty()) {
-            drawString(guiGraphics, "No input events yet.", left + 8, eventTop, MUTED);
+            SFMFontUtils.draw(guiGraphics, this.font, "No input events yet.", left + 8, eventTop, MUTED, true);
         }
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
@@ -423,25 +429,4 @@ public class SFMInputDiagnosticsScreen extends Screen {
                || GLFW.glfwGetKey(windowHandle, rightKey) == GLFW.GLFW_PRESS;
     }
 
-    @MCVersionDependentBehaviour
-    private void drawString(
-            GuiGraphicsExtractor guiGraphics,
-            Component text,
-            int x,
-            int y,
-            int color
-    ) {
-        guiGraphics.textRenderer().accept(x, y, text.copy().withStyle(style -> style.withColor(color)));
-    }
-
-    @MCVersionDependentBehaviour
-    private void drawString(
-            GuiGraphicsExtractor guiGraphics,
-            String text,
-            int x,
-            int y,
-            int color
-    ) {
-        drawString(guiGraphics, Component.literal(text), x, y, color);
-    }
 }
