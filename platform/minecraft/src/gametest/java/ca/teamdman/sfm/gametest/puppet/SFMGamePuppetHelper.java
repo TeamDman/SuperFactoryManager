@@ -3,6 +3,7 @@ package ca.teamdman.sfm.gametest.puppet;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.gametest.puppet.action.*;
+import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -80,6 +81,32 @@ public final class SFMGamePuppetHelper {
         add(new WaitForScreenPuppetAction(ISFMTextEditScreen.class));
         capture(captureName, caption);
         add(new CloseScreenPuppetAction());
+    }
+
+    /**
+     * Waits until a specific overlay type is absent without suppressing unrelated overlays.
+     */
+    public void waitForOverlayToNotBePresent(Class<? extends Overlay> overlayType) {
+        add(new WaitForOverlayToNotBePresentPuppetAction(overlayType));
+    }
+
+    /**
+     * Waits until a specific overlay type is present without constraining unrelated overlays.
+     */
+    public void waitForOverlayToBePresent(Class<? extends Overlay> overlayType) {
+        add(new WaitForOverlayToBePresentPuppetAction(overlayType));
+    }
+
+    /**
+     * Waits for a fixed number of client ticks before continuing the puppet.
+     */
+    public void waitTicks(int ticks) {
+        if (ticks < 0) {
+            throw new IllegalArgumentException("Wait ticks must not be negative");
+        }
+        if (ticks > 0) {
+            add(new WaitTicksPuppetAction(ticks));
+        }
     }
 
     /**

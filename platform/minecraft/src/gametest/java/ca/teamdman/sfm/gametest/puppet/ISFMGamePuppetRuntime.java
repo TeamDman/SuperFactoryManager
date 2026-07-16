@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.gametest.puppet;
 
+import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 
@@ -17,6 +18,8 @@ public interface ISFMGamePuppetRuntime {
     void useBlock(BlockPos localTarget);
 
     boolean isScreen(Class<?> expectedType);
+
+    boolean isOverlay(Class<? extends Overlay> expectedType);
 
     boolean capture(String captureName, Component caption);
 

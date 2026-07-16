@@ -3667,7 +3667,7 @@ fn render_game_puppet_preview_manifest(
         capture_profile: GamePuppetPreviewCaptureProfile {
             native_main_render_target: true,
             hide_hud: true,
-            clear_transient_overlays: true,
+            clear_transient_overlays: false,
         },
         captures: artifacts
             .iter()
@@ -3749,7 +3749,7 @@ mod game_puppet_preview_tests {
             capture_profile: GamePuppetPreviewCaptureProfile {
                 native_main_render_target: true,
                 hide_hud: true,
-                clear_transient_overlays: true,
+                clear_transient_overlays: false,
             },
             captures: vec![GamePuppetPreviewManifestCapture {
                 puppet: "move_1_stack_direct_walkthrough".to_string(),
@@ -3770,6 +3770,7 @@ mod game_puppet_preview_tests {
         assert!(json.contains("\"puppetSelection\": \"move_1_stack_direct_walkthrough\""));
         assert!(json.contains("\"nativeMainRenderTarget\": true"));
         assert!(json.contains("\"hudHidden\": true"));
+        assert!(json.contains("\"clearTransientOverlays\": false"));
         assert!(json.contains(&format!("\"hash\": \"{hash}\"")));
         assert!(json.contains("\"screen\": \"SFM \\\"editor\\\"\""));
         assert!(!json.contains("minecraft_version"));

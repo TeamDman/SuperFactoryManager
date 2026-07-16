@@ -11,6 +11,7 @@ import com.mojang.math.Matrix4f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
@@ -186,6 +187,11 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     public boolean isScreen(Class<?> expectedType) {
 
         return expectedType.isInstance(minecraft.screen);
+    }
+
+    @Override
+    public boolean isOverlay(Class<? extends Overlay> expectedType) {
+        return expectedType.isInstance(minecraft.getOverlay());
     }
 
     @Override
