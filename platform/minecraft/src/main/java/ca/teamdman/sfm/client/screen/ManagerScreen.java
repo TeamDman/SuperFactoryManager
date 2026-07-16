@@ -742,7 +742,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         Duration peakTickTime = Duration.ZERO;
         for (int i = 0; i < menu.tickTimes.length; i++) {
             Duration candidate = menu.tickTimes[i];
-            if (candidate.compareTo(peakTickTime) > 0) {
+            if (candidate != null && candidate.compareTo(peakTickTime) > 0) {
                 peakTickTime = candidate;
             }
         }
@@ -780,7 +780,11 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         bufferbuilder.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
         int mouseTickTimeIndex = -1;
         for (int i = 0; i < menu.tickTimes.length; i++) {
-            long y = menu.tickTimes[i].toNanos();
+            Duration tickTime = menu.tickTimes[i];
+            if (tickTime == null) {
+                continue;
+            }
+            long y = tickTime.toNanos();
             float normalizedTickTime = y == 0 ? 0 : (float) (Math.log10(y) / Math.log10(yMax));
             int plotPosY = plotY + plotHeight - (int) (normalizedTickTime * plotHeight);
 
