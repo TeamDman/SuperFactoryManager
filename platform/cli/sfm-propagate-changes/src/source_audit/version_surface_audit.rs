@@ -234,7 +234,13 @@ fn unbounded_java_changes(
         let target_source = target_source.as_deref().unwrap_or_default();
         for hunk in java_diff_hunks(baseline_source, target_source) {
             if !hunk_is_java_preamble_only(hunk, baseline_source, target_source)
-                && !hunk_is_annotation_bounded(hunk, &baseline_regions, &target_regions)
+                && !hunk_is_annotation_bounded(
+                    hunk,
+                    baseline_source,
+                    target_source,
+                    &baseline_regions,
+                    &target_regions,
+                )
             {
                 changes.push(UnboundedJavaChange {
                     path: path.clone(),
@@ -426,15 +432,35 @@ struct JavaDiffHunk {
 
 fn hunk_is_annotation_bounded(
     hunk: JavaDiffHunk,
+    baseline_source: &str,
+    target_source: &str,
     baseline_regions: &[AnnotatedRegion],
     target_regions: &[AnnotatedRegion],
 ) -> bool {
-    baseline_regions
-        .iter()
-        .any(|region| region.contains_change(hunk.base_range))
-        || target_regions
-            .iter()
-            .any(|region| region.contains_change(hunk.target_range))
+    change_is_annotation_bounded(baseline_source, hunk.base_range, baseline_regions)
+        || change_is_annotation_bounded(target_source, hunk.target_range, target_regions)
+}
+
+fn change_is_annotation_bounded(
+    source: &str,
+    range: ChangedLineRange,
+    regions: &[AnnotatedRegion],
+) -> bool {
+    if range.count == 0 {
+        return regions.iter().any(|region| region.contains_change(range));
+    }
+    source
+        .lines()
+        .enumerate()
+        .skip(range.start.saturating_sub(1))
+        .take(range.count)
+        .filter(|(_, line)| !line.trim().is_empty())
+        .all(|(index, _)| {
+            let line = index + 1;
+            regions
+                .iter()
+                .any(|region| region.start <= line && line <= region.end)
+        })
 }
 
 fn annotated_regions(source: &str) -> Vec<AnnotatedRegion> {
@@ -490,6 +516,7 @@ mod tests {
     use super::annotated_regions;
     use super::branch_commit_id;
     use super::cli_source_matches_baseline;
+    use super::hunk_is_annotation_bounded;
     use super::hunk_is_java_preamble_only;
     use super::java_diff_hunks;
     use super::later_branch_cli_commits;
@@ -534,6 +561,30 @@ mod tests {
             .next()
             .expect("import hunk");
         assert!(hunk_is_java_preamble_only(hunk, baseline, target));
+    }
+
+    #[test]
+    fn accepts_hunk_spanning_adjacent_annotated_methods() {
+        let source = r"class Example {
+    @MCVersionDependentBehaviour
+    void first() {
+        int value = 1;
+    }
+
+    @MCVersionDependentBehaviour
+    void second() {
+        int value = 2;
+    }
+}
+";
+        let hunk = super::JavaDiffHunk {
+            base_range: ChangedLineRange { start: 2, count: 9 },
+            target_range: ChangedLineRange { start: 2, count: 9 },
+        };
+        let regions = annotated_regions(source);
+        assert!(hunk_is_annotation_bounded(
+            hunk, source, source, &regions, &regions
+        ));
     }
 
     #[test]
