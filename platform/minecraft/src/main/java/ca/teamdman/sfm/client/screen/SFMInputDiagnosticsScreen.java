@@ -291,22 +291,24 @@ public class SFMInputDiagnosticsScreen extends Screen {
         fill(poseStack, left, top, left + 1, bottom, BORDER);
         fill(poseStack, right - 1, top, right, bottom, BORDER);
 
-        drawString(poseStack, this.font, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT);
-        drawString(
+        SFMFontUtils.draw(poseStack, this.font, this.title.copy().withStyle(ChatFormatting.BOLD), left + 8, top + 8, TEXT, true);
+        SFMFontUtils.draw(
                 poseStack,
                 this.font,
                 "Events received by the Minecraft screen. Press keys or click inside this window.",
                 left + 8,
                 top + 22,
-                MUTED
+                MUTED,
+                true
         );
-        drawString(
+        SFMFontUtils.draw(
                 poseStack,
                 this.font,
                 "Active modifiers: " + activeModifiers(),
                 left + 8,
                 top + 34,
-                MUTED
+                MUTED,
+                true
         );
 
         int eventTop = top + 52;
@@ -321,7 +323,7 @@ public class SFMInputDiagnosticsScreen extends Screen {
             y += lineHeight;
         }
         if (events.isEmpty()) {
-            drawString(poseStack, this.font, "No input events yet.", left + 8, eventTop, MUTED);
+            SFMFontUtils.draw(poseStack, this.font, "No input events yet.", left + 8, eventTop, MUTED, true);
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
