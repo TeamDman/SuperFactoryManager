@@ -7,6 +7,7 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.compat.computercraft.SFMLabelerTurtleUpgrade;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
@@ -59,8 +60,8 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
 
         ItemStack blankGun = new ItemStack(SFMItems.LABEL_GUN.get());
-        var upgradeData = TurtleUpgrades.instance().get(helper.getLevel().registryAccess(), blankGun);
-        ITurtleUpgrade upgrade = upgradeData == null ? null : upgradeData.upgrade();
+        TurtleBlockEntity turtle = helper.getBlockEntity(turtlePos, TurtleBlockEntity.class);
+        ITurtleUpgrade upgrade = equipTurtleUpgrade(helper, turtle, blankGun);
         helper.assertTrue(
                 upgrade instanceof SFMLabelerTurtleUpgrade,
                 "The blank SFM label gun was not registered as the turtle labeler upgrade"
@@ -68,12 +69,10 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         ItemStack nonBlankGun = new ItemStack(SFMItems.LABEL_GUN.get());
         LabelGunItem.setActiveLabel(nonBlankGun, "non_blank");
         helper.assertTrue(
-                TurtleUpgrades.instance().get(helper.getLevel().registryAccess(), nonBlankGun) == null,
+                !hasTurtleUpgrade(helper, nonBlankGun),
                 "A label gun carrying state was incorrectly accepted for turtle equip"
         );
 
-        TurtleBlockEntity turtle = helper.getBlockEntity(turtlePos, TurtleBlockEntity.class);
-        turtle.getAccess().setUpgrade(TurtleSide.LEFT, upgradeData);
         ItemStack runtimeGun = new ItemStack(SFMItems.LABEL_GUN.get());
         turtle.setItem(0, runtimeGun);
         turtle.getAccess().setSelectedSlot(0);
@@ -156,6 +155,23 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
             );
             helper.succeed();
         });
+    }
+
+    @MCVersionDependentBehaviour
+    private static ITurtleUpgrade equipTurtleUpgrade(
+            SFMGameTestHelper helper,
+            TurtleBlockEntity turtle,
+            ItemStack itemStack
+    ) {
+
+        var upgradeData = TurtleUpgrades.instance().get(helper.getLevel().registryAccess(), itemStack);
+        turtle.getAccess().setUpgrade(TurtleSide.LEFT, upgradeData);
+        return upgradeData == null ? null : upgradeData.upgrade();
+    }
+
+    @MCVersionDependentBehaviour
+    private static boolean hasTurtleUpgrade(SFMGameTestHelper helper, ItemStack itemStack) {
+        return TurtleUpgrades.instance().get(helper.getLevel().registryAccess(), itemStack) != null;
     }
 
 }
