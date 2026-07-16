@@ -176,6 +176,7 @@ mod tests {
         assert!(args.language.is_empty());
         assert!(args.lang.is_empty());
         assert_eq!(args.max_lines.0, 1000);
+        assert!(!args.font_render_surface);
     }
 
     #[test]
@@ -190,6 +191,7 @@ mod tests {
             "java",
             "--max-lines",
             "1200",
+            "--font-render-surface",
         ])
         .into_result()
         .expect("top-level audit filters should parse")
@@ -201,6 +203,7 @@ mod tests {
         assert_eq!(args.language, vec![SourceLanguage::Rust]);
         assert_eq!(args.lang, vec![SourceLanguage::Java]);
         assert_eq!(args.max_lines.0, 1200);
+        assert!(args.font_render_surface);
     }
 
     #[test]
