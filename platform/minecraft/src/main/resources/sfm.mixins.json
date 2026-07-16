@@ -9,6 +9,7 @@
     "StructureTemplateManagerMixin"
   ],
   "client": [
+     "MouseHandlerMixin"
   ],
   "server": [],
   "injectors": {

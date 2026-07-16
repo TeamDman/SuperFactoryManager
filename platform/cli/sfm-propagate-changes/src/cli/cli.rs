@@ -74,6 +74,12 @@ pub enum Command {
     Jar(super::jar::JarArgs),
     /// Build and launch Forge userdev run configs
     Run(super::run::RunArgs),
+    /// Discover and run SFM `GameTests`
+    GameTest(super::game_test::GameTestArgs),
+    /// Discover and run SFM game-puppet definitions
+    Puppet(super::puppet::PuppetArgs),
+    /// Discover and run Java `JUnit` tests
+    Test(super::test::TestArgs),
     /// Repo root related commands
     RepoRoot(super::repo_root::RepoRootArgs),
 }
@@ -99,6 +105,9 @@ impl Command {
             Command::Modrinth(args) => args.invoke(),
             Command::Jar(args) => args.invoke(cancellation_token),
             Command::Run(args) => args.invoke(cancellation_token),
+            Command::GameTest(args) => args.invoke(cancellation_token),
+            Command::Puppet(args) => args.invoke(cancellation_token),
+            Command::Test(args) => args.invoke(cancellation_token),
             Command::RepoRoot(args) => args.invoke(),
         }
     }
@@ -116,7 +125,6 @@ mod tests {
     use crate::cli::jar::JarCommand;
     use crate::cli::run::RunCommand;
     use crate::cli::run::RunGameTestServerCliCommand;
-    use crate::cli::run::RunTestCliCommand;
     use crate::jar_build::BuildMode;
     use crate::jar_build::ClientPuppetKeepOpen;
     use crate::jar_build::ErrorAction;
@@ -140,67 +148,19 @@ mod tests {
             "--title-screen",
             "input-diag",
         ]);
-        assert_run_cli(&["run", "client-smoke", "--branch", "1.19.2"]);
-        assert_run_cli(&["run", "client-puppet", "--branch", "1.19.2"]);
+        assert_run_cli(&["run", "client", "--branch", "1.19.2", "--smoke"]);
         assert_run_cli(&[
             "run",
-            "client-puppet",
+            "client",
             "--branch",
             "1.19.2",
-            "--filter",
-            "wither_aggro_*",
+            "--puppet",
+            "game_test_orbit_capture",
+            "--game-test",
+            "sfm:move_1_stack_direct",
         ]);
         assert_run_cli(&["run", "server", "--branch", "1.19.2"]);
         assert_run_cli(&["run", "data", "--branch", "1.19.2"]);
-        assert_run_cli(&["run", "game-test-server", "--branch", "1.19.2"]);
-        assert_run_cli(&[
-            "run",
-            "game-test-server",
-            "--branch",
-            "1.19.2",
-            "--filter",
-            "sfm:wither_aggro_*,sfm:tough_cable_*",
-        ]);
-        assert_run_cli(&[
-            "run",
-            "game-test-server",
-            "--branch",
-            "1.19.2",
-            "bisect",
-            "wither_aggro_does_not_break_tough_cable_facaded_as_bedrock_wall",
-            "--max-runs",
-            "8",
-        ]);
-        assert_run_cli(&["run", "test", "--branch", "1.19.2"]);
-        assert_run_cli(&[
-            "run",
-            "test",
-            "--branch",
-            "1.19.2",
-            "--filter",
-            "lavaSearch",
-        ]);
-        assert_run_cli(&["run", "test", "--branch", "1.19.2", "--no-capture"]);
-        assert_run_cli(&["run", "test", "--branch", "1.19.2", "list"]);
-        assert_run_cli(&[
-            "run",
-            "test",
-            "list",
-            "--branch",
-            "1.19.2",
-            "--filter",
-            "lavaSearch",
-        ]);
-        assert_run_cli(&["run", "game-test-server", "--branch", "1.19.2", "--dry-run"]);
-        assert_run_cli(&[
-            "run",
-            "game-test-server",
-            "--branch",
-            "core",
-            "--error-action",
-            "continue",
-            "--dry-run",
-        ]);
     }
 
     #[test]
@@ -244,36 +204,35 @@ mod tests {
     }
 
     #[test]
-    fn parses_run_test_options() {
+    fn parses_top_level_test_run_options() {
         let cli = figue::from_slice::<Cli>(&[
-            "run",
             "test",
+            "run",
             "--branch",
             "1.19.2",
             "--filter",
             "lavaSearch",
             "--no-capture",
-            "list",
         ])
         .into_result()
-        .expect("run test list command should parse")
+        .expect("test run command should parse")
         .get_silent();
-        let Command::Run(crate::cli::run::RunArgs {
-            command: RunCommand::Test(args),
+        let Command::Test(crate::cli::test::TestArgs {
+            command: crate::cli::test::TestCommand::Run(args),
         }) = cli.command
         else {
-            panic!("expected run test command");
+            panic!("expected test run command");
         };
         assert_eq!(args.filter.as_deref(), Some("lavaSearch"));
         assert!(args.no_capture);
-        assert!(matches!(args.command, Some(RunTestCliCommand::List(_))));
+        assert!(args.command.is_none());
     }
 
     #[test]
     fn parses_game_test_run_filters() {
         let game_test_server = figue::from_slice::<Cli>(&[
-            "run",
-            "game-test-server",
+            "game-test",
+            "run-server",
             "--branch",
             "1.19.2",
             "--filter",
@@ -283,17 +242,17 @@ mod tests {
         .expect("game test server filter should parse")
         .get_silent();
         match game_test_server.command {
-            Command::Run(crate::cli::run::RunArgs {
-                command: RunCommand::GameTestServer(args),
+            Command::GameTest(crate::cli::game_test::GameTestArgs {
+                command: crate::cli::game_test::GameTestCommand::RunServer(args),
             }) => {
                 assert_eq!(args.filter.as_deref(), Some("wither_aggro_*"));
             }
-            command => panic!("expected game-test-server run command, got {command:?}"),
+            command => panic!("expected game-test run-server command, got {command:?}"),
         }
 
         let client_puppet = figue::from_slice::<Cli>(&[
-            "run",
-            "client-puppet",
+            "game-test",
+            "run-client",
             "--branch",
             "1.19.2",
             "--filter",
@@ -303,28 +262,109 @@ mod tests {
         .expect("client puppet filter should parse")
         .get_silent();
         match client_puppet.command {
-            Command::Run(crate::cli::run::RunArgs {
-                command: RunCommand::ClientPuppet(args),
+            Command::GameTest(crate::cli::game_test::GameTestArgs {
+                command: crate::cli::game_test::GameTestCommand::RunClient(args),
             }) => {
                 assert_eq!(
                     args.filter.as_deref(),
                     Some("sfm:wither_aggro_*,sfm:tough_cable_*")
                 );
             }
-            command => panic!("expected client-puppet run command, got {command:?}"),
+            command => panic!("expected game-test run-client command, got {command:?}"),
+        }
+
+        let game_test_preview = figue::from_slice::<Cli>(&[
+            "puppet",
+            "run",
+            "--branch",
+            "1.19.2",
+            "game_test_orbit_capture",
+            "--game-test",
+            "sfm:move_1_stack_direct",
+            "--width",
+            "1600",
+            "--height",
+            "900",
+        ])
+        .into_result()
+        .expect("game test preview arguments should parse")
+        .get_silent();
+        match game_test_preview.command {
+            Command::Puppet(crate::cli::puppet::PuppetArgs {
+                command: crate::cli::puppet::PuppetCommand::Run(args),
+            }) => {
+                assert_eq!(args.puppet, "game_test_orbit_capture".to_string());
+                assert_eq!(args.game_test.as_deref(), Some("sfm:move_1_stack_direct"));
+                assert_eq!(args.width, Some(1600));
+                assert_eq!(args.height, Some(900));
+            }
+            command => panic!("expected puppet run command, got {command:?}"),
+        }
+
+        let puppet_artifacts_path =
+            figue::from_slice::<Cli>(&["puppet", "artifacts", "path", "--branch", "1.19.2"])
+                .into_result()
+                .expect("puppet artifact path arguments should parse")
+                .get_silent();
+        match puppet_artifacts_path.command {
+            Command::Puppet(crate::cli::puppet::PuppetArgs {
+                command:
+                    crate::cli::puppet::PuppetCommand::Artifacts(
+                        crate::cli::puppet_artifacts::PuppetArtifactsArgs {
+                            command:
+                                crate::cli::puppet_artifacts::PuppetArtifactsCommand::Path(args),
+                        },
+                    ),
+            }) => {
+                assert_eq!(args.branch.to_string(), "1.19.2");
+            }
+            command => panic!("expected puppet artifacts path command, got {command:?}"),
+        }
+
+        let puppet_matrix = figue::from_slice::<Cli>(&[
+            "puppet",
+            "matrix",
+            "move_1_stack_direct_walkthrough",
+            "--branch",
+            "1.19.2",
+            "--parallel",
+            "1",
+        ])
+        .into_result()
+        .expect("puppet matrix arguments should parse")
+        .get_silent();
+        match puppet_matrix.command {
+            Command::Puppet(crate::cli::puppet::PuppetArgs {
+                command:
+                    crate::cli::puppet::PuppetCommand::Matrix(
+                        crate::cli::puppet_matrix::PuppetMatrixArgs {
+                            puppet, options, ..
+                        },
+                    ),
+            }) => {
+                assert_eq!(puppet, "move_1_stack_direct_walkthrough");
+                assert_eq!(options.branch.to_string(), "1.19.2");
+                assert_eq!(options.parallel, Some(Some(1)));
+            }
+            command => panic!("expected puppet matrix command, got {command:?}"),
         }
     }
 
     #[test]
     fn parses_client_puppet_keep_open_options() {
-        let bare =
-            figue::from_slice::<Cli>(&["run", "client-puppet", "--branch", "core", "--keep-open"])
-                .into_result()
-                .expect("bare keep-open should parse")
-                .get_silent();
+        let bare = figue::from_slice::<Cli>(&[
+            "game-test",
+            "run-client",
+            "--branch",
+            "core",
+            "--keep-open",
+        ])
+        .into_result()
+        .expect("bare keep-open should parse")
+        .get_silent();
         match bare.command {
-            Command::Run(crate::cli::run::RunArgs {
-                command: RunCommand::ClientPuppet(args),
+            Command::GameTest(crate::cli::game_test::GameTestArgs {
+                command: crate::cli::game_test::GameTestCommand::RunClient(args),
             }) => {
                 assert_eq!(args.keep_open, Some(None));
                 assert_eq!(
@@ -333,12 +373,12 @@ mod tests {
                     ClientPuppetKeepOpen::Forever
                 );
             }
-            command => panic!("expected client-puppet run command, got {command:?}"),
+            command => panic!("expected game-test run-client command, got {command:?}"),
         }
 
         let valued = figue::from_slice::<Cli>(&[
-            "run",
-            "client-puppet",
+            "game-test",
+            "run-client",
             "--branch",
             "core",
             "--keep-open",
@@ -350,8 +390,8 @@ mod tests {
         .expect("valued keep-open should parse")
         .get_silent();
         match valued.command {
-            Command::Run(crate::cli::run::RunArgs {
-                command: RunCommand::ClientPuppet(args),
+            Command::GameTest(crate::cli::game_test::GameTestArgs {
+                command: crate::cli::game_test::GameTestCommand::RunClient(args),
             }) => {
                 assert_eq!(args.keep_open, Some(Some("5m".to_string())));
                 assert_eq!(
@@ -360,12 +400,12 @@ mod tests {
                     ClientPuppetKeepOpen::Countdown { seconds: 300 }
                 );
             }
-            command => panic!("expected client-puppet run command, got {command:?}"),
+            command => panic!("expected game-test run-client command, got {command:?}"),
         }
 
         let numeric_seconds = figue::from_slice::<Cli>(&[
-            "run",
-            "client-puppet",
+            "game-test",
+            "run-client",
             "--branch",
             "core",
             "--keep-open",
@@ -375,8 +415,8 @@ mod tests {
         .expect("numeric keep-open seconds should parse")
         .get_silent();
         match numeric_seconds.command {
-            Command::Run(crate::cli::run::RunArgs {
-                command: RunCommand::ClientPuppet(args),
+            Command::GameTest(crate::cli::game_test::GameTestArgs {
+                command: crate::cli::game_test::GameTestCommand::RunClient(args),
             }) => {
                 assert_eq!(
                     ClientPuppetKeepOpen::from_cli(args.keep_open)
@@ -384,15 +424,15 @@ mod tests {
                     ClientPuppetKeepOpen::Countdown { seconds: 90 }
                 );
             }
-            command => panic!("expected client-puppet run command, got {command:?}"),
+            command => panic!("expected game-test run-client command, got {command:?}"),
         }
     }
 
     #[test]
     fn parses_game_test_server_bisect_options() {
         let cli = figue::from_slice::<Cli>(&[
-            "run",
-            "game-test-server",
+            "game-test",
+            "run-server",
             "--branch",
             "1.19.2",
             "--filter",
@@ -406,12 +446,12 @@ mod tests {
         .expect("game test server bisect should parse")
         .get_silent();
         match cli.command {
-            Command::Run(crate::cli::run::RunArgs {
-                command: RunCommand::GameTestServer(args),
+            Command::GameTest(crate::cli::game_test::GameTestArgs {
+                command: crate::cli::game_test::GameTestCommand::RunServer(args),
             }) => {
                 assert_eq!(args.filter.as_deref(), Some("sfm:*"));
                 let Some(RunGameTestServerCliCommand::Bisect(bisect)) = args.command else {
-                    panic!("expected game-test-server bisect command");
+                    panic!("expected game-test run-server bisect command");
                 };
                 assert_eq!(
                     bisect.target,
@@ -419,7 +459,7 @@ mod tests {
                 );
                 assert_eq!(bisect.max_runs, Some(12));
             }
-            command => panic!("expected game-test-server run command, got {command:?}"),
+            command => panic!("expected game-test run-server command, got {command:?}"),
         }
     }
 
@@ -536,8 +576,8 @@ mod tests {
     #[test]
     fn parses_bare_parallel() {
         let cli = figue::from_slice::<Cli>(&[
-            "run",
-            "game-test-server",
+            "game-test",
+            "run-server",
             "--branch",
             "core",
             "--parallel",
@@ -547,8 +587,8 @@ mod tests {
         .expect("bare parallel should parse")
         .get_silent();
         match cli.command {
-            Command::Run(crate::cli::run::RunArgs {
-                command: RunCommand::GameTestServer(command),
+            Command::GameTest(crate::cli::game_test::GameTestArgs {
+                command: crate::cli::game_test::GameTestCommand::RunServer(command),
             }) => {
                 let options = command
                     .into_options(BuildMode::Build)
@@ -560,7 +600,7 @@ mod tests {
                     }
                 );
             }
-            command => panic!("expected game-test-server run command, got {command:?}"),
+            command => panic!("expected game-test run-server command, got {command:?}"),
         }
     }
 
@@ -1554,12 +1594,8 @@ mod tests {
                 command:
                     RunCommand::Compile(_)
                     | RunCommand::Client(_)
-                    | RunCommand::ClientSmoke(_)
-                    | RunCommand::ClientPuppet(_)
                     | RunCommand::Server(_)
-                    | RunCommand::Data(_)
-                    | RunCommand::GameTestServer(_)
-                    | RunCommand::Test(_),
+                    | RunCommand::Data(_),
             }) => {}
             command => panic!("expected top-level run command, got {command:?}"),
         }

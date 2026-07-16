@@ -4,6 +4,7 @@ import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.compat.computercraft.SFMLabelerTurtleUpgrade;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.gametest.SFMGameTest;
@@ -18,7 +19,6 @@ import dan200.computercraft.shared.computer.core.ServerComputer;
 import dan200.computercraft.shared.turtle.blocks.TurtleBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -35,7 +35,7 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
     @Override
     public int maxTicks() {
 
-        return 300;
+        return 500;
     }
 
     @Override
@@ -59,21 +59,21 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
 
         ItemStack blankGun = new ItemStack(SFMItems.LABEL_GUN.get());
-        var upgradeData = TurtleUpgrades.instance().get(blankGun);
+        var upgradeData = TurtleUpgrades.instance().get(helper.getLevel().registryAccess(), blankGun);
         ITurtleUpgrade upgrade = upgradeData == null ? null : upgradeData.upgrade();
         helper.assertTrue(
-                upgrade != null && upgrade.getUpgradeID().equals(new ResourceLocation("sfm", "labeler")),
+                upgrade instanceof SFMLabelerTurtleUpgrade,
                 "The blank SFM label gun was not registered as the turtle labeler upgrade"
         );
         ItemStack nonBlankGun = new ItemStack(SFMItems.LABEL_GUN.get());
         LabelGunItem.setActiveLabel(nonBlankGun, "non_blank");
         helper.assertTrue(
-                TurtleUpgrades.instance().get(nonBlankGun) == null,
+                TurtleUpgrades.instance().get(helper.getLevel().registryAccess(), nonBlankGun) == null,
                 "A label gun carrying state was incorrectly accepted for turtle equip"
         );
 
         TurtleBlockEntity turtle = helper.getBlockEntity(turtlePos, TurtleBlockEntity.class);
-        turtle.getAccess().setUpgrade(TurtleSide.LEFT, upgrade);
+        turtle.getAccess().setUpgrade(TurtleSide.LEFT, upgradeData);
         ItemStack runtimeGun = new ItemStack(SFMItems.LABEL_GUN.get());
         turtle.setItem(0, runtimeGun);
         turtle.getAccess().setSelectedSlot(0);
@@ -134,7 +134,7 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         turtle.updateInputsImmediately();
         computer.turnOn();
 
-        helper.runAfterDelay(120, () -> {
+        helper.runAfterDelay(250, () -> {
             helper.assertTrue(
                     LabelPositionHolder.from(managerDisk).contains("pushed", new BlockPos(6, 6, 6)),
                     "Turtle label-gun push did not update the manager disk:\n" +

@@ -1,0 +1,340 @@
+package ca.teamdman.sfm.gametest.puppet;
+
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.properties.SFMProperties;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.gametest.framework.GameTestInfo;
+import net.minecraft.gametest.framework.GameTestInstance;
+import net.minecraft.gametest.framework.GameTestRunner;
+import net.minecraft.gametest.framework.GameTestTicker;
+import net.minecraft.gametest.framework.MultipleTestTracker;
+import net.minecraft.gametest.framework.RetryOptions;
+import net.minecraft.gametest.framework.StructureGridSpawner;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.gamerules.GameRules;
+
+import java.util.List;
+
+/**
+ * Client lifecycle for the declarative {@link SFMGamePuppet} system.
+ * Every selected definition begins on the title screen and returns there before
+ * the next one begins, while the same client process remains alive.
+ */
+public final class SFMGamePuppetHarness {
+    public static final String WORLD_ID_PREFIX = "sfm_game_puppet_";
+    public static final String WORLD_NAME_PREFIX = "SFM Game Puppet: ";
+    public static final int ACTION_TIMEOUT_TICKS = 20 * 60;
+    public static final int SCREENSHOT_TIMEOUT_TICKS = 20 * 20;
+    public static final int CAPTION_HORIZONTAL_PADDING = 12;
+    public static final int CAPTION_VERTICAL_PADDING = 10;
+
+    private static boolean initialized;
+    private static boolean awaitingTitleScreen;
+    private static boolean completed;
+    private static int nextPuppetIndex;
+    private static int failedPuppetCount;
+    private static int finalWorldHoldTicksRemaining = -1;
+    private static int exitTicksRemaining = -1;
+    private static boolean pauseOnLostFocusCaptured;
+    private static boolean pauseOnLostFocusBeforeAutomation;
+    private static List<SFMDiscoveredGamePuppet> selectedPuppets = List.of();
+    private static ActivePuppet activePuppet;
+
+    private SFMGamePuppetHarness() {
+    }
+
+    public static void onTitleScreenOpened() {
+        if (completed) {
+            return;
+        }
+
+        if (awaitingTitleScreen) {
+            if (activePuppet != null) {
+                SFM.LOGGER.info(
+                        "SFM_GAME_PUPPET_RETURNED_TO_TITLE puppet={} success={}",
+                        activePuppet.definition.puppetName(),
+                        activePuppet.success
+                );
+            }
+            activePuppet = null;
+            awaitingTitleScreen = false;
+        }
+
+        try {
+            if (!initialized) {
+                initialized = true;
+                selectedPuppets = List.copyOf(SFMGamePuppetDiscovery.gatherSelectedPuppets());
+                SFM.LOGGER.info("SFM_GAME_PUPPET_TITLE_READY selected={}", selectedPuppets.size());
+            }
+            startNextPuppet();
+        } catch (Throwable throwable) {
+            failBeforeWorldCreation("<discovery>", "discover selected puppets", throwable);
+            finishRun();
+        }
+    }
+
+    public static void onClientTick() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!completed) {
+            keepRuntimeUnpaused(minecraft);
+        }
+
+        if (completed) {
+            tickAutoExit();
+            return;
+        }
+        if (finalWorldHoldTicksRemaining >= 0) {
+            tickFinalWorldHold(minecraft);
+            return;
+        }
+        if (awaitingTitleScreen || activePuppet == null) {
+            return;
+        }
+
+        ActivePuppet active = activePuppet;
+        if (++active.totalActionTicks > ACTION_TIMEOUT_TICKS) {
+            failActivePuppet(
+                    active,
+                    new IllegalStateException("Timed out after " + ACTION_TIMEOUT_TICKS + " client ticks")
+            );
+            returnToTitle(minecraft);
+            return;
+        }
+
+        try {
+            if (active.helper.tick(new SFMGamePuppetMinecraftRuntime(active, minecraft))) {
+                active.success = true;
+                SFM.LOGGER.info("SFM_GAME_PUPPET_SUCCEEDED puppet={}", active.definition.puppetName());
+                completeSuccessfulPuppet(minecraft, active);
+            }
+        } catch (Throwable throwable) {
+            failActivePuppet(active, throwable);
+            returnToTitle(minecraft);
+        }
+    }
+
+    private static void startNextPuppet() {
+        if (activePuppet != null || awaitingTitleScreen || completed) {
+            return;
+        }
+        if (nextPuppetIndex >= selectedPuppets.size()) {
+            finishRun();
+            return;
+        }
+
+        SFMDiscoveredGamePuppet definition = selectedPuppets.get(nextPuppetIndex++);
+        SFMGamePuppetHelper helper = new SFMGamePuppetHelper();
+        ActivePuppet active = new ActivePuppet(definition, helper);
+        activePuppet = active;
+        try {
+            definition.declare(helper);
+            helper.validate();
+            SFM.LOGGER.info(
+                    "SFM_GAME_PUPPET_STARTED puppet={} location={}",
+                    definition.puppetName(),
+                    definition.location()
+            );
+        } catch (Throwable throwable) {
+            failActivePuppet(active, throwable);
+            activePuppet = null;
+            startNextPuppet();
+        }
+    }
+
+    private static void returnToTitle(Minecraft minecraft) {
+        if (awaitingTitleScreen) {
+            return;
+        }
+        awaitingTitleScreen = true;
+        if (minecraft.level == null) {
+            minecraft.setScreen(new TitleScreen());
+            return;
+        }
+        IntegratedServer server = minecraft.getSingleplayerServer();
+        if (server != null) {
+            server.halt(true);
+        }
+        minecraft.disconnect(new TitleScreen(), true);
+    }
+
+    private static void completeSuccessfulPuppet(Minecraft minecraft, ActivePuppet active) {
+        if (nextPuppetIndex < selectedPuppets.size()) {
+            returnToTitle(minecraft);
+            return;
+        }
+
+        int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(0);
+        if (keepOpenSeconds < 0) {
+            activePuppet = null;
+            completed = true;
+            restoreRuntimeOptions(minecraft);
+            SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_FINAL_WORLD_OPEN");
+            return;
+        }
+        if (keepOpenSeconds > 0) {
+            activePuppet = null;
+            finalWorldHoldTicksRemaining = keepOpenSeconds * 20;
+            SFM.LOGGER.info("SFM_GAME_PUPPET_FINAL_WORLD_HOLD_PENDING seconds={}", keepOpenSeconds);
+            return;
+        }
+        returnToTitle(minecraft);
+    }
+
+    private static void tickFinalWorldHold(Minecraft minecraft) {
+        if (finalWorldHoldTicksRemaining-- > 0) {
+            return;
+        }
+        finalWorldHoldTicksRemaining = -1;
+        SFM.LOGGER.info("SFM_GAME_PUPPET_FINAL_WORLD_HOLD_COMPLETE");
+        returnToTitle(minecraft);
+    }
+
+    private static void finishRun() {
+        if (completed) {
+            return;
+        }
+        completed = true;
+        restoreRuntimeOptions(Minecraft.getInstance());
+        SFM.LOGGER.info(
+                "SFM_GAME_PUPPET_COMPLETE failed={} total={}",
+                failedPuppetCount,
+                selectedPuppets.size()
+        );
+        int titleExitSeconds = SFMProperties.clientRunTitleExitSeconds(25);
+        if (titleExitSeconds < 0) {
+            SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_TITLE_OPEN");
+            return;
+        }
+        exitTicksRemaining = titleExitSeconds * 20;
+        SFM.LOGGER.info("SFM_GAME_PUPPET_EXIT_PENDING seconds={}", titleExitSeconds);
+    }
+
+    private static void tickAutoExit() {
+        if (exitTicksRemaining < 0) {
+            return;
+        }
+        if (exitTicksRemaining-- > 0) {
+            return;
+        }
+        SFM.LOGGER.info("SFM_GAME_PUPPET_EXITING");
+        Minecraft.getInstance().stop();
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static void failBeforeWorldCreation(String puppetName, String action, Throwable throwable) {
+        failedPuppetCount++;
+        SFM.LOGGER.error(
+                "SFM_GAME_PUPPET_FAILED puppet={} action={} error={}",
+                puppetName,
+                action,
+                throwable.toString(),
+                throwable
+        );
+    }
+
+    private static void failActivePuppet(ActivePuppet active, Throwable throwable) {
+        if (active.failureRecorded) {
+            return;
+        }
+        active.failureRecorded = true;
+        active.success = false;
+        failedPuppetCount++;
+        SFM.LOGGER.error(
+                "SFM_GAME_PUPPET_FAILED puppet={} action={} error={}",
+                active.definition.puppetName(),
+                active.helper.currentActionDescription(),
+                throwable.toString(),
+                throwable
+        );
+    }
+
+    private static void keepRuntimeUnpaused(Minecraft minecraft) {
+        if (!pauseOnLostFocusCaptured) {
+            pauseOnLostFocusCaptured = true;
+            pauseOnLostFocusBeforeAutomation = minecraft.options.pauseOnLostFocus;
+        }
+        if (minecraft.options.pauseOnLostFocus) {
+            minecraft.options.pauseOnLostFocus = false;
+        }
+    }
+
+    private static void restoreRuntimeOptions(Minecraft minecraft) {
+        if (!pauseOnLostFocusCaptured) {
+            return;
+        }
+        minecraft.options.pauseOnLostFocus = pauseOnLostFocusBeforeAutomation;
+        pauseOnLostFocusCaptured = false;
+    }
+
+    public static boolean isAutomationActive() {
+        return initialized && !completed;
+    }
+
+    public static void configureWorld(MinecraftServer server, ServerLevel level) {
+        server.setDefaultGameType(GameType.CREATIVE);
+        server.setDifficulty(Difficulty.HARD, false);
+        server.setWeatherParameters(0, 0, false, false);
+        server.getWorldData().overworldData().setDayTimeFraction(0.25F);
+        server.getWorldData().overworldData().setDayTimePerTick(0.0F);
+        GameRules rules = server.getGameRules();
+        rules.set(GameRules.SPAWN_MOBS, false, server);
+        rules.set(GameRules.SPAWN_MONSTERS, false, server);
+        rules.set(GameRules.ADVANCE_WEATHER, false, server);
+        rules.set(GameRules.ADVANCE_TIME, false, server);
+    }
+
+    public static void startGameTest(ActivePuppet active, MinecraftServer server, String testName) {
+        try {
+            ServerLevel level = server.overworld();
+            configureWorld(server, level);
+            Identifier testId = Identifier.fromNamespaceAndPath(SFM.MOD_ID, testName);
+            List<Holder.Reference<GameTestInstance>> matches = server
+                    .registryAccess()
+                    .lookupOrThrow(Registries.TEST_INSTANCE)
+                    .listElements()
+                    .filter(test -> test.key().identifier().equals(testId))
+                    .toList();
+            if (matches.size() != 1) {
+                throw new IllegalStateException("Expected exactly one SFM GameTest named " + testId + ", found " + matches.size());
+            }
+            BlockPos startPos = new BlockPos(0, level.dimensionType().minY() + 4, 0);
+            GameTestTicker.SINGLETON.clear();
+            List<GameTestInfo> gameTestInfos = List.of(
+                    new GameTestInfo(matches.getFirst(), Rotation.NONE, level, RetryOptions.noRetries())
+            );
+            GameTestRunner.Builder
+                    .fromInfo(gameTestInfos, level)
+                    .newStructureSpawner(new StructureGridSpawner(startPos, 1, false))
+                    .build()
+                    .start();
+            GameTestInfo info = gameTestInfos.get(0);
+            active.gameTestOrigin = info.getTestOrigin();
+            active.gameTestInfo = info;
+            active.gameTestTracker = new MultipleTestTracker(gameTestInfos);
+            active.gameTestTracker.addFailureListener(failed -> SFM.LOGGER.error(
+                    "SFM_GAME_PUPPET_GAME_TEST_FAILED puppet={} test={} error={}",
+                    active.definition.puppetName(),
+                    failed.id(),
+                    failed.getError() == null ? "<unknown>" : failed.getError().toString()
+            ));
+            SFM.LOGGER.info(
+                    "SFM_GAME_PUPPET_GAME_TEST_STARTED puppet={} test={} origin={}",
+                    active.definition.puppetName(),
+                    testName,
+                    active.gameTestOrigin
+            );
+        } catch (Throwable throwable) {
+            active.gameTestStartFailure = throwable;
+        }
+    }
+}

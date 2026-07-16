@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.developer.SFMDeveloperWorldLauncher;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.TextAlignment;
@@ -57,6 +58,22 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
         this.addRenderableWidget(new SFMButtonBuilder()
                 .setPosition(x, y)
                 .setSize(buttonWidth, buttonHeight)
+                .setText(Component.literal("Create Dev World"))
+                .setOnPress(button -> SFMDeveloperWorldLauncher.createDeveloperWorld(false))
+                .build());
+        y += buttonHeight + spacing;
+
+        this.addRenderableWidget(new SFMButtonBuilder()
+                .setPosition(x, y)
+                .setSize(buttonWidth, buttonHeight)
+                .setText(Component.literal("Create Dev World + Run GameTests"))
+                .setOnPress(button -> SFMDeveloperWorldLauncher.createDeveloperWorld(true))
+                .build());
+        y += buttonHeight + spacing;
+
+        this.addRenderableWidget(new SFMButtonBuilder()
+                .setPosition(x, y)
+                .setSize(buttonWidth, buttonHeight)
                 .setText(CommonComponents.GUI_DONE)
                 .setOnPress(button -> this.onClose())
                 .build());
@@ -87,7 +104,7 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
     }
 
     private static int panelHeight() {
-        return 76 + (SFMTitleScreenDevScreen.values().length + 1) * 26;
+        return 76 + (SFMTitleScreenDevScreen.values().length + 3) * 26;
     }
 
     @MCVersionDependentBehaviour

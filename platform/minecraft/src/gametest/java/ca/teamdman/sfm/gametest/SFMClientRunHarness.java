@@ -3,6 +3,8 @@ package ca.teamdman.sfm.gametest;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHarness;
+import ca.teamdman.sfm.properties.SFMProperties;
 import com.mojang.brigadier.Command;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
@@ -36,13 +38,12 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
 
 public class SFMClientRunHarness {
-    private static final String MODE_PROPERTY = "sfm.clientRun.mode";
-    private static final String KEEP_OPEN_SECONDS_PROPERTY = "sfm.clientRun.keepOpenSeconds";
     private static final String PUPPET_WORLD_ID = "sfm_client_puppet";
     private static final String PUPPET_WORLD_NAME = "SFM Client Puppet";
 
@@ -50,17 +51,19 @@ public class SFMClientRunHarness {
     private static boolean puppetWorldCreationStarted = false;
     private static boolean puppetTestsStarted = false;
     private static boolean puppetTestsCompleted = false;
+    private static boolean pauseOnLostFocusCaptured = false;
+    private static boolean pauseOnLostFocusBeforeAutomation = false;
     private static boolean keepOpen = false;
     private static int exitTicksRemaining = -1;
     private static int exitCountdownSecondAnnounced = -1;
-    private static MultipleTestTracker activeTracker = null;
+    private static @Nullable MultipleTestTracker activeTracker = null;
     private static int activeRequiredCount = 0;
     private static int activeTotalCount = 0;
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onTitleScreenOpen(ScreenEvent.Opening event) {
-        Mode mode = mode();
-        if (mode == Mode.NONE) {
+        SFMProperties.ClientRunMode mode = SFMProperties.clientRunMode();
+        if (mode == SFMProperties.ClientRunMode.NONE) {
             return;
         }
 
@@ -80,25 +83,43 @@ public class SFMClientRunHarness {
             return;
         }
 
-        if (!(event.getNewScreen() instanceof TitleScreen)) {
+        if (mode == SFMProperties.ClientRunMode.GAME_PUPPET && event.getNewScreen() instanceof TitleScreen) {
+            SFMGamePuppetHarness.onTitleScreenOpened();
             return;
         }
 
-        continueFromClientMenu(mode);
+        if (titleScreenHandled || !(event.getNewScreen() instanceof TitleScreen)) {
+            return;
+        }
+
+        titleScreenHandled = true;
+        if (mode == SFMProperties.ClientRunMode.PUPPET) {
+            SFM.LOGGER.info("SFM_CLIENT_PUPPET_TITLE_READY");
+            startPuppetWorld();
+        }
     }
 
-    private static boolean preventPuppetPauseScreen(ScreenEvent.Opening event, Mode mode) {
-        if (mode == Mode.PUPPET && event.getNewScreen() instanceof PauseScreen) {
+    private static boolean preventPuppetPauseScreen(ScreenEvent.Opening event, SFMProperties.ClientRunMode mode) {
+        if (mode == SFMProperties.ClientRunMode.PUPPET
+            && isClientGameTestAutomationActive()
+            && event.getNewScreen() instanceof PauseScreen) {
             SFM.LOGGER.info("SFM_CLIENT_PUPPET_PREVENTING_PAUSE_SCREEN");
+            event.setNewScreen(null);
+            return true;
+        }
+        if (mode == SFMProperties.ClientRunMode.GAME_PUPPET
+            && SFMGamePuppetHarness.isAutomationActive()
+            && event.getNewScreen() instanceof PauseScreen) {
+            SFM.LOGGER.info("SFM_GAME_PUPPET_PREVENTING_PAUSE_SCREEN");
             event.setNewScreen(null);
             return true;
         }
         return false;
     }
 
-    private static void continueFromClientMenu(Mode mode) {
+    private static void continueFromClientMenu(SFMProperties.ClientRunMode mode) {
         titleScreenHandled = true;
-        if (mode == Mode.PUPPET) {
+        if (mode == SFMProperties.ClientRunMode.PUPPET) {
             SFM.LOGGER.info("SFM_CLIENT_PUPPET_TITLE_READY");
             startPuppetWorld();
         }
@@ -106,7 +127,7 @@ public class SFMClientRunHarness {
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onRegisterCommands(RegisterCommandsEvent event) {
-        if (mode() != Mode.PUPPET) {
+        if (SFMProperties.clientRunMode() != SFMProperties.ClientRunMode.PUPPET) {
             return;
         }
 
@@ -120,8 +141,12 @@ public class SFMClientRunHarness {
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onClientTick(ClientTickEvent.Post event) {
-        Mode mode = mode();
-        if (mode == Mode.NONE) {
+        SFMProperties.ClientRunMode mode = SFMProperties.clientRunMode();
+        if (mode == SFMProperties.ClientRunMode.GAME_PUPPET) {
+            SFMGamePuppetHarness.onClientTick();
+            return;
+        }
+        if (mode != SFMProperties.ClientRunMode.PUPPET) {
             return;
         }
 
@@ -130,13 +155,11 @@ public class SFMClientRunHarness {
             continueFromClientMenu(mode);
         }
 
-        if (mode != Mode.PUPPET) {
-            return;
+        if (isClientGameTestAutomationActive()) {
+            keepPuppetRuntimeUnpaused(minecraft);
+            dismissPuppetPauseScreen(minecraft);
         }
-
-        keepPuppetRuntimeUnpaused(minecraft);
         IntegratedServer server = minecraft.getSingleplayerServer();
-        dismissPuppetPauseScreen(minecraft);
         if (puppetWorldCreationStarted && !puppetTestsStarted && server != null && server.isReady() && minecraft.player != null) {
             puppetTestsStarted = true;
             server.execute(() -> startPuppetTests(server));
@@ -151,11 +174,22 @@ public class SFMClientRunHarness {
     }
 
     private static void keepPuppetRuntimeUnpaused(Minecraft minecraft) {
+        if (!pauseOnLostFocusCaptured) {
+            pauseOnLostFocusCaptured = true;
+            pauseOnLostFocusBeforeAutomation = minecraft.options.pauseOnLostFocus;
+        }
         if (minecraft.options.pauseOnLostFocus) {
             SFM.LOGGER.info("SFM_CLIENT_PUPPET_DISABLING_PAUSE_ON_LOST_FOCUS");
             minecraft.options.pauseOnLostFocus = false;
-            minecraft.options.save();
         }
+    }
+
+    private static void restorePuppetRuntimeOptions() {
+        if (!pauseOnLostFocusCaptured) {
+            return;
+        }
+        Minecraft.getInstance().options.pauseOnLostFocus = pauseOnLostFocusBeforeAutomation;
+        pauseOnLostFocusCaptured = false;
     }
 
     private static void dismissPuppetPauseScreen(Minecraft minecraft) {
@@ -276,6 +310,8 @@ public class SFMClientRunHarness {
     }
 
     private static void schedulePuppetExit(String resultMessage) {
+        puppetTestsCompleted = true;
+        restorePuppetRuntimeOptions();
         int keepOpenSeconds = keepOpenSeconds();
         if (keepOpenSeconds < 0) {
             keepOpen = true;
@@ -358,18 +394,10 @@ public class SFMClientRunHarness {
     }
 
     private static int keepOpenSeconds() {
-        return Integer.getInteger(KEEP_OPEN_SECONDS_PROPERTY, 10);
+        return SFMProperties.clientRunKeepOpenSeconds(25);
     }
 
-    private static Mode mode() {
-        return switch (System.getProperty(MODE_PROPERTY, "")) {
-            case "puppet" -> Mode.PUPPET;
-            default -> Mode.NONE;
-        };
-    }
-
-    private enum Mode {
-        NONE,
-        PUPPET
+    private static boolean isClientGameTestAutomationActive() {
+        return !puppetTestsCompleted;
     }
 }

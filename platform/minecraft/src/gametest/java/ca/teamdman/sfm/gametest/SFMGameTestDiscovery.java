@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMEventBus;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
+import ca.teamdman.sfm.properties.SFMProperties;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -21,8 +22,6 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class SFMGameTestDiscovery {
-    private static final String GAME_TEST_SELECTION_PROPERTY = "sfm.gametestSelection";
-
     public static final ResourceKey<TestEnvironmentDefinition<?>> SFM_TEST_ENVIRONMENT = ResourceKey.create(
             Registries.TEST_ENVIRONMENT,
             Identifier.fromNamespaceAndPath(SFM.MOD_ID, "default")
@@ -104,7 +103,7 @@ public class SFMGameTestDiscovery {
 
     private static Collection<SFMGameTestDefinition> filterSelectedTests(Collection<SFMGameTestDefinition> tests) {
 
-        String rawSelection = System.getProperty(GAME_TEST_SELECTION_PROPERTY, "").trim();
+        String rawSelection = SFMProperties.gameTestSelection();
         if (rawSelection.isEmpty()) {
             return tests;
         }

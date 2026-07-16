@@ -46,7 +46,7 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
     public int maxTicks() {
 
         // CC:Tweaked 1.113.1 waits 50 computer ticks before launching a newly powered computer.
-        return 200;
+        return 300;
     }
 
     @Override

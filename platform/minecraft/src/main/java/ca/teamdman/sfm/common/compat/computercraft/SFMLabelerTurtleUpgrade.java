@@ -9,8 +9,7 @@ import dan200.computercraft.api.turtle.AbstractTurtleUpgrade;
 import dan200.computercraft.api.turtle.ITurtleAccess;
 import dan200.computercraft.api.turtle.TurtleSide;
 import dan200.computercraft.api.turtle.TurtleUpgradeType;
-import dan200.computercraft.api.upgrades.UpgradeBase;
-import net.minecraft.resources.ResourceLocation;
+import dan200.computercraft.api.upgrades.UpgradeType;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nonnull;
@@ -19,13 +18,19 @@ import javax.annotation.Nonnull;
 public final class SFMLabelerTurtleUpgrade extends AbstractTurtleUpgrade {
     @SFMLocalizationDatagen
     public static final LocalizationEntry ADJECTIVE = new LocalizationEntry(
-            UpgradeBase.getDefaultAdjective(new ResourceLocation(SFM.MOD_ID, "labeler")),
+            "upgrade." + SFM.MOD_ID + ".labeler.adjective",
             "Labeler"
     );
 
-    public SFMLabelerTurtleUpgrade(ResourceLocation id) {
+    public SFMLabelerTurtleUpgrade() {
 
-        super(id, TurtleUpgradeType.PERIPHERAL, new ItemStack(SFMItems.LABEL_GUN.get()));
+        super(TurtleUpgradeType.PERIPHERAL, ADJECTIVE.getComponent(), new ItemStack(SFMItems.LABEL_GUN.get()));
+    }
+
+    @Override
+    public UpgradeType<SFMLabelerTurtleUpgrade> getType() {
+
+        return SFMComputerCraftTurtleUpgrades.LABELER.get();
     }
 
     @Override
