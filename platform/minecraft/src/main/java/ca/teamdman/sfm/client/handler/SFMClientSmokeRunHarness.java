@@ -4,13 +4,12 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMDist;
+import ca.teamdman.sfm.properties.SFMProperties;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
 public class SFMClientSmokeRunHarness {
-    private static final String MODE_PROPERTY = "sfm.clientRun.mode";
-
     private static boolean titleScreenHandled = false;
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
@@ -26,6 +25,6 @@ public class SFMClientSmokeRunHarness {
     }
 
     private static boolean isSmokeMode() {
-        return "smoke".equals(System.getProperty(MODE_PROPERTY, ""));
+        return SFMProperties.clientRunMode() == SFMProperties.ClientRunMode.SMOKE;
     }
 }
