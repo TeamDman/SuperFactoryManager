@@ -387,7 +387,7 @@ rather than lost artifacts or hung launches.
 
 ## Phase 4 — Propagate and prove the version matrix
 
-### [~] 4.1 Propagate the committed baseline through normal version branches
+### [x] 4.1 Propagate the committed baseline through normal version branches
 
 **Work:**
 
@@ -413,6 +413,31 @@ cargo run -- audit --branch core --version-surfaces
 **Completion criteria:** Every normal version branch has either received the
 baseline commit through the SFM merge workflow or is explicitly marked blocked
 or excluded with a technical reason and next action.
+
+**Completion notes (2026-07-15):** `cargo run -- git merge --no-auto-abort`
+completed the normal merge chain from `2bcdc2f8a` (1.19.2 → 1.19.4) through
+`4513809eb` (1.21.1 → 26.1.2). All ten normal version worktrees are clean
+afterward. The unrelated dirty `feat/1.19.2/mount` worktree remains excluded.
+The generated 1.20 `.antlr` cache was preserved and is now ignored by the
+narrow propagation preflight exception introduced in `b469689d7`.
+
+Newer-version behavior was retained at each conflict. The propagated puppet
+surface is explicitly adapted where the external API changed: 1.20.2/1.20.4+
+world-creation and disconnect APIs, 1.21 GameTest builders and render state,
+and 26.1.2 registry-backed `GameTestInstance` execution, client input/camera,
+world settings/rules, and extracted GUI rendering. The 26.1.2 caption path is
+isolated in `PuppetCaptionedScreenshotComposer`; its
+`@MCVersionDependentBehaviour` methods use screenshot readback plus
+Minecraft's bundled bitmap font rather than removed immediate-mode rendering.
+`cargo run -- run compile --branch 26.1.2 --wait-for-build-lock` passed.
+
+The post-merge `cargo run -- audit --branch core --version-surfaces` reports
+zero CLI warnings on every normal target. Its retained Java-surface backlog is
+1.19.4=103, 1.20=299, 1.20.1=305, 1.20.2=488, 1.20.3=575, 1.20.4=619,
+1.21.0=999, 1.21.1=1,025, and 26.1.2=1,674. The focused audit emitted no
+unbounded warnings for `SFMGamePuppet*`, `PuppetCaptionedScreenshotComposer`,
+or `SFMDeveloperWorldGameTestRunner`; the remaining warnings are the wider
+pre-existing version-surface backlog to be addressed separately.
 
 ### [ ] 4.2 Validate static discovery, compilation, and previews per eligible target
 
