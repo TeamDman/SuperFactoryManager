@@ -294,8 +294,10 @@ sfm-propagate-changes.exe puppet artifacts open --branch 1.19.2
 preview artifact directory, errors clearly before a preview exists, and no
 arbitrary-path launcher has been added.
 
-**Completion notes (2026-07-15):** Implemented
-`puppet artifacts path|open --branch <exact-branch>`. The shared
+**Completion notes (2026-07-15):** Committed `a72f69576`
+(`feat: add puppet artifact commands`), which also records the Phase 1.2
+precondition evidence. Implemented
+`puppet artifacts path|open --branch <single-target-selector>`. The shared
 `game_puppet_preview_artifact_root` function now defines the same persistent
 root for the run pipeline and CLI. Both commands require exactly one selected
 worktree, a pre-existing artifact directory, and its
