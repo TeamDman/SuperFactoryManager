@@ -1,6 +1,7 @@
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::cli::puppet_artifacts::PuppetArtifactsArgs;
+use crate::cli::puppet_matrix::PuppetMatrixArgs;
 use crate::cli::run::invoke_game_puppet;
 use crate::jar_build::BuildMode;
 use crate::jar_build::SourceCatalogAction;
@@ -29,6 +30,8 @@ pub enum PuppetCommand {
     Show(PuppetShowArgs),
     /// Locate or open existing game-puppet preview artifacts.
     Artifacts(PuppetArtifactsArgs),
+    /// Run selected puppets across branches and collect a durable preview matrix.
+    Matrix(PuppetMatrixArgs),
 }
 
 #[derive(Facet, Debug)]
@@ -104,6 +107,7 @@ impl PuppetArgs {
             )
             .invoke(),
             PuppetCommand::Artifacts(args) => args.invoke(),
+            PuppetCommand::Matrix(args) => args.invoke(&cancellation_token),
         }
     }
 }

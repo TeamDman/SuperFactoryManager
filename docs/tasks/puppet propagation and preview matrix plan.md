@@ -309,7 +309,7 @@ tests pass; `check-all.ps1` passed with 280 passed, 0 failed, and 1 ignored.
 
 ## Phase 3 — Build the durable matrix collector
 
-### [ ] 3.1 Define and implement a multi-version preview matrix command
+### [x] 3.1 Define and implement a multi-version preview matrix command
 
 **Work:**
 
@@ -340,6 +340,21 @@ sfm-propagate-changes.exe puppet matrix move_1_stack_direct_walkthrough --branch
 **Completion criteria:** A one-target matrix has a manifest, an index, copied
 valid figures, and an explicit successful target record. A deliberately bad
 target preserves completed entries and reports its own failure.
+
+**Completion notes (2026-07-15):** Added `puppet matrix <selector>`, which
+reuses the existing preview launcher one exact branch at a time, validates its
+static selection through that path, then copies validated captures and the raw
+source manifest into a timestamped SFM-owned matrix root. `matrix-manifest.json`
+records the branch, Minecraft version, source root, copied manifest, capture
+dimensions, BLAKE3 hashes, result, and diagnostic log location; `index.html`
+renders a branch-by-figure grid. The collector rejects unsafe paths, invalid
+PNGs, duplicate/zero figures, and branch/version/selection/test manifest
+mismatches without deleting the source artifacts. Until Phase 3.2 provides
+two-client calibration evidence, `--parallel 1` is the only accepted matrix
+parallelism. Focused collector tests passed (4 passed); `check-all.ps1` passed
+with 284 passed, 0 failed, and 1 ignored. A live 1.19.2 Move 1 Stack run wrote
+`move_1_stack_direct_walkthrough-20260715-222300` with a successful target,
+raw source manifest, browsable index, and 12 copied 1280x807 PNGs.
 
 ### [ ] 3.2 Calibrate safe client parallelism
 

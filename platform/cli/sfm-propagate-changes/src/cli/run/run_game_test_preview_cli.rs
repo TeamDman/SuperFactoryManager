@@ -94,7 +94,9 @@ pub(crate) fn invoke_game_puppet(
     .invoke()
 }
 
-fn normalize_game_puppet_game_test(game_test: Option<String>) -> eyre::Result<Option<String>> {
+pub(crate) fn normalize_game_puppet_game_test(
+    game_test: Option<String>,
+) -> eyre::Result<Option<String>> {
     let Some(game_test) = game_test else {
         return Ok(None);
     };

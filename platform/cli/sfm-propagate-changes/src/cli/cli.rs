@@ -320,6 +320,34 @@ mod tests {
             }
             command => panic!("expected puppet artifacts path command, got {command:?}"),
         }
+
+        let puppet_matrix = figue::from_slice::<Cli>(&[
+            "puppet",
+            "matrix",
+            "move_1_stack_direct_walkthrough",
+            "--branch",
+            "1.19.2",
+            "--parallel",
+            "1",
+        ])
+        .into_result()
+        .expect("puppet matrix arguments should parse")
+        .get_silent();
+        match puppet_matrix.command {
+            Command::Puppet(crate::cli::puppet::PuppetArgs {
+                command:
+                    crate::cli::puppet::PuppetCommand::Matrix(
+                        crate::cli::puppet_matrix::PuppetMatrixArgs {
+                            puppet, options, ..
+                        },
+                    ),
+            }) => {
+                assert_eq!(puppet, "move_1_stack_direct_walkthrough");
+                assert_eq!(options.branch.to_string(), "1.19.2");
+                assert_eq!(options.parallel, Some(Some(1)));
+            }
+            command => panic!("expected puppet matrix command, got {command:?}"),
+        }
     }
 
     #[test]

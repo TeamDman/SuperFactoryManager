@@ -3400,58 +3400,58 @@ struct GamePuppetPreviewCaptureMetadata {
 }
 
 #[derive(Clone, Debug, Facet)]
-struct GamePuppetPreviewCamera {
-    x: f64,
-    y: f64,
-    z: f64,
-    yaw: f64,
-    pitch: f64,
+pub(crate) struct GamePuppetPreviewCamera {
+    pub(crate) x: f64,
+    pub(crate) y: f64,
+    pub(crate) z: f64,
+    pub(crate) yaw: f64,
+    pub(crate) pitch: f64,
 }
 
 #[derive(Debug, Facet)]
-struct GamePuppetPreviewManifest {
-    branch: String,
+pub(crate) struct GamePuppetPreviewManifest {
+    pub(crate) branch: String,
     #[facet(rename = "minecraftVersion")]
-    minecraft_version: String,
+    pub(crate) minecraft_version: String,
     #[facet(rename = "puppetSelection")]
-    puppet_selection: String,
+    pub(crate) puppet_selection: String,
     #[facet(rename = "gameTest")]
-    game_test: Option<String>,
-    viewport: GamePuppetPreviewViewport,
+    pub(crate) game_test: Option<String>,
+    pub(crate) viewport: GamePuppetPreviewViewport,
     #[facet(rename = "captureProfile")]
-    capture_profile: GamePuppetPreviewCaptureProfile,
-    captures: Vec<GamePuppetPreviewManifestCapture>,
+    pub(crate) capture_profile: GamePuppetPreviewCaptureProfile,
+    pub(crate) captures: Vec<GamePuppetPreviewManifestCapture>,
 }
 
 #[derive(Debug, Facet)]
-struct GamePuppetPreviewViewport {
-    width: u16,
-    height: u16,
+pub(crate) struct GamePuppetPreviewViewport {
+    pub(crate) width: u16,
+    pub(crate) height: u16,
 }
 
 #[derive(Debug, Facet)]
-struct GamePuppetPreviewCaptureProfile {
+pub(crate) struct GamePuppetPreviewCaptureProfile {
     #[facet(rename = "nativeMainRenderTarget")]
-    native_main_render_target: bool,
+    pub(crate) native_main_render_target: bool,
     #[facet(rename = "hideHud")]
-    hide_hud: bool,
+    pub(crate) hide_hud: bool,
     #[facet(rename = "clearTransientOverlays")]
-    clear_transient_overlays: bool,
+    pub(crate) clear_transient_overlays: bool,
 }
 
 #[derive(Debug, Facet)]
-struct GamePuppetPreviewManifestCapture {
-    puppet: String,
-    figure: u32,
-    capture: String,
-    path: String,
-    width: u32,
-    height: u32,
-    hash: ContentHash,
-    camera: Option<GamePuppetPreviewCamera>,
-    screen: Option<String>,
+pub(crate) struct GamePuppetPreviewManifestCapture {
+    pub(crate) puppet: String,
+    pub(crate) figure: u32,
+    pub(crate) capture: String,
+    pub(crate) path: String,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) hash: ContentHash,
+    pub(crate) camera: Option<GamePuppetPreviewCamera>,
+    pub(crate) screen: Option<String>,
     #[facet(rename = "hudHidden")]
-    hud_hidden: Option<bool>,
+    pub(crate) hud_hidden: Option<bool>,
 }
 
 fn publish_game_puppet_preview_artifacts(
@@ -3633,7 +3633,7 @@ fn is_safe_preview_name(value: &str) -> bool {
             .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-'))
 }
 
-fn png_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
+pub(crate) fn png_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
     const PNG_SIGNATURE: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
     if bytes.len() < 24 || bytes[..8] != PNG_SIGNATURE || bytes[12..16] != *b"IHDR" {
         return None;

@@ -18,6 +18,7 @@ pub mod loader;
 pub mod modrinth;
 pub mod puppet;
 mod puppet_artifacts;
+mod puppet_matrix;
 pub mod repo_root;
 pub mod run;
 pub mod server;
