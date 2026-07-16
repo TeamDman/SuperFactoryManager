@@ -357,7 +357,14 @@ with 284 passed, 0 failed, and 1 ignored. A live 1.19.2 Move 1 Stack run wrote
 raw source manifest, browsable index, and 12 copied 1280x807 PNGs.
 Implementation commit: `fcfec4fed` (`feat: add puppet preview matrix`).
 
-### [ ] 3.2 Calibrate safe client parallelism
+### [!] 3.2 Calibrate safe client parallelism
+
+**Blocker (2026-07-15):** `puppet list --branch 1.19.4` completed with an
+empty catalog, while the same command on 1.19.2 found the three baseline
+puppets. Two concurrent target runs cannot calibrate the shared walkthrough
+before Phase 4 propagates it and Phase 4.2 establishes at least two eligible
+branches. Keep `puppet matrix` restricted to `--parallel 1` until that
+condition is met.
 
 **Work:**
 
@@ -380,7 +387,7 @@ rather than lost artifacts or hung launches.
 
 ## Phase 4 — Propagate and prove the version matrix
 
-### [ ] 4.1 Propagate the committed baseline through normal version branches
+### [~] 4.1 Propagate the committed baseline through normal version branches
 
 **Work:**
 
