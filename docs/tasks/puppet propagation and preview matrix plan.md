@@ -439,7 +439,7 @@ unbounded warnings for `SFMGamePuppet*`, `PuppetCaptionedScreenshotComposer`,
 or `SFMDeveloperWorldGameTestRunner`; the remaining warnings are the wider
 pre-existing version-surface backlog to be addressed separately.
 
-### [ ] 4.2 Validate static discovery, compilation, and previews per eligible target
+### [~] 4.2 Validate static discovery, compilation, and previews per eligible target
 
 **Work:**
 
@@ -463,6 +463,40 @@ sfm-propagate-changes.exe puppet run move_1_stack_direct_walkthrough --branch <b
 **Completion criteria:** Each eligible row in the acceptance matrix has
 discovery, compile, live preview, and manifest evidence, or an exact retained
 failure diagnostic.
+
+**Progress notes (2026-07-15):** Static discovery completed on all ten normal
+branches: `puppet list` found
+`sfm:game_test_orbit_capture`, `sfm:move_1_stack_direct_walkthrough`, and
+`sfm:title_screen_capture` on every target. The compile matrix is now green:
+1.19.2, 1.19.4, 1.20, 1.20.1, 1.20.2, 1.20.3, 1.20.4, 1.21.0, 1.21.1, and
+26.1.2 all passed `run compile` through the SFM CLI.
+
+The initial compile sweep identified real API transitions rather than target
+exclusions. They are retained behind `@MCVersionDependentBehaviour` adapters:
+the developer-world and puppet flat-world APIs move to `WorldOptions` in
+1.19.4–1.20.1; 1.20.3 requires the parent `Screen`; renderer-backed captions
+use JOML/`GuiGraphics` where needed; 26.1.2 retains its GPU screenshot
+composer and newer time/game-rule APIs; and CC:Tweaked turtle lookups/equip
+operations are hidden behind helpers for direct, descriptor, and
+registry-aware API generations. The ordinary puppet flow remains common.
+
+Commits `9ced00f73`, `60330c6f5`, `58c0411c3`, and `909e70738` establish the
+baseline boundaries; version-specific adapter commits were resolved through
+the normal propagation chain without overwriting newer behavior. Audit
+precision commits `d23ab6793` and `c37274f32` ignore import-only hunks and
+correctly cover a hunk spanning adjacent annotated methods. The latter passed
+`cargo clippy --all-features -- -D warnings` and the full Rust suite (287
+passed, 0 failed, 1 ignored). The final focused audit reports zero CLI
+warnings and no unbounded warning for the developer-world launcher, puppet
+runtime, or CC:Tweaked turtle GameTest. Its separate historical Java backlog
+is 3,816 warnings: 1.19.4=51, 1.20=221, 1.20.1=224, 1.20.2=289,
+1.20.3=329, 1.20.4=352, 1.21.0=615, 1.21.1=637, and 26.1.2=1,098.
+
+All normal worktrees are clean. The unrelated dirty `feat/1.19.2/mount`
+worktree remains excluded. The remaining 4.2 proof is the live 1280×720
+Move 1 Stack preview and manifest for each eligible target; that evidence is
+intentionally deferred to the matrix run in 4.3 rather than inferred from a
+compile.
 
 ### [ ] 4.3 Produce and review the all-version Move 1 Stack matrix
 
