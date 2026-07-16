@@ -1163,7 +1163,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(canvasToScreenX(glyph.x()), canvasToScreenY(glyph.y()), 0.0D);
             guiGraphics.pose().scale((float) zoom, (float) zoom, 1.0F);
-            guiGraphics.drawString( this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH));
+            SFMFontUtils.draw(guiGraphics, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
             guiGraphics.pose().popPose();
         }
     }
@@ -1322,7 +1322,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         drawRectOutline(guiGraphics, left, top, right, bottom, EMBEDDED_DOCUMENT_BORDER);
         int titleWidth = this.font.width(document.title);
         guiGraphics.fill( left, top - 14, Math.min(right, left + titleWidth + 12), top, PANEL_TAB_BACKGROUND);
-        guiGraphics.drawString( this.font, Component.literal(document.title), left + 6, top - 11, HUD_TEXT);
+        SFMFontUtils.draw(guiGraphics, this.font, Component.literal(document.title), left + 6, top - 11, HUD_TEXT, true);
         renderEmbeddedDocumentGlyphs(guiGraphics, document, left, top, right, bottom);
         renderEmbeddedDocumentHandles(guiGraphics, left, top, right, bottom);
     }
@@ -1353,7 +1353,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(screenX, screenY, 0.0D);
             guiGraphics.pose().scale((float) scale, (float) scale, 1.0F);
-            guiGraphics.drawString( this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH));
+            SFMFontUtils.draw(guiGraphics, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
             guiGraphics.pose().popPose();
         }
     }
@@ -1593,8 +1593,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         guiGraphics.fill( left, top, left + 1, bottom, HUD_BORDER);
         guiGraphics.fill( right - 1, top, right, bottom, HUD_BORDER);
 
-        guiGraphics.drawString( this.font, this.title, left + 8, top + 7, HUD_TEXT);
-        guiGraphics.drawString(
+        SFMFontUtils.draw(guiGraphics, this.font, this.title, left + 8, top + 7, HUD_TEXT, true);
+        SFMFontUtils.draw(
+                guiGraphics,
                 this.font,
                 String.format(
                         "cursor %.1f, %.1f  zoom %.2fx",
@@ -1604,7 +1605,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 ),
                 left + 8,
                 top + 22,
-                HUD_MUTED
+                HUD_MUTED,
+                true
         );
     }
 
@@ -1625,7 +1627,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         guiGraphics.fill( right - 1, top, right, bottom, HUD_BORDER);
         int y = top + 6;
         for (String event : inputEvents) {
-            guiGraphics.drawString( this.font, event, left + 6, y, HUD_MUTED);
+            SFMFontUtils.draw(guiGraphics, this.font, event, left + 6, y, HUD_MUTED, true);
             y += lineHeight;
         }
     }
@@ -1989,7 +1991,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int tabHeight = 16;
         guiGraphics.fill( left + 8, top - tabHeight, left + 8 + tabWidth, top, PANEL_TAB_BACKGROUND);
         drawRectOutline(guiGraphics, left + 8, top - tabHeight, left + 8 + tabWidth, top + 1, HUD_BORDER);
-        guiGraphics.drawString( this.font, Component.literal("SFML.g4"), left + 14, top - tabHeight + 4, HUD_TEXT);
+        SFMFontUtils.draw(guiGraphics, this.font, Component.literal("SFML.g4"), left + 14, top - tabHeight + 4, HUD_TEXT, true);
 
         renderGrammarGlyphs(guiGraphics);
         if (!hideSelection) {
@@ -2020,7 +2022,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(screenX, screenY, 0.0D);
             guiGraphics.pose().scale((float) grammarZoom, (float) grammarZoom, 1.0F);
-            guiGraphics.drawString( this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH));
+            SFMFontUtils.draw(guiGraphics, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
             guiGraphics.pose().popPose();
         }
     }
@@ -2083,7 +2085,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int bottom = top + this.font.lineHeight + 10;
         guiGraphics.fill( left, top, right, bottom, HUD_BACKGROUND);
         drawRectOutline(guiGraphics, left, top, right, bottom, HUD_BORDER);
-        guiGraphics.drawString( this.font, message, left + 8, top + 5, HUD_TEXT);
+        SFMFontUtils.draw(guiGraphics, this.font, message, left + 8, top + 5, HUD_TEXT, true);
     }
 
     private void copyGrammarTextToClipboard() {
