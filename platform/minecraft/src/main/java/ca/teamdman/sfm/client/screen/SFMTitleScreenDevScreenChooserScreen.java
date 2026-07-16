@@ -98,8 +98,10 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
         guiGraphics.fill( left, bottom - 1, right, bottom, BORDER);
         guiGraphics.fill( left, top, left + 1, bottom, BORDER);
         guiGraphics.fill( right - 1, top, right, bottom, BORDER);
-        guiGraphics.drawCenteredString( this.font, this.title.copy().withStyle(ChatFormatting.BOLD), this.width / 2, top + 12, TEXT);
-        guiGraphics.drawCenteredString( this.font, "IDE-only launch tools", this.width / 2, top + 26, MUTED);
+        Component title = this.title.copy().withStyle(ChatFormatting.BOLD);
+        SFMFontUtils.draw(guiGraphics, this.font, title, this.width / 2 - this.font.width(title) / 2, top + 12, TEXT, true);
+        String subtitle = "IDE-only launch tools";
+        SFMFontUtils.draw(guiGraphics, this.font, subtitle, this.width / 2 - this.font.width(subtitle) / 2, top + 26, MUTED, true);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
