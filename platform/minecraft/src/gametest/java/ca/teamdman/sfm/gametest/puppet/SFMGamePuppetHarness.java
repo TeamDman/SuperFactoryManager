@@ -187,7 +187,12 @@ public final class SFMGamePuppetHarness {
             SFM.LOGGER.info("SFM_GAME_PUPPET_FINAL_WORLD_HOLD_PENDING seconds={}", keepOpenSeconds);
             return;
         }
-        returnToTitle(minecraft);
+        // A final non-interactive run does not need to rebuild the title screen
+        // solely to wait for process exit.  Retaining the active world until
+        // Minecraft shuts down also avoids invoking unrelated title-screen
+        // listeners after their client configuration has already been unloaded.
+        activePuppet = null;
+        finishRun();
     }
 
     private static void tickFinalWorldHold(Minecraft minecraft) {
