@@ -667,6 +667,36 @@ versions have no misleading release claim.
 
 ## Phase 9 — Tag and publish the approved release
 
+### [ ] 9.0 Control guard — acquire explicit release authority
+
+**Work:**
+
+- Stop at this guard after Phases 1–8 have their recorded validation evidence.
+  Do not run any Phase 9 command that creates or moves a tag, changes a remote,
+  creates a GitHub release, or uploads to CurseForge or Modrinth.
+- Present the maintainer with the exact release packet: final version and
+  selected branches, changelog/known-issues scope, final commit(s), tag names,
+  collected jar manifest and BLAKE3 checksums, Phase 6–8 evidence, and every
+  external mutation proposed by Phases 9.1 and 9.2.
+- Obtain an explicit affirmative authorization that identifies which of these
+  actions are approved: local final merge/tag preparation, remote tag/commit
+  push, GitHub release creation, CurseForge upload, and Modrinth upload. A
+  partial authorization limits all following work to its approved actions;
+  missing authorization is not implicit approval to continue.
+- Record the maintainer's authorization, its exact scope, the approved release
+  commit/version, and any withheld platform in this task's completion notes.
+  If approval is absent or withdrawn when this guard is reached, mark this
+  task `[!]` with that exact condition and stop before external mutation.
+
+**Validation:**
+
+- Human authorization is explicit in the release conversation and matches the
+  release packet recorded here; no command output substitutes for approval.
+
+**Completion criteria:** A maintainer has explicitly authorized the named
+release packet and each approved external mutation. No Phase 9.1 or 9.2 action
+starts before this task is `[x]`.
+
 ### [ ] 9.1 Perform the final local release gate and tag the exact source
 
 **Work:**
@@ -674,9 +704,9 @@ versions have no misleading release claim.
 - Re-run merge/status/audit after all generated changes and verification
   corrections. Confirm every normal release worktree is clean and points at
   the approved version.
-- Obtain explicit maintainer authorization to mutate remotes. Then create tags
-  using the SFM CLI's `<mod_version>-<mc_version>` policy and push tags and
-  commits.
+- Use only the authority recorded by completed task 9.0. Create tags using the
+  SFM CLI's `<mod_version>-<mc_version>` policy, then push tags and commits
+  only if those remote mutations were explicitly approved.
 - Record the final commit, tag set, jar manifest/checksums, approval, and
   release scope in this task's completion notes before publishing artifacts.
 
@@ -701,7 +731,8 @@ and no uncommitted release material remains.
 **Work:**
 
 - Confirm project defaults, release channel/visibility, and credentials without
-  printing secrets. Use the collected jar directory only after Phase 9.1.
+  printing secrets. Use the collected jar directory only after Phase 9.1 and
+  only for the platforms explicitly approved by task 9.0.
 - Create or update the GitHub release and upload the collected jars.
 - Run remote metadata checks before uploading to CurseForge and Modrinth, then
   publish each approved jar through their release commands.
