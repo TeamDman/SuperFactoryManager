@@ -319,7 +319,7 @@ public class SFMInputDiagnosticsScreen extends Screen {
         int startInclusive = Math.max(0, endExclusive - maxLines);
         int y = eventTop;
         for (int i = startInclusive; i < endExclusive; i++) {
-            drawString(poseStack, this.font, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT);
+            SFMFontUtils.draw(poseStack, this.font, trimToWidth(events.get(i), right - left - 16), left + 8, y, TEXT, true);
             y += lineHeight;
         }
         if (events.isEmpty()) {
