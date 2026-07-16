@@ -30,12 +30,6 @@ impl SourceLineLimit {
     }
 }
 
-impl Default for SourceLineLimit {
-    fn default() -> Self {
-        Self(1000)
-    }
-}
-
 impl fmt::Display for SourceLineLimit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
