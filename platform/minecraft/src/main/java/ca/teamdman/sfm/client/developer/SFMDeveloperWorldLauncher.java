@@ -98,6 +98,7 @@ public final class SFMDeveloperWorldLauncher {
         return worldId;
     }
 
+    @MCVersionDependentBehaviour
     private static void finishWorldCreation(IntegratedServer server, PendingWorldCreation completedCreation) {
         ServerLevel level = server.overworld();
         server.setDefaultGameType(GameType.CREATIVE);
