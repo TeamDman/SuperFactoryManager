@@ -6,7 +6,8 @@ use crate::branch_targets::BranchQuery;
 pub struct SourceAuditOptions {
     pub branch: BranchQuery,
     pub languages: Vec<SourceLanguage>,
-    pub max_lines: SourceLineLimit,
+    /// When set, warn for tracked source files that exceed this line count.
+    pub max_lines: Option<SourceLineLimit>,
     pub version_surfaces: bool,
     pub font_render_surface: bool,
 }
