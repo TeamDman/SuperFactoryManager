@@ -36,6 +36,8 @@ platform/cli/sfm-propagate-changes/tracy/
 
 # other
 eclipse
+## Generated locally by the ANTLR IDE/tooling; the grammar itself remains tracked.
+/platform/minecraft/src/main/antlr/sfml/.antlr/
 platform/minecraft/run/
 runClient
 runClientSmoke
