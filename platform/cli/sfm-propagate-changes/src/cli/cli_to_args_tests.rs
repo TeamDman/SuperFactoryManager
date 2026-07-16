@@ -31,6 +31,7 @@ fn typed_top_level_audit_command_roundtrips() {
             lang: Vec::new(),
             max_lines: SourceLineLimit(1200),
             version_surfaces: true,
+            font_render_surface: true,
         }),
         builtins: figue::FigueBuiltins::default(),
     };
@@ -49,6 +50,7 @@ fn typed_top_level_audit_command_roundtrips() {
             "--max-lines",
             "1200",
             "--version-surfaces",
+            "--font-render-surface",
         ]
     );
 
@@ -67,6 +69,7 @@ fn typed_top_level_audit_command_roundtrips() {
     );
     assert_eq!(parsed.max_lines, SourceLineLimit(1200));
     assert!(parsed.version_surfaces);
+    assert!(parsed.font_render_surface);
 
     let display = command
         .to_args_string()

@@ -1,0 +1,13 @@
+# Version-independent source-name policy for direct Minecraft text rendering.
+#
+# The rule file deliberately uses deobfuscated Java source names.  It is shared verbatim by all
+# supported Minecraft branches; version differences stay inside SFMFontUtils.
+DENY CALL net.minecraft.client.gui.Font draw *
+DENY CALL net.minecraft.client.gui.Font drawShadow *
+DENY CALL net.minecraft.client.gui.Font drawInBatch *
+DENY CALL net.minecraft.client.gui.GuiGraphics drawString *
+DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *
+
+# This is a caller-context permit, not a callee exception.  It makes SFMFontUtils the only seam
+# allowed to make the denied Minecraft rendering calls.
+PERMIT CALLER ca.teamdman.sfm.client.screen.SFMFontUtils * *

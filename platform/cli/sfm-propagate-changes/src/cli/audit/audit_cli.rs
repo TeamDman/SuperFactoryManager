@@ -28,6 +28,10 @@ pub struct AuditArgs {
     /// Compare selected version branches with 1.19.2 and warn about CLI or unbounded Java changes.
     #[facet(default = false, args::named)]
     pub version_surfaces: bool,
+
+    /// Audit Java text-rendering calls against the declarative `sfm.audit_rules` policy.
+    #[facet(default = false, args::named)]
+    pub font_render_surface: bool,
 }
 
 impl AuditArgs {
@@ -39,6 +43,7 @@ impl AuditArgs {
             languages,
             max_lines: self.max_lines,
             version_surfaces: self.version_surfaces,
+            font_render_surface: self.font_render_surface,
         })
     }
 

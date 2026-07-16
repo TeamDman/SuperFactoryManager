@@ -1,3 +1,4 @@
+use super::AuditRules;
 use super::AuditedSourceFile;
 use super::BranchSourceAuditReport;
 use super::SourceAuditOptions;
@@ -6,6 +7,7 @@ use super::SourceLanguage;
 use super::SourceLineCount;
 use super::SourceProblem;
 use super::VersionSurfaceAuditReport;
+use super::audit_java_font_render_surface;
 use super::audit_version_surfaces;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::discover_worktree_targets;
@@ -18,6 +20,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 const SFM_PRODUCTION_JAVA_PREFIX: &str = "platform/minecraft/src/main/java/ca/teamdman/sfm/";
+const SFM_AUDIT_RULES_PATH: &str = "platform/minecraft/sfm.audit_rules";
 
 #[derive(Debug)]
 pub struct SourceAuditCommand {
@@ -90,6 +93,11 @@ impl SourceAuditCommand {
         })?;
 
         let mut report = BranchSourceAuditReport::new(branch);
+        let font_rules = self
+            .options
+            .font_render_surface
+            .then(|| AuditRules::load(&worktree_path.join(SFM_AUDIT_RULES_PATH)))
+            .transpose()?;
         for entry in index.entries() {
             if entry.stage() != gix::index::entry::Stage::Unconflicted {
                 continue;
@@ -138,10 +146,28 @@ impl SourceAuditCommand {
                     &content,
                 );
             }
+
+            if language == SourceLanguage::Java
+                && is_sfm_java_source(&repo_path)
+                && let Some(font_rules) = &font_rules
+            {
+                audit_java_font_render_surface(
+                    &mut report,
+                    branch,
+                    &repo_path,
+                    line_count,
+                    &content,
+                    font_rules,
+                )?;
+            }
         }
 
         Ok(report)
     }
+}
+
+fn is_sfm_java_source(repo_path: &str) -> bool {
+    repo_path.starts_with("platform/minecraft/src/") && repo_path.contains("/java/ca/teamdman/sfm/")
 }
 
 fn audit_direct_mod_event_annotations(
@@ -285,6 +311,7 @@ mod tests {
             languages: Vec::new(),
             max_lines: SourceLineLimit(1),
             version_surfaces: false,
+            font_render_surface: false,
         });
         let target = WorktreeTarget::from_parts(
             BranchName::from("1.19.2"),
@@ -317,6 +344,7 @@ mod tests {
             languages: Vec::new(),
             max_lines: SourceLineLimit(1),
             version_surfaces: false,
+            font_render_surface: false,
         });
         let target = WorktreeTarget::from_parts(
             BranchName::from("1.19.2"),
@@ -364,6 +392,7 @@ mod tests {
             languages: Vec::new(),
             max_lines: SourceLineLimit(1000),
             version_surfaces: false,
+            font_render_surface: false,
         });
         let target = WorktreeTarget::from_parts(
             BranchName::from("1.19.2"),
@@ -392,6 +421,55 @@ mod tests {
                 .iter()
                 .all(|warning| warning.contains("replacement=@SFMSubscribeEvent"))
         );
+        Ok(())
+    }
+
+    #[test]
+    fn applies_the_shared_rule_file_to_gametest_java_sources() -> eyre::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let root = temp.path();
+        let rules_path = root.join("platform/minecraft/sfm.audit_rules");
+        fs::create_dir_all(rules_path.parent().expect("rules should have a parent"))?;
+        fs::write(
+            &rules_path,
+            "DENY CALL net.minecraft.client.gui.GuiGraphics drawString *\n",
+        )?;
+        let java_path =
+            root.join("platform/minecraft/src/gametest/java/ca/teamdman/sfm/CaptionPuppet.java");
+        fs::create_dir_all(java_path.parent().expect("source should have a parent"))?;
+        fs::write(
+            &java_path,
+            r#"
+            package ca.teamdman.sfm;
+            import net.minecraft.client.gui.GuiGraphics;
+            final class CaptionPuppet {
+                void capture(GuiGraphics graphics) {
+                    graphics.drawString(null, "caption", 0, 0, 0);
+                }
+            }
+            "#,
+        )?;
+        run_git(root, &["init"])?;
+        run_git(root, &["add", "platform"])?;
+
+        let command = SourceAuditCommand::new(SourceAuditOptions {
+            branch: BranchQuery::parse("*")?,
+            languages: Vec::new(),
+            max_lines: SourceLineLimit(1000),
+            version_surfaces: false,
+            font_render_surface: true,
+        });
+        let target = WorktreeTarget::from_parts(
+            BranchName::from("1.19.2"),
+            WorktreePath::from(root.to_path_buf()),
+        )?;
+
+        let report = command.audit_target(&target)?;
+        assert_eq!(report.problems.len(), 1);
+        let warning = report.problems[0].warning_line();
+        assert!(warning.contains("audit rule violation"));
+        assert!(warning.contains("GuiGraphics drawString"));
+        assert!(warning.contains("CaptionPuppet.java"));
         Ok(())
     }
 

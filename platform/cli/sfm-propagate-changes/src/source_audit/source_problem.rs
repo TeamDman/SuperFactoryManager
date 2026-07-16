@@ -10,6 +10,22 @@ use std::panic::Location;
 enum SourceProblemKind {
     LargeFile { line_limit: SourceLineLimit },
     DirectModEventAnnotation { annotation: &'static str },
+    AuditRule(AuditRuleDiagnostic),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum AuditRuleDiagnostic {
+    Violation {
+        rule: String,
+        forbidden_call: String,
+        caller_context: String,
+    },
+    UnresolvedCall {
+        rule: String,
+        member: String,
+        receiver_expression: String,
+        caller_context: String,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,9 +80,28 @@ impl SourceProblem {
         }
     }
 
+    #[track_caller]
+    #[must_use]
+    pub(crate) fn audit_rule(
+        branch: &str,
+        repo_path: &str,
+        line_count: SourceLineCount,
+        line: usize,
+        column: usize,
+        diagnostic: AuditRuleDiagnostic,
+    ) -> Self {
+        Self {
+            kind: SourceProblemKind::AuditRule(diagnostic),
+            language: SourceLanguage::Java,
+            line_count,
+            detected: DetectedSourceLocation::new(branch, repo_path, line, column),
+            emitted_by: ProblemEmitterLocation::from_caller(Location::caller()),
+        }
+    }
+
     #[must_use]
     pub fn warning_line(&self) -> String {
-        match self.kind {
+        match &self.kind {
             SourceProblemKind::LargeFile { line_limit } => format!(
                 "{} source file too large: lang={} lines={} max={} detected={} emitted-by={}",
                 "WARN".yellow().bold(),
@@ -80,6 +115,29 @@ impl SourceProblem {
                 "{} direct mod event annotation: annotation=@{} replacement=@SFMSubscribeEvent lang={} detected={} emitted-by={}",
                 "WARN".yellow().bold(),
                 annotation,
+                self.language,
+                self.detected,
+                self.emitted_by
+            ),
+            SourceProblemKind::AuditRule(AuditRuleDiagnostic::Violation {
+                rule,
+                forbidden_call,
+                caller_context,
+            }) => format!(
+                "{} audit rule violation: rule={rule:?} callee={forbidden_call:?} caller={caller_context:?} lang={} detected={} emitted-by={}",
+                "WARN".yellow().bold(),
+                self.language,
+                self.detected,
+                self.emitted_by
+            ),
+            SourceProblemKind::AuditRule(AuditRuleDiagnostic::UnresolvedCall {
+                rule,
+                member,
+                receiver_expression,
+                caller_context,
+            }) => format!(
+                "{} unresolved audit rule call: rule={rule:?} member={member} receiver={receiver_expression:?} caller={caller_context:?} lang={} detected={} emitted-by={}",
+                "WARN".yellow().bold(),
                 self.language,
                 self.detected,
                 self.emitted_by
