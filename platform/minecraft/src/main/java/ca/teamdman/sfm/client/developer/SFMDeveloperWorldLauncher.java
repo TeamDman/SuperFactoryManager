@@ -7,16 +7,14 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMDist;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.server.IntegratedServer;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.level.DataPackConfig;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
-import net.minecraft.world.level.levelgen.WorldGenSettings;
-import net.minecraft.world.level.levelgen.presets.WorldPreset;
+import net.minecraft.world.level.WorldDataConfiguration;
+import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraftforge.event.TickEvent;
 
@@ -48,12 +46,6 @@ public final class SFMDeveloperWorldLauncher {
         String worldId = nextWorldId(minecraft);
         pendingWorldCreation = new PendingWorldCreation(worldId, runGameTests);
 
-        RegistryAccess.Frozen registryAccess = RegistryAccess.BUILTIN.get();
-        Registry<WorldPreset> presets = registryAccess.registryOrThrow(Registry.WORLD_PRESET_REGISTRY);
-        WorldGenSettings worldGenSettings = presets
-                .getOrCreateHolderOrThrow(WorldPresets.FLAT)
-                .value()
-                .createWorldGenSettings(0L, false, false);
         LevelSettings levelSettings = new LevelSettings(
                 "SFM Dev: " + worldId,
                 GameType.CREATIVE,
@@ -61,16 +53,21 @@ public final class SFMDeveloperWorldLauncher {
                 Difficulty.HARD,
                 true,
                 createDeveloperGameRules(),
-                DataPackConfig.DEFAULT
+                WorldDataConfiguration.DEFAULT
         );
+        WorldOptions worldOptions = new WorldOptions(0L, false, false);
 
         SFM.LOGGER.info("SFM_DEVELOPER_WORLD_CREATING id={} run_game_tests={}", worldId, runGameTests);
         try {
             minecraft.createWorldOpenFlows().createFreshLevel(
                     worldId,
                     levelSettings,
-                    registryAccess,
-                    worldGenSettings
+                    worldOptions,
+                    registryAccess -> registryAccess
+                            .registryOrThrow(Registries.WORLD_PRESET)
+                            .getHolderOrThrow(WorldPresets.FLAT)
+                            .value()
+                            .createWorldDimensions()
             );
         } catch (RuntimeException exception) {
             pendingWorldCreation = null;
