@@ -8,15 +8,13 @@ import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Matrix4f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.MultipleTestTracker;
 import net.minecraft.network.chat.Component;
@@ -26,15 +24,15 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.level.DataPackConfig;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
-import net.minecraft.world.level.levelgen.WorldGenSettings;
-import net.minecraft.world.level.levelgen.presets.WorldPreset;
+import net.minecraft.world.level.WorldDataConfiguration;
+import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
 
 import java.io.File;
 import java.util.List;
@@ -60,12 +58,6 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 
         if (!active.worldCreationStarted) {
             active.worldCreationStarted = true;
-            RegistryAccess.Frozen registryAccess = RegistryAccess.BUILTIN.get();
-            Registry<WorldPreset> presets = registryAccess.registryOrThrow(Registry.WORLD_PRESET_REGISTRY);
-            WorldGenSettings worldGenSettings = presets
-                    .getOrCreateHolderOrThrow(WorldPresets.FLAT)
-                    .value()
-                    .createWorldGenSettings(0L, false, false);
             LevelSettings levelSettings = new LevelSettings(
                     SFMGamePuppetHarness.WORLD_NAME_PREFIX + active.definition.puppetName(),
                     GameType.CREATIVE,
@@ -73,8 +65,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                     Difficulty.HARD,
                     true,
                     SFMGamePuppetHarness.createWorldGameRules(null),
-                    DataPackConfig.DEFAULT
+                    WorldDataConfiguration.DEFAULT
             );
+            WorldOptions worldOptions = new WorldOptions(0L, false, false);
             SFM.LOGGER.info(
                     "SFM_GAME_PUPPET_CREATING_WORLD puppet={} world={}",
                     active.definition.puppetName(),
@@ -83,8 +76,12 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             minecraft.createWorldOpenFlows().createFreshLevel(
                     active.worldId,
                     levelSettings,
-                    registryAccess,
-                    worldGenSettings
+                    worldOptions,
+                    registryAccess -> registryAccess
+                            .registryOrThrow(Registries.WORLD_PRESET)
+                            .getHolderOrThrow(WorldPresets.FLAT)
+                            .value()
+                            .createWorldDimensions()
             );
             return false;
         }
@@ -346,7 +343,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             PuppetCaptureFigureCaptionLayout captionLayout
     ) {
 
-        Matrix4f originalProjection = RenderSystem.getProjectionMatrix().copy();
+        Matrix4f originalProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
         PoseStack modelView = RenderSystem.getModelViewStack();
         modelView.pushPose();
         try {
@@ -354,14 +351,16 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             RenderSystem.disableDepthTest();
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
-            RenderSystem.setProjectionMatrix(Matrix4f.orthographic(
-                    0F,
-                    (float) (captureTarget.width / captionLayout.guiScale()),
-                    0F,
-                    (float) (captureTarget.height / captionLayout.guiScale()),
-                    1000F,
-                    net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane()
-            ));
+            RenderSystem.setProjectionMatrix(
+                    new Matrix4f().setOrtho(
+                            0F,
+                            (float) (captureTarget.width / captionLayout.guiScale()),
+                            (float) (captureTarget.height / captionLayout.guiScale()),
+                            0F,
+                            1000F,
+                            net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane()
+                    )
+            );
             modelView.setIdentity();
             modelView.translate(0D, 0D, 1000F - net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane());
             RenderSystem.applyModelViewMatrix();
