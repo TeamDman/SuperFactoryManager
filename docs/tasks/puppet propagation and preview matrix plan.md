@@ -629,9 +629,9 @@ found two caption-rendering defects, tracked by 4.4: the 1.20–1.21.1
 ```powershell
 cd platform\cli\sfm-propagate-changes
 cargo test font_render_audit --no-fail-fast
-cargo run -- audit --branch core --font-render-surface
+cargo run -- audit --branch core
 sfm-propagate-changes.exe puppet matrix move_1_stack_direct_walkthrough --branch core --width 1280 --height 720 --parallel <validated-count> --wait-for-build-lock
-cargo run -- audit --branch core --font-render-surface
+cargo run -- audit --branch core
 ```
 
 **Completion criteria:** The pre-refactor audit has recorded the known direct
@@ -662,8 +662,10 @@ declarative policy; Rust implements only its grammar, matching, scoped
 resolution, and diagnostics.
 
 **Audit foundation (2026-07-16):** `platform/minecraft/sfm.audit_rules` now
-declares the Font/GuiGraphics policy and `audit --font-render-surface` loads it
-for every SFM Java source set, including GameTest sources. The Rust resolver
+declares the Font/GuiGraphics policy, which `audit` loads for every SFM Java
+source set, including GameTest sources. This policy is
+enabled by default for `audit`; `--no-font-render-surface` exists only for a
+focused diagnostic run. The Rust resolver
 handles imports, fields, parameters, lexical locals, `var` aliases,
 same-package/static types, and casts; it reports an unresolved receiver
 expression rather than treating incomplete source knowledge as permission.
