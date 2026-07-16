@@ -545,9 +545,70 @@ artifact set for each of 1.19.2, 1.19.4, 1.20, 1.20.1, 1.20.2, 1.20.3,
 
 Human review inspected the ordinary overview/manager flow plus the 1.20.4
 manager and 26.1.2 source-barrel figures. The screenshots show the expected
-screens, captions, Figure numbering, and post-transfer inventory state.
-Renderer and UI variation remains evidence for human review, not a
-cross-version snapshot-hash failure.
+screens, Figure numbering, and post-transfer inventory state. Follow-up review
+found two caption-rendering defects, tracked by 4.4: the 1.20–1.21.1
+`GuiGraphics.drawString` default overload adds an unwanted shadow, while the
+26.1.2 bitmap compositor advances an empty space glyph by only one pixel.
+
+### [ ] 4.4 Contain caption font behavior and prove the renderer seam
+
+**Work:**
+
+- Make `SFMFontUtils` the sole home for version-specific text drawing and
+  caption-font metric behavior. Puppet screenshot code may request a caption
+  render, but must not select a Minecraft text-rendering overload or implement
+  a version-specific glyph advance itself.
+- Extend the Rust `audit` command's Java analysis to warn on direct text draw
+  calls outside `SFMFontUtils`: `Font.draw*` calls and `GuiGraphics` text calls
+  such as `drawString` (including their version-specific successors). Detect
+  receiver types through imports/qualified names and declared local, field, and
+  parameter types; do not flag unrelated `GuiGraphics` primitives such as
+  `fill` or `blit`.
+- Add focused Rust fixtures for imported and fully-qualified receiver types,
+  static/instance call forms, allowed calls inside `SFMFontUtils`, and false
+  positives that must remain silent. Audit output must identify branch, path,
+  line, receiver type, and invoked method.
+- Run the audit before the refactor and retain its warnings as the expected
+  failing baseline. It must report the direct legacy `Font.draw` caption path
+  and the 1.20–1.21.1 direct `GuiGraphics.drawString` paths.
+- Move the pre-26.1.2 `FormattedCharSequence` caption draw seam into
+  `SFMFontUtils`, passing `shadow=false` explicitly. This removes the shadow
+  introduced by the five-argument `GuiGraphics.drawString` overload, whose
+  default is `true`.
+- Move the 26.1.2 raw-image bitmap caption rasterizer and its advances into the
+  26.1.2 `SFMFontUtils` seam. Use the same effective font metrics as the
+  wrapped caption layout, including the real blank-space advance; do not infer
+  a space width from opaque pixels. The current empty-glyph fallback of one
+  pixel is the cause of compressed word spacing.
+- Propagate the common baseline change normally, retaining each version's
+  narrow `@MCVersionDependentBehaviour` implementation. Do not use raw Git or
+  direct Gradle for verification.
+
+**Validation:**
+
+```powershell
+cd platform\cli\sfm-propagate-changes
+cargo test font_render_audit --no-fail-fast
+cargo run -- audit --branch core --font-render-surface
+sfm-propagate-changes.exe puppet matrix move_1_stack_direct_walkthrough --branch core --width 1280 --height 720 --parallel <validated-count> --wait-for-build-lock
+cargo run -- audit --branch core --font-render-surface
+```
+
+**Completion criteria:** The pre-refactor audit has recorded the known direct
+calls; the post-refactor audit emits no disallowed `Font`/`GuiGraphics` text
+draw warnings on normal branches; the caption implementation has no
+version-specific font behavior outside `SFMFontUtils`; and refreshed previews
+visually confirm unshadowed legacy captions and correctly spaced 26.1.2 text.
+
+**Known defect baseline (2026-07-16):** `SFMFontUtils` already forwards its
+explicit `shadow` parameter correctly. The defects occur because the caption
+renderers bypass it. 1.19.2/1.19.4 call `Font.draw` directly; 1.20–1.21.1
+construct `GuiGraphics` directly and select the no-boolean `drawString`
+overload, which defaults to shadowed text; and 26.1.2 directly scans
+`ascii.png`, returning an advance of one for every empty glyph, including a
+space. The audit must deliberately show the first two categories before the
+refactor; the 26.1.2 compositor requires the separate ownership review above
+because it does not invoke `Font` or `GuiGraphics` directly.
 
 ## Phase 5 — Close the release contract and prepare metadata
 
@@ -965,6 +1026,8 @@ the other targets.
   blocked with discovery/compile/preview evidence.
 - [x] A reviewed Move 1 Stack matrix exists for every eligible target at a
   validated safe concurrency.
+- [ ] Caption text rendering is centrally owned by `SFMFontUtils`, guarded by
+  the font-render audit, and visually revalidated on the affected branches.
 - [ ] Release scope, target support, final version, changelog, known issues,
   credits, issue/milestone status, and the CC compatibility statement have
   been deliberately approved and propagated.
