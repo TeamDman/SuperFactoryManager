@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.developer;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMEventBus;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMDist;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.server.IntegratedServer;
@@ -36,6 +37,7 @@ public final class SFMDeveloperWorldLauncher {
     private SFMDeveloperWorldLauncher() {
     }
 
+    @MCVersionDependentBehaviour
     public static void createDeveloperWorld(boolean runGameTests) {
         if (pendingWorldCreation != null) {
             SFM.LOGGER.warn("SFM developer world creation is already pending: {}", pendingWorldCreation.worldId());
@@ -76,6 +78,7 @@ public final class SFMDeveloperWorldLauncher {
         }
     }
 
+    @MCVersionDependentBehaviour
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END || pendingWorldCreation == null) {
