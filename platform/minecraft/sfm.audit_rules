@@ -11,6 +11,7 @@ DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *
 # static call surface. The Java resolver resolves the declared Screen superclass for implicit,
 # this, and super calls, so these are definite seam violations rather than unresolved guesses.
 DENY CALL net.minecraft.client.gui.screens.Screen drawString *
+DENY CALL net.minecraft.client.gui.screens.Screen drawCenteredString *
 
 # This is a caller-context permit, not a callee exception.  It makes SFMFontUtils the only seam
 # allowed to make the denied Minecraft rendering calls.
