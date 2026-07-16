@@ -230,11 +230,12 @@ fn unbounded_java_changes(
             .as_deref()
             .map(annotated_regions)
             .unwrap_or_default();
-        for hunk in java_diff_hunks(
-            baseline_source.as_deref().unwrap_or_default(),
-            target_source.as_deref().unwrap_or_default(),
-        ) {
-            if !hunk_is_annotation_bounded(hunk, &baseline_regions, &target_regions) {
+        let baseline_source = baseline_source.as_deref().unwrap_or_default();
+        let target_source = target_source.as_deref().unwrap_or_default();
+        for hunk in java_diff_hunks(baseline_source, target_source) {
+            if !hunk_is_java_preamble_only(hunk, baseline_source, target_source)
+                && !hunk_is_annotation_bounded(hunk, &baseline_regions, &target_regions)
+            {
                 changes.push(UnboundedJavaChange {
                     path: path.clone(),
                     base_range: hunk.base_range,
@@ -401,6 +402,22 @@ fn changed_line_range(start: usize, count: usize) -> ChangedLineRange {
     }
 }
 
+fn hunk_is_java_preamble_only(hunk: JavaDiffHunk, baseline: &str, target: &str) -> bool {
+    changed_lines(baseline, hunk.base_range)
+        .chain(changed_lines(target, hunk.target_range))
+        .all(|line| {
+            let line = line.trim();
+            line.is_empty() || line.starts_with("package ") || line.starts_with("import ")
+        })
+}
+
+fn changed_lines(source: &str, range: ChangedLineRange) -> impl Iterator<Item = &str> {
+    source
+        .lines()
+        .skip(range.start.saturating_sub(1))
+        .take(range.count)
+}
+
 #[derive(Clone, Copy, Debug)]
 struct JavaDiffHunk {
     base_range: ChangedLineRange,
@@ -473,6 +490,7 @@ mod tests {
     use super::annotated_regions;
     use super::branch_commit_id;
     use super::cli_source_matches_baseline;
+    use super::hunk_is_java_preamble_only;
     use super::java_diff_hunks;
     use super::later_branch_cli_commits;
     use super::unbounded_java_changes;
@@ -505,6 +523,17 @@ mod tests {
             annotated_regions(source),
             [AnnotatedRegion { start: 3, end: 6 }]
         );
+    }
+
+    #[test]
+    fn ignores_java_import_only_hunks() {
+        let baseline = "package example;\n\nimport example.OldApi;\n\nclass Example {}\n";
+        let target = "package example;\n\nimport example.NewApi;\n\nclass Example {}\n";
+        let hunk = java_diff_hunks(baseline, target)
+            .into_iter()
+            .next()
+            .expect("import hunk");
+        assert!(hunk_is_java_preamble_only(hunk, baseline, target));
     }
 
     #[test]
