@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.gametest.SFMGameTest;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestHelper;
@@ -59,7 +60,7 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
 
         ItemStack blankGun = new ItemStack(SFMItems.LABEL_GUN.get());
-        ITurtleUpgrade upgrade = TurtleUpgrades.instance().get(blankGun);
+        ITurtleUpgrade upgrade = findTurtleUpgrade(blankGun);
         helper.assertTrue(
                 upgrade != null && upgrade.getUpgradeID().equals(new ResourceLocation("sfm", "labeler")),
                 "The blank SFM label gun was not registered as the turtle labeler upgrade"
@@ -155,6 +156,11 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
             );
             helper.succeed();
         });
+    }
+
+    @MCVersionDependentBehaviour
+    private static ITurtleUpgrade findTurtleUpgrade(ItemStack itemStack) {
+        return TurtleUpgrades.instance().get(itemStack);
     }
 
 }
