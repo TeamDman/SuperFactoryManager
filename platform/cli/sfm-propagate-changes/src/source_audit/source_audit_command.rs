@@ -126,13 +126,11 @@ impl SourceAuditCommand {
             let line_count = SourceLineCount::from_text(&content);
             report.push_file(AuditedSourceFile::new(&repo_path, language, line_count));
 
-            if self.options.max_lines.is_exceeded_by(line_count) {
+            if let Some(max_lines) = self.options.max_lines
+                && max_lines.is_exceeded_by(line_count)
+            {
                 report.push_problem(SourceProblem::large_file(
-                    branch,
-                    &repo_path,
-                    language,
-                    line_count,
-                    self.options.max_lines,
+                    branch, &repo_path, language, line_count, max_lines,
                 ));
             }
 
@@ -309,7 +307,7 @@ mod tests {
         let command = SourceAuditCommand::new(SourceAuditOptions {
             branch: BranchQuery::parse("*")?,
             languages: Vec::new(),
-            max_lines: SourceLineLimit(1),
+            max_lines: Some(SourceLineLimit(1)),
             version_surfaces: false,
             font_render_surface: false,
         });
@@ -342,7 +340,7 @@ mod tests {
         let command = SourceAuditCommand::new(SourceAuditOptions {
             branch: BranchQuery::parse("*")?,
             languages: Vec::new(),
-            max_lines: SourceLineLimit(1),
+            max_lines: None,
             version_surfaces: false,
             font_render_surface: false,
         });
@@ -353,6 +351,45 @@ mod tests {
 
         let report = command.audit_target(&target)?;
         assert!(report.audited_files.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn source_size_warnings_require_an_explicit_max_lines_option() -> eyre::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let root = temp.path();
+        fs::write(root.join("tracked.rs"), "fn first() {}\nfn second() {}\n")?;
+        run_git(root, &["init"])?;
+        run_git(root, &["add", "tracked.rs"])?;
+        let target = WorktreeTarget::from_parts(
+            BranchName::from("1.19.2"),
+            WorktreePath::from(root.to_path_buf()),
+        )?;
+
+        let no_limit_report = SourceAuditCommand::new(SourceAuditOptions {
+            branch: BranchQuery::parse("*")?,
+            languages: Vec::new(),
+            max_lines: None,
+            version_surfaces: false,
+            font_render_surface: false,
+        })
+        .audit_target(&target)?;
+        assert!(no_limit_report.problems.is_empty());
+
+        let limited_report = SourceAuditCommand::new(SourceAuditOptions {
+            branch: BranchQuery::parse("*")?,
+            languages: Vec::new(),
+            max_lines: Some(SourceLineLimit(1)),
+            version_surfaces: false,
+            font_render_surface: false,
+        })
+        .audit_target(&target)?;
+        assert_eq!(limited_report.problems.len(), 1);
+        assert!(
+            limited_report.problems[0]
+                .warning_line()
+                .contains("source file too large")
+        );
         Ok(())
     }
 
@@ -390,7 +427,7 @@ mod tests {
         let command = SourceAuditCommand::new(SourceAuditOptions {
             branch: BranchQuery::parse("*")?,
             languages: Vec::new(),
-            max_lines: SourceLineLimit(1000),
+            max_lines: None,
             version_surfaces: false,
             font_render_surface: false,
         });
@@ -455,7 +492,7 @@ mod tests {
         let command = SourceAuditCommand::new(SourceAuditOptions {
             branch: BranchQuery::parse("*")?,
             languages: Vec::new(),
-            max_lines: SourceLineLimit(1000),
+            max_lines: None,
             version_surfaces: false,
             font_render_surface: true,
         });

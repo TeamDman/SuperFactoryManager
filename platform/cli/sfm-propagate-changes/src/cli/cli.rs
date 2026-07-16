@@ -44,7 +44,7 @@ impl Cli {
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum Command {
-    /// Audit tracked Rust and Java source file sizes.
+    /// Audit tracked Rust and Java source policy violations.
     Audit(super::audit::AuditArgs),
     /// Run arbitrary gradle task(s) for each worktree in strict sequence
     Gradle(super::gradle::GradleArgs),
@@ -175,7 +175,7 @@ mod tests {
         assert_eq!(args.branch.as_ref(), "*");
         assert!(args.language.is_empty());
         assert!(args.lang.is_empty());
-        assert_eq!(args.max_lines.0, 1000);
+        assert_eq!(args.max_lines, None);
         assert!(args.font_render_surface);
     }
 
@@ -202,7 +202,7 @@ mod tests {
         assert_eq!(args.branch.as_ref(), ">=1.19.2");
         assert_eq!(args.language, vec![SourceLanguage::Rust]);
         assert_eq!(args.lang, vec![SourceLanguage::Java]);
-        assert_eq!(args.max_lines.0, 1200);
+        assert_eq!(args.max_lines.map(|limit| limit.0), Some(1200));
         assert!(!args.font_render_surface);
     }
 
