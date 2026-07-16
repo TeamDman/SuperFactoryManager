@@ -38,6 +38,13 @@ const KEEP_OURS_PATH_PATTERNS: &[&str] = &[
     "docs/AGENTS.md",
 ];
 
+/// The only generated untracked cache tolerated by propagation preflight.
+///
+/// `--untracked-files=normal` reports the complete cache as this one porcelain
+/// directory entry. The tracked grammar remains outside this directory.
+const IGNORED_ANTLR_CACHE_PORCELAIN_ENTRY: &str =
+    "?? platform/minecraft/src/main/antlr/sfml/.antlr/";
+
 #[derive(Debug)]
 struct DirtyWorktree {
     path: PathBuf,
@@ -50,7 +57,7 @@ fn check_uncommitted_changes(worktrees: &[Worktree]) -> eyre::Result<Vec<DirtyWo
 
     for wt in worktrees {
         let output = Command::new("git")
-            .args(["status", "--porcelain"])
+            .args(["status", "--porcelain=v1", "--untracked-files=normal"])
             .current_dir(&wt.path)
             .output()
             .wrap_err_with(|| format!("Failed to check status in {}", wt.path.display()))?;
@@ -68,6 +75,7 @@ fn check_uncommitted_changes(worktrees: &[Worktree]) -> eyre::Result<Vec<DirtyWo
             .lines()
             .map(str::trim_end)
             .filter(|line| !line.is_empty())
+            .filter(|line| !is_ignored_generated_cache_entry(line))
             .map(String::from)
             .collect();
 
@@ -80,6 +88,10 @@ fn check_uncommitted_changes(worktrees: &[Worktree]) -> eyre::Result<Vec<DirtyWo
     }
 
     Ok(dirty)
+}
+
+fn is_ignored_generated_cache_entry(change: &str) -> bool {
+    change == IGNORED_ANTLR_CACHE_PORCELAIN_ENTRY
 }
 
 /// Check if there are merge conflicts in a worktree
@@ -806,4 +818,25 @@ fn run_idle_state(
 
     info!("All merges completed successfully!");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_ignored_generated_cache_entry;
+
+    #[test]
+    fn propagation_preflight_only_ignores_the_exact_antlr_cache_directory() {
+        assert!(is_ignored_generated_cache_entry(
+            "?? platform/minecraft/src/main/antlr/sfml/.antlr/"
+        ));
+        assert!(!is_ignored_generated_cache_entry(
+            "?? platform/minecraft/src/main/antlr/sfml/SFML.g4"
+        ));
+        assert!(!is_ignored_generated_cache_entry(
+            "?? platform/minecraft/src/main/antlr/sfml/.antlr/SFMLParser.java"
+        ));
+        assert!(!is_ignored_generated_cache_entry(
+            " M platform/minecraft/src/main/antlr/sfml/.antlr/SFMLParser.java"
+        ));
+    }
 }

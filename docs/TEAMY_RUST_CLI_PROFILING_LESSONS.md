@@ -18,8 +18,8 @@ This note records lessons from adding Tracy profiling to `sfm-propagate-changes`
 
 ## SFM-Specific Choices Worth Generalizing
 
-- The default profiled command is non-interactive: `run game-test-server --branch 1.19.2`.
-- The wrapper accepts arbitrary remaining CLI arguments, so users can profile `run client-smoke`, `run client-puppet`, `jar build`, or `jar plan` without script edits.
+- The default profiled command is non-interactive: `game-test run-server --branch 1.19.2`.
+- The wrapper accepts arbitrary remaining CLI arguments, so users can profile `run client --smoke`, `game-test run-client`, `puppet run <selector>`, `jar build`, or `jar plan` without script edits.
 - Coarse spans are always compiled in because they are useful for regular diagnostics too.
 - Repeated or potentially high-volume spans are behind `tracing_detailed`.
 - Cache decisions are emitted as events (`artifact cache hit`, `dependency_deobf cache miss`, `run_setup_complete`) so they are easy to find in Tracy messages and CSV exports.
