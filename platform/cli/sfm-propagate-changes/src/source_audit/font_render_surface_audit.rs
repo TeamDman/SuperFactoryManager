@@ -142,9 +142,16 @@ pub(crate) fn audit_java_font_render_surface(
         .parse(source, None)
         .ok_or_else(|| eyre::eyre!("Arborium did not produce a parse tree for {repo_path}"))?;
     if tree.root_node().has_error() {
-        return Err(eyre::eyre!(
-            "Arborium could not parse Java source {repo_path}; refusing to silently skip audit rules"
+        let error_node = first_error_node(tree.root_node()).unwrap_or(tree.root_node());
+        report.push_problem(SourceProblem::audit_rule(
+            branch,
+            repo_path,
+            line_count,
+            error_node.start_position().row + 1,
+            error_node.start_position().column + 1,
+            AuditRuleDiagnostic::ParseFailure { parser: "Arborium" },
         ));
+        return Ok(());
     }
 
     let package_name = find_package_name(tree.root_node(), source).unwrap_or_default();
@@ -689,6 +696,14 @@ fn first_named_child(node: Node<'_>) -> Option<Node<'_>> {
     node.named_children(&mut cursor).next()
 }
 
+fn first_error_node(node: Node<'_>) -> Option<Node<'_>> {
+    if node.kind() == "ERROR" || node.is_missing() {
+        return Some(node);
+    }
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor).find_map(first_error_node)
+}
+
 fn qualify_java_name(package_name: &str, simple_name: &str) -> String {
     if package_name.is_empty() {
         simple_name.to_string()
@@ -948,5 +963,13 @@ mod tests {
         );
         assert_eq!(warnings.len(), 1);
         assert!(warnings[0].contains("example.StringView <init> (II)"));
+    }
+
+    #[test]
+    fn reports_an_arborium_parse_gap_without_aborting_the_audit() {
+        let warnings = audit("package example; final class Example {");
+        assert_eq!(warnings.len(), 1);
+        assert!(warnings[0].contains("audit rule parse failure"));
+        assert!(warnings[0].contains("parser=Arborium"));
     }
 }
