@@ -672,7 +672,15 @@ and static types, shadowing, aliases, unrelated same-named methods, and
 GameTest scanning. The initial 1.19.2 audit reports 26 expected direct or
 unresolved renderer calls, including the known caption bypass at
 `SFMGamePuppetMinecraftRuntime.java:372` (`minecraft.font.draw`). Caption
-refactoring and cross-version propagation remain pending in this phase.
+refactoring remained pending while the audit foundation was propagated.
+The post-propagation `--branch core` pre-refactor audit reports 263 warnings:
+it records the legacy caption calls on 1.19.2/1.19.4 and resolved
+`GuiGraphics.drawString` caption violations on 1.20 through 1.21.1. Arborium
+also reports two visible parse gaps instead of aborting the audit—CC:Tweaked's
+1.21.0 `ComputerCraftLuaNetworkPeripheralGameTest.java:148` and 26.1.2's
+`TestBarrelTankContainerMenu.java:70`. The renderer refactor must leave no
+direct-renderer findings; future parser work must either support those syntax
+forms or retain explicit coverage evidence for the skipped files.
 
 ## Phase 5 — Close the release contract and prepare metadata
 
