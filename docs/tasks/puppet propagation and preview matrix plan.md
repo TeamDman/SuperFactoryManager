@@ -675,7 +675,7 @@ GameTest scanning. The initial 1.19.2 audit reports 26 expected direct or
 unresolved renderer calls, including the known caption bypass at
 `SFMGamePuppetMinecraftRuntime.java:372` (`minecraft.font.draw`). Caption
 refactoring remained pending while the audit foundation was propagated.
-The post-propagation `--branch core` pre-refactor audit reports 263 warnings:
+The post-propagation `--branch core` pre-refactor audit initially reported 263 warnings:
 it records the legacy caption calls on 1.19.2/1.19.4 and resolved
 `GuiGraphics.drawString` caption violations on 1.20 through 1.21.1. Arborium
 also reports two visible parse gaps instead of aborting the audit—CC:Tweaked's
@@ -686,6 +686,22 @@ skip any recoverable denied call in that source file. The final fixture set
 also proves fully-qualified owners, source-declared qualified fields,
 shadowing, exact-descriptor versus wildcard matching, and permit precedence.
 The renderer refactor must leave no direct-renderer findings.
+
+**Inherited screen-call resolution (2026-07-16):** The initial lexical
+resolver treated unqualified `drawString(...)` calls in `Screen` subclasses
+as an unresolved receiver. That was not an acceptable diagnostic: in 1.19.x
+the inherited `GuiComponent.drawString` surface calls `Font.drawShadow`, so it
+is a real bypass of the `SFMFontUtils` seam. The shared policy now denies the
+declared `net.minecraft.client.gui.screens.Screen drawString` surface. The
+resolver captures each SFM class's declared superclass and its direct method
+signatures, then resolves unqualified, `this.`, and `super.` calls to that
+superclass when no compatible local method hides the name. It emits a definite
+violation with a wildcard descriptor when overload details are unnecessary to
+the rule, rather than labelling the call unresolved. Focused fixtures cover
+all three receiver forms and prevent a local same-named helper from being
+misclassified. The audit therefore identifies both the input-diagnostics and
+draw-canvas legacy screen helpers as remediation work, without claiming a
+general Java type solver.
 
 ## Phase 5 — Close the release contract and prepare metadata
 

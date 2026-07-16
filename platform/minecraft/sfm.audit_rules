@@ -7,6 +7,10 @@ DENY CALL net.minecraft.client.gui.Font drawShadow *
 DENY CALL net.minecraft.client.gui.Font drawInBatch *
 DENY CALL net.minecraft.client.gui.GuiGraphics drawString *
 DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *
+# In 1.19.x, Screen exposes GuiComponent's shadowed Font.draw helpers through an inherited
+# static call surface. The Java resolver resolves the declared Screen superclass for implicit,
+# this, and super calls, so these are definite seam violations rather than unresolved guesses.
+DENY CALL net.minecraft.client.gui.screens.Screen drawString *
 
 # This is a caller-context permit, not a callee exception.  It makes SFMFontUtils the only seam
 # allowed to make the denied Minecraft rendering calls.
