@@ -21,9 +21,9 @@ pub struct AuditArgs {
     #[facet(default, args::named)]
     pub lang: Vec<SourceLanguage>,
 
-    /// Warn when a tracked source file has more than this many lines.
-    #[facet(default, args::named)]
-    pub max_lines: SourceLineLimit,
+    /// Opt in to source-size warnings by setting the maximum permitted line count.
+    #[facet(args::named)]
+    pub max_lines: Option<SourceLineLimit>,
 
     /// Compare selected version branches with 1.19.2 and warn about CLI or unbounded Java changes.
     #[facet(default = false, args::named)]
