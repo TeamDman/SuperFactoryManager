@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.common.facade;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.block.CableBlock;
+import ca.teamdman.sfm.common.block.FancyCableBlock;
 import ca.teamdman.sfm.common.block.IFacadableBlock;
 import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
@@ -13,8 +15,6 @@ import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
-
-import static ca.teamdman.sfm.common.facade.FacadeTransparency.FACADE_TRANSPARENCY_PROPERTY;
 
 public record ChangeWorldBlockFacadePlan(
         IFacadableBlock worldBlock,
@@ -41,25 +41,27 @@ public record ChangeWorldBlockFacadePlan(
                 // this position already has a facade
 
                 // get the old state
-                BlockState oldState = level.getBlockState(pos);
                 FacadeData oldFacadeData = oldFacadeBlockEntity.getFacadeData();
 
                 // if the old state is valid, we can set the new world block and restore the facade
-                if (oldFacadeData != null && oldState.hasProperty(FACADE_TRANSPARENCY_PROPERTY)) {
+                if (oldFacadeData != null) {
+                    BlockState facadeBlockState = oldFacadeData.facadeBlockState();
+
+                    BlockState nextBlockState = this.worldBlock()
+                            .getFacadeBlock()
+                            .getStateForPlacementByFacadePlan(level, pos)
+                            .setValue(LightBlock.LEVEL, facadeBlockState.getLightEmission(level, pos));
+
+
+                    if (
+                            nextBlockState.getBlock() instanceof CableBlock && !(nextBlockState.getBlock() instanceof FancyCableBlock)
+                    ) {
+                        nextBlockState = nextBlockState.setValue(FacadeProperties.SOLID, facadeBlockState.isSolidRender());
+                    }
+
                     level.setBlock(
                             pos,
-                            this
-                                    .worldBlock()
-                                    .getFacadeBlock()
-                                    .getStateForPlacementByFacadePlan(level, pos)
-                                    .setValue(
-                                            FACADE_TRANSPARENCY_PROPERTY,
-                                            oldState.getValue(FACADE_TRANSPARENCY_PROPERTY)
-                                    )
-                                    .setValue(
-                                            LightBlock.LEVEL,
-                                            oldState.getValue(LightBlock.LEVEL)
-                                    ),
+                            nextBlockState,
                             Block.UPDATE_IMMEDIATE | Block.UPDATE_CLIENTS
                     );
                     BlockEntity blockEntity = level.getBlockEntity(pos);

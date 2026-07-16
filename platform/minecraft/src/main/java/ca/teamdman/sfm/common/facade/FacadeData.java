@@ -1,6 +1,9 @@
 package ca.teamdman.sfm.common.facade;
 
+import ca.teamdman.sfm.common.blockentity.IFacadeBlockEntity;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
@@ -32,6 +35,20 @@ public record FacadeData(
             return new FacadeData(facadeState, facadeDirection, facadeTextureMode);
         }
         return null;
+    }
+
+    public static BlockState resolveAppearance(
+            BlockGetter level,
+            BlockPos pos,
+            BlockState actualState
+    ) {
+        if (level.getBlockEntity(pos) instanceof IFacadeBlockEntity facadeBlockEntity) {
+            FacadeData data = facadeBlockEntity.getFacadeData();
+            if (data != null) {
+                return data.facadeBlockState();
+            }
+        }
+        return actualState;
     }
 
     /**

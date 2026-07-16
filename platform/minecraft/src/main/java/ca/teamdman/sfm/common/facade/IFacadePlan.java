@@ -7,6 +7,8 @@ import org.jetbrains.annotations.Nullable;
 
 public interface IFacadePlan {
     void apply(Level level);
+
     BlockPosSet positions();
+
     @Nullable ConfirmationParams computeWarning(Level level);
 }

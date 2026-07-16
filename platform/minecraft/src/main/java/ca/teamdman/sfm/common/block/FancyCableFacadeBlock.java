@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.common.block;
 
-import ca.teamdman.sfm.common.facade.FacadeTransparency;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -14,14 +13,15 @@ import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.neoforged.neoforge.common.extensions.IBlockStateExtension;
 import org.jetbrains.annotations.Nullable;
 
 public class FancyCableFacadeBlock extends FancyCableBlock implements EntityBlock, IFacadableBlock {
     public FancyCableFacadeBlock(Properties properties) {
         super(properties.lightLevel(LightBlock.LIGHT_EMISSION));
         registerDefaultState(
-                defaultBlockState()
-                        .setValue(FacadeTransparency.FACADE_TRANSPARENCY_PROPERTY, FacadeTransparency.TRANSLUCENT)
+                getStateDefinition()
+                        .any()
                         .setValue(LightBlock.LEVEL, 0)
         );
     }
