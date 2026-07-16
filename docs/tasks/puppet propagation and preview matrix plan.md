@@ -551,7 +551,7 @@ cross-version snapshot-hash failure.
 
 ## Phase 5 — Close the release contract and prepare metadata
 
-### [ ] 5.1 Decide the release scope, version, and support statement
+### [~] 5.1 Decide the release scope, version, and support statement
 
 **Work:**
 
@@ -583,6 +583,22 @@ sfm-propagate-changes.exe git status
 **Completion criteria:** The maintainer has approved one final version and a
 written release scope. Every player-facing entry is backed by committed code
 and evidence; developer-only puppet work is listed only as release evidence.
+
+**Progress notes (2026-07-16):** The release candidate is prepared as
+`4.35.0`, while `gradle.properties` deliberately remains at `4.34.0` until
+scope is frozen. The prepared user-facing scope is the documented CC:Tweaked
+surface (mutable disk/label-gun handles, cable-network peripherals, structured
+item details, turtle inventory support, and the `sfm_labeler` upgrade) plus
+the committed draw-canvas improvements listed in the prepared changelog.
+
+The three developer-only puppet entries were removed from the 4.35 changelog:
+persistent developer-world menu actions, captioned preview captures, and
+cursor behavior. They remain release evidence, not player-facing release
+notes. The candidate support table is ordinary SFM on all ten normal targets,
+with the CC:Tweaked surface packaged only on 1.19.2, 1.19.4, 1.20, 1.20.1,
+1.20.4, and 1.21.1. The scope, final version, and issue/milestone disposition
+still require explicit maintainer approval before the version bump and later
+release steps.
 
 ### [ ] 5.2 Update player-facing release metadata and propagate it
 
