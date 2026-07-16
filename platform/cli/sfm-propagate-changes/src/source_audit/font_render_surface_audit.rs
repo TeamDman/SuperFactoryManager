@@ -151,7 +151,6 @@ pub(crate) fn audit_java_font_render_surface(
             error_node.start_position().column + 1,
             AuditRuleDiagnostic::ParseFailure { parser: "Arborium" },
         ));
-        return Ok(());
     }
 
     let package_name = find_package_name(tree.root_node(), source).unwrap_or_default();
@@ -166,6 +165,7 @@ pub(crate) fn audit_java_font_render_surface(
         package_name,
         imports,
         classes: Vec::new(),
+        known_class_fields: BTreeMap::new(),
         callers: Vec::new(),
         scopes: Vec::new(),
     };
@@ -183,6 +183,7 @@ struct JavaAuditVisitor<'a> {
     package_name: String,
     imports: JavaImports,
     classes: Vec<ClassContext>,
+    known_class_fields: BTreeMap<String, BTreeMap<String, String>>,
     callers: Vec<Caller>,
     scopes: Vec<BTreeMap<String, String>>,
 }
@@ -229,6 +230,8 @@ impl JavaAuditVisitor<'_> {
             |parent| format!("{}${simple_name}", parent.owner),
         );
         let fields = self.collect_fields(node);
+        self.known_class_fields
+            .insert(owner.clone(), fields.clone());
         self.classes.push(ClassContext { owner, fields });
         self.visit_children(node);
         let _ = self.classes.pop();
@@ -300,7 +303,13 @@ impl JavaAuditVisitor<'_> {
         }
         let descriptor = self.invocation_descriptor(node);
         let object = node.child_by_field_name("object");
-        let receiver = object.and_then(|object| self.resolve_expression_type(object));
+        let receiver = object
+            .and_then(|object| self.resolve_expression_type(object))
+            .or_else(|| {
+                object
+                    .and_then(|object| node_text(object, self.source))
+                    .and_then(|name| self.resolve_policy_owner(name))
+            });
         let receiver_expression = object
             .and_then(|object| node_text(object, self.source))
             .unwrap_or("<implicit-receiver>");
@@ -520,23 +529,17 @@ impl JavaAuditVisitor<'_> {
                         .last()
                         .and_then(|class| class.fields.get(field).cloned())
                 } else {
-                    None
+                    self.resolve_expression_type(object)
+                        .and_then(|object_type| {
+                            self.known_class_fields
+                                .get(&object_type)
+                                .and_then(|fields| fields.get(field).cloned())
+                        })
                 }
             }
-            "scoped_identifier" => node_text(node, self.source).and_then(|name| {
-                self.rules
-                    .deny_calls
-                    .iter()
-                    .map(|rule| rule.owner.as_str())
-                    .chain(
-                        self.rules
-                            .permitted_callers
-                            .iter()
-                            .map(|rule| rule.owner.as_str()),
-                    )
-                    .any(|owner| owner == name)
-                    .then(|| name.to_string())
-            }),
+            "scoped_identifier" => {
+                node_text(node, self.source).and_then(|name| self.resolve_policy_owner(name))
+            }
             "cast_expression" => node
                 .child_by_field_name("type")
                 .and_then(|type_node| node_text(type_node, self.source))
@@ -614,6 +617,21 @@ impl JavaAuditVisitor<'_> {
             }
         }
         (!self.package_name.is_empty()).then(|| format!("{}.{}", self.package_name, simple_name))
+    }
+
+    fn resolve_policy_owner(&self, name: &str) -> Option<String> {
+        self.rules
+            .deny_calls
+            .iter()
+            .map(|rule| rule.owner.as_str())
+            .chain(
+                self.rules
+                    .permitted_callers
+                    .iter()
+                    .map(|rule| rule.owner.as_str()),
+            )
+            .any(|owner| owner == name)
+            .then(|| name.to_string())
     }
 
     fn visit_children(&mut self, node: Node<'_>) {
@@ -806,6 +824,7 @@ fn format_caller(caller: &Caller) -> String {
 #[cfg(test)]
 mod tests {
     use super::AuditRules;
+    use super::Caller;
     use super::audit_java_font_render_surface;
     use crate::source_audit::BranchSourceAuditReport;
     use crate::source_audit::SourceLineCount;
@@ -846,6 +865,42 @@ mod tests {
     }
 
     #[test]
+    fn descriptors_and_permits_match_exact_rules_before_wildcards() {
+        let rules = AuditRules::parse(
+            r"
+            DENY CALL example.Font draw (I)V
+            DENY CALL example.Font draw *
+            PERMIT CALLER example.Trusted render (I)V
+            ",
+        )
+        .expect("rules should parse");
+        assert_eq!(
+            rules
+                .denied_rule("example.Font", "draw", Some("(I)"))
+                .expect("exact descriptor should match")
+                .descriptor,
+            "(I)V"
+        );
+        assert_eq!(
+            rules
+                .denied_rule("example.Font", "draw", Some("(J)"))
+                .expect("wildcard descriptor should match")
+                .descriptor,
+            "*"
+        );
+        assert!(rules.is_permitted_caller(&Caller {
+            owner: "example.Trusted".to_string(),
+            member: "render".to_string(),
+            descriptor: Some("(I)V".to_string()),
+        }));
+        assert!(!rules.is_permitted_caller(&Caller {
+            owner: "example.Trusted".to_string(),
+            member: "render".to_string(),
+            descriptor: Some("(J)V".to_string()),
+        }));
+    }
+
+    #[test]
     fn flags_direct_imported_and_var_aliased_font_calls() {
         let warnings = audit(
             r#"
@@ -866,13 +921,63 @@ mod tests {
         assert!(
             warnings
                 .iter()
-                .all(|warning| warning.contains("audit rule violation"))
+                .all(|warning| warning.contains("audit rule violation")),
+            "warnings: {warnings:?}"
         );
         assert!(
             warnings
                 .iter()
                 .all(|warning| warning.contains("net.minecraft.client.gui.Font draw"))
         );
+    }
+
+    #[test]
+    fn resolves_var_aliases_from_parameters_qualified_fields_and_this_fields() {
+        let warnings = audit(
+            r#"
+            package example;
+            import net.minecraft.client.gui.Font;
+            import net.minecraft.client.gui.GuiGraphics;
+            final class Holder {
+                Font font;
+            }
+            final class Example {
+                Font font;
+                void render(GuiGraphics graphics, Holder holder) {
+                    var fromGraphics = graphics;
+                    var fromHolder = holder.font;
+                    var fromThis = this.font;
+                    fromGraphics.drawString(null, "graphics", 0, 0, 0);
+                    fromHolder.draw(null, "holder", 0, 0, 0);
+                    fromThis.draw(null, "this", 0, 0, 0);
+                }
+            }
+            "#,
+        );
+        assert_eq!(warnings.len(), 3);
+        assert!(
+            warnings
+                .iter()
+                .all(|warning| warning.contains("audit rule violation")),
+            "warnings: {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn local_shadowing_prevents_a_field_type_from_leaking_into_the_call() {
+        let warnings = audit(
+            r#"
+            package example;
+            import net.minecraft.client.gui.Font;
+            final class Example {
+                Font target;
+                void render(Other target) {
+                    target.draw(null, "not a font", 0, 0, 0);
+                }
+            }
+            "#,
+        );
+        assert!(warnings.is_empty());
     }
 
     #[test]
@@ -900,8 +1005,12 @@ mod tests {
             package ca.teamdman.sfm.client.screen;
             import net.minecraft.client.gui.Font;
             final class SFMFontUtils {
+                Object minecraft;
                 static void draw(Font font) {
                     font.draw(null, "a", 0, 0, 0);
+                }
+                void drawThroughUnresolvedFieldAccess() {
+                    minecraft.font.draw(null, "b", 0, 0, 0);
                 }
             }
             "#,
@@ -936,16 +1045,18 @@ mod tests {
             final class Example {
                 void render(Object value) {
                     Font.draw(null, "static", 0, 0, 0);
+                    net.minecraft.client.gui.Font.draw(null, "fully qualified", 0, 0, 0);
                     ((Font) value).draw(null, "cast", 0, 0, 0);
                 }
             }
             "#,
         );
-        assert_eq!(warnings.len(), 2);
+        assert_eq!(warnings.len(), 3);
         assert!(
             warnings
                 .iter()
-                .all(|warning| warning.contains("audit rule violation"))
+                .all(|warning| warning.contains("audit rule violation")),
+            "warnings: {warnings:?}"
         );
     }
 
@@ -966,10 +1077,25 @@ mod tests {
     }
 
     #[test]
-    fn reports_an_arborium_parse_gap_without_aborting_the_audit() {
-        let warnings = audit("package example; final class Example {");
-        assert_eq!(warnings.len(), 1);
-        assert!(warnings[0].contains("audit rule parse failure"));
-        assert!(warnings[0].contains("parser=Arborium"));
+    fn reports_an_arborium_parse_gap_without_skipping_matching_calls() {
+        let warnings = audit(
+            r#"
+            package example;
+            import net.minecraft.client.gui.Font;
+            final class Example {
+                void render(Font font) { font.draw(null, "a", 0, 0, 0); }
+            "#,
+        );
+        assert_eq!(warnings.len(), 2);
+        assert!(
+            warnings
+                .iter()
+                .any(|warning| warning.contains("audit rule parse failure"))
+        );
+        assert!(
+            warnings
+                .iter()
+                .any(|warning| warning.contains("audit rule violation"))
+        );
     }
 }

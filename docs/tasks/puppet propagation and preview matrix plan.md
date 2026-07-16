@@ -678,9 +678,12 @@ it records the legacy caption calls on 1.19.2/1.19.4 and resolved
 `GuiGraphics.drawString` caption violations on 1.20 through 1.21.1. Arborium
 also reports two visible parse gaps instead of aborting the audit—CC:Tweaked's
 1.21.0 `ComputerCraftLuaNetworkPeripheralGameTest.java:148` and 26.1.2's
-`TestBarrelTankContainerMenu.java:70`. The renderer refactor must leave no
-direct-renderer findings; future parser work must either support those syntax
-forms or retain explicit coverage evidence for the skipped files.
+`TestBarrelTankContainerMenu.java:70`. The audit retains those warnings but
+continues walking Arborium's recovered AST, so a parse gap cannot silently
+skip any recoverable denied call in that source file. The final fixture set
+also proves fully-qualified owners, source-declared qualified fields,
+shadowing, exact-descriptor versus wildcard matching, and permit precedence.
+The renderer refactor must leave no direct-renderer findings.
 
 ## Phase 5 — Close the release contract and prepare metadata
 
