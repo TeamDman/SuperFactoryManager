@@ -191,7 +191,22 @@ struct JavaAuditVisitor<'a> {
 #[derive(Clone, Debug)]
 struct ClassContext {
     owner: String,
+    superclass: Option<String>,
     fields: BTreeMap<String, String>,
+    declared_members: Vec<DeclaredMember>,
+}
+
+#[derive(Clone, Debug)]
+struct DeclaredMember {
+    name: String,
+    descriptor: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+enum ImplicitReceiverResolution {
+    Resolved(String),
+    KnownNonPolicy,
+    Unresolved,
 }
 
 #[derive(Clone, Debug)]
@@ -230,9 +245,17 @@ impl JavaAuditVisitor<'_> {
             |parent| format!("{}${simple_name}", parent.owner),
         );
         let fields = self.collect_fields(node);
+        let superclass =
+            declaration_superclass(node, self.source).and_then(|name| self.resolve_type_name(name));
+        let declared_members = self.collect_declared_members(node);
         self.known_class_fields
             .insert(owner.clone(), fields.clone());
-        self.classes.push(ClassContext { owner, fields });
+        self.classes.push(ClassContext {
+            owner,
+            superclass,
+            fields,
+            declared_members,
+        });
         self.visit_children(node);
         let _ = self.classes.pop();
     }
@@ -303,13 +326,23 @@ impl JavaAuditVisitor<'_> {
         }
         let descriptor = self.invocation_descriptor(node);
         let object = node.child_by_field_name("object");
-        let receiver = object
-            .and_then(|object| self.resolve_expression_type(object))
-            .or_else(|| {
-                object
-                    .and_then(|object| node_text(object, self.source))
-                    .and_then(|name| self.resolve_policy_owner(name))
-            });
+        let receiver = match object {
+            Some(object) if matches!(object.kind(), "this" | "super") => {
+                match self.resolve_this_call_receiver(member, descriptor.as_deref()) {
+                    ImplicitReceiverResolution::Resolved(owner) => Some(owner),
+                    ImplicitReceiverResolution::KnownNonPolicy => return,
+                    ImplicitReceiverResolution::Unresolved => None,
+                }
+            }
+            Some(object) => self.resolve_expression_type(object).or_else(|| {
+                node_text(object, self.source).and_then(|name| self.resolve_policy_owner(name))
+            }),
+            None => match self.resolve_this_call_receiver(member, descriptor.as_deref()) {
+                ImplicitReceiverResolution::Resolved(owner) => Some(owner),
+                ImplicitReceiverResolution::KnownNonPolicy => return,
+                ImplicitReceiverResolution::Unresolved => None,
+            },
+        };
         let receiver_expression = object
             .and_then(|object| node_text(object, self.source))
             .unwrap_or("<implicit-receiver>");
@@ -375,7 +408,7 @@ impl JavaAuditVisitor<'_> {
                 column,
                 AuditRuleDiagnostic::Violation {
                     rule: format_rule(rule),
-                    forbidden_call: format_call(owner, member, descriptor),
+                    forbidden_call: format_matched_call(owner, member, descriptor, rule),
                     caller_context: format_caller(&caller),
                 },
             ));
@@ -433,6 +466,78 @@ impl JavaAuditVisitor<'_> {
             }
         }
         fields
+    }
+
+    fn collect_declared_members(&self, node: Node<'_>) -> Vec<DeclaredMember> {
+        let Some(body) = node.child_by_field_name("body") else {
+            return Vec::new();
+        };
+        let mut cursor = body.walk();
+        body.named_children(&mut cursor)
+            .filter(|member| {
+                matches!(
+                    member.kind(),
+                    "method_declaration" | "constructor_declaration"
+                )
+            })
+            .map(|member| {
+                let parameters = self.method_parameters(member);
+                DeclaredMember {
+                    name: declaration_name(member, self.source)
+                        .unwrap_or_else(|| "<init>".to_string()),
+                    descriptor: self.method_descriptor(member, &parameters),
+                }
+            })
+            .collect()
+    }
+
+    fn resolve_this_call_receiver(
+        &self,
+        member: &str,
+        descriptor: Option<&str>,
+    ) -> ImplicitReceiverResolution {
+        let Some(class) = self.classes.last() else {
+            return ImplicitReceiverResolution::Unresolved;
+        };
+        let declared_members = class
+            .declared_members
+            .iter()
+            .filter(|candidate| candidate.name == member)
+            .collect::<Vec<_>>();
+        if declared_members.is_empty() {
+            return class.superclass.clone().map_or(
+                ImplicitReceiverResolution::Unresolved,
+                ImplicitReceiverResolution::Resolved,
+            );
+        }
+        let Some(descriptor) = descriptor else {
+            return ImplicitReceiverResolution::Unresolved;
+        };
+        if declared_members.iter().any(|candidate| {
+            candidate
+                .descriptor
+                .as_deref()
+                .is_some_and(|candidate_descriptor| {
+                    descriptor_matches(candidate_descriptor, Some(descriptor))
+                })
+        }) {
+            return self
+                .rules
+                .denied_rule(&class.owner, member, Some(descriptor))
+                .map_or(ImplicitReceiverResolution::KnownNonPolicy, |rule| {
+                    ImplicitReceiverResolution::Resolved(rule.owner.clone())
+                });
+        }
+        if declared_members
+            .iter()
+            .any(|candidate| candidate.descriptor.is_none())
+        {
+            return ImplicitReceiverResolution::Unresolved;
+        }
+        class.superclass.clone().map_or(
+            ImplicitReceiverResolution::Unresolved,
+            ImplicitReceiverResolution::Resolved,
+        )
     }
 
     fn method_parameters(&self, node: Node<'_>) -> BTreeMap<String, String> {
@@ -705,6 +810,16 @@ fn declaration_name(node: Node<'_>, source: &str) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
+fn declaration_superclass<'a>(node: Node<'a>, source: &'a str) -> Option<&'a str> {
+    node.child_by_field_name("superclass")
+        .and_then(|superclass| {
+            superclass
+                .child_by_field_name("type")
+                .or_else(|| first_named_child(superclass))
+        })
+        .and_then(|type_node| node_text(type_node, source))
+}
+
 fn node_text<'a>(node: Node<'_>, source: &'a str) -> Option<&'a str> {
     source.get(node.byte_range())
 }
@@ -802,10 +917,15 @@ fn format_rule(rule: &CallRule) -> String {
     )
 }
 
-fn format_call(owner: &str, member: &str, descriptor: Option<&str>) -> String {
+fn format_matched_call(
+    owner: &str,
+    member: &str,
+    descriptor: Option<&str>,
+    rule: &CallRule,
+) -> String {
     format!(
         "{owner} {member} {}",
-        descriptor.unwrap_or("<unresolved-descriptor>")
+        descriptor.unwrap_or(&rule.descriptor)
     )
 }
 
@@ -832,6 +952,7 @@ mod tests {
     const RULES: &str = r"
         DENY CALL net.minecraft.client.gui.Font draw *
         DENY CALL net.minecraft.client.gui.GuiGraphics drawString *
+        DENY CALL net.minecraft.client.gui.screens.Screen drawString *
         DENY CALL example.StringView <init> (II)V
         PERMIT CALLER ca.teamdman.sfm.client.screen.SFMFontUtils * *
     ";
@@ -996,6 +1117,43 @@ mod tests {
         );
         assert_eq!(warnings.len(), 1);
         assert!(warnings[0].contains("GuiGraphics drawString"));
+    }
+
+    #[test]
+    fn resolves_implicit_screen_text_calls_as_definite_violations() {
+        let warnings = audit(
+            r#"
+            package example;
+            import net.minecraft.client.gui.screens.Screen;
+            final class Example extends Screen {
+                void render() {
+                    drawString(null, null, "caption", 0, 0, 0);
+                    this.drawString(null, null, "caption", 0, 0, 0);
+                    super.drawString(null, null, "caption", 0, 0, 0);
+                }
+            }
+            "#,
+        );
+        assert_eq!(warnings.len(), 3, "warnings: {warnings:?}");
+        assert!(warnings.iter().all(|warning| {
+            warning.contains("audit rule violation")
+                && warning.contains("net.minecraft.client.gui.screens.Screen drawString")
+        }));
+    }
+
+    #[test]
+    fn does_not_mistake_a_declared_text_helper_for_the_screen_inherited_helper() {
+        let warnings = audit(
+            r#"
+            package example;
+            import net.minecraft.client.gui.screens.Screen;
+            final class Example extends Screen {
+                void drawString(String text) {}
+                void render() { drawString("local helper"); }
+            }
+            "#,
+        );
+        assert!(warnings.is_empty(), "warnings: {warnings:?}");
     }
 
     #[test]
