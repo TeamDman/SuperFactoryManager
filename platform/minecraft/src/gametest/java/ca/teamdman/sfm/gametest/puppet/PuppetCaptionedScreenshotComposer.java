@@ -11,6 +11,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Util;
 
 import java.io.InputStream;
+import java.nio.file.Files;
 
 /**
  * 26.1.2 caption adapter.
@@ -162,6 +163,7 @@ final class PuppetCaptionedScreenshotComposer {
     private static void writeAsync(NativeImage output, ActivePuppet active, PuppetCaptureState state) {
 
         try (output) {
+            Files.createDirectories(state.file.toPath().toAbsolutePath().getParent());
             output.writeToFile(state.file);
             SFM.LOGGER.info(
                     "SFM_GAME_PUPPET_CAPTURE_MESSAGE puppet={} capture={} message={}",
