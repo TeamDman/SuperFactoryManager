@@ -355,6 +355,7 @@ parallelism. Focused collector tests passed (4 passed); `check-all.ps1` passed
 with 284 passed, 0 failed, and 1 ignored. A live 1.19.2 Move 1 Stack run wrote
 `move_1_stack_direct_walkthrough-20260715-222300` with a successful target,
 raw source manifest, browsable index, and 12 copied 1280x807 PNGs.
+Implementation commit: `fcfec4fed` (`feat: add puppet preview matrix`).
 
 ### [ ] 3.2 Calibrate safe client parallelism
 
