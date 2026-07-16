@@ -222,7 +222,7 @@ checks; a live three-figure run; `git diff --check`; and `check-all.ps1`
 captioned loading-overlay, fading-title, and settled-title PNGs, and its
 manifest sets `clearTransientOverlays` to `false`.
 
-### [ ] 1.2 Establish merge and worktree preconditions
+### [x] 1.2 Establish merge and worktree preconditions
 
 **Work:**
 
@@ -246,9 +246,25 @@ cargo run -- audit --branch core --version-surfaces
 is recorded, and every normal version target is either safe to merge or has a
 specific documented blocker.
 
+**Completion notes (2026-07-15):** Baseline `17189b2cf` is clean. The SFM CLI
+status command found 1.19.4, 1.20.1, 1.20.2, 1.20.3, 1.20.4, 1.21.0, 1.21.1,
+and 26.1.2 clean. 1.20 has the preserved untracked
+`platform/minecraft/src/main/antlr/sfml/.antlr/` directory. The merge
+preflight treats untracked files as dirty, so 1.20 is a documented
+propagation blocker until its owner either removes it safely or the merge
+workflow gains an explicit, safe generated-cache exception. The dirty
+`feat/1.19.2/mount` worktree remains excluded.
+
+`audit --branch core --version-surfaces` exited successfully with a baseline
+of 1.19.2 and nine target branches. It reported nine existing CLI-surface
+warnings (one on each target) and 6,163 Java-surface warnings: 1.19.4=119,
+1.20=314, 1.20.1=320, 1.20.2=490, 1.20.3=577, 1.20.4=627, 1.21.0=1,007,
+1.21.1=1,033, and 26.1.2=1,676. These are retained Phase 4 audit findings,
+not a reason to overwrite newer-version source during propagation.
+
 ## Phase 2 — Make preview artifacts discoverable
 
-### [ ] 2.1 Close and implement the artifact path/open contract
+### [x] 2.1 Close and implement the artifact path/open contract
 
 **Work:**
 
@@ -277,6 +293,17 @@ sfm-propagate-changes.exe puppet artifacts open --branch 1.19.2
 **Completion criteria:** The CLI prints and opens only the actual 1.19.2
 preview artifact directory, errors clearly before a preview exists, and no
 arbitrary-path launcher has been added.
+
+**Completion notes (2026-07-15):** Implemented
+`puppet artifacts path|open --branch <exact-branch>`. The shared
+`game_puppet_preview_artifact_root` function now defines the same persistent
+root for the run pipeline and CLI. Both commands require exactly one selected
+worktree, a pre-existing artifact directory, and its
+`preview-manifest.json`; neither accepts a user filesystem path or creates a
+directory. `path --branch 1.19.2` printed the absolute root, the deliberately
+missing 1.19.4 case emitted its recovery diagnostic, and `open --branch
+1.19.2` opened the existing root in Explorer. Focused path/manifest and parser
+tests pass; `check-all.ps1` passed with 280 passed, 0 failed, and 1 ignored.
 
 ## Phase 3 — Build the durable matrix collector
 

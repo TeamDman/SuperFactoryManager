@@ -18,6 +18,7 @@ use super::SourceOutputOptions;
 pub(super) use super::artifact_audit_issue_kind::ArtifactAuditIssueKind;
 pub(super) use super::artifact_audit_report::ArtifactAuditReport;
 pub(super) use super::artifact_audit_severity::ArtifactAuditSeverity;
+use super::game_puppet_preview_artifact_root;
 use super::hash::ContentHash;
 use super::hash::ContentHashAlgorithm;
 use super::json_branch_name::JsonBranchName;

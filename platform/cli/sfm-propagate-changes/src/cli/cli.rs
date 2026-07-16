@@ -300,6 +300,26 @@ mod tests {
             }
             command => panic!("expected puppet run command, got {command:?}"),
         }
+
+        let puppet_artifacts_path =
+            figue::from_slice::<Cli>(&["puppet", "artifacts", "path", "--branch", "1.19.2"])
+                .into_result()
+                .expect("puppet artifact path arguments should parse")
+                .get_silent();
+        match puppet_artifacts_path.command {
+            Command::Puppet(crate::cli::puppet::PuppetArgs {
+                command:
+                    crate::cli::puppet::PuppetCommand::Artifacts(
+                        crate::cli::puppet_artifacts::PuppetArtifactsArgs {
+                            command:
+                                crate::cli::puppet_artifacts::PuppetArtifactsCommand::Path(args),
+                        },
+                    ),
+            }) => {
+                assert_eq!(args.branch.to_string(), "1.19.2");
+            }
+            command => panic!("expected puppet artifacts path command, got {command:?}"),
+        }
     }
 
     #[test]

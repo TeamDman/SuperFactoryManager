@@ -17,6 +17,7 @@ pub mod jdk;
 pub mod loader;
 pub mod modrinth;
 pub mod puppet;
+mod puppet_artifacts;
 pub mod repo_root;
 pub mod run;
 pub mod server;

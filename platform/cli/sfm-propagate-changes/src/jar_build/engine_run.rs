@@ -3454,10 +3454,6 @@ struct GamePuppetPreviewManifestCapture {
     hud_hidden: Option<bool>,
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "Preview artifact publication deliberately keeps validation and manifest inputs together."
-)]
 fn publish_game_puppet_preview_artifacts(
     plan: &BuildPlan,
     working_dir: &Path,
@@ -3471,10 +3467,7 @@ fn publish_game_puppet_preview_artifacts(
             staging_dir.display()
         );
     }
-    let artifact_root = plan
-        .cache_dir
-        .join("artifacts")
-        .join("game-test-preview");
+    let artifact_root = game_puppet_preview_artifact_root(&plan.worktree_path);
     if artifact_root.exists() {
         fs::remove_dir_all(&artifact_root)
             .wrap_err_with(|| format!("Failed to clear {}", artifact_root.display()))?;
