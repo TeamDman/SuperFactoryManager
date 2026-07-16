@@ -738,16 +738,17 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         Duration peakTickTime = Duration.ZERO;
         for (int i = 0; i < menu.tickTimes.length; i++) {
             Duration candidate = menu.tickTimes[i];
-            if (candidate.compareTo(peakTickTime) > 0) {
+            if (candidate != null && candidate.compareTo(peakTickTime) > 0) {
                 peakTickTime = candidate;
             }
 
             int plotPosX = plotX + spaceBetweenPoints * i;
 
-            if (mx - leftPos >= plotPosX - spaceBetweenPoints / 2
-                    && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
-                    && my - topPos >= plotY - 2
-                    && my - topPos <= plotY + plotHeight + 2) {
+            if (candidate != null
+                && mx - leftPos >= plotPosX - spaceBetweenPoints / 2
+                && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
+                && my - topPos >= plotY - 2
+                && my - topPos <= plotY + plotHeight + 2) {
                 mouseTickTimeIndex = i;
             }
         }

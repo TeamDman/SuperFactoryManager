@@ -32,7 +32,11 @@ public class TickTimeGraphRenderer extends PictureInPictureRenderer<TickTimeGrap
         VertexConsumer consumer = this.bufferSource.getBuffer(RenderTypes.lines());
 
         for (int i = 0; i < state.tickTimes().length; i++) {
-            long yNanos = state.tickTimes()[i].toNanos();
+            var tickTime = state.tickTimes()[i];
+            if (tickTime == null) {
+                continue;
+            }
+            long yNanos = tickTime.toNanos();
 
             float normalizedTickTime = yNanos == 0 ? 0 : (float) (Math.log10(yNanos) / Math.log10(state.yMax()));
 
