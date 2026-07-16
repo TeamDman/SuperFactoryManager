@@ -67,7 +67,8 @@ public final class SFMDeveloperWorldLauncher {
                             .registryOrThrow(Registries.WORLD_PRESET)
                             .getHolderOrThrow(WorldPresets.FLAT)
                             .value()
-                            .createWorldDimensions()
+                            .createWorldDimensions(),
+                    minecraft.screen
             );
         } catch (RuntimeException exception) {
             pendingWorldCreation = null;
