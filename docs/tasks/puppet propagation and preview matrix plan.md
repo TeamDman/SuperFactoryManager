@@ -2,7 +2,7 @@
 
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
-**Last updated:** 2026-07-15
+**Last updated:** 2026-07-16
 
 ## How to update this plan
 
@@ -391,8 +391,8 @@ rather than lost artifacts or hung launches.
 
 **Work:**
 
-- Run the SFM merge command interactively with `--no-auto-abort` after Phase 1
-  preconditions are met.
+- Run the SFM merge command after Phase 1 preconditions are met. Its normal
+  non-interactive behavior must not wait indefinitely for terminal input.
 - Resolve conflicts by retaining newer-version behavior and grafting common
   puppet intent. Add narrow `@MCVersionDependentBehaviour` adapters only where
   Minecraft/loader APIs genuinely differ.
@@ -405,7 +405,7 @@ rather than lost artifacts or hung launches.
 **Validation:**
 
 ```powershell
-sfm-propagate-changes.exe git merge --no-auto-abort
+sfm-propagate-changes.exe git merge
 cd platform\cli\sfm-propagate-changes
 cargo run -- audit --branch core --version-surfaces
 ```
@@ -414,7 +414,7 @@ cargo run -- audit --branch core --version-surfaces
 baseline commit through the SFM merge workflow or is explicitly marked blocked
 or excluded with a technical reason and next action.
 
-**Completion notes (2026-07-15):** `cargo run -- git merge --no-auto-abort`
+**Completion notes (2026-07-15):** `cargo run -- git merge`
 completed the normal merge chain from `2bcdc2f8a` (1.19.2 → 1.19.4) through
 `4513809eb` (1.21.1 → 26.1.2). All ten normal version worktrees are clean
 afterward. The unrelated dirty `feat/1.19.2/mount` worktree remains excluded.
@@ -439,7 +439,13 @@ unbounded warnings for `SFMGamePuppet*`, `PuppetCaptionedScreenshotComposer`,
 or `SFMDeveloperWorldGameTestRunner`; the remaining warnings are the wider
 pre-existing version-surface backlog to be addressed separately.
 
-### [~] 4.2 Validate static discovery, compilation, and previews per eligible target
+**Follow-up audit (2026-07-16):** The post-preview
+`cargo run -- audit --branch core --version-surfaces` pass exited successfully.
+All ten normal targets still report zero CLI warnings. Its Java warnings are
+the separate established cross-version backlog; the completed puppet preview
+work did not introduce a new CLI surface warning.
+
+### [x] 4.2 Validate static discovery, compilation, and previews per eligible target
 
 **Work:**
 
@@ -493,12 +499,16 @@ is 3,816 warnings: 1.19.4=51, 1.20=221, 1.20.1=224, 1.20.2=289,
 1.20.3=329, 1.20.4=352, 1.21.0=615, 1.21.1=637, and 26.1.2=1,098.
 
 All normal worktrees are clean. The unrelated dirty `feat/1.19.2/mount`
-worktree remains excluded. The remaining 4.2 proof is the live 1280×720
-Move 1 Stack preview and manifest for each eligible target; that evidence is
-intentionally deferred to the matrix run in 4.3 rather than inferred from a
-compile.
+worktree remains excluded.
 
-### [ ] 4.3 Produce and review the all-version Move 1 Stack matrix
+**Completion notes (2026-07-16):** The live proof was collected by the final
+matrix run in 4.3 rather than inferred from compilation. Every normal target
+discovered the walkthrough, compiled through the SFM CLI, and completed the
+live puppet successfully with a 12-figure captioned artifact set and preview
+manifest. The 1280×720 requested viewport produces 1280×807 PNGs because the
+caption compositor adds an 87-pixel top strip.
+
+### [x] 4.3 Produce and review the all-version Move 1 Stack matrix
 
 **Work:**
 
@@ -521,6 +531,23 @@ sfm-propagate-changes.exe puppet artifacts open --branch 1.19.2
 Move 1 Stack artifact set for every eligible target. Human review has recorded
 whether differences are intentional, adapter defects, or test/launcher
 failures.
+
+**Completion notes (2026-07-16):**
+`cargo run -- puppet matrix move_1_stack_direct_walkthrough --branch core
+--width 1280 --height 720 --parallel 1 --error-action continue
+--wait-for-build-lock` completed in 668.6 seconds with exit code 0. The
+durable matrix root is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview-matrices/move_1_stack_direct_walkthrough-20260716-171552`;
+it contains `matrix-manifest.json`, `index.html`, and one copied 12-figure
+artifact set for each of 1.19.2, 1.19.4, 1.20, 1.20.1, 1.20.2, 1.20.3,
+1.20.4, 1.21.0, 1.21.1, and 26.1.2 (120 figures total). All status rows are
+`succeeded`.
+
+Human review inspected the ordinary overview/manager flow plus the 1.20.4
+manager and 26.1.2 source-barrel figures. The screenshots show the expected
+screens, captions, Figure numbering, and post-transfer inventory state.
+Renderer and UI variation remains evidence for human review, not a
+cross-version snapshot-hash failure.
 
 ## Phase 5 — Close the release contract and prepare metadata
 
@@ -577,7 +604,7 @@ and evidence; developer-only puppet work is listed only as release evidence.
 ```powershell
 rg -n '^mod_version=' platform\minecraft\gradle.properties
 rg -n '^---- |TODO|PRE' platform\minecraft\src\main\resources\assets\sfm\template_programs\changelog.sfml
-sfm-propagate-changes.exe git merge --no-auto-abort
+sfm-propagate-changes.exe git merge
 sfm-propagate-changes.exe git status
 ```
 
@@ -605,7 +632,7 @@ heading contains no pre-release or TODO text.
 ```powershell
 sfm-propagate-changes.exe run data --parallel --branch core
 sfm-propagate-changes.exe git status
-sfm-propagate-changes.exe git merge --no-auto-abort
+sfm-propagate-changes.exe git merge
 sfm-propagate-changes.exe git status
 ```
 
@@ -795,7 +822,7 @@ starts before this task is `[x]`.
 **Validation:**
 
 ```powershell
-sfm-propagate-changes.exe git merge --no-auto-abort
+sfm-propagate-changes.exe git merge
 sfm-propagate-changes.exe git status
 cd platform\cli\sfm-propagate-changes
 cargo run -- audit --branch core --version-surfaces
@@ -874,16 +901,16 @@ the other targets.
 
 | Target | Initial status | CC:Tweaked release surface | Required release proof | Evidence |
 | --- | --- | --- | --- | --- |
-| 1.19.2 | Baseline candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow, CC endpoint verification | Title preview proven; remaining proof pending |
-| 1.19.4 | Candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Pending |
-| 1.20 | Candidate; unrelated `.antlr` directory preserved | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Pending |
-| 1.20.1 | Candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Pending |
-| 1.20.2 | Candidate | Deliberately source-excluded: no compatible locked runtime | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; no CC release claim | Pending |
-| 1.20.3 | Candidate | Deliberately source-excluded: no compatible locked runtime | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; no CC release claim | Pending |
-| 1.20.4 | Candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Pending |
-| 1.21.0 | Candidate | Deliberately source-excluded: no compatible locked runtime | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; no CC release claim | Pending |
-| 1.21.1 | Candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Pending |
-| 26.1.2 | Candidate | Deliberately source-excluded: no compatible locked runtime | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; no CC release claim | Pending |
+| 1.19.2 | Baseline candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow, CC endpoint verification | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
+| 1.19.4 | Candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
+| 1.20 | Candidate; unrelated `.antlr` directory preserved | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
+| 1.20.1 | Candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
+| 1.20.2 | Candidate | Deliberately source-excluded: no compatible locked runtime | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; no CC release claim | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
+| 1.20.3 | Candidate | Deliberately source-excluded: no compatible locked runtime | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; no CC release claim | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
+| 1.20.4 | Candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
+| 1.21.0 | Candidate | Deliberately source-excluded: no compatible locked runtime | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; no CC release claim | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
+| 1.21.1 | Candidate | Packaged and supported | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; CC suite evidence and representative-endpoint coverage | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
+| 26.1.2 | Candidate | Deliberately source-excluded: no compatible locked runtime | catalog, compile, preview matrix, datagen, full suite, jar, installed core workflow; no CC release claim | Catalog, compile, and 12-figure preview matrix succeeded (2026-07-16); release proof remains |
 | `feat/1.19.2/draw` | Excluded feature worktree | Not assessed by this release plan | No propagation, matrix, or release inclusion without a new scope decision | Intentionally excluded |
 | `feat/1.19.2/mount` | Excluded dirty feature worktree | Not assessed by this release plan | No propagation, matrix, or release inclusion without a new scope decision | Intentionally excluded |
 
@@ -912,15 +939,15 @@ the other targets.
   live-validated (`17189b2cf`).
 - [ ] `puppet artifacts path|open` (or the documented final equivalent) safely
   locates existing preview artifacts.
-- [ ] A matrix command produces validated copied artifacts, machine-readable
+- [x] A matrix command produces validated copied artifacts, machine-readable
   status, and a browsable index without interpreting cross-version hash changes
   as failures.
-- [ ] The committed 1.19.2 foundation has been propagated through normal
+- [x] The committed 1.19.2 foundation has been propagated through normal
   version branches using the SFM CLI, with audits and adapters/exclusions
   recorded.
-- [ ] Every normal version branch is represented as supported, excluded, or
+- [x] Every normal version branch is represented as supported, excluded, or
   blocked with discovery/compile/preview evidence.
-- [ ] A reviewed Move 1 Stack matrix exists for every eligible target at a
+- [x] A reviewed Move 1 Stack matrix exists for every eligible target at a
   validated safe concurrency.
 - [ ] Release scope, target support, final version, changelog, known issues,
   credits, issue/milestone status, and the CC compatibility statement have
