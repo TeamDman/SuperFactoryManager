@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
-import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 
@@ -69,7 +69,7 @@ public final class SFMGamePuppetHelper {
     }
 
     public void captureContainerAt(String captureName, BlockPos localTarget, Component caption) {
-        captureBlockScreen(captureName, localTarget, ContainerScreen.class, true, caption);
+        captureBlockScreen(captureName, localTarget, AbstractContainerScreen.class, true, caption);
     }
 
     public void captureManagerAt(String captureName, BlockPos localTarget, Component caption) {
