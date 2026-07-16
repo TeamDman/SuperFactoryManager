@@ -558,16 +558,30 @@ found two caption-rendering defects, tracked by 4.4: the 1.20–1.21.1
   caption-font metric behavior. Puppet screenshot code may request a caption
   render, but must not select a Minecraft text-rendering overload or implement
   a version-specific glyph advance itself.
-- Extend the Rust `audit` command's Java analysis to warn on direct text draw
-  calls outside `SFMFontUtils`: `Font.draw*` calls and `GuiGraphics` text calls
-  such as `drawString` (including their version-specific successors). Detect
-  receiver types through imports/qualified names and declared local, field, and
-  parameter types; do not flag unrelated `GuiGraphics` primitives such as
-  `fill` or `blit`.
+- Extend the Rust `audit` command's Arborium Java analysis with a purpose-built
+  lexical type resolver; do not introduce a JavaParser/JDK helper. The resolver
+  owns only the source-level facts needed by this policy: package/imports,
+  declared field and parameter types, lexical local scopes, explicit local
+  types, and recursively simple `var` initializers such as an identifier,
+  `this.field`, a qualified field, a cast, or `new Type(...)`. It deliberately
+  does not attempt reflection, arbitrary method-return inference, macro-like
+  generation, or a complete Java compiler model.
+- First collect method invocations from the AST and consider only suspicious
+  text methods: `Font.draw*`, `GuiGraphics.drawString`, and their
+  version-specific successors. Resolve a receiver lazily only after its method
+  name is suspicious, using imports/qualified names and the lexical resolver.
+  Do not flag unrelated `GuiGraphics` primitives such as `fill` or `blit`.
+- A resolved call on a banned font/graphics type outside `SFMFontUtils` is a
+  violation. An unresolved receiver of a suspicious method is also a distinct
+  warning, rather than an escape hatch through `var`, aliasing, or an
+  incomplete external classpath. The warning must identify branch, path, line,
+  invoked method, and either the resolved receiver type or its unresolved
+  expression.
 - Add focused Rust fixtures for imported and fully-qualified receiver types,
-  static/instance call forms, allowed calls inside `SFMFontUtils`, and false
-  positives that must remain silent. Audit output must identify branch, path,
-  line, receiver type, and invoked method.
+  static/instance call forms, method parameters, local fields, shadowing,
+  `var a = this.font`, `var a = graphics`, allowed calls inside
+  `SFMFontUtils`, unrelated same-named methods, and unresolved suspicious
+  calls. These fixtures define the intentionally bounded inference contract.
 - Run the audit before the refactor and retain its warnings as the expected
   failing baseline. It must report the direct legacy `Font.draw` caption path
   and the 1.20–1.21.1 direct `GuiGraphics.drawString` paths.
@@ -609,6 +623,15 @@ overload, which defaults to shadowed text; and 26.1.2 directly scans
 space. The audit must deliberately show the first two categories before the
 refactor; the 26.1.2 compositor requires the separate ownership review above
 because it does not invoke `Font` or `GuiGraphics` directly.
+
+**Audit architecture decision (2026-07-16):** The audit remains Rust-native
+alongside the project's mapping/classpath knowledge. Arborium supplies syntax,
+not general Java semantics; the existing static catalog resolves imports only
+for annotation discovery. The renderer rule therefore adds a small,
+policy-specific JavaSymbolSolver equivalent instead of claiming comprehensive
+type inference or paying for an external Java semantic runtime. Its work is
+lazy: method names select candidate invocations first, and only candidates
+receive scoped receiver resolution.
 
 ## Phase 5 — Close the release contract and prepare metadata
 
