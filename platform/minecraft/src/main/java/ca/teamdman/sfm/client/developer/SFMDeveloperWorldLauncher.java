@@ -107,6 +107,7 @@ public final class SFMDeveloperWorldLauncher {
         return worldId;
     }
 
+    @MCVersionDependentBehaviour
     private static GameRules createDeveloperGameRules() {
         GameRules rules = new GameRules();
         rules.getRule(GameRules.RULE_DOMOBSPAWNING).set(false, null);
@@ -115,6 +116,7 @@ public final class SFMDeveloperWorldLauncher {
         return rules;
     }
 
+    @MCVersionDependentBehaviour
     private static void finishWorldCreation(IntegratedServer server, PendingWorldCreation completedCreation) {
         ServerLevel level = server.overworld();
         server.setDefaultGameType(GameType.CREATIVE);
