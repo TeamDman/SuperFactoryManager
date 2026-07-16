@@ -554,6 +554,31 @@ found two caption-rendering defects, tracked by 4.4: the 1.20–1.21.1
 
 **Work:**
 
+- Add a single tracked `platform/minecraft/sfm.audit_rules` policy file, kept
+  byte-identical through normal propagation. The Rust audit reads this file on
+  every target; policy owners, Minecraft classes, member names, and descriptors
+  must not be baked into Rust. Rules use source/development names only—never
+  obfuscated names—even when the per-version mapping/classpath implementation
+  differs.
+- Use an access-transformer-like, line-oriented grammar with comments and one
+  rule per line. `DENY CALL <owner> <member> <descriptor-or-*>` selects a
+  forbidden callee; `PERMIT CALLER <owner> <member-or-*> <descriptor-or-*>`
+  selects a trusted caller context that may invoke a matching denied callee.
+  A permit is intentionally a caller rule: permitting an invocation of an SFM
+  wrapper would not authorize that wrapper's own direct call to `Font` or
+  `GuiGraphics`. Exact JVM descriptors are supported when resolvable;
+  `*` is required for shared rules whose overload differs between Minecraft
+  versions. Example initial policy shape:
+
+  ```text
+  DENY CALL net.minecraft.client.gui.Font draw *
+  DENY CALL net.minecraft.client.gui.Font drawShadow *
+  DENY CALL net.minecraft.client.gui.Font drawInBatch *
+  DENY CALL net.minecraft.client.gui.GuiGraphics drawString *
+  DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *
+  PERMIT CALLER ca.teamdman.sfm.client.screen.SFMFontUtils * *
+  ```
+
 - Make `SFMFontUtils` the sole home for version-specific text drawing and
   caption-font metric behavior. Puppet screenshot code may request a caption
   render, but must not select a Minecraft text-rendering overload or implement
@@ -566,22 +591,23 @@ found two caption-rendering defects, tracked by 4.4: the 1.20–1.21.1
   `this.field`, a qualified field, a cast, or `new Type(...)`. It deliberately
   does not attempt reflection, arbitrary method-return inference, macro-like
   generation, or a complete Java compiler model.
-- First collect method invocations from the AST and consider only suspicious
-  text methods: `Font.draw*`, `GuiGraphics.drawString`, and their
-  version-specific successors. Resolve a receiver lazily only after its method
-  name is suspicious, using imports/qualified names and the lexical resolver.
-  Do not flag unrelated `GuiGraphics` primitives such as `fill` or `blit`.
-- A resolved call on a banned font/graphics type outside `SFMFontUtils` is a
-  violation. An unresolved receiver of a suspicious method is also a distinct
+- Derive suspicious method names from `DENY CALL` rules, then first collect
+  only matching method invocations from the AST. Resolve a receiver lazily only
+  after its method name is suspicious, using imports/qualified names and the
+  lexical resolver. Do not flag unrelated `GuiGraphics` primitives such as
+  `fill` or `blit`, because they have no deny rule.
+- A resolved call matching a denied callee outside a permitted caller is a
+  violation. An unresolved receiver of a denied method name is also a distinct
   warning, rather than an escape hatch through `var`, aliasing, or an
   incomplete external classpath. The warning must identify branch, path, line,
-  invoked method, and either the resolved receiver type or its unresolved
+  invoked method, rule, and either the resolved receiver type or its unresolved
   expression.
 - Add focused Rust fixtures for imported and fully-qualified receiver types,
   static/instance call forms, method parameters, local fields, shadowing,
   `var a = this.font`, `var a = graphics`, allowed calls inside
-  `SFMFontUtils`, unrelated same-named methods, and unresolved suspicious
-  calls. These fixtures define the intentionally bounded inference contract.
+  `SFMFontUtils`, unrelated same-named methods, unresolved suspicious calls,
+  rule parsing, descriptor wildcards, and permit precedence. These fixtures
+  define the intentionally bounded inference contract.
 - Run the audit before the refactor and retain its warnings as the expected
   failing baseline. It must report the direct legacy `Font.draw` caption path
   and the 1.20–1.21.1 direct `GuiGraphics.drawString` paths.
@@ -631,7 +657,9 @@ for annotation discovery. The renderer rule therefore adds a small,
 policy-specific JavaSymbolSolver equivalent instead of claiming comprehensive
 type inference or paying for an external Java semantic runtime. Its work is
 lazy: method names select candidate invocations first, and only candidates
-receive scoped receiver resolution.
+receive scoped receiver resolution. `sfm.audit_rules` is the authoritative
+declarative policy; Rust implements only its grammar, matching, scoped
+resolution, and diagnostics.
 
 ## Phase 5 — Close the release contract and prepare metadata
 
