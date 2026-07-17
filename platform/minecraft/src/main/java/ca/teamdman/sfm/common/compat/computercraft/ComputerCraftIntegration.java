@@ -27,14 +27,14 @@ public final class ComputerCraftIntegration {
         registered = true;
     }
 
-    @SFMSubscribeEvent
+    @SFMSubscribeEvent(requiredModId = "computercraft")
     public static void onCommonSetup(FMLCommonSetupEvent event) {
         if (SFMModCompat.isComputerCraftLoaded()) {
             event.enqueueWork(ComputerCraftIntegration::register);
         }
     }
 
-    @SFMSubscribeEvent
+    @SFMSubscribeEvent(requiredModId = "computercraft")
     public static void onClientSetup(FMLClientSetupEvent event) {
         if (SFMModCompat.isComputerCraftLoaded()) {
             event.enqueueWork(() -> ComputerCraftAPIClient.registerTurtleUpgradeModeller(
