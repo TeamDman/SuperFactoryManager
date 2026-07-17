@@ -1,3 +1,4 @@
+mod audit_warning_report;
 mod audited_source_file;
 mod branch_source_audit_report;
 mod detected_source_location;
@@ -13,6 +14,10 @@ mod source_line_limit;
 mod source_problem;
 mod version_surface_audit;
 
+pub(crate) use audit_warning_report::AuditWarning;
+pub(crate) use audit_warning_report::AuditWarningCategory;
+pub(crate) use audit_warning_report::AuditWarningDetail;
+pub(crate) use audit_warning_report::AuditWarningReport;
 pub use audited_source_file::AuditedSourceFile;
 pub use branch_source_audit_report::BranchSourceAuditReport;
 pub use detected_source_location::DetectedSourceLocation;
