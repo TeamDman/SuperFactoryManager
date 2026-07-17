@@ -9,4 +9,6 @@ mod tracy_thread_name;
 
 pub use logging_config::*;
 pub use logging_init::*;
+pub(crate) use terminal_hyperlink::TerminalTextExt;
+pub(crate) use terminal_hyperlink::vscode_file_uri_for_path;
 pub use tracy_thread_name::*;
