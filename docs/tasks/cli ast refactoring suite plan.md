@@ -94,6 +94,50 @@ operation is unsupported rather than silently falling back to text replacement.
 | Output | Human-readable summary plus Facet/Figue-serializable JSON report. | Reports include target, files, edits, unresolved cases, and validation results. |
 | Propagation | Apply only to the oldest branch; later branches receive the commit through the propagation CLI. | Branch audit runs before and after propagation. |
 
+## Implementation reconnaissance (2026-07-16)
+
+The following facts were verified in the current tree and constrain the design:
+
+- `arborium-java = 2.18.1` and `tree-sitter-patched-arborium = 0.25.10` are
+  already pinned dependencies of the CLI. The existing
+  `source_audit::font_render_surface_audit` creates a parser, reports parse
+  gaps, walks Arborium nodes, and preserves byte/row/column locations. The
+  first implementation should extract this parser setup and source-span
+  utilities instead of adding another Java parser.
+- The audit resolver is deliberately lexical and demand-driven: it resolves
+  package/import names, fields, parameters, locals, `var` aliases, and selected
+  inheritance paths only after a method name matches a deny rule. It is not yet
+  a complete Java symbol solver. Refactoring requires a separate indexed symbol
+  layer with declaration identities, overload descriptors, inheritance edges,
+  and classpath types; silently treating the audit resolver as sufficient would
+  produce unsafe rewrites.
+- Arborium/tree-sitter nodes expose ranges into the original source, so a
+  lossless edit engine can replace identifier/list/body spans without printing
+  the entire file. Tree-sitter error recovery means parse errors must be a
+  blocking diagnostic for mutation unless a future operation explicitly proves
+  that its target is outside the error subtree.
+- The CLI uses a top-level `Command` enum with one `Facet`/Figue args module per
+  command and an `invoke` method. A refactor command therefore needs a new
+  `cli::refactor` module wired into `Command`, plus parser tests in the existing
+  CLI test module. It should not be hidden inside `audit`.
+- Facet/Figue already provide the typed command/report pattern and
+  `facet_json`/`facet-pretty` provide structured output. Fable is not a Java
+  parser or Java symbol solver: it reflects Facet-described Rust values and
+  executes a small typed language over those values. It may later be useful for
+  querying a serialized refactoring index, but it cannot replace Arborium or
+  Java resolution for this suite.
+- The current dependency set already includes gix and the project policy
+  prefers gix. The refactorer should use the existing repository/worktree
+  context and gix object/index APIs for status, file hashes, and commit-aware
+  safety checks rather than shelling out to `git.exe`.
+- `engine_sources` owns source-set enumeration and compile classpath assembly.
+  Refactoring must consume the same source exclusions and branch/version
+  context, but should not invoke a build merely to discover Java files.
+
+These observations turn “AST rewrite” into four explicit layers: a lossless
+syntax layer, a project symbol index, an operation planner, and a transactional
+source/repository writer. Each layer needs independent fixtures and diagnostics.
+
 ## Phase 1 — Inventory and architecture
 
 ### [ ] 1.1 Map the existing foundations
@@ -108,7 +152,8 @@ operation is unsupported rather than silently falling back to text replacement.
   recovery, and whether source byte ranges remain stable.
 
 **Validation:** an architecture note names concrete modules and a dependency
-decision; no new parser dependency is added solely by inspection.
+decision; no new parser dependency is added solely by inspection. Record the
+reconnaissance above as the initial decision log.
 
 ### [ ] 1.2 Define the refactoring intermediate representation
 
@@ -121,7 +166,47 @@ decision; no new parser dependency is added solely by inspection.
 **Validation:** round-trip tests serialize/deserialize a preview report and a
 stale-plan test refuses to apply after the source changes.
 
+### [ ] 1.3 Extract reusable Arborium infrastructure from audit
+
+- Introduce a shared Java parse module that owns parser construction, source
+  encoding/line-map handling, node traversal helpers, error-node reporting,
+  and byte-span validation.
+- Keep audit behavior unchanged while moving it onto the shared module.
+- Define a stable `SourceSnapshot` containing branch, source-set, relative path,
+  content hash, bytes, parse tree, and line map.
+
+**Validation:** existing audit tests pass unchanged; a parser fixture can locate
+the same method invocation and declaration spans used by the audit.
+
+### [ ] 1.4 Decide the classpath/type-index strategy
+
+- Prototype source-only indexing first, then add classpath stubs/signatures from
+  the existing compile classpath resolver.
+- Define how Minecraft/Forge mappings, missing optional-mod classes, generated
+  sources, and multiple source roots are represented.
+- Establish a hard distinction between `Resolved`, `PartiallyResolved`, and
+  `Unresolved`; only operations with a proven safety rule may proceed with the
+  latter two states.
+
+**Validation:** index SFMBlockPosUtils and one Minecraft/Forge external type;
+report overloads and inheritance without launching Gradle or the game.
+
 ## Phase 2 — Parser, resolver, and edit engine
+
+### [ ] 2.0 Parser/edit feasibility spike
+
+- Parse a real SFM Java file and a deliberately malformed fixture with the
+  already-pinned Arborium crates.
+- Print declaration, invocation, comment, annotation, and byte-span ranges;
+  apply one identifier replacement while preserving all untouched bytes.
+- Measure parser/index cost over the production source set and record memory
+  use before committing to whole-project indexing.
+- Decide whether incremental parsing is needed for previews; do not introduce
+  Fable or another parser unless this spike demonstrates a concrete gap.
+
+**Exit criteria:** the spike proves lossless spans, stable line mapping, and a
+clear error policy for parse gaps; its findings are recorded before resolver
+work begins.
 
 ### [ ] 2.1 Build lossless Java parsing
 
@@ -144,6 +229,21 @@ stale-plan test refuses to apply after the source changes.
 **Validation:** resolver tests cover `this.font`, inherited methods, static
 imports, overloaded `between`, and `var a = this.font; a.drawString(...)`.
 
+### [ ] 2.2a Build an indexed symbol graph before operation-specific logic
+
+- Index declarations and references in deterministic path/order, assigning
+  stable IDs based on branch, file hash, qualified owner, and descriptor.
+- Store scopes and parent relationships for packages, types, methods,
+  constructors, fields, parameters, locals, lambdas, and anonymous classes.
+- Add import and inheritance resolution as graph edges; retain unresolved edges
+  as diagnostics rather than dropping them.
+- Make queries return declarations plus all statically resolved reference spans;
+  operations must consume this query API rather than walking raw nodes ad hoc.
+
+**Reason:** rename/move and signature changes need a consistent identity for a
+symbol across files. The existing audit visitor is file-local and cannot safely
+provide that identity.
+
 ### [ ] 2.3 Implement transactional edits
 
 - Normalize edits, reject overlaps, preserve line endings, and write through a
@@ -151,6 +251,17 @@ imports, overloaded `between`, and `var a = this.font; a.drawString(...)`.
 - Generate a unified diff and a structured edit report before applying.
 - Support `--check` (validate only), `--diff`, `--output <dir>`, and an explicit
   `--allow-unresolved` escape hatch that still records every unresolved use.
+
+### [ ] 2.4 Define operation planning as a pure step
+
+- Inputs are an immutable source index, typed operation request, and policy
+  options; output is a plan of edits and diagnostics with no filesystem writes.
+- Validate all preconditions, collisions, scope changes, annotation boundaries,
+  and source hashes before producing an applicable plan.
+- Make plan application idempotence and deterministic ordering testable.
+
+**Validation:** the same snapshot/request produces byte-identical reports and
+diffs across repeated runs.
 
 ## Phase 3 — First refactoring: rename/move (`mv`)
 
@@ -201,6 +312,17 @@ imports, overloaded `between`, and `var a = this.font; a.drawString(...)`.
 output; unsupported operations fail deterministically with exit code and
 structured diagnostics; no operation mutates files until its implementation
 phase is complete.
+
+### [ ] 3.5 Establish the first end-to-end fixture before broad implementation
+
+- Add a small Java fixture containing `SFMBlockPosUtils.between`, qualified and
+  unqualified calls, a method reference, an overload, an override, a Javadoc
+  mention, and an unrelated same-spelled symbol.
+- Prove `rename` changes only the intended declaration/references and that
+  `move` additionally updates qualification/imports and rejects private-state
+  dependencies.
+- Keep this fixture independent of Minecraft compilation so parser/resolver
+  regressions are fast and deterministic.
 
 ## Phase 4 — IntelliJ-style operations
 
@@ -307,6 +429,96 @@ The first milestone is complete when all of the following are true:
 4. The resulting tree compiles and passes focused tests, audit, and the
    version-surface check, then propagates cleanly through supported branches.
 
+## Detailed implementation contracts
+
+### CLI lifecycle
+
+Every mutating command follows this sequence:
+
+1. Resolve branch/worktree and source-set policy.
+2. Snapshot selected sources and compute hashes.
+3. Parse/index sources and resolve the target query.
+4. Produce a pure plan and diagnostics.
+5. Print the plan/diff and, unless `apply` was explicitly requested, stop.
+6. Recheck hashes, worktree policy, and plan preconditions.
+7. Apply all files transactionally, then reparse changed files.
+8. Run configured postconditions (audit, compile, or tests) and write the
+   structured report.
+
+`preview` and `--check` must never create a temporary source tree inside the
+worktree. `apply` must retain a failed-application recovery directory until
+the report is successfully finalized. A second apply of the same plan should
+be a no-op or fail with a clear “already applied” status, never duplicate edits.
+
+### Symbol identity and queries
+
+The external query language must distinguish a display name from an identity:
+
+- `pkg.Type.member` is a display query and may be ambiguous.
+- A descriptor-qualified method query includes parameter types and return type
+  when required to disambiguate overloads.
+- A future stable symbol URI should include branch/source path, owner, kind,
+  name, and JVM-like descriptor, but must not use line numbers as identity.
+- Query results must show candidate declarations, source locations, visibility,
+  and resolution confidence before an operation is planned.
+
+References are categorized as declaration, invocation, method reference,
+override/implementation, import/qualification, Javadoc, string literal, or
+reflection-like text. Only categories proven safe by the operation are edited;
+the others are reported as skipped candidates.
+
+### Operation-specific hazards
+
+- `rename`: do not alter string literals or comments by default; Javadocs need
+  a separate policy because `{@link}` names can be semantically meaningful.
+- `move`: calculate the declaration's dependency closure (private fields,
+  package-private types, enclosing-instance access, and static imports) before
+  planning. A forwarding method is safer than changing callers but must be
+  explicit.
+- `extract-method-args`: choose nested-record versus peer-record placement;
+  preserve parameter annotations, generic bounds, nullability annotations,
+  evaluation order, and overload resolution. Reject varargs/receiver cases
+  until modeled explicitly.
+- `extract-variable`: never duplicate an expression with side effects; account
+  for short-circuiting, loop headers, pattern variables, and final/effectively
+  final capture.
+- `extract-method`: reject selections containing unmodeled `break`, `continue`,
+  `return`, `yield`, labels, synchronized regions, or partially selected
+  declarations. Infer input/output data flow before generating a signature.
+- `inline-method`: reject recursion, mutual recursion, dynamic dispatch,
+  synchronized/native/abstract methods, and bodies whose control flow cannot
+  be embedded at the call site without changing semantics.
+- `replace-method-call`: replacement templates must be typed and must state
+  whether the receiver and arguments are evaluated once, eagerly, or lazily.
+- `change-method-signature`: update overrides and interface implementations as
+  one graph operation; preserve binary/source compatibility only when the user
+  requests generated forwarding overloads.
+
+### Postconditions and audit integration
+
+The report must distinguish “all references resolved and rewritten” from “plan
+applied with skipped/unresolved references.” After mutation, reparse and rerun
+the relevant declarative audit rules. A newly introduced audit warning is a
+failed postcondition even when the Java compiler would accept the code. For
+version-dependent files, compare the planned symbol boundary with
+`@MCVersionDependentBehaviour` before allowing propagation.
+
+### Recovery and review artifacts
+
+Each plan receives a stable ID derived from the source snapshot, operation
+request, and tool version. Store:
+
+- the request and resolved candidates;
+- source hashes before and after;
+- structured edits and skipped references;
+- unified diff;
+- audit/compile/test postconditions;
+- tool/parser/classpath versions.
+
+The report must be sufficient for a reviewer to understand and manually
+reproduce the change without rerunning discovery. Applying an old plan after a
+branch merge must fail hash/precondition checks and require a fresh preview.
+
 ## Open questions
 
 - Should `mv` mean rename-only until a destination type is supplied, or should
@@ -317,3 +529,8 @@ The first milestone is complete when all of the following are true:
   changes when all target hashes still match?
 - Should compatibility overload generation be part of the initial change
   signature operation or a later release?
+- Should comments/Javadocs be opt-in rewrite targets, or should each operation
+  expose a typed reference-category policy?
+- Should the first `move` implementation require a forwarding method to avoid
+  changing call sites, with direct moves deferred until dependency closure is
+  complete?
