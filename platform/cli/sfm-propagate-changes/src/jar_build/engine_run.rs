@@ -634,7 +634,7 @@ fn execute_run(
         clean_client_automation_world(&plan.minecraft_dir, &working_dir, kind)?;
     }
     let automation_options_path =
-        prepare_client_automation_options(&plan.minecraft_dir, &working_dir, kind)?;
+        prepare_client_automation_options(&plan.minecraft_dir, &working_dir, kind, run_options)?;
 
     let run_lockfile = if plan.refresh {
         None
@@ -2597,6 +2597,7 @@ fn prepare_client_automation_options(
     minecraft_dir: &Path,
     working_dir: &Path,
     kind: RunKind,
+    run_options: &RunOptions,
 ) -> eyre::Result<Option<PathBuf>> {
     if !matches!(
         kind,
@@ -2623,6 +2624,14 @@ fn prepare_client_automation_options(
     updated = set_minecraft_option(&updated, "narrator", "0");
     updated = set_minecraft_option(&updated, "pauseOnLostFocus", "false");
     updated = set_minecraft_option(&updated, "tutorialStep", "none");
+    if matches!(kind, RunKind::GameTestPreview) {
+        let master_volume = if run_options.game_puppet_mute {
+            "0.0"
+        } else {
+            "1.0"
+        };
+        updated = set_minecraft_option(&updated, "soundCategory_master", master_volume);
+    }
     fs::write(&options_path, updated)
         .wrap_err_with(|| format!("Failed to write {}", options_path.display()))?;
     Ok(Some(options_path))
