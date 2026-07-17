@@ -121,11 +121,258 @@ impl AuditRules {
     }
 }
 
-/// Audit Java source without binding the audit engine to a particular Minecraft API member.
+/// A conservative index of return types declared in SFM Java sources.
 ///
-/// The resolver is intentionally lexical: it understands package/import names plus fields,
-/// parameters, local declarations, and `var` aliases in the current Java source file. It only
-/// attempts that work after a call's member name matches a declarative deny rule.
+/// The audit builds this before walking calls so a chained invocation such as
+/// `SyntaxHelper.projectCanvasDocument(...).text()` can be resolved to the source-declared
+/// return type instead of being confused with an unrelated API method named `text`.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct JavaSourceTypeIndex {
+    method_returns: BTreeMap<String, BTreeMap<String, BTreeSet<String>>>,
+}
+
+impl JavaSourceTypeIndex {
+    /// # Errors
+    ///
+    /// Returns an error when the Arborium Java grammar cannot be loaded.
+    pub(crate) fn build<'a>(sources: impl IntoIterator<Item = &'a str>) -> eyre::Result<Self> {
+        let mut parser = Parser::new();
+        let language = java_language().into();
+        parser
+            .set_language(&language)
+            .map_err(|error| eyre::eyre!("Failed to load Arborium Java grammar: {error}"))?;
+
+        let mut type_owners = BTreeSet::new();
+        let mut method_drafts = Vec::new();
+        for source in sources {
+            let Some(tree) = parser.parse(source, None) else {
+                continue;
+            };
+            let package_name = find_package_name(tree.root_node(), source).unwrap_or_default();
+            let imports = find_imports(tree.root_node(), source);
+            JavaSourceTypeCollector {
+                source,
+                package_name: &package_name,
+                imports: &imports,
+                type_owners: &mut type_owners,
+                method_drafts: &mut method_drafts,
+                owner_stack: Vec::new(),
+            }
+            .visit(tree.root_node());
+        }
+
+        let mut index = Self::default();
+        for draft in method_drafts {
+            let Some(return_type) = resolve_indexed_type_name(&draft, &type_owners) else {
+                continue;
+            };
+            index
+                .method_returns
+                .entry(draft.owner)
+                .or_default()
+                .entry(draft.member)
+                .or_default()
+                .insert(return_type);
+        }
+        Ok(index)
+    }
+
+    fn method_return_type(&self, owner: &str, member: &str) -> Option<String> {
+        let return_types = self.method_returns.get(owner)?.get(member)?;
+        (return_types.len() == 1)
+            .then(|| return_types.iter().next().cloned())
+            .flatten()
+    }
+}
+
+#[derive(Clone, Debug)]
+struct MethodReturnDraft {
+    owner: String,
+    member: String,
+    raw_return_type: String,
+    package_name: String,
+    imports: JavaImports,
+}
+
+struct JavaSourceTypeCollector<'a> {
+    source: &'a str,
+    package_name: &'a str,
+    imports: &'a JavaImports,
+    type_owners: &'a mut BTreeSet<String>,
+    method_drafts: &'a mut Vec<MethodReturnDraft>,
+    owner_stack: Vec<String>,
+}
+
+impl JavaSourceTypeCollector<'_> {
+    fn visit(&mut self, node: Node<'_>) {
+        if is_type_declaration(node.kind()) {
+            self.visit_type_declaration(node);
+        } else if node.kind() == "method_declaration" {
+            self.collect_method_return(node);
+        } else {
+            self.visit_children(node);
+        }
+    }
+
+    fn visit_type_declaration(&mut self, node: Node<'_>) {
+        let Some(simple_name) = declaration_name(node, self.source) else {
+            self.visit_children(node);
+            return;
+        };
+        let owner = self.owner_stack.last().map_or_else(
+            || qualify_java_name(self.package_name, &simple_name),
+            |parent| format!("{parent}${simple_name}"),
+        );
+        self.type_owners.insert(owner.clone());
+        self.owner_stack.push(owner);
+        self.visit_children(node);
+        let _ = self.owner_stack.pop();
+    }
+
+    fn collect_method_return(&mut self, node: Node<'_>) {
+        let (Some(owner), Some(member), Some(raw_return_type)) = (
+            self.owner_stack.last(),
+            declaration_name(node, self.source),
+            node.child_by_field_name("type")
+                .and_then(|type_node| node_text(type_node, self.source)),
+        ) else {
+            return;
+        };
+        self.method_drafts.push(MethodReturnDraft {
+            owner: owner.clone(),
+            member,
+            raw_return_type: raw_return_type.to_owned(),
+            package_name: self.package_name.to_owned(),
+            imports: self.imports.clone(),
+        });
+    }
+
+    fn visit_children(&mut self, node: Node<'_>) {
+        let mut cursor = node.walk();
+        for child in node.named_children(&mut cursor) {
+            self.visit(child);
+        }
+    }
+}
+
+fn resolve_indexed_type_name(
+    draft: &MethodReturnDraft,
+    type_owners: &BTreeSet<String>,
+) -> Option<String> {
+    resolve_indexed_type_name_raw(
+        &draft.raw_return_type,
+        &draft.owner,
+        &draft.package_name,
+        &draft.imports,
+        type_owners,
+    )
+}
+
+fn resolve_indexed_type_name_raw(
+    raw_type: &str,
+    owner: &str,
+    package_name: &str,
+    imports: &JavaImports,
+    type_owners: &BTreeSet<String>,
+) -> Option<String> {
+    let (raw_base_type, raw_type_arguments) = split_parameterized_type(raw_type.trim());
+    let simple_name = raw_base_type.trim_end_matches("[]").trim();
+    if simple_name.is_empty() {
+        return None;
+    }
+    let resolved_base_type = if is_primitive_or_void(simple_name) {
+        simple_name.to_owned()
+    } else if simple_name == "String" {
+        "java.lang.String".to_owned()
+    } else if let Some(imported) = imports.direct.get(simple_name) {
+        imported.clone()
+    } else if simple_name.contains('.') {
+        simple_name.to_owned()
+    } else {
+        let mut enclosing_owner = Some(owner);
+        let mut resolved_nested_type = None;
+        while let Some(current_owner) = enclosing_owner {
+            let nested_candidate = format!("{current_owner}${simple_name}");
+            if type_owners.contains(&nested_candidate) {
+                resolved_nested_type = Some(nested_candidate);
+                break;
+            }
+            enclosing_owner = current_owner.rsplit_once('$').map(|(parent, _)| parent);
+        }
+        resolved_nested_type.or_else(|| {
+            let package_candidate = qualify_java_name(package_name, simple_name);
+            type_owners
+                .contains(&package_candidate)
+                .then_some(package_candidate)
+        })?
+    };
+
+    let Some(raw_type_arguments) = raw_type_arguments else {
+        return Some(resolved_base_type);
+    };
+    let resolved_type_arguments = split_java_type_arguments(raw_type_arguments)
+        .into_iter()
+        .map(|argument| {
+            resolve_indexed_type_name_raw(argument, owner, package_name, imports, type_owners)
+        })
+        .collect::<Option<Vec<_>>>()?;
+    Some(format!(
+        "{resolved_base_type}<{}>",
+        resolved_type_arguments.join(", ")
+    ))
+}
+
+fn split_parameterized_type(type_name: &str) -> (&str, Option<&str>) {
+    let Some(opening_angle_bracket) = type_name.find('<') else {
+        return (type_name, None);
+    };
+    let Some(closing_angle_bracket) = type_name.rfind('>') else {
+        return (type_name, None);
+    };
+    if closing_angle_bracket + 1 != type_name.len() {
+        return (type_name, None);
+    }
+    (
+        &type_name[..opening_angle_bracket],
+        Some(&type_name[opening_angle_bracket + 1..closing_angle_bracket]),
+    )
+}
+
+fn split_java_type_arguments(arguments: &str) -> Vec<&str> {
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    let mut values = Vec::new();
+    for (index, character) in arguments.char_indices() {
+        match character {
+            '<' => depth += 1,
+            '>' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                values.push(arguments[start..index].trim());
+                start = index + character.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    values.push(arguments[start..].trim());
+    values
+}
+
+fn list_get_return_type(receiver_type: &str, member: &str) -> Option<String> {
+    if member != "get" {
+        return None;
+    }
+    let (base_type, type_arguments) = split_parameterized_type(receiver_type);
+    if base_type != "java.util.List" {
+        return None;
+    }
+    let type_arguments = split_java_type_arguments(type_arguments?);
+    (type_arguments.len() == 1).then(|| type_arguments[0].to_owned())
+}
+
+/// Audit a single Java source with a same-file return-type index.
+///
+/// Cross-source production auditing uses [`audit_java_font_render_surface_with_index`] instead.
+#[cfg(test)]
 pub(crate) fn audit_java_font_render_surface(
     report: &mut BranchSourceAuditReport,
     branch: &str,
@@ -133,6 +380,30 @@ pub(crate) fn audit_java_font_render_surface(
     line_count: SourceLineCount,
     source: &str,
     rules: &AuditRules,
+) -> eyre::Result<()> {
+    let type_index = JavaSourceTypeIndex::build([source])?;
+    audit_java_font_render_surface_with_index(
+        report,
+        branch,
+        repo_path,
+        line_count,
+        source,
+        rules,
+        &type_index,
+    )
+}
+
+/// # Errors
+///
+/// Returns an error if the Java source cannot be parsed with Arborium.
+pub(crate) fn audit_java_font_render_surface_with_index(
+    report: &mut BranchSourceAuditReport,
+    branch: &str,
+    repo_path: &str,
+    line_count: SourceLineCount,
+    source: &str,
+    rules: &AuditRules,
+    type_index: &JavaSourceTypeIndex,
 ) -> eyre::Result<()> {
     let mut parser = Parser::new();
     let language = java_language().into();
@@ -167,6 +438,7 @@ pub(crate) fn audit_java_font_render_surface(
         imports,
         classes: Vec::new(),
         known_class_fields: BTreeMap::new(),
+        source_type_index: type_index,
         callers: Vec::new(),
         scopes: Vec::new(),
     };
@@ -185,6 +457,7 @@ struct JavaAuditVisitor<'a> {
     imports: JavaImports,
     classes: Vec<ClassContext>,
     known_class_fields: BTreeMap<String, BTreeMap<String, String>>,
+    source_type_index: &'a JavaSourceTypeIndex,
     callers: Vec<Caller>,
     scopes: Vec<BTreeMap<String, String>>,
 }
@@ -648,6 +921,7 @@ impl JavaAuditVisitor<'_> {
                 .child_by_field_name("type")
                 .and_then(|type_node| node_text(type_node, self.source))
                 .and_then(|name| self.resolve_type_name(name)),
+            "method_invocation" => self.resolve_method_invocation_return_type(node),
             "field_access" => {
                 let field = node
                     .child_by_field_name("field")
@@ -667,7 +941,7 @@ impl JavaAuditVisitor<'_> {
                 }
             }
             "scoped_identifier" => {
-                node_text(node, self.source).and_then(|name| self.resolve_policy_owner(name))
+                node_text(node, self.source).and_then(|name| self.resolve_type_name(name))
             }
             "cast_expression" => node
                 .child_by_field_name("type")
@@ -688,6 +962,18 @@ impl JavaAuditVisitor<'_> {
             "string_literal" => Some("java.lang.String".to_string()),
             _ => None,
         }
+    }
+
+    fn resolve_method_invocation_return_type(&self, node: Node<'_>) -> Option<String> {
+        let member = node
+            .child_by_field_name("name")
+            .and_then(|name| node_text(name, self.source))?;
+        let owner = match node.child_by_field_name("object") {
+            Some(object) => self.resolve_expression_type(object),
+            None => self.classes.last().map(|class| class.owner.clone()),
+        }?;
+        list_get_return_type(&owner, member)
+            .or_else(|| self.source_type_index.method_return_type(&owner, member))
     }
 
     fn resolve_type_name(&self, raw_name: &str) -> Option<String> {
@@ -824,6 +1110,7 @@ fn is_type_declaration(kind: &str) -> bool {
         "class_declaration"
             | "interface_declaration"
             | "enum_declaration"
+            | "record_declaration"
             | "annotation_type_declaration"
     )
 }
@@ -987,7 +1274,9 @@ fn simple_class_name(owner: &str) -> String {
 mod tests {
     use super::AuditRules;
     use super::Caller;
+    use super::JavaSourceTypeIndex;
     use super::audit_java_font_render_surface;
+    use super::audit_java_font_render_surface_with_index;
     use crate::source_audit::AuditWarning;
     use crate::source_audit::AuditWarningDetail;
     use crate::source_audit::BranchSourceAuditReport;
@@ -1255,6 +1544,141 @@ mod tests {
                 if call_site.method_declaration
                     == "public String copyableText(int spaceWidth, int lineHeight)"
         ));
+    }
+
+    #[test]
+    fn resolves_cross_source_method_return_types_before_matching_a_rule_member_name() {
+        let helper_source = r#"
+            package example;
+            final class SyntaxHelper {
+                static CanvasDocumentProjection projectCanvasDocument() {
+                    return null;
+                }
+                record CanvasDocumentProjection(String text) {}
+            }
+            "#;
+        let consumer_source = r#"
+            package example;
+            final class Consumer {
+                String copyableText() {
+                    return SyntaxHelper.projectCanvasDocument().text();
+                }
+            }
+            "#;
+        let rules =
+            AuditRules::parse("DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *")
+                .expect("rules should parse");
+        let type_index = JavaSourceTypeIndex::build([helper_source, consumer_source])
+            .expect("source index should build");
+        let mut report = BranchSourceAuditReport::new("1.19.2");
+
+        audit_java_font_render_surface_with_index(
+            &mut report,
+            "1.19.2",
+            "platform/minecraft/src/main/java/example/Consumer.java",
+            SourceLineCount::from_text(consumer_source),
+            consumer_source,
+            &rules,
+            &type_index,
+        )
+        .expect("source should parse");
+
+        assert!(
+            report.problems.is_empty(),
+            "problems: {:?}",
+            report.problems
+        );
+    }
+
+    #[test]
+    fn resolves_list_get_to_the_source_declared_element_type() {
+        let canvas_source = r#"
+            package example;
+            import java.util.List;
+            final class Canvas {
+                List<Glyph> glyphs() {
+                    return null;
+                }
+                record Glyph(String text) {}
+            }
+            "#;
+        let consumer_source = r#"
+            package example;
+            final class Consumer {
+                String copyableText(Canvas canvas) {
+                    return canvas.glyphs().get(0).text();
+                }
+            }
+            "#;
+        let rules =
+            AuditRules::parse("DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *")
+                .expect("rules should parse");
+        let type_index = JavaSourceTypeIndex::build([canvas_source, consumer_source])
+            .expect("source index should build");
+        let mut report = BranchSourceAuditReport::new("1.19.2");
+
+        audit_java_font_render_surface_with_index(
+            &mut report,
+            "1.19.2",
+            "platform/minecraft/src/main/java/example/Consumer.java",
+            SourceLineCount::from_text(consumer_source),
+            consumer_source,
+            &rules,
+            &type_index,
+        )
+        .expect("source should parse");
+
+        assert!(
+            report.problems.is_empty(),
+            "problems: {:?}",
+            report.problems
+        );
+    }
+
+    #[test]
+    fn resolves_an_indexed_method_return_to_a_denied_imported_type() {
+        let helper_source = r#"
+            package example;
+            import net.minecraft.client.gui.GuiGraphicsExtractor;
+            final class Helper {
+                static GuiGraphicsExtractor extractor() {
+                    return null;
+                }
+            }
+            "#;
+        let consumer_source = r#"
+            package example;
+            final class Consumer {
+                void render() {
+                    Helper.extractor().text();
+                }
+            }
+            "#;
+        let rules =
+            AuditRules::parse("DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *")
+                .expect("rules should parse");
+        let type_index = JavaSourceTypeIndex::build([helper_source, consumer_source])
+            .expect("source index should build");
+        let mut report = BranchSourceAuditReport::new("1.19.2");
+
+        audit_java_font_render_surface_with_index(
+            &mut report,
+            "1.19.2",
+            "platform/minecraft/src/main/java/example/Consumer.java",
+            SourceLineCount::from_text(consumer_source),
+            consumer_source,
+            &rules,
+            &type_index,
+        )
+        .expect("source should parse");
+
+        let warnings = report
+            .problems
+            .iter()
+            .map(|problem| problem.audit_warning())
+            .collect::<Vec<_>>();
+        assert_eq!(warnings.len(), 1);
+        assert!(is_violation(&warnings[0]));
     }
 
     #[test]

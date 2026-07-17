@@ -2,13 +2,14 @@ use super::AuditRules;
 use super::AuditWarningReport;
 use super::AuditedSourceFile;
 use super::BranchSourceAuditReport;
+use super::JavaSourceTypeIndex;
 use super::SourceAuditOptions;
 use super::SourceAuditReport;
 use super::SourceLanguage;
 use super::SourceLineCount;
 use super::SourceProblem;
 use super::VersionSurfaceAuditReport;
-use super::audit_java_font_render_surface;
+use super::audit_java_font_render_surface_with_index;
 use super::audit_version_surfaces;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::discover_worktree_targets;
@@ -27,6 +28,12 @@ use std::path::PathBuf;
 
 const SFM_PRODUCTION_JAVA_PREFIX: &str = "platform/minecraft/src/main/java/ca/teamdman/sfm/";
 const SFM_AUDIT_RULES_PATH: &str = "platform/minecraft/sfm.audit_rules";
+
+struct FontAuditSource {
+    repo_path: String,
+    line_count: SourceLineCount,
+    content: String,
+}
 
 #[derive(Debug)]
 pub struct SourceAuditCommand {
@@ -101,6 +108,7 @@ impl SourceAuditCommand {
             .font_render_surface
             .then(|| AuditRules::load(&worktree_path.join(SFM_AUDIT_RULES_PATH)))
             .transpose()?;
+        let mut font_audit_sources = Vec::new();
         for entry in index.entries() {
             if entry.stage() != gix::index::entry::Stage::Unconflicted {
                 continue;
@@ -150,15 +158,31 @@ impl SourceAuditCommand {
 
             if language == SourceLanguage::Java
                 && is_sfm_java_source(&repo_path)
-                && let Some(font_rules) = &font_rules
+                && font_rules.is_some()
             {
-                audit_java_font_render_surface(
+                font_audit_sources.push(FontAuditSource {
+                    repo_path,
+                    line_count,
+                    content,
+                });
+            }
+        }
+
+        if let Some(font_rules) = &font_rules {
+            let type_index = JavaSourceTypeIndex::build(
+                font_audit_sources
+                    .iter()
+                    .map(|source| source.content.as_str()),
+            )?;
+            for source in font_audit_sources {
+                audit_java_font_render_surface_with_index(
                     &mut report,
                     branch,
-                    &repo_path,
-                    line_count,
-                    &content,
+                    &source.repo_path,
+                    source.line_count,
+                    &source.content,
                     font_rules,
+                    &type_index,
                 )?;
             }
         }
