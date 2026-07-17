@@ -11,6 +11,7 @@ pub struct RunOptions {
     pub game_test_bisect: Option<GameTestBisectOptions>,
     pub client_puppet_keep_open: ClientPuppetKeepOpen,
     pub game_puppet_keep_open: GamePuppetKeepOpen,
+    pub game_puppet_mute: bool,
     pub preview_width: u16,
     pub preview_height: u16,
     pub client_title_screen: Option<ClientTitleScreen>,
