@@ -31,6 +31,7 @@ pub use source_language::SourceLanguage;
 pub use source_line_count::SourceLineCount;
 pub use source_line_limit::SourceLineLimit;
 pub(crate) use source_problem::AuditRuleDiagnostic;
+pub(crate) use source_problem::JavaCallSite;
 pub use source_problem::SourceProblem;
 pub use version_surface_audit::VersionSurfaceAuditReport;
 pub(crate) use version_surface_audit::audit_version_surfaces;

@@ -1,4 +1,5 @@
 use super::DetectedSourceLocation;
+use super::JavaCallSite;
 use super::SourceLanguage;
 use facet::Facet;
 use std::collections::BTreeMap;
@@ -28,21 +29,31 @@ impl AuditWarning {
                 annotation,
                 required_replacement,
             } => format!("annotation=@{annotation} required_replacement=@{required_replacement}"),
-            AuditWarningDetail::AuditRuleViolation { callee, caller, .. } => format!(
-                "callee={} caller={}",
-                compact_text(callee),
-                compact_text(caller),
-            ),
-            AuditWarningDetail::UnresolvedAuditRuleCall {
-                receiver, caller, ..
+            AuditWarningDetail::AuditRuleViolation {
+                callee, call_site, ..
             } => format!(
+                "callee={} receiver={} caller={}",
+                compact_text(callee),
+                compact_text(&call_site.receiver_expression),
+                compact_text(&call_site.method_declaration),
+            ),
+            AuditWarningDetail::UnresolvedAuditRuleCall { call_site, .. } => format!(
                 "receiver={} caller={}",
-                compact_text(receiver),
-                compact_text(caller),
+                compact_text(&call_site.receiver_expression),
+                compact_text(&call_site.method_declaration),
             ),
             AuditWarningDetail::AuditRuleParseFailure { parser } => {
                 format!("parser={parser}")
             }
+        }
+    }
+
+    #[must_use]
+    pub fn java_call_site(&self) -> Option<&JavaCallSite> {
+        match &self.detail {
+            AuditWarningDetail::AuditRuleViolation { call_site, .. }
+            | AuditWarningDetail::UnresolvedAuditRuleCall { call_site, .. } => Some(call_site),
+            _ => None,
         }
     }
 }
@@ -71,13 +82,11 @@ pub(crate) enum AuditWarningDetail {
     AuditRuleViolation {
         rule: String,
         callee: String,
-        caller: String,
+        call_site: JavaCallSite,
     },
     UnresolvedAuditRuleCall {
         rule: String,
-        member: String,
-        receiver: String,
-        caller: String,
+        call_site: JavaCallSite,
     },
     AuditRuleParseFailure {
         parser: String,
@@ -110,12 +119,12 @@ impl AuditWarningGroupKey {
             AuditWarningDetail::AuditRuleViolation { rule, .. } => {
                 Self::AuditRuleViolation { rule: rule.clone() }
             }
-            AuditWarningDetail::UnresolvedAuditRuleCall { rule, member, .. } => {
-                Self::UnresolvedAuditRuleCall {
-                    rule: rule.clone(),
-                    member: member.clone(),
-                }
-            }
+            AuditWarningDetail::UnresolvedAuditRuleCall {
+                rule, call_site, ..
+            } => Self::UnresolvedAuditRuleCall {
+                rule: rule.clone(),
+                member: call_site.member.clone(),
+            },
             AuditWarningDetail::AuditRuleParseFailure { parser } => Self::AuditRuleParseFailure {
                 parser: parser.clone(),
             },
@@ -250,6 +259,7 @@ mod tests {
     use super::DETAIL_CHARACTER_LIMIT;
     use super::compact_text;
     use crate::source_audit::DetectedSourceLocation;
+    use crate::source_audit::JavaCallSite;
     use crate::source_audit::SourceLanguage;
 
     fn unresolved_warning(branch: &str, line: usize, member: &str) -> AuditWarning {
@@ -259,9 +269,14 @@ mod tests {
             language: SourceLanguage::Java,
             detail: AuditWarningDetail::UnresolvedAuditRuleCall {
                 rule: "DENY CALL example.Type draw *".to_owned(),
-                member: member.to_owned(),
-                receiver: "receiver".to_owned(),
-                caller: "caller".to_owned(),
+                call_site: JavaCallSite {
+                    class_name: "Test".to_owned(),
+                    method_declaration: "void caller()".to_owned(),
+                    method_returns_value: false,
+                    receiver_expression: "receiver".to_owned(),
+                    member: member.to_owned(),
+                    call_expression: format!("receiver.{member}()"),
+                },
             },
         }
     }

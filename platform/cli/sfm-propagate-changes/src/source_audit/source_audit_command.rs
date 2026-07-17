@@ -13,12 +13,15 @@ use super::audit_version_surfaces;
 use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::discover_worktree_targets;
 use crate::branch_targets::select_required_worktree_targets;
+use crate::logging::TerminalTextExt;
+use crate::logging::vscode_file_uri_for_path;
 use crate::terminal_output::stdout_blank_line;
 use crate::terminal_output::stdout_line;
 use color_eyre::owo_colors::OwoColorize;
 use eyre::Context;
 use facet_pretty::FacetPretty as _;
 use gix::bstr::ByteSlice;
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -41,6 +44,15 @@ impl SourceAuditCommand {
     /// Returns an error if worktree selection, index loading, source reading, or output writing fails.
     pub fn invoke(self) -> eyre::Result<()> {
         let targets = select_required_worktree_targets(&self.options.branch)?;
+        let worktree_paths = targets
+            .iter()
+            .map(|target| {
+                (
+                    target.branch.as_str().to_owned(),
+                    target.worktree_path.as_path().to_path_buf(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
         let mut report = SourceAuditReport::default();
 
         for target in &targets {
@@ -56,7 +68,7 @@ impl SourceAuditCommand {
 
         stdout_blank_line()?;
         stdout_line(report.final_summary_line())?;
-        emit_audit_warning_summary(&report)?;
+        emit_audit_warning_summary(&report, &worktree_paths)?;
 
         if self.options.version_surfaces {
             let version_targets = include_version_surface_baseline(targets)?;
@@ -155,7 +167,10 @@ impl SourceAuditCommand {
     }
 }
 
-fn emit_audit_warning_summary(report: &SourceAuditReport) -> eyre::Result<()> {
+fn emit_audit_warning_summary(
+    report: &SourceAuditReport,
+    worktree_paths: &BTreeMap<String, PathBuf>,
+) -> eyre::Result<()> {
     let warning_report = AuditWarningReport::from_warnings(
         report
             .problems()
@@ -194,11 +209,17 @@ fn emit_audit_warning_summary(report: &SourceAuditReport) -> eyre::Result<()> {
         stdout_line(group.header().pretty())?;
         for warning in &group.examples {
             stdout_line(format!(
-                "  {} {} {}",
+                "  {} {}",
                 "at".dimmed(),
-                warning.location.cyan(),
-                format!("— {}", warning.compact_detail()).dimmed(),
+                render_warning_location(warning, worktree_paths),
             ))?;
+            if let Some(call_site) = warning.java_call_site() {
+                for line in java_call_frame_lines(call_site) {
+                    stdout_line(line)?;
+                }
+            } else {
+                stdout_line(format!("    {}", warning.compact_detail().dimmed()))?;
+            }
         }
     }
     if warning_report.omitted_group_count != 0 {
@@ -210,6 +231,85 @@ fn emit_audit_warning_summary(report: &SourceAuditReport) -> eyre::Result<()> {
         ))?;
     }
     Ok(())
+}
+
+fn render_warning_location(
+    warning: &super::AuditWarning,
+    worktree_paths: &BTreeMap<String, PathBuf>,
+) -> String {
+    let Some(worktree_path) = worktree_paths.get(&warning.location.branch) else {
+        return warning.location.to_string().cyan().to_string();
+    };
+    let source_path = worktree_path.join(&warning.location.path);
+    let file_name = source_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(warning.location.path.as_str());
+    let uri =
+        vscode_file_uri_for_path(&source_path, warning.location.line, warning.location.column);
+    let label = file_name.cyan().hyperlink(&uri);
+    format!(
+        "{label}:{}:{}",
+        warning.location.line, warning.location.column
+    )
+}
+
+fn java_call_frame_lines(call_site: &super::JavaCallSite) -> Vec<String> {
+    let mut lines = Vec::new();
+    lines.push(format!(
+        "    {} {} {{",
+        "class".purple().bold(),
+        call_site.class_name.cyan().bold(),
+    ));
+    lines.push(format!("      {} {{", call_site.method_declaration.green()));
+
+    let call_expression_lines = highlighted_call_expression_lines(call_site);
+    if let Some((first, rest)) = call_expression_lines.split_first() {
+        let prefix = if call_site.method_returns_value {
+            format!("{} ", "return".purple().bold())
+        } else {
+            String::new()
+        };
+        lines.push(format!("        {prefix}{first}"));
+        lines.extend(rest.iter().map(|line| format!("            {line}")));
+        let last = lines
+            .last_mut()
+            .expect("call expression should produce a line");
+        last.push(';');
+    } else {
+        lines.push(format!(
+            "        {};",
+            format!(".{}()", call_site.member).red().bold(),
+        ));
+    }
+    lines.push("      }".to_owned());
+    lines.push("    }".to_owned());
+    lines
+}
+
+fn highlighted_call_expression_lines(call_site: &super::JavaCallSite) -> Vec<String> {
+    let needle = if call_site.member == "<init>" {
+        "new".to_owned()
+    } else {
+        format!(".{}", call_site.member)
+    };
+    let expression = call_site.call_expression.trim();
+    let highlighted = expression.rfind(&needle).map_or_else(
+        || expression.to_owned(),
+        |index| {
+            format!(
+                "{}{}",
+                &expression[..index],
+                (&expression[index..]).red().bold(),
+            )
+        },
+    );
+    highlighted
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_owned)
+        .collect()
 }
 
 fn is_sfm_java_source(repo_path: &str) -> bool {
@@ -332,16 +432,98 @@ fn repo_path_to_filesystem_path(worktree_path: &Path, repo_path: &str) -> PathBu
 #[cfg(test)]
 mod tests {
     use super::SourceAuditCommand;
+    use super::java_call_frame_lines;
+    use super::render_warning_location;
     use crate::branch_targets::BranchName;
     use crate::branch_targets::BranchQuery;
     use crate::branch_targets::WorktreePath;
     use crate::branch_targets::WorktreeTarget;
+    use crate::source_audit::AuditWarning;
+    use crate::source_audit::AuditWarningCategory;
     use crate::source_audit::AuditWarningDetail;
+    use crate::source_audit::DetectedSourceLocation;
+    use crate::source_audit::JavaCallSite;
     use crate::source_audit::SourceAuditOptions;
+    use crate::source_audit::SourceLanguage;
     use crate::source_audit::SourceLineLimit;
+    use color_eyre::owo_colors::OwoColorize;
     use eyre::Context;
+    use std::collections::BTreeMap;
     use std::fs;
+    use std::path::PathBuf;
     use std::process::Command;
+
+    fn font_call_site() -> JavaCallSite {
+        JavaCallSite {
+            class_name: "SFMDrawCanvasModel".to_owned(),
+            method_declaration: "public String copyableText(int spaceWidth, int lineHeight)"
+                .to_owned(),
+            method_returns_value: true,
+            receiver_expression: "SFMDrawCanvasSyntaxHighlightingHelper.projectCanvasDocument(...)"
+                .to_owned(),
+            member: "text".to_owned(),
+            call_expression: "SFMDrawCanvasSyntaxHighlightingHelper\n    .projectCanvasDocument(normalizedGlyphs(selectedGlyphs), spaceWidth, lineHeight)\n    .text()".to_owned(),
+        }
+    }
+
+    #[test]
+    fn warning_locations_link_the_filename_without_repeating_the_branch() {
+        let warning = AuditWarning {
+            category: AuditWarningCategory::AuditRuleViolation,
+            location: DetectedSourceLocation::new(
+                "1.19.2",
+                "platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/SFMDrawCanvasModel.java",
+                278,
+                18,
+            ),
+            language: SourceLanguage::Java,
+            detail: AuditWarningDetail::AuditRuleViolation {
+                rule: "DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *".to_owned(),
+                callee: "net.minecraft.client.gui.GuiGraphicsExtractor text *".to_owned(),
+                call_site: font_call_site(),
+            },
+        };
+        let worktree_paths = BTreeMap::from([("1.19.2".to_owned(), PathBuf::from("D:/repo"))]);
+
+        let rendered = render_warning_location(&warning, &worktree_paths);
+
+        assert!(rendered.contains("SFMDrawCanvasModel.java"));
+        assert!(rendered.contains("\x1b]8;;vscode://file/D:/repo/platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/SFMDrawCanvasModel.java:278:18\x1b\\"));
+        assert!(!rendered.contains("1.19.2"));
+        assert!(rendered.ends_with(":278:18"));
+    }
+
+    #[test]
+    fn java_call_frame_is_java_shaped_and_highlights_the_audited_member() {
+        let frame = java_call_frame_lines(&font_call_site()).join("\n");
+        let plain = strip_ansi_sgr(&frame);
+
+        assert_eq!(
+            plain,
+            "    class SFMDrawCanvasModel {\n      public String copyableText(int spaceWidth, int lineHeight) {\n        return SFMDrawCanvasSyntaxHighlightingHelper\n            .projectCanvasDocument(normalizedGlyphs(selectedGlyphs), spaceWidth, lineHeight)\n            .text();\n      }\n    }"
+        );
+        assert!(frame.contains(&format!("{}", ".text()".red().bold())));
+    }
+
+    fn strip_ansi_sgr(value: &str) -> String {
+        let mut output = String::new();
+        let mut characters = value.chars();
+        while let Some(character) = characters.next() {
+            if character != '\x1b' {
+                output.push(character);
+                continue;
+            }
+            if characters.next() != Some('[') {
+                continue;
+            }
+            while let Some(character) = characters.next() {
+                if character == 'm' {
+                    break;
+                }
+            }
+        }
+        output
+    }
 
     #[test]
     fn gix_index_scan_audits_tracked_files_and_ignores_untracked_files() -> eyre::Result<()> {

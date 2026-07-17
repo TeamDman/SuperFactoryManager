@@ -1,5 +1,6 @@
 use super::AuditRuleDiagnostic;
 use super::BranchSourceAuditReport;
+use super::JavaCallSite;
 use super::SourceLineCount;
 use super::SourceProblem;
 use arborium_java::language as java_language;
@@ -214,6 +215,8 @@ struct Caller {
     owner: String,
     member: String,
     descriptor: Option<String>,
+    declaration: String,
+    returns_value: bool,
 }
 
 impl JavaAuditVisitor<'_> {
@@ -268,10 +271,18 @@ impl JavaAuditVisitor<'_> {
         let member = declaration_name(node, self.source).unwrap_or_else(|| "<init>".to_string());
         let parameters = self.method_parameters(node);
         let descriptor = self.method_descriptor(node, &parameters);
+        let returns_value = node.kind() != "constructor_declaration"
+            && node
+                .child_by_field_name("type")
+                .and_then(|type_node| node_text(type_node, self.source))
+                .is_some_and(|return_type| return_type != "void");
         self.callers.push(Caller {
             owner,
             member,
             descriptor,
+            declaration: method_declaration_signature(node, self.source)
+                .unwrap_or_else(|| "void <unknown>()".to_owned()),
+            returns_value,
         });
         self.scopes.push(parameters);
         self.visit_children(node);
@@ -346,12 +357,14 @@ impl JavaAuditVisitor<'_> {
         let receiver_expression = object
             .and_then(|object| node_text(object, self.source))
             .unwrap_or("<implicit-receiver>");
+        let call_expression = node_text(node, self.source).unwrap_or(member);
         self.record_call(
             member_node,
             member,
             descriptor.as_deref(),
             receiver.as_deref(),
             receiver_expression,
+            call_expression,
         );
     }
 
@@ -366,12 +379,14 @@ impl JavaAuditVisitor<'_> {
         let receiver =
             node_text(type_node, self.source).and_then(|name| self.resolve_type_name(name));
         let receiver_expression = node_text(type_node, self.source).unwrap_or("<unknown-type>");
+        let call_expression = node_text(node, self.source).unwrap_or(receiver_expression);
         self.record_call(
             type_node,
             "<init>",
             descriptor.as_deref(),
             receiver.as_deref(),
             receiver_expression,
+            call_expression,
         );
     }
 
@@ -382,6 +397,7 @@ impl JavaAuditVisitor<'_> {
         descriptor: Option<&str>,
         receiver: Option<&str>,
         receiver_expression: &str,
+        call_expression: &str,
     ) {
         let caller = self.callers.last().cloned().unwrap_or_else(|| Caller {
             owner: self
@@ -390,12 +406,22 @@ impl JavaAuditVisitor<'_> {
                 .map_or_else(|| "<top-level>".to_string(), |class| class.owner.clone()),
             member: "<initializer>".to_string(),
             descriptor: None,
+            declaration: "void <initializer>()".to_owned(),
+            returns_value: false,
         });
         if self.rules.is_permitted_caller(&caller) {
             return;
         }
         let line = location.start_position().row + 1;
         let column = location.start_position().column + 1;
+        let call_site = JavaCallSite {
+            class_name: simple_class_name(&caller.owner),
+            method_declaration: caller.declaration.clone(),
+            method_returns_value: caller.returns_value,
+            receiver_expression: receiver_expression.to_owned(),
+            member: member.to_owned(),
+            call_expression: call_expression.to_owned(),
+        };
         if let Some(owner) = receiver {
             let Some(rule) = self.rules.denied_rule(owner, member, descriptor) else {
                 return;
@@ -409,7 +435,7 @@ impl JavaAuditVisitor<'_> {
                 AuditRuleDiagnostic::Violation {
                     rule: format_rule(rule),
                     forbidden_call: format_matched_call(owner, member, descriptor, rule),
-                    caller_context: format_caller(&caller),
+                    call_site,
                 },
             ));
         } else {
@@ -427,9 +453,7 @@ impl JavaAuditVisitor<'_> {
                 column,
                 AuditRuleDiagnostic::UnresolvedCall {
                     rule: format_rule(rule),
-                    member: member.to_string(),
-                    receiver_expression: receiver_expression.to_string(),
-                    caller_context: format_caller(&caller),
+                    call_site,
                 },
             ));
         }
@@ -929,16 +953,34 @@ fn format_matched_call(
     )
 }
 
-fn format_caller(caller: &Caller) -> String {
-    format!(
-        "{} {} {}",
-        caller.owner,
-        caller.member,
-        caller
-            .descriptor
-            .as_deref()
-            .unwrap_or("<unresolved-descriptor>")
-    )
+fn method_declaration_signature(node: Node<'_>, source: &str) -> Option<String> {
+    let declaration = node_text(node, source)?;
+    let declaration = declaration
+        .split_once('{')
+        .map_or(declaration, |(signature, _)| signature)
+        .trim_end_matches(';');
+    let declaration = normalize_java_declaration_spacing(declaration);
+    (!declaration.is_empty()).then_some(declaration)
+}
+
+fn normalize_java_declaration_spacing(declaration: &str) -> String {
+    let mut normalized = declaration.split_whitespace().collect::<Vec<_>>().join(" ");
+    for (from, to) in [
+        ("( ", "("),
+        (" )", ")"),
+        (" ,", ","),
+        ("[ ", "["),
+        (" ]", "]"),
+        (" .", "."),
+        (". ", "."),
+    ] {
+        normalized = normalized.replace(from, to);
+    }
+    normalized
+}
+
+fn simple_class_name(owner: &str) -> String {
+    owner.rsplit('.').next().unwrap_or(owner).to_owned()
 }
 
 #[cfg(test)]
@@ -1030,11 +1072,15 @@ mod tests {
             owner: "example.Trusted".to_string(),
             member: "render".to_string(),
             descriptor: Some("(I)V".to_string()),
+            declaration: "void render(int value)".to_owned(),
+            returns_value: false,
         }));
         assert!(!rules.is_permitted_caller(&Caller {
             owner: "example.Trusted".to_string(),
             member: "render".to_string(),
             descriptor: Some("(J)V".to_string()),
+            declaration: "void render(long value)".to_owned(),
+            returns_value: false,
         }));
     }
 
@@ -1189,6 +1235,29 @@ mod tests {
     }
 
     #[test]
+    fn caller_signatures_are_normalized_for_java_diagnostic_frames() {
+        let warnings = audit(
+            r#"
+            package example;
+            import net.minecraft.client.gui.Font;
+            final class Example {
+                Font font;
+                public String copyableText( int spaceWidth, int lineHeight ) {
+                    return font.draw(null, "a", 0, 0, 0);
+                }
+            }
+            "#,
+        );
+
+        assert!(matches!(
+            &warnings[0].detail,
+            AuditWarningDetail::AuditRuleViolation { call_site, .. }
+                if call_site.method_declaration
+                    == "public String copyableText(int spaceWidth, int lineHeight)"
+        ));
+    }
+
+    #[test]
     fn warns_when_a_suspicious_receiver_cannot_be_resolved() {
         let warnings = audit(
             r#"
@@ -1204,10 +1273,9 @@ mod tests {
         assert!(matches!(
             &warnings[0].detail,
             AuditWarningDetail::UnresolvedAuditRuleCall {
-                member,
-                receiver,
+                call_site,
                 ..
-            } if member == "draw" && receiver == "minecraft.font"
+            } if call_site.member == "draw" && call_site.receiver_expression == "minecraft.font"
         ));
     }
 
