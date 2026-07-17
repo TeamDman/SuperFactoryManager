@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FastColor;
+import net.minecraft.util.FormattedCharSequence;
 import org.joml.Matrix4f;
 
 public class SFMFontUtils {
@@ -95,6 +96,22 @@ public class SFMFontUtils {
             GuiGraphics graphics,
             Font font,
             String text,
+            int x,
+            int y,
+            int colour,
+            boolean shadow
+    ) {
+        graphics.drawString(font, text, x, y, colour, shadow);
+    }
+
+    /**
+     * @param colour See also: {@link FastColor.ARGB32#color(int, int, int, int)}
+     */
+    @MCVersionDependentBehaviour
+    public static void draw(
+            GuiGraphics graphics,
+            Font font,
+            FormattedCharSequence text,
             int x,
             int y,
             int colour,
