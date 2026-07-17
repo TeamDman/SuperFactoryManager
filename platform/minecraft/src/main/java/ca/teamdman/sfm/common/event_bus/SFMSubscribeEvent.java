@@ -22,6 +22,12 @@ public @interface SFMSubscribeEvent {
 
     boolean receiveCanceled() default false;
 
+    /**
+     * Optional dependency that must be loaded before this subscriber class is resolved.
+     * This keeps handlers whose signatures reference an optional mod out of automatic discovery.
+     */
+    String requiredModId() default "";
+
     // This is unused and idk what the modid param in the built-in event bus subscriber does so I'll leave until
     // I understand enough to safely remove it.
     @SuppressWarnings({"unused", "SpellCheckingInspection"})
