@@ -212,8 +212,13 @@ fn client_automation_options_disable_onboarding_and_focus_pause() {
     .expect("write existing options");
 
     let prepared =
-        prepare_client_automation_options(&minecraft_dir, &puppet_dir, RunKind::ClientPuppet)
-            .expect("prepare client puppet options");
+        prepare_client_automation_options(
+            &minecraft_dir,
+            &puppet_dir,
+            RunKind::ClientPuppet,
+            &RunOptions::default(),
+        )
+        .expect("prepare client puppet options");
 
     assert_eq!(prepared, Some(options_path.clone()));
     let updated = fs::read_to_string(&options_path).expect("read updated options");
@@ -224,10 +229,55 @@ fn client_automation_options_disable_onboarding_and_focus_pause() {
 
     let client_dir = minecraft_dir.join("runClient");
     fs::create_dir_all(&client_dir).expect("create client run dir");
-    let untouched = prepare_client_automation_options(&minecraft_dir, &client_dir, RunKind::Client)
-        .expect("skip regular client options");
+    let untouched = prepare_client_automation_options(
+        &minecraft_dir,
+        &client_dir,
+        RunKind::Client,
+        &RunOptions::default(),
+    )
+    .expect("skip regular client options");
     assert_eq!(untouched, None);
     assert!(!client_dir.join("options.txt").exists());
+}
+
+#[test]
+fn game_puppet_options_set_the_requested_master_volume() {
+    let test_dir = tempfile::Builder::new()
+        .prefix("sfm-game-puppet-options-")
+        .tempdir()
+        .expect("test temp dir should be created");
+    let minecraft_dir = test_dir.path().join("minecraft");
+    let puppet_dir = minecraft_dir.join("runGameTestPreview");
+    fs::create_dir_all(&puppet_dir).expect("create puppet run dir");
+    let options_path = puppet_dir.join("options.txt");
+    fs::write(&options_path, "soundCategory_master:0.25\n")
+        .expect("write existing options");
+
+    prepare_client_automation_options(
+        &minecraft_dir,
+        &puppet_dir,
+        RunKind::GameTestPreview,
+        &RunOptions {
+            game_puppet_mute: true,
+            ..RunOptions::default()
+        },
+    )
+    .expect("prepare muted puppet options");
+    let muted = fs::read_to_string(&options_path).expect("read muted options");
+    assert!(muted.contains("soundCategory_master:0.0\n"));
+
+    prepare_client_automation_options(
+        &minecraft_dir,
+        &puppet_dir,
+        RunKind::GameTestPreview,
+        &RunOptions {
+            game_puppet_mute: false,
+            ..RunOptions::default()
+        },
+    )
+    .expect("prepare unmuted puppet options");
+    let unmuted = fs::read_to_string(&options_path).expect("read unmuted options");
+    assert!(unmuted.contains("soundCategory_master:1.0\n"));
 }
 
 #[test]
