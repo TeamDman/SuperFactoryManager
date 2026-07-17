@@ -82,6 +82,12 @@ public class SFMAnnotationUtils {
             return inner.clazz();
         }
 
+        public String getString(String key, String defaultValue) {
+
+            Object value = annotationData().get(key);
+            return value instanceof String string ? string : defaultValue;
+        }
+
         @SuppressWarnings("unchecked")
         public <T extends Enum<T>> EnumSet<T> getEnumSet(
                 String key,
