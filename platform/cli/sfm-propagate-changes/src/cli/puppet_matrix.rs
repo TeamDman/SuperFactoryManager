@@ -42,6 +42,9 @@ pub struct PuppetMatrixArgs {
     /// Window height used for native screenshot captures.
     #[facet(default, args::named)]
     pub height: Option<u16>,
+    /// Mute Minecraft audio during each puppet run by default. Use `--no-mute` to hear it.
+    #[facet(default = true, args::named)]
+    pub mute: bool,
 }
 
 #[derive(Debug, Facet)]
@@ -136,6 +139,7 @@ impl PuppetMatrixArgs {
                 self.game_test.clone(),
                 self.width,
                 self.height,
+                self.mute,
                 expected_game_test.as_deref(),
                 cancellation_token.clone(),
             );
@@ -202,6 +206,7 @@ fn run_matrix_target(
     game_test: Option<String>,
     width: Option<u16>,
     height: Option<u16>,
+    mute: bool,
     expected_game_test: Option<&str>,
     cancellation_token: CancellationToken,
 ) -> eyre::Result<PuppetMatrixTarget> {
@@ -216,6 +221,7 @@ fn run_matrix_target(
         game_test,
         width,
         height,
+        mute,
         None,
         cancellation_token,
     )?;

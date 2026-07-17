@@ -288,6 +288,7 @@ mod tests {
             "1600",
             "--height",
             "900",
+            "--no-mute",
         ])
         .into_result()
         .expect("game test preview arguments should parse")
@@ -300,7 +301,25 @@ mod tests {
                 assert_eq!(args.game_test.as_deref(), Some("sfm:move_1_stack_direct"));
                 assert_eq!(args.width, Some(1600));
                 assert_eq!(args.height, Some(900));
+                assert!(!args.mute);
             }
+            command => panic!("expected puppet run command, got {command:?}"),
+        }
+
+        let default_muted_puppet = figue::from_slice::<Cli>(&[
+            "puppet",
+            "run",
+            "--branch",
+            "1.19.2",
+            "title_screen_capture",
+        ])
+        .into_result()
+        .expect("default puppet mute should parse")
+        .get_silent();
+        match default_muted_puppet.command {
+            Command::Puppet(crate::cli::puppet::PuppetArgs {
+                command: crate::cli::puppet::PuppetCommand::Run(args),
+            }) => assert!(args.mute),
             command => panic!("expected puppet run command, got {command:?}"),
         }
 

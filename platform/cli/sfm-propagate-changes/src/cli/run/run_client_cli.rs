@@ -51,6 +51,9 @@ pub struct RunClientArgs {
     /// Window height used for puppet native screenshot captures.
     #[facet(default, args::named)]
     pub height: Option<u16>,
+    /// Mute Minecraft audio during a puppet run by default. Use `--no-mute` to hear it.
+    #[facet(default = true, args::named)]
+    pub mute: bool,
     /// Hold the final puppet world. Bare keeps it open forever; values accept humantime durations.
     #[facet(default, args::named)]
     pub keep_open: Option<Option<String>>,
@@ -74,6 +77,7 @@ impl RunClientArgs {
             game_test,
             width,
             height,
+            mute,
             keep_open,
         } = self;
         if smoke && puppet.is_some() {
@@ -95,6 +99,7 @@ impl RunClientArgs {
                 game_test,
                 width,
                 height,
+                mute,
                 keep_open,
                 cancellation_token,
             );
@@ -123,8 +128,15 @@ impl RunClientArgs {
             )
             .invoke();
         }
-        if width.is_some() || height.is_some() || keep_open.is_some() || game_test.is_some() {
-            eyre::bail!("--width, --height, --keep-open, and --game-test require --puppet.");
+        if width.is_some()
+            || height.is_some()
+            || keep_open.is_some()
+            || game_test.is_some()
+            || !mute
+        {
+            eyre::bail!(
+                "--width, --height, --mute, --keep-open, and --game-test require --puppet."
+            );
         }
         let title_screen = resolve_title_screen(title_screen, text_editor, input_diag)?;
         let hotswap_port = hotswap.then_some(hotswap_port.unwrap_or(5005));

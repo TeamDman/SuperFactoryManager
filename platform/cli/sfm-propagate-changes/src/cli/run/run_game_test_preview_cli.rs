@@ -31,6 +31,10 @@ pub struct RunGameTestPreviewArgs {
     #[facet(default, args::named)]
     pub height: Option<u16>,
 
+    /// Mute Minecraft audio during the puppet run by default. Use `--no-mute` to hear it.
+    #[facet(default = true, args::named)]
+    pub mute: bool,
+
     /// Keep the client open after all selected puppets finish. Bare `--keep-open` keeps it open forever; a value accepts humantime durations such as `30s` or `5m`.
     #[facet(default, args::named)]
     pub keep_open: Option<Option<String>>,
@@ -47,6 +51,7 @@ impl RunGameTestPreviewArgs {
             self.game_test,
             self.width,
             self.height,
+            self.mute,
             self.keep_open,
             cancellation_token,
         )
@@ -60,7 +65,8 @@ impl RunGameTestPreviewArgs {
 /// Returns an error if arguments are invalid or the preview build or launch fails.
 #[expect(
     clippy::option_option,
-    reason = "Figue represents a named optional value as absent, bare, or supplied."
+    clippy::too_many_arguments,
+    reason = "Figue represents a named optional value as absent, bare, or supplied, and this boundary keeps every shared puppet launch input explicit for its CLI adapters."
 )]
 pub(crate) fn invoke_game_puppet(
     options: JarBuildOptionsArgs,
@@ -68,6 +74,7 @@ pub(crate) fn invoke_game_puppet(
     game_test: Option<String>,
     width: Option<u16>,
     height: Option<u16>,
+    mute: bool,
     keep_open: Option<Option<String>>,
     cancellation_token: CancellationToken,
 ) -> eyre::Result<()> {
@@ -85,6 +92,7 @@ pub(crate) fn invoke_game_puppet(
             game_puppet_filter: Some(puppet_filter.to_string()),
             game_puppet_game_test,
             game_puppet_keep_open,
+            game_puppet_mute: mute,
             preview_width,
             preview_height,
             ..RunOptions::default()
