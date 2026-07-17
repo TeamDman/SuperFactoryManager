@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.event_bus;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.compat.SFMModCompat;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
@@ -25,6 +26,10 @@ public class SFMAutomaticEventSubscriber {
                     }
 
                     return sides.contains(SFMDist.current());
+                })
+                .filter(annotationData -> {
+                    String requiredModId = annotationData.getString("requiredModId", "");
+                    return requiredModId.isEmpty() || SFMModCompat.isModLoaded(requiredModId);
                 })
                 .forEach(SFMAutomaticEventSubscriber::tryRegisterAnnotatedMethod);
     }
