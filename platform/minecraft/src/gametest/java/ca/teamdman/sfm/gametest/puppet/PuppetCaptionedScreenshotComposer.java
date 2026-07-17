@@ -24,6 +24,7 @@ import java.nio.file.Files;
 final class PuppetCaptionedScreenshotComposer {
     private static final Identifier ASCII_FONT = Identifier.withDefaultNamespace("textures/font/ascii.png");
     private static final int GLYPH_GRID_SIZE = 16;
+    private static final int SPACE_ADVANCE = 4;
 
     private PuppetCaptionedScreenshotComposer() {
     }
@@ -102,6 +103,10 @@ final class PuppetCaptionedScreenshotComposer {
     @MCVersionDependentBehaviour
     private static int glyphAdvance(NativeImage ascii, int codepoint) {
 
+        // The blank ASCII glyph has no lit pixels, but Minecraft gives it a four-pixel advance.
+        if (codepoint == ' ') {
+            return SPACE_ADVANCE;
+        }
         int glyphWidth = ascii.getWidth() / GLYPH_GRID_SIZE;
         int glyphHeight = ascii.getHeight() / GLYPH_GRID_SIZE;
         int startX = (codepoint % GLYPH_GRID_SIZE) * glyphWidth;
