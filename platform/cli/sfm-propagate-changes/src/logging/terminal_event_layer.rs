@@ -1,6 +1,7 @@
 use crate::colour::stable_color;
 use crate::logging::captured_fields::CapturedFields;
 use crate::logging::terminal_hyperlink::TerminalTextExt;
+use crate::logging::terminal_hyperlink::vscode_file_uri_for_path;
 use crate::logging::terminal_span_fields::TerminalSpanFields;
 use color_eyre::owo_colors::OwoColorize;
 use std::fmt::Debug;
@@ -199,31 +200,11 @@ fn vscode_file_uri(file: &str, line: u32) -> String {
     } else {
         Path::new(env!("CARGO_MANIFEST_DIR")).join(path)
     };
-    let path = percent_encode_uri_path(&path.to_string_lossy().replace('\\', "/"));
-    format!("vscode://file/{path}:{line}:1")
-}
-
-fn percent_encode_uri_path(path: &str) -> String {
-    let mut output = String::with_capacity(path.len());
-    for byte in path.bytes() {
-        match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'/' | b':' | b'-' | b'_' | b'.' | b'~' => {
-                output.push(char::from(byte));
-            }
-            byte => {
-                const HEX: &[u8; 16] = b"0123456789ABCDEF";
-                output.push('%');
-                output.push(char::from(HEX[usize::from(byte >> 4)]));
-                output.push(char::from(HEX[usize::from(byte & 0x0F)]));
-            }
-        }
-    }
-    output
+    vscode_file_uri_for_path(&path, usize::try_from(line).unwrap_or(1), 1)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::percent_encode_uri_path;
     use super::vscode_file_uri;
 
     #[test]
@@ -232,13 +213,5 @@ mod tests {
 
         assert!(uri.starts_with("vscode://file/"));
         assert!(uri.ends_with("/src/cli/git/status/git_status_cli.rs:249:1"));
-    }
-
-    #[test]
-    fn percent_encode_uri_path_escapes_reserved_path_bytes() {
-        assert_eq!(
-            percent_encode_uri_path("D:/repo with spaces/src/#file.rs"),
-            "D:/repo%20with%20spaces/src/%23file.rs"
-        );
     }
 }
