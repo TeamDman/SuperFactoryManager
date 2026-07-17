@@ -2,6 +2,7 @@ package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
+import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -369,7 +370,15 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             PoseStack poseStack = new PoseStack();
             int y = SFMGamePuppetHarness.CAPTION_VERTICAL_PADDING;
             for (FormattedCharSequence line : captionLayout.lines()) {
-                minecraft.font.draw(poseStack, line, SFMGamePuppetHarness.CAPTION_HORIZONTAL_PADDING, y, 0xFF000000);
+                SFMFontUtils.draw(
+                        poseStack,
+                        minecraft.font,
+                        line,
+                        SFMGamePuppetHarness.CAPTION_HORIZONTAL_PADDING,
+                        y,
+                        0xFF000000,
+                        false
+                );
                 y += minecraft.font.lineHeight;
             }
         } finally {
