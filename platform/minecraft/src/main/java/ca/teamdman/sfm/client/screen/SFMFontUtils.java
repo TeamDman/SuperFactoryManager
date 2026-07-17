@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FastColor;
+import net.minecraft.util.FormattedCharSequence;
 
 public class SFMFontUtils {
     /**
@@ -97,6 +98,26 @@ public class SFMFontUtils {
             PoseStack context,
             Font font,
             String text,
+            int x,
+            int y,
+            int colour,
+            boolean shadow
+    ) {
+        if (shadow) {
+            font.drawShadow(context, text, x, y, colour);
+        } else {
+            font.draw(context, text, x, y, colour);
+        }
+    }
+
+    /**
+     * @param colour See also: {@link FastColor.ARGB32#color(int, int, int, int)}
+     */
+    @MCVersionDependentBehaviour
+    public static void draw(
+            PoseStack context,
+            Font font,
+            FormattedCharSequence text,
             int x,
             int y,
             int colour,
