@@ -1,9 +1,11 @@
+use super::AuditWarning;
+use super::AuditWarningCategory;
+use super::AuditWarningDetail;
 use super::DetectedSourceLocation;
 use super::ProblemEmitterLocation;
 use super::SourceLanguage;
 use super::SourceLineCount;
 use super::SourceLineLimit;
-use color_eyre::owo_colors::OwoColorize;
 use std::panic::Location;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -103,55 +105,66 @@ impl SourceProblem {
     }
 
     #[must_use]
-    pub fn warning_line(&self) -> String {
+    pub(crate) fn audit_warning(&self) -> AuditWarning {
         match &self.kind {
-            SourceProblemKind::LargeFile { line_limit } => format!(
-                "{} source file too large: lang={} lines={} max={} detected={} emitted-by={}",
-                "WARN".yellow().bold(),
-                self.language,
-                self.line_count,
-                line_limit,
-                self.detected,
-                self.emitted_by
-            ),
-            SourceProblemKind::DirectModEventAnnotation { annotation } => format!(
-                "{} direct mod event annotation: annotation=@{} replacement=@SFMSubscribeEvent lang={} detected={} emitted-by={}",
-                "WARN".yellow().bold(),
-                annotation,
-                self.language,
-                self.detected,
-                self.emitted_by
-            ),
+            SourceProblemKind::LargeFile { line_limit } => AuditWarning {
+                category: AuditWarningCategory::SourceFileTooLarge,
+                location: self.detected.clone(),
+                language: self.language,
+                detail: AuditWarningDetail::SourceFileTooLarge {
+                    line_count: self.line_count.0,
+                    maximum_line_count: line_limit.0,
+                },
+            },
+            SourceProblemKind::DirectModEventAnnotation { annotation } => AuditWarning {
+                category: AuditWarningCategory::DirectModEventAnnotation,
+                location: self.detected.clone(),
+                language: self.language,
+                detail: AuditWarningDetail::DirectModEventAnnotation {
+                    annotation: (*annotation).to_owned(),
+                    required_replacement: "SFMSubscribeEvent".to_owned(),
+                },
+            },
             SourceProblemKind::AuditRule(AuditRuleDiagnostic::Violation {
                 rule,
                 forbidden_call,
                 caller_context,
-            }) => format!(
-                "{} audit rule violation: rule={rule:?} callee={forbidden_call:?} caller={caller_context:?} lang={} detected={} emitted-by={}",
-                "WARN".yellow().bold(),
-                self.language,
-                self.detected,
-                self.emitted_by
-            ),
+            }) => AuditWarning {
+                category: AuditWarningCategory::AuditRuleViolation,
+                location: self.detected.clone(),
+                language: self.language,
+                detail: AuditWarningDetail::AuditRuleViolation {
+                    rule: rule.clone(),
+                    callee: forbidden_call.clone(),
+                    caller: caller_context.clone(),
+                },
+            },
             SourceProblemKind::AuditRule(AuditRuleDiagnostic::UnresolvedCall {
                 rule,
                 member,
                 receiver_expression,
                 caller_context,
-            }) => format!(
-                "{} unresolved audit rule call: rule={rule:?} member={member} receiver={receiver_expression:?} caller={caller_context:?} lang={} detected={} emitted-by={}",
-                "WARN".yellow().bold(),
-                self.language,
-                self.detected,
-                self.emitted_by
-            ),
-            SourceProblemKind::AuditRule(AuditRuleDiagnostic::ParseFailure { parser }) => format!(
-                "{} audit rule parse failure: parser={parser} lang={} detected={} emitted-by={}",
-                "WARN".yellow().bold(),
-                self.language,
-                self.detected,
-                self.emitted_by
-            ),
+            }) => AuditWarning {
+                category: AuditWarningCategory::UnresolvedAuditRuleCall,
+                location: self.detected.clone(),
+                language: self.language,
+                detail: AuditWarningDetail::UnresolvedAuditRuleCall {
+                    rule: rule.clone(),
+                    member: member.clone(),
+                    receiver: receiver_expression.clone(),
+                    caller: caller_context.clone(),
+                },
+            },
+            SourceProblemKind::AuditRule(AuditRuleDiagnostic::ParseFailure { parser }) => {
+                AuditWarning {
+                    category: AuditWarningCategory::AuditRuleParseFailure,
+                    location: self.detected.clone(),
+                    language: self.language,
+                    detail: AuditWarningDetail::AuditRuleParseFailure {
+                        parser: (*parser).to_owned(),
+                    },
+                }
+            }
         }
     }
 }
@@ -184,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn renders_direct_mod_event_annotation_with_the_required_replacement() {
+    fn converts_direct_mod_event_annotation_to_a_structured_warning() {
         let problem = SourceProblem::direct_mod_event_annotation(
             "1.19.2",
             "platform/minecraft/src/main/java/ca/teamdman/sfm/EventHandler.java",
@@ -194,11 +207,12 @@ mod tests {
             5,
         );
 
-        let warning = problem.warning_line();
-        assert!(warning.contains("annotation=@SubscribeEvent"));
-        assert!(warning.contains("replacement=@SFMSubscribeEvent"));
-        assert!(warning.contains(
-            "1.19.2:platform/minecraft/src/main/java/ca/teamdman/sfm/EventHandler.java:6:5"
-        ));
+        let warning = problem.audit_warning();
+        assert_eq!(warning.location.line, 6);
+        assert_eq!(warning.location.column, 5);
+        assert_eq!(
+            warning.location.path,
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/EventHandler.java"
+        );
     }
 }
