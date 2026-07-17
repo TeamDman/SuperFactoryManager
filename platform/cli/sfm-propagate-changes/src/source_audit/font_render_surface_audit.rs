@@ -946,6 +946,8 @@ mod tests {
     use super::AuditRules;
     use super::Caller;
     use super::audit_java_font_render_surface;
+    use crate::source_audit::AuditWarning;
+    use crate::source_audit::AuditWarningDetail;
     use crate::source_audit::BranchSourceAuditReport;
     use crate::source_audit::SourceLineCount;
 
@@ -958,7 +960,7 @@ mod tests {
         PERMIT CALLER ca.teamdman.sfm.client.screen.SFMFontUtils * *
     ";
 
-    fn audit(source: &str) -> Vec<String> {
+    fn audit(source: &str) -> Vec<AuditWarning> {
         let rules = AuditRules::parse(RULES).expect("rules should parse");
         let mut report = BranchSourceAuditReport::new("1.19.2");
         audit_java_font_render_surface(
@@ -973,8 +975,22 @@ mod tests {
         report
             .problems
             .iter()
-            .map(|problem| problem.warning_line())
+            .map(|problem| problem.audit_warning())
             .collect()
+    }
+
+    fn is_violation(warning: &AuditWarning) -> bool {
+        matches!(
+            &warning.detail,
+            AuditWarningDetail::AuditRuleViolation { .. }
+        )
+    }
+
+    fn violation_callee(warning: &AuditWarning) -> Option<&str> {
+        match &warning.detail {
+            AuditWarningDetail::AuditRuleViolation { callee, .. } => Some(callee),
+            _ => None,
+        }
     }
 
     #[test]
@@ -1040,17 +1056,11 @@ mod tests {
             "#,
         );
         assert_eq!(warnings.len(), 2);
-        assert!(
-            warnings
-                .iter()
-                .all(|warning| warning.contains("audit rule violation")),
-            "warnings: {warnings:?}"
-        );
-        assert!(
-            warnings
-                .iter()
-                .all(|warning| warning.contains("net.minecraft.client.gui.Font draw"))
-        );
+        assert!(warnings.iter().all(is_violation), "warnings: {warnings:?}");
+        assert!(warnings.iter().all(|warning| {
+            violation_callee(warning)
+                .is_some_and(|callee| callee.contains("net.minecraft.client.gui.Font draw"))
+        }));
     }
 
     #[test]
@@ -1077,12 +1087,7 @@ mod tests {
             "#,
         );
         assert_eq!(warnings.len(), 3);
-        assert!(
-            warnings
-                .iter()
-                .all(|warning| warning.contains("audit rule violation")),
-            "warnings: {warnings:?}"
-        );
+        assert!(warnings.iter().all(is_violation), "warnings: {warnings:?}");
     }
 
     #[test]
@@ -1117,7 +1122,10 @@ mod tests {
             "#,
         );
         assert_eq!(warnings.len(), 1);
-        assert!(warnings[0].contains("GuiGraphics drawString"));
+        assert!(
+            violation_callee(&warnings[0])
+                .is_some_and(|callee| callee.contains("GuiGraphics drawString"))
+        );
     }
 
     #[test]
@@ -1138,8 +1146,10 @@ mod tests {
         );
         assert_eq!(warnings.len(), 4, "warnings: {warnings:?}");
         assert!(warnings.iter().all(|warning| {
-            warning.contains("audit rule violation")
-                && warning.contains("net.minecraft.client.gui.screens.Screen")
+            is_violation(warning)
+                && violation_callee(warning).is_some_and(|callee| {
+                    callee.contains("net.minecraft.client.gui.screens.Screen")
+                })
         }));
     }
 
@@ -1191,9 +1201,14 @@ mod tests {
             "#,
         );
         assert_eq!(warnings.len(), 1);
-        assert!(warnings[0].contains("unresolved audit rule call"));
-        assert!(warnings[0].contains("member=draw"));
-        assert!(warnings[0].contains("receiver=\"minecraft.font\""));
+        assert!(matches!(
+            &warnings[0].detail,
+            AuditWarningDetail::UnresolvedAuditRuleCall {
+                member,
+                receiver,
+                ..
+            } if member == "draw" && receiver == "minecraft.font"
+        ));
     }
 
     #[test]
@@ -1212,12 +1227,7 @@ mod tests {
             "#,
         );
         assert_eq!(warnings.len(), 3);
-        assert!(
-            warnings
-                .iter()
-                .all(|warning| warning.contains("audit rule violation")),
-            "warnings: {warnings:?}"
-        );
+        assert!(warnings.iter().all(is_violation), "warnings: {warnings:?}");
     }
 
     #[test]
@@ -1233,7 +1243,10 @@ mod tests {
             ",
         );
         assert_eq!(warnings.len(), 1);
-        assert!(warnings[0].contains("example.StringView <init> (II)"));
+        assert!(
+            violation_callee(&warnings[0])
+                .is_some_and(|callee| callee.contains("example.StringView <init> (II)"))
+        );
     }
 
     #[test]
@@ -1247,15 +1260,10 @@ mod tests {
             "#,
         );
         assert_eq!(warnings.len(), 2);
-        assert!(
-            warnings
-                .iter()
-                .any(|warning| warning.contains("audit rule parse failure"))
-        );
-        assert!(
-            warnings
-                .iter()
-                .any(|warning| warning.contains("audit rule violation"))
-        );
+        assert!(warnings.iter().any(|warning| matches!(
+            &warning.detail,
+            AuditWarningDetail::AuditRuleParseFailure { .. }
+        )));
+        assert!(warnings.iter().any(is_violation));
     }
 }
