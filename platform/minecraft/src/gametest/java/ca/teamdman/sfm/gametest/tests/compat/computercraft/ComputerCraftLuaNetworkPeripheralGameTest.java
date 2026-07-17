@@ -146,7 +146,6 @@ public class ComputerCraftLuaNetworkPeripheralGameTest extends SFMGameTestDefini
             );
             helper.succeed();
         });
-        });
     }
 
     static String terminalContents(ServerComputer computer) {

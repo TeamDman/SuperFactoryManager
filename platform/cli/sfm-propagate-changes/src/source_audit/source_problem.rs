@@ -6,6 +6,7 @@ use super::ProblemEmitterLocation;
 use super::SourceLanguage;
 use super::SourceLineCount;
 use super::SourceLineLimit;
+use facet::Facet;
 use std::panic::Location;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -20,17 +21,26 @@ pub(crate) enum AuditRuleDiagnostic {
     Violation {
         rule: String,
         forbidden_call: String,
-        caller_context: String,
+        call_site: JavaCallSite,
     },
     UnresolvedCall {
         rule: String,
-        member: String,
-        receiver_expression: String,
-        caller_context: String,
+        call_site: JavaCallSite,
     },
     ParseFailure {
         parser: &'static str,
     },
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub(crate) struct JavaCallSite {
+    pub class_name: String,
+    pub method_declaration: String,
+    pub method_returns_value: bool,
+    pub receiver_expression: String,
+    pub member: String,
+    /// The exact Java expression that invoked the audited member, excluding the trailing semicolon.
+    pub call_expression: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -128,7 +138,7 @@ impl SourceProblem {
             SourceProblemKind::AuditRule(AuditRuleDiagnostic::Violation {
                 rule,
                 forbidden_call,
-                caller_context,
+                call_site,
             }) => AuditWarning {
                 category: AuditWarningCategory::AuditRuleViolation,
                 location: self.detected.clone(),
@@ -136,23 +146,19 @@ impl SourceProblem {
                 detail: AuditWarningDetail::AuditRuleViolation {
                     rule: rule.clone(),
                     callee: forbidden_call.clone(),
-                    caller: caller_context.clone(),
+                    call_site: call_site.clone(),
                 },
             },
             SourceProblemKind::AuditRule(AuditRuleDiagnostic::UnresolvedCall {
                 rule,
-                member,
-                receiver_expression,
-                caller_context,
+                call_site,
             }) => AuditWarning {
                 category: AuditWarningCategory::UnresolvedAuditRuleCall,
                 location: self.detected.clone(),
                 language: self.language,
                 detail: AuditWarningDetail::UnresolvedAuditRuleCall {
                     rule: rule.clone(),
-                    member: member.clone(),
-                    receiver: receiver_expression.clone(),
-                    caller: caller_context.clone(),
+                    call_site: call_site.clone(),
                 },
             },
             SourceProblemKind::AuditRule(AuditRuleDiagnostic::ParseFailure { parser }) => {
