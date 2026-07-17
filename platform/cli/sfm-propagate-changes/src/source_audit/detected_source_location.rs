@@ -1,6 +1,7 @@
+use facet::Facet;
 use std::fmt;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Facet, Ord, PartialEq, PartialOrd)]
 pub struct DetectedSourceLocation {
     pub branch: String,
     pub path: String,
