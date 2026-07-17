@@ -1,4 +1,5 @@
 use super::AuditRules;
+use super::AuditWarningReport;
 use super::AuditedSourceFile;
 use super::BranchSourceAuditReport;
 use super::SourceAuditOptions;
@@ -14,7 +15,9 @@ use crate::branch_targets::discover_worktree_targets;
 use crate::branch_targets::select_required_worktree_targets;
 use crate::terminal_output::stdout_blank_line;
 use crate::terminal_output::stdout_line;
+use color_eyre::owo_colors::OwoColorize;
 use eyre::Context;
+use facet_pretty::FacetPretty as _;
 use gix::bstr::ByteSlice;
 use std::path::Path;
 use std::path::PathBuf;
@@ -42,9 +45,6 @@ impl SourceAuditCommand {
 
         for target in &targets {
             let branch_report = self.audit_target(target)?;
-            for problem in &branch_report.problems {
-                stdout_line(problem.warning_line())?;
-            }
             report.push_branch(branch_report);
         }
 
@@ -56,16 +56,7 @@ impl SourceAuditCommand {
 
         stdout_blank_line()?;
         stdout_line(report.final_summary_line())?;
-        let problems = report.problems();
-        if !problems.is_empty() {
-            stdout_line("Worst offenders:")?;
-            for problem in problems.into_iter().take(10) {
-                stdout_line(format!(
-                    "  {} lines {} ({})",
-                    problem.line_count, problem.detected, problem.language
-                ))?;
-            }
-        }
+        emit_audit_warning_summary(&report)?;
 
         if self.options.version_surfaces {
             let version_targets = include_version_surface_baseline(targets)?;
@@ -162,6 +153,63 @@ impl SourceAuditCommand {
 
         Ok(report)
     }
+}
+
+fn emit_audit_warning_summary(report: &SourceAuditReport) -> eyre::Result<()> {
+    let warning_report = AuditWarningReport::from_warnings(
+        report
+            .problems()
+            .into_iter()
+            .map(SourceProblem::audit_warning),
+    );
+    if warning_report.warning_count == 0 {
+        return Ok(());
+    }
+
+    stdout_blank_line()?;
+    stdout_line(format!(
+        "{} {} warning(s) in {} group(s); showing at most {} location(s) per group.",
+        "Audit warnings:".yellow().bold(),
+        warning_report.warning_count.to_string().yellow().bold(),
+        warning_report.group_count.to_string().cyan(),
+        AuditWarningReport::examples_per_group().to_string().cyan(),
+    ))?;
+    for group in warning_report.groups {
+        stdout_blank_line()?;
+        let omitted_occurrences = if group.omitted_occurrence_count == 0 {
+            String::new()
+        } else {
+            format!(
+                " ({} additional occurrence(s) omitted)",
+                group.omitted_occurrence_count.to_string().dimmed()
+            )
+        };
+        stdout_line(format!(
+            "{} {} — {} occurrence(s){}",
+            "WARN".yellow().bold(),
+            group.key.title().yellow().bold(),
+            group.occurrence_count.to_string().cyan(),
+            omitted_occurrences,
+        ))?;
+        stdout_line(group.header().pretty())?;
+        for warning in &group.examples {
+            stdout_line(format!(
+                "  {} {} {}",
+                "at".dimmed(),
+                warning.location.cyan(),
+                format!("— {}", warning.compact_detail()).dimmed(),
+            ))?;
+        }
+    }
+    if warning_report.omitted_group_count != 0 {
+        stdout_blank_line()?;
+        stdout_line(format!(
+            "{} {} additional warning group(s) omitted.",
+            "…".dimmed(),
+            warning_report.omitted_group_count.to_string().dimmed(),
+        ))?;
+    }
+    Ok(())
 }
 
 fn is_sfm_java_source(repo_path: &str) -> bool {
@@ -288,9 +336,9 @@ mod tests {
     use crate::branch_targets::BranchQuery;
     use crate::branch_targets::WorktreePath;
     use crate::branch_targets::WorktreeTarget;
+    use crate::source_audit::AuditWarningDetail;
     use crate::source_audit::SourceAuditOptions;
     use crate::source_audit::SourceLineLimit;
-    use crate::source_audit::SourceProblem;
     use eyre::Context;
     use std::fs;
     use std::process::Command;
@@ -385,11 +433,13 @@ mod tests {
         })
         .audit_target(&target)?;
         assert_eq!(limited_report.problems.len(), 1);
-        assert!(
-            limited_report.problems[0]
-                .warning_line()
-                .contains("source file too large")
-        );
+        assert!(matches!(
+            limited_report.problems[0].audit_warning().detail,
+            AuditWarningDetail::SourceFileTooLarge {
+                line_count: 2,
+                maximum_line_count: 1,
+            }
+        ));
         Ok(())
     }
 
@@ -441,23 +491,25 @@ mod tests {
         let warnings = report
             .problems
             .iter()
-            .map(SourceProblem::warning_line)
+            .map(|problem| problem.audit_warning())
             .collect::<Vec<_>>();
-        assert!(
-            warnings
-                .iter()
-                .any(|warning| warning.contains("annotation=@EventBusSubscriber"))
-        );
-        assert!(
-            warnings
-                .iter()
-                .any(|warning| warning.contains("annotation=@SubscribeEvent"))
-        );
-        assert!(
-            warnings
-                .iter()
-                .all(|warning| warning.contains("replacement=@SFMSubscribeEvent"))
-        );
+        assert!(warnings.iter().any(|warning| matches!(
+            &warning.detail,
+            AuditWarningDetail::DirectModEventAnnotation { annotation, .. }
+                if annotation == "EventBusSubscriber"
+        )));
+        assert!(warnings.iter().any(|warning| matches!(
+            &warning.detail,
+            AuditWarningDetail::DirectModEventAnnotation { annotation, .. }
+                if annotation == "SubscribeEvent"
+        )));
+        assert!(warnings.iter().all(|warning| matches!(
+            &warning.detail,
+            AuditWarningDetail::DirectModEventAnnotation {
+                required_replacement,
+                ..
+            } if required_replacement == "SFMSubscribeEvent"
+        )));
         Ok(())
     }
 
@@ -503,10 +555,13 @@ mod tests {
 
         let report = command.audit_target(&target)?;
         assert_eq!(report.problems.len(), 1);
-        let warning = report.problems[0].warning_line();
-        assert!(warning.contains("audit rule violation"));
-        assert!(warning.contains("GuiGraphics drawString"));
-        assert!(warning.contains("CaptionPuppet.java"));
+        let warning = report.problems[0].audit_warning();
+        assert!(warning.location.path.ends_with("CaptionPuppet.java"));
+        assert!(matches!(
+            warning.detail,
+            AuditWarningDetail::AuditRuleViolation { callee, .. }
+                if callee.contains("GuiGraphics drawString")
+        ));
         Ok(())
     }
 

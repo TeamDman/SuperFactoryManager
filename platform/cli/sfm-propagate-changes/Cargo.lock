@@ -3967,6 +3967,7 @@ dependencies = [
  "eyre",
  "facet",
  "facet-json",
+ "facet-pretty",
  "facet-styx",
  "figue",
  "gix",
