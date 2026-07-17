@@ -34,15 +34,14 @@ public final class ComputerCraftIntegration {
         registered = true;
     }
 
-    @SFMSubscribeEvent
+    @SFMSubscribeEvent(requiredModId = "computercraft")
     private static void onCommonSetup(FMLCommonSetupEvent event) {
-
         if (SFMModCompat.isComputerCraftLoaded()) {
             event.enqueueWork(ComputerCraftIntegration::registerIntegration);
         }
     }
 
-    @SFMSubscribeEvent
+    @SFMSubscribeEvent(requiredModId = "computercraft")
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
 
         if (!SFMModCompat.isComputerCraftLoaded()) return;
@@ -93,9 +92,8 @@ public final class ComputerCraftIntegration {
         );
     }
 
-    @SFMSubscribeEvent
+    @SFMSubscribeEvent(requiredModId = "computercraft")
     private static void registerTurtleModeller(RegisterTurtleModellersEvent event) {
-
         if (SFMModCompat.isComputerCraftLoaded()) {
             event.register(SFMComputerCraftTurtleUpgrades.LABELER.get(), TurtleUpgradeModeller.flatItem());
         }
