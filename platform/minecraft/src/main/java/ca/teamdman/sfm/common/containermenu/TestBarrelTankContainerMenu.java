@@ -66,13 +66,17 @@ public class TestBarrelTankContainerMenu extends AbstractContainerMenu {
             Inventory inventory,
             TestBarrelTankBlockEntity blockEntity
     ) {
-        FluidStacksResourceHandler tank = blockEntity.getTank();
         this(
                 containerId,
                 inventory,
                 blockEntity,
-                tank.getResource(0).toStack(tank.getAmountAsInt(0))
+                displayedFluid(blockEntity)
         );
+    }
+
+    private static FluidStack displayedFluid(TestBarrelTankBlockEntity blockEntity) {
+        FluidStacksResourceHandler tank = blockEntity.getTank();
+        return tank.getResource(0).toStack(tank.getAmountAsInt(0));
     }
 
     public static void encode(
