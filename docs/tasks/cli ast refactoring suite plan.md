@@ -23,12 +23,35 @@ audit, classpath, and version-propagation machinery already in
 `sfm-propagate-changes`. The first motivating operation is:
 
 ```powershell
-sfm-propagate-changes.exe refactor mv SFMBlockPosUtils.between betweenRange
+sfm-propagate-changes.exe symbol rename SFMBlockPosUtils.between betweenRange
 ```
 
 The suite should provide a useful subset of IntelliJ-style refactorings while
 remaining deterministic, reviewable, version-aware, and safe to run across the
 Minecraft branches. It must never silently perform a textual global replace.
+
+## Source-aware CLI surface
+
+The shared symbol index should power both navigation and mutation. Use an
+object–verb namespace:
+
+```text
+sfm-propagate-changes.exe symbol definition <symbol-query>
+sfm-propagate-changes.exe symbol usage list <symbol-query>
+sfm-propagate-changes.exe symbol rename <src> <dest>
+sfm-propagate-changes.exe symbol move <src> <dest>
+```
+
+`definition` and `usage list` are read-only and must work without a build or
+game launch. They return repository-relative paths, line/column and byte span,
+qualified identity, kind, descriptor, source set, and resolution confidence.
+Zero matches and ambiguous matches have distinct nonzero statuses. Output has
+human-readable and Facet/Figue JSON forms and includes source hash, branch,
+parser version, and classpath/index fingerprints.
+
+There is no `refactor` compatibility alias: this surface has not been
+implemented or released, so `symbol` is the initial public namespace.
+Help/completions/documentation must present `symbol` as authoritative.
 
 ## Canonical refactoring operation catalog
 
@@ -40,8 +63,8 @@ place for capability/version reporting.
 
 | Operation | Initial syntax | Meaning | First safety boundary |
 | --- | --- | --- | --- |
-| `rename` | `refactor rename <src> <dest>` | Rename a symbol in place; its declaring parent does not change. | Resolve exactly one declaration and all statically resolvable references; reject collisions. |
-| `move` | `refactor move <src> <dest>` | Rename plus move the declaration to a new parent/type/package. | Verify visibility, imports, inheritance, private dependencies, and destination collisions. |
+| `rename` | `symbol rename <src> <dest>` | Rename a symbol in place; its declaring parent does not change. | Resolve exactly one declaration and all statically resolvable references; reject collisions. |
+| `move` | `symbol move <src> <dest>` | Rename plus move the declaration to a new parent/type/package. | Verify visibility, imports, inheritance, private dependencies, and destination collisions. |
 | `extract-method-args` | `refactor extract-method-args <method-query> [--name <ArgsType>]` | Create an args record for the selected parameters, create an args-accepting method, move the original logic there, and make the old method delegate with a new record. | Preserve overload behavior, evaluation order, visibility, generic types, and checked exceptions. |
 | `extract-variable` | `refactor extract-variable <expression-query> <name>` | Bind an expression to a local variable and replace the selected occurrence(s). | Respect scope, evaluation count, mutability, and declaration placement. |
 | `extract-method` | `refactor extract-method <selection-query> <name>` | Extract a statement/expression selection into a method and replace it with a call. | Infer inputs/outputs, return type, throws, control-flow exits, and captured state. |
@@ -86,7 +109,7 @@ operation is unsupported rather than silently falling back to text replacement.
 
 | Area | Initial decision | Acceptance consequence |
 | --- | --- | --- |
-| Command shape | `refactor preview`, `refactor apply`, and shorthand `refactor mv`; future `rename`, `pull-up`, `move`, and `change-signature`. | `--help` documents dry-run/apply, branch/version selection, and failure policy. |
+| Command shape | `symbol definition`, `symbol usage list`, and symbol mutation verbs such as `symbol rename`, `symbol move`, and `symbol apply`. | `--help` documents read-only navigation, dry-run/apply, branch/version selection, and failure policy. |
 | Target syntax | Fully qualified type/member where possible; `Type.member` is accepted only when unique. | Ambiguous targets fail before any write and list candidates. |
 | Safety default | Preview is the default; `apply` requires an explicit flag and clean/staged-state policy. | No source changes from a discovery or preview command. |
 | Rewrite model | Parse once, resolve symbols, create edits against byte ranges, validate edits, then write atomically. | No overlapping edits or partial files. |
@@ -288,9 +311,6 @@ diffs across repeated runs.
 - Scaffold the complete canonical operation catalog (`rename`, `move`,
   `extract-method-args`, `extract-variable`, `extract-method`, `inline-method`,
   `replace-method-call`, and `change-method-signature`) in the typed CLI model.
-- Make `refactor mv` a temporary compatibility alias that maps to `rename` or
-  `move` only when its target syntax is unambiguous; print the canonical
-  operation in diagnostics and deprecate the alias once callers migrate.
 - Add preflight target lookup so a missing or ambiguous symbol fails before
   compilation or file mutation.
 
