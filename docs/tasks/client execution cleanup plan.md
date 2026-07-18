@@ -44,7 +44,7 @@ In scope: CLI command consolidation, the Arborium-backed static Java catalog, ty
 | Client commands | `run client`, `run client --smoke`, and `run client --puppet <selector>` replace legacy client launch commands. | Old commands are absent from help and rejected. |
 | Puppet commands | `puppet run <selector>` is exactly equivalent to `run client --puppet <selector>`. | Both paths construct one typed request and produce identical markers/artifacts. |
 | Parameterized puppet | `sfm:game_test_orbit_capture` accepts one exact `--game-test sfm:<id>` and captures an eight-angle overview around the completed structure bounds. | The existing `sfm:move_1_stack_direct_walkthrough` remains the concrete interaction/GUI reference. |
-| Title-screen puppet | `sfm:title_screen_capture` captures the loading overlay, the fading title screen, and the settled title screen. | It creates no world, runs no GameTest, and does not open a developer screen. |
+| Title-screen puppet | `sfm:title_screen_capture` captures the loading overlay, the fading title screen, and the settled title screen; `sfm:title_screen_command_palette` captures the contextual command palette over the settled title screen. | Both create no world, run no GameTest, and use the native client screen/action surface. |
 | Test commands | `test run|list|show`; `game-test run-client|run-server|list|show`; `puppet list|show`. | Each category has stable, documented discovery output. |
 | Timing | First restore Java fallbacks to 25 seconds. Rust then sends explicit typed timing: GameTests hold in-world for 25 seconds; no-flag previews return to title and exit after one second. | Mode tests prove properties and lifecycle. |
 | Preview keep-open | `--keep-open N` holds the final preview world for N seconds then returns to title; bare `--keep-open` holds there indefinitely. | Preview scenarios prove omitted, finite, and indefinite values. |
@@ -154,6 +154,7 @@ cargo test run
 - Apply finite/indefinite preview hold before title return; use a one-second post-title exit by default.
 - Restrict cursor release, pause suppression, focus changes, and temporary option changes to automation; restore state without persisting user-option changes.
 - Add `sfm:title_screen_capture` as a three-figure title lifecycle/rendering fixture: loading overlay, fading title screen, and settled title screen. Keep title-screen text-editor capture as later work.
+- Add `sfm:title_screen_command_palette` as a title-screen command-palette fixture. It waits for the named loading overlay to disappear, waits for title fade-in, opens the palette through the same registered action used by Ctrl+K, and captures the palette without creating a world or injecting OS-level keyboard input.
 
 **Validation:**
 
@@ -161,9 +162,20 @@ cargo test run
 sfm-propagate-changes.exe game-test run-client --branch 1.19.2
 sfm-propagate-changes.exe puppet run move_1_stack_direct_walkthrough --branch 1.19.2
 sfm-propagate-changes.exe puppet run title_screen_capture --branch 1.19.2
+sfm-propagate-changes.exe puppet run title_screen_command_palette --branch 1.19.2
 ```
 
 **Progress notes (2026-07-15):** Implemented explicit puppet final-world hold versus post-title exit timing; omitted preview keep-open returns to title then exits after one second, finite values hold only the final world, and bare values hold indefinitely. Automation temporarily changes `pauseOnLostFocus` without persisting it and restores it after completion. Added `sfm:title_screen_capture`, which declares loading-overlay, fading-title, and settled-title figures without creating a world, running a GameTest, or launching a title-screen developer tool. The title puppet explicitly requires the initial `LoadingOverlay`, captures it, then explicitly requires that same overlay to be absent before it captures the fading title screen. It waits 20 client ticks—the vanilla title-screen fade-in duration—before the settled capture. The helper accepts only an `Overlay` subtype and leaves unrelated overlays available to puppets that intentionally need to document them. `puppet list` and `puppet show sfm:title_screen_capture` discover it successfully. A live `puppet run title_screen_capture --branch 1.19.2 --wait-for-build-lock` passed with all three captioned figures and the root `preview-manifest.json`; it records `clearTransientOverlays: false` and exits after the normal one-second post-title delay.
+
+**Progress notes (2026-07-18):** Added `sfm:title_screen_command_palette`. It
+waits for the named loading overlay to disappear and the title fade to settle,
+opens the palette through the same registered action used by Ctrl+K, and
+captures `figure_01_command-palette.png` without creating a world. Static
+puppet discovery, compilation, tests, and a live preview run passed.
+The capture now starts at `sfm action invoke ` so the visible completion list
+contains `sfm:dump_registries`, `sfm:help`, and `sfm:palette/open` rather than
+only Brigadier's root `sfm` literal; the puppet waits for the normal render
+settle interval before capturing.
 
 ## Phase 3 — Developer worlds and release proof
 
