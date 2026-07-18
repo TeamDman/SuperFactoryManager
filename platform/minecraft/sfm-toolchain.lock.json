@@ -380,7 +380,7 @@
               "gametest-runtime"
             ],
             "artifact_treatment": "loader-managed-mod",
-            "data_run_policy": "exclude"
+            "data_run_policy": "include"
           },
           "derived_checks": {
             "artifact_id": "org-squiddev-cc-tweaked-1-19-2-1-101-3-e0e69206",
