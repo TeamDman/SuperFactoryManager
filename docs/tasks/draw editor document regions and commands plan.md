@@ -305,7 +305,7 @@ and publication.
 | Friendly alias policy | Whether actions also contribute paths such as `/document save` or `/clobber ...` | Default to no aliases in the first slice; add aliases later only as redirects to stable action entries with collision tests | Friendly syntax cannot create a second catalog/executor or weaken contextual checks |
 | Palette hotkey | Exact universal binding and conflict behavior | **Resolved 2026-07-18:** register one configurable universal SFM key mapping with default `Ctrl+K`; still require in-game/GUI conflict and repeat testing | The palette opens consistently from title, GUI, Draw, and in-world contexts without repeats |
 | Palette context | Which screen contextual actions inspect after the palette is pushed | **Resolved 2026-07-17:** capture the originating/host screen and relevant client state in `SFMClientActionContext`; never treat the palette screen itself as the host | Draw-only actions remain viable while the palette overlays Draw and become unavailable if the host closes/changes |
-| Version-sensitive API seam audit | Which direct GUI/entity calls must be contained behind helpers | **Deferred:** add declarative `DENY`/`PERMIT` audit rules for direct `Minecraft` screen transitions outside `SFMScreenChangeHelpers` and direct entity-to-level access outside `SFMEntityUtils`; run the audit, then clean violations in a later hardening pass | Version-specific GUI transitions and entity level access remain centralized without diverting the current palette/layer implementation |
+| Version-sensitive API seam audit | Which direct GUI/entity calls must be contained behind helpers, and which user-facing text must be localized | **Deferred:** add declarative `DENY`/`PERMIT` audit rules for direct `Minecraft` screen transitions outside `SFMScreenChangeHelpers`, direct entity-to-level access outside `SFMEntityUtils`, and user-facing `Component.literal(...)` construction; run the audit, classify intentional internal/debug literals with explicit permits, then clean the remaining violations in a later hardening pass | Version-specific GUI/entity access remains centralized and user-facing text has an enforceable localization seam without diverting the current palette/layer implementation |
 | Availability presentation | Hide unavailable actions or show reasons | Palette shows viable actions by default with an optional “show unavailable” view/reason; pinned buttons remain configured but are hidden when not viable | Context changes do not delete customization and unavailable actions cannot execute |
 | Button hosts | Where a user may pin an action as a button | Introduce a host contract; implement Draw canvas first and defer other screen hosts | The shared action system is universal without requiring every screen to support custom buttons now |
 | Button persistence scope | Whether Draw bindings/layout are workspace-specific, client-profile defaults, or both | Persist concrete buttons in each Draw workspace for this release; defer reusable client-profile templates until the format and UX are proven | Customization is durable without expanding the release into a cross-screen layout/profile system |
@@ -1309,7 +1309,9 @@ scope and have passing 1.19.2 evidence.
   later branch.
 - Extend `sfm.audit_rules` with deny/permit rules for direct Minecraft screen
   transitions outside `SFMScreenChangeHelpers` and direct entity-to-level access
-  outside `SFMEntityUtils`; run the audit, then repair the cleanly mappable
+  outside `SFMEntityUtils`; add the later `Component.literal(...)` audit for
+  unlocalized user-facing text, with explicit permits for intentional
+  internal/debug literals; run the audit, then repair the cleanly mappable
   violations before final matrix sign-off. Keep this hardening pass after the
   current palette/layer implementation work.
 - Compile/test core and run Draw walkthrough matrix at safe concurrency.
