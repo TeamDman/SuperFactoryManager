@@ -12,6 +12,7 @@ To make a release, something should have changed about the mod.
 
 1. Confirm that at least one gameplay-visible, user-facing, documentation, localization, or compatibility change is ready to release
 2. Confirm that each release-worthy change is represented in [changelog.sfml](../platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml)
+    TODO: the next time we go to release, we should make updating the changelog its own phase. we should have a detailed process for analyzing the changed files since the previous release to identify the code changes that should be reflected in the changelog
 3. Confirm that any fixed GitHub issues are either closed or labelled `implemented awaiting release`
 4. Confirm that any relevant GitHub issues are associated with the milestone for this release
 
