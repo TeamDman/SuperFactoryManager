@@ -110,6 +110,13 @@ public final class SFMGamePuppetHelper {
     }
 
     /**
+     * Opens the contextual client command palette from the current screen.
+     */
+    public void openCommandPalette() {
+        add(new OpenCommandPalettePuppetAction());
+    }
+
+    /**
      * Captures the currently rendered client frame with a numbered, styled caption.
      */
     public void capture(String captureName, Component caption) {

@@ -19,6 +19,8 @@ public interface ISFMGamePuppetRuntime {
 
     boolean isScreen(Class<?> expectedType);
 
+    boolean openCommandPalette();
+
     boolean isOverlay(Class<? extends Overlay> expectedType);
 
     boolean capture(String captureName, Component caption);

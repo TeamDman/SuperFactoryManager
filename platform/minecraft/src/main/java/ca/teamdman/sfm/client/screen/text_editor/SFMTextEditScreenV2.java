@@ -42,6 +42,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
     );
 
     private final @Nullable Screen previousScreen;
+    private final boolean pushed;
 
     protected TextEditContext textEditContext;
 
@@ -51,10 +52,19 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
             ISFMTextEditScreenOpenContext openContext,
             @Nullable Screen previousScreen
     ) {
+        this(openContext, previousScreen, false);
+    }
+
+    public SFMTextEditScreenV2(
+            ISFMTextEditScreenOpenContext openContext,
+            @Nullable Screen previousScreen,
+            boolean pushed
+    ) {
 
         super(TEXT_EDIT_SCREEN_V2_TITLE.getComponent());
         this.openContext = openContext;
         this.previousScreen = previousScreen;
+        this.pushed = pushed;
         this.textEditContext = new TextEditContext(openContext.initialValue());
     }
 
@@ -200,7 +210,9 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
 
         openContext.onTryClose(
                 textEditContext.getContent(),
-                () -> SFMScreenChangeHelpers.setScreen(previousScreen)
+                pushed
+                        ? SFMScreenChangeHelpers::popScreen
+                        : () -> SFMScreenChangeHelpers.setScreen(previousScreen)
         );
     }
 
@@ -213,7 +225,7 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
     @Override
     public OpenBehaviour openBehaviour() {
 
-        return OpenBehaviour.Replace;
+        return pushed ? OpenBehaviour.Push : OpenBehaviour.Replace;
     }
 
     protected void renderCursor(

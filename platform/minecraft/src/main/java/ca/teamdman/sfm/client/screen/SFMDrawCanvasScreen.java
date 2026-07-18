@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.screen;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
+import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
@@ -28,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
+public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, SFMDocumentActionTarget {
     @SFMLocalizationDatagen
     public static final LocalizationEntry DRAW_CANVAS_READ_ONLY_DOCUMENT = new LocalizationEntry(
             "gui.sfm.draw_canvas.read_only",
@@ -85,6 +86,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
     private final Screen previousScreen;
     private final ISFMTextEditScreenOpenContext openContext;
+    private final boolean pushed;
     private SFMDrawCanvasModel model = new SFMDrawCanvasModel();
     private final List<CanvasPoint> cursorTrail = new ArrayList<>();
     private final List<String> inputEvents = new ArrayList<>();
@@ -131,18 +133,32 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private double resizeAnchorY;
 
     public SFMDrawCanvasScreen(Screen previousScreen) {
+        this(previousScreen, false);
+    }
+
+    public SFMDrawCanvasScreen(Screen previousScreen, boolean pushed) {
         super(Component.literal("SFM Draw Canvas"));
         this.previousScreen = previousScreen;
         this.openContext = null;
+        this.pushed = pushed;
     }
 
     public SFMDrawCanvasScreen(
             ISFMTextEditScreenOpenContext openContext,
             Screen previousScreen
     ) {
+        this(openContext, previousScreen, false);
+    }
+
+    public SFMDrawCanvasScreen(
+            ISFMTextEditScreenOpenContext openContext,
+            Screen previousScreen,
+            boolean pushed
+    ) {
         super(Component.literal("SFM Draw Canvas"));
         this.previousScreen = previousScreen;
         this.openContext = openContext;
+        this.pushed = pushed;
     }
 
     @Override
@@ -161,7 +177,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             onTryCloseStandalone();
             return;
         }
-        openContext.onTryClose(getCurrentText(), () -> Minecraft.getInstance().setScreen(previousScreen));
+        openContext.onTryClose(getCurrentText(), this::finishClose);
     }
 
     @Override
@@ -171,7 +187,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
     @Override
     public OpenBehaviour openBehaviour() {
-        return OpenBehaviour.Replace;
+        return pushed ? OpenBehaviour.Push : OpenBehaviour.Replace;
     }
 
     @Override
@@ -219,7 +235,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 .setPosition(this.width - 88, this.height - 24)
                 .setSize(80, 20)
                 .setText(CommonComponents.GUI_DONE)
-                .setOnPress(button -> this.saveAndClose())
+                .setOnPress(button -> this.saveDocumentAndClose())
                 .setTooltip(this, font, doneButtonTooltip())
                 .build());
         refreshDiagnosticControls();
@@ -590,7 +606,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
-                saveAndClose();
+                saveDocumentAndClose();
             } else {
                 insertLineBreak();
             }
@@ -618,7 +634,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     ) {
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
-                saveAndClose();
+                saveDocumentAndClose();
             }
             return true;
         }
@@ -1045,13 +1061,39 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         model.moveCursorToDocumentStart();
     }
 
-    private void saveAndClose() {
+    @Override
+    public boolean canSaveDocument() {
+        return openContext != null;
+    }
+
+    @Override
+    public void saveDocumentAndClose() {
         if (openContext == null) {
-            Minecraft.getInstance().setScreen(previousScreen);
+            finishClose();
             return;
         }
-        openContext.saveWriter().accept(getCurrentText());
-        Minecraft.getInstance().setScreen(previousScreen);
+        saveDocument();
+        finishClose();
+    }
+
+    @Override
+    public void saveDocument() {
+        if (openContext != null) {
+            openContext.saveWriter().accept(getCurrentText());
+        }
+    }
+
+    @Override
+    public void closeDocumentWithoutSaving() {
+        onClose();
+    }
+
+    private void finishClose() {
+        if (pushed) {
+            SFMScreenChangeHelpers.popScreen();
+        } else {
+            Minecraft.getInstance().setScreen(previousScreen);
+        }
     }
 
     private void onTryCloseStandalone() {

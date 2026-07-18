@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.handler.SFMCommandPaletteKeyHandler;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -190,6 +191,11 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     public boolean isScreen(Class<?> expectedType) {
 
         return expectedType.isInstance(minecraft.screen);
+    }
+
+    @Override
+    public boolean openCommandPalette() {
+        return SFMCommandPaletteKeyHandler.openFromCurrentScreen();
     }
 
     @Override

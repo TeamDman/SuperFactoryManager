@@ -35,6 +35,15 @@ public interface ISFMTextEditScreenOpenContext {
 
     String initialValue();
 
+    /**
+     * Whether the preferred editor should be layered over the current screen
+     * instead of replacing it. This is useful for read-only/help documents
+     * opened from another transient screen, such as the command palette.
+     */
+    default boolean preferPush() {
+        return false;
+    }
+
     default void onTryClose(
             String latestContent,
             Runnable finalizeClose
