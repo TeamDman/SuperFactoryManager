@@ -117,6 +117,14 @@ public final class SFMGamePuppetHelper {
     }
 
     /**
+     * Executes a command through the visible palette input and waits for its
+     * rendered output to settle.
+     */
+    public void executeCommandPalette(String command) {
+        add(new ExecuteCommandPalettePuppetAction(command));
+    }
+
+    /**
      * Captures the currently rendered client frame with a numbered, styled caption.
      */
     public void capture(String captureName, Component caption) {

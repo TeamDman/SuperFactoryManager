@@ -4,7 +4,8 @@ import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.registry.SFMMenuScreens;
 import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
-import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
+import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
+import ca.teamdman.sfm.client.action.SFMDeveloperActions;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.event_bus.SFMAutomaticEventSubscriber;
@@ -73,7 +74,9 @@ public class SFM {
 
         SFMDocumentActionTarget.Actions.register(bus);
 
-        SFMCommandPaletteScreen.Actions.register(bus);
+        SFMCommandPaletteActions.register(bus);
+
+        SFMDeveloperActions.register(bus);
 
         SFMMenus.register(bus);
 

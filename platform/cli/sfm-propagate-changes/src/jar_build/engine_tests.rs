@@ -943,7 +943,7 @@ fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
     assert!(cc.iter().all(|dependency| dependency.loader_managed()));
     assert!(cc.iter().all(|dependency| {
         dependency.data_run_policy
-            == crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude
+            == crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include
     }));
     assert_eq!(
         cc.iter()

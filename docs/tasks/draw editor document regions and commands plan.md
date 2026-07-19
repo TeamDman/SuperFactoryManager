@@ -607,6 +607,13 @@ and release contract without guessing.
   palette now starts at `sfm action invoke ` and preserves the trailing space
   while requesting completions, so action ids—not the root literal—appear as
   candidates. Execution still trims the command normally.
+- Registered the five IDE-only SFM Dev operations as title-screen contextual
+  actions: open the preferred text editor, input diagnostics, or Draw canvas;
+  create a configured developer world; or create one and run all GameTests.
+  The `sfm:developer/*` entries reuse the same screen factories and developer
+  world launcher as the title-screen submenu. A live title-screen palette
+  capture proved that the registrations participate in contextual Brigadier
+  completion.
   Phase 0.3 remains in progress for its remaining actions and UI.
 
 **Work:**
@@ -728,6 +735,10 @@ ordinary slash glyphs remain inert.
 - Successful palette execution now restores the canonical `sfm action invoke `
   query and refreshes its completion list; failed commands remain in place for
   correction.
+- Command-palette action implementations and their contributor registration now
+  live under `client/action`; keep the screen focused on palette presentation.
+  The help document body is still a deliberately plain multiline string and
+  is deferred for localization in a later help-content pass.
 
 **Work:**
 
