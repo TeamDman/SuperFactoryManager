@@ -5,7 +5,7 @@ import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
-import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
@@ -91,8 +91,8 @@ public final class SFMRegistryDump {
             Path directory,
             Map<String, RegistryResult> results
     ) {
-        for (ResourceLocation registryId : BuiltinRegistries.REGISTRY.keySet()) {
-            net.minecraft.core.Registry registry = BuiltinRegistries.REGISTRY.get(registryId);
+        for (ResourceLocation registryId : BuiltInRegistries.REGISTRY.keySet()) {
+            net.minecraft.core.Registry registry = BuiltInRegistries.REGISTRY.get(registryId);
             if (registry == null) continue;
             if (results.containsKey(registryId.toString())) continue;
             try {
