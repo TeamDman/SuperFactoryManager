@@ -811,7 +811,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
 
         // Draw the tick time text
-        var format = new DecimalFormat("0.000");
+        var format = new DecimalFormat("0.000"); // TODO: this should respect the user's locale
         if (mouseTickTimeIndex != -1) { // We are hovering over the plot
             // Draw the tick time text for the hovered point instead of peak
             {

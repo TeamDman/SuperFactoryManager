@@ -41,6 +41,22 @@ public class SFMKeyMappings {
     ));
 
     @SFMLocalizationDatagen
+    public static final LocalizationEntry COMMAND_PALETTE_KEY_NAME = new LocalizationEntry(
+            "key.sfm.command_palette",
+            "Open Command Palette"
+    );
+
+    /** Opens the contextual SFM command palette when its Phase 0.4 handler is active. */
+    public static final Lazy<KeyMapping> COMMAND_PALETTE_KEY = Lazy.of(() -> new KeyMapping(
+            COMMAND_PALETTE_KEY_NAME.key().get(),
+            KeyConflictContext.UNIVERSAL,
+            KeyModifier.CONTROL,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_K,
+            SFM_KEY_CATEGORY.key().get()
+    ));
+
+    @SFMLocalizationDatagen
     public static final LocalizationEntry CYCLE_LABEL_VIEW_KEY_NAME = new LocalizationEntry(
             "key.sfm.toggle_label_view_key",
             "Cycle label gun view"
@@ -283,6 +299,7 @@ public class SFMKeyMappings {
 
         return new KeyMapping[]{
                 MORE_INFO_TOOLTIP_KEY.get(),
+                COMMAND_PALETTE_KEY.get(),
                 CONTAINER_INSPECTOR_KEY.get(),
                 ITEM_INSPECTOR_KEY.get(),
                 CYCLE_LABEL_VIEW_KEY.get(),
