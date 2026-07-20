@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.handler.SFMCommandPaletteKeyHandler;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -189,6 +191,19 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     public boolean isScreen(Class<?> expectedType) {
 
         return expectedType.isInstance(minecraft.screen);
+    }
+
+    @Override
+    public boolean openCommandPalette() {
+        return SFMCommandPaletteKeyHandler.openFromCurrentScreen();
+    }
+
+    @Override
+    public void executeCommandPalette(String command) {
+        if (!(minecraft.screen instanceof SFMCommandPaletteScreen palette)) {
+            throw new IllegalStateException("Expected command palette before executing a command");
+        }
+        palette.executeCommandForAutomation(command);
     }
 
     @Override

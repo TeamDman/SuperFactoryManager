@@ -4,7 +4,12 @@ import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.label.LabelGunActions;
+import ca.teamdman.sfm.common.label.LabelGunPlanTargets;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.util.BlockPosSet;
 import ca.teamdman.sfml.ast.Program;
+import dan200.computercraft.api.lua.IArguments;
+import dan200.computercraft.api.lua.LuaException;
 import dan200.computercraft.api.lua.LuaFunction;
 import dan200.computercraft.api.lua.MethodResult;
 import dan200.computercraft.api.peripheral.IPeripheral;
@@ -16,18 +21,19 @@ import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
 /**
- * The {@code sfm_labeler} peripheral installed by the SFM label-gun turtle upgrade.
+ * The {@code sfm} peripheral installed by the SFM label-gun turtle upgrade.
  *
  * <p>Action methods use CC:Tweaked's turtle command queue. This keeps label actions ordered
  * with native turtle movement and resolves the turtle's selected inventory slot at execution
  * time.</p>
  */
 public final class SFMTurtleLabelerPeripheral implements IPeripheral {
-    public static final String TYPE = "sfm_labeler";
+    public static final String TYPE = "sfm";
 
     private final ITurtleAccess turtle;
 
@@ -48,22 +54,81 @@ public final class SFMTurtleLabelerPeripheral implements IPeripheral {
         return other instanceof SFMTurtleLabelerPeripheral otherLabeler && otherLabeler.turtle == turtle;
     }
 
-    @LuaFunction
-    public final SFMDiskHandle disk() {
+    @LuaFunction(mainThread = true)
+    public final Object[] getProgram() {
 
-        return new SFMDiskHandle(selectedTarget(
-                stack -> stack.getItem() instanceof DiskItem,
-                "not_disk"
-        ));
+        return selectedDiskHandle().getProgram();
+    }
+
+    @LuaFunction(mainThread = true)
+    public final Object[] setProgram(String source) {
+
+        return selectedDiskHandle().setProgram(source);
+    }
+
+    @LuaFunction(mainThread = true)
+    public final Object[] getActiveLabel() {
+
+        return selectedLabelGunHandle().getActiveLabel();
+    }
+
+    @LuaFunction(mainThread = true)
+    public final Object[] setActiveLabel(String label) {
+
+        return selectedLabelGunHandle().setActiveLabel(label);
+    }
+
+    @LuaFunction(mainThread = true)
+    public final Object[] clearActiveLabel() {
+
+        return selectedLabelGunHandle().clearActiveLabel();
+    }
+
+    @LuaFunction(mainThread = true)
+    public final Object[] getViewMode() {
+
+        return selectedLabelGunHandle().getViewMode();
+    }
+
+    @LuaFunction(mainThread = true)
+    public final Object[] setViewMode(String viewMode) {
+
+        return selectedLabelGunHandle().setViewMode(viewMode);
     }
 
     @LuaFunction
-    public final SFMLabelGunHandle labelGun() {
+    public final SFMLabelPositionHolderHandle labels() {
 
-        return new SFMLabelGunHandle(selectedTarget(
-                stack -> stack.getItem() instanceof LabelGunItem,
-                "not_label_gun"
-        ));
+        SFMItemHandleTarget target = selectedTarget(
+                stack -> stack.getItem() instanceof DiskItem || stack.getItem() instanceof LabelGunItem,
+                "not_disk_or_label_gun"
+        );
+        return new SFMLabelPositionHolderHandle(target::resolve, labels -> saveLabels(target, labels));
+    }
+
+    @LuaFunction
+    public final SFMLabelDiscoveryHandle discover(IArguments arguments) throws LuaException {
+
+        String direction = arguments.getString(0);
+        if (relativeDirection(direction) == null) {
+            throw new LuaException("invalid_direction");
+        }
+        Map<?, ?> options = arguments.optTable(1, Map.of());
+        Object contiguousOption = options.get("contiguous");
+        if (contiguousOption != null && !(contiguousOption instanceof Boolean)) {
+            throw new LuaException("invalid_options");
+        }
+        boolean contiguous = Boolean.TRUE.equals(contiguousOption);
+        return new SFMLabelDiscoveryHandle(() -> {
+            if (turtle.isRemoved()) {
+                return new LabelGunPlanTargets(
+                        new BlockPosSet(),
+                        new BlockPosSet()
+                );
+            }
+            BlockPos target = turtle.getPosition().relative(relativeDirection(turtle, direction));
+            return LabelGunPlanTargets.getTargets(turtle.getLevel(), target, contiguous);
+        });
     }
 
     @LuaFunction
@@ -231,6 +296,41 @@ public final class SFMTurtleLabelerPeripheral implements IPeripheral {
                     return program;
                 }
         );
+    }
+
+    private SFMLabelGunHandle selectedLabelGunHandle() {
+
+        return new SFMLabelGunHandle(selectedTarget(
+                stack -> stack.getItem() instanceof LabelGunItem,
+                "not_label_gun"
+        ));
+    }
+
+    private SFMDiskHandle selectedDiskHandle() {
+
+        return new SFMDiskHandle(selectedTarget(
+                stack -> stack.getItem() instanceof DiskItem,
+                "not_disk"
+        ));
+    }
+
+    private SFMItemHandleTarget.Resolution saveLabels(
+            SFMItemHandleTarget target,
+            LabelPositionHolder labels
+    ) {
+
+        SFMItemHandleTarget.Resolution resolution = target.resolve();
+        if (!resolution.isResolved()) {
+            return resolution;
+        }
+        ItemStack stack = resolution.stack();
+        labels.save(stack);
+        if (stack.getItem() instanceof DiskItem) {
+            target.diskUpdated(stack);
+        } else {
+            target.itemChanged(stack);
+        }
+        return resolution;
     }
 
     private static @Nullable ItemStack selectedLabelGun(ITurtleAccess turtle) {
