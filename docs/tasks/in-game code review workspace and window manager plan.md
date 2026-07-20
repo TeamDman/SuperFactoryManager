@@ -195,7 +195,7 @@ epoch E1 verified. The agent is authorized to commit a research report but must
 request follow-up authorization before implementing even an isolated callback
 proof. It leaves this canonical plan untouched and reports evidence here.
 
-### [ ] Track 3 — Responsive full-screen file explorer
+### [~] Track 3 — Responsive full-screen file explorer
 
 Create a new file explorer as an ordinary full-screen experience first, while
 keeping its domain model and layout responsive enough to be hosted later in a
@@ -216,6 +216,26 @@ The source-provider boundary must allow later adapters for:
 
 The initial explorer is read-only. Editing, deletion, arbitrary host filesystem
 roots, and mount synchronization remain separate decisions.
+
+File entries have extension-aware presentation inspired by VSCode. A central,
+extensible presentation registry maps directories, known extensions, compound
+extensions, unknown extensions, and extensionless files to an icon plus text
+style. Matching order and case behavior are deterministic. Initial mappings
+cover SFM/SFML, grammar, Java, structured configuration/data, and ordinary text
+formats. Presentation metadata does not determine filesystem semantics, and
+icons or color are never the sole file-type cue: visible names and accessible
+narration remain sufficient. Prefer small repository-native assets over
+adopting a large third-party icon set in the first slice.
+
+**Delegation started 2026-07-20:** Assigned to subagent
+`track3_file_explorer` in
+`D:\Repos\Minecraft\SFM\worktrees\1.19.2-file-explorer` on branch
+`feat/1.19.2/file-explorer`. The worktree was created and verified clean at
+immutable baseline `246dddbc812644e3ca199e2bec85d8d152954b69`, with PATH CLI
+epoch E1 verified. The agent owns the standalone responsive slice and reports
+its future Track 1 adapter contract without depending on Track 1 internals. It
+commits forward, leaves this canonical plan untouched, and reports evidence to
+the coordinator.
 
 ### [ ] Track 4 — Dynamic hotkeys and typed command completion
 
