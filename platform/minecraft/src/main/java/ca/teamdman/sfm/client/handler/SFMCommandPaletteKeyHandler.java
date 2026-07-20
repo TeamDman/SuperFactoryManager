@@ -7,11 +7,12 @@ import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMDist;
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
-import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 public final class SFMCommandPaletteKeyHandler {
     private static boolean commandPaletteKeyDown;
@@ -20,8 +21,8 @@ public final class SFMCommandPaletteKeyHandler {
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+    @MCVersionDependentBehaviour
+    public static void onClientTick(ClientTickEvent.Post event) {
 
         // KeyMapping#consumeClick is not reliable while a Minecraft GUI is
         // active: the title screen can consume the key event before the
@@ -57,7 +58,7 @@ public final class SFMCommandPaletteKeyHandler {
         SFMClientActionContext context = SFMCommandPaletteScreen.createOriginContext();
         try {
             SFMClientActions.commandTree().execute(
-                    "sfm action invoke " + new ResourceLocation(SFM.MOD_ID, "palette/open"),
+                    "sfm action invoke " + SFMResourceLocation.fromSFMPath("palette/open"),
                     new SFMClientActionSource(context)
             );
             return minecraft.screen instanceof SFMCommandPaletteScreen;
