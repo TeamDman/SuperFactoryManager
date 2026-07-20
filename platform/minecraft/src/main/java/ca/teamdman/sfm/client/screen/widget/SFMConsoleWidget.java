@@ -3,12 +3,9 @@ package ca.teamdman.sfm.client.screen.widget;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.Tesselator;
-import org.joml.Matrix4f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
@@ -178,23 +175,17 @@ public final class SFMConsoleWidget {
         int endLine = Math.min(this.lines.size(), firstLine + visibleLineCount);
         float firstLineY = (float) (contentTop + firstLine * lineHeight - this.scrollAmount);
 
-        Matrix4f matrix = graphics.pose().last().pose();
-        MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(
-                Tesselator.getInstance().getBuilder()
-        );
         for (int index = firstLine; index < endLine; index++) {
-            SFMFontUtils.drawInBatch(
-                    this.lines.get(index),
+            SFMFontUtils.draw(
+                    graphics,
                     this.font,
+                    this.lines.get(index),
                     contentLeft,
-                    firstLineY + (index - firstLine) * lineHeight,
-                    false,
-                    false,
-                    matrix,
-                    buffer
+                    (int) firstLineY + (index - firstLine) * lineHeight,
+                    0xFFFFFFFF,
+                    false
             );
         }
-        buffer.endBatch();
     }
 
     @MCVersionDependentBehaviour
