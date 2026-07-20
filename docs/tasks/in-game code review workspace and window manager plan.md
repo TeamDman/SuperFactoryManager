@@ -115,7 +115,7 @@ release. Cross-track dependencies should be expressed as contracts and small
 integration commits rather than by allowing multiple tracks to edit one
 worktree concurrently.
 
-### [ ] Track 1 — Screen multiplexer and typed screen-opening actions
+### [~] Track 1 — Screen multiplexer and typed screen-opening actions
 
 Build the smallest useful `SFMScreenMultiplexer` experiment and integrate it
 with the existing client action registry, Brigadier dispatcher, and command
@@ -154,6 +154,15 @@ Initial experiment limits:
 - no persisted layout, arbitrary nesting, resizing, or production-screen
   embedding until the lifecycle experiment succeeds; and
 - no direct Forge/NeoForge event or registry APIs outside narrow SFM seams.
+
+**Delegation started 2026-07-20:** Assigned to subagent
+`track1_screen_multiplexer` in
+`D:\Repos\Minecraft\SFM\worktrees\1.19.2-screen-multiplexer` on branch
+`feat/1.19.2/screen-multiplexer`. The worktree was created and verified clean at
+immutable baseline `246dddbc812644e3ca199e2bec85d8d152954b69`. The agent was
+instructed to use PATH CLI epoch E1, commit forward without pushing, leave this
+plan untouched, and report evidence and proposed plan wording to the
+coordinator.
 
 ### [ ] Track 2 — Native file drag-and-drop feasibility
 
