@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenTitleScreenOpenContext;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -35,6 +36,12 @@ public enum SFMTitleScreenDevScreen {
         @Override
         public Screen create(TitleScreen titleScreen) {
             return new SFMDrawCanvasScreen(titleScreen);
+        }
+    },
+    FILE_EXPLORER("file-explorer", Component.literal("File Explorer")) {
+        @Override
+        public Screen create(TitleScreen titleScreen) {
+            return SFMFileExplorerScreen.createFixture(titleScreen);
         }
     };
 
