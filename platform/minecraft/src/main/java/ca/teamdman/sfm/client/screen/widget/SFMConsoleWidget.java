@@ -9,7 +9,6 @@ import com.mojang.math.Matrix4f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiComponent;
-import net.minecraft.client.gui.components.Widget;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -26,7 +25,7 @@ import java.util.List;
  * event handling, so the viewport owns its scroll amount, scrollbar and mouse
  * interaction.</p>
  */
-public final class SFMConsoleWidget implements Widget {
+public final class SFMConsoleWidget {
     private static final int PADDING = 4;
     private static final int SCROLLBAR_WIDTH = 6;
     private static final int SCROLLBAR_GAP = 3;
@@ -139,7 +138,6 @@ public final class SFMConsoleWidget implements Widget {
         return Math.max(0.0d, this.lines.size() * (double) lineHeight - contentHeight);
     }
 
-    @Override
     public void render(
             PoseStack poseStack,
             int mouseX,
