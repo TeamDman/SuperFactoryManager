@@ -9,12 +9,12 @@ import ca.teamdman.sfm.client.screen.widget.SFMConsoleWidget;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestion;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -292,22 +292,23 @@ public final class SFMCommandPaletteScreen extends Screen {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+    @MCVersionDependentBehaviour
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         layoutWidgets();
-        fill(poseStack, 0, 0, this.width, this.height, 0x66000000);
+        graphics.fill(0, 0, this.width, this.height, 0x66000000);
         int left = panelLeft();
         int top = panelTop();
         int right = left + panelWidth();
         int bottom = top + panelHeight();
-        fill(poseStack, left, top, right, bottom, PANEL);
-        fill(poseStack, left, top, right, top + 1, BORDER);
-        fill(poseStack, left, bottom - 1, right, bottom, BORDER);
-        fill(poseStack, left, top, left + 1, bottom, BORDER);
-        fill(poseStack, right - 1, top, right, bottom, BORDER);
+        graphics.fill(left, top, right, bottom, PANEL);
+        graphics.fill(left, top, right, top + 1, BORDER);
+        graphics.fill(left, bottom - 1, right, bottom, BORDER);
+        graphics.fill(left, top, left + 1, bottom, BORDER);
+        graphics.fill(right - 1, top, right, bottom, BORDER);
 
-        SFMFontUtils.draw(poseStack, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD), left + 10, top + 12, TEXT, false);
+        SFMFontUtils.draw(graphics, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD), left + 10, top + 12, TEXT, false);
         SFMFontUtils.draw(
-                poseStack,
+                graphics,
                 this.font,
                 ACCEPT_SUGGESTION.getComponent(Component.literal("Tab").withStyle(ChatFormatting.AQUA)),
                 left + 10,
@@ -317,22 +318,22 @@ public final class SFMCommandPaletteScreen extends Screen {
         );
         int visibleSuggestions = visibleSuggestionCount();
         if (suggestions.isEmpty()) {
-            SFMFontUtils.draw(poseStack, this.font, EMPTY_RESULTS.getComponent(), left + 10, top + 72, MUTED, false);
+            SFMFontUtils.draw(graphics, this.font, EMPTY_RESULTS.getComponent(), left + 10, top + 72, MUTED, false);
         } else {
             for (int i = 0; i < visibleSuggestions; i++) {
                 int suggestionIndex = firstVisibleSuggestion + i;
                 if (suggestionIndex >= suggestions.size()) break;
                 int y = top + 72 + i * SUGGESTION_ROW_HEIGHT;
                 if (suggestionIndex == selectedSuggestion) {
-                    fill(poseStack, left + 6, y - 2, right - 6, y + 14, 0xFF404040);
+                    graphics.fill(left + 6, y - 2, right - 6, y + 14, 0xFF404040);
                 }
                 Suggestion suggestion = suggestions.get(suggestionIndex);
-                SFMFontUtils.draw(poseStack, this.font, suggestion.getText(), left + 12, y, TEXT, false);
+                SFMFontUtils.draw(graphics, this.font, suggestion.getText(), left + 12, y, TEXT, false);
             }
         }
         if (!this.error.isEmpty()) {
             SFMFontUtils.draw(
-                    poseStack,
+                    graphics,
                     this.font,
                     truncateToPanel(this.error),
                     left + 10,
@@ -342,8 +343,8 @@ public final class SFMCommandPaletteScreen extends Screen {
             );
         }
         this.consoleWidget.replaceLines(this.feedback);
-        this.consoleWidget.render(poseStack, mouseX, mouseY, partialTick);
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        this.consoleWidget.render(graphics, mouseX, mouseY, partialTick);
+        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     private int panelWidth() {
