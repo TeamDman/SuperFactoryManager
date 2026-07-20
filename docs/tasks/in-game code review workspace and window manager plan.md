@@ -55,6 +55,50 @@ We have the mount feature we want to gracefully join in
 It is unclear if the lwjgl or whatever stuff we have (glfw?) lets us add file drag-and-drop support to the minecraft window, that would be cool.
 Please create a docs/tasks doc and begin by including this message verbatim. Then we can plan next steps.
 
+## Follow-up panel-composition note (verbatim, 2026-07-20)
+
+how are our panels composed? if I want 3 panels split vertically, is that VerticalSplit[Left, VerticalSplit[Left, Right]] or does our screen compose the layout more complicatedly than nesting split instructions?
+
+Since we have our "push screen" logic centralized in our helper, we could possibly clarify
+- open screen (clobbering)
+- push screen (there's a stack already is my understanding, overlays are a different thing entirely iirc)
+- open multiplexer
+where "open screen" when the current screen is SFM multiplexer screen would have a different behaviour; any open/push operation creates a new panel in the multiplexer where the multiplexer composes units like "tab list" and "split panel" each with an along-axis and across-axis
+
+similar to ratatui, we divide the area of the screen. a horizontal list of tabs would be a TabList along the horizontal axis.
+A vertical list of tabs would be a TabList along the vertical axis as primary.
+the question becomes that of area allocation
+
+we can imagine that "panel" is our unit for the multiplexing. A panel may be "on another desktop" and therefore not visible at all. It may be a tab in a panel of tabs
+
+we can have the subagent explore more
+
+G:\Programming\Repos\egui_tiles
+what designs does that tell us we may want to adopt?
+
+Does egui_tiles support a vertical tab list?
+
+The area for the tabs vs the area for the tab body, that's just a Split along either the horizontal or vertical axis
+The area for the tabs is kinda just Split[Head, Split[head, tail...]]
+if we design our interface to gracefully be composed of Splits
+then we can let the user reshape the interface by saying panels can be rearranged and resized, changing the aspects of any Split's needed to accomplish. If we consider the intersection of a 4-corners layout, the middle point resizes all 4 panels, which in a nested split layout involves changing the split percentage/units at multivarious levels of the split hierarchy.
+
+If a "tab" is a thing that presents and occupies the full panel, then that is simply a button that focuses the other panel. How do we know when a panel is "behind" another if tabs are not a coherent unit but are instead disjoint buttons? If we have a
+
+ABC
+D
+
+layout where ABC take the top 100px and D takes the rest how do we know what panel the content area of D is
+
+so in addition to the Split we have the Flip
+in
+ABC
+D
+
+there may be panels ABCDEF
+where DEF all occupy a Flip[D, Flip[E,F]] with D being what is shown, but when E or F get focused that makes the flip show that focused panel instead.
+If we have a concept of virtual desktop-like things, then does that mean we have a top-level Flip[Workspace1,Flip[Workspace2, Workspace3]] so focusing workspace2 makes that occupy the full screen. This message should be persisted verbatim in the plan near the others.
+
 ---
 
 # In-game code review workspace and window manager plan
@@ -190,6 +234,16 @@ Track 1 remains in progress rather than accepted. It still needs a live
 client/puppet visual and lifecycle proof, a host-intent contract for panel
 close/split/open requests, and a decision on whether any audited full-screen
 adapter belongs in scope.
+
+**Layout-algebra follow-up started 2026-07-20:** The Track 1 subagent was
+resumed from clean checkpoint `e7622e9524b1e5adf8dfddd4a10c6700fd8cea0d`
+for a design-only comparison with `G:\Programming\Repos\egui_tiles`. It will
+evaluate n-ary horizontal/vertical allocation, binary/nested splits, grids,
+tab/flip containers, tab-strip orientation, virtual workspaces, stable panel
+identity, active/hidden lifecycle, divider shares and linked four-corner resize,
+tree simplification, persistence, and the semantics of centralized open, push,
+and multiplexer operations. No implementation change is authorized in this
+follow-up.
 
 ### [~] Track 2 — Native file drag-and-drop feasibility
 
