@@ -546,7 +546,7 @@ mod tests {
             component(&lockfile, "cc-tweaked")
                 .declaration
                 .data_run_policy,
-            DataRunPolicyV3::Exclude
+            DataRunPolicyV3::Include
         );
         assert_eq!(
             component(&lockfile, "cc-tweaked")
