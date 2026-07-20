@@ -1,8 +1,12 @@
 package ca.teamdman.sfm;
 
+import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.registry.SFMMenuScreens;
 import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
+import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
+import ca.teamdman.sfm.client.action.SFMDeveloperActions;
+import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.event_bus.SFMAutomaticEventSubscriber;
 import ca.teamdman.sfm.common.event_bus.SFMEventBus;
@@ -63,6 +67,14 @@ public class SFM {
 
         SFMTextEditorActions.register(bus);
 
+        SFMClientActions.register(bus);
+
+        SFMDocumentActionTarget.Actions.register(bus);
+
+        SFMCommandPaletteActions.register(bus);
+
+        SFMDeveloperActions.register(bus);
+
         SFMMenus.register(bus);
 
         SFMRecipeTypes.register(bus);
@@ -71,7 +83,10 @@ public class SFM {
 
         SFMConfig.register(ModLoadingContext.get());
 
-        bus.addListener((FMLClientSetupEvent e) -> SFMMenuScreens.register());
+        bus.addListener((FMLClientSetupEvent e) -> {
+            SFMMenuScreens.register();
+            SFMClientActions.commandTree();
+        });
 
         SFMAutomaticEventSubscriber.attachEventBusSubscribers();
     }

@@ -255,7 +255,7 @@ mod tests {
 
         assert!(output.contains("Dependency: cc-tweaked"));
         assert!(output.contains("Artifact treatment: loader-managed-mod"));
-        assert!(output.contains("Data runs: exclude"));
+        assert!(output.contains("Data runs: include"));
         assert!(output.contains("Hash: blake3:"));
         assert!(output.contains("Binary JAR: missing:"));
         assert!(output.contains("Transformed JAR: not tracked by schema v3"));

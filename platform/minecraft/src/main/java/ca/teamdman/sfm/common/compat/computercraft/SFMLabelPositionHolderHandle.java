@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * An owned, mutable Lua editor for an SFM label position holder.
@@ -113,6 +114,74 @@ public final class SFMLabelPositionHolderHandle {
         }
         labels.getPositions(label).remove(new BlockPos(x, y, z));
         return SFMComputerCraftResults.success();
+    }
+
+    @LuaFunction(mainThread = true)
+    public final Object[] addAll(
+            String label,
+            Object positions
+    ) {
+
+        if (!ensureLoaded()) {
+            return SFMComputerCraftResults.failure(loadError);
+        }
+        if (!isValidLabel(label)) {
+            return SFMComputerCraftResults.failure("invalid_label");
+        }
+        BlockPosSet positionSet = parsePositionSet(positions);
+        if (positionSet == null) {
+            return SFMComputerCraftResults.failure("invalid_position_set");
+        }
+        labels.addAll(label, positionSet.blockPosIterator());
+        return SFMComputerCraftResults.success();
+    }
+
+    @LuaFunction(mainThread = true)
+    public final Object[] removeAll(
+            String label,
+            Object positions
+    ) {
+
+        if (!ensureLoaded()) {
+            return SFMComputerCraftResults.failure(loadError);
+        }
+        if (!isValidLabel(label)) {
+            return SFMComputerCraftResults.failure("invalid_label");
+        }
+        BlockPosSet positionSet = parsePositionSet(positions);
+        if (positionSet == null) {
+            return SFMComputerCraftResults.failure("invalid_position_set");
+        }
+        positionSet.forEach(position -> labels.remove(label, position));
+        return SFMComputerCraftResults.success();
+    }
+
+    private static BlockPosSet parsePositionSet(Object value) {
+
+        if (value instanceof SFMBlockPosSetHandle handle) {
+            return new BlockPosSet(handle.positions());
+        }
+        if (!(value instanceof Map<?, ?> table)) {
+            return null;
+        }
+        BlockPosSet result = new BlockPosSet();
+        for (Object entry : table.values()) {
+            if (!(entry instanceof Map<?, ?> position)) {
+                return null;
+            }
+            Object x = position.get("x");
+            Object y = position.get("y");
+            Object z = position.get("z");
+            if (!(x instanceof Number) || !(y instanceof Number) || !(z instanceof Number)) {
+                return null;
+            }
+            result.add(new BlockPos(
+                    ((Number) x).intValue(),
+                    ((Number) y).intValue(),
+                    ((Number) z).intValue()
+            ));
+        }
+        return result;
     }
 
     @LuaFunction(mainThread = true)
