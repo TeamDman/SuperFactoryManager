@@ -245,6 +245,34 @@ tree simplification, persistence, and the semantics of centralized open, push,
 and multiplexer operations. No implementation change is authorized in this
 follow-up.
 
+**Layout-algebra checkpoint completed 2026-07-20:** Commit
+`9224715c627af3e7cf74942bc1e4a41c7b21e99b` (`Document multiplexer layout
+algebra`) adds `docs/architecture/screen-multiplexer-layout-algebra.md` on the
+Track 1 branch. The worktree is clean; this follow-up changed documentation only.
+
+The proposed algebra is `Panel(panelInstanceId)` leaves; n-ary
+`Linear(axis, orderedChildren, tracks)` with shares and minimum constraints;
+first-class `Stack(orderedChildren, activeChild, selectorPresentation)` as the
+semantic Flip with tabs generated as chrome; first-class
+`Grid(rows, columns, cells)` for linked two-axis dividers and four-corner grips;
+and `WorkspaceSet(activeWorkspace, independently rooted trees)` as a separate
+domain/persistence boundary for virtual desktops.
+
+Structural arity and divider constraints are separate concerns. N-ary Linear
+preserves peer relationships, simple shares, insertion/removal/reordering, and
+same-axis normalization. Spatially aligned dividers in distinct branches do not
+communicate ad hoc: a true shared row/column intersection is represented as a
+Grid, or later by explicit linked divider identities. Coincident geometry never
+silently creates semantic linkage.
+
+The inspected `egui_tiles` checkout supports n-ary horizontal/vertical Linear,
+Tabs, Grid, shares, active/inactive tiles, drag insertion, simplification, and
+persistence. Its tab strip is horizontally rendered at the top; vertical tabs
+are explicitly future work. The report also specifies clobber-global,
+push/pop-modal, enter-workspace, open-to-side, open-as-tab, focus/move, stable
+identity, lifecycle, focus/drop routing, normalization, persistence, and the
+Track 3 adapter boundary.
+
 ### [~] Track 2 — Native file drag-and-drop feasibility
 
 Investigate the complete path from the Minecraft window's GLFW/LWJGL handle to
