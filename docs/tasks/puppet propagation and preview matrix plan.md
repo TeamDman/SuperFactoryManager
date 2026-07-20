@@ -84,7 +84,7 @@ documentation.
 - `puppet list|show` statically discovers the class-derived puppet ids before a
   client launches. The current 1.19.2 catalog includes
   `sfm:move_1_stack_direct_walkthrough`, `sfm:game_test_orbit_capture`, and
-  `sfm:title_screen_capture`.
+  `sfm:title_screen_capture`, plus `sfm:title_screen_command_palette`.
 - The committed 1.19.2 title puppet was live-validated: it produced captioned
   loading-overlay, fading-title, and settled-title figures. Its manifest says
   `clearTransientOverlays: false`; no broad "no overlays" capture policy is
@@ -717,7 +717,7 @@ general Java type solver.
   entry, source/test evidence, and affected Minecraft versions. Remove or
   defer any changelog promise that lacks a committed, supportable change.
 - State the release support policy: normal SFM artifacts for each selected
-  version target, plus CC:Tweaked mutable handles and the `sfm_labeler` turtle
+  version target, plus CC:Tweaked mutable handles and the `sfm` turtle
   upgrade only on the six locked-runtime targets recorded in the acceptance
   matrix.
 - Review related issues and the release milestone with the project maintainer.
@@ -725,6 +725,11 @@ general Java type solver.
   release scope must not silently absorb unrelated feature-worktree work.
 - Freeze scope before version bumping. A discovered release blocker returns to
   the relevant implementation phase and reopens this task's review.
+- Treat the dedicated [Draw editor layers, commands, and canvas
+  workspace plan](draw%20editor%20document%20regions%20and%20commands%20plan.md)
+  as a release-scope dependency. Either complete its approved release floor or
+  explicitly defer it and rewrite the release headline/changelog before this
+  task can close.
 
 **Validation:**
 
@@ -742,7 +747,7 @@ and evidence; developer-only puppet work is listed only as release evidence.
 `4.35.0`, while `gradle.properties` deliberately remains at `4.34.0` until
 scope is frozen. The prepared user-facing scope is the documented CC:Tweaked
 surface (mutable disk/label-gun handles, cable-network peripherals, structured
-item details, turtle inventory support, and the `sfm_labeler` upgrade) plus
+  item details, turtle inventory support, and the `sfm` turtle peripheral) plus
 the committed draw-canvas improvements listed in the prepared changelog.
 
 The three developer-only puppet entries were removed from the 4.35 changelog:
@@ -753,6 +758,15 @@ with the CC:Tweaked surface packaged only on 1.19.2, 1.19.4, 1.20, 1.20.1,
 1.20.4, and 1.21.1. The scope, final version, and issue/milestone disposition
 still require explicit maintainer approval before the version bump and later
 release steps.
+
+The maintainer subsequently designated the Draw editor as the intended
+headline of this release and requested dynamic primary/reference layers,
+one universal contextual command palette, user-configurable canvas-native
+action buttons, grammar/template references, drawing tools, and a persistent
+canvas/disk projection boundary. That reopens the prepared scope: Phase 5.1
+cannot be completed until the linked Draw plan closes its release-floor gates
+and provides committed cross-version evidence, or the maintainer explicitly
+defers that work and approves narrower release wording.
 
 ### [ ] 5.2 Update player-facing release metadata and propagate it
 
@@ -926,9 +940,9 @@ verification target.
 - Attach a computer to an SFM cable network, obtain managers through the
   released peripheral, acquire a disk/label-gun handle, mutate and save a
   program/labels, and confirm normal SFM state/persistence behavior.
-- Install and use the `sfm_labeler` turtle upgrade with a selected label gun to
-  perform a player-equivalent label action. Verify a turtle inventory can take
-  part in an SFM transfer.
+- Install and use the `sfm:labeler` turtle upgrade with a selected label gun to
+  exercise the flat `sfm` peripheral, inspect contiguous discovery, and bulk
+  edit labels. Verify a turtle inventory can take part in an SFM transfer.
 - Confirm that CC-specific functionality is absent only on the documented
   source-excluded target set, while the ordinary SFM release continues to work
   there.
@@ -1124,6 +1138,9 @@ the other targets.
 - [ ] Release scope, target support, final version, changelog, known issues,
   credits, issue/milestone status, and the CC compatibility statement have
   been deliberately approved and propagated.
+- [ ] The linked Draw editor plan's approved release floor is complete with
+  cross-version evidence, or its deferral and replacement release wording are
+  explicitly approved before Phase 5.1 closes.
 - [ ] Final datagen, GameTest, JUnit, Rust-tooling, and version-surface checks
   pass on the stated target set; exclusions and any manual exceptions are
   documented.
