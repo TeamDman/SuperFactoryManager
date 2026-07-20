@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import com.mojang.brigadier.ParseResults;
 import net.minecraft.resources.ResourceLocation;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -19,20 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMClientActionDispatcherCompilerTests {
-    private static final ResourceLocation SAVE_AND_CLOSE_ID = new ResourceLocation(
-            SFM.MOD_ID,
-            "document/save_and_close"
-    );
+    private static final ResourceLocation SAVE_AND_CLOSE_ID = SFMResourceLocation.fromSFMPath("document/save_and_close");
     private static final String SAVE_AND_CLOSE_COMMAND =
             "sfm action invoke " + SAVE_AND_CLOSE_ID;
-    private static final ResourceLocation SAVE_ID = new ResourceLocation(
-            SFM.MOD_ID,
-            "document/save"
-    );
-    private static final ResourceLocation CLOSE_WITHOUT_SAVING_ID = new ResourceLocation(
-            SFM.MOD_ID,
-            "document/close_without_saving"
-    );
+    private static final ResourceLocation SAVE_ID = SFMResourceLocation.fromSFMPath("document/save");
+    private static final ResourceLocation CLOSE_WITHOUT_SAVING_ID = SFMResourceLocation.fromSFMPath("document/close_without_saving");
 
     @Test
     public void availableDocumentActionExecutesAgainstItsResolvedTarget() throws CommandSyntaxException {
