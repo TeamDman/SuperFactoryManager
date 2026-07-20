@@ -13,7 +13,7 @@ import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.neoforged.bus.api.IEventBus;
 
 public interface SFMDocumentActionTarget {
     @SFMLocalizationDatagen
