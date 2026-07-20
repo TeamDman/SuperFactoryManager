@@ -284,11 +284,12 @@ public final class SFMCommandPaletteScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (this.consoleWidget.mouseScrolled(mouseX, mouseY, delta)) {
+    @MCVersionDependentBehaviour
+    public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
+        if (this.consoleWidget.mouseScrolled(mouseX, mouseY, deltaY)) {
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
     }
 
     @Override
@@ -480,7 +481,7 @@ public final class SFMCommandPaletteScreen extends Screen {
         String current = commandInput();
         String value = this.suggestions.get(this.selectedSuggestion).apply(current);
         this.input.setValue(value);
-        this.input.moveCursorToEnd();
+        this.input.moveCursorToEnd(false);
     }
 
     private void executeInput() {
@@ -515,7 +516,7 @@ public final class SFMCommandPaletteScreen extends Screen {
      */
     public void executeCommandForAutomation(String command) {
         this.input.setValue(command);
-        this.input.moveCursorToEnd();
+        this.input.moveCursorToEnd(false);
         String normalized = normalizedCommand();
         try {
             executeCommand(normalized);
@@ -529,7 +530,7 @@ public final class SFMCommandPaletteScreen extends Screen {
 
     private void resetToDefaultQuery() {
         this.input.setValue(DEFAULT_QUERY);
-        this.input.moveCursorToEnd();
+        this.input.moveCursorToEnd(false);
         this.setFocused(this.input);
         this.input.setFocused(true);
     }
