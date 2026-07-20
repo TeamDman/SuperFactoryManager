@@ -164,6 +164,33 @@ instructed to use PATH CLI epoch E1, commit forward without pushing, leave this
 plan untouched, and report evidence and proposed plan wording to the
 coordinator.
 
+**Checkpoint completed 2026-07-20:** Subagent commit
+`e7622e9524b1e5adf8dfddd4a10c6700fd8cea0d` (`Add typed two-panel screen
+workspace`) adds the client screen-type registry, typed `sfm:test_screen`
+factory, `sfm:workspace/open_to_side` action, narrow `SFMScreenPanel` contract,
+two-column `SFMScreenMultiplexer`, mouse and Ctrl+1/Ctrl+2 focus routing,
+narration/lifecycle hooks, changelog entry, and Brigadier tests. The proving
+command is:
+
+```text
+sfm action invoke sfm:workspace/open_to_side sfm:test_screen test screen 1
+```
+
+PATH CLI epoch E1 compilation, focused action tests, and the full Java test
+suite passed; `git diff --check` passed and the feature worktree is clean.
+
+The architectural result is to use `SFMScreenPanel` as the reusable embedded
+surface with `SFMScreenMultiplexer` as the sole vanilla `Screen`. The previous
+screen is currently parked and represented by a placeholder rather than being
+live-rendered inside the left panel. Arbitrary `Screen` adaptation remains
+deferred because viewport initialization, widget ownership, close/removal, and
+other global lifecycle behavior are not safely contained.
+
+Track 1 remains in progress rather than accepted. It still needs a live
+client/puppet visual and lifecycle proof, a host-intent contract for panel
+close/split/open requests, and a decision on whether any audited full-screen
+adapter belongs in scope.
+
 ### [~] Track 2 — Native file drag-and-drop feasibility
 
 Investigate the complete path from the Minecraft window's GLFW/LWJGL handle to
@@ -194,6 +221,27 @@ immutable baseline `246dddbc812644e3ca199e2bec85d8d152954b69`, with PATH CLI
 epoch E1 verified. The agent is authorized to commit a research report but must
 request follow-up authorization before implementing even an isolated callback
 proof. It leaves this canonical plan untouched and reports evidence here.
+
+**Research checkpoint completed 2026-07-20:** Subagent commit
+`99df31e4dd7e7b0b0e6003de9fe727b36c7efbd3` (`Document native file drop
+feasibility`) adds `docs/tasks/native file drop feasibility report.md` on the
+Track 2 branch. The worktree is clean and `git diff --check` passed.
+
+The recommendation is to adopt vanilla `Screen.onFilesDrop(List<Path>)` and
+reject direct `glfwSetDropCallback` replacement or chaining. Minecraft 1.19.2
+already deep-copies native UTF-8 path names, schedules through
+`minecraft.execute`, and calls the active screen. The public screen seam is
+evidenced across all ten supported SFM branches, and local Forge/NeoForge source
+searches found no preferable loader event. No current version adapter, global
+subscriber, callback setup, or callback cleanup is indicated.
+
+The optional proof remains unimplemented pending authorization. Its accepted
+shape is an explicit SFM test screen override that boundedly copies and
+lexically normalizes paths for local display/logging only, without existence
+checks, `toRealPath`, directory traversal, symlink following, reads, writes,
+packets, or server logging. A production multiplexer should forward one
+`DroppedPathsIntent` only to the focused panel when that panel explicitly
+accepts drops.
 
 ### [~] Track 3 — Responsive full-screen file explorer
 
