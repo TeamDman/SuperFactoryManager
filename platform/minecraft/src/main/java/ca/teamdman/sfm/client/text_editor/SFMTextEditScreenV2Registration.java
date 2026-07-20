@@ -9,7 +9,8 @@ public class SFMTextEditScreenV2Registration implements ISFMTextEditorRegistrati
     public ISFMTextEditScreen createScreen(ISFMTextEditScreenOpenContext context) {
         return new SFMTextEditScreenV2(
                 context,
-                SFMScreenChangeHelpers.getCurrentScreen()
+                SFMScreenChangeHelpers.getCurrentScreen(),
+                context.preferPush()
         );
     }
 }

@@ -9,7 +9,8 @@ public class SFMDrawCanvasTextEditorRegistration implements ISFMTextEditorRegist
     public ISFMTextEditScreen createScreen(ISFMTextEditScreenOpenContext context) {
         return new SFMDrawCanvasScreen(
                 context,
-                SFMScreenChangeHelpers.getCurrentScreen()
+                SFMScreenChangeHelpers.getCurrentScreen(),
+                context.preferPush()
         );
     }
 }
