@@ -3,12 +3,11 @@ package ca.teamdman.sfm.client.screen.widget;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import org.joml.Matrix4f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -138,8 +137,9 @@ public final class SFMConsoleWidget {
         return Math.max(0.0d, this.lines.size() * (double) lineHeight - contentHeight);
     }
 
+    @MCVersionDependentBehaviour
     public void render(
-            PoseStack poseStack,
+            GuiGraphics graphics,
             int mouseX,
             int mouseY,
             float partialTick
@@ -149,8 +149,7 @@ public final class SFMConsoleWidget {
         int contentWidth = getContentWidth();
         int contentHeight = getContentHeight();
 
-        GuiComponent.fill(
-                poseStack,
+        graphics.fill(
                 this.x,
                 this.y,
                 this.x + this.width,
@@ -160,14 +159,15 @@ public final class SFMConsoleWidget {
 
         if (contentWidth > 0 && contentHeight > 0 && !this.lines.isEmpty()) {
             enableScissor(contentLeft, contentTop, contentWidth, contentHeight);
-            renderLines(poseStack, contentLeft, contentTop);
+            renderLines(graphics, contentLeft, contentTop);
             RenderSystem.disableScissor();
         }
 
-        renderScrollbar(poseStack, mouseX, mouseY);
+        renderScrollbar(graphics, mouseX, mouseY);
     }
 
-    private void renderLines(PoseStack poseStack, int contentLeft, int contentTop) {
+    @MCVersionDependentBehaviour
+    private void renderLines(GuiGraphics graphics, int contentLeft, int contentTop) {
         int lineHeight = Math.max(1, this.font.lineHeight);
         int firstLine = Mth.clamp(
                 (int) Math.floor(this.scrollAmount / lineHeight),
@@ -178,7 +178,7 @@ public final class SFMConsoleWidget {
         int endLine = Math.min(this.lines.size(), firstLine + visibleLineCount);
         float firstLineY = (float) (contentTop + firstLine * lineHeight - this.scrollAmount);
 
-        Matrix4f matrix = poseStack.last().pose();
+        Matrix4f matrix = graphics.pose().last().pose();
         MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(
                 Tesselator.getInstance().getBuilder()
         );
@@ -197,7 +197,8 @@ public final class SFMConsoleWidget {
         buffer.endBatch();
     }
 
-    private void renderScrollbar(PoseStack poseStack, int mouseX, int mouseY) {
+    @MCVersionDependentBehaviour
+    private void renderScrollbar(GuiGraphics graphics, int mouseX, int mouseY) {
         if (!isScrollbarVisible()) {
             return;
         }
@@ -208,8 +209,7 @@ public final class SFMConsoleWidget {
         int thumbHeight = getScrollbarThumbHeight();
         int thumbTop = getScrollbarThumbTop();
 
-        GuiComponent.fill(
-                poseStack,
+        graphics.fill(
                 trackLeft,
                 trackTop,
                 trackLeft + SCROLLBAR_WIDTH,
@@ -224,8 +224,7 @@ public final class SFMConsoleWidget {
                 SCROLLBAR_WIDTH,
                 thumbHeight
         );
-        GuiComponent.fill(
-                poseStack,
+        graphics.fill(
                 trackLeft,
                 thumbTop,
                 trackLeft + SCROLLBAR_WIDTH,
