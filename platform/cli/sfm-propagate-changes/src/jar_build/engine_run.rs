@@ -3463,6 +3463,10 @@ pub(crate) struct GamePuppetPreviewManifestCapture {
     pub(crate) hud_hidden: Option<bool>,
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "Preview publishing keeps validation, copying, and manifest assembly visible together."
+)]
 fn publish_game_puppet_preview_artifacts(
     plan: &BuildPlan,
     working_dir: &Path,
@@ -3477,12 +3481,16 @@ fn publish_game_puppet_preview_artifacts(
         );
     }
     let artifact_root = game_puppet_preview_artifact_root(&plan.worktree_path);
-    if artifact_root.exists() {
-        fs::remove_dir_all(&artifact_root)
-            .wrap_err_with(|| format!("Failed to clear {}", artifact_root.display()))?;
-    }
     fs::create_dir_all(&artifact_root)
         .wrap_err_with(|| format!("Failed to create {}", artifact_root.display()))?;
+    let (_preview_run_id, preview_run_root) = create_game_puppet_preview_run_root(
+        &artifact_root,
+        run_options.game_puppet_filter.as_deref(),
+    )?;
+    let preview_run_relative_root = preview_run_root
+        .strip_prefix(&artifact_root)
+        .map(PathBuf::from)
+        .wrap_err("Game-puppet preview run directory escaped the artifact root")?;
 
     let mut staging_paths = fs::read_dir(&staging_dir)
         .wrap_err_with(|| format!("Failed to read {}", staging_dir.display()))?
@@ -3536,10 +3544,9 @@ fn publish_game_puppet_preview_artifacts(
                 "Preview screenshots reported duplicate figure number {figure_number}: {file_name}"
             );
         }
-        let relative_path = PathBuf::from(puppet_name).join(game_puppet_preview_artifact_file_name(
-            figure_number,
-            capture_name,
-        ));
+        let relative_path = preview_run_relative_root
+            .join(puppet_name)
+            .join(game_puppet_preview_artifact_file_name(figure_number, capture_name));
         let destination = artifact_root.join(&relative_path);
         if let Some(parent) = destination.parent() {
             fs::create_dir_all(parent)
@@ -3574,6 +3581,62 @@ fn publish_game_puppet_preview_artifacts(
     fs::write(&manifest_path, manifest)
         .wrap_err_with(|| format!("Failed to write {}", manifest_path.display()))?;
     Ok(manifest_path)
+}
+
+fn create_game_puppet_preview_run_root(
+    artifact_root: &Path,
+    puppet_selection: Option<&str>,
+) -> eyre::Result<(String, PathBuf)> {
+    let run_parent = artifact_root.join("runs");
+    fs::create_dir_all(&run_parent)
+        .wrap_err_with(|| format!("Failed to create {}", run_parent.display()))?;
+
+    let run_base = format!(
+        "{}-{}",
+        safe_game_puppet_preview_run_name(puppet_selection.unwrap_or("puppet")),
+        Local::now().format("%Y%m%d-%H%M%S-%3f")
+    );
+    for index in 0..1000_u32 {
+        let run_id = if index == 0 {
+            run_base.clone()
+        } else {
+            format!("{run_base}-{index:03}")
+        };
+        let candidate = run_parent.join(&run_id);
+        match fs::create_dir(&candidate) {
+            Ok(()) => return Ok((run_id, candidate)),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) => {
+                return Err(error)
+                    .wrap_err_with(|| format!("Failed to create {}", candidate.display()));
+            }
+        }
+    }
+    eyre::bail!(
+        "Could not allocate a unique game-puppet preview run directory under {}",
+        run_parent.display()
+    )
+}
+
+fn safe_game_puppet_preview_run_name(value: &str) -> String {
+    let mut output = value
+        .bytes()
+        .map(|byte| {
+            let byte = byte.to_ascii_lowercase();
+            if byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-') {
+                char::from(byte)
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+    output.truncate(48);
+    let output = output.trim_matches('-');
+    if output.is_empty() {
+        "puppet".to_string()
+    } else {
+        output.to_string()
+    }
 }
 
 fn parse_game_puppet_capture_metadata(
@@ -3698,10 +3761,12 @@ mod game_puppet_preview_tests {
     use super::GamePuppetPreviewManifest;
     use super::GamePuppetPreviewManifestCapture;
     use super::GamePuppetPreviewViewport;
+    use super::create_game_puppet_preview_run_root;
     use super::game_puppet_preview_artifact_file_name;
     use super::is_safe_preview_name;
     use super::parse_game_puppet_capture_metadata;
     use super::png_dimensions;
+    use tempfile::tempdir;
 
     #[test]
     fn preview_names_are_confined_to_the_artifact_namespace() {
@@ -3723,6 +3788,28 @@ mod game_puppet_preview_tests {
             game_puppet_preview_artifact_file_name(12, "disk-program"),
             "figure_12_disk-program.png"
         );
+    }
+
+    #[test]
+    fn preview_runs_receive_unique_nonce_directories() {
+        let temporary = tempdir().expect("temporary artifact root");
+        let artifact_root = temporary.path().join("game-test-preview");
+        let (first_id, first_root) = create_game_puppet_preview_run_root(
+            &artifact_root,
+            Some("title_screen_command_palette_echo"),
+        )
+        .expect("first preview run directory");
+        let (second_id, second_root) = create_game_puppet_preview_run_root(
+            &artifact_root,
+            Some("title_screen_command_palette_echo"),
+        )
+        .expect("second preview run directory");
+
+        assert_ne!(first_id, second_id);
+        assert!(first_root.is_dir());
+        assert!(second_root.is_dir());
+        assert!(first_id.starts_with("title_screen_command_palette_echo-"));
+        assert!(second_id.starts_with("title_screen_command_palette_echo-"));
     }
 
     #[test]
