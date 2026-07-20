@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.widget.SFMConsoleWidget;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -387,6 +388,7 @@ public final class SFMCommandPaletteScreen extends Screen {
         return this.feedback.isEmpty() ? EMPTY_CONSOLE_HEIGHT : CONSOLE_HEIGHT;
     }
 
+    @MCVersionDependentBehaviour
     private void layoutWidgets() {
         if (this.input == null || this.executeButton == null || this.consoleWidget == null) {
             return;
@@ -397,9 +399,8 @@ public final class SFMCommandPaletteScreen extends Screen {
         int horizontalPadding = 10;
         int executeWidth = 68;
         this.input.setX(left + horizontalPadding);
-        this.input.y = top + 30;
-        this.executeButton.x = left + width - horizontalPadding - executeWidth;
-        this.executeButton.y = top + 30;
+        this.input.setY(top + 30);
+        this.executeButton.setPosition(left + width - horizontalPadding - executeWidth, top + 30);
         this.consoleWidget.setBounds(
                 left + horizontalPadding,
                 consoleTop(top),
