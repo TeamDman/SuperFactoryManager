@@ -164,7 +164,7 @@ instructed to use PATH CLI epoch E1, commit forward without pushing, leave this
 plan untouched, and report evidence and proposed plan wording to the
 coordinator.
 
-### [ ] Track 2 — Native file drag-and-drop feasibility
+### [~] Track 2 — Native file drag-and-drop feasibility
 
 Investigate the complete path from the Minecraft window's GLFW/LWJGL handle to
 a safe SFM file-drop event. Determine what callbacks Minecraft already installs,
@@ -185,6 +185,15 @@ Record:
 - whether Forge/NeoForge already exposes an appropriate event;
 - sandbox/path-normalization and multiplayer implications; and
 - a recommendation: adopt, adapt behind a version seam, or reject.
+
+**Delegation started 2026-07-20:** Assigned to subagent
+`track2_file_drop_research` in
+`D:\Repos\Minecraft\SFM\worktrees\1.19.2-file-drop-research` on branch
+`feat/1.19.2/file-drop-research`. The worktree was created and verified clean at
+immutable baseline `246dddbc812644e3ca199e2bec85d8d152954b69`, with PATH CLI
+epoch E1 verified. The agent is authorized to commit a research report but must
+request follow-up authorization before implementing even an isolated callback
+proof. It leaves this canonical plan untouched and reports evidence here.
 
 ### [ ] Track 3 — Responsive full-screen file explorer
 
