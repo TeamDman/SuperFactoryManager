@@ -243,6 +243,15 @@ packets, or server logging. A production multiplexer should forward one
 `DroppedPathsIntent` only to the focused panel when that panel explicitly
 accepts drops.
 
+**Pre-drop hover follow-up started 2026-07-20:** The Track 2 subagent was
+resumed at clean commit `99df31e4dd7e7b0b0e6003de9fe727b36c7efbd3` to determine
+whether SFM can truthfully detect files hovering over the Minecraft window
+before the final `onFilesDrop` call. The investigation covers the GLFW public
+API and Win32/Cocoa/X11/Wayland backends, LWJGL native access, Minecraft window
+handles, loader seams, native ownership/cleanup, and the cost of a patched GLFW
+or platform-specific hook. It is documentation-only; any native or
+platform-specific proof requires separate authorization.
+
 ### [~] Track 3 — Responsive full-screen file explorer
 
 Create a new file explorer as an ordinary full-screen experience first, while
