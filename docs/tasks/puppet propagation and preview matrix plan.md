@@ -717,7 +717,7 @@ general Java type solver.
   entry, source/test evidence, and affected Minecraft versions. Remove or
   defer any changelog promise that lacks a committed, supportable change.
 - State the release support policy: normal SFM artifacts for each selected
-  version target, plus CC:Tweaked mutable handles and the `sfm_labeler` turtle
+  version target, plus CC:Tweaked mutable handles and the `sfm` turtle
   upgrade only on the six locked-runtime targets recorded in the acceptance
   matrix.
 - Review related issues and the release milestone with the project maintainer.
@@ -747,7 +747,7 @@ and evidence; developer-only puppet work is listed only as release evidence.
 `4.35.0`, while `gradle.properties` deliberately remains at `4.34.0` until
 scope is frozen. The prepared user-facing scope is the documented CC:Tweaked
 surface (mutable disk/label-gun handles, cable-network peripherals, structured
-item details, turtle inventory support, and the `sfm_labeler` upgrade) plus
+  item details, turtle inventory support, and the `sfm` turtle peripheral) plus
 the committed draw-canvas improvements listed in the prepared changelog.
 
 The three developer-only puppet entries were removed from the 4.35 changelog:
@@ -940,9 +940,9 @@ verification target.
 - Attach a computer to an SFM cable network, obtain managers through the
   released peripheral, acquire a disk/label-gun handle, mutate and save a
   program/labels, and confirm normal SFM state/persistence behavior.
-- Install and use the `sfm_labeler` turtle upgrade with a selected label gun to
-  perform a player-equivalent label action. Verify a turtle inventory can take
-  part in an SFM transfer.
+- Install and use the `sfm:labeler` turtle upgrade with a selected label gun to
+  exercise the flat `sfm` peripheral, inspect contiguous discovery, and bulk
+  edit labels. Verify a turtle inventory can take part in an SFM transfer.
 - Confirm that CC-specific functionality is absent only on the documented
   source-excluded target set, while the ordinary SFM release continues to work
   there.

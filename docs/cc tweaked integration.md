@@ -124,10 +124,11 @@ codes are `invalid_label`, `invalid_view_mode`, `target_changed`,
 `getItemDetail(slot, true)` no longer includes `detail.sfm`. Printing forms
 are intentionally outside the mutable CC surface.
 
-## Turtle labeler upgrade
+## SFM turtle upgrade
 
-An unmodified SFM label gun can be equipped as the `sfm_labeler` turtle
-peripheral upgrade. It must be blank: CC:Tweaked's normal upgrade suitability
+An unmodified SFM label gun can be equipped as the `sfm:labeler` turtle
+peripheral upgrade, which exposes the peripheral type `sfm`. It must be blank:
+CC:Tweaked's normal upgrade suitability
 check rejects a gun carrying SFM label-gun NBT, preventing that state from
 being discarded during `turtle.equipLeft()` or `turtle.equipRight()`.
 
@@ -135,23 +136,45 @@ The upgrade is an editor/action tool; it does not store a label gun itself.
 Put the actual label gun or disk in the turtle inventory and select it before
 calling the peripheral.
 
-```lua
--- Equip a blank label gun first, then select a separate working label gun.
-local labeler = assert(peripheral.wrap("left"))
-assert(peripheral.getType("left") == "sfm_labeler")
+The wrapped upgrade is one flat SFM controller. There are no nested `disk()`
+or `labelGun()` methods. Program methods act on a selected disk, label-gun
+state methods act on a selected label gun, and `labels()` edits either item.
 
-local gun = assert(labeler.labelGun())
-assert(gun.setActiveLabel("furnaces"))
-assert(labeler.toggle("front", true)) -- true uses player-equivalent contiguous targeting
-assert(labeler.clearActive("front", true))
-assert(labeler.clearAll("front", false))
-assert(labeler.pick("front", false))
-assert(labeler.push("up"))
-assert(labeler.pull("up"))
+```lua
+local sfm = assert(peripheral.wrap("left"))
+assert(peripheral.getType("left") == "sfm")
+
+-- Discover the same contiguous, cable-adjacent targets as the player tool.
+local discovery = sfm.discover("front", { contiguous = true })
+local positions = discovery.positions()
+local skipped = discovery.skippedPositions()
+print("selected", positions.count(), "skipped", skipped.count())
+
+-- Dynamic CC objects cannot retain Java identity when passed back as method
+-- arguments, so explicitly transfer the immutable set as Lua position records.
+local positionSet = positions.toTable()
+local labels = sfm.labels()
+assert(labels.addAll("furnaces", positionSet))
+assert(labels.save())
+
+assert(labels.removeAll("furnaces", positionSet))
+assert(labels.save())
+
+-- Select a disk to use the same controller and discovered positions on it.
+turtle.select(2)
+assert(sfm.setProgram('NAME "turtle disk"'))
+local diskLabels = sfm.labels()
+assert(diskLabels.addAll("furnaces", positionSet))
+assert(diskLabels.save())
 ```
 
-`disk()` and `labelGun()` acquire handles for the selected turtle slot. As
-with inventory handles, their first use confirms the selected item type.
+Position-set handles expose `count()`, one-indexed `position(index)`,
+`contains(x, y, z)`, and `toTable()`. The transfer table contains one-indexed
+`{ x = ..., y = ..., z = ... }` records. Label editors expose `addAll` and
+`removeAll` in addition to their single-position operations. Edits remain an
+owned snapshot until the explicit `save()` call.
+
+The older action helpers remain available for selected label guns.
 `toggle`, `clearActive`, `clearAll`, and `pick` accept `front`, `up`, or
 `down`, plus an optional contiguous boolean. `push` and `pull` target a
 manager in that direction. Actions execute through the turtle command queue,
@@ -164,6 +187,7 @@ cable-adjacent block selection as the player label gun.
 The CC:Tweaked GameTests cover manager topology and stale handles, real Lua
 network/inventory calls, no `detail.sfm` regression, native-size label reads,
 invalid-program diagnostics, owned-session overwrite behavior, and a real
-turtle's upgrade/command queue/contiguous label/push/pull flow. Production
+turtle's flat disk/gun API, inspectable contiguous discovery, bulk label
+editing, command queue, and push/pull flow. Production
 integration uses only `dan200.computercraft.api`; test fixtures may use
 CC:Tweaked internals to boot a real computer or turtle.

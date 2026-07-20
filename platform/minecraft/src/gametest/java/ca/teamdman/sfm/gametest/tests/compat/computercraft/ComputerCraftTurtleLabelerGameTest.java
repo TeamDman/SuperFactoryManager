@@ -45,6 +45,7 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         BlockPos turtlePos = new BlockPos(1, 2, 1);
         BlockPos firstFurnace = new BlockPos(2, 2, 1);
         BlockPos secondFurnace = new BlockPos(2, 2, 2);
+        BlockPos skippedFurnace = new BlockPos(2, 2, 0);
         BlockPos managerPos = new BlockPos(1, 3, 1);
         helper.setBlock(
                 turtlePos,
@@ -53,6 +54,7 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         );
         helper.setBlock(firstFurnace, Blocks.FURNACE);
         helper.setBlock(secondFurnace, Blocks.FURNACE);
+        helper.setBlock(skippedFurnace, Blocks.FURNACE);
         helper.setBlock(new BlockPos(2, 1, 1), SFMBlocks.CABLE.get());
         helper.setBlock(new BlockPos(2, 1, 2), SFMBlocks.CABLE.get());
         helper.setBlock(new BlockPos(3, 1, 1), SFMBlocks.CABLE.get());
@@ -75,7 +77,9 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         TileTurtle turtle = helper.getBlockEntity(turtlePos, TileTurtle.class);
         turtle.getAccess().setUpgrade(TurtleSide.LEFT, upgrade);
         ItemStack runtimeGun = new ItemStack(SFMItems.LABEL_GUN.get());
+        ItemStack runtimeDisk = new ItemStack(SFMItems.DISK.get());
         turtle.setItem(0, runtimeGun);
+        turtle.setItem(1, runtimeDisk);
         turtle.getAccess().setSelectedSlot(0);
 
         ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
@@ -87,41 +91,65 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         ServerComputer computer = turtle.createServerComputer();
         BlockPos firstFurnaceAbsolute = helper.absolutePos(firstFurnace);
         BlockPos secondFurnaceAbsolute = helper.absolutePos(secondFurnace);
+        BlockPos skippedFurnaceAbsolute = helper.absolutePos(skippedFurnace);
         ComputerCraftLuaNetworkPeripheralGameTest.writeStartupProgram(helper, computer, """
-                local labeler = assert(peripheral.wrap("left"), "labeler upgrade peripheral missing")
-                assert(peripheral.getType("left") == "sfm_labeler", "unexpected turtle peripheral type")
-                local gun = assert(labeler.labelGun(), "selected turtle slot did not expose label gun")
+                local sfm = assert(peripheral.wrap("left"), "SFM upgrade peripheral missing")
+                assert(peripheral.getType("left") == "sfm", "unexpected turtle peripheral type")
+                assert(sfm.labelGun == nil and sfm.disk == nil, "SFM item API was not flattened")
 
-                assert(gun.setActiveLabel("contiguous"))
-                assert(labeler.toggle("front", true))
-                local labels = gun.labels()
+                local discovery = sfm.discover("front", { contiguous = true })
+                local positions = discovery.positions()
+                local skipped = discovery.skippedPositions()
+                assert(positions.count() == 2, "contiguous discovery did not find both cable-adjacent furnaces")
+                assert(positions.contains(%d, %d, %d), "discovery omitted the first furnace")
+                assert(positions.contains(%d, %d, %d), "discovery omitted the second furnace")
+                assert(skipped.count() == 1, "discovery did not report the furnace without a cable neighbour")
+                assert(skipped.contains(%d, %d, %d), "unexpected skipped discovery position")
+                local positionSet = positions.toTable()
+
+                local labels = sfm.labels()
+                assert(labels.addAll("contiguous", positionSet))
+                assert(labels.save())
                 assert(labels.contains("contiguous", %d, %d, %d), "first contiguous furnace was not labelled")
                 assert(labels.contains("contiguous", %d, %d, %d), "second contiguous furnace was not labelled")
-                assert(labeler.clearActive("front", true))
-                labels = gun.labels()
-                assert(not labels.contains("contiguous", %d, %d, %d), "contiguous clear-active did not remove first furnace label")
-                assert(not labels.contains("contiguous", %d, %d, %d), "contiguous clear-active did not remove second furnace label")
+                assert(labels.removeAll("contiguous", positionSet))
+                assert(labels.save())
+                assert(not labels.contains("contiguous", %d, %d, %d), "bulk remove did not remove first furnace label")
+                assert(not labels.contains("contiguous", %d, %d, %d), "bulk remove did not remove second furnace label")
+
+                turtle.select(2)
+                assert(sfm.setProgram('NAME "turtle disk"'))
+                assert(sfm.getProgram() == 'NAME "turtle disk"')
+                local diskLabels = sfm.labels()
+                assert(diskLabels.addAll("discovered", positionSet))
+                assert(diskLabels.save())
+                turtle.select(1)
 
                 assert(labels.add("alpha", %d, %d, %d))
                 assert(labels.add("beta", %d, %d, %d))
                 assert(labels.save())
-                assert(gun.setActiveLabel("alpha"))
-                assert(labeler.pick("front", false))
-                assert(gun.getActiveLabel() == "beta", "pick did not cycle target labels")
-                assert(labeler.clearAll("front", false))
-                labels = gun.labels()
+                assert(sfm.setActiveLabel("alpha"))
+                assert(sfm.setViewMode("show_only_targeted_block"))
+                assert(sfm.getViewMode() == "show_only_targeted_block", "view mode was not saved")
+                assert(sfm.pick("front", false))
+                assert(sfm.getActiveLabel() == "beta", "pick did not cycle target labels")
+                assert(sfm.clearAll("front", false))
+                labels = sfm.labels()
                 assert(not labels.contains("alpha", %d, %d, %d), "clear-all did not remove alpha")
                 assert(not labels.contains("beta", %d, %d, %d), "clear-all did not remove beta")
 
                 assert(labels.add("pushed", 6, 6, 6))
                 assert(labels.save())
-                assert(labeler.push("up"), "push to manager failed")
+                assert(sfm.push("up"), "push to manager failed")
                 os.pullEvent("sfm_continue")
-                assert(labeler.pull("up"), "pull from manager failed")
-                labels = gun.labels()
+                assert(sfm.pull("up"), "pull from manager failed")
+                labels = sfm.labels()
                 assert(labels.contains("pulled", 7, 7, 7), "pull did not copy manager labels into turtle gun")
                 redstone.setOutput("top", true)
                 """.formatted(
+                firstFurnaceAbsolute.getX(), firstFurnaceAbsolute.getY(), firstFurnaceAbsolute.getZ(),
+                secondFurnaceAbsolute.getX(), secondFurnaceAbsolute.getY(), secondFurnaceAbsolute.getZ(),
+                skippedFurnaceAbsolute.getX(), skippedFurnaceAbsolute.getY(), skippedFurnaceAbsolute.getZ(),
                 firstFurnaceAbsolute.getX(), firstFurnaceAbsolute.getY(), firstFurnaceAbsolute.getZ(),
                 secondFurnaceAbsolute.getX(), secondFurnaceAbsolute.getY(), secondFurnaceAbsolute.getZ(),
                 firstFurnaceAbsolute.getX(), firstFurnaceAbsolute.getY(), firstFurnaceAbsolute.getZ(),
@@ -153,6 +181,15 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
             helper.assertTrue(
                     LabelPositionHolder.from(runtimeGun).contains("pulled", new BlockPos(7, 7, 7)),
                     "Turtle pull did not persist onto the selected inventory gun"
+            );
+            helper.assertTrue(
+                    "NAME \"turtle disk\"".equals(DiskItem.getProgramStringReadOnly(runtimeDisk)),
+                    "Flat SFM peripheral did not persist the selected disk program"
+            );
+            helper.assertTrue(
+                    LabelPositionHolder.from(runtimeDisk).contains("discovered", firstFurnaceAbsolute)
+                            && LabelPositionHolder.from(runtimeDisk).contains("discovered", secondFurnaceAbsolute),
+                    "Bulk-discovered positions were not persisted to the selected disk"
             );
             helper.succeed();
         });

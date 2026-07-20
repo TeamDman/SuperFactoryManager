@@ -15,7 +15,9 @@ that uses the turtle's selected inventory item.
   position, state, and disk acquisition and reject disconnected retained
   handles with `manager_unreachable`.
 - Disks and label guns are acquired through reusable item-backed handles from
-  manager disks, ordinary CC inventory peripherals, and turtle selected slots.
+  manager disks and ordinary CC inventory peripherals. The turtle upgrade is a
+  flat `sfm` controller whose disk, label-gun, and label methods act on its
+  selected slot.
   Label editors are owned `LabelPositionHolder` sessions with explicit,
   last-writer-wins `save()`; they use count/index access rather than a full Lua
   table and preserve SFM's native 256-character label limit.
@@ -23,10 +25,13 @@ that uses the turtle's selected inventory item.
   `true, "invalid_program"`; other rejected mutations report stable error
   codes. Manager disk writes use the normal manager rebuild lifecycle.
 - `detail.sfm`, its serializer, and its item-detail provider are removed.
-- A blank SFM label gun is the `sfm_labeler` turtle upgrade item. Runtime
+- A blank SFM label gun is the `sfm:labeler` turtle upgrade item and exposes
+  peripheral type `sfm`. Runtime
   actions use selected inventory label guns and CC:Tweaked's command queue for
   player-equivalent toggle, clear-active, clear-all, pick, push, and pull
-  actions at `front`, `up`, or `down`.
+  actions at `front`, `up`, or `down`. Lua can also inspect contiguous target
+  discovery and compose those immutable position sets with bulk label-editor
+  additions and removals on selected disks or label guns.
 
 ## Acceptance work
 
