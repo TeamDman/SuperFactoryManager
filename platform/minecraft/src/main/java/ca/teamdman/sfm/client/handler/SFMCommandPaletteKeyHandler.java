@@ -11,7 +11,7 @@ import ca.teamdman.sfm.common.util.SFMDist;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.event.TickEvent;
+import net.neoforged.neoforge.event.TickEvent;
 
 public final class SFMCommandPaletteKeyHandler {
     private static boolean commandPaletteKeyDown;
