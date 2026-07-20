@@ -12,7 +12,7 @@ import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.neoforged.bus.api.IEventBus;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
