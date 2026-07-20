@@ -5,7 +5,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public interface SFMClientAction<T> {
     Component title();
@@ -23,7 +23,7 @@ public interface SFMClientAction<T> {
             CommandContext<SFMClientActionSource> context
     ) throws CommandSyntaxException;
 
-    default LiteralArgumentBuilder<SFMClientActionSource> createCommandNode(ResourceLocation actionId) {
+    default LiteralArgumentBuilder<SFMClientActionSource> createCommandNode(Identifier actionId) {
         return createCommandNode(actionId.toString());
     }
 

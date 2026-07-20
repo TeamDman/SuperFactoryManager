@@ -5,7 +5,7 @@ import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 import java.util.Map;
@@ -13,11 +13,11 @@ import java.util.concurrent.CompletableFuture;
 
 public final class SFMClientActionCommandTree {
     private final CommandDispatcher<SFMClientActionSource> dispatcher;
-    private final Map<ResourceLocation, SFMClientAction<?>> actions;
+    private final Map<Identifier, SFMClientAction<?>> actions;
 
     SFMClientActionCommandTree(
             CommandDispatcher<SFMClientActionSource> dispatcher,
-            Map<ResourceLocation, SFMClientAction<?>> actions
+            Map<Identifier, SFMClientAction<?>> actions
     ) {
         this.dispatcher = dispatcher;
         this.actions = Map.copyOf(actions);
@@ -51,7 +51,7 @@ public final class SFMClientActionCommandTree {
                 .getContext()
                 .getNodes()
                 .stream()
-                .map(node -> ResourceLocation.tryParse(node.getNode().getName()))
+                .map(node -> Identifier.tryParse(node.getNode().getName()))
                 .filter(actions::containsKey)
                 .anyMatch(id -> !isAvailable(id, source));
         if (parsedUnavailableAction) {
@@ -62,7 +62,7 @@ public final class SFMClientActionCommandTree {
                     .getList()
                     .stream()
                     .filter(suggestion -> {
-                        ResourceLocation id = ResourceLocation.tryParse(suggestion.getText());
+                        Identifier id = Identifier.tryParse(suggestion.getText());
                         return !actions.containsKey(id) || isAvailable(id, source);
                     })
                     .toList();
@@ -71,7 +71,7 @@ public final class SFMClientActionCommandTree {
     }
 
     private boolean isAvailable(
-            ResourceLocation id,
+            Identifier id,
             SFMClientActionSource source
     ) {
         SFMClientAction<?> action = actions.get(id);

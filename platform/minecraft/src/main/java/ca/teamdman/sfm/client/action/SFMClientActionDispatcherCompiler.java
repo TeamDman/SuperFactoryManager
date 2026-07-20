@@ -10,7 +10,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Comparator;
 import java.util.Map;
@@ -21,16 +21,16 @@ public final class SFMClientActionDispatcherCompiler {
     }
 
     public static CommandDispatcher<SFMClientActionSource> compile(
-            Iterable<? extends Map.Entry<ResourceLocation, ? extends SFMClientAction<?>>> registrations
+            Iterable<? extends Map.Entry<Identifier, ? extends SFMClientAction<?>>> registrations
     ) {
         return compileCommandTree(registrations).dispatcher();
     }
 
     public static SFMClientActionCommandTree compileCommandTree(
-            Iterable<? extends Map.Entry<ResourceLocation, ? extends SFMClientAction<?>>> registrations
+            Iterable<? extends Map.Entry<Identifier, ? extends SFMClientAction<?>>> registrations
     ) {
-        TreeMap<ResourceLocation, SFMClientAction<?>> actions = new TreeMap<>(Comparator.comparing(ResourceLocation::toString));
-        for (Map.Entry<ResourceLocation, ? extends SFMClientAction<?>> registration : registrations) {
+        TreeMap<Identifier, SFMClientAction<?>> actions = new TreeMap<>(Comparator.comparing(Identifier::toString));
+        for (Map.Entry<Identifier, ? extends SFMClientAction<?>> registration : registrations) {
             SFMClientAction<?> replaced = actions.putIfAbsent(registration.getKey(), registration.getValue());
             if (replaced != null) {
                 throw new IllegalArgumentException("Duplicate client action id: " + registration.getKey());
@@ -38,7 +38,7 @@ public final class SFMClientActionDispatcherCompiler {
         }
 
         LiteralArgumentBuilder<SFMClientActionSource> invoke = LiteralArgumentBuilder.literal("invoke");
-        for (Map.Entry<ResourceLocation, SFMClientAction<?>> action : actions.entrySet()) {
+        for (Map.Entry<Identifier, SFMClientAction<?>> action : actions.entrySet()) {
             invoke.then(action.getValue().createCommandNode(action.getKey()));
         }
 
@@ -51,7 +51,7 @@ public final class SFMClientActionDispatcherCompiler {
 
         LiteralArgumentBuilder<SFMClientActionSource> help = LiteralArgumentBuilder.literal("help");
         SuggestionProvider<SFMClientActionSource> actionIdSuggestions = (context, builder) -> {
-            for (ResourceLocation id : actions.keySet()) {
+            for (Identifier id : actions.keySet()) {
                 builder.suggest(id.toString());
             }
             return builder.buildFuture();
@@ -74,11 +74,11 @@ public final class SFMClientActionDispatcherCompiler {
 
     private static int listActions(
             CommandContext<SFMClientActionSource> context,
-            Map<ResourceLocation, SFMClientAction<?>> actions,
+            Map<Identifier, SFMClientAction<?>> actions,
             boolean availableOnly
     ) {
         int count = 0;
-        for (Map.Entry<ResourceLocation, SFMClientAction<?>> action : actions.entrySet()) {
+        for (Map.Entry<Identifier, SFMClientAction<?>> action : actions.entrySet()) {
             SFMClientActionAvailability<?> availability = action.getValue()
                     .requirement()
                     .resolve(context.getSource().context());
@@ -102,10 +102,10 @@ public final class SFMClientActionDispatcherCompiler {
 
     private static int showHelp(
             CommandContext<SFMClientActionSource> context,
-            Map<ResourceLocation, SFMClientAction<?>> actions
+            Map<Identifier, SFMClientAction<?>> actions
     ) throws CommandSyntaxException {
         String rawId = StringArgumentType.getString(context, "action").trim();
-        ResourceLocation id = ResourceLocation.tryParse(rawId);
+        Identifier id = Identifier.tryParse(rawId);
         SFMClientAction<?> action = id == null ? null : actions.get(id);
         if (action == null) {
             throw new SimpleCommandExceptionType(Component.literal("Unknown client action: " + rawId)).create();

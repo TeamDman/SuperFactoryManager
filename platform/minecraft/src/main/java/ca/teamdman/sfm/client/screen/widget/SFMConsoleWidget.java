@@ -2,10 +2,8 @@ package ca.teamdman.sfm.client.screen.widget;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
@@ -136,7 +134,7 @@ public final class SFMConsoleWidget {
 
     @MCVersionDependentBehaviour
     public void render(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             int mouseX,
             int mouseY,
             float partialTick
@@ -155,16 +153,16 @@ public final class SFMConsoleWidget {
         );
 
         if (contentWidth > 0 && contentHeight > 0 && !this.lines.isEmpty()) {
-            enableScissor(contentLeft, contentTop, contentWidth, contentHeight);
+            graphics.enableScissor(contentLeft, contentTop, contentLeft + contentWidth, contentTop + contentHeight);
             renderLines(graphics, contentLeft, contentTop);
-            RenderSystem.disableScissor();
+            graphics.disableScissor();
         }
 
         renderScrollbar(graphics, mouseX, mouseY);
     }
 
     @MCVersionDependentBehaviour
-    private void renderLines(GuiGraphics graphics, int contentLeft, int contentTop) {
+    private void renderLines(GuiGraphicsExtractor graphics, int contentLeft, int contentTop) {
         int lineHeight = Math.max(1, this.font.lineHeight);
         int firstLine = Mth.clamp(
                 (int) Math.floor(this.scrollAmount / lineHeight),
@@ -189,7 +187,7 @@ public final class SFMConsoleWidget {
     }
 
     @MCVersionDependentBehaviour
-    private void renderScrollbar(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderScrollbar(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         if (!isScrollbarVisible()) {
             return;
         }
@@ -376,19 +374,4 @@ public final class SFMConsoleWidget {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
-    @MCVersionDependentBehaviour
-    private static void enableScissor(int x, int y, int width, int height) {
-        var window = Minecraft.getInstance().getWindow();
-        double scale = window.getGuiScale();
-        int left = (int) Math.floor(x * scale);
-        int right = (int) Math.ceil((x + width) * scale);
-        int top = (int) Math.floor(y * scale);
-        int bottom = (int) Math.ceil((y + height) * scale);
-        RenderSystem.enableScissor(
-                left,
-                window.getHeight() - bottom,
-                Math.max(0, right - left),
-                Math.max(0, bottom - top)
-        );
-    }
 }

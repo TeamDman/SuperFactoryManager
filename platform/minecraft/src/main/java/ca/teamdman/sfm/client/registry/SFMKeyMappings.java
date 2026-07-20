@@ -57,7 +57,7 @@ public class SFMKeyMappings {
             KeyModifier.CONTROL,
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_K,
-            SFM_KEY_CATEGORY.key().get()
+            SFM_KEY_CATEGORY
     ));
 
     @SFMLocalizationDatagen

@@ -6,7 +6,7 @@ import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -53,11 +53,11 @@ public final class SFMRegistryDump {
             return;
         }
         minecraft.level.registryAccess().registries().forEach(entry -> {
-            ResourceLocation registryId = entry.key().location();
+            Identifier registryId = entry.key().identifier();
             if (results.containsKey(registryId.toString())) return;
             try {
                 List<String> ids = entry.value().keySet().stream()
-                        .map(ResourceLocation::toString)
+                        .map(Identifier::toString)
                         .sorted()
                         .toList();
                 writeAvailable(directory, results, registryId.toString(), "client-level", ids);
@@ -91,13 +91,13 @@ public final class SFMRegistryDump {
             Path directory,
             Map<String, RegistryResult> results
     ) {
-        for (ResourceLocation registryId : BuiltInRegistries.REGISTRY.keySet()) {
-            net.minecraft.core.Registry registry = BuiltInRegistries.REGISTRY.get(registryId);
+        for (Identifier registryId : BuiltInRegistries.REGISTRY.keySet()) {
+            net.minecraft.core.Registry registry = BuiltInRegistries.REGISTRY.getValue(registryId);
             if (registry == null) continue;
             if (results.containsKey(registryId.toString())) continue;
             try {
                 List<String> ids = registry.keySet().stream()
-                        .map(value -> ((ResourceLocation) value).toString())
+                        .map(value -> ((Identifier) value).toString())
                         .sorted()
                         .toList();
                 writeAvailable(directory, results, registryId.toString(), registryId.toString(), ids);
@@ -113,11 +113,11 @@ public final class SFMRegistryDump {
             String fieldName,
             SFMRegistryWrapper<?> wrapper
     ) {
-        String registryId = wrapper.registryKey().location().toString();
+        String registryId = wrapper.registryKey().identifier().toString();
         if (results.containsKey(registryId)) return;
         try {
             List<String> ids = wrapper.keys().stream()
-                    .map(ResourceLocation::toString)
+                    .map(Identifier::toString)
                     .sorted()
                     .toList();
             writeAvailable(directory, results, registryId, fieldName, ids);
@@ -189,7 +189,7 @@ public final class SFMRegistryDump {
     }
 
     private static Path registryDirectory(Path root, String registryId) {
-        ResourceLocation id = ResourceLocation.tryParse(registryId);
+        Identifier id = Identifier.tryParse(registryId);
         String namespace = id == null ? "unknown" : id.getNamespace();
         String path = id == null ? registryId : id.getPath();
         return root.resolve(namespace).resolve(path.replace('/', '_'));

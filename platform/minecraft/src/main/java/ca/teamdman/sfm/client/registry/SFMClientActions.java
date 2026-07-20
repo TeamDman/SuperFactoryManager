@@ -11,7 +11,7 @@ import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,9 +55,11 @@ public final class SFMClientActions {
 
     public static synchronized SFMClientActionCommandTree commandTree() {
         if (commandTree == null) {
-            List<Map.Entry<ResourceLocation, SFMClientAction<?>>> registrations = new ArrayList<>();
-            for (ResourceLocation id : registry().keys()) {
-                SFMClientAction<?> action = Objects.requireNonNull(registry().get(id));
+            List<Map.Entry<Identifier, SFMClientAction<?>>> registrations = new ArrayList<>();
+            for (Identifier id : registry().keys()) {
+                SFMClientAction<?> action = registry().get(id)
+                        .map(reference -> reference.value())
+                        .orElseThrow(() -> new IllegalStateException("Missing registered client action " + id));
                 registrations.add(Map.entry(id, action));
             }
             commandTree = SFMClientActionDispatcherCompiler.compileCommandTree(registrations);

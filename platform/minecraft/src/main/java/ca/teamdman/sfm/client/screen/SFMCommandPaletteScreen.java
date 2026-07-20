@@ -14,9 +14,11 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestion;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
@@ -208,7 +210,9 @@ public final class SFMCommandPaletteScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int key, int scanCode, int modifiers) {
+    @MCVersionDependentBehaviour
+    public boolean keyPressed(KeyEvent event) {
+        int key = event.key();
         if (key == GLFW.GLFW_KEY_ESCAPE) {
             onClose();
             return true;
@@ -235,11 +239,15 @@ public final class SFMCommandPaletteScreen extends Screen {
                 return true;
             }
         }
-        return super.keyPressed(key, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    @MCVersionDependentBehaviour
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (this.consoleWidget.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
@@ -258,29 +266,35 @@ public final class SFMCommandPaletteScreen extends Screen {
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    @MCVersionDependentBehaviour
+    public boolean mouseReleased(MouseButtonEvent event) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (this.consoleWidget.mouseReleased(mouseX, mouseY, button)) {
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public boolean mouseDragged(
-            double mouseX,
-            double mouseY,
-            int button,
+            MouseButtonEvent event,
             double dragX,
             double dragY
     ) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (this.consoleWidget.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
@@ -294,7 +308,7 @@ public final class SFMCommandPaletteScreen extends Screen {
 
     @Override
     @MCVersionDependentBehaviour
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         layoutWidgets();
         graphics.fill(0, 0, this.width, this.height, 0x66000000);
         int left = panelLeft();
@@ -345,7 +359,7 @@ public final class SFMCommandPaletteScreen extends Screen {
         }
         this.consoleWidget.replaceLines(this.feedback);
         this.consoleWidget.render(graphics, mouseX, mouseY, partialTick);
-        super.render(graphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     private int panelWidth() {
