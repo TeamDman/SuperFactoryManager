@@ -377,7 +377,7 @@ work. Win32 would require moving from `WM_DROPFILES` to OLE `IDropTarget`; a
 dev-only Windows proof remains research-only and is not a file-explorer release
 blocker. Track 2 is complete without native proof code.
 
-### [~] Track 3 — Responsive full-screen file explorer
+### [x] Track 3 — Responsive full-screen file explorer
 
 Create a new file explorer as an ordinary full-screen experience first, while
 keeping its domain model and layout responsive enough to be hosted later in a
@@ -474,9 +474,53 @@ The CLI currently cannot assemble two comma-separated puppet ids when each
 scenario emits the same local figure number; it reports a duplicate figure
 number. Running the stable ids separately succeeds. No CLI change was made.
 
-Track 3 remains in progress. Its remaining product work is a consumer that opens
-file intents in an editor, the Track 1 content-panel adapter on an integration
-branch, and separately accepted mount or native-drop source adapters.
+At this checkpoint Track 3 remained in progress. Its remaining product work was
+a consumer that opened file intents in an editor, the Track 1 content-panel
+adapter on an integration branch, and separately accepted mount or native-drop
+source adapters.
+
+**Integrated explorer workspace completed 2026-07-21:** The dedicated
+`feat/1.19.2/review-workspace` branch merged Track 1 at
+`5f7224e6752c5f270d8270bc328eb61da918a191`, merged Track 3 at
+`bb42285658309e0ec2f2edc6218d3cfc8ed7f379`, and implements the integrated
+behavior in commit `90c8fc26b1415ab6c30c43206b1f3d9efe4733bd` (`Integrate file
+explorer workspace previews`). The worktree is clean and no version propagation
+has run.
+
+The user-facing developer action now opens a single-panel multiplexer containing
+the explorer, so the explorer occupies the complete viewport. Final Java file
+drops are routed through `Screen.onFilesDrop` to the focused drop-capable panel.
+Exactly one existing, readable, non-link directory replaces the root; invalid,
+missing, multiple, file, link, or inaccessible drops retain the previous source
+and show structured feedback. The read-only path adapter uses bounded-memory
+directory selection, excludes configured descendant locations, validates path
+components and root containment, limits previews to 1 MiB, and decodes UTF-8
+strictly. It remains best-effort against hostile path-replacement races on file
+providers without `SecureDirectoryStream`.
+
+The explorer is an `SFMScreenPanel`. Activating the first text-like file inserts
+one reusable read-only text panel to the right with equal layout shares. A later
+single-click on another text-like file changes the path and content in that same
+viewer instance and panel id; it does not add a third panel. Drops made while
+the viewer is focused delegate to its paired explorer. Dropping a new root while
+a preview exists intentionally leaves the old preview visible until a file under
+the new root is selected.
+
+The `sfm:title_screen_integrated_file_explorer` puppet proves the complete
+sequence at 1200x720: explorer-only, deterministic directory delivery through
+`Screen.onFilesDrop`, root replacement, first `alpha.txt` preview, then
+single-click replacement with `beta.txt`. Semantic assertions prove panel counts
+`1 -> 2 -> 2`, equal-share allocation with at most the unavoidable one-pixel
+remainder, stable viewer identity, and changed path/content. The exact run exited
+with `SFM_GAME_PUPPET_SUCCEEDED` and `failed=0 total=1`; its four inspected
+captures are under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_integrated_file_explorer-20260721-000413-343`.
+
+The full Java test suite and all-source compilation passed; two portable symlink
+tests were skipped because Windows denied symlink creation. Java audit reported
+zero warnings and Git checks passed. Track 3 and its Track 1 integration target
+are complete. Mounted-disk synchronization and editable previews remain separate
+future scope rather than missing requirements of this read-only workspace.
 
 ### [ ] Track 4 — Dynamic hotkeys and typed command completion
 
