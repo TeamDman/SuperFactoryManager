@@ -12,7 +12,7 @@ public final class SFMFileExplorerModel {
 
     public record OpenIntent(String sourceName, SFMFileExplorerEntry entry) {}
 
-    private final SFMFileExplorerSource source;
+    private SFMFileExplorerSource source;
     private final Set<String> expandedPaths = new HashSet<>();
     private SFMFileExplorerSnapshot snapshot = SFMFileExplorerSnapshot.loading("Loading files...");
     private List<VisibleEntry> visibleEntries = List.of();
@@ -26,8 +26,19 @@ public final class SFMFileExplorerModel {
         try {
             setSnapshot(source.snapshot());
         } catch (RuntimeException exception) {
-            setSnapshot(SFMFileExplorerSnapshot.error("Unable to load source: " + exception.getMessage()));
+            setSnapshot(SFMFileExplorerSnapshot.error("Unable to load this read-only source"));
         }
+    }
+
+    public void replaceSource(SFMFileExplorerSource replacement) {
+        source = replacement;
+        expandedPaths.clear();
+        selectionIndex = -1;
+        reload();
+    }
+
+    public SFMFileExplorerSource source() {
+        return source;
     }
 
     public void setSnapshot(SFMFileExplorerSnapshot snapshot) {

@@ -27,4 +27,9 @@ public final class SFMFileExplorerFixtureSource implements SFMFileExplorerSource
     public SFMFileExplorerSnapshot snapshot() {
         return snapshot;
     }
+
+    @Override
+    public SFMFileReadResult readText(String logicalPath) {
+        return SFMFileReadResult.ready("Fixture content for " + logicalPath + "\nread-only\n");
+    }
 }

@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet.definition;
 
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 import net.minecraft.ChatFormatting;
@@ -23,7 +24,7 @@ public final class TitleScreenInstanceFileExplorerGamePuppet {
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.executeCommandPaletteAndWaitForScreen(
                 "sfm action invoke sfm:developer/open_instance_file_explorer",
-                SFMFileExplorerScreen.class
+                SFMScreenMultiplexer.class
         );
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.capture("instance-root", caption("Bounded root of the isolated runGameTestPreview instance."));

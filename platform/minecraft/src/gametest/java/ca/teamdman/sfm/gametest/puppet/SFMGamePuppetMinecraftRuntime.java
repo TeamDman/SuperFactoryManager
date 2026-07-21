@@ -6,9 +6,16 @@ import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerPanel;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerLayout;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMPathFileExplorerSource;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMReadOnlyTextPanel;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerWorkspace;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -46,6 +53,9 @@ import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
@@ -53,6 +63,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     private final ActivePuppet active;
 
     private final Minecraft minecraft;
+    private SFMWorkspacePanelId rememberedFileViewerId;
 
     SFMGamePuppetMinecraftRuntime(
             ActivePuppet active,
@@ -220,23 +231,130 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 
     @Override
     public void pressFileExplorerKey(int keyCode) {
-        if (!(minecraft.screen instanceof SFMFileExplorerScreen explorer)) {
-            throw new IllegalStateException("Expected file explorer before pressing an explorer key");
-        }
-        explorer.keyPressed(keyCode, 0, 0);
+        requireFileExplorerPanel().keyPressed(keyCode, 0, 0);
     }
 
     @Override
     public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
-        if (!(minecraft.screen instanceof SFMFileExplorerScreen explorer)) {
-            throw new IllegalStateException("Expected file explorer before changing its snapshot");
-        }
-        explorer.acceptSnapshot(snapshot);
+        requireFileExplorerPanel().acceptSnapshot(snapshot);
     }
 
     @Override
     public void openFileExplorer(SFMFileExplorerSource source) {
-        minecraft.setScreen(new SFMFileExplorerScreen(minecraft.screen, source, intent -> {}));
+        minecraft.setScreen(SFMFileExplorerWorkspace.create(minecraft.screen, source));
+    }
+
+    @Override
+    public boolean isFileExplorerOpen() {
+        try {
+            requireFileExplorerPanel();
+            return true;
+        } catch (IllegalStateException exception) {
+            return false;
+        }
+    }
+
+    @Override
+    public void deliverFileExplorerDropFixture() {
+        if (minecraft.screen == null) throw new IllegalStateException("Expected a screen for file drop delivery");
+        Path fixture = minecraft.gameDirectory.toPath().resolve("sfm-file-explorer-drop-fixture");
+        try {
+            Files.createDirectories(fixture);
+            Files.writeString(fixture.resolve("alpha.txt"), "alpha content from dropped root\nline two\n");
+            Files.writeString(fixture.resolve("beta.txt"), "beta replacement content\nline two\n");
+        } catch (IOException exception) {
+            throw new IllegalStateException("Unable to prepare deterministic file-drop fixture", exception);
+        }
+        minecraft.screen.onFilesDrop(List.of(fixture));
+    }
+
+    @Override
+    public void clickFileExplorerRow(int visibleRowIndex) {
+        SFMScreenMultiplexer multiplexer = requireFileExplorerMultiplexer();
+        int panelIndex = -1;
+        for (int i = 0; i < multiplexer.panels().size(); i++) {
+            if (multiplexer.panels().get(i) instanceof SFMFileExplorerPanel) {
+                panelIndex = i;
+                break;
+            }
+        }
+        if (panelIndex < 0) throw new IllegalStateException("Workspace has no explorer panel");
+        SFMWorkspacePanelId panelId = multiplexer.panelIds().get(panelIndex);
+        SFMScreenPanelBounds bounds = multiplexer.panelBounds(panelId);
+        if (bounds == null) throw new IllegalStateException("Explorer panel has no allocated bounds");
+        SFMFileExplorerLayout layout = SFMFileExplorerLayout.calculate(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        double mouseX = layout.list().x() + Math.max(1, layout.list().width() / 2D);
+        double mouseY = layout.list().y() + visibleRowIndex * SFMFileExplorerPanel.ROW_HEIGHT
+                + SFMFileExplorerPanel.ROW_HEIGHT / 2D;
+        multiplexer.mouseClicked(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+    }
+
+    @Override
+    public void assertFileExplorerWorkspace(
+            int panelCount,
+            String expectedRootName,
+            String expectedViewerPath,
+            String expectedViewerText,
+            boolean rememberOrRequireViewerIdentity
+    ) {
+        SFMScreenMultiplexer multiplexer = requireFileExplorerMultiplexer();
+        if (multiplexer.panels().size() != panelCount) {
+            throw new IllegalStateException("Expected " + panelCount + " panels but found " + multiplexer.panels().size());
+        }
+        SFMFileExplorerPanel explorer = requireFileExplorerPanel();
+        if (!expectedRootName.isEmpty()) {
+            if (!(explorer.model().source() instanceof SFMPathFileExplorerSource pathSource)
+                    || !pathSource.root().getFileName().toString().equals(expectedRootName)) {
+                throw new IllegalStateException("Explorer root did not match " + expectedRootName);
+            }
+        }
+        SFMReadOnlyTextPanel viewer = multiplexer.panels().stream()
+                .filter(SFMReadOnlyTextPanel.class::isInstance)
+                .map(SFMReadOnlyTextPanel.class::cast)
+                .findFirst().orElse(null);
+        if (expectedViewerPath.isEmpty()) {
+            if (viewer != null) throw new IllegalStateException("Expected no viewer panel");
+        } else {
+            if (viewer == null || !viewer.path().equals(expectedViewerPath)
+                    || !viewer.text().contains(expectedViewerText)) {
+                throw new IllegalStateException("Viewer did not show expected path/content");
+            }
+            int viewerIndex = multiplexer.panels().indexOf(viewer);
+            SFMWorkspacePanelId viewerId = multiplexer.panelIds().get(viewerIndex);
+            if (rememberOrRequireViewerIdentity) {
+                if (rememberedFileViewerId == null) rememberedFileViewerId = viewerId;
+                else if (!rememberedFileViewerId.equals(viewerId)) {
+                    throw new IllegalStateException("Viewer panel identity changed across previews");
+                }
+            }
+        }
+        if (panelCount == 2) {
+            SFMScreenPanelBounds first = multiplexer.panelBounds(multiplexer.panelIds().get(0));
+            SFMScreenPanelBounds second = multiplexer.panelBounds(multiplexer.panelIds().get(1));
+            if (first == null || second == null || Math.abs(first.width() - second.width()) > 1
+                    || second.x() - first.x() - first.width() != 2) {
+                throw new IllegalStateException("Expected equal-share horizontal allocation; first=" + first + ", second=" + second);
+            }
+        }
+    }
+
+    private SFMScreenMultiplexer requireFileExplorerMultiplexer() {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected file explorer workspace");
+        }
+        return multiplexer;
+    }
+
+    private SFMFileExplorerPanel requireFileExplorerPanel() {
+        if (minecraft.screen instanceof SFMFileExplorerScreen screen) return screen.panel();
+        if (minecraft.screen instanceof SFMScreenMultiplexer multiplexer) {
+            return multiplexer.panels().stream()
+                    .filter(SFMFileExplorerPanel.class::isInstance)
+                    .map(SFMFileExplorerPanel.class::cast)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Workspace has no file explorer panel"));
+        }
+        throw new IllegalStateException("Expected file explorer screen or workspace");
     }
 
     @Override

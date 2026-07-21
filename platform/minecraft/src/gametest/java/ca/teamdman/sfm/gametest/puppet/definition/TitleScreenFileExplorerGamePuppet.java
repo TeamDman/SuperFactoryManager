@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet.definition;
 
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
@@ -26,7 +27,7 @@ public final class TitleScreenFileExplorerGamePuppet {
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.executeCommandPaletteAndWaitForScreen(
                 "sfm action invoke sfm:developer/open_file_explorer",
-                SFMFileExplorerScreen.class
+                SFMScreenMultiplexer.class
         );
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.capture("ready", caption("Read-only fixture with keyboard focus on the programs directory."));

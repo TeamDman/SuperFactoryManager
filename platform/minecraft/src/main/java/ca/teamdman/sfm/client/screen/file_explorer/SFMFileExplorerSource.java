@@ -11,4 +11,8 @@ public interface SFMFileExplorerSource {
     String displayName();
 
     SFMFileExplorerSnapshot snapshot();
+
+    default SFMFileReadResult readText(String logicalPath) {
+        return SFMFileReadResult.unsupported("This source does not expose file contents");
+    }
 }

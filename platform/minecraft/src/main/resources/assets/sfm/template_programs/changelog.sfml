@@ -8,6 +8,7 @@ NAME "Changelog"
 
 ---- 4.35.0 PRE ----
 -- Add an experimental two-panel SFM workspace with typed command-palette screen opening
+-- Add a read-only file explorer workspace with safe directory drops and reusable side-by-side text previews
 -- Rework CC:Tweaked support with mutable disk/label-gun handles and the Labeler turtle upgrade
 -- Add a flat CC:Tweaked SFM turtle peripheral with disk/gun editing and composable contiguous label discovery
 -- Add CC:Tweaked cable-network peripherals, structured SFM item details, and turtle inventory support

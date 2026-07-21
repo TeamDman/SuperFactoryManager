@@ -161,6 +161,30 @@ public final class SFMGamePuppetHelper {
         add(new OpenFileExplorerPuppetAction(source));
     }
 
+    public void deliverFileExplorerDropFixture() {
+        add(new DeliverFileExplorerDropFixturePuppetAction());
+    }
+
+    public void clickFileExplorerRow(int visibleRowIndex) {
+        add(new ClickFileExplorerRowPuppetAction(visibleRowIndex));
+    }
+
+    public void assertFileExplorerWorkspace(
+            int panelCount,
+            String expectedRootName,
+            String expectedViewerPath,
+            String expectedViewerText,
+            boolean rememberOrRequireViewerIdentity
+    ) {
+        add(new AssertFileExplorerWorkspacePuppetAction(
+                panelCount,
+                expectedRootName,
+                expectedViewerPath,
+                expectedViewerText,
+                rememberOrRequireViewerIdentity
+        ));
+    }
+
     /**
      * Captures the currently rendered client frame with a numbered, styled caption.
      */

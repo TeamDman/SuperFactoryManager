@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Central extension-to-presentation mapping.
@@ -16,6 +17,9 @@ import java.util.Objects;
  * their shorter tails.</p>
  */
 public final class SFMFilePresentationRegistry {
+    private static final Set<String> TEXT_SUFFIXES = Set.of(
+            ".sfml", ".sfmp", ".g4", ".java", ".json", ".toml", ".properties", ".md", ".txt"
+    );
     private static final SFMFilePresentation DIRECTORY = new SFMFilePresentation(
             "[DIR]", "directory", 0xFFFFC857, SFMFilePresentation.Emphasis.BOLD
     );
@@ -48,6 +52,13 @@ public final class SFMFilePresentationRegistry {
             if (normalizedName.endsWith(suffix)) return bySuffix.get(suffix);
         }
         return normalizedName.contains(".") ? UNKNOWN_EXTENSION : NO_EXTENSION;
+    }
+
+    public boolean isTextLike(SFMFileExplorerEntry entry) {
+        if (entry.directory()) return false;
+        String normalizedName = entry.name().toLowerCase(Locale.ROOT);
+        if (!normalizedName.contains(".")) return true;
+        return TEXT_SUFFIXES.stream().anyMatch(normalizedName::endsWith);
     }
 
     public static SFMFilePresentationRegistry createDefault() {

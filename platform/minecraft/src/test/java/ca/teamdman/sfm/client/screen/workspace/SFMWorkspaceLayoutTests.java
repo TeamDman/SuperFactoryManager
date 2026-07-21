@@ -15,6 +15,19 @@ class SFMWorkspaceLayoutTests {
     private final SFMScreenPanel right = new SFMTestScreenPanel("right");
 
     @Test
+    void singlePanelFillsViewportThenSplitsExactlyInHalf() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.single(left);
+        SFMWorkspacePanelId leftId = layout.focusedPanel();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(7, 9, 102, 40);
+        assertEquals(viewport, layout.bounds(viewport, 2).get(leftId));
+
+        SFMWorkspacePanelId rightId = layout.insert(leftId, SFMWorkspaceSide.RIGHT, right);
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> bounds = layout.bounds(viewport, 2);
+        assertEquals(new SFMScreenPanelBounds(7, 9, 50, 40), bounds.get(leftId));
+        assertEquals(new SFMScreenPanelBounds(59, 9, 50, 40), bounds.get(rightId));
+    }
+
+    @Test
     void sameAxisInsertionNormalizesToDeterministicPeerBounds() {
         SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(left, right);
         SFMWorkspacePanelId rightId = layout.panels().get(1).id();

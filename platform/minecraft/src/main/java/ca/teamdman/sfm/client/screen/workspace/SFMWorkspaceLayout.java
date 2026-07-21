@@ -24,6 +24,12 @@ public final class SFMWorkspaceLayout {
         this.focusedPanel = focusedPanel;
     }
 
+    public static SFMWorkspaceLayout single(SFMScreenPanel panel) {
+        Objects.requireNonNull(panel);
+        SFMWorkspacePanelId id = new SFMWorkspacePanelId(0);
+        return new SFMWorkspaceLayout(new PanelNode(id, panel), 1, id);
+    }
+
     public static SFMWorkspaceLayout sideBySide(SFMScreenPanel left, SFMScreenPanel right) {
         Objects.requireNonNull(left);
         Objects.requireNonNull(right);

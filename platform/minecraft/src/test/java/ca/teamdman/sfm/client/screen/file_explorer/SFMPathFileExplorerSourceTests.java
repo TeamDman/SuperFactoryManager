@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,5 +48,40 @@ public class SFMPathFileExplorerSourceTests {
         assertEquals(SFMPathFileExplorerSource.MAX_CHILDREN_PER_DIRECTORY, rootEntry.children().size());
         assertEquals("000.txt", rootEntry.children().get(0).name());
         assertEquals("063.txt", rootEntry.children().get(63).name());
+    }
+
+    @Test
+    public void readsBoundedUtf8TextInsideRoot() throws IOException {
+        Files.createDirectories(root.resolve("nested"));
+        Files.writeString(root.resolve("nested/hello.txt"), "hello π", StandardCharsets.UTF_8);
+        SFMFileReadResult result = new SFMPathFileExplorerSource(root).readText("nested/hello.txt");
+        assertEquals(SFMFileReadResult.State.READY, result.state());
+        assertEquals("hello π", result.text());
+    }
+
+    @Test
+    public void rejectsTraversalOversizeAndInvalidUtf8() throws IOException {
+        Path outside = root.getParent().resolve("outside.txt");
+        Files.writeString(outside, "outside");
+        Files.write(root.resolve("large.txt"), new byte[SFMPathFileExplorerSource.MAX_TEXT_BYTES + 1]);
+        Files.write(root.resolve("invalid.txt"), new byte[]{(byte) 0xC3, (byte) 0x28});
+        SFMPathFileExplorerSource source = new SFMPathFileExplorerSource(root);
+
+        assertEquals(SFMFileReadResult.State.ERROR, source.readText("../outside.txt").state());
+        assertEquals(SFMFileReadResult.State.ERROR, source.readText("large.txt").state());
+        assertEquals(SFMFileReadResult.State.ERROR, source.readText("invalid.txt").state());
+    }
+
+    @Test
+    public void rejectsSymlinkWhenPortable() throws IOException {
+        Path target = root.resolve("target.txt");
+        Path link = root.resolve("link.txt");
+        Files.writeString(target, "target");
+        try {
+            Files.createSymbolicLink(link, target.getFileName());
+        } catch (UnsupportedOperationException | IOException exception) {
+            org.junit.jupiter.api.Assumptions.assumeTrue(false, "Symbolic links unavailable: " + exception);
+        }
+        assertEquals(SFMFileReadResult.State.ERROR, new SFMPathFileExplorerSource(root).readText("link.txt").state());
     }
 }

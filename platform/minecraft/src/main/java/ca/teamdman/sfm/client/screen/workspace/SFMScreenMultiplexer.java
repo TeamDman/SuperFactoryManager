@@ -1,6 +1,9 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
+import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -8,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,15 +29,30 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private final Set<SFMWorkspacePanelId> openedPanels = new HashSet<>();
     private Map<SFMWorkspacePanelId, SFMScreenPanelBounds> panelBounds = Map.of();
     private boolean closing;
+    private @Nullable Component dropFeedback;
 
     private SFMScreenMultiplexer(
             @Nullable Screen previousScreen,
             SFMScreenPanel left,
             SFMScreenPanel right
     ) {
+        this(previousScreen, SFMWorkspaceLayout.sideBySide(left, right));
+    }
+
+    private SFMScreenMultiplexer(
+            @Nullable Screen previousScreen,
+            SFMWorkspaceLayout layout
+    ) {
         super(Component.literal("SFM workspace"));
         this.previousScreen = previousScreen;
-        this.layout = SFMWorkspaceLayout.sideBySide(left, right);
+        this.layout = layout;
+    }
+
+    public static SFMScreenMultiplexer create(
+            @Nullable Screen previousScreen,
+            SFMScreenPanel initialPanel
+    ) {
+        return new SFMScreenMultiplexer(previousScreen, SFMWorkspaceLayout.single(initialPanel));
     }
 
     public static void openToSide(@Nullable Screen origin, SFMScreenPanel panel) {
@@ -70,6 +89,14 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     public List<SFMScreenPanel> panels() {
         return layout.panels().stream().map(SFMWorkspaceLayout.PanelEntry::panel).toList();
+    }
+
+    public List<SFMWorkspacePanelId> panelIds() {
+        return layout.panels().stream().map(SFMWorkspaceLayout.PanelEntry::id).toList();
+    }
+
+    public @Nullable SFMScreenPanelBounds panelBounds(SFMWorkspacePanelId panelId) {
+        return panelBounds.get(panelId);
     }
 
     @Override
@@ -130,9 +157,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     @Override
     public Component getNarrationMessage() {
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
-        return focused == null
+        Component narration = focused == null
                 ? Component.literal("Empty SFM workspace")
                 : Component.literal("SFM workspace. Focused panel: ").append(focused.narration());
+        return dropFeedback == null ? narration : narration.copy().append(Component.literal(". ")).append(dropFeedback);
     }
 
     @Override
@@ -155,6 +183,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             fill(poseStack, bounds.x(), bounds.y() + bounds.height() - 1, bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
             fill(poseStack, bounds.x(), bounds.y(), bounds.x() + 1, bounds.y() + bounds.height(), border);
             fill(poseStack, bounds.x() + bounds.width() - 1, bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
+            enableScissor(bounds);
             entry.panel().render(
                     poseStack,
                     this.minecraft,
@@ -164,6 +193,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                     partialTick,
                     entry.id().equals(layout.focusedPanel())
             );
+            RenderSystem.disableScissor();
+        }
+        if (dropFeedback != null) {
+            SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
@@ -240,10 +273,37 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 || super.mouseScrolled(mouseX, mouseY, delta));
     }
 
+    @Override
+    public void onFilesDrop(List<Path> paths) {
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        if (focused instanceof SFMFileDropTarget dropTarget) {
+            dropFeedback = null;
+            dropTarget.onFilesDrop(List.copyOf(paths));
+        } else {
+            dropFeedback = Component.literal("Drop rejected: focused panel does not accept directories");
+        }
+    }
+
     private @Nullable SFMWorkspaceLayout.PanelEntry panelAt(double mouseX, double mouseY) {
         for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
             if (panelBounds.get(entry.id()).contains(mouseX, mouseY)) return entry;
         }
         return null;
+    }
+
+    @MCVersionDependentBehaviour
+    private static void enableScissor(SFMScreenPanelBounds bounds) {
+        var window = Minecraft.getInstance().getWindow();
+        double scale = window.getGuiScale();
+        int left = (int) Math.floor(bounds.x() * scale);
+        int right = (int) Math.ceil((bounds.x() + bounds.width()) * scale);
+        int top = (int) Math.floor(bounds.y() * scale);
+        int bottom = (int) Math.ceil((bounds.y() + bounds.height()) * scale);
+        RenderSystem.enableScissor(
+                left,
+                window.getHeight() - bottom,
+                Math.max(0, right - left),
+                Math.max(0, bottom - top)
+        );
     }
 }

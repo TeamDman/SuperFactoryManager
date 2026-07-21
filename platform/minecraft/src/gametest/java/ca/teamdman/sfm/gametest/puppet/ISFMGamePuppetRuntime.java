@@ -33,6 +33,20 @@ public interface ISFMGamePuppetRuntime {
 
     void openFileExplorer(SFMFileExplorerSource source);
 
+    boolean isFileExplorerOpen();
+
+    void deliverFileExplorerDropFixture();
+
+    void clickFileExplorerRow(int visibleRowIndex);
+
+    void assertFileExplorerWorkspace(
+            int panelCount,
+            String expectedRootName,
+            String expectedViewerPath,
+            String expectedViewerText,
+            boolean rememberOrRequireViewerIdentity
+    );
+
     boolean isOverlay(Class<? extends Overlay> expectedType);
 
     boolean capture(String captureName, Component caption);

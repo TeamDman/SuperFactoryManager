@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
+
 /**
  * Content hosted by {@link SFMScreenMultiplexer}.
  *
@@ -75,4 +76,5 @@ public interface SFMScreenPanel {
     default boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         return false;
     }
+
 }

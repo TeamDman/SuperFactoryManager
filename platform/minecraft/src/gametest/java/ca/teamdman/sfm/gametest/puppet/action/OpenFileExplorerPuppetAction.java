@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
-import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
@@ -25,7 +25,7 @@ public final class OpenFileExplorerPuppetAction implements SFMPuppetAction {
             requested = true;
             runtime.openFileExplorer(source);
         }
-        if (runtime.isScreen(SFMFileExplorerScreen.class)) return true;
+        if (runtime.isScreen(SFMScreenMultiplexer.class) && runtime.isFileExplorerOpen()) return true;
         if (++ticks > SFMGamePuppetHelper.SCREEN_TIMEOUT_TICKS) {
             throw new IllegalStateException("Timed out waiting for file explorer");
         }
