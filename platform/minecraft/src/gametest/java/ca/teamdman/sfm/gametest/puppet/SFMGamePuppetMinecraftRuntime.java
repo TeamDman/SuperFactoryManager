@@ -5,6 +5,8 @@ import ca.teamdman.sfm.client.handler.SFMCommandPaletteKeyHandler;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -205,6 +207,22 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalStateException("Expected command palette before executing a command");
         }
         palette.executeCommandForAutomation(command);
+    }
+
+    @Override
+    public void pressFileExplorerKey(int keyCode) {
+        if (!(minecraft.screen instanceof SFMFileExplorerScreen explorer)) {
+            throw new IllegalStateException("Expected file explorer before pressing an explorer key");
+        }
+        explorer.keyPressed(keyCode, 0, 0);
+    }
+
+    @Override
+    public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
+        if (!(minecraft.screen instanceof SFMFileExplorerScreen explorer)) {
+            throw new IllegalStateException("Expected file explorer before changing its snapshot");
+        }
+        explorer.acceptSnapshot(snapshot);
     }
 
     @Override

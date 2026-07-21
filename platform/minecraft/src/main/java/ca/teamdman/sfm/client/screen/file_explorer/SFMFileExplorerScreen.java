@@ -53,6 +53,13 @@ public class SFMFileExplorerScreen extends Screen {
         return new SFMFileExplorerScreen(previousScreen, new SFMFileExplorerFixtureSource(), intent -> {});
     }
 
+    /** Accepts a new immutable source snapshot, including asynchronous loading/error results. */
+    public void acceptSnapshot(SFMFileExplorerSnapshot snapshot) {
+        model.setSnapshot(snapshot);
+        firstVisibleRow = 0;
+        keepSelectionVisible();
+    }
+
     @Override
     public boolean isPauseScreen() {
         return false;

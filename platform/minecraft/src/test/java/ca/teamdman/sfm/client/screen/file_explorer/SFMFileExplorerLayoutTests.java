@@ -29,6 +29,13 @@ public class SFMFileExplorerLayoutTests {
     }
 
     @Test
+    public void vanillaMinimumFullScreenWidthUsesCompactLayout() {
+        SFMFileExplorerLayout layout = SFMFileExplorerLayout.calculate(0, 0, 320, 240);
+        assertTrue(layout.compact());
+        assertFalse(layout.belowMinimum());
+    }
+
+    @Test
     public void undersizedViewportIsExplicitlyReportedAndStillProducesSafeGeometry() {
         SFMFileExplorerLayout layout = SFMFileExplorerLayout.calculate(0, 0, 100, 60);
         assertTrue(layout.belowMinimum());

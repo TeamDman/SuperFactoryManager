@@ -29,6 +29,12 @@ public final class SFMDeveloperActions {
                     () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.DRAW_CANVAS)
             );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> FILE_EXPLORER =
+            REGISTERER.register(
+                    "developer/open_file_explorer",
+                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.FILE_EXPLORER)
+            );
+
     public static final SFMRegistryObject<SFMClientAction<?>, CreateDeveloperWorldAction> CREATE_WORLD =
             REGISTERER.register(
                     "developer/create_world",

@@ -32,7 +32,7 @@ public record SFMFileExplorerLayout(
         int safeWidth = Math.max(1, width);
         int safeHeight = Math.max(1, height);
         boolean belowMinimum = safeWidth < MINIMUM_WIDTH || safeHeight < MINIMUM_HEIGHT;
-        boolean compact = belowMinimum || safeWidth < 320 || safeHeight < 180;
+        boolean compact = belowMinimum || safeWidth <= 320 || safeHeight < 180;
         int margin = compact ? COMPACT_OUTER_MARGIN : OUTER_MARGIN;
         int contentWidth = Math.max(1, safeWidth - margin * 2);
         int contentHeight = Math.max(1, safeHeight - margin * 2);

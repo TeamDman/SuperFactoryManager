@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.ManagerScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
@@ -122,6 +123,22 @@ public final class SFMGamePuppetHelper {
      */
     public void executeCommandPalette(String command) {
         add(new ExecuteCommandPalettePuppetAction(command));
+    }
+
+    /** Executes a palette action whose success replaces the palette with a screen. */
+    public void executeCommandPaletteAndWaitForScreen(
+            String command,
+            Class<?> expectedScreen
+    ) {
+        add(new ExecuteCommandPaletteAndWaitForScreenPuppetAction(command, expectedScreen));
+    }
+
+    public void pressFileExplorerKey(int keyCode) {
+        add(new PressFileExplorerKeyPuppetAction(keyCode));
+    }
+
+    public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
+        add(new SetFileExplorerSnapshotPuppetAction(snapshot));
     }
 
     /**
