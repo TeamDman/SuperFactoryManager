@@ -19,6 +19,8 @@ public interface ISFMGamePuppetRuntime {
 
     boolean isScreen(Class<?> expectedType);
 
+    String currentScreenName();
+
     boolean openCommandPalette();
 
     void executeCommandPalette(String command);
@@ -28,6 +30,10 @@ public interface ISFMGamePuppetRuntime {
     boolean capture(String captureName, Component caption);
 
     void closeScreen();
+
+    void closeScreenNaturally();
+
+    boolean clickWorkspacePanel(int panelIndex);
 
     void openManagerProgramEditor();
 }

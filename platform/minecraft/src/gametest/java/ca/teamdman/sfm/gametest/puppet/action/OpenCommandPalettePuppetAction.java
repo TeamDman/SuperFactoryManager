@@ -8,6 +8,7 @@ import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 public final class OpenCommandPalettePuppetAction implements SFMPuppetAction {
     private int ticks;
     private boolean requested;
+    private int stableTicks;
 
     @Override
     public String description() {
@@ -16,12 +17,13 @@ public final class OpenCommandPalettePuppetAction implements SFMPuppetAction {
 
     @Override
     public boolean tick(ISFMGamePuppetRuntime runtime) {
-        if (!requested) {
+        if (!requested || !runtime.isScreen(SFMCommandPaletteScreen.class)) {
             requested = true;
+            stableTicks = 0;
             runtime.openCommandPalette();
         }
         if (runtime.isScreen(SFMCommandPaletteScreen.class)) {
-            return true;
+            return ++stableTicks > SFMGamePuppetHelper.RENDER_SETTLE_TICKS;
         }
         if (++ticks > SFMGamePuppetHelper.SCREEN_TIMEOUT_TICKS) {
             throw new IllegalStateException("Timed out waiting for command palette");

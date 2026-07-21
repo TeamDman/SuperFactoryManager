@@ -30,6 +30,11 @@ public final class SFMCommandPaletteActions {
             EchoAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenScreenToSideAction> OPEN_SCREEN_TO_SIDE = REGISTERER.register(
+            "workspace/open_to_side",
+            OpenScreenToSideAction::new
+    );
+
     private SFMCommandPaletteActions() {
     }
 
