@@ -273,7 +273,7 @@ push/pop-modal, enter-workspace, open-to-side, open-as-tab, focus/move, stable
 identity, lifecycle, focus/drop routing, normalization, persistence, and the
 Track 3 adapter boundary.
 
-### [~] Track 2 — Native file drag-and-drop feasibility
+### [x] Track 2 — Native file drag-and-drop feasibility
 
 Investigate the complete path from the Minecraft window's GLFW/LWJGL handle to
 a safe SFM file-drop event. Determine what callbacks Minecraft already installs,
@@ -333,6 +333,26 @@ API and Win32/Cocoa/X11/Wayland backends, LWJGL native access, Minecraft window
 handles, loader seams, native ownership/cleanup, and the cost of a patched GLFW
 or platform-specific hook. It is documentation-only; any native or
 platform-specific proof requires separate authorization.
+
+**Pre-drop hover follow-up completed 2026-07-20:** Commit
+`4efcef2323266d2724b229b26aa5a82462e440ef` (`Document pre-drop hover
+feasibility`) adds a 206-line addendum to the Track 2 report. The worktree is
+clean and the documentation commit passes Git whitespace checks.
+
+There is no reliable public pre-drop file-hover signal through
+GLFW/LWJGL/Minecraft or the loaders. Win32 GLFW uses `WM_DROPFILES`, which has
+only a final-drop phase. Cocoa, X11, and Wayland receive richer drag lifecycle
+events internally but do not expose them. Native-window handles do not solve
+listener, event-queue, ownership, or cleanup conflicts, and cursor/focus/button
+heuristics cannot truthfully distinguish an OS file drag.
+
+The accepted product behavior is a restrained persistent capability cue on the
+focused drop-capable panel, final delivery through
+`Screen.onFilesDrop(List<Path>)`, and explicit accepted/rejected feedback after
+drop. Pre-drop hover is deferred as optional upstream/forked GLFW lifecycle
+work. Win32 would require moving from `WM_DROPFILES` to OLE `IDropTarget`; a
+dev-only Windows proof remains research-only and is not a file-explorer release
+blocker. Track 2 is complete without native proof code.
 
 ### [~] Track 3 — Responsive full-screen file explorer
 
