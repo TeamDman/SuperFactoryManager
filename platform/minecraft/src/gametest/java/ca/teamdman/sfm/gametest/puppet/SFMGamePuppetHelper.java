@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.ManagerScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
@@ -137,6 +139,26 @@ public final class SFMGamePuppetHelper {
     /** Invokes the current screen's own close/back behavior. */
     public void closeScreenNaturally() {
         add(new CloseScreenNaturallyPuppetAction());
+    }
+
+    /** Executes a palette action whose success replaces the palette with a screen. */
+    public void executeCommandPaletteAndWaitForScreen(
+            String command,
+            Class<?> expectedScreen
+    ) {
+        add(new ExecuteCommandPaletteAndWaitForScreenPuppetAction(command, expectedScreen));
+    }
+
+    public void pressFileExplorerKey(int keyCode) {
+        add(new PressFileExplorerKeyPuppetAction(keyCode));
+    }
+
+    public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
+        add(new SetFileExplorerSnapshotPuppetAction(snapshot));
+    }
+
+    public void openFileExplorer(SFMFileExplorerSource source) {
+        add(new OpenFileExplorerPuppetAction(source));
     }
 
     /**

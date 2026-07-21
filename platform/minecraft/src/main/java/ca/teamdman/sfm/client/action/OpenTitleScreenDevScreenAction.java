@@ -47,6 +47,30 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             "Open an empty SFM Draw canvas"
     );
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FILE_EXPLORER_TITLE = new LocalizationEntry(
+            "gui.sfm.client_action.developer.file_explorer.title",
+            "File Explorer"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FILE_EXPLORER_DESCRIPTION = new LocalizationEntry(
+            "gui.sfm.client_action.developer.file_explorer.description",
+            "Open the read-only SFM file explorer experiment"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry INSTANCE_FILE_EXPLORER_TITLE = new LocalizationEntry(
+            "gui.sfm.client_action.developer.instance_file_explorer.title",
+            "Instance File Explorer"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry INSTANCE_FILE_EXPLORER_DESCRIPTION = new LocalizationEntry(
+            "gui.sfm.client_action.developer.instance_file_explorer.description",
+            "Browse the isolated Minecraft instance read-only"
+    );
+
     private final SFMTitleScreenDevScreen devScreen;
 
     public OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen devScreen) {
@@ -59,6 +83,8 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             case TEXT_EDITOR -> TEXT_EDITOR_TITLE.getComponent();
             case INPUT_DIAG -> INPUT_DIAGNOSTICS_TITLE.getComponent();
             case DRAW_CANVAS -> DRAW_CANVAS_TITLE.getComponent();
+            case FILE_EXPLORER -> FILE_EXPLORER_TITLE.getComponent();
+            case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_TITLE.getComponent();
         };
     }
 
@@ -68,6 +94,8 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             case TEXT_EDITOR -> TEXT_EDITOR_DESCRIPTION.getComponent();
             case INPUT_DIAG -> INPUT_DIAGNOSTICS_DESCRIPTION.getComponent();
             case DRAW_CANVAS -> DRAW_CANVAS_DESCRIPTION.getComponent();
+            case FILE_EXPLORER -> FILE_EXPLORER_DESCRIPTION.getComponent();
+            case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_DESCRIPTION.getComponent();
         };
     }
 
