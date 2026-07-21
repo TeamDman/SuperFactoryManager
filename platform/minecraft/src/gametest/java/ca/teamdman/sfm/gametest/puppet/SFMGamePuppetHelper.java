@@ -1,9 +1,12 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.ManagerScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -122,6 +125,64 @@ public final class SFMGamePuppetHelper {
      */
     public void executeCommandPalette(String command) {
         add(new ExecuteCommandPalettePuppetAction(command));
+    }
+
+    public void waitForScreen(Class<? extends Screen> screenType) {
+        add(new WaitForScreenPuppetAction(screenType));
+    }
+
+    /** Sends a real mouse-click callback to the center of one workspace panel. */
+    public void clickWorkspacePanel(int panelIndex) {
+        add(new ClickWorkspacePanelPuppetAction(panelIndex));
+    }
+
+    /** Invokes the current screen's own close/back behavior. */
+    public void closeScreenNaturally() {
+        add(new CloseScreenNaturallyPuppetAction());
+    }
+
+    /** Executes a palette action whose success replaces the palette with a screen. */
+    public void executeCommandPaletteAndWaitForScreen(
+            String command,
+            Class<?> expectedScreen
+    ) {
+        add(new ExecuteCommandPaletteAndWaitForScreenPuppetAction(command, expectedScreen));
+    }
+
+    public void pressFileExplorerKey(int keyCode) {
+        add(new PressFileExplorerKeyPuppetAction(keyCode));
+    }
+
+    public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
+        add(new SetFileExplorerSnapshotPuppetAction(snapshot));
+    }
+
+    public void openFileExplorer(SFMFileExplorerSource source) {
+        add(new OpenFileExplorerPuppetAction(source));
+    }
+
+    public void deliverFileExplorerDropFixture() {
+        add(new DeliverFileExplorerDropFixturePuppetAction());
+    }
+
+    public void clickFileExplorerRow(int visibleRowIndex) {
+        add(new ClickFileExplorerRowPuppetAction(visibleRowIndex));
+    }
+
+    public void assertFileExplorerWorkspace(
+            int panelCount,
+            String expectedRootName,
+            String expectedViewerPath,
+            String expectedViewerText,
+            boolean rememberOrRequireViewerIdentity
+    ) {
+        add(new AssertFileExplorerWorkspacePuppetAction(
+                panelCount,
+                expectedRootName,
+                expectedViewerPath,
+                expectedViewerText,
+                rememberOrRequireViewerIdentity
+        ));
     }
 
     /**

@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet;
 
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -19,15 +21,41 @@ public interface ISFMGamePuppetRuntime {
 
     boolean isScreen(Class<?> expectedType);
 
+    String currentScreenName();
+
     boolean openCommandPalette();
 
     void executeCommandPalette(String command);
+
+    void pressFileExplorerKey(int keyCode);
+
+    void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot);
+
+    void openFileExplorer(SFMFileExplorerSource source);
+
+    boolean isFileExplorerOpen();
+
+    void deliverFileExplorerDropFixture();
+
+    void clickFileExplorerRow(int visibleRowIndex);
+
+    void assertFileExplorerWorkspace(
+            int panelCount,
+            String expectedRootName,
+            String expectedViewerPath,
+            String expectedViewerText,
+            boolean rememberOrRequireViewerIdentity
+    );
 
     boolean isOverlay(Class<? extends Overlay> expectedType);
 
     boolean capture(String captureName, Component caption);
 
     void closeScreen();
+
+    void closeScreenNaturally();
+
+    boolean clickWorkspacePanel(int panelIndex);
 
     void openManagerProgramEditor();
 }

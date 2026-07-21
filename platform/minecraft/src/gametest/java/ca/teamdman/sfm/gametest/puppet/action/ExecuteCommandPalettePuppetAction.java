@@ -24,9 +24,16 @@ public final class ExecuteCommandPalettePuppetAction implements SFMPuppetAction 
 
     @Override
     public boolean tick(ISFMGamePuppetRuntime runtime) {
+        if (requested) {
+            return ++ticks > SFMGamePuppetHelper.RENDER_SETTLE_TICKS;
+        }
         if (!runtime.isScreen(SFMCommandPaletteScreen.class)) {
+            runtime.openCommandPalette();
             if (++ticks > SFMGamePuppetHelper.SCREEN_TIMEOUT_TICKS) {
-                throw new IllegalStateException("Timed out waiting for command palette before executing command");
+                throw new IllegalStateException(
+                        "Timed out waiting for command palette before executing command; current screen is "
+                                + runtime.currentScreenName()
+                );
             }
             return false;
         }
@@ -35,6 +42,6 @@ public final class ExecuteCommandPalettePuppetAction implements SFMPuppetAction 
             runtime.executeCommandPalette(this.command);
             return false;
         }
-        return ++ticks > SFMGamePuppetHelper.RENDER_SETTLE_TICKS;
+        throw new IllegalStateException("Unreachable command palette automation state");
     }
 }
