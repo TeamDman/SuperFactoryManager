@@ -396,6 +396,34 @@ its future Track 1 adapter contract without depending on Track 1 internals. It
 commits forward, leaves this canonical plan untouched, and reports evidence to
 the coordinator.
 
+**First vertical-slice checkpoint completed 2026-07-20:** Subagent commit
+`360c246d055cc2f13493d24f745ea528c1ff99a0` (`Add responsive read-only file
+explorer experiment`) adds the standalone development explorer. Its worktree is
+clean. PATH CLI epoch E1 was verified; the exact branch compile and diff checks
+passed, and the branch test run passed all 252 tests.
+
+The slice has explicit source, immutable snapshot, model, layout, and
+presentation boundaries. `SFMFileExplorerModel` owns expansion, selection,
+keyboard semantics, flattening, and typed read-only open intents without a
+Minecraft rendering dependency. `SFMFileExplorerLayout` accepts an arbitrary
+host rectangle, documents a 180x120 minimum, switches to compact treatment
+below 320x180, and returns bounded geometry suitable for a future Track 1
+adapter. The development screen uses a safe in-memory fixture rather than host
+paths or mounted disks.
+
+`SFMFilePresentationRegistry` performs deterministic, case-insensitive,
+longest-suffix-first matching and covers directories, `.sfml`, `.sfmp`, `.g4`,
+`.java`, `.json`, `.toml`, `.properties`, `.md`, `.txt`, `.tar.gz`, `.gz`, and
+unknown or extensionless files. Each row pairs its color/style metadata with a
+text icon and visible kind label; narration includes the selected name, kind,
+and list position.
+
+Track 3 remains in progress beyond this checkpoint. Remaining work includes
+visual/manual or puppet QA, a real bounded source-provider adapter, a consumer
+for file open intents, the Track 1 content-panel adapter, and separately scoped
+mount or native-drop integration. The fixture currently reports an open intent
+but intentionally does not open an editor or mutate files.
+
 ### [ ] Track 4 — Dynamic hotkeys and typed command completion
 
 Investigate and prototype user-defined keyboard shortcuts whose target is a
