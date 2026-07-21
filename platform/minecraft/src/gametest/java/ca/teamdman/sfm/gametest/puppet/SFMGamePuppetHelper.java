@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -122,6 +123,20 @@ public final class SFMGamePuppetHelper {
      */
     public void executeCommandPalette(String command) {
         add(new ExecuteCommandPalettePuppetAction(command));
+    }
+
+    public void waitForScreen(Class<? extends Screen> screenType) {
+        add(new WaitForScreenPuppetAction(screenType));
+    }
+
+    /** Sends a real mouse-click callback to the center of one workspace panel. */
+    public void clickWorkspacePanel(int panelIndex) {
+        add(new ClickWorkspacePanelPuppetAction(panelIndex));
+    }
+
+    /** Invokes the current screen's own close/back behavior. */
+    public void closeScreenNaturally() {
+        add(new CloseScreenNaturallyPuppetAction());
     }
 
     /**

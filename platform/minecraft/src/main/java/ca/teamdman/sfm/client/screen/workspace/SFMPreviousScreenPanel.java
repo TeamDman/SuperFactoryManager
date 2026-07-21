@@ -42,7 +42,10 @@ public record SFMPreviousScreenPanel(@Nullable Screen previousScreen) implements
         SFMFontUtils.draw(
                 poseStack,
                 minecraft.font,
-                "Previous screen parked; Escape restores it",
+                minecraft.font.plainSubstrByWidth(
+                        "Previous screen parked; Escape restores it",
+                        Math.max(0, bounds.width() - 20)
+                ),
                 bounds.x() + 10,
                 bounds.y() + 30,
                 0xFFB0B0B0,

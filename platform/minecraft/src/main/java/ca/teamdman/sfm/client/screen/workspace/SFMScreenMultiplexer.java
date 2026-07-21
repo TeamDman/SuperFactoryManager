@@ -8,21 +8,23 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-/** The first two-column SFM workspace and sole owner of Minecraft's Screen lifecycle. */
-public final class SFMScreenMultiplexer extends Screen {
+/** Owns Minecraft's Screen lifecycle while hosting a normalized tree of SFM panels. */
+public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePanelHost {
     private static final int DIVIDER_WIDTH = 2;
     private static final int PANEL_BACKGROUND = 0xE0202020;
     private static final int FOCUSED_BORDER = 0xFF55FFFF;
     private static final int UNFOCUSED_BORDER = 0xFF606060;
 
     private final @Nullable Screen previousScreen;
-    private final List<SFMScreenPanel> panels = new ArrayList<>(2);
-    private boolean panelsOpened;
+    private final SFMWorkspaceLayout layout;
+    private final Set<SFMWorkspacePanelId> openedPanels = new HashSet<>();
+    private Map<SFMWorkspacePanelId, SFMScreenPanelBounds> panelBounds = Map.of();
     private boolean closing;
-    private int focusedPanel;
 
     private SFMScreenMultiplexer(
             @Nullable Screen previousScreen,
@@ -31,14 +33,15 @@ public final class SFMScreenMultiplexer extends Screen {
     ) {
         super(Component.literal("SFM workspace"));
         this.previousScreen = previousScreen;
-        this.panels.add(left);
-        this.panels.add(right);
-        this.focusedPanel = 1;
+        this.layout = SFMWorkspaceLayout.sideBySide(left, right);
     }
 
     public static void openToSide(@Nullable Screen origin, SFMScreenPanel panel) {
         if (origin instanceof SFMScreenMultiplexer multiplexer) {
-            multiplexer.openToSide(panel);
+            multiplexer.submit(
+                    multiplexer.layout.focusedPanel(),
+                    new SFMWorkspacePanelIntent.OpenToSide(SFMWorkspaceSide.RIGHT, panel)
+            );
             return;
         }
         SFMScreenChangeHelpers.setScreen(new SFMScreenMultiplexer(
@@ -48,38 +51,75 @@ public final class SFMScreenMultiplexer extends Screen {
         ));
     }
 
-    /** Replaces the right-hand experimental slot; nesting is outside this slice. */
     public void openToSide(SFMScreenPanel panel) {
-        panels.get(1).closed();
-        panels.set(1, panel);
-        focusedPanel = 1;
-        if (panelsOpened) panel.opened(Minecraft.getInstance(), bounds(1));
+        submit(layout.focusedPanel(), new SFMWorkspacePanelIntent.OpenToSide(SFMWorkspaceSide.RIGHT, panel));
     }
 
+    /** Traversal index retained for automation; panel identity is exposed separately. */
     public int focusedPanel() {
-        return focusedPanel;
+        List<SFMWorkspaceLayout.PanelEntry> panels = layout.panels();
+        for (int i = 0; i < panels.size(); i++) {
+            if (panels.get(i).id().equals(layout.focusedPanel())) return i;
+        }
+        return -1;
+    }
+
+    public SFMWorkspacePanelId focusedPanelId() {
+        return layout.focusedPanel();
     }
 
     public List<SFMScreenPanel> panels() {
-        return List.copyOf(panels);
+        return layout.panels().stream().map(SFMWorkspaceLayout.PanelEntry::panel).toList();
+    }
+
+    @Override
+    public SFMWorkspacePanelIntentResult submit(
+            SFMWorkspacePanelId source,
+            SFMWorkspacePanelIntent intent
+    ) {
+        SFMWorkspacePanelIntentDispatcher.Outcome outcome =
+                SFMWorkspacePanelIntentDispatcher.apply(layout, source, intent);
+        if (outcome.result() != SFMWorkspacePanelIntentResult.APPLIED) return outcome.result();
+        if (outcome.inserted() != null) {
+            refreshLayout(true);
+            return SFMWorkspacePanelIntentResult.APPLIED;
+        }
+        outcome.removedPanel().closed();
+        openedPanels.remove(outcome.removed());
+        if (layout.panels().isEmpty()) {
+            onClose();
+        } else {
+            refreshLayout(true);
+        }
+        return SFMWorkspacePanelIntentResult.APPLIED;
     }
 
     @Override
     protected void init() {
         super.init();
-        for (int i = 0; i < panels.size(); i++) {
-            if (panelsOpened) {
-                panels.get(i).resized(this.minecraft, bounds(i));
+        refreshLayout(true);
+    }
+
+    private void refreshLayout(boolean notifyPanels) {
+        panelBounds = layout.bounds(new SFMScreenPanelBounds(0, 0, this.width, this.height), DIVIDER_WIDTH);
+        if (!notifyPanels || this.minecraft == null) return;
+        for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
+            if (openedPanels.contains(entry.id())) {
+                entry.panel().resized(this.minecraft, panelBounds.get(entry.id()));
             } else {
-                panels.get(i).opened(this.minecraft, bounds(i));
+                openPanel(entry.id(), entry.panel());
             }
         }
-        panelsOpened = true;
+    }
+
+    private void openPanel(SFMWorkspacePanelId id, SFMScreenPanel panel) {
+        panel.opened(this.minecraft, panelBounds.get(id), new SFMWorkspacePanelContext(id, this));
+        openedPanels.add(id);
     }
 
     @Override
     public void tick() {
-        for (SFMScreenPanel panel : panels) panel.tick();
+        for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) entry.panel().tick();
     }
 
     @Override
@@ -89,69 +129,82 @@ public final class SFMScreenMultiplexer extends Screen {
 
     @Override
     public Component getNarrationMessage() {
-        return Component.literal("SFM workspace. Focused panel: ").append(panels.get(focusedPanel).narration());
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        return focused == null
+                ? Component.literal("Empty SFM workspace")
+                : Component.literal("SFM workspace. Focused panel: ").append(focused.narration());
     }
 
     @Override
     public void onClose() {
         if (closing) return;
         closing = true;
-        for (SFMScreenPanel panel : panels) panel.closed();
+        for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) entry.panel().closed();
+        openedPanels.clear();
         SFMScreenChangeHelpers.setScreen(previousScreen);
     }
 
     @Override
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(poseStack);
-        for (int i = 0; i < panels.size(); i++) {
-            SFMScreenPanelBounds bounds = bounds(i);
+        for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
+            SFMScreenPanelBounds bounds = panelBounds.get(entry.id());
             fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), PANEL_BACKGROUND);
-            int border = i == focusedPanel ? FOCUSED_BORDER : UNFOCUSED_BORDER;
+            int border = entry.id().equals(layout.focusedPanel()) ? FOCUSED_BORDER : UNFOCUSED_BORDER;
             fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + 1, border);
             fill(poseStack, bounds.x(), bounds.y() + bounds.height() - 1, bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
             fill(poseStack, bounds.x(), bounds.y(), bounds.x() + 1, bounds.y() + bounds.height(), border);
             fill(poseStack, bounds.x() + bounds.width() - 1, bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
-            panels.get(i).render(poseStack, this.minecraft, bounds, mouseX, mouseY, partialTick, i == focusedPanel);
+            entry.panel().render(
+                    poseStack,
+                    this.minecraft,
+                    bounds,
+                    mouseX,
+                    mouseY,
+                    partialTick,
+                    entry.id().equals(layout.focusedPanel())
+            );
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_1) {
-            focusedPanel = 0;
-            return true;
-        }
-        if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_2) {
-            focusedPanel = 1;
-            return true;
+        if (Screen.hasControlDown() && keyCode >= GLFW.GLFW_KEY_1 && keyCode <= GLFW.GLFW_KEY_9) {
+            int requestedIndex = keyCode - GLFW.GLFW_KEY_1;
+            List<SFMWorkspaceLayout.PanelEntry> panels = layout.panels();
+            if (requestedIndex < panels.size()) layout.focus(panels.get(requestedIndex).id());
+            return requestedIndex < panels.size();
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             onClose();
             return true;
         }
-        return panels.get(focusedPanel).keyPressed(keyCode, scanCode, modifiers)
-                || super.keyPressed(keyCode, scanCode, modifiers);
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        return focused != null && (focused.keyPressed(keyCode, scanCode, modifiers)
+                || super.keyPressed(keyCode, scanCode, modifiers));
     }
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        return panels.get(focusedPanel).keyReleased(keyCode, scanCode, modifiers)
-                || super.keyReleased(keyCode, scanCode, modifiers);
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        return focused != null && (focused.keyReleased(keyCode, scanCode, modifiers)
+                || super.keyReleased(keyCode, scanCode, modifiers));
     }
 
     @Override
     public boolean charTyped(char character, int modifiers) {
-        return panels.get(focusedPanel).charTyped(character, modifiers)
-                || super.charTyped(character, modifiers);
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        return focused != null && (focused.charTyped(character, modifiers)
+                || super.charTyped(character, modifiers));
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        int panelIndex = panelAt(mouseX, mouseY);
-        if (panelIndex >= 0) {
-            focusedPanel = panelIndex;
-            panels.get(panelIndex).mouseClicked(mouseX, mouseY, button);
+        SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
+        if (entry != null) {
+            layout.focus(entry.id());
+            entry.panel().mouseClicked(mouseX, mouseY, button);
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -159,42 +212,38 @@ public final class SFMScreenMultiplexer extends Screen {
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
-        int panelIndex = panelAt(mouseX, mouseY);
-        if (panelIndex >= 0) panels.get(panelIndex).mouseMoved(mouseX, mouseY);
+        SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
+        if (entry != null) entry.panel().mouseMoved(mouseX, mouseY);
         super.mouseMoved(mouseX, mouseY);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return panels.get(focusedPanel).mouseReleased(mouseX, mouseY, button)
-                || super.mouseReleased(mouseX, mouseY, button);
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        return focused != null && (focused.mouseReleased(mouseX, mouseY, button)
+                || super.mouseReleased(mouseX, mouseY, button));
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        return panels.get(focusedPanel).mouseDragged(mouseX, mouseY, button, dragX, dragY)
-                || super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        return focused != null && (focused.mouseDragged(mouseX, mouseY, button, dragX, dragY)
+                || super.mouseDragged(mouseX, mouseY, button, dragX, dragY));
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int panelIndex = panelAt(mouseX, mouseY);
-        if (panelIndex >= 0) focusedPanel = panelIndex;
-        return panels.get(focusedPanel).mouseScrolled(mouseX, mouseY, delta)
-                || super.mouseScrolled(mouseX, mouseY, delta);
+        SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
+        if (entry != null) layout.focus(entry.id());
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        return focused != null && (focused.mouseScrolled(mouseX, mouseY, delta)
+                || super.mouseScrolled(mouseX, mouseY, delta));
     }
 
-    private int panelAt(double mouseX, double mouseY) {
-        for (int i = 0; i < panels.size(); i++) {
-            if (bounds(i).contains(mouseX, mouseY)) return i;
+    private @Nullable SFMWorkspaceLayout.PanelEntry panelAt(double mouseX, double mouseY) {
+        for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
+            if (panelBounds.get(entry.id()).contains(mouseX, mouseY)) return entry;
         }
-        return -1;
-    }
-
-    private SFMScreenPanelBounds bounds(int index) {
-        int leftWidth = Math.max(1, (this.width - DIVIDER_WIDTH) / 2);
-        if (index == 0) return new SFMScreenPanelBounds(0, 0, leftWidth, this.height);
-        int rightX = leftWidth + DIVIDER_WIDTH;
-        return new SFMScreenPanelBounds(rightX, 0, Math.max(1, this.width - rightX), this.height);
+        return null;
     }
 }

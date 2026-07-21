@@ -1,7 +1,7 @@
 # Screen multiplexer layout algebra
 
-Status: Track 1 design investigation; no implementation commitment
-Branch checkpoint: `e7622e9524b1e5adf8dfddd4a10c6700fd8cea0d`
+Status: Track 1 design plus first Linear-only implementation slice
+Initial branch checkpoint: `e7622e9524b1e5adf8dfddd4a10c6700fd8cea0d`
 Reference checkout inspected read-only: `G:\Programming\Repos\egui_tiles`
 at the supplied commit `f86273ba8ff9f44a9817067abbf977ba5cdcb9fa`
 
@@ -33,6 +33,27 @@ to be shared with `Stack`.
 The current `SFMScreenPanel` remains the correct initial content boundary.
 Minecraft `Screen` remains an outer host or an explicitly audited adapter; an
 arbitrary `Screen` is not automatically a panel.
+
+## Implemented first slice
+
+The current branch now replaces the fixed two-slot calculation with stable
+`SFMWorkspacePanelId` leaves and normalized n-ary horizontal/vertical Linear
+nodes. Tracks implement positive shares plus per-child minimum GUI pixels.
+Insertion preserves the source region's share: splitting the right half of a
+two-panel layout creates shares equivalent to `[1, 0.5, 0.5]`, not three equal
+panels. Removal collapses singleton containers and preserves focus by stable id,
+falling to the adjacent traversal entry only when the focused panel is removed.
+
+Embedded panels receive a narrow `SFMWorkspacePanelContext`. Its typed intents
+are `Close`, `OpenToSide(side, panel)`, and `OpenAsTab(panel)`. An unhosted
+context returns `UNAVAILABLE` for every request. The Linear-only multiplexer
+applies close and side insertion; it returns `UNSUPPORTED` for `OpenAsTab`
+until the proposed Stack node exists. Panels never need to call Minecraft's
+global `setScreen` to express these operations.
+
+This slice intentionally does not implement Stack, Grid, persistence, divider
+dragging/linking, drag/drop, or arbitrary Screen embedding. Those remain design
+work below rather than implicit behavior in the Linear model.
 
 ## Findings from `egui_tiles`
 
@@ -178,6 +199,45 @@ resizing all four areas. A nested form such as
 dividers; keeping them aligned would require an external linked-divider
 constraint, which is a disguised grid. Binary splits remain useful for
 asymmetric trees, but they are not a substitute for grid constraints.
+
+### Structural arity is not divider topology
+
+The need to coordinate aligned dividers does not remove the value of an n-ary
+`Linear`. Structural arity answers “are A, B, and C peers in one ordered
+allocation?” Divider identity answers “which resize variables or constraints
+are shared across allocations?” They are independent questions.
+
+Replacing `Vertical[A,B,C]` with binary `Split(A, Split(B,C))` does not avoid
+cross-tree communication. It merely bakes one grouping and one allocation
+order into the tree, makes equal thirds indirect, and makes insertion/reordering
+produce avoidable wrapper nodes. An n-ary linear gives all peer children one
+allocation pass, one ordered set of adjacent dividers, and one share vector.
+Binary split nodes remain appropriate when the hierarchy itself is meaningful,
+for example “top tools versus a lower workspace whose internal division is
+independent.”
+
+Divider topology should be explicit where it crosses container boundaries:
+
+- an ordinary linear divider is local to one `Linear` and can have a stable
+  `DividerId` for drag capture, command targeting, and persistence;
+- an explicit linked-divider constraint may bind two or more `DividerId`s when
+  a small non-grid composition intentionally keeps distant boundaries aligned;
+  links are constraint records, not containers discovering neighbors and
+  messaging them during drag; and
+- when neighboring linears form rectangular rows/columns whose aligned
+  dividers are expected to stay linked, normalization should recognize or offer
+  conversion to `Grid` rather than maintain an ad-hoc communication graph.
+
+For the four-corner case, `Grid` owns one column-divider identity and one
+row-divider identity directly. The central grip updates those two variables;
+there is no communication between two horizontal linears. A general
+`DividerLink` facility may still be useful later for synchronized editors or
+non-rectangular layouts, but it should not be required to express a rectangle.
+Automatic linear-to-grid normalization must be conservative: convert only when
+row/column cardinality, order, alignment intent, spans, and constraints are
+unambiguous. Merely touching edges on one rendered frame is insufficient,
+because transient geometric alignment does not establish shared semantic
+identity.
 
 ### Virtual workspaces
 

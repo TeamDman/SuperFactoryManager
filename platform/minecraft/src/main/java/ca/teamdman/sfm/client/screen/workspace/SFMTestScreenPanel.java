@@ -39,7 +39,7 @@ public record SFMTestScreenPanel(String displayText) implements SFMScreenPanel {
         SFMFontUtils.draw(
                 poseStack,
                 minecraft.font,
-                displayText,
+                minecraft.font.plainSubstrByWidth(displayText, Math.max(0, bounds.width() - 20)),
                 bounds.x() + 10,
                 bounds.y() + 30,
                 0xFFFFFFFF,

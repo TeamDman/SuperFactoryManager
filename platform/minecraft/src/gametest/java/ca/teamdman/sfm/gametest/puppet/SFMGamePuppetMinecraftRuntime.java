@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.handler.SFMCommandPaletteKeyHandler;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -16,6 +17,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Overlay;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
@@ -38,6 +40,7 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
 import java.util.List;
@@ -192,6 +195,11 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     public boolean isScreen(Class<?> expectedType) {
 
         return expectedType.isInstance(minecraft.screen);
+    }
+
+    @Override
+    public String currentScreenName() {
+        return minecraft.screen == null ? "world" : minecraft.screen.getClass().getName();
     }
 
     @Override
@@ -408,6 +416,29 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     public void closeScreen() {
 
         minecraft.setScreen(null);
+    }
+
+    @Override
+    public void closeScreenNaturally() {
+        Screen screen = minecraft.screen;
+        if (screen == null) {
+            throw new IllegalStateException("Expected a screen to close naturally");
+        }
+        screen.onClose();
+    }
+
+    @Override
+    public boolean clickWorkspacePanel(int panelIndex) {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected SFM screen multiplexer before focusing a panel");
+        }
+        if (panelIndex < 0 || panelIndex >= multiplexer.panels().size()) {
+            throw new IllegalArgumentException("Workspace panel index is out of range: " + panelIndex);
+        }
+        double mouseX = (panelIndex + 0.5D) * multiplexer.width / multiplexer.panels().size();
+        double mouseY = multiplexer.height / 2D;
+        multiplexer.mouseClicked(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        return multiplexer.focusedPanel() == panelIndex;
     }
 
     @Override

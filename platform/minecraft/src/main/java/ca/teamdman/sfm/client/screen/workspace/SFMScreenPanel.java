@@ -19,7 +19,11 @@ public interface SFMScreenPanel {
         return title();
     }
 
-    default void opened(Minecraft minecraft, SFMScreenPanelBounds bounds) {
+    default void opened(
+            Minecraft minecraft,
+            SFMScreenPanelBounds bounds,
+            SFMWorkspacePanelContext context
+    ) {
     }
 
     default void resized(Minecraft minecraft, SFMScreenPanelBounds bounds) {
