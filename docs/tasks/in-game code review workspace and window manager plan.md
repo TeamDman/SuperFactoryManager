@@ -159,7 +159,7 @@ release. Cross-track dependencies should be expressed as contracts and small
 integration commits rather than by allowing multiple tracks to edit one
 worktree concurrently.
 
-### [~] Track 1 — Screen multiplexer and typed screen-opening actions
+### [x] Track 1 — Screen multiplexer and typed screen-opening actions
 
 Build the smallest useful `SFMScreenMultiplexer` experiment and integrate it
 with the existing client action registry, Brigadier dispatcher, and command
@@ -230,10 +230,10 @@ live-rendered inside the left panel. Arbitrary `Screen` adaptation remains
 deferred because viewport initialization, widget ownership, close/removal, and
 other global lifecycle behavior are not safely contained.
 
-Track 1 remains in progress rather than accepted. It still needs a live
-client/puppet visual and lifecycle proof, a host-intent contract for panel
-close/split/open requests, and a decision on whether any audited full-screen
-adapter belongs in scope.
+At this checkpoint Track 1 remained in progress rather than accepted. It still
+needed a live client/puppet visual and lifecycle proof, a host-intent contract
+for panel close/split/open requests, and a decision on whether any audited
+full-screen adapter belonged in scope.
 
 **Layout-algebra follow-up started 2026-07-20:** The Track 1 subagent was
 resumed from clean checkpoint `e7622e9524b1e5adf8dfddd4a10c6700fd8cea0d`
@@ -272,6 +272,29 @@ are explicitly future work. The report also specifies clobber-global,
 push/pop-modal, enter-workspace, open-to-side, open-as-tab, focus/move, stable
 identity, lifecycle, focus/drop routing, normalization, persistence, and the
 Track 3 adapter boundary.
+
+**Implementation and visual checkpoint completed 2026-07-20:** Commit
+`2111a50719b22ffcdbe691809680b966a5603f00` (`Implement n-ary screen workspace
+intents`) adds stable panel
+instance ids, normalized n-ary horizontal and vertical `Linear` layout with
+shares and minimum constraints, deterministic allocation, insert/remove and
+focus preservation, and typed `Close`, `OpenToSide`, and `OpenAsTab` panel host
+intents. Unhosted intents return `UNAVAILABLE`; tabs return explicit
+`UNSUPPORTED` until `Stack` exists. The multiplexer uses this model and supports
+ordered Ctrl+1 through Ctrl+9 focus traversal.
+
+The live `sfm:title_screen_workspace` puppet exercises the real command palette,
+Brigadier, client action, workspace creation, panel focus, natural close/back,
+and fresh reopening. Runs at 1280x720 and 960x540 passed and were visually
+inspected; a discovered narrow-layout text overflow and a puppet palette-reopen
+state bug were fixed. The full Java suite passed, Java audit reported zero
+warnings, Git checks passed, and the worktree is clean.
+
+Track 1's bounded experiment is accepted. Arbitrary vanilla `Screen` embedding
+is rejected from this track in favor of intentional `SFMScreenPanel` content.
+`Stack`, `Grid`, persistence, divider dragging/linking, and the Track 3 adapter
+remain later capabilities or integration work rather than blockers to this
+checkpoint.
 
 ### [x] Track 2 — Native file drag-and-drop feasibility
 
@@ -418,11 +441,42 @@ unknown or extensionless files. Each row pairs its color/style metadata with a
 text icon and visible kind label; narration includes the selected name, kind,
 and list position.
 
-Track 3 remains in progress beyond this checkpoint. Remaining work includes
-visual/manual or puppet QA, a real bounded source-provider adapter, a consumer
-for file open intents, the Track 1 content-panel adapter, and separately scoped
-mount or native-drop integration. The fixture currently reports an open intent
-but intentionally does not open an editor or mutate files.
+At this checkpoint Track 3 remained in progress. Remaining work included visual
+puppet QA, a real bounded source-provider adapter, a consumer for file open
+intents, the Track 1 content-panel adapter, and separately scoped mount or
+native-drop integration. The fixture reported an open intent but intentionally
+did not open an editor or mutate files.
+
+**Visual and bounded-source checkpoint completed 2026-07-20:** Commits
+`99e05aa5283d02bedbe53f04c546af637a314c04` (`Add file explorer visual puppet
+coverage`) and `b7e56a1b1ad1a0438a507c9adc15226f9467b0da` (`Add bounded
+explorer capture scenarios`) add deterministic live puppet coverage and a
+bounded read-only path source. The standard explorer was captured at 1280x720
+and 640x480 in ready, expanded/file-type, loading, empty, and error states.
+
+The `sfm:title_screen_instance_file_explorer` puppet browses the isolated
+`runGameTestPreview` instance with `NOFOLLOW_LINKS`, explicit root ownership,
+depth 3, at most 256 total nodes and 64 children per directory, plus exclusions
+for screenshots, logs, saves, crash/download data, and known account/server
+history names. Root and expanded captures passed and show representative
+instance content without browsing the capture output itself.
+
+The `sfm:title_screen_large_file_explorer` puppet uses a deterministic 1,002-file
+hierarchy containing `0000.txt` through `1001.txt`, grouped into `0000-0999` and
+`1000-1999`. Its captures prove both groups, first-entry navigation, and a
+virtualized boundary view containing `0999.txt`, `1000.txt`, and selected
+`1001.txt`; only visible rows render from the 1,004-node flattened view. All 256
+tests, exact-branch compilation, both final puppet runs, and Git checks passed;
+the worktree is clean. Track-owned commands, artifacts, safety bounds, and
+observations are recorded in `docs/tasks/track3 file explorer visual qa.md`.
+
+The CLI currently cannot assemble two comma-separated puppet ids when each
+scenario emits the same local figure number; it reports a duplicate figure
+number. Running the stable ids separately succeeds. No CLI change was made.
+
+Track 3 remains in progress. Its remaining product work is a consumer that opens
+file intents in an editor, the Track 1 content-panel adapter on an integration
+branch, and separately accepted mount or native-drop source adapters.
 
 ### [ ] Track 4 — Dynamic hotkeys and typed command completion
 
