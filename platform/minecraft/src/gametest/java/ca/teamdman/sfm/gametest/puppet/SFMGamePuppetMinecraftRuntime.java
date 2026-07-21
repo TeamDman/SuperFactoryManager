@@ -7,6 +7,7 @@ import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -223,6 +224,11 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalStateException("Expected file explorer before changing its snapshot");
         }
         explorer.acceptSnapshot(snapshot);
+    }
+
+    @Override
+    public void openFileExplorer(SFMFileExplorerSource source) {
+        minecraft.setScreen(new SFMFileExplorerScreen(minecraft.screen, source, intent -> {}));
     }
 
     @Override

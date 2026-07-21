@@ -35,6 +35,12 @@ public final class SFMDeveloperActions {
                     () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.FILE_EXPLORER)
             );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> INSTANCE_FILE_EXPLORER =
+            REGISTERER.register(
+                    "developer/open_instance_file_explorer",
+                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.INSTANCE_FILE_EXPLORER)
+            );
+
     public static final SFMRegistryObject<SFMClientAction<?>, CreateDeveloperWorldAction> CREATE_WORLD =
             REGISTERER.register(
                     "developer/create_world",

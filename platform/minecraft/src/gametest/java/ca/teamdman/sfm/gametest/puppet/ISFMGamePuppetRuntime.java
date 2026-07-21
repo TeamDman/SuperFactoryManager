@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -27,6 +28,8 @@ public interface ISFMGamePuppetRuntime {
     void pressFileExplorerKey(int keyCode);
 
     void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot);
+
+    void openFileExplorer(SFMFileExplorerSource source);
 
     boolean isOverlay(Class<? extends Overlay> expectedType);
 

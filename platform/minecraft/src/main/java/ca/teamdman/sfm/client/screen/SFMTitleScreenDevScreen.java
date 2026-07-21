@@ -2,11 +2,13 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMPathFileExplorerSource;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenTitleScreenOpenContext;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 import java.util.Arrays;
@@ -42,6 +44,16 @@ public enum SFMTitleScreenDevScreen {
         @Override
         public Screen create(TitleScreen titleScreen) {
             return SFMFileExplorerScreen.createFixture(titleScreen);
+        }
+    },
+    INSTANCE_FILE_EXPLORER("instance-file-explorer", Component.literal("Instance File Explorer")) {
+        @Override
+        public Screen create(TitleScreen titleScreen) {
+            return new SFMFileExplorerScreen(
+                    titleScreen,
+                    new SFMPathFileExplorerSource(Minecraft.getInstance().gameDirectory.toPath()),
+                    intent -> {}
+            );
         }
     };
 

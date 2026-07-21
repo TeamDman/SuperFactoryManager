@@ -2,6 +2,7 @@ package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
@@ -139,6 +140,10 @@ public final class SFMGamePuppetHelper {
 
     public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
         add(new SetFileExplorerSnapshotPuppetAction(snapshot));
+    }
+
+    public void openFileExplorer(SFMFileExplorerSource source) {
+        add(new OpenFileExplorerPuppetAction(source));
     }
 
     /**

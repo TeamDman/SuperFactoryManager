@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.screen.file_explorer;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -62,6 +63,27 @@ public class SFMFileExplorerModelTests {
         );
     }
 
+    @Test
+    public void thousandFileGroupsRemainNavigableAsAFlatVisibleProjection() {
+        SFMFileExplorerEntry firstGroup = numberedDirectory("0000-0999", 0, 999);
+        SFMFileExplorerEntry secondGroup = numberedDirectory("1000-1999", 1000, 1001);
+        SFMFileExplorerModel model = new SFMFileExplorerModel(new MutableSource(
+                SFMFileExplorerSnapshot.ready(List.of(firstGroup, secondGroup))
+        ));
+        model.reload();
+        assertEquals(List.of("0000-0999", "1000-1999"), visibleNames(model));
+
+        model.expandSelection();
+        assertEquals(1002, model.visibleEntries().size());
+        model.selectLast();
+        assertEquals("1000-1999", model.selection().orElseThrow().entry().name());
+        model.expandSelection();
+        model.selectNext();
+        assertEquals(1004, model.visibleEntries().size());
+        assertEquals("1000.txt", model.selection().orElseThrow().entry().name());
+        assertEquals("1001.txt", model.visibleEntries().get(1003).entry().name());
+    }
+
     private static SFMFileExplorerModel readyModel() {
         SFMFileExplorerEntry src = SFMFileExplorerEntry.directory("src", "src", List.of(
                 SFMFileExplorerEntry.file("src/Main.java", "Main.java"),
@@ -78,6 +100,20 @@ public class SFMFileExplorerModelTests {
 
     private static List<String> visibleNames(SFMFileExplorerModel model) {
         return model.visibleEntries().stream().map(row -> row.entry().name()).toList();
+    }
+
+    private static SFMFileExplorerEntry numberedDirectory(
+            String name,
+            int first,
+            int last
+    ) {
+        List<SFMFileExplorerEntry> files = IntStream.rangeClosed(first, last)
+                .mapToObj(value -> {
+                    String fileName = "%04d.txt".formatted(value);
+                    return SFMFileExplorerEntry.file(name + "/" + fileName, fileName);
+                })
+                .toList();
+        return SFMFileExplorerEntry.directory(name, name, files);
     }
 
     private static final class MutableSource implements SFMFileExplorerSource {

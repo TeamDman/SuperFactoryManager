@@ -112,6 +112,80 @@ declared 640x480 viewport.
 - No row or status text visibly escapes the bordered content region in either
   viewport.
 
+## Isolated Minecraft instance source
+
+The resolved puppet instance directory is:
+
+```text
+D:\Repos\Minecraft\SFM\worktrees\1.19.2-file-explorer\platform\minecraft\runGameTestPreview
+```
+
+The `SFMPathFileExplorerSource` adapter is rooted only at that explicit
+directory. It reads metadata without reading file contents, does not follow
+links, caps traversal to depth 3, 256 total entries, and 64 children per
+directory, and excludes `screenshots`, `logs`, `saves`, crash/download
+directories, and known account/server-history filenames. The captioned artifact
+root is elsewhere under `build/sfm-toolchain/artifacts`, and the raw
+`screenshots` child is excluded, preventing capture recursion.
+
+Exact invocation:
+
+```powershell
+sfm-propagate-changes.exe puppet run sfm:title_screen_instance_file_explorer --branch feat/1.19.2/file-explorer --width 1280 --height 720 --wait-for-build-lock
+```
+
+The command exited successfully. Captures:
+
+```text
+D:\Repos\Minecraft\SFM\worktrees\1.19.2-file-explorer\platform\minecraft\build\sfm-toolchain\artifacts\game-test-preview\runs\sfm-title_screen_instance_file_explorer-20260720-210927-345\title_screen_instance_file_explorer\figure_01_instance-root.png
+D:\Repos\Minecraft\SFM\worktrees\1.19.2-file-explorer\platform\minecraft\build\sfm-toolchain\artifacts\game-test-preview\runs\sfm-title_screen_instance_file_explorer-20260720-210927-345\title_screen_instance_file_explorer\figure_02_instance-expanded.png
+```
+
+Visual inspection confirmed that the screen labels the source as `Minecraft
+instance / runGameTestPreview`, shows the selected root, and expands to bounded
+real entries such as `config`, `defaultconfigs`, `mods`, `options.txt`, and
+`resourcepacks`. Excluded screenshot/log/save locations do not appear.
+
+## Deterministic 1,002-file hierarchy
+
+The `sfm:title_screen_large_file_explorer` puppet supplies the actual explorer
+with exactly `0000.txt` through `1001.txt`, grouped as:
+
+```text
+0000-0999/
+  0000.txt ... 0999.txt
+1000-1999/
+  1000.txt
+  1001.txt
+```
+
+Exact successful invocation:
+
+```powershell
+sfm-propagate-changes.exe puppet run sfm:title_screen_large_file_explorer --branch feat/1.19.2/file-explorer --width 1280 --height 720 --wait-for-build-lock
+```
+
+Final visually inspected captures:
+
+```text
+D:\Repos\Minecraft\SFM\worktrees\1.19.2-file-explorer\platform\minecraft\build\sfm-toolchain\artifacts\game-test-preview\runs\sfm-title_screen_large_file_explorer-20260720-211326-162\title_screen_large_file_explorer\figure_01_thousand-groups.png
+D:\Repos\Minecraft\SFM\worktrees\1.19.2-file-explorer\platform\minecraft\build\sfm-toolchain\artifacts\game-test-preview\runs\sfm-title_screen_large_file_explorer-20260720-211326-162\title_screen_large_file_explorer\figure_02_first-entry.png
+D:\Repos\Minecraft\SFM\worktrees\1.19.2-file-explorer\platform\minecraft\build\sfm-toolchain\artifacts\game-test-preview\runs\sfm-title_screen_large_file_explorer-20260720-211326-162\title_screen_large_file_explorer\figure_03_thousand-boundary.png
+```
+
+Figure 1 visibly contains both collapsed group nodes. Figure 2 expands the first
+group with `0000.txt` selected. Figure 3 demonstrates virtual scrolling across
+the directory boundary: `0999.txt`, the expanded `1000-1999` node, `1000.txt`,
+and selected `1001.txt` are visible together. Rendering remains bounded to the
+visible rows even though the model's flattened projection contains 1,004 nodes.
+
+An initial attempt to run both new puppet IDs in one comma-separated invocation
+was rejected during CLI artifact assembly with `Preview screenshots reported
+duplicate figure number 2`. Each puppet numbers its own figures from one, while
+this CLI epoch incorrectly treats those numbers as globally unique. Separate
+invocations are the reliable existing workflow; no CLI code was changed in this
+Java exploration track.
+
 ## Limitations and follow-up
 
 - The source is the bounded in-memory fixture. These captures do not validate a
