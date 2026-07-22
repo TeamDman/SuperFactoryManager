@@ -654,6 +654,13 @@ return tests plus captioned puppets before an integration goal merges anything.
 
 ### [ ] Phase 1 — Define comment/session interchange
 
+The frozen v1 wire contract and its cross-language conformance fixture live in
+[`../architecture/review-comment-session-v1.md`](../architecture/review-comment-session-v1.md)
+and
+[`../architecture/fixtures/review-comment-session-v1.json`](../architecture/fixtures/review-comment-session-v1.json).
+Implementation remains open until both Java and Rust consume and round-trip the
+fixture.
+
 - Define versioned Java and Rust models for sessions, comments, provenance,
   document revisions, scopes, selectors, witnesses, style rules, policies, and
   evaluation results.
