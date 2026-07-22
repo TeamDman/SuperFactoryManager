@@ -21,6 +21,12 @@ public final class TitleScreenDynamicKeyBindingsGamePuppet {
         puppet.capture("dynamic-bindings-palette-b", caption("The row remains one line while the second shortcut is shown."));
         puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.DETAILS);
         puppet.capture("dynamic-bindings-details", caption("Action details shows availability, description, and every shortcut."));
+        puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.RECORDING);
+        puppet.capture("dynamic-bindings-recording", caption("Shortcut capture accepts a key sequence and Enter commits it."));
+        puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.CONFLICT);
+        puppet.capture("dynamic-bindings-conflict", caption("An exact active shortcut conflict is visible before execution."));
+        puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.INCOMPLETE);
+        puppet.capture("dynamic-bindings-incomplete", caption("An incomplete bound command returns to Brigadier-backed prompting."));
         puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.DETAILS_AFTER_REMOVAL);
         puppet.capture("dynamic-bindings-removed", caption("One shortcut was removed at runtime without restarting Minecraft."));
     }

@@ -63,6 +63,10 @@ public final class SFMKeyBindingService {
         engine.advanceTime(tick);
     }
 
+    public long currentTick() {
+        return engine.currentTick();
+    }
+
     public void reset(SFMKeyBindingEngine.ResetReason reason) {
         engine.reset(reason);
     }

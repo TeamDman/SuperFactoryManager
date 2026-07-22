@@ -30,6 +30,10 @@ public final class SFMKeyBindingEngine {
         matches.entrySet().removeIf(entry -> entry.getValue().isEmpty());
     }
 
+    public long currentTick() {
+        return currentTick;
+    }
+
     public void reset(ResetReason ignored) {
         matches.clear();
     }

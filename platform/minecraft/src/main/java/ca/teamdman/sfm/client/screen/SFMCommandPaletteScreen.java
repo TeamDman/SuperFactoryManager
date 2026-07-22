@@ -104,6 +104,7 @@ public final class SFMCommandPaletteScreen extends Screen {
     private int firstVisibleSuggestion;
     private String error = "";
     private long suggestionRevision;
+    private long bindingCycleTicks;
     private boolean closing;
 
     private SFMCommandPaletteScreen(
@@ -147,6 +148,12 @@ public final class SFMCommandPaletteScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return true;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        bindingCycleTicks++;
     }
 
     @Override
@@ -369,7 +376,7 @@ public final class SFMCommandPaletteScreen extends Screen {
         if (!bindings.isEmpty()) {
             int index = bindings.size() == 1
                     ? 0
-                    : (int) ((System.currentTimeMillis() / 1000L) % bindings.size());
+                    : (int) ((bindingCycleTicks / 20L) % bindings.size());
             bindingText = SFMKeyBindingDisplay.format(bindings.get(index).sequence());
         }
         String suffix = bindingText.isEmpty() ? "[?]" : bindingText + "  [?]";

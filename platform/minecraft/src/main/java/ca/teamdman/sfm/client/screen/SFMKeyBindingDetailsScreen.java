@@ -170,6 +170,13 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
         SFMScreenChangeHelpers.popScreen();
     }
 
+    public void beginRecordingForAutomation() {
+        recording = true;
+        replacingBindingId = null;
+        captured.clear();
+        SFMKeyBindingService.INSTANCE.setDispatchSuspended(true);
+    }
+
     @Override
     public void removed() {
         SFMKeyBindingService.INSTANCE.setDispatchSuspended(false);

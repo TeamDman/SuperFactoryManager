@@ -8,6 +8,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SFMKeyBindingEngineTests {
     private static final SFMKeyStroke CTRL_K = SFMKeyStroke.of(75, SFMKeyModifier.CONTROL);
@@ -113,6 +114,15 @@ class SFMKeyBindingEngineTests {
         );
 
         assertEquals(replay(engine(binding), events), replay(engine(binding), events));
+    }
+
+    @Test
+    void rejectsBackwardTimeWithoutWeakeningReplayOrdering() {
+        SFMKeyBindingEngine engine = engine(binding("one", SFMKeySequence.of(CTRL_K)));
+        engine.advanceTime(12);
+
+        assertEquals(12, engine.currentTick());
+        assertThrows(IllegalArgumentException.class, () -> engine.advanceTime(11));
     }
 
     private static SFMKeyBindingEngine engine(SFMKeyBinding binding) {
