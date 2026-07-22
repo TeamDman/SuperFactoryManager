@@ -102,6 +102,10 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             "gui.sfm.client_action.developer.source_review.description",
             "Review fixture-driven source changes with persistent decisions and audit status"
     );
+    @SFMLocalizationDatagen public static final LocalizationEntry COMMENT_REVIEW_TITLE = new LocalizationEntry(
+            "gui.sfm.client_action.developer.comment_review.title", "Review Comments");
+    @SFMLocalizationDatagen public static final LocalizationEntry COMMENT_REVIEW_DESCRIPTION = new LocalizationEntry(
+            "gui.sfm.client_action.developer.comment_review.description", "Review before/after source with overlapping comments, derived hashtags, styles, and migration diagnostics");
 
     private final SFMTitleScreenDevScreen devScreen;
 
@@ -119,6 +123,7 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_TITLE.getComponent();
             case ITEM_ICON_PICKER -> ITEM_ICON_PICKER_TITLE.getComponent();
             case SOURCE_REVIEW -> SOURCE_REVIEW_TITLE.getComponent();
+            case COMMENT_REVIEW -> COMMENT_REVIEW_TITLE.getComponent();
         };
     }
 
@@ -132,6 +137,7 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_DESCRIPTION.getComponent();
             case ITEM_ICON_PICKER -> ITEM_ICON_PICKER_DESCRIPTION.getComponent();
             case SOURCE_REVIEW -> SOURCE_REVIEW_DESCRIPTION.getComponent();
+            case COMMENT_REVIEW -> COMMENT_REVIEW_DESCRIPTION.getComponent();
         };
     }
 
@@ -147,6 +153,7 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
         if (devScreen == SFMTitleScreenDevScreen.SOURCE_REVIEW) {
             return Optional.of(SFMItemIcon.vanilla("writable_book", "Source review ledger"));
         }
+        if (devScreen == SFMTitleScreenDevScreen.COMMENT_REVIEW) return Optional.of(SFMItemIcon.vanilla("writable_book", "Review comments"));
         return Optional.empty();
     }
 

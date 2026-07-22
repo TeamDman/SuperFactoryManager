@@ -8,6 +8,7 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMPathFileExplorerSource;
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.screen.item_picker.SFMItemPickerScreen;
 import ca.teamdman.sfm.client.screen.review.SFMSourceComparisonWorkspace;
+import ca.teamdman.sfm.client.screen.review.comment.SFMReviewCommentWorkspace;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenTitleScreenOpenContext;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -74,6 +75,12 @@ public enum SFMTitleScreenDevScreen {
         @Override
         public Screen create(TitleScreen titleScreen) {
             return SFMSourceComparisonWorkspace.create(titleScreen);
+        }
+    },
+    COMMENT_REVIEW("comment-review", Component.literal("Review Comments")) {
+        @Override
+        public Screen create(TitleScreen titleScreen) {
+            return SFMReviewCommentWorkspace.create(titleScreen);
         }
     };
 
