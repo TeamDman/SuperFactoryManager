@@ -3991,6 +3991,7 @@ dependencies = [
  "tracy-client",
  "tree-sitter-patched-arborium",
  "unicode-normalization",
+ "walkdir",
  "zip",
 ]
 

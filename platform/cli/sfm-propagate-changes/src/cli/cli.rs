@@ -82,6 +82,8 @@ pub enum Command {
     Test(super::test::TestArgs),
     /// Repo root related commands
     RepoRoot(super::repo_root::RepoRootArgs),
+    /// Prepare and manage repository review bundles.
+    Review(super::review::ReviewArgs),
 }
 
 impl Command {
@@ -109,6 +111,7 @@ impl Command {
             Command::Puppet(args) => args.invoke(cancellation_token),
             Command::Test(args) => args.invoke(cancellation_token),
             Command::RepoRoot(args) => args.invoke(),
+            Command::Review(args) => args.invoke(),
         }
     }
 }
