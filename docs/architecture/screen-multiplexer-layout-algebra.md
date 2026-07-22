@@ -422,6 +422,42 @@ request plus a placement intent. A factory that truly requires a full Minecraft
 `Screen` must declare `CLOBBER` or `MODAL` hosting explicitly and cannot be used
 with `to side`/`as tab` unless an audited adapter exists.
 
+## Responsive application panel groups
+
+An application such as repository review may have several panels backed by one
+shared model. It should not hide a second coordinate allocator inside one leaf
+merely because its views need to open together. Introduce a typed panel-group
+request that yields one validated layout subtree plus its model-owned leaves:
+
+```text
+PanelGroupRequest = {
+  groupInstanceId,
+  model/controller,
+  root LayoutNode,
+  panel descriptors,
+  responsive policy
+}
+```
+
+The host inserts the subtree as one transaction, assigns/validates structural
+and panel identities, attaches each leaf exactly once, and focuses the policy's
+initial leaf. Failure attaches nothing. Removing the group may close the whole
+application, while ordinary leaf close/move operations follow explicit group
+policy; shared-model lifetime must not be inferred from Java reachability.
+
+Responsive policy consumes logical GUI bounds and declared panel constraints
+and chooses among typed algebraic shapes such as wide Linear, medium
+Linear-plus-Stack, and narrow Stack/drill-down. It does not receive framebuffer
+pixels and does not draw content. A policy transition preserves panel/model
+identity, focus where still visible, scroll/selection state, and active Stack
+choice. It is a layout transaction, not reconstruction of the review session.
+
+`SFMRepositoryReviewPanel` is currently an acknowledged counterexample: it is
+one leaf that manually allocates changed-files, before, and after rectangles.
+The responsive review wave will split those into model-sharing leaves and use
+this group boundary. Do not generalize its current arithmetic into another
+container API.
+
 ## Relationship to Track 3
 
 Track 3 already separates file data (`SFMFileExplorerSource` and model) from a

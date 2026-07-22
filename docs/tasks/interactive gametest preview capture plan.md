@@ -222,9 +222,12 @@ GameTest execution or infer milestones from timing.
 ## Rendering, screenshots, and artifacts
 
 The preview client starts windowed at 1280x720 by default, with validated
-`--width` and `--height` overrides. It owns `options.txt` values for GUI scale,
-pause-on-focus-loss, narrator, onboarding, tutorial, debug overlays, and the
-capture HUD profile. The manifest records every effective rendering setting.
+`--width` and `--height` overrides. It owns `options.txt` values for
+pause-on-focus-loss, narrator, onboarding, tutorial, audio, debug overlays, and
+the capture HUD profile. The current implementation does **not** set or record
+the requested `guiScale`; an isolated/default `options.txt` may resolve to Auto,
+but that is not yet declared evidence. The responsive-viewport extension below
+closes this gap. The manifest records the rendering settings it currently owns.
 
 For each `puppet.capture("name", caption)` action, the client:
 
@@ -265,6 +268,158 @@ zero-byte, or invalid PNG is a puppet failure.
 
 The artifact root is generated and ignored by Git. This command never creates
 or updates snapshot baselines.
+
+## Planned responsive viewport sweep extension — 2026-07-22
+
+### Current capability and terminology
+
+The Rust CLI currently accepts one startup `--width` and `--height`, launches
+one client, and records only that requested viewport in the preview manifest.
+The Java harness currently declares and runs each selected puppet once. There
+is no GUI-scale CLI field, definition contract, runtime viewport action,
+variant identity, or requested-versus-effective scale evidence.
+
+A **viewport variant** is the pair:
+
+```text
+ViewportVariant(requestedWindowSize, requestedGuiScale)
+requestedGuiScale = Auto | Explicit(positive integer)
+```
+
+It is not complete evidence until the runtime also reports actual GLFW window
+size, native framebuffer size, effective GUI scale, and resulting logical
+Minecraft screen size. Compact manifests may render `Auto -> 2`; visible
+captions should say `GUI scale: Auto (effective 2)`. An explicit scale that is
+unsupported, clamped, or produces the wrong actual viewport is not an ordinary
+successful cell.
+
+A **viewport profile** is a named ordered set or generator of variants plus one
+preferred variant. The initial shared names should include:
+
+- `CURRENT`: the existing one-point startup behavior for undeclared puppets;
+- `COMMON_RESPONSIVE`: candidate sizes 640x480, 854x480, 1280x720, and
+  1920x1080, with Auto plus every numeric scale supported at each stabilized
+  framebuffer, preferred variant 1280x720 at Auto; and
+- an explicitly requested larger profile may add 2560x1440 after the resize
+  probe establishes that the automation display can produce it exactly.
+
+The common profile is a named shorthand, not a long repeated CLI list. The
+profile's exact sizes remain subject to the first live calibration, but changing
+an accepted profile later is a versioned evidence-contract change.
+
+### Ownership and execution model
+
+The puppet definition declares the supported/default viewport profile. It does
+not enqueue resize actions and does not loop over variants. Each selected
+variant receives a fresh declaration and complete run of the ordinary puppet
+scenario.
+
+| Owner | Responsibility |
+| --- | --- |
+| Puppet definition | Declare a named profile or explicit typed variants and one preferred variant; declare product actions and captures only |
+| Java puppet harness | Resolve the declaration plus launcher selection, repeat the full puppet lifecycle once per selected variant in one Minecraft process, isolate/reset scenario state, and restore the original environment |
+| Java Minecraft runtime adapter | Resize the GLFW window on the client/render thread, set temporary GUI scale, wait for callbacks/render stability, measure requested and actual geometry, and restore on success/failure/cancellation |
+| Rust CLI | Select `declared`, `preferred`, or one exact variant; launch one Minecraft process per branch target; validate reported variants and publish artifacts without independently reenacting the Java variant loop |
+| Rust multi-version matrix collector | Compose branch/version with the already-collected in-process viewport axis; never launch one client per viewport cell |
+
+The default for a puppet with a responsive declaration is all declared
+variants. Existing puppets without a declaration retain their current singleton
+behavior. Proposed focused-iteration surfaces are:
+
+```powershell
+# Complete definition-owned sweep in one Minecraft launch
+sfm-propagate-changes.exe puppet run title_screen_repository_review
+
+# One definition-owned preferred variant
+sfm-propagate-changes.exe puppet run title_screen_repository_review --variant preferred
+
+# One exact variant when supported by the definition
+sfm-propagate-changes.exe puppet run title_screen_repository_review --variant 640x480@auto
+```
+
+CLI names are provisional until the argument/manifest fixture is reviewed. A
+single startup system property may communicate the selection to Java. There is
+no per-cell REST/RPC exchange: Java owns the live loop and reports authoritative
+observations back through structured markers.
+
+For each variant the harness must return to a documented baseline, apply the
+viewport, create a new helper/action sequence, run the whole puppet, clean up,
+and only then advance. Variant repetition must not accumulate persistent review
+comments, reuse a prior selected screen accidentally, or make later results
+depend on iteration order. Fixture/session roots therefore need a variant-aware
+isolation or explicit idempotent reset contract.
+
+### Runtime resize investigation and settle barrier
+
+Minecraft 1.19.2 exposes `Window.calculateScale`, `Window.setGuiScale`, and
+`Minecraft.resizeDisplay`. Its public `Window.setWindowed` reaches a mode-setting
+path guarded for initialization and must not be assumed safe during an active
+client. The first implementation is an experiment using
+`GLFW.glfwSetWindowSize` on the client thread, allowing the installed window and
+framebuffer callbacks to update Minecraft, followed by temporary
+`options.guiScale().set(...)` and `Minecraft.resizeDisplay()`.
+
+The action completes only after requested/actual window size, framebuffer size,
+effective scale, logical screen bounds, active screen resize, render target,
+and a bounded number of rendered frames are stable. It times out with all
+measurements. Fullscreen is rejected for the first slice. High-DPI systems must
+retain separate GLFW-window and framebuffer measurements rather than pretending
+they are interchangeable.
+
+### Variant-aware captures and artifacts
+
+Every capture keeps one logical figure/capture identity across variants. A
+variant id is an additional key, not another unrelated figure number. Captions
+include human-readable requested/effective scale and physical/logical size.
+Filenames and manifests remain collision-free, for example:
+
+```text
+repository-review-browse__1280x720__gui-auto__effective-3.png
+```
+
+The manifest adds requested window size, actual window size, framebuffer size,
+requested scale, effective scale, logical screen size, responsive layout mode
+when reported by the panel, variant result, and restoration result. The HTML
+index can select a logical capture and show resolution rows against scale
+columns. Missing, duplicated, silently clamped, or cross-variant captures fail
+that target while preserving completed artifacts.
+
+### Viewport calibration panel
+
+Add a reusable `SFMScreenPanel` test card rather than diagnosing allocation
+through application screens alone. It should render TV-style colour bars,
+one-logical-unit/checkerboard rulers, exact corner and centre markers, the panel
+bounds supplied by its host, GLFW window and framebuffer measurements, logical
+screen dimensions, requested/effective GUI scale, responsive mode, and
+screen/local mouse coordinates. Its puppet captures full-screen, one-half,
+one-third, and a nested allocation. This exposes border overlap, off-by-one
+allocation, input transforms, minimum-size failure, and high-DPI disagreement.
+
+### Implementation slices and acceptance
+
+1. **Resize probe:** one static diagnostic screen runs complete fresh puppet
+   repetitions at 640x480, 1280x720, then 854x480, alternating Auto and an
+   explicit supported scale, in one OS process. Prove cleanup and restoration.
+2. **Typed declaration/selection:** add named profiles, preferred and exact
+   selection, discovery validation, structured variant markers, and tests for
+   undeclared/backward-compatible puppets.
+3. **Variant artifacts:** extend manifest parsing, validation, paths, and the
+   contact sheet without conflating the existing Minecraft-version matrix with
+   the in-process viewport loop.
+4. **Calibration proof:** capture and inspect the diagnostic panel across the
+   accepted common profile and nested allocations.
+5. **Repository-review adoption:** opt the review puppet into the profile only
+   after its fixture/session lifecycle is variant-isolated; use the resulting
+   evidence to drive the responsive composition work in the workspace plan.
+
+Acceptance requires one recorded client PID/process lifetime for the whole
+profile, one fresh complete puppet result per variant, exact requested/actual
+measurements, deterministic figure/variant identities, restored original
+window/scale, no persistent-state multiplication, focused `preferred` and exact
+fast paths, full Rust and Java tests, source audit, and inspected contact-sheet
+evidence. Do not propagate to later Minecraft versions until the 1.19.2 runtime
+boundary is reviewed; later API differences belong behind
+`@MCVersionDependentBehaviour` adapters.
 
 ## Implementation phases
 

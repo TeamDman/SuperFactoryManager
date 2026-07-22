@@ -1121,6 +1121,138 @@ migration to a third snapshot, followed by coverage/jump-list policy. It must
 reuse this bundle/session seam rather than teaching the presentation layer to
 read Git or inventing a second comment authority.
 
+### Responsive evidence and composition wave — proposed 2026-07-22
+
+This wave precedes structural selector migration. The latest six
+real-repository frames prove integration and persistence, but they do not yet
+prove a usable review surface: source, paths, status, and comments are heavily
+truncated; the changed glyphs are not visible; the command-palette and actual
+close/reopen transitions are asserted by captions rather than shown; and the
+walkthrough changes selected files between search and commenting.
+
+#### Current layout debt
+
+`SFMRepositoryReviewPanel` is currently one multiplexer leaf. Inside its
+`render` method it manually reserves roughly one third for changed files and
+splits the remainder into two source rectangles. Changed files, before source,
+after source, and comment details are not independent `SFMScreenPanel` leaves
+in `SFMWorkspaceLayout`. The multiplexer therefore cannot resize, maximize,
+stack, rearrange, or responsively reveal them, and its Linear allocation/minimum
+logic cannot correct the panel-local split. Calling the current result
+"responsive" means only that arithmetic is recomputed for arbitrary bounds;
+it does not mean the composition remains usable.
+
+Refactor to one shared `RepositoryReviewWorkspaceModel` with distinct views:
+
+```text
+RepositoryReviewWorkspaceModel
+|- ChangedFilesPanel
+|- BeforeSourcePanel
+|- AfterSourcePanel
+`- ReviewCommentDetailsPanel
+```
+
+Selection, search, documents, byte ranges, comments, status, and persistence
+belong to the shared model/controller. Each view owns only its presentation,
+local scrolling, focus/input behavior, narration, and minimum/preferred sizing.
+No view may create a second review-session authority.
+
+#### Responsive compositions
+
+The workspace host, not application-panel coordinate arithmetic, chooses a
+composition from logical GUI bounds after Minecraft GUI scale:
+
+```text
+Wide:   Horizontal[ChangedFiles, BeforeSource, AfterSource]
+Medium: Horizontal[ChangedFiles, Stack(BeforeSource, AfterSource)]
+Narrow: Stack(ChangedFiles, BeforeSource, AfterSource, CommentDetails)
+```
+
+Narrow mode behaves like an Azure-blade drill-down: choose a changed file,
+advance to comparison/source, then inspect or edit comment details, with a
+visible back path and preservation of selection/scroll state. All modes support
+maximize/restore of the focused content panel. Medium/narrow depend on the
+planned first-class `Stack`; do not reproduce tabs or hidden panels inside the
+repository renderer. Opening the application may therefore require a typed
+`OpenPanelGroup`/`OpenLayout` intent that inserts one validated layout subtree
+whose leaves share a model, rather than four unrelated global open operations.
+
+Breakpoints must be selected from measured logical dimensions in the viewport
+contact sheet, not guessed from physical pixels. If minima cannot fit, the
+layout chooses a documented compact/stacked mode or a visible degraded state;
+it never silently emits negative, overlapping, or border-obscuring rectangles.
+
+#### Required visual story
+
+The revised puppet declares the common responsive viewport profile defined in
+the interactive preview plan. Each `(window size, GUI scale)` variant is a
+fresh full scenario in the same Minecraft process. Within every scenario it
+must keep one real changed file selected throughout and visibly show:
+
+1. command palette with the real **Open review session** action;
+2. changed-file choice and the complete path/details affordance;
+3. the actual changed region with unambiguous before/after or added/removed
+   emphasis, horizontal/vertical navigation, and a maximize path;
+4. a nonempty selection whose complete content can be inspected;
+5. complete literal comment text in the details panel without source overlap;
+6. an explicit closed/background state and the reopen action; and
+7. the same file, selection evidence, and exactly one restored user comment.
+
+The contact sheet must make wide, medium, narrow, and any degraded modes
+obvious. Auto and every supported numeric GUI scale remain separate requested
+columns. A preferred/exact variant CLI override provides the fast development
+path without weakening the declared full proof.
+
+#### Proposed subagent/worktree wave
+
+No worktree is created and no agent is dispatched until the user accepts this
+plan. At goal start, the coordinator records one reviewed canonical `1.19.2`
+baseline, freezes the typed viewport/variant marker fixture and the narrow
+panel-group contract, installs that baseline's CLI, and creates:
+
+| Agent track | Branch | Worktree | Exclusive scope and deliverable |
+| --- | --- | --- | --- |
+| A — Viewport sweep framework | `feat/1.19.2/puppet-viewport-sweep` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-puppet-viewport-sweep` | Rust CLI selection plus Java definition/harness/runtime loop; GLFW resize probe; requested/actual geometry; fresh full run per variant in one process; restoration; variant-aware manifest/contact sheet; no application layout changes |
+| B — Viewport calibration panel | `feat/1.19.2/viewport-calibration-panel` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-viewport-calibration-panel` | Reusable test-card `SFMScreenPanel`, pure bounds/input tests, full/half/third/nested puppet; starts against the frozen panel API and reports rather than invents Track A interfaces; opts into the accepted profile after Track A integration |
+| C — Responsive review composition | `feat/1.19.2/repository-review-responsive` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-repository-review-responsive` | Shared review workspace model; distinct file/before/after/comment panels; first-class Stack and typed panel-group insertion needed by those views; wide/medium/narrow/maximize behavior; preferred-variant puppet initially; no viewport harness or persistence-format changes |
+
+Track A owns the cross-language viewport contract to avoid Rust and Java agents
+independently designing the same marker schema. Track B is initially independent
+and must use the existing panel boundary; after A merges, it receives a bounded
+follow-up to adopt the declared profile and capture the full calibration sheet.
+Track C may extract the model/views and pure-test layout policy in parallel, but
+must not guess Track A's runtime API. Its live full-profile proof waits for A.
+
+The coordinator alone updates canonical plans, reviews contract drift, merges
+Track A first, integrates/rebases B and C onto the accepted interfaces, resolves
+shared helper changes, installs the final CLI, and captures the merged evidence.
+Subagents commit only their owned worktree changes and report commit ids, tests,
+screenshots, assumptions, and proposed plan wording. They do not edit these
+canonical plans, install a shared PATH CLI, propagate Minecraft versions, or
+change `.g4` files.
+
+#### Wave acceptance and stop conditions
+
+- One Minecraft PID/process covers every declared viewport variant; each cell
+  contains one fresh complete puppet outcome and stable logical figure ids.
+- `preferred` and one exact variant run only one scenario for fast iteration.
+- Original window/GUI scale and fixture/session state restore after success,
+  failure, and cancellation; no variant accumulates another variant's comment.
+- The calibration panel proves host bounds and input transforms at full, half,
+  third, and nested allocation across the accepted profile.
+- Repository review uses shared workspace nodes rather than a replacement
+  manual three-column calculation, and responsive modes are chosen from logical
+  bounds.
+- The real review story exposes complete changed content and comment text and
+  visibly demonstrates palette open, close, reopen, and exact restoration.
+- Focused tests, canonical compile/full Java suite, Rust `check-all.ps1`, source
+  audit, inspected contact sheets, unchanged `.g4`, no later-version
+  propagation, exact final CLI installation, and a clean canonical worktree are
+  required before the goal completes.
+- Structural Java correspondence, selector migration, and approval coverage do
+  not begin in this wave unless the user explicitly expands scope after
+  reviewing the responsive evidence.
+
 The historical first integration branch merged Tracks 1 and 3 and is now part
 of canonical 1.19.2. Future concurrently developed Tracks 4, 6, or 7 should
 still meet on an explicitly named integration branch after each has a coherent

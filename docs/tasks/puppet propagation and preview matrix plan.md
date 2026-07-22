@@ -395,6 +395,43 @@ sfm-propagate-changes.exe puppet matrix move_1_stack_direct_walkthrough --branch
 evidence, and a resource/contention failure produces recoverable matrix status
 rather than lost artifacts or hung launches.
 
+### [ ] 3.3 Compose the version matrix with definition-owned viewport variants
+
+This is a second matrix axis, not a request to launch another Minecraft client
+for every resolution/GUI-scale cell. The authoritative lifecycle is specified
+in the
+[interactive GameTest preview capture plan](interactive%20gametest%20preview%20capture%20plan.md):
+each puppet definition declares a viewport profile, and the Java harness repeats
+the complete fresh puppet scenario for the selected variants inside the one
+client already launched for that branch target.
+
+The Rust `puppet matrix` collector continues to own branch/version targets and
+at most one live process per such target. It consumes each target's
+variant-aware preview manifest and produces a composed identity:
+
+```text
+(branch, minecraftVersion, puppet, logicalFigure, capture, viewportVariant)
+```
+
+Its index should allow a reviewer to fix one logical capture and compare
+version rows against viewport/scale columns, or fix one viewport variant and
+retain the existing branch-by-figure view. It must display requested window
+size, actual GLFW size, framebuffer size, requested/effective GUI scale, and
+logical Minecraft screen size. Auto remains a distinct requested column even
+when its effective scale equals a numeric column.
+
+Selection is passed once at client startup (`declared`, `preferred`, or one
+exact variant). Rust must not duplicate Java profile expansion or send per-cell
+REST messages. A target fails on missing/duplicate variant identities,
+unsupported silent clamping, inconsistent logical figures, invalid PNGs, or a
+failed environment restoration, while retaining valid completed cells.
+
+**Completion criteria:** a one-branch responsive puppet yields one recorded
+client process and a browsable multi-variant contact sheet; `--variant
+preferred` yields exactly one cell; the existing singleton and multi-version
+paths remain backward compatible; and adding a second branch composes axes
+without multiplying client launches by viewport count.
+
 ## Phase 4 — Propagate and prove the version matrix
 
 ### [x] 4.1 Propagate the committed baseline through normal version branches
