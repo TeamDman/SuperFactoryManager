@@ -251,35 +251,107 @@ fn terminal_open_error_reports_path_and_os_error() {
 
 #[cfg(windows)]
 #[test]
-fn access_denied_open_is_terminal_but_sharing_violation_uses_policy() {
+fn open_failure_classification_distinguishes_access_races_from_terminal_paths() {
     let dir = temp_test_dir("windows-open-retry-classification");
     let lock_path = dir.path().join("artifact.jar.lock");
     std::fs::write(&lock_path, []).expect("persisted lock file");
+    let absent_lock_path = dir.path().join("new-artifact.jar.lock");
+    let directory_path = dir.path().join("lock-directory");
+    std::fs::create_dir(&directory_path).expect("lock directory fixture");
+    let readonly_path = dir.path().join("readonly.jar.lock");
+    std::fs::write(&readonly_path, []).expect("readonly fixture");
+    let mut readonly_permissions = std::fs::metadata(&readonly_path)
+        .expect("readonly metadata")
+        .permissions();
+    readonly_permissions.set_readonly(true);
+    std::fs::set_permissions(&readonly_path, readonly_permissions).expect("set readonly");
     let policy_wait = Duration::from_mins(15);
     let access_denied = std::io::Error::from_raw_os_error(5);
     let sharing_violation = std::io::Error::from_raw_os_error(32);
     let invalid_path = std::io::Error::from_raw_os_error(123);
+    let disk_full = std::io::Error::from_raw_os_error(112);
 
     assert_eq!(
-        super::artifact_lock::open_retry_budget(&access_denied, policy_wait),
-        None
-    );
-    assert_eq!(
-        super::artifact_lock::open_retry_budget(&sharing_violation, policy_wait),
+        super::artifact_lock::open_retry_budget(&lock_path, &access_denied, policy_wait),
         Some(policy_wait)
     );
     assert_eq!(
-        super::artifact_lock::open_retry_budget(&invalid_path, policy_wait),
+        super::artifact_lock::open_retry_budget(&absent_lock_path, &access_denied, policy_wait),
+        Some(policy_wait)
+    );
+    assert_eq!(
+        super::artifact_lock::open_retry_budget(&lock_path, &sharing_violation, policy_wait),
+        Some(policy_wait)
+    );
+    assert_eq!(
+        super::artifact_lock::open_retry_budget(&directory_path, &access_denied, policy_wait),
         None
     );
+    assert_eq!(
+        super::artifact_lock::open_retry_budget(&readonly_path, &access_denied, policy_wait),
+        None
+    );
+    assert_eq!(
+        super::artifact_lock::open_retry_budget(&lock_path, &invalid_path, policy_wait),
+        None
+    );
+    assert_eq!(
+        super::artifact_lock::open_retry_budget(&lock_path, &disk_full, policy_wait),
+        None
+    );
+
+    let mut writable_permissions = std::fs::metadata(&readonly_path)
+        .expect("readonly metadata")
+        .permissions();
+    writable_permissions.set_readonly(false);
+    std::fs::set_permissions(&readonly_path, writable_permissions).expect("restore writable");
 }
 
 #[cfg(windows)]
 #[test]
-fn access_denied_open_is_immediate_and_preserves_diagnostics() {
+fn transient_access_denied_open_is_retried_until_success() {
+    let dir = temp_test_dir("windows-access-denied-retry");
+    let lock_path = dir.path().join("artifact.jar.lock");
+    std::fs::write(&lock_path, []).expect("persisted lock file");
+    let policy = ArtifactLockWaitPolicy::new(Duration::from_millis(2), Duration::from_millis(2))
+        .with_max_wait(Duration::from_millis(100));
+    let started = Instant::now();
+    let mut last_log = started;
+    let mut attempts = 0;
+
+    let file = super::artifact_lock::open_lock_file_with_policy_using(
+        &lock_path,
+        "artifact.jar",
+        "shared_read",
+        &policy,
+        started,
+        &mut last_log,
+        |path| {
+            attempts += 1;
+            if attempts <= 3 {
+                Err(std::io::Error::from_raw_os_error(5))
+            } else {
+                super::artifact_lock::open_lock_file_once(path)
+            }
+        },
+    )
+    .expect("transient access race should converge");
+
+    assert_eq!(attempts, 4);
+    drop(file);
+}
+
+#[cfg(windows)]
+#[test]
+fn persistent_readonly_access_denied_is_immediate_and_preserves_diagnostics() {
     let dir = temp_test_dir("windows-access-denied-terminal");
     let lock_path = dir.path().join("artifact.jar.lock");
     std::fs::write(&lock_path, []).expect("persisted lock file");
+    let mut permissions = std::fs::metadata(&lock_path)
+        .expect("metadata")
+        .permissions();
+    permissions.set_readonly(true);
+    std::fs::set_permissions(&lock_path, permissions).expect("set readonly");
     let policy = ArtifactLockWaitPolicy::new(Duration::from_millis(2), Duration::from_millis(2))
         .with_max_wait(Duration::from_millis(100));
     let started = Instant::now();
@@ -298,13 +370,57 @@ fn access_denied_open_is_immediate_and_preserves_diagnostics() {
             Err(std::io::Error::from_raw_os_error(5))
         },
     )
-    .expect_err("access denied must fail without retrying");
+    .expect_err("readonly access denial must fail without retrying");
 
     assert_eq!(attempts, 1);
     let rendered = format!("{error:?}");
     assert!(rendered.contains(&lock_path.display().to_string()));
     assert!(rendered.contains("os_error=Some(5)"), "{rendered}");
     assert!(rendered.contains("kind=PermissionDenied"), "{rendered}");
+
+    let mut permissions = std::fs::metadata(&lock_path)
+        .expect("metadata")
+        .permissions();
+    permissions.set_readonly(false);
+    std::fs::set_permissions(&lock_path, permissions).expect("restore writable");
+}
+
+#[cfg(windows)]
+#[test]
+fn cancellation_interrupts_access_denied_open_retry() {
+    let dir = temp_test_dir("windows-access-denied-cancellation");
+    let lock_path = dir.path().join("artifact.jar.lock");
+    std::fs::write(&lock_path, []).expect("persisted lock file");
+    let cancellation_token = CancellationToken::new();
+    let cancel_from_thread = cancellation_token.clone();
+    let canceller = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(25));
+        cancel_from_thread.request_cancel("cancel open retry");
+    });
+    let policy = ArtifactLockWaitPolicy::new(Duration::from_millis(2), Duration::from_millis(2))
+        .with_max_wait(Duration::from_secs(2))
+        .with_cancellation(cancellation_token);
+    let started = Instant::now();
+    let mut last_log = started;
+    let mut attempts = 0;
+
+    let error = super::artifact_lock::open_lock_file_with_policy_using(
+        &lock_path,
+        "artifact.jar",
+        "shared_read",
+        &policy,
+        started,
+        &mut last_log,
+        |_| {
+            attempts += 1;
+            Err(std::io::Error::from_raw_os_error(5))
+        },
+    )
+    .expect_err("cancellation must interrupt open retry");
+
+    canceller.join().expect("canceller thread");
+    assert!(attempts > 1);
+    assert!(error.to_string().contains("cancel open retry"));
 }
 
 #[test]

@@ -195,8 +195,8 @@ pub(super) fn open_lock_file_with_policy_using(
         policy.bail_if_cancelled()?;
         match open(lock_path) {
             Ok(file) => return Ok(file),
-            Err(error) if open_retry_budget(&error, policy.max_wait).is_some() => {
-                let open_retry_budget = open_retry_budget(&error, policy.max_wait)
+            Err(error) if open_retry_budget(lock_path, &error, policy.max_wait).is_some() => {
+                let open_retry_budget = open_retry_budget(lock_path, &error, policy.max_wait)
                     .expect("guard established an open retry budget");
                 if last_log.elapsed() >= policy.log_interval {
                     tracing::info!(
@@ -237,6 +237,7 @@ fn open_error(lock_path: &Path, error: std::io::Error) -> eyre::Report {
 }
 
 pub(super) fn open_retry_budget(
+    lock_path: &Path,
     error: &std::io::Error,
     policy_max_wait: Duration,
 ) -> Option<Duration> {
@@ -244,16 +245,32 @@ pub(super) fn open_retry_budget(
     {
         match error.raw_os_error() {
             Some(32 | 33) => Some(policy_max_wait),
+            Some(5) if access_denied_can_be_a_transient_open_race(lock_path) => {
+                Some(policy_max_wait)
+            }
             _ => None,
         }
     }
     #[cfg(not(windows))]
     {
+        let _lock_path = lock_path;
         matches!(
             error.kind(),
             std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
         )
         .then_some(policy_max_wait)
+    }
+}
+
+#[cfg(windows)]
+fn access_denied_can_be_a_transient_open_race(lock_path: &Path) -> bool {
+    match std::fs::metadata(lock_path) {
+        Ok(metadata) => metadata.is_file() && !metadata.permissions().readonly(),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => lock_path
+            .parent()
+            .and_then(|parent| std::fs::metadata(parent).ok())
+            .is_some_and(|metadata| metadata.is_dir() && !metadata.permissions().readonly()),
+        Err(_) => false,
     }
 }
 
