@@ -223,6 +223,16 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    public void openItemPicker(boolean multiplexed) {
+        add(new OpenItemPickerPuppetAction(multiplexed));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void configureItemPicker(ConfigureItemPickerPuppetAction.View view) {
+        add(new ConfigureItemPickerPuppetAction(view));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void deliverFileExplorerDropFixture() {
         add(new DeliverFileExplorerDropFixturePuppetAction());
     }

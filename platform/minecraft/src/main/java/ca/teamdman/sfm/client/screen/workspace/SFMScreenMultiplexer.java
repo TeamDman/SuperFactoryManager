@@ -132,7 +132,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         if (!notifyPanels || this.minecraft == null) return;
         for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
             if (openedPanels.contains(entry.id())) {
-                entry.panel().resized(this.minecraft, panelBounds.get(entry.id()));
+                entry.panel().resized(this.minecraft, contentBounds(entry.id()));
             } else {
                 openPanel(entry.id(), entry.panel());
             }
@@ -140,7 +140,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     private void openPanel(SFMWorkspacePanelId id, SFMScreenPanel panel) {
-        panel.opened(this.minecraft, panelBounds.get(id), new SFMWorkspacePanelContext(id, this));
+        panel.opened(this.minecraft, contentBounds(id), new SFMWorkspacePanelContext(id, this));
         openedPanels.add(id);
     }
 
@@ -183,11 +183,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             fill(poseStack, bounds.x(), bounds.y() + bounds.height() - 1, bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
             fill(poseStack, bounds.x(), bounds.y(), bounds.x() + 1, bounds.y() + bounds.height(), border);
             fill(poseStack, bounds.x() + bounds.width() - 1, bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
-            enableScissor(bounds);
+            enableScissor(bounds.inset(1));
             entry.panel().render(
                     poseStack,
                     this.minecraft,
-                    bounds,
+                    bounds.inset(1),
                     mouseX,
                     mouseY,
                     partialTick,
@@ -209,13 +209,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             if (requestedIndex < panels.size()) layout.focus(panels.get(requestedIndex).id());
             return requestedIndex < panels.size();
         }
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        if (focused != null && focused.keyPressed(keyCode, scanCode, modifiers)) return true;
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             onClose();
             return true;
         }
-        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
-        return focused != null && (focused.keyPressed(keyCode, scanCode, modifiers)
-                || super.keyPressed(keyCode, scanCode, modifiers));
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -289,6 +289,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             if (panelBounds.get(entry.id()).contains(mouseX, mouseY)) return entry;
         }
         return null;
+    }
+
+    private SFMScreenPanelBounds contentBounds(SFMWorkspacePanelId panelId) {
+        return panelBounds.get(panelId).inset(1);
     }
 
     @MCVersionDependentBehaviour

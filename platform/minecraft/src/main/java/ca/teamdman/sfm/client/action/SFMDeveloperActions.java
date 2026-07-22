@@ -41,6 +41,12 @@ public final class SFMDeveloperActions {
                     () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.INSTANCE_FILE_EXPLORER)
             );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> ITEM_ICON_PICKER =
+            REGISTERER.register(
+                    "developer/open_item_icon_picker",
+                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.ITEM_ICON_PICKER)
+            );
+
     public static final SFMRegistryObject<SFMClientAction<?>, CreateDeveloperWorldAction> CREATE_WORLD =
             REGISTERER.register(
                     "developer/create_world",
