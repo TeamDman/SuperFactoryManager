@@ -44,6 +44,8 @@ class SFMRepositoryReviewBundleV1Tests {
         assertInvalid(fixture.replace("\"end_byte\": 36", "\"end_byte\": 999"), "range");
         assertInvalid(fixture.replace("\"data\": \"AP9B\"", "\"data\": \"AP9\""), "base64");
         assertInvalid(fixture.replaceFirst("6b86b273", "0b86b273"), "selected bytes sha256");
+        assertInvalid(fixture.replaceFirst("\\s*\"before\": null,", ""),
+                "Missing explicit operation side 'before'");
     }
 
     @Test
