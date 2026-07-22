@@ -20,7 +20,7 @@ public final class SFMFixtureReviewCommentDataSource implements SFMReviewComment
                 List.of(new RangeView(BEFORE,20,57),new RangeView(AFTER,20,74)),EvaluationStatus.RESOLVED_EXACTLY));
         styles.add(new StyleRuleView("approved-background",List.of("#approved"),10,null,0x5522AA44,null,null,true));
         styles.add(new StyleRuleView("needs-change-underline",List.of("#needs-change"),50,null,null,0xFFFFAA00,0xFFFFAA00,true));
-        styles.add(new StyleRuleView("problem-underline",List.of("#problem"),100,0xFFFF7777,null,0xFFFF5555,0xFFFF5555,true));
+        styles.add(new StyleRuleView("problem-underline",List.of("#problem"),100,0xFFFF7777,0x55441111,0xFFFF5555,0xFFFF5555,true));
         styles.add(new StyleRuleView("modified-background",List.of("#modified"),5,null,0x553366AA,null,null,true));
     }
     private static CommentView comment(String id,String text,String provenance,List<RangeView> ranges,EvaluationStatus status){return new CommentView(id,text,provenance,false,List.copyOf(ranges),status);}

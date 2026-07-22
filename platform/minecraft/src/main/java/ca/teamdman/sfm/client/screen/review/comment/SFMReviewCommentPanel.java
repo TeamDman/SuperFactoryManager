@@ -49,6 +49,8 @@ public final class SFMReviewCommentPanel implements SFMScreenPanel {
             return false;
         }
         if(key==GLFW.GLFW_KEY_F2){nextProblem();return true;}
+        if(key==GLFW.GLFW_KEY_DOWN||key==GLFW.GLFW_KEY_RIGHT_BRACKET){selectAdjacentComment(1);return true;}
+        if(key==GLFW.GLFW_KEY_UP||key==GLFW.GLFW_KEY_LEFT_BRACKET){selectAdjacentComment(-1);return true;}
         if(key==GLFW.GLFW_KEY_C && view==View.STYLE_RULES){openStyleColourPicker();return true;}
         if(key==GLFW.GLFW_KEY_DELETE && !session.comments().isEmpty()){archiveActive();return true;}
         if(key==GLFW.GLFW_KEY_N){beginCreate();return true;} if(key==GLFW.GLFW_KEY_E){beginEdit();return true;}
@@ -77,6 +79,7 @@ public final class SFMReviewCommentPanel implements SFMScreenPanel {
         editMode=null;
     }
     public void archiveActive(){String id=activeComment().id();source.archiveComment(id);refresh();status="Archived "+id+" without deleting history";}
+    public void selectAdjacentComment(int direction){if(session.comments().isEmpty())return;selectedComment=Math.floorMod(selectedComment+direction,session.comments().size());view=View.REVIEW;status=(direction>0?"Next":"Previous")+" comment · "+activeComment().id();}
     private void selectLine(SFMReviewCommentDataSource.DocumentView doc,int line){String[] lines=doc.text().split("\\n",-1);line=Math.min(line,lines.length-1);int start=0;for(int i=0;i<line;i++)start+=lines[i].getBytes(StandardCharsets.UTF_8).length+1;int end=start+lines[line].getBytes(StandardCharsets.UTF_8).length;selectLiteral(new SFMReviewCommentDataSource.RangeView(doc.id(),start,end));}
 
     public void applyAutomation(String command){
@@ -93,11 +96,11 @@ public final class SFMReviewCommentPanel implements SFMScreenPanel {
         else if(command.equals("legacy")){view=View.LEGACY;status="Compatibility projection only; comments remain authoritative";}
         else throw new IllegalArgumentException("Unknown comment-review command "+command);
     }
-    public void setStyleColourForAutomation(int argb){source.updateStyleColour("problem-underline",SFMReviewCommentDataSource.StyleChannel.UNDERLINE,argb);refresh();status="Updated #problem underline through typed colour input";}
+    public void setStyleColourForAutomation(int argb){source.updateStyleColour("problem-underline",SFMReviewCommentDataSource.StyleChannel.BACKGROUND,argb);refresh();status="Updated visible #problem source background through typed colour input";}
     private void nextProblem(){for(int i=1;i<=session.comments().size();i++){int n=(selectedComment+i)%session.comments().size();if(SFMCommentHashtags.derive(session.comments().get(n).text()).contains("#problem")){selectedComment=n;view=View.REVIEW;status="F2 → #problem at after byte 60..68";return;}}status="No #problem comments";}
     private void openStyleColourPicker(){
         if(context==null){status="Colour picker host unavailable";return;}
-        int initial=session.styleRules().stream().filter(r->r.id().equals("problem-underline")).findFirst().orElseThrow().underline();
+        int initial=session.styleRules().stream().filter(r->r.id().equals("problem-underline")).findFirst().orElseThrow().background();
         context.submit(new SFMWorkspacePanelIntent.OpenToSide(SFMWorkspaceSide.RIGHT,new SFMColorInputPanel(new SFMArgbColor(initial),List.of(),c->setStyleColourForAutomation(c.argb()),()->status="Colour edit cancelled")));
     }
     private void refresh(){session=source.refresh();selectedComment=Math.min(selectedComment,session.comments().size()-1);}
@@ -109,7 +112,7 @@ public final class SFMReviewCommentPanel implements SFMScreenPanel {
         GuiComponent.fill(ps,b.x(),b.y(),right,bottom,theme.colour(SFMColourRole.PANEL_BACKGROUND));
         draw(ps,mc,"Review Comments · frozen v1 fixture adapter",b.x()+8,b.y()+7,b.width()-16,theme.colour(SFMColourRole.TEXT_ACCENT),true);
         draw(ps,mc,session.title(),b.x()+8,b.y()+20,b.width()-16,theme.colour(SFMColourRole.TEXT_PRIMARY),false);
-        draw(ps,mc,"[1] Review  [2] Style rules  [3] Migration  [4] Legacy  F2 next #problem",b.x()+8,b.y()+33,b.width()-16,theme.colour(SFMColourRole.TEXT_MUTED),false);
+        draw(ps,mc,"[1] Review  [2] Styles  [3] Migration  [4] Legacy  ↑/↓ comments  F2 #problem",b.x()+8,b.y()+33,b.width()-16,theme.colour(SFMColourRole.TEXT_MUTED),false);
         int top=b.y()+52;
         switch(view){case REVIEW->renderReview(ps,mc,theme,b.x()+8,top,b.width()-16,bottom-29);case STYLE_RULES->renderStyles(ps,mc,theme,b.x()+8,top,b.width()-16);case MIGRATION->renderMigration(ps,mc,theme,b.x()+8,top,b.width()-16);case LEGACY->renderLegacy(ps,mc,theme,b.x()+8,top,b.width()-16);}
         if(editMode!=null){GuiComponent.fill(ps,b.x()+18,bottom-52,right-18,bottom-25,0xFF101419);draw(ps,mc,(editMode==EditMode.CREATE?"New comment: ":"Edit comment: ")+editText+"_",b.x()+24,bottom-44,b.width()-48,theme.colour(SFMColourRole.TEXT_PRIMARY),false);}
