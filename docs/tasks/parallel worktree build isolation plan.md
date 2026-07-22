@@ -95,6 +95,21 @@ readers and narrowly scoped writers.
   Never delete a lock file merely because no lock is presently held.
 - Make cancellation interrupt both open retry and lock retry.
 
+### Phase 2 completion — 2026-07-22
+
+- Lock-file open/create now uses the same bounded, cancellable wait policy as
+  lock acquisition and emits distinct `waiting_to_open` telemetry.
+- Windows sharing violations are retried. Access-denied results are retried only
+  when the target is a normal writable lock file, or is absent beneath a
+  writable parent directory; directory targets, read-only targets, invalid
+  paths, and disk errors remain immediate failures with their path and OS error.
+- The lock file remains persistent. Deterministic tests cover concurrent
+  first-open readers, transient open recovery, terminal open classification,
+  cancellation, and preserved diagnostics.
+- `check-all.ps1` passed (334 tests passed, 1 ignored), and the worktree-local
+  CLI completed `run compile --branch 1.19.2 --wait-for-build-lock` against the
+  shared cache.
+
 ## Phase 3 — Audit writer scope and artifact reads
 
 - Inventory every `acquire_artifact_path_lock` call. A valid cache hit should
