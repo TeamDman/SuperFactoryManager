@@ -1,0 +1,117 @@
+{
+  "schema": "sfm.repository-review-bundle/1",
+  "id": "fixture-basic-v1",
+  "name": "Repository review bundle v1 conformance fixture",
+  "repository": {
+    "name": "fixture",
+    "display_path": "fixture"
+  },
+  "producer": {
+    "id": "sfm-fixture",
+    "contract_version": "1"
+  },
+  "before": {
+    "schema": "sfm.repository-snapshot/1",
+    "id": "sha256:b4c526a8a03b72639840e51dc661cf337855504da1199a05c98b27300c03e199",
+    "source": {
+      "kind": "git_tree",
+      "revision": "before",
+      "label": "Before"
+    },
+    "files": [
+      {
+        "path": "assets/data.bin",
+        "encoding": "base64",
+        "data": "AP9B",
+        "sha256": "a90a10503fbfc95789ff38a1bb5039cb71869ab9c0eb1cb51c4a9099f2933c6b"
+      },
+      {
+        "path": "src/A.java",
+        "encoding": "utf8",
+        "text": "class A {\n    int value() { return 1; }\n}\n",
+        "sha256": "ac9d0f89700d3114c2d6f913f5850c32babf04a1f98887f40f8a845345aae88d"
+      }
+    ]
+  },
+  "after": {
+    "schema": "sfm.repository-snapshot/1",
+    "id": "sha256:79acdbd32bfbbf3a31749bc9a07553931fdb4762888b4b49213e294c70794197",
+    "source": {
+      "kind": "git_tree",
+      "revision": "after",
+      "label": "After"
+    },
+    "files": [
+      {
+        "path": "assets/data.bin",
+        "encoding": "base64",
+        "data": "AP9B",
+        "sha256": "a90a10503fbfc95789ff38a1bb5039cb71869ab9c0eb1cb51c4a9099f2933c6b"
+      },
+      {
+        "path": "src/A.java",
+        "encoding": "utf8",
+        "text": "class A {\n    int value() { return 2; }\n}\n",
+        "sha256": "f487e45e269cfa43ee39185702328c8d9406ead5b001d3bb72cf56821076b64f"
+      },
+      {
+        "path": "src/B.java",
+        "encoding": "utf8",
+        "text": "class B {}\n",
+        "sha256": "18ba722e8c0cbb2aa3d7d5a8c79f0e65b50318e1391aae91b462444b6cb39f60"
+      }
+    ]
+  },
+  "comparison": {
+    "schema": "sfm.repository-comparison/1",
+    "before_snapshot_id": "sha256:b4c526a8a03b72639840e51dc661cf337855504da1199a05c98b27300c03e199",
+    "after_snapshot_id": "sha256:79acdbd32bfbbf3a31749bc9a07553931fdb4762888b4b49213e294c70794197",
+    "file_changes": [
+      {
+        "kind": "modified",
+        "before_path": "src/A.java",
+        "after_path": "src/A.java",
+        "binary": false,
+        "operations": [
+          {
+            "id": "replace-src-a-value",
+            "kind": "replace",
+            "before": {
+              "path": "src/A.java",
+              "start_byte": 35,
+              "end_byte": 36,
+              "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+            },
+            "after": {
+              "path": "src/A.java",
+              "start_byte": 35,
+              "end_byte": 36,
+              "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+            }
+          }
+        ],
+        "diagnostics": []
+      },
+      {
+        "kind": "added",
+        "before_path": null,
+        "after_path": "src/B.java",
+        "binary": false,
+        "operations": [
+          {
+            "id": "insert-src-b",
+            "kind": "insert",
+            "before": null,
+            "after": {
+              "path": "src/B.java",
+              "start_byte": 0,
+              "end_byte": 11,
+              "sha256": "18ba722e8c0cbb2aa3d7d5a8c79f0e65b50318e1391aae91b462444b6cb39f60"
+            }
+          }
+        ],
+        "diagnostics": []
+      }
+    ]
+  }
+}

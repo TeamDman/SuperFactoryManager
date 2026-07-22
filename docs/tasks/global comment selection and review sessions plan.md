@@ -642,6 +642,35 @@ The coordinator owns the shared schema and canonical plans. Feature agents work
 from one reviewed `1.19.2` baseline, do not update canonical plan copies, and
 return tests plus captioned puppets before an integration goal merges anything.
 
+### Active real-repository review wave — 2026-07-22
+
+The shared handoff is frozen in
+[`../architecture/repository-review-bundle-v1.md`](../architecture/repository-review-bundle-v1.md).
+All tracks branch from the same contract commit. The coordinator alone updates
+these canonical plans, merges accepted work, installs a changed Rust CLI into
+`PATH`, and captures the final merged proof. Feature tracks do not edit `.g4`
+files or propagate to later Minecraft versions.
+
+1. **Repository bundle producer** — read a Git revision pair or prepared
+   directories, build complete byte-accurate snapshots, calculate deterministic
+   file/text changes, validate limits, and atomically write a named bundle into
+   the managed inbox. Facet remains the Rust serialization authority.
+2. **Bundle loader and session lifecycle** — validate the same fixture in Java,
+   enumerate the managed inbox, expose a typed command-palette open action,
+   import generated comments with provenance, and deterministically reopen the
+   existing persisted session.
+3. **Real review workspace** — replace the frozen comparison fixture with a
+   responsive changed-file tree and before/after source panels backed by the
+   loader, create literal review comments through the existing kernel, and
+   prove the full interaction at 1200x720.
+
+The real proof pair is SFM `d07bef66c` to `8e9946d9f`. Acceptance requires the
+Rust command to prepare that pair, the game to open it through the command
+palette, a reviewer to browse a changed file and add a comment, and close/reopen
+to restore the same session and comment. Track tests, local puppets, merged Java
+compile/full tests, Rust checks, source audit, inspected merged puppets, and a
+clean canonical worktree are mandatory.
+
 ### Completed implementation wave — 2026-07-22
 
 All three tracks fork from contract commit `378719839` and return to the

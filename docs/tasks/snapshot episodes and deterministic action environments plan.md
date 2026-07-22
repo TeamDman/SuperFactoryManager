@@ -211,6 +211,19 @@ serialization tests.
 
 ## Phase 0 — Close the contracts
 
+### Frozen review-snapshot subset — 2026-07-22
+
+The first real-repository review wave freezes the snapshot/comparison subset in
+[`../architecture/repository-review-bundle-v1.md`](../architecture/repository-review-bundle-v1.md)
+and its shared JSON fixture. It fixes normalized repository paths, strict
+UTF-8/base64 file bytes, deterministic semantic hashing, explicit resource
+bounds, byte-range comparison selections, and the managed-inbox handoff.
+
+This closes the snapshot vocabulary needed by review without prematurely
+freezing the episode, event, action, transition, observation, or timeline
+schemas below. The Rust producer and Java importer must both pass the shared
+fixture before Phase 0.1 can be marked complete in full.
+
 ### [ ] 0.1 Define snapshot and episode vocabulary
 
 - Decide canonical schema ids, versions, and hashes.
@@ -246,6 +259,8 @@ input histories remain observably different.
   an AST parser, or Vox.
 - Provide canonicalize, validate, hash, inspect, and extract-frame operations.
 - Keep optimized blob/delta storage out of the first implementation.
+- The active review wave implements the frozen repository-snapshot subset plus
+  Git-tree/directory sources and a deterministic textual comparison producer.
 
 ### [ ] 1.2 Java snapshot and episode models
 
@@ -254,6 +269,8 @@ input histories remain observably different.
 - Bound file count, content bytes, event count, and decoded allocation.
 - Add shared fixture conformance tests between Rust-produced and Java-produced
   documents.
+- The active review wave imports named bundles from the managed inbox and
+  projects comparison operations into the existing global review session.
 
 ### [ ] 1.3 Full-frame round-trip proof
 

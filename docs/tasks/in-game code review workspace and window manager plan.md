@@ -1083,6 +1083,28 @@ Track 7 belongs above the multiplexer routing seam and below application
 panels. It can begin independently of semantic source comparison and Vox; the
 Episode Inspector consumes its recordings.
 
+### Active Track 6 real-repository slice — 2026-07-22
+
+Track 6 now advances from its frozen comparison fixture to the portable
+[`repository review bundle v1`](../architecture/repository-review-bundle-v1.md).
+The host prepares immutable before/after repository snapshots and comparison
+operations; Minecraft opens a named bundle from its managed inbox. The first
+observable slice uses real SFM revisions `d07bef66c` and `8e9946d9f` and must
+show:
+
+1. command-palette selection of **Open review session**;
+2. the real changed-file tree with themed ItemStack identities;
+3. before/after source for a selected changed file;
+4. creation of a literal review comment through the global comment kernel;
+5. closing and reopening the deterministic session with that comment restored.
+
+The bundle producer, loader/session lifecycle, and workspace are independent
+feature tracks sharing one frozen fixture. The coordinator owns their merge
+order and final puppet. Semantic Java correspondence, structural selectors,
+comment migration to a third snapshot, AST refactoring operations, and release
+coverage remain subsequent slices; the baseline comparison may be textual but
+must already expose stable UTF-8 byte selections.
+
 The historical first integration branch merged Tracks 1 and 3 and is now part
 of canonical 1.19.2. Future concurrently developed Tracks 4, 6, or 7 should
 still meet on an explicitly named integration branch after each has a coherent
