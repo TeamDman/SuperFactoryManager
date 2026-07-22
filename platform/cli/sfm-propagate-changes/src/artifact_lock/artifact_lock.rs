@@ -10,7 +10,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 #[cfg(windows)]
-const WINDOWS_ACCESS_DENIED_GRACE: Duration = Duration::from_secs(2);
+const WINDOWS_ACCESS_DENIED_GRACE: Duration = Duration::from_mins(1);
 
 #[derive(Debug)]
 pub struct ArtifactLock {
@@ -170,13 +170,33 @@ pub(super) fn open_lock_file_with_policy(
     started: Instant,
     last_log: &mut Instant,
 ) -> eyre::Result<File> {
+    open_lock_file_with_policy_using(
+        lock_path,
+        artifact,
+        operation,
+        policy,
+        started,
+        last_log,
+        open_lock_file_once,
+    )
+}
+
+pub(super) fn open_lock_file_with_policy_using(
+    lock_path: &Path,
+    artifact: &str,
+    operation: &str,
+    policy: &ArtifactLockWaitPolicy,
+    started: Instant,
+    last_log: &mut Instant,
+    mut open: impl FnMut(&Path) -> std::io::Result<File>,
+) -> eyre::Result<File> {
     if let Some(parent) = lock_path.parent() {
         std::fs::create_dir_all(parent)
             .wrap_err_with(|| format!("Failed to create lock directory {}", parent.display()))?;
     }
     loop {
         policy.bail_if_cancelled()?;
-        match open_lock_file_once(lock_path) {
+        match open(lock_path) {
             Ok(file) => return Ok(file),
             Err(error) if open_retry_budget(&error, lock_path, policy.max_wait).is_some() => {
                 let open_retry_budget = open_retry_budget(&error, lock_path, policy.max_wait)
@@ -228,7 +248,10 @@ pub(super) fn open_retry_budget(
     {
         match error.raw_os_error() {
             Some(32 | 33) => Some(policy_max_wait),
-            Some(5) if lock_path.parent().is_some_and(std::path::Path::is_dir) => {
+            Some(5)
+                if lock_path.is_file()
+                    && lock_path.parent().is_some_and(std::path::Path::is_dir) =>
+            {
                 Some(Duration::min(policy_max_wait, WINDOWS_ACCESS_DENIED_GRACE))
             }
             _ => None,

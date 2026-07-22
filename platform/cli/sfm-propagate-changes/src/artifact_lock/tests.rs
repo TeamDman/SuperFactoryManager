@@ -254,6 +254,7 @@ fn terminal_open_error_reports_path_and_os_error() {
 fn access_denied_open_retry_has_short_grace_but_sharing_violation_uses_policy() {
     let dir = temp_test_dir("windows-open-retry-classification");
     let lock_path = dir.path().join("artifact.jar.lock");
+    std::fs::write(&lock_path, []).expect("persisted lock file");
     let policy_wait = Duration::from_mins(15);
     let access_denied = std::io::Error::from_raw_os_error(5);
     let sharing_violation = std::io::Error::from_raw_os_error(32);
@@ -261,7 +262,7 @@ fn access_denied_open_retry_has_short_grace_but_sharing_violation_uses_policy() 
 
     assert_eq!(
         super::artifact_lock::open_retry_budget(&access_denied, &lock_path, policy_wait),
-        Some(Duration::from_secs(2))
+        Some(Duration::from_mins(1))
     );
     assert_eq!(
         super::artifact_lock::open_retry_budget(&sharing_violation, &lock_path, policy_wait),
@@ -271,6 +272,66 @@ fn access_denied_open_retry_has_short_grace_but_sharing_violation_uses_policy() 
         super::artifact_lock::open_retry_budget(&invalid_path, &lock_path, policy_wait),
         None
     );
+}
+
+#[cfg(windows)]
+#[test]
+fn transient_access_denied_open_recovers_with_shortened_policy() {
+    let dir = temp_test_dir("windows-access-denied-recovery");
+    let lock_path = dir.path().join("artifact.jar.lock");
+    std::fs::write(&lock_path, []).expect("persisted lock file");
+    let policy = ArtifactLockWaitPolicy::new(Duration::from_millis(2), Duration::from_millis(2))
+        .with_max_wait(Duration::from_millis(100));
+    let started = Instant::now();
+    let mut last_log = started;
+    let mut attempts = 0;
+
+    let file = super::artifact_lock::open_lock_file_with_policy_using(
+        &lock_path,
+        "artifact.jar",
+        "shared_read",
+        &policy,
+        started,
+        &mut last_log,
+        |path| {
+            attempts += 1;
+            if attempts <= 2 {
+                Err(std::io::Error::from_raw_os_error(5))
+            } else {
+                super::artifact_lock::open_lock_file_once(path)
+            }
+        },
+    )
+    .expect("transient access denied should recover");
+
+    assert_eq!(attempts, 3);
+    drop(file);
+}
+
+#[cfg(windows)]
+#[test]
+fn persistent_access_denied_open_returns_preserved_error_after_shortened_policy() {
+    let dir = temp_test_dir("windows-access-denied-timeout");
+    let lock_path = dir.path().join("artifact.jar.lock");
+    std::fs::write(&lock_path, []).expect("persisted lock file");
+    let policy = ArtifactLockWaitPolicy::new(Duration::from_millis(2), Duration::from_millis(2))
+        .with_max_wait(Duration::from_millis(12));
+    let started = Instant::now();
+    let mut last_log = started;
+
+    let error = super::artifact_lock::open_lock_file_with_policy_using(
+        &lock_path,
+        "artifact.jar",
+        "shared_read",
+        &policy,
+        started,
+        &mut last_log,
+        |_| Err(std::io::Error::from_raw_os_error(5)),
+    )
+    .expect_err("persistent access denied should reach its bound");
+    let rendered = format!("{error:?}");
+    assert!(rendered.contains(&lock_path.display().to_string()));
+    assert!(rendered.contains("os_error=Some(5)"), "{rendered}");
 }
 
 #[test]
