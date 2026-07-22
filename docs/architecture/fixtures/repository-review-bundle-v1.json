@@ -1,6 +1,6 @@
 {
   "schema": "sfm.repository-review-bundle/1",
-  "id": "fixture-basic-v1",
+  "id": "sha256:53fcdc3aed1b2cd4dbf9bac7ba409db9ad67df9ef6be1326ce8a14abc80c2af4",
   "name": "Repository review bundle v1 conformance fixture",
   "repository": {
     "name": "fixture",

@@ -24,6 +24,17 @@ Unknown fields are ignored. Unknown schema versions, duplicate object keys,
 duplicate paths or ids, invalid hashes, invalid ranges, and dangling references
 fail closed. Writers emit deterministically ordered objects and arrays.
 
+The repository `name` is a non-empty NFC string and is the stable repository
+identity in v1. The declared bundle id must equal `sha256:` plus SHA-256 over:
+
+1. UTF-8 bytes `sfm.repository-review-bundle/1`, then one NUL byte;
+2. unsigned big-endian u32 byte length and UTF-8 bytes of repository `name`;
+3. the raw 32-byte digest from the validated before snapshot id;
+4. the raw 32-byte digest from the validated after snapshot id.
+
+Output filename, display path, source labels, and producer metadata are excluded
+so moving or relabelling a bundle does not fork its persisted review session.
+
 ## Repository paths and bounds
 
 Paths are Unicode NFC, use `/`, and compare case-sensitively by UTF-8 byte
@@ -103,6 +114,11 @@ game enumerates and opens bundles by id/name from that inbox; it does not expose
 arbitrary host-path access. A deterministic session id derived from bundle id
 allows close/reopen and process restart to restore user comments from the
 existing AppData review-session store.
+
+The v1 logical session id is
+`sfm.repository-review-session/1:` followed by the validated bundle id. The
+existing review-session store may hash that logical id when deriving a safe
+filename.
 
 The first end-to-end proof uses real SFM revisions `d07bef66c` and `8e9946d9f`:
 prepare the bundle, open it through the command palette, browse a changed file,
