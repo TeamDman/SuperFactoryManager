@@ -186,6 +186,15 @@ implicitly multi-target.
 
 ### Structured source comparison
 
+The comparison producer feeds the [global comment selection and review
+sessions plan](global%20comment%20selection%20and%20review%20sessions%20plan.md).
+It retains structured operations and correspondences as evidence, while also
+supporting a deterministic projection into generated comments containing
+conventional derived tags such as `#added`, `#removed`, `#modified`, and
+`#renamed`. Selection rules target the exact before/after glyph ranges. The
+comment projection does not replace the structured comparison artifact and
+must be reproducible from it.
+
 Add a versioned machine-readable comparison artifact suitable for source review:
 
 ```text
@@ -370,6 +379,11 @@ diffs across repeated runs.
   `source compare --before <snapshot> --after <snapshot> --output <file>`.
 - Keep report production read-only. Do not require Vox, Minecraft, Gradle, or a
   materialized Git patch.
+- Emit or support a deterministic comment projection whose ordinary comment
+  strings, provenance, and `DiffRegion` selection rules can drive the in-game
+  diff colours and review queries without hard-coded presentation state.
+- Preserve enough symbol/span witnesses for later comment-rule migration across
+  rename, move, signature change, body modification, and ambiguous candidates.
 
 **Validation:** fixture comparisons are byte-identical across repeated runs;
 swapping before/after produces the expected inverse file/range operations;

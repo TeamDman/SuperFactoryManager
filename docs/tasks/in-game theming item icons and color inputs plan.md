@@ -25,8 +25,12 @@ colour-input, and ItemStack-picker tracks through merge commits `15c310234`,
   ARGB/RGBA, HSV, hex, channel, recent-colour, reset, and callback input. The
   item picker supports detailed and dense views, keyboard navigation, tooltips,
   registry search, and SFML wildcard/tag matchers.
-- The structured theme/icon-scheme editor, semantic role inspection, and TOML
-  write-back that connect those primitives remain future Phase 3 work.
+- The literal-safe wildcard correction for those shared SFML matchers is tracked
+  as Phase 0 of the global comment/review-session plan. It changes AST
+  conversion and tests, not the `.g4` grammar.
+- The structured theme/icon-scheme editor and TOML write-back were completed in
+  the later structured-settings checkpoint below. Semantic click-to-inspect and
+  structured syntax-flag editing remain future Phase 3 work.
 - Canonical compile and the full Java suite passed after integration; the two
   Windows symlink tests aborted on their existing privilege assumptions.
 - Fresh canonical puppet runs accepted runtime-theme, malformed-theme,
@@ -49,6 +53,21 @@ icon editing and preview, persisted save/reload, and invalid-theme retention.
 Syntax style flags are preserved and displayed but do not yet have structured
 boolean editors. Semantic click-to-inspect/customize remains future Phase 3
 work.
+
+### Comment colourization follow-up
+
+The [global comment selection and review sessions
+plan](global%20comment%20selection%20and%20review%20sessions%20plan.md) adds a
+new theme consumer: an ordered, user-editable list of comment-style rules.
+Rules query hashtags derived from comment strings and independently assign
+foreground, background, underline, border, gutter, and overview-marker styles.
+Priority is resolved per visual channel so overlapping `#approved`, `#problem`,
+`#needs-change`, `#added`, and `#removed` comments remain visible together.
+
+Theme Settings and the reusable colour picker own editing these mappings. The
+comment engine owns tag extraction, selection evaluation, interval indexes,
+and semantic meaning. Accessibility requires textual/shape indicators and a
+hover/details list; colour is never the only carrier of review state.
 
 ## Confirmed direction
 
@@ -175,6 +194,9 @@ theme cannot smuggle executable or oversized data through an icon.
 - Tests cover longest suffix, fallbacks, token-id lookup, sparse inheritance,
   atomic reload, registry failure, round-trip stability, and accessibility
   labels independent of icon choice.
+- Comment-style puppet: edit the colours and channel precedence for overlapping
+  `#approved`, `#problem`, `#added`, and `#removed` comments and verify that the
+  review workspace updates without changing comment semantics.
 
 ## Acceptance criteria
 

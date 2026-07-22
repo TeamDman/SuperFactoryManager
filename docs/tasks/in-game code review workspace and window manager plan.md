@@ -869,6 +869,34 @@ larger developer workspace.
 
 ### [~] Track 6 — Source comparison viewer and human review ledger
 
+#### Comment-substrate architecture revision — 2026-07-22
+
+The fixed `reviewed`/`approved` fields in the current fixture-driven
+`SFMReviewLedger` are now explicitly a prototype projection. The authoritative
+next design is the [global comment selection and review sessions
+plan](global%20comment%20selection%20and%20review%20sessions%20plan.md).
+
+Review state becomes a global session containing ordinary string comments and
+persistable selection rules. Hashtags such as `#approved`, `#problem`,
+`#needs-change`, `#added`, and `#removed` are derived from comment text rather
+than stored as a competing tag field. Rules may select overlapping, disjoint
+glyph sets across before/after documents, files, repositories, and Minecraft
+versions. Compiler, audit, diff, human, and trusted transformation-rule outputs
+share this substrate while retaining structural provenance.
+
+The complete before/after surface remains selectable: an after document is the
+primary proposed state, but removed methods and deleted files in before
+documents must also accept comments and approval. Diff colouring is generated
+through comment-style rules over comparison-produced comments. Advancing a
+worktree reevaluates comment rules against the new snapshot and reports exact,
+relocated, transformed, ambiguous, missing, invalid, and changed results;
+approval never silently crosses an ambiguous or changed match.
+
+Do not extend the boolean ledger before implementing the comment/session
+interchange, literal selectors, derived hashtag parser, overlap evaluation, and
+legacy projection described by that plan. The later real-repository browser
+consumes the new substrate.
+
 Build the first review-specific product on the integrated multiplexer and file
 explorer. The viewer accepts immutable before/after snapshot identities and a
 structured SourceComparison; it does not require its central artifact to be a

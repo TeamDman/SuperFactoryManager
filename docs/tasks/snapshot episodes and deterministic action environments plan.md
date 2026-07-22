@@ -49,6 +49,7 @@ This foundation supports several related products:
 ## Related plans
 
 - [In-game code review workspace and window manager](in-game%20code%20review%20workspace%20and%20window%20manager%20plan.md)
+- [Global comment selection and review sessions](global%20comment%20selection%20and%20review%20sessions%20plan.md)
 - [CLI AST refactoring suite](cli%20ast%20refactoring%20suite%20plan.md)
 - [Draw editor layers, commands, and canvas workspace](draw%20editor%20document%20regions%20and%20commands%20plan.md)
 - [SFM client log console](sfm%20client%20log%20console%20plan.md)
@@ -65,6 +66,18 @@ assuming every `BString` is valid JSON text.
 The canonical JSON uses a deterministically sorted file-entry array. JSON object
 member ordering is not treated as semantic ordering. A canonical snapshot hash
 covers schema version, normalized paths, encoding tags, and exact bytes.
+
+Review sessions reference these immutable identities but own their comments,
+selection rules, provenance, style rules, evaluation revisions, and migration
+lineage separately. A release-review session may contain one before/after
+snapshot lane per Minecraft version. It must not invent a second filesystem
+snapshot representation, and advancing a lane never mutates the historical
+snapshot or comment that targeted it.
+
+Comment rules may select glyphs across several snapshot files and lanes. Their
+evaluation results can be stored as derived observations or indexes, but the
+canonical source bytes, rule, evaluator version, and witnesses remain sufficient
+to recompute the result. Optimized interval/symbol indexes are disposable.
 
 ### Episode
 
