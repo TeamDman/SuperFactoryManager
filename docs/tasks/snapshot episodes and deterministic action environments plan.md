@@ -224,6 +224,22 @@ freezing the episode, event, action, transition, observation, or timeline
 schemas below. The Rust producer and Java importer must both pass the shared
 fixture before Phase 0.1 can be marked complete in full.
 
+#### Review-snapshot implementation result — 2026-07-22
+
+The frozen review subset is implemented across Rust and Java. Rust accepts Git
+revision pairs or bounded directories, emits full immutable snapshots plus a
+deterministic textual comparison, validates the shared fixture and adversarial
+path/content cases, and atomically publishes to the managed inbox. Java strictly
+loads the same contract and projects generated comments into a deterministic
+persistent review-session identity. The real SFM proof pair `d07bef66c` to
+`8e9946d9f` produced 1,983-file snapshots and bundle id
+`sha256:704c12c4894ecb227c0b604934fc66ab8ba62182467b69d8517f36ac5fd0e36d`.
+
+This completes only the review-snapshot subset. Phase 0 remains open for the
+episode/event/action/transition vocabulary, and Phase 1 remains open for general
+snapshot/episode adapters and full-frame round trips. Later storage compression
+must continue to export this lossless full-snapshot form.
+
 ### [ ] 0.1 Define snapshot and episode vocabulary
 
 - Decide canonical schema ids, versions, and hashes.

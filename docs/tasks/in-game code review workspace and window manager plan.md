@@ -1105,6 +1105,22 @@ comment migration to a third snapshot, AST refactoring operations, and release
 coverage remain subsequent slices; the baseline comparison may be textual but
 must already expose stable UTF-8 byte selections.
 
+#### Track 6 real-repository result — 2026-07-22
+
+Track 6 now consumes a real, immutable repository-review bundle rather than the
+comparison fixture. The integrated surface opens a named managed-inbox bundle
+from the command palette, displays ItemStack file identities and changed-file
+search, renders responsive before/after source, makes a nonempty after-side
+UTF-8 selection, persists a literal comment through the shared review kernel,
+and restores it after close/reopen. Six inspected 1200x720 frames cover open,
+browse, search, selection, comment creation, and restored session state.
+
+This slice deliberately keeps comparison production textual. The next Track 6
+work is structural Java correspondence, durable selector suggestions and
+migration to a third snapshot, followed by coverage/jump-list policy. It must
+reuse this bundle/session seam rather than teaching the presentation layer to
+read Git or inventing a second comment authority.
+
 The historical first integration branch merged Tracks 1 and 3 and is now part
 of canonical 1.19.2. Future concurrently developed Tracks 4, 6, or 7 should
 still meet on an explicitly named integration branch after each has a coherent

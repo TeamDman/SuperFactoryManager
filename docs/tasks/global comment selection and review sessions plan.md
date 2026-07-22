@@ -671,6 +671,28 @@ to restore the same session and comment. Track tests, local puppets, merged Java
 compile/full tests, Rust checks, source audit, inspected merged puppets, and a
 clean canonical worktree are mandatory.
 
+#### Real-repository wave result — 2026-07-22
+
+The baseline real-repository loop is implemented and integrated. Contract
+commits `078a93b2c` and `68c759a32` froze the handoff; Rust producer merges
+`e5e28dcd3` and `2496ae909` added `review prepare`; Java loader merges
+`2b999a727` and `ea024b98d` added strict inbox/session loading; workspace merge
+`541752d7c` added the changed-file browser, before/after panels, explicit
+UTF-8 line selection, literal comments, command-palette opening, and reopen.
+Commit `eca044fa2` corrected the final evidence to select a nonempty glyph span
+and reserve source-panel space for comments.
+
+The real `d07bef66c` to `8e9946d9f` bundle has id
+`sha256:704c12c4894ecb227c0b604934fc66ab8ba62182467b69d8517f36ac5fd0e36d`.
+It contains 1,983 files in each snapshot, 34,483,411 and 34,485,631 bytes, two
+changed paths, and two deterministic operations. The merged 1200x720 puppet
+opens that managed-inbox bundle, browses and searches its changed Java files,
+selects after-side UTF-8 bytes `[0,51)`, creates one human `#question` comment,
+closes, and restores the same one-comment session. This proves the literal
+selection/persistence baseline; it does not claim structural selector
+migration, AST correspondence, approval completion policy, or multi-version
+release coverage, which remain Phases 4, 5, 7, and 8.
+
 ### Completed implementation wave — 2026-07-22
 
 All three tracks fork from contract commit `378719839` and return to the
