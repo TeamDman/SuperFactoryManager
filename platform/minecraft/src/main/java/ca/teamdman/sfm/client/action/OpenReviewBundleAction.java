@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.review.repository.SFMManagedReviewBundleRepository
 import ca.teamdman.sfm.client.review.repository.SFMRepositoryReviewException;
 import ca.teamdman.sfm.client.review.repository.SFMRepositoryReviewRepository;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import ca.teamdman.sfm.client.screen.review.comment.SFMReviewCommentWorkspace;
+import ca.teamdman.sfm.client.screen.review.repository.SFMRepositoryReviewWorkspace;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -60,8 +60,8 @@ public final class OpenReviewBundleAction implements SFMClientAction<SFMClientAc
         try {
             SFMRepositoryReviewRepository.OpenBundle opened = repository().open(requested);
             Minecraft minecraft = Minecraft.getInstance();
-            SFMScreenChangeHelpers.setScreen(SFMReviewCommentWorkspace.create(
-                    minecraft.screen, opened.dataSource()));
+            SFMScreenChangeHelpers.setScreen(SFMRepositoryReviewWorkspace.create(
+                    minecraft.screen, repository(), opened));
             context.getSource().sendFeedback(Component.literal(
                     (opened.restored() ? "Reopened " : "Opened ") + opened.summary().name()
                             + " · " + opened.summary().changedFileCount() + " changed files")
