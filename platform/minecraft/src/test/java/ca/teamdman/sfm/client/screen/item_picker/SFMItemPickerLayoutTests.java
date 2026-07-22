@@ -62,6 +62,24 @@ public class SFMItemPickerLayoutTests {
     }
 
     @Test
+    public void denseGridCentersUnusedPixelsOnBothAxes() {
+        SFMItemPickerLayout dense = SFMItemPickerLayout.calculate(
+                0, 0, 303, 183, SFMItemPickerModel.ViewMode.DENSE_ICONS
+        );
+        int availableLeft = dense.content().x();
+        int availableRight = dense.content().x() + dense.content().width();
+        int leftGap = dense.results().x() - availableLeft;
+        int rightGap = availableRight - (dense.results().x() + dense.results().width());
+        assertTrue(Math.abs(leftGap - rightGap) <= 1);
+
+        int bodyTop = dense.search().y() + dense.search().height();
+        int bodyBottom = dense.preview().y();
+        int topGap = dense.results().y() - bodyTop;
+        int bottomGap = bodyBottom - (dense.results().y() + dense.results().height());
+        assertTrue(Math.abs(topGap - bottomGap) <= 1);
+    }
+
+    @Test
     public void undersizedPanelProducesSafeDiagnosticGeometry() {
         SFMItemPickerLayout layout = SFMItemPickerLayout.calculate(10, 20, 100, 80);
         assertTrue(layout.belowMinimum());

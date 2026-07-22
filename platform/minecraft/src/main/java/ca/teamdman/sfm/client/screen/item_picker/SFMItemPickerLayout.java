@@ -52,17 +52,25 @@ public record SFMItemPickerLayout(
         int compactPreviewHeight = compact ? Math.min(24, bodyHeight) : 0;
         int previewWidth = compact ? 0 : Math.min(280, Math.max(180, content.width() / 4));
         int resultWidth = Math.max(1, content.width() - previewWidth - (previewWidth > 0 ? 8 : 0));
+        int resultHeight = Math.max(0, bodyHeight - compactPreviewHeight);
         boolean dense = viewMode == SFMItemPickerModel.ViewMode.DENSE_ICONS;
         int columns = dense
                 ? Math.max(1, resultWidth / DENSE_CELL_SIZE)
                 : Math.max(1, resultWidth / 150);
-        int cellWidth = dense ? DENSE_CELL_SIZE : Math.max(1, resultWidth / columns);
-        int cellHeight = dense ? DENSE_CELL_SIZE : CELL_HEIGHT;
+        int cellWidth = dense ? Math.min(DENSE_CELL_SIZE, resultWidth) : Math.max(1, resultWidth / columns);
+        int cellHeight = dense
+                ? Math.max(1, Math.min(DENSE_CELL_SIZE, Math.max(1, resultHeight)))
+                : CELL_HEIGHT;
+        int denseRows = dense && resultHeight > 0 ? Math.max(1, resultHeight / cellHeight) : 0;
+        int gridWidth = dense ? columns * cellWidth : resultWidth;
+        int gridHeight = dense ? denseRows * cellHeight : resultHeight;
+        int gridX = content.x() + (resultWidth - gridWidth) / 2;
+        int gridY = bodyY + (resultHeight - gridHeight) / 2;
         return new SFMItemPickerLayout(
                 content,
                 new Rect(content.x(), content.y(), content.width(), headerHeight),
                 new Rect(content.x(), content.y() + headerHeight, content.width(), searchHeight),
-                new Rect(content.x(), bodyY, resultWidth, Math.max(0, bodyHeight - compactPreviewHeight)),
+                new Rect(gridX, gridY, gridWidth, gridHeight),
                 compact
                         ? new Rect(content.x(), bodyY + Math.max(0, bodyHeight - compactPreviewHeight),
                                 content.width(), compactPreviewHeight)
