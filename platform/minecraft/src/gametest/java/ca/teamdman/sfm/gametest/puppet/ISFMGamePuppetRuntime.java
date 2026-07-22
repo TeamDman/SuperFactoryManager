@@ -70,4 +70,20 @@ public interface ISFMGamePuppetRuntime {
     void dragFalsifiedInventoryTimeline(int fromTimestep, int toTimestep);
 
     void openManagerProgramEditor();
+
+    void openColorInput(boolean toSide);
+
+    void setColorInputHueSaturation(double hue, double saturation);
+
+    void setColorInputValue(double value);
+
+    void adjustColorInputChannel(int channel, int direction, int clicks);
+
+    void selectColorInputRecent(int index);
+
+    void resetColorInput();
+
+    void setColorInputHex(String hex, boolean rgbaOrder);
+
+    void confirmColorInput();
 }

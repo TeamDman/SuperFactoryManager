@@ -18,6 +18,9 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.screen.workspace.timeline.SFMFalsifiedInventoryReplayPanel;
 import ca.teamdman.sfm.client.screen.workspace.timeline.SFMTimelinePanel;
+import ca.teamdman.sfm.client.screen.color.SFMArgbColor;
+import ca.teamdman.sfm.client.screen.color.SFMColorInputPanel;
+import ca.teamdman.sfm.client.screen.color.SFMColorInputPanelLayout;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -654,6 +657,89 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalStateException("Manager program editor button is unavailable");
         }
         buttons.get(1).onPress();
+    }
+
+    @Override
+    public void openColorInput(boolean toSide) {
+        SFMColorInputPanel panel = new SFMColorInputPanel(
+                new SFMArgbColor(0xFF3366CC),
+                java.util.List.of(new SFMArgbColor(0xFFFFAA00), new SFMArgbColor(0xFF44CC66),
+                        new SFMArgbColor(0x808844CC)),
+                colour -> SFM.LOGGER.info("SFM_COLOR_INPUT_CONFIRMED value={}", colour.toHex(SFMArgbColor.HexOrder.ARGB)),
+                () -> SFM.LOGGER.info("SFM_COLOR_INPUT_CANCELLED")
+        );
+        if (toSide) SFMScreenMultiplexer.openToSide(minecraft.screen, panel);
+        else minecraft.setScreen(SFMScreenMultiplexer.create(minecraft.screen, panel));
+    }
+
+    @Override
+    public void setColorInputHueSaturation(double hue, double saturation) {
+        SFMColorInputPanel panel = requireColorInput();
+        SFMColorInputPanelLayout.Rect field = panel.layout().hueSaturation();
+        clickWorkspace(field.x() + hue * (field.width() - 1D),
+                field.y() + (1D - saturation) * (field.height() - 1D));
+    }
+
+    @Override
+    public void setColorInputValue(double value) {
+        SFMColorInputPanelLayout.Rect slider = requireColorInput().layout().valueSlider();
+        clickWorkspace(slider.x() + value * (slider.width() - 1D), slider.y() + slider.height() / 2D);
+    }
+
+    @Override
+    public void adjustColorInputChannel(int channel, int direction, int clicks) {
+        if (channel < 0 || channel > 3 || (direction != -1 && direction != 1) || clicks < 0) {
+            throw new IllegalArgumentException("Invalid colour channel adjustment");
+        }
+        SFMColorInputPanelLayout.Rect channels = requireColorInput().layout().channels();
+        int rowHeight = channels.height() / 4;
+        double x = direction < 0 ? channels.right() - 30D : channels.right() - 9D;
+        double y = channels.y() + channel * rowHeight + rowHeight / 2D;
+        for (int i = 0; i < clicks; i++) clickWorkspace(x, y);
+    }
+
+    @Override
+    public void selectColorInputRecent(int index) {
+        SFMColorInputPanel panel = requireColorInput();
+        SFMColorInputPanelLayout.Rect recents = panel.layout().recents();
+        int size = Math.min(20, recents.height());
+        clickWorkspace(recents.x() + index * (size + 4) + size / 2D, recents.y() + size / 2D);
+    }
+
+    @Override public void resetColorInput() { clickRect(requireColorInput().layout().reset()); }
+
+    @Override
+    public void setColorInputHex(String hex, boolean rgbaOrder) {
+        requireColorInput().setHexValue(hex,
+                rgbaOrder ? SFMArgbColor.HexOrder.RGBA : SFMArgbColor.HexOrder.ARGB);
+    }
+
+    @Override
+    public void confirmColorInput() {
+        SFMColorInputPanel panel = requireColorInput();
+        clickRect(panel.layout().confirm());
+        if (panel.confirmedResult() == null) throw new IllegalStateException("Colour input did not confirm a typed result");
+    }
+
+    private SFMColorInputPanel requireColorInput() {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected SFM workspace for colour input");
+        }
+        return multiplexer.panels().stream().filter(SFMColorInputPanel.class::isInstance)
+                .map(SFMColorInputPanel.class::cast).findFirst()
+                .orElseThrow(() -> new IllegalStateException("Workspace has no colour input panel"));
+    }
+
+    private void clickRect(SFMColorInputPanelLayout.Rect rect) {
+        clickWorkspace(rect.x() + rect.width() / 2D, rect.y() + rect.height() / 2D);
+    }
+
+    private void clickWorkspace(double x, double y) {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected SFM workspace before mouse input");
+        }
+        multiplexer.mouseClicked(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseReleased(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
     }
 
     private BlockPos absolute(BlockPos local) {
