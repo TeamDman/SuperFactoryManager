@@ -47,6 +47,12 @@ public final class SFMDeveloperActions {
                     () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.ITEM_ICON_PICKER)
             );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> SOURCE_REVIEW =
+            REGISTERER.register(
+                    "developer/open_source_review",
+                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.SOURCE_REVIEW)
+            );
+
     public static final SFMRegistryObject<SFMClientAction<?>, CreateDeveloperWorldAction> CREATE_WORLD =
             REGISTERER.register(
                     "developer/create_world",
