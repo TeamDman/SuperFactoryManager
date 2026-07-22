@@ -90,7 +90,9 @@ public final class SFMWorkspaceLayout {
     }
 
     public boolean focus(SFMWorkspacePanelId panelId) {
-        if (find(panelId) == null) return false;
+        Activation activated = activate(root, panelId);
+        if (!activated.found()) return false;
+        root = activated.node();
         focusedPanel = panelId;
         return true;
     }
@@ -369,6 +371,33 @@ public final class SFMWorkspaceLayout {
         return null;
     }
 
+    /** Activates every Stack encountered on the path to the requested panel. */
+    private static Activation activate(Node node, SFMWorkspacePanelId panelId) {
+        if (node instanceof PanelNode panel) return new Activation(panel, panel.id().equals(panelId));
+        if (node instanceof StackNode stack) {
+            List<Node> children = new ArrayList<>(stack.children());
+            for (int index = 0; index < children.size(); index++) {
+                Activation nested = activate(children.get(index), panelId);
+                if (nested.found()) {
+                    children.set(index, nested.node());
+                    return new Activation(new StackNode(children, index), true);
+                }
+            }
+            return new Activation(stack, false);
+        }
+        LinearNode linear = (LinearNode) node;
+        List<Track> children = new ArrayList<>(linear.children());
+        for (int index = 0; index < children.size(); index++) {
+            Track child = children.get(index);
+            Activation nested = activate(child.node(), panelId);
+            if (nested.found()) {
+                children.set(index, child.withNode(nested.node()));
+                return new Activation(new LinearNode(linear.axis(), children), true);
+            }
+        }
+        return new Activation(linear, false);
+    }
+
     private static void collectPanels(Node node, List<PanelEntry> answer) {
         if (node == null) return;
         if (node instanceof PanelNode panel) {
@@ -495,5 +524,8 @@ public final class SFMWorkspaceLayout {
     }
 
     private record Configuration(Node node, boolean changed) {
+    }
+
+    private record Activation(Node node, boolean found) {
     }
 }

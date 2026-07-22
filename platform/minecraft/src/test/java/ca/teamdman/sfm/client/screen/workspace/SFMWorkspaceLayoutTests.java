@@ -119,6 +119,29 @@ class SFMWorkspaceLayoutTests {
     }
 
     @Test
+    void focusingHiddenLeafActivatesEveryContainingStackBeforeDispatch() {
+        SFMScreenPanel nested = new SFMTestScreenPanel("nested");
+        SFMWorkspaceLayout.LayoutSpec innerStack = SFMWorkspaceLayout.stack(0,
+                SFMWorkspaceLayout.panel(new SFMTestScreenPanel("peer")),
+                SFMWorkspaceLayout.panel(nested));
+        SFMWorkspaceLayout.LayoutSpec nestedRow = SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(right), innerStack);
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.stack(0,
+                SFMWorkspaceLayout.panel(left), nestedRow));
+        SFMWorkspacePanelId nestedId = layout.panels().stream()
+                .filter(entry -> entry.panel() == nested)
+                .findFirst().orElseThrow().id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 202, 100);
+        assertNull(layout.bounds(viewport, 2).get(nestedId));
+
+        assertTrue(layout.focus(nestedId));
+
+        assertEquals(nestedId, layout.focusedPanel());
+        assertEquals(new SFMScreenPanelBounds(102, 0, 100, 100), layout.bounds(viewport, 2).get(nestedId));
+        assertSame(nested, layout.panel(layout.focusedPanel()));
+    }
+
+    @Test
     void invalidDuplicatePanelGroupDoesNotProduceLayout() {
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () ->
                 SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
