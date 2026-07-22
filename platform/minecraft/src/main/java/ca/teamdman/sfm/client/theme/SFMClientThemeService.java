@@ -104,6 +104,28 @@ public final class SFMClientThemeService {
         }
     }
 
+    public static SFMThemeLoadResult save(SFMClientTheme theme) {
+        return save(activeThemePath(), theme);
+    }
+
+    public static SFMThemeLoadResult save(Path path, SFMClientTheme theme) {
+        return saveText(path, SFMClientThemeTomlWriter.write(theme));
+    }
+
+    /** Validates before writing, then atomically installs the exact parsed snapshot. */
+    public static SFMThemeLoadResult saveText(Path path, String toml) {
+        SFMThemeLoadResult candidate = SFMClientThemeLoader.load(toml, DEFAULT_THEME);
+        if (!candidate.valid()) return reject(candidate.diagnostics());
+        try {
+            writeAtomically(path, toml);
+            ACTIVE.set(candidate.theme().orElseThrow());
+            DIAGNOSTICS.set(List.of());
+            return candidate;
+        } catch (IOException e) {
+            return reject(List.of("Could not save theme file " + path + ": " + e.getMessage()));
+        }
+    }
+
     public static void resetForTests() {
         ACTIVE.set(DEFAULT_THEME);
         DIAGNOSTICS.set(List.of());

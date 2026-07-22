@@ -16,6 +16,7 @@ NAME "Changelog"
 -- Add a reusable ARGB/RGBA colour picker with HSV controls, recents, and typed callbacks
 -- Add a searchable, keyboard-accessible ItemStack picker for choosing typed client icons
 -- Add a dense icon-grid view to the ItemStack picker with accessible hover details
+-- Add responsive in-game theme settings with live colour and ItemStack icon previews and atomic TOML saving
 -- Reuse SFML wildcard and tag matchers in the ItemStack picker and protect multiplexer panel borders
 -- Center dense ItemStack picker grids within their available panel space
 -- Add a reusable timeline panel with a visual chest-to-player inventory replay fixture
