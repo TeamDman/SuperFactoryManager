@@ -1494,23 +1494,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         int size = panning ? 8 : 6;
         int cursorSize = cursor.active() ? size + 2 : size;
         if (focused) {
-            drawCrosshair(poseStack, mouseX, mouseY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
+            SFMGuiCrosshair.draw(poseStack, mouseX, mouseY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
         }
-        drawCrosshair(poseStack, mouseX, mouseY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
-    }
-
-    private void drawCrosshair(
-            PoseStack poseStack,
-            int mouseX,
-            int mouseY,
-            int size,
-            int color
-    ) {
-        fill(poseStack, mouseX - size, mouseY, mouseX - 2, mouseY + 1, color);
-        fill(poseStack, mouseX + 3, mouseY, mouseX + size + 1, mouseY + 1, color);
-        fill(poseStack, mouseX, mouseY - size, mouseX + 1, mouseY - 2, color);
-        fill(poseStack, mouseX, mouseY + 3, mouseX + 1, mouseY + size + 1, color);
-        fill(poseStack, mouseX, mouseY, mouseX + 1, mouseY + 1, color);
+        SFMGuiCrosshair.draw(poseStack, mouseX, mouseY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
     }
 
     private int inactiveCursorColor(int color) {
@@ -2109,9 +2095,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             int size = grammarPanning ? 8 : 6;
             int cursorSize = cursor.active() ? size + 2 : size;
             if (i == grammarModel.focusedCursorIndex()) {
-                drawCrosshair(poseStack, screenX, screenY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
+                SFMGuiCrosshair.draw(poseStack, screenX, screenY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
             }
-            drawCrosshair(poseStack, screenX, screenY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
+            SFMGuiCrosshair.draw(poseStack, screenX, screenY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
         }
     }
 

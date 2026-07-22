@@ -144,6 +144,18 @@ public final class SFMGamePuppetHelper {
         add(new SeekFalsifiedInventoryTimelinePuppetAction(timestep));
     }
 
+    public void seekFalsifiedInventoryKeyframePosition(double position) {
+        add(new SeekFalsifiedInventoryKeyframePositionPuppetAction(position));
+    }
+
+    public void seekFalsifiedInventoryElapsedTicks(double ticks) {
+        add(new SeekFalsifiedInventoryElapsedTicksPuppetAction(ticks));
+    }
+
+    public void jumpFalsifiedInventoryKeyframe(int direction) {
+        add(new JumpFalsifiedInventoryKeyframePuppetAction(direction));
+    }
+
     public void dragFalsifiedInventoryTimeline(int fromTimestep, int toTimestep) {
         add(new DragFalsifiedInventoryTimelinePuppetAction(fromTimestep, toTimestep));
     }

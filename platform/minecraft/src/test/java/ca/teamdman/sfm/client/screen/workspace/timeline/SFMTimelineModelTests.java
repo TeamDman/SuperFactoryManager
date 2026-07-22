@@ -27,17 +27,19 @@ class SFMTimelineModelTests {
     }
 
     @Test
-    void playbackAdvancesOnlyAfterTheConfiguredNumberOfClientTicks() {
+    void playbackAdvancesFractionallyAndLandsOnConfiguredKeyframeTicks() {
         SFMTimelineModel model = new SFMTimelineModel(new SFMTimelineBounds(0, 2), 0, 3);
         model.togglePlaying();
 
-        assertFalse(model.tick());
-        assertFalse(model.tick());
+        assertTrue(model.tick());
+        assertEquals(1D / 3D, model.keyframePosition(), 1.0E-9D);
+        assertTrue(model.tick());
+        assertEquals(2D / 3D, model.keyframePosition(), 1.0E-9D);
         assertTrue(model.tick());
         assertEquals(1, model.current());
         assertTrue(model.playing());
-        assertFalse(model.tick());
-        assertFalse(model.tick());
+        assertTrue(model.tick());
+        assertTrue(model.tick());
         assertTrue(model.tick());
         assertEquals(2, model.current());
         assertFalse(model.playing());
@@ -50,5 +52,18 @@ class SFMTimelineModelTests {
         assertFalse(model.playing());
         assertFalse(model.tick());
         assertEquals(1, model.current());
+    }
+
+    @Test
+    void fractionalSeekClampsAndReverseSeekIsStable() {
+        SFMTimelineModel model = new SFMTimelineModel(new SFMTimelineBounds(0, 2), 0D,
+                new SFMKeyframeTimeline(2, 8));
+        assertTrue(model.seekKeyframePosition(1.25D));
+        assertEquals(4D, model.elapsedTicks(), 1.0E-9D);
+        assertTrue(model.seekKeyframePosition(2D));
+        assertTrue(model.seekKeyframePosition(1.25D));
+        assertEquals(1.25D, model.keyframePosition(), 1.0E-9D);
+        assertTrue(model.seekKeyframePosition(-100D));
+        assertEquals(0D, model.keyframePosition(), 1.0E-9D);
     }
 }

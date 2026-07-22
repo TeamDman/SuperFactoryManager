@@ -7,7 +7,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.network.chat.Component;
 
-/** Visual proof of random-access item movement in the reusable composable timeline panel. */
+/** Visual proof of immutable keyframe/time replay in the reusable composable timeline panel. */
 @SFMGamePuppet
 public final class TitleScreenInventoryTimelineGamePuppet {
     private static final int TITLE_SCREEN_FADE_IN_TICKS = 20;
@@ -21,24 +21,38 @@ public final class TitleScreenInventoryTimelineGamePuppet {
         puppet.openFalsifiedInventoryTimeline();
         puppet.waitForScreen(SFMScreenMultiplexer.class);
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
-        captureAt(puppet, 0, "first", "One cobblestone begins in the falsified chest.");
-        captureAt(puppet, 1, "pickup", "The chest is empty and the virtual cursor holds the copied stack.");
-        captureAt(puppet, 2, "transit", "A deterministic transit frame moves the held stack toward the player inventory.");
-        captureAt(puppet, 4, "pre-place", "The virtual cursor reaches the destination slot before placement.");
-        captureAt(puppet, 5, "final", "The copied stack is now in the player inventory and the cursor is empty.");
 
-        puppet.dragFalsifiedInventoryTimeline(5, 2);
+        captureAtKeyframe(puppet, 0D, "vanilla-geometry", "The 1.19.2 chest, three-row main inventory, and separately spaced hotbar geometry are visible; cyan K and orange T tracks share one immutable state.");
+        captureAtTime(puppet, 3D, "unequal-pickup-transition", "Three ticks is halfway through the short six-tick pickup transition; ownership remains in the chest until keyframe 1.");
+        captureAtKeyframe(puppet, 1D, "pickup-keyframe", "At semantic keyframe 1 the shared Draw crosshair is anchored to the source slot and the virtual cursor owns the stack.");
+        captureAtTime(puppet, 18D, "interpolated-midpoint", "Elapsed tick 18 resolves to keyframe 1.50, halfway through the deliberately longer 24-tick transit.");
+
+        puppet.jumpFalsifiedInventoryKeyframe(1);
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
-        puppet.capture("backward-drag", caption("Dragging the MPV-like track backwards reconstructs the transit frame."));
+        puppet.capture("next-keyframe-jump", caption("Next jumps from the sampled 1.50 position to semantic keyframe 2 at tick 30, with the cursor exactly over the destination."));
 
-        // Deliberately non-monotonic: the same t=1 view must not depend on playback history.
-        puppet.seekFalsifiedInventoryTimeline(4);
-        puppet.seekFalsifiedInventoryTimeline(0);
-        captureAt(puppet, 1, "random-seek-pickup", "Random seek order reconstructs the same pickup state independently.");
+        captureAtKeyframe(puppet, 3D, "placement-keyframe", "At keyframe 3 and tick 40, the player inventory owns the stack and the virtual cursor is empty.");
+
+        puppet.seekFalsifiedInventoryElapsedTicks(35D);
+        puppet.seekFalsifiedInventoryElapsedTicks(18D);
+        puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
+        puppet.capture("elapsed-time-reverse-seek", caption("Reverse elapsed-time seek from tick 35 to tick 18 deterministically reconstructs the same keyframe 1.50 midpoint."));
+
+        puppet.seekFalsifiedInventoryElapsedTicks(40D);
+        puppet.seekFalsifiedInventoryElapsedTicks(0D);
+        puppet.seekFalsifiedInventoryElapsedTicks(6D);
+        puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
+        puppet.capture("elapsed-time-random-seek", caption("Random 40→0→6 tick order reconstructs the exact pickup keyframe without playback history."));
     }
 
-    private static void captureAt(SFMGamePuppetHelper puppet, int timestep, String name, String text) {
-        puppet.seekFalsifiedInventoryTimeline(timestep);
+    private static void captureAtKeyframe(SFMGamePuppetHelper puppet, double keyframe, String name, String text) {
+        puppet.seekFalsifiedInventoryKeyframePosition(keyframe);
+        puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
+        puppet.capture(name, caption(text));
+    }
+
+    private static void captureAtTime(SFMGamePuppetHelper puppet, double ticks, String name, String text) {
+        puppet.seekFalsifiedInventoryElapsedTicks(ticks);
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.capture(name, caption(text));
     }

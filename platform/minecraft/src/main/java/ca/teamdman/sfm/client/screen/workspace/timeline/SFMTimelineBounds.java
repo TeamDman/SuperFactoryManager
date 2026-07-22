@@ -8,4 +8,9 @@ public record SFMTimelineBounds(int first, int last) {
     public int clamp(int timestep) {
         return Math.max(first, Math.min(last, timestep));
     }
+
+    public double clamp(double position) {
+        if (!Double.isFinite(position)) throw new IllegalArgumentException("Timeline position must be finite");
+        return Math.max(first, Math.min(last, position));
+    }
 }

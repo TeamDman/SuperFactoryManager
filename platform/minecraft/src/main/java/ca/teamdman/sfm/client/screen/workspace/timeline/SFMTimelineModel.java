@@ -1,67 +1,105 @@
 package ca.teamdman.sfm.client.screen.workspace.timeline;
 
-/** Pure bounded-integer playback state. One call to {@link #tick()} is one deterministic client tick. */
+/** Pure deterministic playback state with related semantic-keyframe and elapsed-tick coordinates. */
 public final class SFMTimelineModel {
     private final SFMTimelineBounds bounds;
-    private final int ticksPerStep;
-    private int current;
-    private int elapsedTicks;
+    private final SFMKeyframeTimeline timeline;
+    private double keyframePosition;
+    private double elapsedTicks;
     private boolean playing;
 
+    /** Compatibility constructor for integer timelines with uniform transition durations. */
     public SFMTimelineModel(SFMTimelineBounds bounds, int initial, int ticksPerStep) {
-        if (ticksPerStep < 1) throw new IllegalArgumentException("Timeline ticks per step must be positive");
-        if (initial < bounds.first() || initial > bounds.last()) {
-            throw new IllegalArgumentException("Initial timestep is outside timeline bounds");
+        this(bounds, initial, SFMKeyframeTimeline.uniform(
+                bounds.last() - bounds.first() + 1,
+                ticksPerStep
+        ));
+    }
+
+    public SFMTimelineModel(SFMTimelineBounds bounds, double initialPosition, SFMKeyframeTimeline timeline) {
+        if (bounds.last() - bounds.first() != timeline.lastKeyframe()) {
+            throw new IllegalArgumentException("Timeline bounds must span the semantic keyframes");
+        }
+        if (initialPosition < bounds.first() || initialPosition > bounds.last()) {
+            throw new IllegalArgumentException("Initial keyframe position is outside timeline bounds");
         }
         this.bounds = bounds;
-        this.current = initial;
-        this.ticksPerStep = ticksPerStep;
+        this.timeline = timeline;
+        this.keyframePosition = initialPosition;
+        this.elapsedTicks = timeline.elapsedTicksAtPosition(initialPosition - bounds.first());
     }
 
     public SFMTimelineBounds bounds() { return bounds; }
-    public int current() { return current; }
-    public int ticksPerStep() { return ticksPerStep; }
+    public SFMKeyframeTimeline timeline() { return timeline; }
+    public int current() { return (int) Math.round(keyframePosition); }
+    public double keyframePosition() { return keyframePosition; }
+    public double elapsedTicks() { return elapsedTicks; }
+    public int ticksPerStep() {
+        return timeline.lastKeyframe() == 0 ? 0 : timeline.transitionTicks(0);
+    }
     public boolean playing() { return playing; }
 
-    public boolean seek(int timestep) {
-        int next = bounds.clamp(timestep);
-        elapsedTicks = 0;
-        if (next == current) return false;
-        current = next;
-        return true;
+    public boolean seek(int keyframe) { return seekKeyframePosition(keyframe); }
+
+    public boolean seekKeyframePosition(double position) {
+        double next = bounds.clamp(position);
+        double nextTicks = timeline.elapsedTicksAtPosition(next - bounds.first());
+        boolean changed = different(next, keyframePosition) || different(nextTicks, elapsedTicks);
+        keyframePosition = next;
+        elapsedTicks = nextTicks;
+        return changed;
+    }
+
+    public boolean seekElapsedTicks(double ticks) {
+        double nextTicks = timeline.clampElapsedTicks(ticks);
+        double nextPosition = bounds.first() + timeline.positionAtElapsedTicks(nextTicks);
+        boolean changed = different(nextPosition, keyframePosition) || different(nextTicks, elapsedTicks);
+        elapsedTicks = nextTicks;
+        keyframePosition = nextPosition;
+        return changed;
+    }
+
+    /** Previous/next always lands on a semantic keyframe, never an animation sample. */
+    public boolean jumpKeyframe(int direction) {
+        playing = false;
+        if (direction == 0) return false;
+        int target = direction < 0
+                ? (int) Math.ceil(keyframePosition) - 1
+                : (int) Math.floor(keyframePosition) + 1;
+        return seekKeyframePosition(target);
     }
 
     public boolean step(int delta) {
-        playing = false;
-        return seek(current + delta);
+        if (delta == 0) return false;
+        boolean changed = false;
+        int direction = Integer.signum(delta);
+        for (int i = 0; i < Math.abs(delta); i++) changed |= jumpKeyframe(direction);
+        return changed;
     }
 
     public void togglePlaying() {
         if (playing) {
             playing = false;
-        } else if (current < bounds.last()) {
+        } else if (elapsedTicks < timeline.totalTicks()) {
             playing = true;
-            elapsedTicks = 0;
         }
     }
 
-    public void pause() {
-        playing = false;
-        elapsedTicks = 0;
-    }
+    public void pause() { playing = false; }
 
-    /** @return true when the selected timestep changed. */
+    /** @return true when deterministic animation time changed. */
     public boolean tick() {
         if (!playing) return false;
-        elapsedTicks++;
-        if (elapsedTicks < ticksPerStep) return false;
-        elapsedTicks = 0;
-        if (current >= bounds.last()) {
+        if (elapsedTicks >= timeline.totalTicks()) {
             playing = false;
             return false;
         }
-        current++;
-        if (current >= bounds.last()) playing = false;
+        seekElapsedTicks(elapsedTicks + 1D);
+        if (elapsedTicks >= timeline.totalTicks()) playing = false;
         return true;
+    }
+
+    private static boolean different(double left, double right) {
+        return Math.abs(left - right) > 1.0E-9D;
     }
 }

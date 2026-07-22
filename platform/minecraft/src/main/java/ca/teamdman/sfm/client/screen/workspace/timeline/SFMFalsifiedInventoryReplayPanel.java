@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen.workspace.timeline;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.screen.SFMGuiCrosshair;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
@@ -18,13 +19,11 @@ public final class SFMFalsifiedInventoryReplayPanel implements SFMSeekableTimeli
     public static final SFMTimelineBounds BOUNDS = SFMInventoryReplayFixture.BOUNDS;
     private static final int CHEST_SLOT = 2;
     private static final int PLAYER_SLOT = 13;
-    private int timestep;
-    private SFMInventoryReplayState state = stateAt(0);
+    private double keyframePosition;
+    private SFMInventoryReplayState state = stateAt(0D);
 
     @Override
-    public Component title() {
-        return Component.literal("Falsified chest replay");
-    }
+    public Component title() { return Component.literal("Falsified chest replay"); }
 
     @Override
     public Component narration() {
@@ -32,77 +31,79 @@ public final class SFMFalsifiedInventoryReplayPanel implements SFMSeekableTimeli
     }
 
     @Override
-    public SFMTimelineBounds timelineBounds() {
-        return BOUNDS;
-    }
+    public SFMTimelineBounds timelineBounds() { return BOUNDS; }
 
     @Override
-    public void setTimelinePosition(int timestep) {
-        if (timestep < BOUNDS.first() || timestep > BOUNDS.last()) {
-            throw new IllegalArgumentException("Inventory replay timestep is outside bounds: " + timestep);
+    public SFMKeyframeTimeline animationTimeline(int ignored) { return SFMInventoryReplayFixture.TIMELINE; }
+
+    @Override
+    public void setTimelinePosition(int keyframe) { setTimelinePosition((double) keyframe); }
+
+    @Override
+    public void setTimelinePosition(double keyframePosition) {
+        if (keyframePosition < BOUNDS.first() || keyframePosition > BOUNDS.last()) {
+            throw new IllegalArgumentException("Inventory replay keyframe position is outside bounds: " + keyframePosition);
         }
-        this.timestep = timestep;
-        this.state = stateAt(timestep);
+        this.keyframePosition = keyframePosition;
+        this.state = stateAt(keyframePosition);
     }
 
-    public int timestep() { return timestep; }
+    public int timestep() { return (int) Math.round(keyframePosition); }
+    public double keyframePosition() { return keyframePosition; }
     public SFMInventoryReplayState state() { return state; }
 
     @Override
     public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds, int mouseX, int mouseY,
                        float partialTick, boolean focused) {
-        int slotSize = Math.max(14, Math.min(24, Math.min(
-                (bounds.width() - 40) / 9,
-                (bounds.height() - 76) / 7
-        )));
-        int gridWidth = slotSize * 9;
-        int left = bounds.x() + Math.max(10, (bounds.width() - gridWidth) / 2);
-        int contentHeight = slotSize * 7 + 24;
-        int availableHeight = Math.max(contentHeight, bounds.height() - 52);
-        int top = bounds.y() + 34 + Math.max(0, (availableHeight - contentHeight) / 2);
-
+        SFMInventoryReplayGeometry geometry = SFMInventoryReplayGeometry.fit(
+                bounds.x(), bounds.y(), bounds.width(), bounds.height()
+        );
+        String heading = "Visual replay — no live inventory is modified";
+        int headingX = bounds.x() + (bounds.width() - minecraft.font.width(heading)) / 2;
         SFMFontUtils.draw(poseStack, minecraft.font,
-                Component.literal("Visual replay — no live inventory is modified").withStyle(ChatFormatting.GOLD),
-                left, bounds.y() + 8, 0xFFFFFFFF, false);
-        SFMFontUtils.draw(poseStack, minecraft.font, "Chest", left, top - 11, 0xFFDDDDDD, false);
-        renderSlots(poseStack, minecraft, state.chestSlots(), left, top, slotSize, 9, 3);
+                Component.literal(heading).withStyle(ChatFormatting.GOLD),
+                headingX, bounds.y() + 8, 0xFFFFFFFF, false);
 
-        int playerTop = top + slotSize * 3 + 24;
-        SFMFontUtils.draw(poseStack, minecraft.font, "Player inventory", left, playerTop - 11, 0xFFDDDDDD, false);
-        renderSlots(poseStack, minecraft, state.playerSlots(), left, playerTop, slotSize, 9, 4);
+        SFMFontUtils.draw(poseStack, minecraft.font, "Chest", geometry.left(), geometry.chestTop() - 11,
+                0xFFDDDDDD, false);
+        renderSlots(poseStack, minecraft, state.chestSlots(), geometry.left(), geometry.chestTop(),
+                geometry.slotPitch(), 9, 3, 0);
 
+        SFMFontUtils.draw(poseStack, minecraft.font, "Player inventory", geometry.left(),
+                geometry.playerMainTop() - 11, 0xFFDDDDDD, false);
+        renderSlots(poseStack, minecraft, state.playerSlots(), geometry.left(), geometry.playerMainTop(),
+                geometry.slotPitch(), 9, 3, 0);
+        renderSlots(poseStack, minecraft, state.playerSlots(), geometry.left(), geometry.hotbarTop(),
+                geometry.slotPitch(), 9, 1, 27);
+
+        SFMInventoryReplayGeometry.Point source = geometry.chestSlotCenter(CHEST_SLOT);
+        SFMInventoryReplayGeometry.Point destination = geometry.playerSlotCenter(PLAYER_SLOT);
         double progress = state.cursorPathPosition();
-        int sourceX = left + CHEST_SLOT % 9 * slotSize + slotSize / 2;
-        int sourceY = top + CHEST_SLOT / 9 * slotSize + slotSize / 2;
-        int destinationX = left + PLAYER_SLOT % 9 * slotSize + slotSize / 2;
-        int destinationY = playerTop + PLAYER_SLOT / 9 * slotSize + slotSize / 2;
-        int cursorX = (int) Math.round(sourceX + (destinationX - sourceX) * progress);
-        int cursorY = (int) Math.round(sourceY + (destinationY - sourceY) * progress);
-        drawCursor(poseStack, cursorX, cursorY);
-        renderStack(minecraft, state.cursorStack(), cursorX + 3, cursorY + 3);
+        int cursorX = (int) Math.round(source.x() + (destination.x() - source.x()) * progress);
+        int cursorY = (int) Math.round(source.y() + (destination.y() - source.y()) * progress);
+        renderStack(minecraft, state.cursorStack(), cursorX - 8, cursorY - 8);
+        poseStack.pushPose();
+        poseStack.translate(0D, 0D, 250D);
+        SFMGuiCrosshair.draw(poseStack, cursorX, cursorY, 7, 0xFF55FFFF);
+        poseStack.popPose();
 
-        String phase = "t=" + timestep + "  " + state.phase();
-        SFMFontUtils.draw(poseStack, minecraft.font, phase, left, bounds.y() + bounds.height() - 14,
-                0xFF55FFFF, false);
+        String phase = String.format("keyframe %.2f  %s", keyframePosition, state.phase());
+        SFMFontUtils.draw(poseStack, minecraft.font, phase,
+                bounds.x() + Math.max(4, (bounds.width() - minecraft.font.width(phase)) / 2),
+                bounds.y() + bounds.height() - 14, 0xFF55FFFF, false);
     }
 
-    public static SFMInventoryReplayState stateAt(int timestep) {
-        if (timestep < BOUNDS.first() || timestep > BOUNDS.last()) {
-            throw new IllegalArgumentException("Inventory replay timestep is outside bounds: " + timestep);
+    public static SFMInventoryReplayState stateAt(double keyframePosition) {
+        if (keyframePosition < BOUNDS.first() || keyframePosition > BOUNDS.last()) {
+            throw new IllegalArgumentException("Inventory replay keyframe position is outside bounds: " + keyframePosition);
         }
         List<ItemStack> chest = emptyStacks(27);
         List<ItemStack> player = emptyStacks(36);
-        SFMInventoryReplayFixture.Frame frame = SFMInventoryReplayFixture.frameAt(timestep);
+        SFMInventoryReplayFixture.Frame frame = SFMInventoryReplayFixture.sample(keyframePosition);
         if (frame.chestOwnsCobblestone()) chest.set(CHEST_SLOT, new ItemStack(Items.COBBLESTONE));
         if (frame.playerOwnsCobblestone()) player.set(PLAYER_SLOT, new ItemStack(Items.COBBLESTONE));
         ItemStack cursor = frame.cursorOwnsCobblestone() ? new ItemStack(Items.COBBLESTONE) : ItemStack.EMPTY;
-        return new SFMInventoryReplayState(
-                chest,
-                player,
-                cursor,
-                frame.cursorPathPosition(),
-                frame.phase()
-        );
+        return new SFMInventoryReplayState(chest, player, cursor, frame.cursorPathPosition(), frame.phase());
     }
 
     private static List<ItemStack> emptyStacks(int count) {
@@ -112,13 +113,14 @@ public final class SFMFalsifiedInventoryReplayPanel implements SFMSeekableTimeli
     }
 
     private static void renderSlots(PoseStack poseStack, Minecraft minecraft, List<ItemStack> stacks,
-                                    int left, int top, int slotSize, int columns, int rows) {
+                                    int left, int top, int slotSize, int columns, int rows, int stackOffset) {
         for (int index = 0; index < columns * rows; index++) {
             int x = left + index % columns * slotSize;
             int y = top + index / columns * slotSize;
             GuiComponent.fill(poseStack, x, y, x + slotSize - 1, y + slotSize - 1, 0xFF8B8B8B);
             GuiComponent.fill(poseStack, x + 1, y + 1, x + slotSize - 2, y + slotSize - 2, 0xFF373737);
-            renderStack(minecraft, stacks.get(index), x + (slotSize - 16) / 2, y + (slotSize - 16) / 2);
+            renderStack(minecraft, stacks.get(stackOffset + index), x + (slotSize - 16) / 2,
+                    y + (slotSize - 16) / 2);
         }
     }
 
@@ -126,11 +128,5 @@ public final class SFMFalsifiedInventoryReplayPanel implements SFMSeekableTimeli
         if (stack.isEmpty()) return;
         minecraft.getItemRenderer().renderAndDecorateItem(stack, x, y);
         minecraft.getItemRenderer().renderGuiItemDecorations(minecraft.font, stack, x, y);
-    }
-
-    private static void drawCursor(PoseStack poseStack, int x, int y) {
-        GuiComponent.fill(poseStack, x, y, x + 2, y + 15, 0xFFFFFFFF);
-        GuiComponent.fill(poseStack, x, y, x + 10, y + 2, 0xFFFFFFFF);
-        GuiComponent.fill(poseStack, x + 2, y + 2, x + 8, y + 9, 0xFF202020);
     }
 }

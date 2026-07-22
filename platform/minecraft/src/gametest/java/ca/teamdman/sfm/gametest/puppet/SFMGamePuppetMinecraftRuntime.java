@@ -599,6 +599,21 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void seekFalsifiedInventoryKeyframePosition(double position) {
+        requireFalsifiedInventoryTimeline().seekKeyframePosition(position);
+    }
+
+    @Override
+    public void seekFalsifiedInventoryElapsedTicks(double ticks) {
+        requireFalsifiedInventoryTimeline().seekElapsedTicks(ticks);
+    }
+
+    @Override
+    public void jumpFalsifiedInventoryKeyframe(int direction) {
+        requireFalsifiedInventoryTimeline().jumpKeyframe(direction);
+    }
+
+    @Override
     public void dragFalsifiedInventoryTimeline(int fromTimestep, int toTimestep) {
         SFMTimelinePanel timeline = requireFalsifiedInventoryTimeline();
         SFMScreenMultiplexer multiplexer = (SFMScreenMultiplexer) minecraft.screen;
