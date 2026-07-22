@@ -35,6 +35,21 @@ colour-input, and ItemStack-picker tracks through merge commits `15c310234`,
 No propagation to later Minecraft-version branches was performed at this
 checkpoint.
 
+### Structured settings checkpoint — 2026-07-22
+
+Canonical merge `7e730b206` adds the first end-to-end structured Theme Settings
+workflow. All semantic colour and syntax roles plus current file/action icon
+mappings are listed; colour and ItemStack roles open the reusable typed
+pickers; edits update a live draft preview; and save validates a deterministic
+full TOML snapshot before atomically replacing and installing it. Reset,
+restore-defaults, and raw-TOML controls share the same runtime service.
+
+The isolated seven-frame puppet proves overview, colour editing and preview,
+icon editing and preview, persisted save/reload, and invalid-theme retention.
+Syntax style flags are preserved and displayed but do not yet have structured
+boolean editors. Semantic click-to-inspect/customize remains future Phase 3
+work.
+
 ## Confirmed direction
 
 - Replace textual file markers such as `[J]`, `[CFG]`, and `[DIR]` with rendered

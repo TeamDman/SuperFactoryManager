@@ -590,7 +590,7 @@ zero warnings and Git checks passed. Track 3 and its Track 1 integration target
 are complete. Mounted-disk synchronization and editable previews remain separate
 future scope rather than missing requirements of this read-only workspace.
 
-### [ ] Track 4 — Dynamic hotkeys and typed command completion
+### [~] Track 4 — Dynamic hotkeys and typed command completion
 
 Investigate and prototype user-defined keyboard shortcuts whose target is a
 Brigadier command draft, normally below the client-local `/sfm action` surface.
@@ -867,7 +867,7 @@ consider side-by-side placement, returning focus, detecting a closed game,
 launch suggestions, or treating the Minecraft window as one surface in a
 larger developer workspace.
 
-### [ ] Track 6 — Source comparison viewer and human review ledger
+### [~] Track 6 — Source comparison viewer and human review ledger
 
 Build the first review-specific product on the integrated multiplexer and file
 explorer. The viewer accepts immutable before/after snapshot identities and a
@@ -1099,6 +1099,31 @@ The wave completes only after all accepted branches are merged into canonical
 `1.19.2`, canonical compile and full tests pass, merged-head puppets are
 visually inspected, and the canonical worktree is clean. It does not authorize
 Minecraft-version propagation.
+
+#### Integration result — 2026-07-22
+
+The three accepted feature heads were merged into canonical `1.19.2` through
+`c81cdc4dd` (source-review ledger), `27788dcf3` (key-mapping workflow), and
+`7e730b206` (Theme Settings). Independent branch validation and puppets passed
+before integration.
+
+- Track 4 now has responsive runtime binding management, deterministic compact
+  multi-binding cycling, shared contextual execution, replay tests, and a
+  Brigadier-derived prompt/properties/confirmation flow. It remains partial
+  because bespoke typed widgets/defaults, literal-choice prompting, and the
+  preferred-editor round trip are deferred.
+- Track 6 now has the fixture-driven comparison surface, conservative line
+  fallback, independent review/approval/audit presentation, atomic local JSON
+  persistence, SHA-256 witnesses, restoration, and visible stale invalidation.
+  It remains partial until real Git/snapshot adapters, semantic Java
+  correspondence, span-level identities, and scalable source navigation land.
+- The Theme Settings follow-up connects semantic colour, syntax, file-icon,
+  and action-icon drafts to the reusable colour and ItemStack pickers, live
+  preview, validated atomic TOML persistence, reset/default controls, and
+  last-valid-theme retention.
+
+Merged-head compile, tests, and puppet evidence are the remaining gate for this
+wave. Later Minecraft-version propagation remains out of scope.
 
 Track 5 uses a separate Facet worktree whose final path and branch are chosen
 after `mine/main` is synchronized and pushed. Proposed names are branch
