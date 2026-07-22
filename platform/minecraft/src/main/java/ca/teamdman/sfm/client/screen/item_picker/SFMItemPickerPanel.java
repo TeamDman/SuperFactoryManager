@@ -236,15 +236,27 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
             fill(poseStack, layout.preview(), 0xF0282828);
             border(poseStack, layout.preview(), BORDER);
             int x = layout.preview().x() + 5;
-            int y = layout.preview().y() + 4;
+            int y = layout.preview().y() + 3;
             model.selection().ifPresent(entry -> {
-                SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x, y);
-                String summary = model.diagnostic().isEmpty()
-                        ? "Current: " + entry.accessibleName() + " • " + entry.itemId()
-                        : model.diagnostic();
+                if (!model.diagnostic().isEmpty()) {
+                    int lineY = y;
+                    for (var line : minecraft.font.split(
+                            Component.literal(model.diagnostic()),
+                            layout.preview().width() - 10
+                    )) {
+                        SFMFontUtils.draw(poseStack, minecraft.font, line, x, lineY, ERROR, true);
+                        lineY += minecraft.font.lineHeight;
+                        if (lineY >= layout.preview().y() + layout.preview().height() - 2) break;
+                    }
+                    return;
+                }
+                SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x, y + 1);
                 SFMFontUtils.draw(poseStack, minecraft.font,
-                        trim(minecraft, summary, layout.preview().width() - 28),
-                        x + 22, y + 4, model.diagnostic().isEmpty() ? TEXT : ERROR, true);
+                        trim(minecraft, "Current: " + entry.accessibleName(), layout.preview().width() - 28),
+                        x + 22, y, TEXT, true);
+                SFMFontUtils.draw(poseStack, minecraft.font,
+                        trim(minecraft, entry.itemId().toString(), layout.preview().width() - 28),
+                        x + 22, y + minecraft.font.lineHeight, MUTED, true);
             });
             return;
         }
@@ -300,7 +312,20 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
 
     private void renderTooltip(PoseStack poseStack, Minecraft minecraft) {
         int index = itemIndexAt(mouseX, mouseY);
-        if (index < 0 || minecraft.screen == null) return;
+        if (minecraft.screen == null) return;
+        if (index < 0) {
+            if (!layout.preview().contains(mouseX, mouseY)) return;
+            model.selection().ifPresent(entry -> {
+                java.util.ArrayList<Component> lines = new java.util.ArrayList<>();
+                lines.add(Component.literal(entry.accessibleName()).withStyle(ChatFormatting.AQUA));
+                lines.add(Component.literal(entry.itemId().toString()).withStyle(ChatFormatting.GRAY));
+                if (!model.diagnostic().isEmpty()) {
+                    lines.add(Component.literal(model.diagnostic()).withStyle(ChatFormatting.RED));
+                }
+                minecraft.screen.renderComponentTooltip(poseStack, lines, mouseX, mouseY);
+            });
+            return;
+        }
         SFMItemPickerEntry entry = model.filtered().get(index);
         minecraft.screen.renderComponentTooltip(poseStack, List.of(
                 Component.literal(entry.accessibleName()).withStyle(ChatFormatting.AQUA),

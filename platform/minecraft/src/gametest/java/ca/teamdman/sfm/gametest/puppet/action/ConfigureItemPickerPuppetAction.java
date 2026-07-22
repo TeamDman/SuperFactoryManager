@@ -28,8 +28,12 @@ public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAct
                 requireRegistryEntry(panel, "minecraft:diamond");
             }
             case SEARCH_DISK -> {
-                panel.setQueryForAutomation("disk");
+                panel.setQueryForAutomation("sfm:disk");
                 assertSelected(panel, "sfm:disk");
+                if (panel.model().filtered().size() != 1) {
+                    throw new IllegalStateException("Exact sfm:disk search returned "
+                            + panel.model().filtered().size() + " entries");
+                }
             }
             case KEYBOARD_SELECTION -> {
                 panel.setQueryForAutomation("");
@@ -49,7 +53,7 @@ public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAct
                 }
             }
             case RESET -> {
-                panel.setQueryForAutomation("disk");
+                panel.setQueryForAutomation("sfm:disk");
                 panel.pressForAutomation(GLFW.GLFW_KEY_R, GLFW.GLFW_MOD_CONTROL);
                 assertSelected(panel, "minecraft:paper");
                 if (!panel.model().query().isEmpty() || !panel.model().diagnostic().isEmpty()) {
