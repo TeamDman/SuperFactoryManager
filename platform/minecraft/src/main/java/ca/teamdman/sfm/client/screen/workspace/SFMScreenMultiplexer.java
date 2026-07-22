@@ -55,6 +55,14 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return new SFMScreenMultiplexer(previousScreen, SFMWorkspaceLayout.single(initialPanel));
     }
 
+    /** Opens an already-composed panel tree without flattening it into one application-specific panel. */
+    public static SFMScreenMultiplexer create(
+            @Nullable Screen previousScreen,
+            SFMWorkspaceLayout layout
+    ) {
+        return new SFMScreenMultiplexer(previousScreen, layout);
+    }
+
     public static void openToSide(@Nullable Screen origin, SFMScreenPanel panel) {
         if (origin instanceof SFMScreenMultiplexer multiplexer) {
             multiplexer.submit(
