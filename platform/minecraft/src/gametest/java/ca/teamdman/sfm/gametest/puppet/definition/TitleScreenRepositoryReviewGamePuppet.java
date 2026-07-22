@@ -11,6 +11,8 @@ import net.minecraft.network.chat.Component;
 /** Join-ready walkthrough; loader integration replaces fixture reset/bootstrap, not the UI actions. */
 @SFMGamePuppet
 public final class TitleScreenRepositoryReviewGamePuppet {
+    public static final String SEARCH_PROPERTY = "sfm.repositoryReviewPuppetSearch";
+
     private TitleScreenRepositoryReviewGamePuppet() {}
 
     public static void run(SFMGamePuppetHelper p) {
@@ -23,10 +25,10 @@ public final class TitleScreenRepositoryReviewGamePuppet {
         p.capture("repository-review-open",cap("The managed SFM d07bef66c → 8e9946d9f bundle opens from the command palette with changed-file counts and Minecraft item identities."));
         p.applyRepositoryReviewCommand("select:1");
         p.waitTicks(10);
-        p.capture("repository-review-browse",cap("Browsing added src/B.java updates the responsive before/after source panels."));
-        p.applyRepositoryReviewCommand("search:B.java");
+        p.capture("repository-review-browse",cap("Browsing a selected changed file updates the responsive before/after source panels."));
+        p.applyRepositoryReviewCommand("search:" + requestedSearch());
         p.waitTicks(10);
-        p.capture("repository-review-search",cap("Changed-file search narrows the bundle to the matching Java source."));
+        p.capture("repository-review-search",cap("Changed-file search narrows the bundle to the matching changed source."));
         p.applyRepositoryReviewCommand("search:");
         p.applyRepositoryReviewCommand("select:0");
         p.applyRepositoryReviewCommand("line:after:1");
@@ -47,5 +49,9 @@ public final class TitleScreenRepositoryReviewGamePuppet {
 
     private static Component cap(String text) {
         return Component.literal("SFM Repository Review: " + text).withStyle(ChatFormatting.GOLD);
+    }
+
+    private static String requestedSearch() {
+        return System.getProperty(SEARCH_PROPERTY, "B.java").strip();
     }
 }
