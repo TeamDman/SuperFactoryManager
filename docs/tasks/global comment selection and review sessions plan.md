@@ -642,7 +642,7 @@ The coordinator owns the shared schema and canonical plans. Feature agents work
 from one reviewed `1.19.2` baseline, do not update canonical plan copies, and
 return tests plus captioned puppets before an integration goal merges anything.
 
-### Active implementation wave — 2026-07-22
+### Completed implementation wave — 2026-07-22
 
 All three tracks fork from contract commit `378719839` and return to the
 canonical `1.19.2` branch through coordinator-reviewed merges. No track may
@@ -664,9 +664,39 @@ The integration gate is: clean track commits, focused and full tests, inspected
 puppet evidence, kernel-before-UI merge order, canonical compile and full test,
 then freshly recaptured and inspected puppets from the merged head.
 
+**Completion notes:** Contract `378719839` was followed by the literal-safe
+matcher `fc68a7846`, Java/Rust kernel `3eda7e550`, comment workspace
+`3261e4c0b` plus interaction correction `116bbb57c`, and canonical join
+`d07bef66c`. The Java and Rust codecs agree on canonical fixture SHA-256
+`a560e879a25c2d84f41ad1b322184921fe9241c46b0b6fe4f63387f4e9af2985`.
+The kernel owns hashtag parsing, UTF-8 validation, literal/set evaluation,
+atomic persistence, last-valid recovery, and legacy projection. The UI adapter
+creates hashed literal or union rules and persists comment/style mutations
+through that kernel rather than maintaining a second authority.
+
+The merged Java compile and full suite pass, with only the two expected Windows
+symlink assumption aborts. The merged Rust gate passes 324 tests with one
+ignored test, and `sfm-propagate-changes.exe` was reinstalled from the final
+canonical head after integration. Captioned 1200x720 evidence covers literal-dot matching and a
+14-frame comment walkthrough: before/after, disjoint selection, create/edit,
+overlap navigation, style precedence, colour input, visibly applied source
+colour, F2, migration states, and legacy projection.
+
+The final source audit found and corrected ten direct vanilla font calls in the
+matcher diagnostic puppet. Its accepted rerun has no audit-rule violations;
+the audit still reports 79 unresolved static-analysis warnings in the two
+pre-existing font-rule groups, which remain warning-only rather than approved
+exceptions.
+
+No `.g4` file changed. The current grammar still does not lex a dotted
+unquoted identifier such as `*.java`; that example is supported by the shared
+literal-glob helper for review/filter consumers. Grammar-reachable resource and
+tag wildcards already use the helper, while quoted explicit regexes retain
+their prior meaning. Any grammar expansion remains a separate review decision.
+
 ## Implementation phases
 
-### [ ] Phase 0 — Correct literal wildcard conversion
+### [x] Phase 0 — Correct literal wildcard conversion
 
 - Introduce one tested glob-to-regex helper for unquoted resource/tag AST input.
 - Escape periods and all other regex metacharacters in literal fragments.
@@ -674,14 +704,13 @@ then freshly recaptured and inspected puppets from the merged head.
 - Add parser/AST, matcher, and ItemStack-picker regression tests.
 - Update the gameplay changelog because SFML matching behavior changes.
 
-### [ ] Phase 1 — Define comment/session interchange
+### [x] Phase 1 — Define comment/session interchange
 
 The frozen v1 wire contract and its cross-language conformance fixture live in
 [`../architecture/review-comment-session-v1.md`](../architecture/review-comment-session-v1.md)
 and
 [`../architecture/fixtures/review-comment-session-v1.json`](../architecture/fixtures/review-comment-session-v1.json).
-Implementation remains open until both Java and Rust consume and round-trip the
-fixture.
+Both Java and Rust now consume and deterministically round-trip the fixture.
 
 - Define versioned Java and Rust models for sessions, comments, provenance,
   document revisions, scopes, selectors, witnesses, style rules, policies, and
@@ -691,7 +720,7 @@ fixture.
   recovery, export/import, and unknown-field policy.
 - Add a legacy-ledger-to-comments adapter.
 
-### [ ] Phase 2 — Implement literal comments and derived tags
+### [x] Phase 2 — Implement literal comments and derived tags
 
 - Implement literal single/disjoint range selectors across before/after docs.
 - Implement the independent comment hashtag parser and derived tag index.

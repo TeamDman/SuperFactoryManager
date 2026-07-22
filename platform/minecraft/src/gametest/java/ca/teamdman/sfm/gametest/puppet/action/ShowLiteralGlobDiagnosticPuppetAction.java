@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
+import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.program.RegexCache;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
 import ca.teamdman.sfml.ast.SFMLLiteralGlob;
@@ -55,25 +56,28 @@ public final class ShowLiteralGlobDiagnosticPuppetAction implements SFMPuppetAct
             fill(poseStack, left, top, left + 1, top + 154, 0xFF55FFFF);
             fill(poseStack, left + panelWidth - 1, top, left + panelWidth, top + 154, 0xFF55FFFF);
 
-            drawCenteredString(poseStack, font, title.copy().withStyle(ChatFormatting.BOLD), width / 2,
-                    top + 14, 0xFFFFFFFF);
-            drawString(poseStack, font, Component.literal("Unquoted literal glob"), left + 16, top + 40,
-                    0xFFAAAAAA);
-            drawString(poseStack, font, Component.literal(glob), left + 170, top + 40, 0xFFFFFF55);
-            drawString(poseStack, font, Component.literal("Generated regex"), left + 16, top + 58,
-                    0xFFAAAAAA);
-            drawString(poseStack, font, Component.literal(regex), left + 170, top + 58, 0xFF80D8FF);
-            drawString(poseStack, font, Component.literal("Example.java"), left + 16, top + 88,
-                    0xFFFFFFFF);
-            drawString(poseStack, font, Component.literal(dotted ? "MATCH" : "NO MATCH"), left + 250,
-                    top + 88, dotted ? 0xFF55FF88 : 0xFFFF7777);
-            drawString(poseStack, font, Component.literal("Examplexjava"), left + 16, top + 108,
-                    0xFFFFFFFF);
-            drawString(poseStack, font, Component.literal(missingDot ? "MATCH" : "NO MATCH"), left + 250,
-                    top + 108, missingDot ? 0xFFFF7777 : 0xFF55FF88);
-            drawCenteredString(poseStack, font, Component.literal("Only '*' is wildcard syntax; '.' stays literal."),
+            drawCentered(poseStack, title.copy().withStyle(ChatFormatting.BOLD), width / 2, top + 14, 0xFFFFFFFF);
+            SFMFontUtils.draw(poseStack, font, Component.literal("Unquoted literal glob"), left + 16, top + 40,
+                    0xFFAAAAAA, false);
+            SFMFontUtils.draw(poseStack, font, Component.literal(glob), left + 170, top + 40, 0xFFFFFF55, false);
+            SFMFontUtils.draw(poseStack, font, Component.literal("Generated regex"), left + 16, top + 58,
+                    0xFFAAAAAA, false);
+            SFMFontUtils.draw(poseStack, font, Component.literal(regex), left + 170, top + 58, 0xFF80D8FF, false);
+            SFMFontUtils.draw(poseStack, font, Component.literal("Example.java"), left + 16, top + 88,
+                    0xFFFFFFFF, false);
+            SFMFontUtils.draw(poseStack, font, Component.literal(dotted ? "MATCH" : "NO MATCH"), left + 250,
+                    top + 88, dotted ? 0xFF55FF88 : 0xFFFF7777, false);
+            SFMFontUtils.draw(poseStack, font, Component.literal("Examplexjava"), left + 16, top + 108,
+                    0xFFFFFFFF, false);
+            SFMFontUtils.draw(poseStack, font, Component.literal(missingDot ? "MATCH" : "NO MATCH"), left + 250,
+                    top + 108, missingDot ? 0xFFFF7777 : 0xFF55FF88, false);
+            drawCentered(poseStack, Component.literal("Only '*' is wildcard syntax; '.' stays literal."),
                     width / 2, top + 134, 0xFFBBBBBB);
             super.render(poseStack, mouseX, mouseY, partialTick);
+        }
+
+        private void drawCentered(PoseStack poseStack, Component text, int centerX, int y, int colour) {
+            SFMFontUtils.draw(poseStack, font, text, centerX - font.width(text) / 2, y, colour, false);
         }
     }
 }
