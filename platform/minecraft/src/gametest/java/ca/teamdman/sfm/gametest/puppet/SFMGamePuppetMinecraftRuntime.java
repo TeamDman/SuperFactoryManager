@@ -16,6 +16,8 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+import ca.teamdman.sfm.client.screen.workspace.timeline.SFMFalsifiedInventoryReplayPanel;
+import ca.teamdman.sfm.client.screen.workspace.timeline.SFMTimelinePanel;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -581,6 +583,64 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         double mouseY = multiplexer.height / 2D;
         multiplexer.mouseClicked(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
         return multiplexer.focusedPanel() == panelIndex;
+    }
+
+    @Override
+    public void openFalsifiedInventoryTimeline() {
+        minecraft.setScreen(SFMScreenMultiplexer.create(
+                minecraft.screen,
+                new SFMTimelinePanel(new SFMFalsifiedInventoryReplayPanel(), 20)
+        ));
+    }
+
+    @Override
+    public void seekFalsifiedInventoryTimeline(int timestep) {
+        requireFalsifiedInventoryTimeline().seek(timestep);
+    }
+
+    @Override
+    public void seekFalsifiedInventoryKeyframePosition(double position) {
+        requireFalsifiedInventoryTimeline().seekKeyframePosition(position);
+    }
+
+    @Override
+    public void seekFalsifiedInventoryElapsedTicks(double ticks) {
+        requireFalsifiedInventoryTimeline().seekElapsedTicks(ticks);
+    }
+
+    @Override
+    public void jumpFalsifiedInventoryKeyframe(int direction) {
+        requireFalsifiedInventoryTimeline().jumpKeyframe(direction);
+    }
+
+    @Override
+    public void dragFalsifiedInventoryTimeline(int fromTimestep, int toTimestep) {
+        SFMTimelinePanel timeline = requireFalsifiedInventoryTimeline();
+        SFMScreenMultiplexer multiplexer = (SFMScreenMultiplexer) minecraft.screen;
+        timeline.seek(fromTimestep);
+        double fromX = timeline.xForTimestep(fromTimestep);
+        double toX = timeline.xForTimestep(toTimestep);
+        double y = timeline.trackY();
+        multiplexer.mouseClicked(fromX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseDragged(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT, toX - fromX, 0D);
+        multiplexer.mouseReleased(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        if (timeline.model().current() != toTimestep) {
+            throw new IllegalStateException(
+                    "Timeline drag selected " + timeline.model().current() + " instead of " + toTimestep
+            );
+        }
+    }
+
+    private SFMTimelinePanel requireFalsifiedInventoryTimeline() {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected SFM screen multiplexer for inventory timeline");
+        }
+        return multiplexer.panels().stream()
+                .filter(SFMTimelinePanel.class::isInstance)
+                .map(SFMTimelinePanel.class::cast)
+                .filter(panel -> panel.title().getString().contains("Falsified chest replay"))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Workspace has no falsified inventory timeline"));
     }
 
     @Override

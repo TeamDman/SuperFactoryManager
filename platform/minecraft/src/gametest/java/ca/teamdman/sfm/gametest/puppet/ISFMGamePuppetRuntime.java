@@ -57,5 +57,17 @@ public interface ISFMGamePuppetRuntime {
 
     boolean clickWorkspacePanel(int panelIndex);
 
+    void openFalsifiedInventoryTimeline();
+
+    void seekFalsifiedInventoryTimeline(int timestep);
+
+    void seekFalsifiedInventoryKeyframePosition(double position);
+
+    void seekFalsifiedInventoryElapsedTicks(double ticks);
+
+    void jumpFalsifiedInventoryKeyframe(int direction);
+
+    void dragFalsifiedInventoryTimeline(int fromTimestep, int toTimestep);
+
     void openManagerProgramEditor();
 }
