@@ -10,12 +10,14 @@ public record SFMItemPickerLayout(
         Rect footer,
         int columns,
         int cellWidth,
+        int cellHeight,
         boolean compact,
         boolean belowMinimum
 ) {
     public static final int MINIMUM_WIDTH = 140;
     public static final int MINIMUM_HEIGHT = 150;
     public static final int CELL_HEIGHT = 34;
+    public static final int DENSE_CELL_SIZE = 22;
 
     public record Rect(int x, int y, int width, int height) {
         public boolean contains(double px, double py) {
@@ -24,6 +26,16 @@ public record SFMItemPickerLayout(
     }
 
     public static SFMItemPickerLayout calculate(int x, int y, int width, int height) {
+        return calculate(x, y, width, height, SFMItemPickerModel.ViewMode.DETAILED);
+    }
+
+    public static SFMItemPickerLayout calculate(
+            int x,
+            int y,
+            int width,
+            int height,
+            SFMItemPickerModel.ViewMode viewMode
+    ) {
         int safeWidth = Math.max(1, width);
         int safeHeight = Math.max(1, height);
         boolean below = safeWidth < MINIMUM_WIDTH || safeHeight < MINIMUM_HEIGHT;
@@ -40,8 +52,12 @@ public record SFMItemPickerLayout(
         int compactPreviewHeight = compact ? Math.min(24, bodyHeight) : 0;
         int previewWidth = compact ? 0 : Math.min(280, Math.max(180, content.width() / 4));
         int resultWidth = Math.max(1, content.width() - previewWidth - (previewWidth > 0 ? 8 : 0));
-        int columns = Math.max(1, resultWidth / 150);
-        int cellWidth = Math.max(1, resultWidth / columns);
+        boolean dense = viewMode == SFMItemPickerModel.ViewMode.DENSE_ICONS;
+        int columns = dense
+                ? Math.max(1, resultWidth / DENSE_CELL_SIZE)
+                : Math.max(1, resultWidth / 150);
+        int cellWidth = dense ? DENSE_CELL_SIZE : Math.max(1, resultWidth / columns);
+        int cellHeight = dense ? DENSE_CELL_SIZE : CELL_HEIGHT;
         return new SFMItemPickerLayout(
                 content,
                 new Rect(content.x(), content.y(), content.width(), headerHeight),
@@ -54,6 +70,7 @@ public record SFMItemPickerLayout(
                 new Rect(content.x(), content.y() + content.height() - footerHeight, content.width(), footerHeight),
                 columns,
                 cellWidth,
+                cellHeight,
                 compact,
                 below
         );

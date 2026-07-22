@@ -19,7 +19,15 @@ public final class TitleScreenItemPickerGamePuppet {
         puppet.openItemPicker(false);
         puppet.configureItemPicker(ConfigureItemPickerPuppetAction.View.GALLERY);
         puppet.capture("registry-gallery", caption(
-                "The registry-backed gallery exposes vanilla items and the SFM Program Disk with text identities."
+                "Detailed view exposes vanilla items and the SFM Program Disk with persistent text identities."
+        ));
+        puppet.configureItemPicker(ConfigureItemPickerPuppetAction.View.DENSE_GRID);
+        puppet.capture("dense-icon-grid", caption(
+                "Ctrl+G switches to a dense icon-only grid with substantially more registry items visible at once."
+        ));
+        puppet.configureItemPicker(ConfigureItemPickerPuppetAction.View.DENSE_TOOLTIP);
+        puppet.capture("dense-icon-tooltip", caption(
+                "Dense icons retain hover details: the selected Chest tooltip exposes its accessible name and registry id."
         ));
         puppet.configureItemPicker(ConfigureItemPickerPuppetAction.View.SEARCH_DISK);
         puppet.capture("search-program-disk", caption(
@@ -43,7 +51,7 @@ public final class TitleScreenItemPickerGamePuppet {
         puppet.openItemPicker(true);
         puppet.configureItemPicker(ConfigureItemPickerPuppetAction.View.MULTIPLEXED_SEARCH);
         puppet.capture("multiplexed-picker", caption(
-                "The same responsive picker is composed as a focused panel beside the originating screen."
+                "Dense mode remains searchable and readable as a compact focused panel beside the originating screen."
         ));
     }
 

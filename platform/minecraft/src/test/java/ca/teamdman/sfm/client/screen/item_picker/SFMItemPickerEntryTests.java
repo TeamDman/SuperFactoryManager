@@ -4,6 +4,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMItemPickerEntryTests {
@@ -20,5 +21,6 @@ public class SFMItemPickerEntryTests {
         );
         assertTrue(entry.matches("program"));
         assertTrue(entry.matches("sfm:disk"));
+        assertEquals(java.util.List.of("SFM Program Disk", "sfm:disk"), entry.accessibleDetails());
     }
 }

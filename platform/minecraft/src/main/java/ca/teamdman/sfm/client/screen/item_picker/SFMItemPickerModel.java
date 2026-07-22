@@ -11,6 +11,17 @@ import java.util.Optional;
 
 /** Pure search, selection, fallback, and grid-navigation state for the item picker. */
 public final class SFMItemPickerModel {
+    public enum ViewMode {
+        DETAILED("Details"),
+        DENSE_ICONS("Dense icons");
+
+        private final String displayName;
+
+        ViewMode(String displayName) { this.displayName = displayName; }
+
+        public String displayName() { return displayName; }
+    }
+
     private final List<SFMItemPickerEntry> entries;
     private final Map<ResourceLocation, SFMItemPickerEntry> byId;
     private final ResourceLocation fallbackItem;
@@ -19,6 +30,7 @@ public final class SFMItemPickerModel {
     private int selectionIndex;
     private String diagnostic = "";
     private String interaction = "Type to filter the item registry";
+    private ViewMode viewMode = ViewMode.DETAILED;
 
     public SFMItemPickerModel(List<SFMItemPickerEntry> entries, SFMItemIcon current) {
         Objects.requireNonNull(entries, "entries");
@@ -39,6 +51,7 @@ public final class SFMItemPickerModel {
     public String diagnostic() { return diagnostic; }
     public String interaction() { return interaction; }
     public ResourceLocation fallbackItem() { return fallbackItem; }
+    public ViewMode viewMode() { return viewMode; }
 
     public Optional<SFMItemPickerEntry> selection() {
         return filtered.isEmpty() ? Optional.empty() : Optional.of(filtered.get(selectionIndex));
@@ -62,6 +75,11 @@ public final class SFMItemPickerModel {
     }
 
     public void clearQuery() { setQuery(""); }
+
+    public void toggleViewMode() {
+        viewMode = viewMode == ViewMode.DETAILED ? ViewMode.DENSE_ICONS : ViewMode.DETAILED;
+        interaction = "View mode: " + viewMode.displayName();
+    }
 
     public void move(int columnDelta, int rowDelta, int columns) {
         if (filtered.isEmpty()) return;
@@ -111,7 +129,8 @@ public final class SFMItemPickerModel {
         String selected = selection().map(entry -> entry.accessibleName() + ", " + entry.itemId())
                 .orElse("no item selected");
         String problem = diagnostic.isEmpty() ? "" : ". " + diagnostic;
-        return "Item icon picker. Search " + query + ". " + filtered.size() + " results. Selected " + selected
+        return "Item icon picker. " + viewMode.displayName() + " view. Search " + query + ". "
+                + filtered.size() + " results. Selected " + selected
                 + problem;
     }
 

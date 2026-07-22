@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Locale;
+import java.util.List;
 import java.util.Objects;
 
 /** Registry-backed item identity plus text that remains useful without its icon. */
@@ -23,5 +24,9 @@ public record SFMItemPickerEntry(ResourceLocation itemId, String accessibleName)
 
     public SFMItemIcon toIcon(ResourceLocation fallbackItem) {
         return new SFMItemIcon(itemId, fallbackItem, accessibleName);
+    }
+
+    public List<String> accessibleDetails() {
+        return List.of(accessibleName, itemId.toString());
     }
 }

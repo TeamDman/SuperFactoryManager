@@ -101,6 +101,45 @@ public class SFMItemPickerModelTests {
         assertTrue(cancelled.get());
     }
 
+    @Test
+    public void togglingDenseViewPreservesSearchAndSelectionForThePickerInstance() {
+        SFMItemPickerModel model = model("minecraft:chest");
+        model.setQuery("minecraft");
+        model.move(1, 0, 2);
+        ResourceLocation selected = model.selection().orElseThrow().itemId();
+        model.toggleViewMode();
+        assertEquals(SFMItemPickerModel.ViewMode.DENSE_ICONS, model.viewMode());
+        assertEquals("minecraft", model.query());
+        assertEquals(selected, model.selection().orElseThrow().itemId());
+        assertTrue(model.narration().contains("Dense icons view"));
+        model.toggleViewMode();
+        assertEquals(SFMItemPickerModel.ViewMode.DETAILED, model.viewMode());
+    }
+
+    @Test
+    public void controlGInputTogglesPanelModeButPlainGRemainsAvailableToSearchInput() {
+        SFMItemPickerPanel panel = new SFMItemPickerPanel(
+                ITEMS, new SFMItemIcon(id("minecraft:chest"), PAPER, "Chest"),
+                ignored -> {}, () -> {}
+        );
+        assertFalse(panel.keyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_G, 0, 0));
+        assertEquals(SFMItemPickerModel.ViewMode.DETAILED, panel.model().viewMode());
+        assertTrue(panel.keyPressed(
+                org.lwjgl.glfw.GLFW.GLFW_KEY_G, 0, org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
+        ));
+        assertEquals(SFMItemPickerModel.ViewMode.DENSE_ICONS, panel.model().viewMode());
+    }
+
+    @Test
+    public void navigationUsesTheDenseLayoutsIndependentColumnCount() {
+        SFMItemPickerModel model = model("sfm:disk");
+        SFMItemPickerLayout dense = SFMItemPickerLayout.calculate(
+                0, 0, 300, 180, SFMItemPickerModel.ViewMode.DENSE_ICONS
+        );
+        model.move(0, 1, dense.columns());
+        assertEquals(ITEMS.get(ITEMS.size() - 1).itemId(), model.selection().orElseThrow().itemId());
+    }
+
     private static SFMItemPickerModel model(String current) {
         return new SFMItemPickerModel(ITEMS, new SFMItemIcon(id(current), PAPER, "Current icon"));
     }

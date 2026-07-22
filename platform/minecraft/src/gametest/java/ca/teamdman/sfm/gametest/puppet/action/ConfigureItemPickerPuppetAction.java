@@ -10,7 +10,16 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAction {
-    public enum View { GALLERY, SEARCH_DISK, KEYBOARD_SELECTION, UNAVAILABLE, RESET, MULTIPLEXED_SEARCH }
+    public enum View {
+        GALLERY,
+        DENSE_GRID,
+        DENSE_TOOLTIP,
+        SEARCH_DISK,
+        KEYBOARD_SELECTION,
+        UNAVAILABLE,
+        RESET,
+        MULTIPLEXED_SEARCH
+    }
 
     @Override
     public String description() { return "configure item picker view " + view; }
@@ -21,13 +30,31 @@ public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAct
         if (panel == null) throw new IllegalStateException("Expected item picker panel");
         switch (view) {
             case GALLERY -> {
+                ensureDetailed(panel);
                 panel.setQueryForAutomation("");
                 panel.pressForAutomation(GLFW.GLFW_KEY_HOME, 0);
                 assertSelected(panel, "sfm:disk");
                 requireRegistryEntry(panel, "minecraft:chest");
                 requireRegistryEntry(panel, "minecraft:diamond");
             }
+            case DENSE_GRID -> {
+                panel.setQueryForAutomation("");
+                panel.pressForAutomation(GLFW.GLFW_KEY_HOME, 0);
+                ensureDense(panel);
+                if (panel.layout().columns() < 10) {
+                    throw new IllegalStateException("Dense picker rendered only "
+                            + panel.layout().columns() + " columns");
+                }
+                assertSelected(panel, "sfm:disk");
+            }
+            case DENSE_TOOLTIP -> {
+                ensureDense(panel);
+                panel.pressForAutomation(GLFW.GLFW_KEY_RIGHT, 0);
+                assertSelected(panel, "minecraft:chest");
+                panel.showSelectionTooltipForAutomation();
+            }
             case SEARCH_DISK -> {
+                ensureDetailed(panel);
                 panel.setQueryForAutomation("sfm:disk");
                 assertSelected(panel, "sfm:disk");
                 if (panel.model().filtered().size() != 1) {
@@ -36,6 +63,7 @@ public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAct
                 }
             }
             case KEYBOARD_SELECTION -> {
+                ensureDetailed(panel);
                 panel.setQueryForAutomation("");
                 panel.pressForAutomation(GLFW.GLFW_KEY_HOME, 0);
                 panel.pressForAutomation(GLFW.GLFW_KEY_RIGHT, 0);
@@ -62,6 +90,7 @@ public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAct
             }
             case MULTIPLEXED_SEARCH -> {
                 panel.setQueryForAutomation("chest");
+                ensureDense(panel);
                 assertSelected(panel, "minecraft:chest");
                 if (!(Minecraft.getInstance().screen instanceof SFMScreenMultiplexer multiplexer)
                         || multiplexer.panels().size() != 2) {
@@ -70,6 +99,18 @@ public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAct
             }
         }
         return true;
+    }
+
+    private static void ensureDense(SFMItemPickerPanel panel) {
+        if (panel.model().viewMode() != ca.teamdman.sfm.client.screen.item_picker.SFMItemPickerModel.ViewMode.DENSE_ICONS) {
+            panel.pressForAutomation(GLFW.GLFW_KEY_G, GLFW.GLFW_MOD_CONTROL);
+        }
+    }
+
+    private static void ensureDetailed(SFMItemPickerPanel panel) {
+        if (panel.model().viewMode() != ca.teamdman.sfm.client.screen.item_picker.SFMItemPickerModel.ViewMode.DETAILED) {
+            panel.pressForAutomation(GLFW.GLFW_KEY_G, GLFW.GLFW_MOD_CONTROL);
+        }
     }
 
     static @Nullable SFMItemPickerPanel findPanel() {

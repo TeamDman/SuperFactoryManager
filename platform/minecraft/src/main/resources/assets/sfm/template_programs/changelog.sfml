@@ -13,6 +13,7 @@ NAME "Changelog"
 -- Add Minecraft ItemStack icons with accessible text to the file explorer and command palette
 -- Insert the required separator when a palette action still needs Brigadier arguments
 -- Add a searchable, keyboard-accessible ItemStack picker for choosing typed client icons
+-- Add a dense icon-grid view to the ItemStack picker with accessible hover details
 -- Add a reusable timeline panel with a visual chest-to-player inventory replay fixture
 -- Refine timeline replay with vanilla inventory spacing, semantic keyframes, interpolation, and elapsed-time seeking
 -- Rework CC:Tweaked support with mutable disk/label-gun handles and the Labeler turtle upgrade

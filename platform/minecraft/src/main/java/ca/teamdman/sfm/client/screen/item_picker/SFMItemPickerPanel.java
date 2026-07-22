@@ -40,6 +40,8 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     private int mouseY;
     private boolean completed;
     private SFMWorkspacePanelContext hostContext;
+    private SFMScreenPanelBounds currentBounds = new SFMScreenPanelBounds(0, 0, 1, 1);
+    private int automationTooltipIndex = -1;
 
     public SFMItemPickerPanel(
             List<SFMItemPickerEntry> entries,
@@ -97,6 +99,11 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
                 if ((modifiers & GLFW.GLFW_MOD_CONTROL) == 0) return false;
                 model.resetToFallback();
             }
+            case GLFW.GLFW_KEY_G -> {
+                if ((modifiers & GLFW.GLFW_MOD_CONTROL) == 0) return false;
+                model.toggleViewMode();
+                recalculateLayout();
+            }
             default -> { return false; }
         }
         keepSelectionVisible();
@@ -122,10 +129,24 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
         }
         SFMItemPickerLayout.Rect footer = layout.footer();
         if (!footer.contains(mouseX, mouseY)) return false;
-        int third = Math.max(1, footer.width() / 3);
-        if (mouseX < footer.x() + third) model.resetToFallback();
-        else if (mouseX < footer.x() + third * 2) cancel();
-        else confirm();
+        if (layout.compact()) {
+            boolean topRow = mouseY < footer.y() + footer.height() / 2D;
+            boolean leftColumn = mouseX < footer.x() + footer.width() / 2D;
+            if (topRow && leftColumn) model.resetToFallback();
+            else if (topRow) {
+                model.toggleViewMode();
+                recalculateLayout();
+            } else if (leftColumn) cancel();
+            else confirm();
+        } else {
+            int quarter = Math.max(1, footer.width() / 4);
+            if (mouseX < footer.x() + quarter) model.resetToFallback();
+            else if (mouseX < footer.x() + quarter * 2) {
+                model.toggleViewMode();
+                recalculateLayout();
+            } else if (mouseX < footer.x() + quarter * 3) cancel();
+            else confirm();
+        }
         keepSelectionVisible();
         return true;
     }
@@ -175,6 +196,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     }
 
     public void setQueryForAutomation(String query) {
+        automationTooltipIndex = -1;
         model.setQuery(query);
         keepSelectionVisible();
     }
@@ -184,7 +206,13 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     }
 
     public void showUnavailableForAutomation(ResourceLocation itemId) {
+        automationTooltipIndex = -1;
         model.showUnavailable(itemId);
+        keepSelectionVisible();
+    }
+
+    public void showSelectionTooltipForAutomation() {
+        automationTooltipIndex = model.selectionIndex();
         keepSelectionVisible();
     }
 
@@ -208,14 +236,18 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
             int column = visible % layout.columns();
             int row = visible / layout.columns();
             int x = layout.results().x() + column * layout.cellWidth();
-            int y = layout.results().y() + row * SFMItemPickerLayout.CELL_HEIGHT;
+            int y = layout.results().y() + row * layout.cellHeight();
             SFMItemPickerLayout.Rect cell = new SFMItemPickerLayout.Rect(
-                    x, y, layout.cellWidth(), SFMItemPickerLayout.CELL_HEIGHT
+                    x, y, layout.cellWidth(), layout.cellHeight()
             );
             if (index == model.selectionIndex()) fill(poseStack, cell, SELECTED);
             else if (cell.contains(mouseX, mouseY)) fill(poseStack, cell, HOVERED);
             border(poseStack, cell, 0xFF3A3A3A);
             SFMItemPickerEntry entry = entries.get(index);
+            if (model.viewMode() == SFMItemPickerModel.ViewMode.DENSE_ICONS) {
+                SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x + 3, y + 3);
+                continue;
+            }
             SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x + 5, y + 8);
             int textX = x + 26;
             int available = Math.max(1, layout.cellWidth() - 30);
@@ -292,17 +324,29 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
 
     private void renderFooter(PoseStack poseStack, Minecraft minecraft) {
         fill(poseStack, layout.footer(), HEADER);
-        int third = Math.max(1, layout.footer().width() / 3);
-        int y = layout.footer().y() + (layout.compact() ? 5 : 7);
-        drawCentered(poseStack, minecraft, layout.compact() ? "^R Reset" : "Ctrl+R Reset",
-                layout.footer().x(), third, y, MUTED);
-        drawCentered(poseStack, minecraft, layout.compact() ? "Esc" : "Esc Cancel",
-                layout.footer().x() + third, third, y, MUTED);
-        drawCentered(poseStack, minecraft, layout.compact() ? "Enter" : "Enter Confirm", layout.footer().x() + third * 2,
-                layout.footer().width() - third * 2, y, SUCCESS);
-        if (!layout.compact()) {
+        String toggle = model.viewMode() == SFMItemPickerModel.ViewMode.DETAILED
+                ? "Ctrl+G Grid" : "Ctrl+G List";
+        if (layout.compact()) {
+            int half = Math.max(1, layout.footer().width() / 2);
+            int topY = layout.footer().y() + 2;
+            int bottomY = layout.footer().y() + 16;
+            drawCentered(poseStack, minecraft, "Ctrl+R Reset", layout.footer().x(), half, topY, MUTED);
+            drawCentered(poseStack, minecraft, toggle, layout.footer().x() + half,
+                    layout.footer().width() - half, topY, MUTED);
+            drawCentered(poseStack, minecraft, "Esc Cancel", layout.footer().x(), half, bottomY, MUTED);
+            drawCentered(poseStack, minecraft, "Enter Confirm", layout.footer().x() + half,
+                    layout.footer().width() - half, bottomY, SUCCESS);
+        } else {
+            int quarter = Math.max(1, layout.footer().width() / 4);
+            int y = layout.footer().y() + 5;
+            drawCentered(poseStack, minecraft, "Ctrl+R Reset", layout.footer().x(), quarter, y, MUTED);
+            drawCentered(poseStack, minecraft, toggle, layout.footer().x() + quarter, quarter, y, MUTED);
+            drawCentered(poseStack, minecraft, "Esc Cancel",
+                    layout.footer().x() + quarter * 2, quarter, y, MUTED);
+            drawCentered(poseStack, minecraft, "Enter Confirm", layout.footer().x() + quarter * 3,
+                    layout.footer().width() - quarter * 3, y, SUCCESS);
             drawCentered(poseStack, minecraft, "Arrow keys navigate • typing filters",
-                    layout.footer().x(), layout.footer().width(), y + 13, MUTED);
+                    layout.footer().x(), layout.footer().width(), y + 14, MUTED);
         }
         if (layout.belowMinimum()) {
             SFMFontUtils.draw(poseStack, minecraft.font, "Viewport below 140x150 minimum",
@@ -311,7 +355,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     }
 
     private void renderTooltip(PoseStack poseStack, Minecraft minecraft) {
-        int index = itemIndexAt(mouseX, mouseY);
+        int index = automationTooltipIndex >= 0 ? automationTooltipIndex : itemIndexAt(mouseX, mouseY);
         if (minecraft.screen == null) return;
         if (index < 0) {
             if (!layout.preview().contains(mouseX, mouseY)) return;
@@ -327,16 +371,27 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
             return;
         }
         SFMItemPickerEntry entry = model.filtered().get(index);
-        minecraft.screen.renderComponentTooltip(poseStack, List.of(
-                Component.literal(entry.accessibleName()).withStyle(ChatFormatting.AQUA),
-                Component.literal(entry.itemId().toString()).withStyle(ChatFormatting.GRAY)
-        ), mouseX, mouseY);
+        int tooltipX = mouseX;
+        int tooltipY = mouseY;
+        if (automationTooltipIndex >= 0) {
+            SFMItemPickerLayout.Rect cell = cellForIndex(index);
+            tooltipX = cell.x() + cell.width() / 2;
+            tooltipY = cell.y() + cell.height() / 2;
+        }
+        List<String> details = entry.accessibleDetails();
+        java.util.ArrayList<Component> lines = new java.util.ArrayList<>();
+        lines.add(Component.literal(details.get(0)).withStyle(ChatFormatting.AQUA));
+        lines.add(Component.literal(details.get(1)).withStyle(ChatFormatting.GRAY));
+        if (index == model.selectionIndex() && !model.diagnostic().isEmpty()) {
+            lines.add(Component.literal(model.diagnostic()).withStyle(ChatFormatting.RED));
+        }
+        minecraft.screen.renderComponentTooltip(poseStack, lines, tooltipX, tooltipY);
     }
 
     private int itemIndexAt(double x, double y) {
         if (!layout.results().contains(x, y)) return -1;
         int column = (int) (x - layout.results().x()) / Math.max(1, layout.cellWidth());
-        int row = (int) (y - layout.results().y()) / SFMItemPickerLayout.CELL_HEIGHT;
+        int row = (int) (y - layout.results().y()) / layout.cellHeight();
         int index = (firstVisibleRow + row) * layout.columns() + column;
         return index >= 0 && index < model.filtered().size() ? index : -1;
     }
@@ -362,12 +417,19 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     }
 
     private void resize(SFMScreenPanelBounds bounds) {
-        layout = SFMItemPickerLayout.calculate(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        currentBounds = bounds;
+        recalculateLayout();
+    }
+
+    private void recalculateLayout() {
+        layout = SFMItemPickerLayout.calculate(
+                currentBounds.x(), currentBounds.y(), currentBounds.width(), currentBounds.height(), model.viewMode()
+        );
         keepSelectionVisible();
     }
 
     private int visibleRows() {
-        return Math.max(1, layout.results().height() / SFMItemPickerLayout.CELL_HEIGHT);
+        return Math.max(1, layout.results().height() / layout.cellHeight());
     }
 
     private int totalRows() {
@@ -404,5 +466,17 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     private static String trim(Minecraft minecraft, String text, int width) {
         if (minecraft.font.width(text) <= width) return text;
         return minecraft.font.plainSubstrByWidth(text, Math.max(0, width - minecraft.font.width("..."))) + "...";
+    }
+
+    private SFMItemPickerLayout.Rect cellForIndex(int index) {
+        int visible = index - firstVisibleRow * layout.columns();
+        int column = Math.max(0, visible % layout.columns());
+        int row = Math.max(0, visible / layout.columns());
+        return new SFMItemPickerLayout.Rect(
+                layout.results().x() + column * layout.cellWidth(),
+                layout.results().y() + row * layout.cellHeight(),
+                layout.cellWidth(),
+                layout.cellHeight()
+        );
     }
 }

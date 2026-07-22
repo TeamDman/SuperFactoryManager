@@ -46,6 +46,22 @@ public class SFMItemPickerLayoutTests {
     }
 
     @Test
+    public void denseModeProvidesSubstantiallyMoreVisibleCells() {
+        SFMItemPickerLayout detailed = SFMItemPickerLayout.calculate(
+                0, 0, 300, 180, SFMItemPickerModel.ViewMode.DETAILED
+        );
+        SFMItemPickerLayout dense = SFMItemPickerLayout.calculate(
+                0, 0, 300, 180, SFMItemPickerModel.ViewMode.DENSE_ICONS
+        );
+        int detailedCapacity = detailed.columns() * (detailed.results().height() / detailed.cellHeight());
+        int denseCapacity = dense.columns() * (dense.results().height() / dense.cellHeight());
+        assertTrue(dense.columns() >= detailed.columns() * 4);
+        assertTrue(denseCapacity >= detailedCapacity * 6);
+        assertEquals(SFMItemPickerLayout.DENSE_CELL_SIZE, dense.cellWidth());
+        assertEquals(SFMItemPickerLayout.DENSE_CELL_SIZE, dense.cellHeight());
+    }
+
+    @Test
     public void undersizedPanelProducesSafeDiagnosticGeometry() {
         SFMItemPickerLayout layout = SFMItemPickerLayout.calculate(10, 20, 100, 80);
         assertTrue(layout.belowMinimum());
