@@ -1082,6 +1082,24 @@ after this planning checkpoint is committed:
 | Track 7 | `feat/1.19.2/panel-observation` | `worktrees/1.19.2-panel-observation` |
 | Integration | `feat/1.19.2/review-workspace` | `worktrees/1.19.2-review-workspace` |
 
+### Active integration wave — 2026-07-22
+
+Three fresh follow-up worktrees were created from reviewed canonical commit
+`9860e924b`. Their agents own implementation, tests, isolated puppet evidence,
+and clean feature commits; the coordinator owns this plan, review, canonical
+merges, conflict resolution, and merged-head proof.
+
+| Follow-up | Branch | Worktree | Acceptance target |
+| --- | --- | --- | --- |
+| Source-review ledger v2 | `feat/1.19.2/review-ledger-v2` | `worktrees/1.19.2-review-ledger-v2` | Current multiplexer comparison UI, independent reviewed/approved/audit states, persisted and stale ledger decisions, captioned puppet |
+| Structured Theme Settings | `feat/1.19.2/theme-settings` | `worktrees/1.19.2-theme-settings` | Colour and ItemStack role editing through the merged pickers, live preview, atomic TOML persistence, invalid-theme retention, captioned puppet |
+| Key-mapping settings | `feat/1.19.2/keymap-settings` | `worktrees/1.19.2-keymap-settings` | Search and runtime binding management, compact multi-binding palette presentation, typed incomplete-command flow, deterministic replay, captioned puppet |
+
+The wave completes only after all accepted branches are merged into canonical
+`1.19.2`, canonical compile and full tests pass, merged-head puppets are
+visually inspected, and the canonical worktree is clean. It does not authorize
+Minecraft-version propagation.
+
 Track 5 uses a separate Facet worktree whose final path and branch are chosen
 after `mine/main` is synchronized and pushed. Proposed names are branch
 `teamy/vox-java` and worktree `G:\Programming\Repos\facet-worktrees\vox-java`.
