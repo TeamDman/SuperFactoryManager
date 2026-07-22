@@ -12,6 +12,29 @@ layer should own syntax styles and programmatically drawn UI colours.
 This plan is client-local presentation work. Theme data must never change SFML
 program semantics, server state, action ids, file paths, or review decisions.
 
+## Integration checkpoint — 2026-07-22
+
+Canonical `1.19.2` now contains the independently developed runtime-theme,
+colour-input, and ItemStack-picker tracks through merge commits `15c310234`,
+`d2f37933e`, and `aa89e4893`.
+
+- Phases 1 and 2 have a working runtime foundation: immutable theme snapshots,
+  semantic colour and syntax roles, registry-safe item icons, TOML loading,
+  atomic reload, diagnostics, fallbacks, and last-valid-theme retention.
+- Phase 3 now has both reusable typed input primitives. The colour panel accepts
+  ARGB/RGBA, HSV, hex, channel, recent-colour, reset, and callback input. The
+  item picker supports detailed and dense views, keyboard navigation, tooltips,
+  registry search, and SFML wildcard/tag matchers.
+- The structured theme/icon-scheme editor, semantic role inspection, and TOML
+  write-back that connect those primitives remain future Phase 3 work.
+- Canonical compile and the full Java suite passed after integration; the two
+  Windows symlink tests aborted on their existing privilege assumptions.
+- Fresh canonical puppet runs accepted runtime-theme, malformed-theme,
+  colour-input, and ItemStack-picker/multiplexer captures at 1200x720.
+
+No propagation to later Minecraft-version branches was performed at this
+checkpoint.
+
 ## Confirmed direction
 
 - Replace textual file markers such as `[J]`, `[CFG]`, and `[DIR]` with rendered
