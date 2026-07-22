@@ -2424,6 +2424,7 @@ fn artifact_audit_verifies_sfm_cache_lockfile_artifact() {
         &common_cache,
         "1.19.2",
         false,
+        &CancellationToken::new(),
     )
     .expect("artifact audit should run");
 
@@ -2491,6 +2492,7 @@ fn artifact_audit_warns_or_fails_for_explicit_sources() {
         &common_cache,
         "1.19.2",
         false,
+        &CancellationToken::new(),
     )
     .expect("normal artifact audit should run");
     assert!(normal_report.passed);
@@ -2513,6 +2515,7 @@ fn artifact_audit_warns_or_fails_for_explicit_sources() {
         &common_cache,
         "1.19.2",
         true,
+        &CancellationToken::new(),
     )
     .expect("strict artifact audit should run");
     assert!(!strict_report.passed);

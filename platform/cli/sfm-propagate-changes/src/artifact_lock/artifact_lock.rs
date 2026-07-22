@@ -1,10 +1,12 @@
 use super::ArtifactLockWaitPolicy;
+use crate::cancellation::CancellationToken;
 use eyre::Context;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::path::Path;
 use std::path::PathBuf;
 use std::thread;
+use std::time::Duration;
 use std::time::Instant;
 
 #[derive(Debug)]
@@ -19,7 +21,22 @@ impl ArtifactLock {
     ///
     /// Returns an error if the lock file cannot be opened or the OS lock operation fails.
     pub fn acquire(lock_path: impl AsRef<Path>, artifact: impl Into<String>) -> eyre::Result<Self> {
-        Self::acquire_with_policy(lock_path, artifact, ArtifactLockWaitPolicy::default())
+        Self::acquire_with_policy(lock_path, artifact, &ArtifactLockWaitPolicy::default())
+    }
+
+    /// # Errors
+    ///
+    /// Returns an error if waiting is cancelled, times out, or the OS lock operation fails.
+    pub fn acquire_with_cancellation(
+        lock_path: impl AsRef<Path>,
+        artifact: impl Into<String>,
+        cancellation_token: CancellationToken,
+    ) -> eyre::Result<Self> {
+        Self::acquire_with_policy(
+            lock_path,
+            artifact,
+            &ArtifactLockWaitPolicy::default().with_cancellation(cancellation_token),
+        )
     }
 
     /// # Errors
@@ -28,24 +45,34 @@ impl ArtifactLock {
     pub fn acquire_with_policy(
         lock_path: impl AsRef<Path>,
         artifact: impl Into<String>,
-        policy: ArtifactLockWaitPolicy,
+        policy: &ArtifactLockWaitPolicy,
     ) -> eyre::Result<Self> {
         let lock_path = lock_path.as_ref().to_path_buf();
         let artifact = artifact.into();
-        let file = open_lock_file(&lock_path)?;
         let started = Instant::now();
         let mut last_log = Instant::now()
             .checked_sub(policy.log_interval)
             .unwrap_or_else(Instant::now);
+        let file = open_lock_file_with_policy(
+            &lock_path,
+            &artifact,
+            "exclusive_write",
+            policy,
+            started,
+            &mut last_log,
+        )?;
 
         loop {
+            policy.bail_if_cancelled()?;
             if try_lock_file(&file, &lock_path)? {
                 if started.elapsed() > policy.retry_interval {
                     tracing::info!(
                         artifact = %artifact,
                         lock = %lock_path.display(),
                         waited_ms = started.elapsed().as_millis(),
-                        "acquired artifact lock after waiting"
+                        pid = std::process::id(),
+                        operation = "exclusive_write",
+                        "acquired_exclusive_lock"
                     );
                 }
                 return Ok(Self {
@@ -60,11 +87,13 @@ impl ArtifactLock {
                     artifact = %artifact,
                     lock = %lock_path.display(),
                     waited_ms = started.elapsed().as_millis(),
-                    "waiting for artifact lock"
+                    pid = std::process::id(),
+                    operation = "exclusive_write",
+                    "waiting_for_exclusive_lock"
                 );
                 last_log = Instant::now();
             }
-            thread::sleep(policy.retry_interval);
+            wait_for_retry(policy, started, &lock_path, &artifact, "exclusive_write")?;
         }
     }
 
@@ -118,13 +147,155 @@ pub(super) fn open_lock_file(lock_path: &Path) -> eyre::Result<File> {
         std::fs::create_dir_all(parent)
             .wrap_err_with(|| format!("Failed to create {}", parent.display()))?;
     }
+    open_lock_file_once(lock_path).map_err(|error| open_error(lock_path, error))
+}
+
+pub(super) fn open_lock_file_once(lock_path: &Path) -> std::io::Result<File> {
     OpenOptions::new()
         .read(true)
         .write(true)
         .create(true)
         .truncate(false)
         .open(lock_path)
-        .wrap_err_with(|| format!("Failed to open artifact lock {}", lock_path.display()))
+}
+
+pub(super) fn open_lock_file_with_policy(
+    lock_path: &Path,
+    artifact: &str,
+    operation: &str,
+    policy: &ArtifactLockWaitPolicy,
+    started: Instant,
+    last_log: &mut Instant,
+) -> eyre::Result<File> {
+    open_lock_file_with_policy_using(
+        lock_path,
+        artifact,
+        operation,
+        policy,
+        started,
+        last_log,
+        open_lock_file_once,
+    )
+}
+
+pub(super) fn open_lock_file_with_policy_using(
+    lock_path: &Path,
+    artifact: &str,
+    operation: &str,
+    policy: &ArtifactLockWaitPolicy,
+    started: Instant,
+    last_log: &mut Instant,
+    mut open: impl FnMut(&Path) -> std::io::Result<File>,
+) -> eyre::Result<File> {
+    if let Some(parent) = lock_path.parent() {
+        std::fs::create_dir_all(parent)
+            .wrap_err_with(|| format!("Failed to create lock directory {}", parent.display()))?;
+    }
+    loop {
+        policy.bail_if_cancelled()?;
+        match open(lock_path) {
+            Ok(file) => return Ok(file),
+            Err(error) if open_retry_budget(&error, policy.max_wait).is_some() => {
+                let open_retry_budget = open_retry_budget(&error, policy.max_wait)
+                    .expect("guard established an open retry budget");
+                if last_log.elapsed() >= policy.log_interval {
+                    tracing::info!(
+                        artifact,
+                        lock = %lock_path.display(),
+                        waited_ms = started.elapsed().as_millis(),
+                        pid = std::process::id(),
+                        operation,
+                        os_error = ?error.raw_os_error(),
+                        error_kind = ?error.kind(),
+                        "waiting_to_open"
+                    );
+                    *last_log = Instant::now();
+                }
+                if let Err(wait_error) = wait_for_retry_with_max(
+                    policy,
+                    started,
+                    open_retry_budget,
+                    lock_path,
+                    artifact,
+                    operation,
+                ) {
+                    return Err(open_error(lock_path, error).wrap_err(wait_error.to_string()));
+                }
+            }
+            Err(error) => return Err(open_error(lock_path, error)),
+        }
+    }
+}
+
+fn open_error(lock_path: &Path, error: std::io::Error) -> eyre::Report {
+    let os_error = error.raw_os_error();
+    let kind = error.kind();
+    eyre::Report::new(error).wrap_err(format!(
+        "Failed to open artifact lock {} (os_error={os_error:?}, kind={kind:?})",
+        lock_path.display()
+    ))
+}
+
+pub(super) fn open_retry_budget(
+    error: &std::io::Error,
+    policy_max_wait: Duration,
+) -> Option<Duration> {
+    #[cfg(windows)]
+    {
+        match error.raw_os_error() {
+            Some(32 | 33) => Some(policy_max_wait),
+            _ => None,
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        matches!(
+            error.kind(),
+            std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+        )
+        .then_some(policy_max_wait)
+    }
+}
+
+pub(super) fn wait_for_retry(
+    policy: &ArtifactLockWaitPolicy,
+    started: Instant,
+    lock_path: &Path,
+    artifact: &str,
+    operation: &str,
+) -> eyre::Result<()> {
+    wait_for_retry_with_max(
+        policy,
+        started,
+        policy.max_wait,
+        lock_path,
+        artifact,
+        operation,
+    )
+}
+
+fn wait_for_retry_with_max(
+    policy: &ArtifactLockWaitPolicy,
+    started: Instant,
+    max_wait: Duration,
+    lock_path: &Path,
+    artifact: &str,
+    operation: &str,
+) -> eyre::Result<()> {
+    policy.bail_if_cancelled()?;
+    let elapsed = started.elapsed();
+    if elapsed >= max_wait {
+        eyre::bail!(
+            "Timed out after {} ms waiting for artifact lock {} (artifact={artifact}, operation={operation})",
+            elapsed.as_millis(),
+            lock_path.display()
+        );
+    }
+    let remaining = max_wait
+        .checked_sub(elapsed)
+        .expect("elapsed was checked against max_wait");
+    thread::sleep(Duration::min(policy.retry_interval, remaining));
+    policy.bail_if_cancelled()
 }
 
 fn try_lock_file(file: &File, lock_path: &Path) -> eyre::Result<bool> {
