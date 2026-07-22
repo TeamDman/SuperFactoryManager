@@ -52,6 +52,9 @@ public final class SFMDeveloperActions {
                     "developer/open_source_review",
                     () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.SOURCE_REVIEW)
             );
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> COMMENT_REVIEW =
+            REGISTERER.register("developer/open_comment_review",
+                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.COMMENT_REVIEW));
 
     public static final SFMRegistryObject<SFMClientAction<?>, CreateDeveloperWorldAction> CREATE_WORLD =
             REGISTERER.register(

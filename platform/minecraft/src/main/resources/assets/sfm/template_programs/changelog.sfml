@@ -8,6 +8,7 @@ NAME "Changelog"
 
 ---- 4.35.0 PRE ----
 -- Make literal punctuation in unquoted SFML wildcard matchers match only itself
+-- Add a comment-driven before/after review workspace with overlap, hashtag styles, migration, and legacy projection
 -- Add a persistent, theme-aware source review ledger with visible reviewed, approved, audit, and stale states
 -- Add an experimental two-panel SFM workspace with typed command-palette screen opening
 -- Add a read-only file explorer workspace with safe directory drops and reusable side-by-side text previews

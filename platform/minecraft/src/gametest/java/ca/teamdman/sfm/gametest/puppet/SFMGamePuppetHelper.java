@@ -137,6 +137,10 @@ public final class SFMGamePuppetHelper {
         add(new ApplySourceReviewFixturePuppetAction(command));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
+    public void applyReviewCommentFixtureCommand(String command) {
+        add(new ApplyReviewCommentFixturePuppetAction(command));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
 
     /**
      * Executes a command through the visible palette input and waits for its
