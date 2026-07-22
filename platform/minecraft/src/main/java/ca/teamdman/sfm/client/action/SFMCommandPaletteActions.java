@@ -35,6 +35,11 @@ public final class SFMCommandPaletteActions {
             OpenScreenToSideAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenKeyBindingScreenAction> MANAGE_KEY_BINDINGS = REGISTERER.register(
+            "keybindings/manage",
+            OpenKeyBindingScreenAction::new
+    );
+
     private SFMCommandPaletteActions() {
     }
 

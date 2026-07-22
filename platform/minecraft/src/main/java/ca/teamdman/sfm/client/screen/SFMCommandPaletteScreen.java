@@ -3,6 +3,9 @@ package ca.teamdman.sfm.client.screen;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBinding;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBindingDisplay;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.widget.SFMConsoleWidget;
@@ -18,11 +21,13 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The first, deliberately small, presentation of SFM's contextual action
@@ -99,6 +104,7 @@ public final class SFMCommandPaletteScreen extends Screen {
     private int firstVisibleSuggestion;
     private String error = "";
     private long suggestionRevision;
+    private long bindingCycleTicks;
     private boolean closing;
 
     private SFMCommandPaletteScreen(
@@ -142,6 +148,12 @@ public final class SFMCommandPaletteScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return true;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        bindingCycleTicks++;
     }
 
     @Override
@@ -252,6 +264,13 @@ public final class SFMCommandPaletteScreen extends Screen {
             if (visibleIndex >= 0
                     && visibleIndex < visibleSuggestionCount()
                     && suggestionIndex < suggestions.size()) {
+                if (mouseX >= left + width - 28) {
+                    Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
+                    if (actionId.isPresent()) {
+                        SFMScreenChangeHelpers.setOrPushScreen(new SFMKeyBindingDetailsScreen(this, actionId.get()));
+                        return true;
+                    }
+                }
                 selectedSuggestion = suggestionIndex;
                 applySelectedSuggestion();
                 return true;
@@ -326,7 +345,8 @@ public final class SFMCommandPaletteScreen extends Screen {
                     fill(poseStack, left + 6, y - 2, right - 6, y + 14, 0xFF404040);
                 }
                 Suggestion suggestion = suggestions.get(suggestionIndex);
-                SFMFontUtils.draw(poseStack, this.font, suggestion.getText(), left + 12, y, TEXT, false);
+                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion), left + 12, y, TEXT, false);
+                renderBindingSummary(poseStack, suggestion, right, y);
             }
         }
         if (!this.error.isEmpty()) {
@@ -343,6 +363,57 @@ public final class SFMCommandPaletteScreen extends Screen {
         this.consoleWidget.replaceLines(this.feedback);
         this.consoleWidget.render(poseStack, mouseX, mouseY, partialTick);
         super.render(poseStack, mouseX, mouseY, partialTick);
+        renderActionDetailsTooltip(poseStack, mouseX, mouseY);
+    }
+
+    private void renderBindingSummary(PoseStack poseStack, Suggestion suggestion, int right, int y) {
+        Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
+        if (actionId.isEmpty()) return;
+        List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get()).stream()
+                .filter(SFMKeyBinding::enabled)
+                .toList();
+        String bindingText = "";
+        if (!bindings.isEmpty()) {
+            int index = bindings.size() == 1
+                    ? 0
+                    : (int) ((bindingCycleTicks / 20L) % bindings.size());
+            bindingText = SFMKeyBindingDisplay.format(bindings.get(index).sequence());
+        }
+        String suffix = bindingText.isEmpty() ? "[?]" : bindingText + "  [?]";
+        SFMFontUtils.draw(poseStack, font, suffix, right - 12 - font.width(suffix), y, 0xFF80D8FF, false);
+    }
+
+    private void renderActionDetailsTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+        int right = panelLeft() + panelWidth();
+        int firstY = panelTop() + 70;
+        int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
+        int suggestionIndex = firstVisibleSuggestion + visibleIndex;
+        if (mouseX < right - 28 || mouseX > right - 6 || visibleIndex < 0
+                || visibleIndex >= visibleSuggestionCount() || suggestionIndex >= suggestions.size()) return;
+        Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
+        if (actionId.isEmpty()) return;
+        var action = SFMClientActions.registry().get(actionId.get());
+        if (action == null) return;
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(action.title().copy().withStyle(ChatFormatting.AQUA));
+        tooltip.add(action.description());
+        List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get());
+        if (bindings.isEmpty()) tooltip.add(Component.literal("No key bindings").withStyle(ChatFormatting.GRAY));
+        else bindings.forEach(binding -> tooltip.add(Component.literal(SFMKeyBindingDisplay.format(binding.sequence()))));
+        renderComponentTooltip(poseStack, tooltip, mouseX, mouseY);
+    }
+
+    private String truncateSuggestion(Suggestion suggestion) {
+        return font.plainSubstrByWidth(suggestion.getText(), Math.max(20, panelWidth() - 150));
+    }
+
+    private static Optional<ResourceLocation> suggestionActionId(Suggestion suggestion) {
+        try {
+            ResourceLocation id = new ResourceLocation(suggestion.getText());
+            return SFMClientActions.registry().get(id) == null ? Optional.empty() : Optional.of(id);
+        } catch (RuntimeException ignored) {
+            return Optional.empty();
+        }
     }
 
     private int panelWidth() {
