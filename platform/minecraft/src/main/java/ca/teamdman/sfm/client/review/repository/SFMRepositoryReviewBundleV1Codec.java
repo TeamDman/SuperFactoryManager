@@ -225,7 +225,8 @@ public final class SFMRepositoryReviewBundleV1Codec {
     private static SFMRepositoryReviewBundleV1.Selection nullableSelection(
             JsonObject parent, String name, Map<String, SFMRepositoryReviewBundleV1.FileEntry> files
     ) {
-        if (!parent.has(name) || parent.get(name) instanceof JsonNull) return null;
+        if (!parent.has(name)) throw invalid("Missing explicit operation side '" + name + "'");
+        if (parent.get(name) instanceof JsonNull) return null;
         JsonObject value = object(parent, name);
         String path = validatePath(text(value, "path"));
         SFMRepositoryReviewBundleV1.FileEntry file = files.get(path);
