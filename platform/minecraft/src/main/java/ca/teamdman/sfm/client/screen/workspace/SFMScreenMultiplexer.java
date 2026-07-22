@@ -26,26 +26,37 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     private final @Nullable Screen previousScreen;
     private final SFMWorkspaceLayout layout;
+    private final @Nullable SFMWorkspacePanelGroup panelGroup;
     private final Set<SFMWorkspacePanelId> openedPanels = new HashSet<>();
     private Map<SFMWorkspacePanelId, SFMScreenPanelBounds> panelBounds = Map.of();
     private boolean closing;
     private @Nullable Component dropFeedback;
+    private long panelGroupRevision = Long.MIN_VALUE;
 
     private SFMScreenMultiplexer(
             @Nullable Screen previousScreen,
             SFMScreenPanel left,
             SFMScreenPanel right
     ) {
-        this(previousScreen, SFMWorkspaceLayout.sideBySide(left, right));
+        this(previousScreen, SFMWorkspaceLayout.sideBySide(left, right), null);
     }
 
     private SFMScreenMultiplexer(
             @Nullable Screen previousScreen,
             SFMWorkspaceLayout layout
     ) {
+        this(previousScreen, layout, null);
+    }
+
+    private SFMScreenMultiplexer(
+            @Nullable Screen previousScreen,
+            SFMWorkspaceLayout layout,
+            @Nullable SFMWorkspacePanelGroup panelGroup
+    ) {
         super(Component.literal("SFM workspace"));
         this.previousScreen = previousScreen;
         this.layout = layout;
+        this.panelGroup = panelGroup;
     }
 
     public static SFMScreenMultiplexer create(
@@ -61,6 +72,14 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMWorkspaceLayout layout
     ) {
         return new SFMScreenMultiplexer(previousScreen, layout);
+    }
+
+    public static SFMScreenMultiplexer create(
+            @Nullable Screen previousScreen,
+            SFMWorkspacePanelGroup group
+    ) {
+        SFMScreenPanelBounds initialBounds = new SFMScreenPanelBounds(0, 0, 1, 1);
+        return new SFMScreenMultiplexer(previousScreen, SFMWorkspaceLayout.group(group.layout(initialBounds)), group);
     }
 
     public static void openToSide(@Nullable Screen origin, SFMScreenPanel panel) {
@@ -136,6 +155,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     private void refreshLayout(boolean notifyPanels) {
+        if (panelGroup != null) {
+            layout.recompose(panelGroup.layout(new SFMScreenPanelBounds(0, 0, this.width, this.height)));
+            panelGroupRevision = panelGroup.revision();
+        }
         panelBounds = layout.bounds(new SFMScreenPanelBounds(0, 0, this.width, this.height), DIVIDER_WIDTH);
         if (!notifyPanels || this.minecraft == null) return;
         for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
@@ -154,6 +177,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public void tick() {
+        if (panelGroup != null && panelGroupRevision != panelGroup.revision()) refreshLayout(true);
         for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) entry.panel().tick();
     }
 
@@ -175,7 +199,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     public void onClose() {
         if (closing) return;
         closing = true;
-        for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) entry.panel().closed();
+        for (SFMWorkspaceLayout.PanelEntry entry : layout.allPanels()) entry.panel().closed();
         openedPanels.clear();
         SFMScreenChangeHelpers.setScreen(previousScreen);
     }
@@ -185,6 +209,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         this.renderBackground(poseStack);
         for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
             SFMScreenPanelBounds bounds = panelBounds.get(entry.id());
+            if (bounds == null) continue;
             fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), PANEL_BACKGROUND);
             int border = entry.id().equals(layout.focusedPanel()) ? FOCUSED_BORDER : UNFOCUSED_BORDER;
             fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + 1, border);
@@ -211,6 +236,14 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (panelGroup != null && Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_M) {
+            SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+            if (focused != null) {
+                panelGroup.toggleMaximize(focused);
+                refreshLayout(true);
+                return true;
+            }
+        }
         if (Screen.hasControlDown() && keyCode >= GLFW.GLFW_KEY_1 && keyCode <= GLFW.GLFW_KEY_9) {
             int requestedIndex = keyCode - GLFW.GLFW_KEY_1;
             List<SFMWorkspaceLayout.PanelEntry> panels = layout.panels();
@@ -294,13 +327,15 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     private @Nullable SFMWorkspaceLayout.PanelEntry panelAt(double mouseX, double mouseY) {
         for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
-            if (panelBounds.get(entry.id()).contains(mouseX, mouseY)) return entry;
+            SFMScreenPanelBounds bounds = panelBounds.get(entry.id());
+            if (bounds != null && bounds.contains(mouseX, mouseY)) return entry;
         }
         return null;
     }
 
     private SFMScreenPanelBounds contentBounds(SFMWorkspacePanelId panelId) {
-        return panelBounds.get(panelId).inset(1);
+        SFMScreenPanelBounds bounds = panelBounds.get(panelId);
+        return bounds == null ? new SFMScreenPanelBounds(0, 0, 0, 0) : bounds.inset(1);
     }
 
     @MCVersionDependentBehaviour

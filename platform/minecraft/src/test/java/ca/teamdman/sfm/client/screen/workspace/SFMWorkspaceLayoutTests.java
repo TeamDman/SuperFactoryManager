@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class SFMWorkspaceLayoutTests {
     private final SFMScreenPanel left = new SFMTestScreenPanel("left");
@@ -95,5 +96,72 @@ class SFMWorkspaceLayoutTests {
         assertSame(right, layout.panel(rightId));
         assertSame(left, layout.panel(leftId));
         assertFalse(layout.remove(thirdId));
+    }
+
+    @Test
+    void stackAllocatesOnlyActivePanelAndRetainsBothIdentitiesWhenFlipped() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.stack(0,
+                SFMWorkspaceLayout.panel(left), SFMWorkspaceLayout.panel(right)));
+        SFMWorkspacePanelId leftId = layout.panels().get(0).id();
+        SFMWorkspacePanelId rightId = layout.panels().get(1).id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(3, 4, 90, 50);
+
+        assertEquals(viewport, layout.bounds(viewport, 2).get(leftId));
+        assertNull(layout.bounds(viewport, 2).get(rightId));
+
+        layout.recompose(SFMWorkspaceLayout.stack(1,
+                SFMWorkspaceLayout.panel(left), SFMWorkspaceLayout.panel(right)));
+        assertEquals(leftId, layout.panels().get(0).id());
+        assertEquals(rightId, layout.panels().get(1).id());
+        assertNull(layout.bounds(viewport, 2).get(leftId));
+        assertEquals(viewport, layout.bounds(viewport, 2).get(rightId));
+        assertEquals(rightId, layout.focusedPanel());
+    }
+
+    @Test
+    void focusingHiddenLeafActivatesEveryContainingStackBeforeDispatch() {
+        SFMScreenPanel nested = new SFMTestScreenPanel("nested");
+        SFMWorkspaceLayout.LayoutSpec innerStack = SFMWorkspaceLayout.stack(0,
+                SFMWorkspaceLayout.panel(new SFMTestScreenPanel("peer")),
+                SFMWorkspaceLayout.panel(nested));
+        SFMWorkspaceLayout.LayoutSpec nestedRow = SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(right), innerStack);
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.stack(0,
+                SFMWorkspaceLayout.panel(left), nestedRow));
+        SFMWorkspacePanelId nestedId = layout.panels().stream()
+                .filter(entry -> entry.panel() == nested)
+                .findFirst().orElseThrow().id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 202, 100);
+        assertNull(layout.bounds(viewport, 2).get(nestedId));
+
+        assertTrue(layout.focus(nestedId));
+
+        assertEquals(nestedId, layout.focusedPanel());
+        assertEquals(new SFMScreenPanelBounds(102, 0, 100, 100), layout.bounds(viewport, 2).get(nestedId));
+        assertSame(nested, layout.panel(layout.focusedPanel()));
+    }
+
+    @Test
+    void invalidDuplicatePanelGroupDoesNotProduceLayout() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () ->
+                SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                        SFMWorkspaceLayout.panel(left), SFMWorkspaceLayout.panel(left))));
+    }
+
+    @Test
+    void temporaryMaximizeShapeRetainsIdsWhenFullGroupReturns() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(left), SFMWorkspaceLayout.panel(right)));
+        SFMWorkspacePanelId leftId = layout.panels().get(0).id();
+        SFMWorkspacePanelId rightId = layout.panels().get(1).id();
+
+        layout.recompose(SFMWorkspaceLayout.panel(right));
+        assertEquals(rightId, layout.panels().get(0).id());
+        assertEquals(List.of(leftId, rightId), layout.allPanels().stream().map(SFMWorkspaceLayout.PanelEntry::id).toList());
+        layout.recompose(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(left), SFMWorkspaceLayout.panel(right)));
+
+        assertEquals(leftId, layout.panels().get(0).id());
+        assertEquals(rightId, layout.panels().get(1).id());
     }
 }

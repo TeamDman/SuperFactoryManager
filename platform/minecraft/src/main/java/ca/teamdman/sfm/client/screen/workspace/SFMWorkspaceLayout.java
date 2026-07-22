@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen.workspace;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,11 +18,16 @@ public final class SFMWorkspaceLayout {
     private Node root;
     private long nextPanelId;
     private SFMWorkspacePanelId focusedPanel;
+    private final IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelId> persistentPanelIds;
 
     private SFMWorkspaceLayout(Node root, long nextPanelId, SFMWorkspacePanelId focusedPanel) {
         this.root = root;
         this.nextPanelId = nextPanelId;
         this.focusedPanel = focusedPanel;
+        this.persistentPanelIds = new IdentityHashMap<>();
+        List<PanelEntry> entries = new ArrayList<>();
+        collectPanels(root, entries);
+        entries.forEach(entry -> persistentPanelIds.put(entry.panel(), entry.id()));
     }
 
     public static SFMWorkspaceLayout single(SFMScreenPanel panel) {
@@ -45,12 +51,48 @@ public final class SFMWorkspaceLayout {
         );
     }
 
+    /** Builds one validated subtree before exposing any of its panels to a host. */
+    public static SFMWorkspaceLayout group(LayoutSpec spec) {
+        Objects.requireNonNull(spec);
+        validateUniquePanels(spec);
+        IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelId> ids = new IdentityHashMap<>();
+        long[] nextId = {0};
+        Node root = materialize(spec, ids, nextId);
+        List<PanelEntry> panels = new ArrayList<>();
+        collectPanels(root, panels);
+        if (panels.isEmpty()) throw new IllegalArgumentException("Panel group must contain a panel");
+        SFMWorkspaceLayout layout = new SFMWorkspaceLayout(root, nextId[0], panels.get(0).id());
+        layout.persistentPanelIds.putAll(ids);
+        return layout;
+    }
+
+    /**
+     * Atomically replaces the shape while retaining ids for the same panel instances.
+     * This is used for responsive transitions; panel-local/model state is never rebuilt.
+     */
+    public void recompose(LayoutSpec spec) {
+        Objects.requireNonNull(spec);
+        validateUniquePanels(spec);
+        long[] candidateNextId = {nextPanelId};
+        Node candidate = materialize(spec, persistentPanelIds, candidateNextId);
+        List<PanelEntry> candidatePanels = new ArrayList<>();
+        collectPanels(candidate, candidatePanels);
+        if (candidatePanels.isEmpty()) throw new IllegalArgumentException("Panel group must contain a panel");
+        root = candidate;
+        nextPanelId = candidateNextId[0];
+        if (focusedPanel == null || !isVisible(root, focusedPanel)) {
+            focusedPanel = firstVisible(root).id();
+        }
+    }
+
     public SFMWorkspacePanelId focusedPanel() {
         return focusedPanel;
     }
 
     public boolean focus(SFMWorkspacePanelId panelId) {
-        if (find(panelId) == null) return false;
+        Activation activated = activate(root, panelId);
+        if (!activated.found()) return false;
+        root = activated.node();
         focusedPanel = panelId;
         return true;
     }
@@ -64,7 +106,9 @@ public final class SFMWorkspaceLayout {
         Objects.requireNonNull(side);
         Objects.requireNonNull(panel);
         if (find(source) == null) throw new IllegalArgumentException("Unknown source panel: " + source);
+        if (persistentPanelIds.containsKey(panel)) throw new IllegalArgumentException("Panel instance is already attached");
         SFMWorkspacePanelId inserted = new SFMWorkspacePanelId(nextPanelId++);
+        persistentPanelIds.put(panel, inserted);
         root = normalize(insert(root, source, side, new PanelNode(inserted, panel)));
         focusedPanel = inserted;
         return inserted;
@@ -86,7 +130,9 @@ public final class SFMWorkspaceLayout {
         List<PanelEntry> before = panels();
         int removedIndex = indexOf(before, panelId);
         if (removedIndex < 0) return false;
+        SFMScreenPanel removedPanel = before.get(removedIndex).panel();
         root = normalize(remove(root, panelId));
+        persistentPanelIds.remove(removedPanel);
         List<PanelEntry> after = panels();
         if (after.isEmpty()) {
             focusedPanel = null;
@@ -100,6 +146,14 @@ public final class SFMWorkspaceLayout {
         List<PanelEntry> answer = new ArrayList<>();
         collectPanels(root, answer);
         return List.copyOf(answer);
+    }
+
+    /** Every panel identity seen by this group, including leaves hidden by a temporary maximize shape. */
+    public List<PanelEntry> allPanels() {
+        return persistentPanelIds.entrySet().stream()
+                .map(entry -> new PanelEntry(entry.getValue(), entry.getKey()))
+                .sorted(java.util.Comparator.comparingLong(entry -> entry.id().value()))
+                .toList();
     }
 
     public SFMScreenPanel panel(SFMWorkspacePanelId panelId) {
@@ -117,6 +171,22 @@ public final class SFMWorkspaceLayout {
         return Collections.unmodifiableMap(answer);
     }
 
+    public static LayoutSpec panel(SFMScreenPanel panel) {
+        return new PanelSpec(panel);
+    }
+
+    public static LayoutSpec horizontal(LayoutSpec... children) {
+        return new LinearSpec(SFMWorkspaceAxis.HORIZONTAL, List.of(children));
+    }
+
+    public static LayoutSpec vertical(LayoutSpec... children) {
+        return new LinearSpec(SFMWorkspaceAxis.VERTICAL, List.of(children));
+    }
+
+    public static LayoutSpec stack(int active, LayoutSpec... children) {
+        return new StackSpec(List.of(children), active);
+    }
+
     private static Node insert(Node node, SFMWorkspacePanelId source, SFMWorkspaceSide side, PanelNode inserted) {
         if (node instanceof PanelNode panel) {
             if (!panel.id().equals(source)) return panel;
@@ -126,6 +196,13 @@ public final class SFMWorkspaceLayout {
                     side.axis(),
                     side.before() ? List.of(newTrack, oldTrack) : List.of(oldTrack, newTrack)
             );
+        }
+        if (node instanceof StackNode stack) {
+            List<Node> children = new ArrayList<>(stack.children());
+            for (int index = 0; index < children.size(); index++) {
+                children.set(index, insert(children.get(index), source, side, inserted));
+            }
+            return new StackNode(children, stack.active());
         }
         LinearNode linear = (LinearNode) node;
         List<Track> children = new ArrayList<>(linear.children().size());
@@ -137,6 +214,16 @@ public final class SFMWorkspaceLayout {
 
     private static Node remove(Node node, SFMWorkspacePanelId panelId) {
         if (node instanceof PanelNode panel) return panel.id().equals(panelId) ? null : panel;
+        if (node instanceof StackNode stack) {
+            List<Node> children = new ArrayList<>();
+            for (Node child : stack.children()) {
+                Node remaining = remove(child, panelId);
+                if (remaining != null) children.add(remaining);
+            }
+            if (children.isEmpty()) return null;
+            if (children.size() == 1) return children.get(0);
+            return new StackNode(children, Math.min(stack.active(), children.size() - 1));
+        }
         LinearNode linear = (LinearNode) node;
         List<Track> children = new ArrayList<>();
         for (Track child : linear.children()) {
@@ -154,6 +241,17 @@ public final class SFMWorkspaceLayout {
             double share,
             int minimumPixels
     ) {
+        if (node instanceof StackNode stack) {
+            List<Node> children = new ArrayList<>(stack.children());
+            for (int i = 0; i < children.size(); i++) {
+                Configuration nested = configure(children.get(i), panelId, share, minimumPixels);
+                if (nested.changed()) {
+                    children.set(i, nested.node());
+                    return new Configuration(new StackNode(children, stack.active()), true);
+                }
+            }
+            return new Configuration(node, false);
+        }
         if (!(node instanceof LinearNode linear)) return new Configuration(node, false);
         List<Track> children = new ArrayList<>(linear.children());
         for (int i = 0; i < children.size(); i++) {
@@ -172,6 +270,9 @@ public final class SFMWorkspaceLayout {
     }
 
     private static Node normalize(Node node) {
+        if (node instanceof StackNode stack) {
+            return new StackNode(stack.children().stream().map(SFMWorkspaceLayout::normalize).toList(), stack.active());
+        }
         if (!(node instanceof LinearNode linear)) return node;
         List<Track> normalized = new ArrayList<>();
         for (Track outer : linear.children()) {
@@ -202,6 +303,10 @@ public final class SFMWorkspaceLayout {
     ) {
         if (node instanceof PanelNode panel) {
             answer.put(panel.id(), bounds);
+            return;
+        }
+        if (node instanceof StackNode stack) {
+            allocate(stack.children().get(stack.active()), bounds, dividerPixels, answer);
             return;
         }
         LinearNode linear = (LinearNode) node;
@@ -252,6 +357,13 @@ public final class SFMWorkspaceLayout {
     private static PanelNode find(Node node, SFMWorkspacePanelId panelId) {
         if (node == null) return null;
         if (node instanceof PanelNode panel) return panel.id().equals(panelId) ? panel : null;
+        if (node instanceof StackNode stack) {
+            for (Node child : stack.children()) {
+                PanelNode found = find(child, panelId);
+                if (found != null) return found;
+            }
+            return null;
+        }
         for (Track child : ((LinearNode) node).children()) {
             PanelNode found = find(child.node(), panelId);
             if (found != null) return found;
@@ -259,10 +371,41 @@ public final class SFMWorkspaceLayout {
         return null;
     }
 
+    /** Activates every Stack encountered on the path to the requested panel. */
+    private static Activation activate(Node node, SFMWorkspacePanelId panelId) {
+        if (node instanceof PanelNode panel) return new Activation(panel, panel.id().equals(panelId));
+        if (node instanceof StackNode stack) {
+            List<Node> children = new ArrayList<>(stack.children());
+            for (int index = 0; index < children.size(); index++) {
+                Activation nested = activate(children.get(index), panelId);
+                if (nested.found()) {
+                    children.set(index, nested.node());
+                    return new Activation(new StackNode(children, index), true);
+                }
+            }
+            return new Activation(stack, false);
+        }
+        LinearNode linear = (LinearNode) node;
+        List<Track> children = new ArrayList<>(linear.children());
+        for (int index = 0; index < children.size(); index++) {
+            Track child = children.get(index);
+            Activation nested = activate(child.node(), panelId);
+            if (nested.found()) {
+                children.set(index, child.withNode(nested.node()));
+                return new Activation(new LinearNode(linear.axis(), children), true);
+            }
+        }
+        return new Activation(linear, false);
+    }
+
     private static void collectPanels(Node node, List<PanelEntry> answer) {
         if (node == null) return;
         if (node instanceof PanelNode panel) {
             answer.add(new PanelEntry(panel.id(), panel.panel()));
+            return;
+        }
+        if (node instanceof StackNode stack) {
+            for (Node child : stack.children()) collectPanels(child, answer);
             return;
         }
         for (Track child : ((LinearNode) node).children()) collectPanels(child.node(), answer);
@@ -276,7 +419,76 @@ public final class SFMWorkspaceLayout {
     public record PanelEntry(SFMWorkspacePanelId id, SFMScreenPanel panel) {
     }
 
-    private sealed interface Node permits PanelNode, LinearNode {
+    private static Node materialize(
+            LayoutSpec spec,
+            IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelId> ids,
+            long[] nextId
+    ) {
+        if (spec instanceof PanelSpec panel) {
+            SFMWorkspacePanelId id = ids.computeIfAbsent(panel.panel(), ignored -> new SFMWorkspacePanelId(nextId[0]++));
+            return new PanelNode(id, panel.panel());
+        }
+        if (spec instanceof StackSpec stack) {
+            return new StackNode(stack.children().stream().map(child -> materialize(child, ids, nextId)).toList(), stack.active());
+        }
+        LinearSpec linear = (LinearSpec) spec;
+        return new LinearNode(linear.axis(), linear.children().stream()
+                .map(child -> new Track(materialize(child, ids, nextId), 1.0, DEFAULT_MINIMUM_PIXELS)).toList());
+    }
+
+    private static void validateUniquePanels(LayoutSpec spec) {
+        IdentityHashMap<SFMScreenPanel, Boolean> seen = new IdentityHashMap<>();
+        collectUniquePanels(spec, seen);
+    }
+
+    private static void collectUniquePanels(LayoutSpec spec, IdentityHashMap<SFMScreenPanel, Boolean> seen) {
+        if (spec instanceof PanelSpec panel) {
+            if (seen.put(panel.panel(), Boolean.TRUE) != null) {
+                throw new IllegalArgumentException("A panel instance may only be attached once");
+            }
+            return;
+        }
+        List<LayoutSpec> children = spec instanceof StackSpec stack
+                ? stack.children() : ((LinearSpec) spec).children();
+        children.forEach(child -> collectUniquePanels(child, seen));
+    }
+
+    private static boolean isVisible(Node node, SFMWorkspacePanelId id) {
+        if (node instanceof PanelNode panel) return panel.id().equals(id);
+        if (node instanceof StackNode stack) return isVisible(stack.children().get(stack.active()), id);
+        return ((LinearNode) node).children().stream().anyMatch(track -> isVisible(track.node(), id));
+    }
+
+    private static PanelNode firstVisible(Node node) {
+        if (node instanceof PanelNode panel) return panel;
+        if (node instanceof StackNode stack) return firstVisible(stack.children().get(stack.active()));
+        return firstVisible(((LinearNode) node).children().get(0).node());
+    }
+
+    public sealed interface LayoutSpec permits PanelSpec, LinearSpec, StackSpec {
+    }
+
+    public record PanelSpec(SFMScreenPanel panel) implements LayoutSpec {
+        public PanelSpec { Objects.requireNonNull(panel); }
+    }
+
+    public record LinearSpec(SFMWorkspaceAxis axis, List<LayoutSpec> children) implements LayoutSpec {
+        public LinearSpec {
+            Objects.requireNonNull(axis);
+            children = List.copyOf(children);
+            if (children.size() < 2) throw new IllegalArgumentException("Linear specs require at least two children");
+        }
+    }
+
+    public record StackSpec(List<LayoutSpec> children, int active) implements LayoutSpec {
+        public StackSpec {
+            children = List.copyOf(children);
+            if (children.size() < 2) throw new IllegalArgumentException("Stack specs require at least two children");
+            if (active < 0 || active >= children.size()) throw new IllegalArgumentException("Active stack index is outside children");
+        }
+    }
+
+    private sealed interface Node permits PanelNode, LinearNode, StackNode {
     }
 
     private record PanelNode(SFMWorkspacePanelId id, SFMScreenPanel panel) implements Node {
@@ -286,6 +498,14 @@ public final class SFMWorkspaceLayout {
         private LinearNode {
             children = List.copyOf(children);
             if (children.size() < 2) throw new IllegalArgumentException("Linear nodes require at least two children");
+        }
+    }
+
+    private record StackNode(List<Node> children, int active) implements Node {
+        private StackNode {
+            children = List.copyOf(children);
+            if (children.size() < 2) throw new IllegalArgumentException("Stack nodes require at least two children");
+            if (active < 0 || active >= children.size()) throw new IllegalArgumentException("Active stack index is outside children");
         }
     }
 
@@ -304,5 +524,8 @@ public final class SFMWorkspaceLayout {
     }
 
     private record Configuration(Node node, boolean changed) {
+    }
+
+    private record Activation(Node node, boolean found) {
     }
 }

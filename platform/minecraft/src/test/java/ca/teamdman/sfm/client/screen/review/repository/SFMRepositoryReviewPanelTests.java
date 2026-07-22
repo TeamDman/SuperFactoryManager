@@ -20,7 +20,7 @@ class SFMRepositoryReviewPanelTests {
     void opensAndNavigatesManagedChangedFiles(@TempDir Path directory) throws Exception {
         SFMManagedReviewBundleRepository repository = repository(directory);
         var opened = repository.open("SFM d07bef66c to 8e9946d9f review bundle");
-        SFMRepositoryReviewPanel panel = new SFMRepositoryReviewPanel(repository, opened);
+        SFMRepositoryReviewWorkspaceModel panel = new SFMRepositoryReviewWorkspaceModel(repository, opened);
 
         assertEquals("d07bef66c", panel.bundle().summary().beforeLabel());
         assertEquals("8e9946d9f", panel.bundle().summary().afterLabel());
@@ -35,7 +35,7 @@ class SFMRepositoryReviewPanelTests {
     void literalCommentUsesKernelAndRestoresFromPersistentStore(@TempDir Path directory) throws Exception {
         SFMManagedReviewBundleRepository repository = repository(directory);
         var opened = repository.open("SFM d07bef66c to 8e9946d9f review bundle");
-        SFMRepositoryReviewPanel panel = new SFMRepositoryReviewPanel(repository, opened);
+        SFMRepositoryReviewWorkspaceModel panel = new SFMRepositoryReviewWorkspaceModel(repository, opened);
         assertTrue(panel.selectSourceLine(ca.teamdman.sfm.client.screen.review.comment.SFMReviewCommentDataSource.Side.AFTER, 1));
         panel.beginComment();
         panel.setDraft("#question Confirm repository review behavior");
@@ -45,14 +45,14 @@ class SFMRepositoryReviewPanelTests {
         SFMManagedReviewBundleRepository freshRepository = repository(directory);
         var reopened = freshRepository.open(opened.summary().id());
         assertTrue(reopened.restored());
-        SFMRepositoryReviewPanel restored = new SFMRepositoryReviewPanel(freshRepository, reopened);
+        SFMRepositoryReviewWorkspaceModel restored = new SFMRepositoryReviewWorkspaceModel(freshRepository, reopened);
         assertEquals(1, restored.humanCommentCount());
     }
 
     @Test
     void zeroMatchSearchIsSafeAndDisablesCommentCreation(@TempDir Path directory) throws Exception {
         SFMManagedReviewBundleRepository repository = repository(directory);
-        SFMRepositoryReviewPanel panel = new SFMRepositoryReviewPanel(repository,
+        SFMRepositoryReviewWorkspaceModel panel = new SFMRepositoryReviewWorkspaceModel(repository,
                 repository.open("SFM d07bef66c to 8e9946d9f review bundle"));
 
         panel.setSearch("does-not-exist");
@@ -75,7 +75,7 @@ class SFMRepositoryReviewPanelTests {
         var emptyOpen = new SFMRepositoryReviewRepository.OpenBundle(summary, opened.sessionId(), opened.bundle(),
                 java.util.List.of(), opened.dataSource(), false, java.util.List.of());
         SFMRepositoryReviewRepository emptyRepository = fixedRepository(emptyOpen);
-        SFMRepositoryReviewPanel panel = new SFMRepositoryReviewPanel(emptyRepository, emptyOpen);
+        SFMRepositoryReviewWorkspaceModel panel = new SFMRepositoryReviewWorkspaceModel(emptyRepository, emptyOpen);
 
         assertDoesNotThrow(() -> panel.selectFile(0));
         assertFalse(panel.selectSourceLine(SFMReviewCommentDataSource.Side.AFTER, 0));
@@ -91,7 +91,7 @@ class SFMRepositoryReviewPanelTests {
                 SFMRepositoryReviewBundleV1.ChangeKind.REMOVED, "src/A.java", null, false, java.util.List.of());
         var removedOpen = new SFMRepositoryReviewRepository.OpenBundle(opened.summary(), opened.sessionId(),
                 opened.bundle(), java.util.List.of(removed), opened.dataSource(), false, java.util.List.of());
-        SFMRepositoryReviewPanel panel = new SFMRepositoryReviewPanel(fixedRepository(removedOpen), removedOpen);
+        SFMRepositoryReviewWorkspaceModel panel = new SFMRepositoryReviewWorkspaceModel(fixedRepository(removedOpen), removedOpen);
 
         assertTrue(panel.selectSourceLine(SFMReviewCommentDataSource.Side.BEFORE, 1));
         panel.beginComment();
