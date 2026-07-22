@@ -7,7 +7,9 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyModifier;
 import ca.teamdman.sfm.client.keybinding.SFMKeySequence;
 import ca.teamdman.sfm.client.keybinding.SFMKeyStroke;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
+import ca.teamdman.sfm.client.screen.SFMCommandDraftScreen;
 import ca.teamdman.sfm.client.screen.SFMKeyBindingDetailsScreen;
+import ca.teamdman.sfm.client.screen.SFMKeyBindingScreen;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -17,10 +19,15 @@ import org.lwjgl.glfw.GLFW;
 import java.util.Set;
 
 public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction {
-    public enum View { PALETTE, DETAILS, RECORDING, CONFLICT, INCOMPLETE, DETAILS_AFTER_REMOVAL }
+    public enum View {
+        SETUP, PALETTE, DETAILS, RECORDING, CONFLICT,
+        ACTIVATE_FIRST, ACTIVATE_SECOND, INCOMPLETE, CONFIRMATION, DETAILS_AFTER_REMOVAL
+    }
 
-    private static final ResourceLocation HELP = new ResourceLocation("sfm", "help");
+    private static final ResourceLocation ACTION = new ResourceLocation("sfm", "keybindings/manage");
     private final View view;
+    private boolean requested;
+    private int ticks;
 
     public ShowDynamicKeyBindingPuppetAction(View view) {
         this.view = view;
@@ -35,9 +42,11 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
     public boolean tick(ISFMGamePuppetRuntime runtime) {
         SFMKeyBindingService service = SFMKeyBindingService.INSTANCE;
         if (view != View.RECORDING) service.setDispatchSuspended(false);
-        if (view == View.PALETTE) {
+        if (view == View.SETUP || view == View.PALETTE) {
             service.remove("puppet-help-1");
             service.remove("puppet-help-2");
+            service.remove("puppet-incomplete");
+            service.remove("puppet-conflict");
             service.put(binding("puppet-help-1", SFMKeySequence.of(
                     SFMKeyStroke.of(GLFW.GLFW_KEY_H, SFMKeyModifier.CONTROL)
             )));
@@ -45,10 +54,27 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
                     SFMKeyStroke.of(GLFW.GLFW_KEY_K, SFMKeyModifier.CONTROL),
                     SFMKeyStroke.of(GLFW.GLFW_KEY_H, SFMKeyModifier.CONTROL)
             )));
-            SFMCommandPaletteScreen.open(
-                    SFMCommandPaletteScreen.createOriginContext(),
-                    "sfm action invoke sfm:h"
-            );
+            if (view == View.PALETTE) {
+                SFMCommandPaletteScreen.open(
+                        SFMCommandPaletteScreen.createOriginContext(),
+                        "sfm action invoke sfm:key"
+                );
+            }
+        } else if (view == View.ACTIVATE_FIRST || view == View.ACTIVATE_SECOND) {
+            if (!requested) {
+                requested = true;
+                Minecraft.getInstance().setScreen(new net.minecraft.client.gui.screens.TitleScreen());
+                if (view == View.ACTIVATE_FIRST) {
+                    service.accept(press(1100, service.currentTick(), GLFW.GLFW_KEY_H));
+                } else {
+                    service.accept(press(1200, service.currentTick(), GLFW.GLFW_KEY_K));
+                    service.accept(press(1201, service.currentTick(), GLFW.GLFW_KEY_H));
+                }
+                return false;
+            }
+            if (Minecraft.getInstance().screen instanceof SFMKeyBindingScreen) return true;
+            if (++ticks > 100) throw new IllegalStateException("Shortcut did not invoke manager through contextual executor");
+            return false;
         } else if (view == View.INCOMPLETE) {
             service.put(new SFMKeyBinding(
                     "puppet-incomplete",
@@ -64,6 +90,17 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
                     SFMKeyInputEvent.Type.PRESS,
                     Set.of(SFMKeyModifier.CONTROL)
             ));
+            if (!(Minecraft.getInstance().screen instanceof SFMCommandDraftScreen)) {
+                throw new IllegalStateException("Incomplete shortcut did not open typed command prompt");
+            }
+        } else if (view == View.CONFIRMATION) {
+            if (!(Minecraft.getInstance().screen instanceof SFMCommandDraftScreen draft)) {
+                throw new IllegalStateException("Expected typed command prompt before confirmation");
+            }
+            draft.supplyMissingArgumentForAutomation("hello from shortcut");
+            if (!draft.commandForAutomation().equals("sfm action invoke sfm:echo hello from shortcut")) {
+                throw new IllegalStateException("Typed prompt built an unexpected command");
+            }
         } else {
             Screen parent = Minecraft.getInstance().screen;
             if (view == View.DETAILS_AFTER_REMOVAL) service.remove("puppet-help-1");
@@ -76,7 +113,7 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
                         true
                 ));
             }
-            SFMKeyBindingDetailsScreen details = new SFMKeyBindingDetailsScreen(parent, HELP);
+            SFMKeyBindingDetailsScreen details = new SFMKeyBindingDetailsScreen(parent, ACTION);
             ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers.setOrPushScreen(
                     details
             );
@@ -88,10 +125,20 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
     private static SFMKeyBinding binding(String id, SFMKeySequence sequence) {
         return new SFMKeyBinding(
                 id,
-                HELP.toString(),
-                "sfm action invoke " + HELP,
+                ACTION.toString(),
+                "sfm action invoke " + ACTION,
                 sequence,
                 true
+        );
+    }
+
+    private static SFMKeyInputEvent press(long sequence, long tick, int key) {
+        return new SFMKeyInputEvent(
+                sequence,
+                tick,
+                key,
+                SFMKeyInputEvent.Type.PRESS,
+                Set.of(SFMKeyModifier.CONTROL)
         );
     }
 }

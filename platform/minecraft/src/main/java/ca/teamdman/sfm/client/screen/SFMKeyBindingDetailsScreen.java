@@ -28,6 +28,7 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
     private final List<SFMKeyStroke> captured = new ArrayList<>();
     private boolean recording;
     private String replacingBindingId;
+    private String replacingCommandDraft;
 
     public SFMKeyBindingDetailsScreen(Screen parent, ResourceLocation actionId) {
         super(Component.literal("Action details"));
@@ -49,6 +50,7 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                     .setOnPress(button -> {
                         recording = true;
                         replacingBindingId = binding.bindingId();
+                        replacingCommandDraft = binding.commandDraft();
                         captured.clear();
                         SFMKeyBindingService.INSTANCE.setDispatchSuspended(true);
                     })
@@ -80,6 +82,7 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                 .setOnPress(button -> {
                     recording = true;
                     replacingBindingId = null;
+                    replacingCommandDraft = null;
                     captured.clear();
                     SFMKeyBindingService.INSTANCE.setDispatchSuspended(true);
                 })
@@ -126,6 +129,8 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                         conflict ? 0xFFFF5555 : binding.enabled() ? 0xFFFFFFFF : 0xFF888888,
                         false
                 );
+                SFMFontUtils.draw(poseStack, font, font.plainSubstrByWidth(binding.commandDraft(), 168),
+                        left, y + 10, 0xFF777777, false);
                 y += 26;
             }
         }
@@ -151,6 +156,7 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             recording = false;
             replacingBindingId = null;
+            replacingCommandDraft = null;
             captured.clear();
             SFMKeyBindingService.INSTANCE.setDispatchSuspended(false);
             return true;
@@ -188,10 +194,13 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
         String id = replacingBindingId == null
                 ? actionId + "/user-" + UUID.randomUUID()
                 : replacingBindingId;
+        String commandDraft = replacingCommandDraft == null
+                ? "sfm action invoke " + actionId
+                : replacingCommandDraft;
         SFMKeyBindingService.INSTANCE.put(new SFMKeyBinding(
                 id,
                 actionId.toString(),
-                "sfm action invoke " + actionId,
+                commandDraft,
                 new SFMKeySequence(captured),
                 true
         ));

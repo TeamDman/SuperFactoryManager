@@ -2,10 +2,11 @@ package ca.teamdman.sfm.client.keybinding;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.action.SFMClientCommandInsertion;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
-import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
+import ca.teamdman.sfm.client.screen.SFMCommandDraftScreen;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
@@ -102,12 +103,13 @@ public final class SFMKeyBindingService {
                 && parsed.getExceptions().isEmpty()
                 && parsed.getContext().getCommand() != null;
         if (!complete) {
-            SFMCommandPaletteScreen.open(SFMCommandPaletteScreen.createOriginContext(), command);
+            SFMCommandDraftScreen.open(origin, command, intent);
             return;
         }
         minecraft.execute(() -> {
             try {
-                SFMClientActions.commandTree().execute(command, new SFMClientActionSource(context));
+                SFMClientActionExecutor.execute(command, context, ignored -> {
+                });
             } catch (CommandSyntaxException exception) {
                 SFM.LOGGER.warn("Dynamic binding command failed: {}", command, exception);
             }
