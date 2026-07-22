@@ -269,11 +269,11 @@ zero-byte, or invalid PNG is a puppet failure.
 The artifact root is generated and ignored by Git. This command never creates
 or updates snapshot baselines.
 
-## Planned responsive viewport sweep extension — 2026-07-22
+## Implemented responsive viewport sweep extension — 2026-07-22
 
-### Current capability and terminology
+### Planning-baseline capability and terminology
 
-The Rust CLI currently accepts one startup `--width` and `--height`, launches
+At the start of this wave, the Rust CLI accepted one startup `--width` and `--height`, launched
 one client, and records only that requested viewport in the preview manifest.
 The Java harness currently declares and runs each selected puppet once. There
 is no GUI-scale CLI field, definition contract, runtime viewport action,
@@ -420,6 +420,29 @@ fast paths, full Rust and Java tests, source audit, and inspected contact-sheet
 evidence. Do not propagate to later Minecraft versions until the 1.19.2 runtime
 boundary is reviewed; later API differences belong behind
 `@MCVersionDependentBehaviour` adapters.
+
+### Completion record — 2026-07-22
+
+The responsive extension is implemented on canonical `1.19.2`. Track A landed
+at `c33e576532246d349ab85ba2f16011a9ffda50b1`; the merged CLI was installed
+from canonical revision `a4d7f85ef`. The final combined invocation selected
+`title_screen_viewport_calibration,title_screen_repository_review` with
+`--variant declared`. One Minecraft process completed 30 fresh scenarios:
+15 accepted viewport/GUI-scale variants for each puppet. The accepted profile
+contains 640x480, 854x480, 1280x720, and 1920x1080; Auto resolved to effective
+scales 2, 2, 3, and 4 respectively, and supported numeric scales remained
+separate columns. Requested window and framebuffer sizes matched actual values,
+and the harness restored 1280x720 Auto/effective 3 after the run.
+
+The run published 210 valid PNGs: 60 calibration captures and 150 repository
+review captures. Its immutable report is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_viewport_calibration-title_screen_r-20260722-195214-678/index.html`;
+the generated `game-test-preview/index.html` alias points at the latest evidence.
+The coordinator inspected smallest-Auto, wide scale-1, largest-Auto, and nested
+calibration cells. Variant-isolated fixture roots retained exactly one restored
+review comment per scenario. `preferred` and exact selection remain available
+as the single-scenario fast paths. Later Minecraft branches and `.g4` files
+were intentionally untouched in this wave.
 
 ## Implementation phases
 

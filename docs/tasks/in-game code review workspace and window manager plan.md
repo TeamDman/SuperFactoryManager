@@ -1121,7 +1121,7 @@ migration to a third snapshot, followed by coverage/jump-list policy. It must
 reuse this bundle/session seam rather than teaching the presentation layer to
 read Git or inventing a second comment authority.
 
-### Responsive evidence and composition wave — proposed 2026-07-22
+### Responsive evidence and composition wave — completed 2026-07-22
 
 This wave precedes structural selector migration. The latest six
 real-repository frames prove integration and persistence, but they do not yet
@@ -1252,6 +1252,30 @@ change `.g4` files.
 - Structural Java correspondence, selector migration, and approval coverage do
   not begin in this wave unless the user explicitly expands scope after
   reviewing the responsive evidence.
+
+#### Wave completion record — 2026-07-22
+
+All three tracks were merged into canonical `1.19.2`: viewport framework
+`c33e576532246d349ab85ba2f16011a9ffda50b1`, calibration panel
+`bb2867e24247db765e6242357580436d86ba978a`, responsive review workspace
+`3cd93ddfd89901ddacf38956a7cef4a1951334c9`, and its hidden-Stack focus fix
+`4db084c3ab56fd8a8e099805e54479c88256152b`. The conflict resolution preserves
+both already-composed-layout and typed-panel-group multiplexer constructors.
+Focusing an inactive Stack leaf now activates every Stack on its path before
+input or narration dispatch.
+
+The repository screen now owns one shared model and four real workspace leaves:
+changed files, before source, after source, and comment details. Logical bounds
+select wide, medium, or narrow composition; `Ctrl+M` maximizes/restores the
+focused leaf. The merged declared-profile puppet visibly exercises palette
+opening, browsing/search, changed-range and nonempty selection evidence,
+complete comment details, close, reopen, and exactly one restored user comment.
+The calibration puppet supplies full, half, equal-thirds, and nested allocation
+proof. Together they completed 30 scenarios and 210 captures in one Minecraft
+process; the browsable contact sheet is the generated
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/index.html`.
+The next Track 6 slice remains structural correspondence and durable selector
+migration; it was not started by this wave.
 
 The historical first integration branch merged Tracks 1 and 3 and is now part
 of canonical 1.19.2. Future concurrently developed Tracks 4, 6, or 7 should

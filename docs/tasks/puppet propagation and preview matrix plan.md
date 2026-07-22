@@ -395,7 +395,7 @@ sfm-propagate-changes.exe puppet matrix move_1_stack_direct_walkthrough --branch
 evidence, and a resource/contention failure produces recoverable matrix status
 rather than lost artifacts or hung launches.
 
-### [ ] 3.3 Compose the version matrix with definition-owned viewport variants
+### [x] 3.3 Compose the version matrix with definition-owned viewport variants
 
 This is a second matrix axis, not a request to launch another Minecraft client
 for every resolution/GUI-scale cell. The authoritative lifecycle is specified
@@ -431,6 +431,14 @@ client process and a browsable multi-variant contact sheet; `--variant
 preferred` yields exactly one cell; the existing singleton and multi-version
 paths remain backward compatible; and adding a second branch composes axes
 without multiplying client launches by viewport count.
+
+Completed on canonical `1.19.2` on 2026-07-22. `puppet run` and `puppet
+matrix` accept `declared`, `preferred`, and exact viewport selections; Java
+expands the definition-owned profile inside one client and Rust publishes the
+variant-aware contact sheet. The merged two-puppet proof produced 30 complete
+scenarios and 210 PNGs in one Minecraft process. The generated latest HTML is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/index.html`.
+Cross-version propagation remains a separate Phase 4/release decision.
 
 ## Phase 4 — Propagate and prove the version matrix
 
