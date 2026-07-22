@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add a composable viewport calibration panel for checking panel bounds, GUI scale, pointer coordinates, and nested workspace allocation
 -- Open validated repository review bundles from the command palette and restore persisted comments
 -- Add a changed-file repository review workspace with Minecraft item icons, search, before/after source, and persistent user comments
 -- Make literal punctuation in unquoted SFML wildcard matchers match only itself
