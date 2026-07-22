@@ -27,5 +27,5 @@ public final class TitleScreenThemeSettingsGamePuppet {
   p.showThemeSettings(ShowThemeSettingsPuppetAction.View.INVALID);
   p.capture("theme-settings-invalid",cap("Invalid TOML is rejected while the last valid preview remains active."));
  }
- private static Component cap(String s){return Component.literal("SFM Theme Settings: ").withStyle(ChatFormatting.GOLD).append(s);}
+ private static Component cap(String s){return Component.literal("SFM Theme Settings: " + s).withStyle(ChatFormatting.GOLD);}
 }
