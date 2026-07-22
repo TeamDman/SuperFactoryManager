@@ -12,6 +12,7 @@ NAME "Changelog"
 -- Add experimental runtime SFM shortcuts with action details and command-palette binding badges
 -- Add Minecraft ItemStack icons with accessible text to the file explorer and command palette
 -- Insert the required separator when a palette action still needs Brigadier arguments
+-- Add a reusable ARGB/RGBA colour picker with HSV controls, recents, and typed callbacks
 -- Add a reusable timeline panel with a visual chest-to-player inventory replay fixture
 -- Refine timeline replay with vanilla inventory spacing, semantic keyframes, interpolation, and elapsed-time seeking
 -- Rework CC:Tweaked support with mutable disk/label-gun handles and the Labeler turtle upgrade

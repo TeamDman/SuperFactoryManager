@@ -175,6 +175,19 @@ public final class SFMGamePuppetHelper {
         add(new DragFalsifiedInventoryTimelinePuppetAction(fromTimestep, toTimestep));
     }
 
+    public void openColorInput(boolean toSide) { add(new OpenColorInputPuppetAction(toSide)); }
+    public void setColorInputHueSaturation(double hue, double saturation) {
+        add(new SetColorInputHueSaturationPuppetAction(hue, saturation));
+    }
+    public void setColorInputValue(double value) { add(new SetColorInputValuePuppetAction(value)); }
+    public void adjustColorInputChannel(int channel, int direction, int clicks) {
+        add(new AdjustColorInputChannelPuppetAction(channel, direction, clicks));
+    }
+    public void selectColorInputRecent(int index) { add(new SelectColorInputRecentPuppetAction(index)); }
+    public void resetColorInput() { add(new ResetColorInputPuppetAction()); }
+    public void setColorInputHex(String hex, boolean rgbaOrder) { add(new SetColorInputHexPuppetAction(hex, rgbaOrder)); }
+    public void confirmColorInput() { add(new ConfirmColorInputPuppetAction()); }
+
     /** Invokes the current screen's own close/back behavior. */
     public void closeScreenNaturally() {
         add(new CloseScreenNaturallyPuppetAction());
