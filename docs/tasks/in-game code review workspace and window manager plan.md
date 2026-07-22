@@ -1082,7 +1082,7 @@ after this planning checkpoint is committed:
 | Track 7 | `feat/1.19.2/panel-observation` | `worktrees/1.19.2-panel-observation` |
 | Integration | `feat/1.19.2/review-workspace` | `worktrees/1.19.2-review-workspace` |
 
-### Active integration wave — 2026-07-22
+### Completed integration wave — 2026-07-22
 
 Three fresh follow-up worktrees were created from reviewed canonical commit
 `9860e924b`. Their agents own implementation, tests, isolated puppet evidence,
@@ -1122,8 +1122,12 @@ before integration.
   preview, validated atomic TOML persistence, reset/default controls, and
   last-valid-theme retention.
 
-Merged-head compile, tests, and puppet evidence are the remaining gate for this
-wave. Later Minecraft-version propagation remains out of scope.
+Merged-head compile and the full Java suite passed. The only two aborted tests
+were the existing Windows symlink privilege assumptions. Fresh canonical
+source-review, Theme Settings, and dynamic-key-binding puppets passed at
+1200x720, and their restored/stale, invalid-retention, and typed-confirmation
+frames were visually inspected. The wave is complete. Later Minecraft-version
+propagation remains out of scope.
 
 Track 5 uses a separate Facet worktree whose final path and branch are chosen
 after `mine/main` is synchronized and pushed. Proposed names are branch
