@@ -205,6 +205,8 @@ public final class SFMGamePuppetHelper {
     public void resetColorInput() { add(new ResetColorInputPuppetAction()); }
     public void setColorInputHex(String hex, boolean rgbaOrder) { add(new SetColorInputHexPuppetAction(hex, rgbaOrder)); }
     public void confirmColorInput() { add(new ConfirmColorInputPuppetAction()); }
+    public void applyRepositoryReviewCommand(String command) { add(new ApplyRepositoryReviewPuppetAction(command)); }
+    public void prepareRepositoryReviewFixture() { add(new PrepareRepositoryReviewFixturePuppetAction()); }
 
     /** Invokes the current screen's own close/back behavior. */
     public void closeScreenNaturally() {
