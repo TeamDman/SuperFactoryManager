@@ -242,6 +242,11 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    public void showLiteralGlobDiagnostic() {
+        add(new ShowLiteralGlobDiagnosticPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void deliverFileExplorerDropFixture() {
         add(new DeliverFileExplorerDropFixturePuppetAction());
     }

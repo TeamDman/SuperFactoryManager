@@ -105,8 +105,11 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .collect(Collectors.joining())
                 .replaceAll("::", ":*:")
                 .replaceAll(":$", ":*")
-                .replaceAll("\\*", ".*")
                 .toLowerCase(Locale.ROOT);
+
+        str = Arrays.stream(str.split(":", -1))
+                .map(SFMLLiteralGlob::toRegex)
+                .collect(Collectors.joining(":"));
 
         var rtn = ResourceIdentifier.fromString(str);
         USED_RESOURCES.add(rtn);
@@ -696,7 +699,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .identifier()
                 .stream()
                 .map(ParseTree::getText)
-                .map(s -> s.replaceAll("\\*", ".*")) // convert * to .*
+                .map(SFMLLiteralGlob::toRegex)
                 .collect(Collectors.toCollection(ArrayDeque::new));
         TagMatcher rtn;
         if (ctx.COLON() == null) {
