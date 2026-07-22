@@ -79,6 +79,18 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             "Browse the isolated Minecraft instance read-only"
     );
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry ITEM_ICON_PICKER_TITLE = new LocalizationEntry(
+            "gui.sfm.client_action.developer.item_icon_picker.title",
+            "Item Icon Picker"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry ITEM_ICON_PICKER_DESCRIPTION = new LocalizationEntry(
+            "gui.sfm.client_action.developer.item_icon_picker.description",
+            "Search the Minecraft item registry and choose a typed icon"
+    );
+
     private final SFMTitleScreenDevScreen devScreen;
 
     public OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen devScreen) {
@@ -93,6 +105,7 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             case DRAW_CANVAS -> DRAW_CANVAS_TITLE.getComponent();
             case FILE_EXPLORER -> FILE_EXPLORER_TITLE.getComponent();
             case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_TITLE.getComponent();
+            case ITEM_ICON_PICKER -> ITEM_ICON_PICKER_TITLE.getComponent();
         };
     }
 
@@ -104,6 +117,7 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             case DRAW_CANVAS -> DRAW_CANVAS_DESCRIPTION.getComponent();
             case FILE_EXPLORER -> FILE_EXPLORER_DESCRIPTION.getComponent();
             case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_DESCRIPTION.getComponent();
+            case ITEM_ICON_PICKER -> ITEM_ICON_PICKER_DESCRIPTION.getComponent();
         };
     }
 
@@ -112,6 +126,9 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
         if (devScreen == SFMTitleScreenDevScreen.FILE_EXPLORER
                 || devScreen == SFMTitleScreenDevScreen.INSTANCE_FILE_EXPLORER) {
             return Optional.of(FILE_EXPLORER_ICON);
+        }
+        if (devScreen == SFMTitleScreenDevScreen.ITEM_ICON_PICKER) {
+            return Optional.of(SFMItemIcon.vanilla("compass", "Item icon picker"));
         }
         return Optional.empty();
     }

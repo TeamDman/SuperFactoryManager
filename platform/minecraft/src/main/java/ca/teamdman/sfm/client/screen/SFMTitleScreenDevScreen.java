@@ -5,6 +5,8 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerFixtureSource;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerWorkspace;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMPathFileExplorerSource;
+import ca.teamdman.sfm.client.presentation.SFMItemIcon;
+import ca.teamdman.sfm.client.screen.item_picker.SFMItemPickerScreen;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenTitleScreenOpenContext;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -54,6 +56,16 @@ public enum SFMTitleScreenDevScreen {
             return SFMFileExplorerWorkspace.create(
                     titleScreen,
                     new SFMPathFileExplorerSource(Minecraft.getInstance().gameDirectory.toPath())
+            );
+        }
+    },
+    ITEM_ICON_PICKER("item-icon-picker", Component.literal("Item Icon Picker")) {
+        @Override
+        public Screen create(TitleScreen titleScreen) {
+            return new SFMItemPickerScreen(
+                    titleScreen,
+                    SFMItemIcon.vanilla("chest", "Chest"),
+                    ignored -> {}
             );
         }
     };

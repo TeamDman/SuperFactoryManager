@@ -209,13 +209,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             if (requestedIndex < panels.size()) layout.focus(panels.get(requestedIndex).id());
             return requestedIndex < panels.size();
         }
+        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
+        if (focused != null && focused.keyPressed(keyCode, scanCode, modifiers)) return true;
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             onClose();
             return true;
         }
-        SFMScreenPanel focused = layout.panel(layout.focusedPanel());
-        return focused != null && (focused.keyPressed(keyCode, scanCode, modifiers)
-                || super.keyPressed(keyCode, scanCode, modifiers));
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
