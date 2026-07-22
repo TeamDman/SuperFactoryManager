@@ -136,6 +136,18 @@ public final class SFMGamePuppetHelper {
         add(new ClickWorkspacePanelPuppetAction(panelIndex));
     }
 
+    public void openFalsifiedInventoryTimeline() {
+        add(new OpenFalsifiedInventoryTimelinePuppetAction());
+    }
+
+    public void seekFalsifiedInventoryTimeline(int timestep) {
+        add(new SeekFalsifiedInventoryTimelinePuppetAction(timestep));
+    }
+
+    public void dragFalsifiedInventoryTimeline(int fromTimestep, int toTimestep) {
+        add(new DragFalsifiedInventoryTimelinePuppetAction(fromTimestep, toTimestep));
+    }
+
     /** Invokes the current screen's own close/back behavior. */
     public void closeScreenNaturally() {
         add(new CloseScreenNaturallyPuppetAction());
