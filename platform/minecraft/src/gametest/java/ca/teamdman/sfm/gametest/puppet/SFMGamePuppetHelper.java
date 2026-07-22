@@ -132,6 +132,16 @@ public final class SFMGamePuppetHelper {
         add(new ExecuteCommandPalettePuppetAction(command));
     }
 
+    public void setCommandPaletteInput(String command) {
+        add(new SetCommandPaletteInputPuppetAction(command, null));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void prepareIncompleteCommandPaletteInput(String command, String expected) {
+        add(new SetCommandPaletteInputPuppetAction(command, expected));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void waitForScreen(Class<? extends Screen> screenType) {
         add(new WaitForScreenPuppetAction(screenType));
     }
@@ -164,6 +174,11 @@ public final class SFMGamePuppetHelper {
 
     public void openFileExplorer(SFMFileExplorerSource source) {
         add(new OpenFileExplorerPuppetAction(source));
+    }
+
+    public void openItemIconGallery() {
+        add(new OpenItemIconGalleryPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
     public void deliverFileExplorerDropFixture() {

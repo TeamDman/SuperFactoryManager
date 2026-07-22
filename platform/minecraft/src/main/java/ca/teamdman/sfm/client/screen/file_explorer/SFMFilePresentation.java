@@ -1,10 +1,12 @@
 package ca.teamdman.sfm.client.screen.file_explorer;
 
+import ca.teamdman.sfm.client.presentation.SFMItemIcon;
+
 import java.util.Objects;
 
 /** Rendering metadata. It does not affect filesystem behavior. */
 public record SFMFilePresentation(
-        String icon,
+        SFMItemIcon itemIcon,
         String kindLabel,
         int textColour,
         Emphasis emphasis
@@ -16,7 +18,7 @@ public record SFMFilePresentation(
     }
 
     public SFMFilePresentation {
-        Objects.requireNonNull(icon, "icon");
+        Objects.requireNonNull(itemIcon, "itemIcon");
         Objects.requireNonNull(kindLabel, "kindLabel");
         Objects.requireNonNull(emphasis, "emphasis");
     }

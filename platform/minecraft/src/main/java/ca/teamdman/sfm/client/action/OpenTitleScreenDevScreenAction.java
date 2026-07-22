@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.SFMTitleScreenDevScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFilePresentationRegistry;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.brigadier.context.CommandContext;
@@ -9,8 +11,14 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public final class OpenTitleScreenDevScreenAction implements SFMClientAction<TitleScreen> {
+    private static final SFMItemIcon FILE_EXPLORER_ICON = SFMFilePresentationRegistry
+            .createDefault()
+            .directoryPresentation()
+            .itemIcon();
+
     @SFMLocalizationDatagen
     public static final LocalizationEntry TEXT_EDITOR_TITLE = new LocalizationEntry(
             "gui.sfm.client_action.developer.text_editor.title",
@@ -97,6 +105,15 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             case FILE_EXPLORER -> FILE_EXPLORER_DESCRIPTION.getComponent();
             case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_DESCRIPTION.getComponent();
         };
+    }
+
+    @Override
+    public Optional<SFMItemIcon> itemIcon(SFMClientActionContext context) {
+        if (devScreen == SFMTitleScreenDevScreen.FILE_EXPLORER
+                || devScreen == SFMTitleScreenDevScreen.INSTANCE_FILE_EXPLORER) {
+            return Optional.of(FILE_EXPLORER_ICON);
+        }
+        return Optional.empty();
     }
 
     @Override

@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.screen.file_explorer;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;
+import ca.teamdman.sfm.client.presentation.SFMResolvedItemIcon;
 import ca.teamdman.sfm.client.screen.workspace.SFMFileDropTarget;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
@@ -29,10 +31,10 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
     private static final int MUTED = 0xFFAAAAAA;
     private static final int SELECTED = 0xFF264F78;
     private static final int ERROR = 0xFFFF7777;
-    public static final int ROW_HEIGHT = 13;
+    public static final int ROW_HEIGHT = 18;
 
     private final SFMFileExplorerModel model;
-    private final SFMFilePresentationRegistry presentations = SFMFilePresentationRegistry.createDefault();
+    private final SFMFilePresentationRegistry presentations;
     private final Consumer<SFMFileExplorerModel.OpenIntent> openIntentConsumer;
     private SFMFileExplorerLayout layout = SFMFileExplorerLayout.calculate(0, 0, 1, 1);
     private @Nullable SFMWorkspacePanelContext hostContext;
@@ -46,8 +48,17 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
             SFMFileExplorerSource source,
             Consumer<SFMFileExplorerModel.OpenIntent> openIntentConsumer
     ) {
+        this(source, openIntentConsumer, SFMFilePresentationRegistry.createDefault());
+    }
+
+    public SFMFileExplorerPanel(
+            SFMFileExplorerSource source,
+            Consumer<SFMFileExplorerModel.OpenIntent> openIntentConsumer,
+            SFMFilePresentationRegistry presentations
+    ) {
         this.model = new SFMFileExplorerModel(source);
         this.openIntentConsumer = openIntentConsumer;
+        this.presentations = java.util.Objects.requireNonNull(presentations, "presentations");
     }
 
     @Override
@@ -189,6 +200,7 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
         SFMFontUtils.draw(poseStack, minecraft.font,
                 trimToWidth(minecraft, status, layout.status().width() - inset * 2),
                 layout.status().x() + inset, layout.status().y() + 2, statusColour, true);
+        renderIconTooltip(poseStack, minecraft, mouseX, mouseY);
     }
 
     private void renderRows(PoseStack poseStack, Minecraft minecraft) {
@@ -201,9 +213,13 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
                     layout.list().x() + layout.list().width() - 1, y + ROW_HEIGHT, SELECTED);
             SFMFileExplorerEntry entry = row.entry();
             SFMFilePresentation presentation = presentations.presentationFor(entry);
-            String disclosure = entry.directory() ? (model.isExpanded(entry) ? "v " : "> ") : "  ";
-            String text = "  ".repeat(row.depth()) + disclosure + presentation.icon() + " " + entry.name()
-                    + " (" + presentation.kindLabel() + ")";
+            String disclosure = entry.directory() ? (model.isExpanded(entry) ? "v" : ">") : "";
+            int disclosureX = layout.list().x() + 4 + row.depth() * 12;
+            int iconX = disclosureX + 10;
+            SFMFontUtils.draw(poseStack, minecraft.font, disclosure, disclosureX, y + 5,
+                    presentation.textColour(), true);
+            SFMItemIconRenderer.render(minecraft, presentation.itemIcon(), iconX, y + 1);
+            String text = entry.name() + " (" + presentation.kindLabel() + ")";
             Style style = Style.EMPTY.withColor(TextColor.fromRgb(presentation.textColour() & 0xFFFFFF));
             style = switch (presentation.emphasis()) {
                 case NORMAL -> style;
@@ -211,9 +227,35 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
                 case ITALIC -> style.withItalic(true);
             };
             SFMFontUtils.draw(poseStack, minecraft.font,
-                    Component.literal(trimToWidth(minecraft, text, layout.list().width() - 8)).withStyle(style),
-                    layout.list().x() + 4, y + 2, presentation.textColour(), true);
+                    Component.literal(trimToWidth(
+                            minecraft,
+                            text,
+                            layout.list().x() + layout.list().width() - (iconX + SFMItemIconRenderer.SIZE + 8)
+                    )).withStyle(style),
+                    iconX + SFMItemIconRenderer.SIZE + 4, y + 5, presentation.textColour(), true);
         }
+    }
+
+    private void renderIconTooltip(PoseStack poseStack, Minecraft minecraft, int mouseX, int mouseY) {
+        if (minecraft.screen == null || !layout.list().contains(mouseX, mouseY)) return;
+        int index = firstVisibleRow + (mouseY - layout.list().y()) / ROW_HEIGHT;
+        if (index < 0 || index >= model.visibleEntries().size()) return;
+        SFMFileExplorerModel.VisibleEntry row = model.visibleEntries().get(index);
+        int iconX = layout.list().x() + 14 + row.depth() * 12;
+        int iconY = layout.list().y() + (index - firstVisibleRow) * ROW_HEIGHT + 1;
+        if (mouseX < iconX || mouseX >= iconX + SFMItemIconRenderer.SIZE
+                || mouseY < iconY || mouseY >= iconY + SFMItemIconRenderer.SIZE) return;
+        SFMFilePresentation presentation = presentations.presentationFor(row.entry());
+        SFMResolvedItemIcon resolved = ca.teamdman.sfm.client.presentation.SFMItemIconResolver.resolve(
+                presentation.itemIcon()
+        );
+        String fallback = resolved.usedFallback() ? " (using fallback item)" : "";
+        minecraft.screen.renderTooltip(
+                poseStack,
+                Component.literal(resolved.accessibleLabel() + fallback),
+                mouseX,
+                mouseY
+        );
     }
 
     private void activateSelection() {
