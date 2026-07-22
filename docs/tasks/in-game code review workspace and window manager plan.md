@@ -103,10 +103,10 @@ If we have a concept of virtual desktop-like things, then does that mean we have
 
 # In-game code review workspace and window manager plan
 
-**Plan status:** Intake; planning decisions not yet made  
+**Plan status:** Active; multiplexer/explorer foundation integrated, review slice planning in progress
 **Primary planning root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Related reference worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`  
-**Last updated:** 2026-07-20
+**Last updated:** 2026-07-21
 
 ## How to update this plan
 
@@ -135,9 +135,33 @@ document. The next planning pass should separate and relate these concerns:
 - the smallest coherent release slice, its persistence model, tests, and
   cross-version propagation strategy.
 
+The versioned snapshot, episode, raw-event, action-trace, replay, calculator
+environment, and future amalgamation contracts are owned by the separate
+[snapshot episodes and deterministic action environments plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md).
+This workspace is a consumer of those models rather than their only host.
+
+## Current integrated baseline (2026-07-21)
+
+Tracks 1 and 3 were integrated through
+`feat/1.19.2/review-workspace` and merged into canonical `1.19.2` as
+`10efa6326` (`Merge integrated file explorer workspace`). The baseline now
+contains the n-ary multiplexer, typed screen-opening actions, composable
+responsive file explorer, instance-directory action, read-only preview panel,
+file-presentation styles, drop-to-replace behavior, focused tests, and
+captioned puppets.
+
+The canonical full Java suite and compilation passed; the two portable symlink
+tests were skipped because Windows denied symlink creation. Java audit reported
+zero warnings. The integrated
+`sfm:title_screen_integrated_file_explorer` puppet passed and captured the
+explorer/preview workspace. The old instructions below about creating and
+merging the first integration branch are retained as coordination history;
+future tracks branch from the current reviewed baseline and return through a
+fresh explicitly named integration step when concurrent work requires it.
+
 ## Immediate next step
 
-### [ ] 0.1 Establish vocabulary, ownership boundaries, and the first release slice
+### [~] 0.1 Establish vocabulary, ownership boundaries, and the first release slice
 
 Before implementation, inspect the existing audit, Arborium/JavaParser, Draw,
 mount, console/palette, editor, and Minecraft screen/overlay seams. Turn that
@@ -150,6 +174,50 @@ evidence into explicit design choices for:
    interfaces adapted from screens; and
 5. which one end-to-end workflow proves enough value to belong in the next
    release.
+
+#### Working first release slice
+
+The recommended slice is **Open Review Workspace**:
+
+1. open the workspace from the command palette;
+2. select before and after source snapshots;
+3. browse files through the existing explorer;
+4. open a changed source file as code-oriented comparison panels;
+5. view line/range fallback operations plus any available AST-aware
+   annotations without replacing code presentation with a generic AST tree;
+6. mark a source range or comparison operation human reviewed;
+7. independently mark it human approved while showing audit approval as a
+   separate read-only dimension; and
+8. close and reopen the same snapshot pair with the decisions restored.
+
+The first implementation may use deterministic fixtures and a line/range
+comparison while the Rust structured comparator is developed. A
+`SourceComparison` provider boundary allows the viewer to consume richer
+file-add/delete/rename, symbol-rename, body-change, formatting-only, and
+ambiguous/unknown operations later.
+
+#### Accepted review-presentation direction (2026-07-21)
+
+Canvas geometry is an interaction and presentation mechanism, not the durable
+identity of reviewed source. A dragged rectangle may select visible glyphs or
+source ranges and may be restored as a highlight, but persisting screen-space
+coordinates is insufficient: wrapping, font scale, panel resizing, formatting,
+and later edits can all move the same source.
+
+The durable review artifact should instead identify the compared source
+snapshots and store approved/reviewed source anchors. Candidate anchors include
+exact byte or character ranges with surrounding-content hashes, stable glyph
+ids within a document snapshot, structured comparison-operation ids, and AST
+nodes where the parser can identify them conservatively. The renderer derives
+rectangles and canvas adornments from those anchors when it presents the
+document. A thumbs-up operation over a rectangle therefore resolves the current
+selection to durable source anchors before recording approval.
+
+This permits a patch-like or structured sidecar artifact containing reviewed or
+approved segments without requiring annotations to be embedded in the source
+file or a textual diff. The exact schema, relocation behavior after edits, and
+distinction between human reviewed, human approved, and audit approved remain
+part of this task's release-slice decision.
 
 ## Parallel experiment tracks
 
@@ -589,6 +657,95 @@ Initial experiment limits:
 - no runtime mutation of vanilla's key registry without lifecycle and
   cross-version proof.
 
+#### Accepted dynamic-binding and presentation direction (2026-07-21)
+
+Source inspection established that Forge's registration event and Minecraft's
+vanilla key-mapping collection are startup-oriented and do not provide a safe,
+complete runtime unregister lifecycle. Dynamic SFM bindings will therefore not
+attempt to appear as dynamically registered rows in the vanilla Controls
+screen. One or a small number of stable entry-point mappings may remain vanilla
+`KeyMapping` instances, while SFM owns its dynamic registry, persistence,
+conflict detection, matching engine, and configuration screens.
+
+The primary relationship is one registered client action to zero or more
+bindings. A binding contains a bounded key, modified key, chord, or sequence and
+targets that action's invocation or a typed/partial invocation draft. The
+action's existing contextual availability determines whether it is currently
+valid; bindings do not introduce an unrelated VS Code-style expression
+language. An unavailable action may keep its configured bindings, but matching
+one must not bypass the same availability check used by the palette and direct
+command execution.
+
+Use unambiguous matching terms:
+
+```text
+KeyStroke   = modifiers plus one trigger key
+KeySequence = one or more ordered KeyStrokes
+```
+
+Ctrl+R is a one-stroke sequence; Ctrl+K followed by Ctrl+E is a two-stroke
+sequence. Modifier presses/releases remain ordinary recorded input events even
+when the matcher presents them compactly as part of a stroke.
+
+The dedicated SFM key-mapping screen lists actions and their zero-or-more
+bindings, supports search and conflict presentation, and permits bindings to be
+added, edited, disabled, and removed at runtime.
+
+Keep command-palette rows single-line. An action with no bindings shows no
+binding text; one binding is static; more than one binding uses the same fixed
+right-side area and cycles through one binding at a time, initially once per
+second. Cycling order is stable and deterministic. It changes presentation
+only—every binding remains active simultaneously—and it must not resize the row
+or cause suggestion reordering. The details tooltip/screen lists all bindings
+at once. Narration must not announce every timed cycle; it announces that the
+action has N bindings and provides a deliberate way to inspect them.
+
+Multiline palette rows and a user preference selecting multiline versus cycling
+are deferred. They may be reconsidered after the compact cycling presentation
+is exercised, but are not part of the first surface.
+
+A right-side question-mark/details affordance provides a hover summary and
+opens an action-details screen when activated. The action-details screen owns
+the expanded description, current availability and unavailable reason, action
+id, argument/presentation metadata, and a binding section with add/edit/remove
+operations. It is the focused configuration surface for one action rather than
+overloading the compact palette row with every control.
+
+The matching engine is deliberately stateful. It receives normalized input
+events incrementally as they occur, maintains pressed-key and partial-sequence
+state, applies sequence timing/cancellation rules, and emits action-invocation
+intents with their source binding and event provenance. Its host-facing surface
+should cover at least key press, key release, focus loss/reset, and time/tick
+progress without depending on a concrete Minecraft `Screen`. Replaying the same
+ordered event stream into a fresh engine with the same binding snapshot and
+timing policy must produce the same invocation stream. The engine does not need
+to accept the complete key history on every call or avoid ordinary internal
+state merely to be replayable.
+
+The conceptual host surface includes incremental `accept(event)`,
+`advanceTime(tick)`, `reset(reason)`, and
+`replaceBindings(bindingSnapshot)` operations. Replacing bindings or losing
+focus cancels partial matches and advances the recorded binding revision.
+`ActionInvocationIntent` retains action id, typed arguments, binding id,
+binding revision, and source-event range. Minecraft input capture is an adapter:
+the pure matcher must not depend on a concrete `Screen`. Track 4 must verify a
+global press/release seam because tick polling alone may lose ordering when
+multiple transitions occur inside one tick.
+
+The first visible acceptance walkthrough is:
+
+1. open the SFM key-mapping screen from the command palette;
+2. inspect an action with no bindings and add one chord or sequence;
+3. return to the palette and see the binding on that action's row;
+4. hover the details affordance to see its description and bindings;
+5. click through to the action-details screen and add a second binding;
+6. return to the one-line palette row and observe the two bindings cycle in its
+   fixed right-side area without changing layout or narration repeatedly;
+7. activate both bindings and observe the same contextual action executor;
+8. disable or remove one binding without restarting Minecraft; and
+9. replay the captured input events through a fresh engine and obtain the same
+   action-invocation trace.
+
 ### [ ] Track 5 — Vox Java support and external shaped-intent UI
 
 Develop the cross-language foundation for Java/Minecraft and Rust tools to
@@ -710,6 +867,154 @@ consider side-by-side placement, returning focus, detecting a closed game,
 launch suggestions, or treating the Minecraft window as one surface in a
 larger developer workspace.
 
+### [ ] Track 6 — Source comparison viewer and human review ledger
+
+Build the first review-specific product on the integrated multiplexer and file
+explorer. The viewer accepts immutable before/after snapshot identities and a
+structured SourceComparison; it does not require its central artifact to be a
+.diff or .patch file. Line/range comparison is the required fallback.
+Rust/Arborium may later supply semantic operations through the same provider
+boundary.
+
+The code remains presented as code. Comparison annotations may identify file
+add/delete/rename, range insertion/deletion/replacement, symbol rename,
+formatting-only change, unchanged body under rename, renamed-and-modified body,
+and ambiguous/unknown correspondence. An AST tree view may be offered for
+specialized refactoring inspection but is not the normal source-review
+presentation.
+
+Keep these dimensions independent:
+
+- Git/repository state: tracked, committed, staged, or uncommitted;
+- human review state: unseen or reviewed;
+- human decision: undecided, approved, or rejected; and
+- audit/policy approval: permitted, warned, or forbidden by SFM audit rules.
+
+A canvas rectangle, text selection, hunk, or AST annotation is an interaction
+that resolves to durable source anchors or comparison-operation ids before a
+decision is stored. Durable records include the snapshot pair, target spans or
+operation id, before/after hashes, and bounded excerpts/witnesses. Re-rendering
+derives highlight rectangles from the source anchors. A source change makes an
+old decision stale; relocation/reconciliation is explicit and cannot silently
+transfer approval.
+
+Distinguish approving resulting content from approving a change operation.
+Approving a region in B alone does not prove that a deletion from A was
+reviewed. The UI should make the chosen target visible and allow a review mark
+to cover one or more comparison operations intersected by a canvas selection.
+
+The first visible walkthrough is:
+
+1. invoke **Open Review Workspace** from the palette;
+2. choose fixture or real before/after snapshots;
+3. browse to a changed Java source file;
+4. open its comparison to the side;
+5. inspect source-oriented annotations;
+6. select a range or operation and mark it reviewed;
+7. independently mark it approved while audit status remains visible;
+8. close and reopen with the ledger restored; and
+9. change a source hash and show the old decision as stale rather than applied.
+
+Add a captioned puppet for unchanged, insertion, deletion, rename, modified
+body, reviewed, approved, audit-forbidden, restored, and stale-decision states.
+The initial viewer may consume deterministic JSON fixtures while the CLI
+comparison producer is developed.
+
+### [ ] Track 7 — Multiplexer observation, recording, and panel ownership
+
+Build recording and agent-control as a layer around composable multiplexer
+panels rather than embedding bespoke trace machinery into each application.
+A normal calculator, editor, explorer, or future panel should receive ordinary
+input through the multiplexer router; an observation wrapper can record,
+replay, or supply those same inputs without the child panel knowing whether a
+human or agent originated them.
+
+The generic envelope records at least:
+
+- panel/workspace identity, size, lifecycle, focus, and configuration revision;
+- normalized pointer position/move/button/scroll events in panel-local
+  coordinates;
+- key press/release/repeat, character input, focus loss, and tick/time events;
+- input origin such as human, puppet, replay, or named agent session;
+- routing/consumption result and the panel that received each event;
+- optional structured observations published by panels; and
+- optional visual captures of the panel region or Minecraft frame when pixels
+  are needed as the observation.
+
+Do not require every panel to expose semantic state. The base layer can record
+input routing and visual frames; an optional observation-provider interface may
+add calculator display/state, editor document/cursor, explorer selection, or
+other structured values. Structured providers supplement rather than redefine
+the normal panel behavior.
+
+Agent input enters through the same multiplexer routing contract using a
+virtual panel-local cursor and typed keyboard/controller events. It does not
+need to seize or inject the operating-system cursor. Replaying a recording uses
+the same router into a fresh compatible panel/workspace configuration.
+
+Introduce a per-panel interaction-ownership lease:
+
+- human-owned is the normal state;
+- agent-owned remains visible to the human but rejects ordinary human mutation
+  input for that panel;
+- agent events are accepted only from the owning named session/capability;
+- global observation, emergency revoke, and an explicit release affordance
+  remain available to the human;
+- ownership changes, rejected inputs, expiry/disconnection, and release are
+  recorded events; and
+- losing an agent session cannot leave keyboard modifiers, buttons, focus, or
+  ownership stuck.
+
+Use “read lock” only as user-facing shorthand if desired; internally this is an
+interaction/input ownership lease, not a Java read/write lock. Human viewing is
+allowed while human mutation input is gated.
+
+#### Reusable timeline-panel direction
+
+Add a generic timeline host to the composable panel surface. It accepts one
+seekable inner panel, reserves a compact MPV-like horizontal transport, and
+instructs the inner panel which bounded integer timestep to present. The wrapper
+owns play/pause, track click/drag, thumb, current/final label, single-step, and
+first/final controls. The child owns only its visualization at the requested
+timestep.
+
+Seeking is idempotent random access rather than “replay from zero until this
+point.” Timeline control input is consumed by the wrapper and not forwarded to
+the child. Playback advances on deterministic client ticks. Both the timeline
+and child remain ordinary multiplexer panels; a full-screen host is only a
+compatibility wrapper.
+
+The first timeline fixture is a falsified, read-only chest/player-inventory
+panel. It displays one cobblestone moving through these states:
+
+1. chest slot occupied, player inventory and cursor empty;
+2. chest empty and cobblestone held by the virtual cursor;
+3. virtual cursor plus held stack moving through panel-local positions;
+4. held stack over the destination player slot; and
+5. destination slot occupied and cursor empty.
+
+The fixture renders copied stacks and never opens/mutates a live menu or sends a
+container click. Its puppet seeks forward, backward, and out of playback order,
+capturing pickup, transit, pre-place, and placed frames. This establishes visual
+item-movement replay before attempting live-container observation.
+
+After that timeline proof, the first agent-ownership proof wraps a deliberately
+ordinary calculator panel:
+
+1. open the calculator beside another normal panel;
+2. record human pointer and keyboard interaction through the generic wrapper;
+3. replay the recording into a fresh calculator panel;
+4. acquire the calculator for an agent and show an ownership badge;
+5. let the agent manipulate its virtual cursor and keyboard inputs;
+6. reject a human click on the owned calculator without blocking interaction
+   with the neighboring human-owned panel;
+7. revoke/release ownership and immediately restore human control; and
+8. inspect the recording in the generic Episode Inspector.
+
+The calculator itself owns only calculator behavior and optional structured
+observation. It does not own the recorder, timeline, replay engine, agent
+session, cursor injection, or ownership policy.
+
 ## Track dependencies and integration order
 
 ```text
@@ -724,6 +1029,14 @@ Track 4: dynamic hotkeys + command drafts ──> shared command/prompt surface
 
 Track 5: Vox Java + shaped intent UI ──> optional external fulfillment for Track 4
                                       └─> bidirectional SFM action bridge
+
+Snapshot/episode plan ──> immutable snapshots + action provenance ──┐
+CLI AST plan ───────────> optional structured comparison JSON ───────┼─> Track 6
+Tracks 1 + 3 ───────────> multiplexer + explorer + source preview ───┘
+
+Track 1 multiplexer/input router ──> Track 7 observation + ownership envelope
+Snapshot/episode plan ─────────────> Track 7 recording/replay interchange
+Normal calculator panel ───────────> first Track 7 proving application
 ```
 
 Tracks 1 and 3 are intentionally parallel: Track 3 targets a normal `Screen`
@@ -734,12 +1047,19 @@ command-palette substrate; its completion UI is a normal responsive screen
 until Track 1 supplies an accepted embedding contract. Track 5 has its own
 Facet repository lifecycle and does not block the in-game prompt implementation;
 it later supplies an optional external fulfillment adapter and action bridge.
+Track 6 builds directly on the now-integrated Tracks 1 and 3. It may begin with
+full snapshot and comparison fixtures; it does not wait for semantic AST
+comparison, episode compression, or Vox.
 
-Integration should occur on a dedicated integration branch after each track
-has a coherent commit. Prefer merging Tracks 1, 3, and 4 into that branch over
-merging one experimental track into another: no experiment should silently
-become another's historical base. Track 2 contributes only its report and, if
-accepted, a later adapter commit.
+Track 7 belongs above the multiplexer routing seam and below application
+panels. It can begin independently of semantic source comparison and Vox; the
+Episode Inspector consumes its recordings.
+
+The historical first integration branch merged Tracks 1 and 3 and is now part
+of canonical 1.19.2. Future concurrently developed Tracks 4, 6, or 7 should
+still meet on an explicitly named integration branch after each has a coherent
+commit rather than using one experimental track as another's historical base.
+Track 2 contributes only its report and, if accepted, a later adapter commit.
 
 Track 5 is not merged into the SFM integration branch. Its Facet/Vox commits are
 reviewed and integrated in the maintained Facet fork first. SFM then consumes a
@@ -748,8 +1068,9 @@ and implements the Minecraft adapter as an explicit integration task.
 
 ## Worktree and branch plan
 
-Create worktrees only after this plan and the common client-action baseline are
-committed. Branch every experiment from that same reviewed baseline:
+The original worktrees below were created from their recorded common baseline.
+Tracks 4, 6, and 7 branch from the current reviewed canonical 1.19.2 commit
+after this planning checkpoint is committed:
 
 | Track | Proposed branch | Proposed worktree |
 | --- | --- | --- |
@@ -757,6 +1078,8 @@ committed. Branch every experiment from that same reviewed baseline:
 | Track 2 | `feat/1.19.2/file-drop-research` | `worktrees/1.19.2-file-drop-research` |
 | Track 3 | `feat/1.19.2/file-explorer` | `worktrees/1.19.2-file-explorer` |
 | Track 4 | `feat/1.19.2/action-hotkeys` | `worktrees/1.19.2-action-hotkeys` |
+| Track 6 | `feat/1.19.2/review-diff` | `worktrees/1.19.2-review-diff` |
+| Track 7 | `feat/1.19.2/panel-observation` | `worktrees/1.19.2-panel-observation` |
 | Integration | `feat/1.19.2/review-workspace` | `worktrees/1.19.2-review-workspace` |
 
 Track 5 uses a separate Facet worktree whose final path and branch are chosen

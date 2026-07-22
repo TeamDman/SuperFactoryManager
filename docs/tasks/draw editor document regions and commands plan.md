@@ -3,7 +3,7 @@
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Reference-only worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`
-**Last updated:** 2026-07-18
+**Last updated:** 2026-07-21
 
 ## How to update this plan
 
@@ -52,6 +52,12 @@ The first observable slice establishes canvas-native controls and commands:
   rather than SFML program text and are excluded from disk projection; and
 - ordinary `/` glyphs typed into the program remain ordinary SFML text, so the
   command system does not conflict with comments or future division syntax.
+
+Dynamic action bindings, action-details presentation, and replayable key-event
+matching are owned by Track 4 of the
+[in-game code review workspace plan](in-game%20code%20review%20workspace%20and%20window%20manager%20plan.md).
+Snapshot/episode interchange and action traces are owned by the
+[snapshot episodes and deterministic action environments plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md).
 
 The old SFML button's click-versus-drag behavior is therefore removed rather
 than refined. Grammar insertion becomes a later command that uses a deliberate
@@ -447,6 +453,7 @@ close UX/data gates
   -> central client action registry + distributed owner-defined actions
   -> contextual local `/sfm action list|help|invoke` Brigadier surface
   -> universal palette hotkey and originating-screen context
+  -> SFML pretty-printer + contextual Format Document action
   -> Draw canvas button host + customizable Commands/Save/Cancel defaults
   -> global glyph, dynamic layer, and placement model
   -> command-driven grammar reference layer
@@ -996,6 +1003,44 @@ sfm-propagate-changes.exe test run --branch 1.19.2
 documented, typed, previewable, undoable semantics; unspecified destructive
 commands remain unavailable rather than guessing.
 
+### [ ] 2.5 Add the SFML pretty-printer and Format Document action
+
+**Work:**
+
+- Define a deterministic SFML pretty-printer over the existing ANTLR parse/AST
+  model. Preserve program meaning, string/comment contents, and intentional
+  language constructs; malformed input reports diagnostics and is not partially
+  rewritten.
+- Register one contextual `sfm:document/format` action available to editable
+  SFML document sessions. Palette invocation, canvas button binding, and
+  keyboard binding all call the same editor mutation.
+- Seed Ctrl+Alt+L as the default SFM-owned dynamic binding after Track 4's
+  registry exists. Before then, keep the action usable from the palette.
+- Show the configured binding on the command-palette action row and expose the
+  action description/binding editor through the shared action-details screen.
+- Apply formatting as one undoable document transaction. Cursor/selection
+  relocation is deterministic and documented; invoking the formatter does not
+  close or replace the editor screen.
+- Record the input events, action invocation, and document transition through
+  the shared episode/action-trace model when tracing is enabled.
+
+**Validation:**
+
+- `parse(format(source))` is structurally equivalent to `parse(source)`.
+- `format(format(source)) == format(source)`.
+- malformed, comments, blank lines, strings, labels, triggers, and representative
+  template programs have focused fixtures.
+- palette and Ctrl+Alt+L produce the same single undoable mutation.
+- Undo restores the exact pre-format document bytes.
+
+**Visible proof:** A puppet opens deliberately untidy SFML, shows **Format
+Document — Ctrl+Alt+L** in the palette, formats it, undoes it, formats it again,
+and demonstrates that a second format is a no-op.
+
+**Completion criteria:** SFML formatting is deterministic, parse-preserving,
+idempotent, undoable, available through one contextual action, and presented
+with its current dynamic binding.
+
 ## Phase 3 — Make save and scratch semantics deliberate
 
 ### [ ] 3.1 Keep editing global and layer membership deliberate
@@ -1421,6 +1466,9 @@ release mutation occurs before its explicit approval gate.
 - [ ] Palette, shortcuts, and buttons share structured availability/execution.
   Draw users can pin/unpin and safely customize viable action buttons; stale or
   unavailable bindings remain recoverable but cannot execute.
+- [ ] `sfm:document/format` is parse-preserving, idempotent, undoable, remains
+  in the current editor, and shows its current SFM-owned dynamic binding in the
+  palette/action-details UI.
 - [ ] Grammar is inserted through the shared command system, uses top-centre as
   its no-argument placement, has typed explicit placement alternatives, and
   creates one named read-only reference layer per inserted reference.

@@ -2,7 +2,7 @@
 
 **Plan status:** Proposed  
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-07-16
+**Last updated:** 2026-07-21
 
 ## How to update this plan
 
@@ -161,6 +161,69 @@ These observations turn “AST rewrite” into four explicit layers: a lossless
 syntax layer, a project symbol index, an operation planner, and a transactional
 source/repository writer. Each layer needs independent fixtures and diagnostics.
 
+## Snapshot, comparison, and equivalence contract
+
+The versioned full-filesystem interchange and episode history are owned by the
+[snapshot episodes and deterministic action environments plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md).
+The refactoring suite consumes immutable snapshot identities and may produce a
+new snapshot plus explicit operation lineage. It must not invent a competing
+repository snapshot format.
+
+### Snapshot-scoped symbol identity
+
+A symbol id identifies a declaration inside one immutable source/index
+snapshot. Rename, move, file rename, signature change, extraction, and inlining
+can invalidate paths, qualified names, descriptors, and node positions.
+Cross-snapshot identity is therefore represented by a proposed or proven
+correspondence produced by an operation/comparison, not by claiming that an id
+is eternally stable.
+
+Queries may be set-valued and composable. An operation that requires one target
+applies an explicit exactly-one cardinality gate and reports zero or ambiguous
+matches with candidates. Renaming ten methods is an outer iteration over ten
+single-symbol operation plans rather than making the primitive rename operation
+implicitly multi-target.
+
+### Structured source comparison
+
+Add a versioned machine-readable comparison artifact suitable for source review:
+
+```text
+SourceComparison {
+    before_snapshot,
+    after_snapshot,
+    files,
+    operations,
+    correspondences,
+    diagnostics,
+    assumptions
+}
+```
+
+File operations distinguish add, delete, rename, modify, and unchanged.
+Source operations begin with deterministic line/range insertion, deletion, and
+replacement, then add formatting-only change, symbol rename, unchanged body
+under rename, renamed-and-modified body, and explicit ambiguous/unknown
+correspondence. Reports retain before/after source spans, hashes, bounded
+excerpts, confidence/proof level, and parent operation relationships.
+
+The in-game workspace remains a downstream consumer and displays source code
+with annotations. A generic AST tree is not the primary review UI. The first
+viewer may consume fixture JSON before this producer is implemented; Vox is not
+required because the CLI can prepare an ordinary file on disk.
+
+### Equivalence ladder and reversibility
+
+Reports name byte, syntax, formatting-insensitive, alpha, bounded-symbolic,
+observational-under-policy, task, or unknown equivalence. They never collapse
+these into an unqualified boolean. A conservative unknown result is correct.
+
+Alpha-renaming, normalization, IR lowering, and semantic amalgamation may erase
+original names, formatting, or implementation structure. If exact
+deamalgamation is advertised, the artifact stores witnesses/source maps and
+operation lineage sufficient to restore those distinctions. The canonical full
+snapshot remains available even when an optimized or normalized form exists.
+
 ## Phase 1 — Inventory and architecture
 
 ### [ ] 1.1 Map the existing foundations
@@ -182,6 +245,11 @@ reconnaissance above as the initial decision log.
 
 - Add typed models for `SymbolId`, `TypeId`, `MethodSignature`, source spans,
   edits, file plans, diagnostics, confidence, and validation status.
+- Make ids explicitly snapshot-scoped. Add correspondence/lineage models for
+  relating declarations and operations across before/after snapshots.
+- Add versioned `SourceComparison`, file-operation, source-operation,
+  equivalence-level, assumption, witness, and unknown/ambiguity models shared
+  by human-readable and JSON reports.
 - Add Facet derives and stable external names for reports and command options.
 - Model edit preconditions with the original file hash and expected source
   span so stale plans fail safely.
@@ -255,7 +323,8 @@ imports, overloaded `between`, and `var a = this.font; a.drawString(...)`.
 ### [ ] 2.2a Build an indexed symbol graph before operation-specific logic
 
 - Index declarations and references in deterministic path/order, assigning
-  stable IDs based on branch, file hash, qualified owner, and descriptor.
+  snapshot-scoped IDs based on source snapshot, file hash, qualified owner, and
+  descriptor. Never infer cross-snapshot continuity from id equality alone.
 - Store scopes and parent relationships for packages, types, methods,
   constructors, fields, parameters, locals, lambdas, and anonymous classes.
 - Add import and inheritance resolution as graph edges; retain unresolved edges
@@ -285,6 +354,27 @@ provide that identity.
 
 **Validation:** the same snapshot/request produces byte-identical reports and
 diffs across repeated runs.
+
+### [ ] 2.5 Produce structured source comparisons
+
+- Compare two immutable full snapshots without requiring either to be the
+  current Git worktree.
+- Emit deterministic file add/delete/rename/modify/unchanged operations plus a
+  line/range fallback for changed files.
+- Add conservative Java-aware correspondences incrementally: formatting-only,
+  type/file rename, member rename with references, unchanged method body under
+  rename, rename plus body modification, and ambiguous/unknown.
+- Preserve exact before/after spans, hashes, excerpts, diagnostics,
+  assumptions, and equivalence proof level.
+- Support human-readable output and versioned Facet JSON such as
+  `source compare --before <snapshot> --after <snapshot> --output <file>`.
+- Keep report production read-only. Do not require Vox, Minecraft, Gradle, or a
+  materialized Git patch.
+
+**Validation:** fixture comparisons are byte-identical across repeated runs;
+swapping before/after produces the expected inverse file/range operations;
+ambiguous correspondence remains unknown; and the Java in-game viewer can load
+the versioned fixture without implementing Rust parsing.
 
 ## Phase 3 — First refactoring: rename/move (`mv`)
 
@@ -448,6 +538,10 @@ The first milestone is complete when all of the following are true:
    by default.
 4. The resulting tree compiles and passes focused tests, audit, and the
    version-surface check, then propagates cleanly through supported branches.
+5. Two immutable snapshot fixtures produce a deterministic versioned
+   `SourceComparison` JSON with line/range fallback, snapshot-scoped
+   correspondences, explicit equivalence levels, and unknown ambiguity that the
+   in-game comparison viewer can load without Vox.
 
 ## Detailed implementation contracts
 
