@@ -517,13 +517,13 @@ public class SFMLTests {
                 .orElseThrow();
         assertEquals(0, every.startIndex());
         assertEquals(4, every.stopIndex());
-        assertEquals(ChatFormatting.BLUE, every.colour());
+        assertEquals(0xFF5555FF, every.colour());
 
         var ticks = highlights.stream()
                 .filter(highlight -> highlight.text().equals("TICKS"))
                 .findFirst()
                 .orElseThrow();
-        assertEquals(ChatFormatting.GOLD, ticks.colour());
+        assertEquals(0xFFFFAA00, ticks.colour());
     }
 
 

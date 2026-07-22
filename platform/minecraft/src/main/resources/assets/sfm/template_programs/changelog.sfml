@@ -11,6 +11,7 @@ NAME "Changelog"
 -- Add a read-only file explorer workspace with safe directory drops and reusable side-by-side text previews
 -- Add experimental runtime SFM shortcuts with action details and command-palette binding badges
 -- Add Minecraft ItemStack icons with accessible text to the file explorer and command palette
+-- Add reloadable TOML client themes for palette/timeline colours, SFML syntax styles, and item icons
 -- Insert the required separator when a palette action still needs Brigadier arguments
 -- Add a reusable timeline panel with a visual chest-to-player inventory replay fixture
 -- Refine timeline replay with vanilla inventory spacing, semantic keyframes, interpolation, and elapsed-time seeking
