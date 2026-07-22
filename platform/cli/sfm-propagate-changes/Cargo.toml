@@ -35,9 +35,11 @@ ratatui = "0.30.0"
 rayon = "1.12.0"
 reqwest = { version = "0.12.24", default-features = false, features = ["blocking", "multipart", "rustls-tls"] }
 sha1 = "0.10.6"
+sha2 = "0.10.9"
 tempfile = "3.27.0"
 tokio = { version = "1.49.0", features = ["full"] }
 tree-sitter-patched-arborium = "=0.25.10"
+unicode-normalization = "0.1.24"
 tracing = "0.1.44"
 tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }

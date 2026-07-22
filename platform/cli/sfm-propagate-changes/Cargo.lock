@@ -3980,6 +3980,7 @@ dependencies = [
  "rayon",
  "reqwest 0.12.28",
  "sha1",
+ "sha2",
  "teamy-windows",
  "tempfile",
  "tokio",
@@ -3989,6 +3990,7 @@ dependencies = [
  "tracing-tracy",
  "tracy-client",
  "tree-sitter-patched-arborium",
+ "unicode-normalization",
  "zip",
 ]
 
