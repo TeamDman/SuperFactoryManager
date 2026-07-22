@@ -10,8 +10,8 @@ use super::DependencySource;
 use super::MavenCoordinate;
 use super::Repository;
 use super::SourceGitProvenance;
-use super::acquire_artifact_path_lock;
-use super::acquire_artifact_path_read_lock;
+use super::acquire_artifact_path_lock_cancellable;
+use super::acquire_artifact_path_read_lock_cancellable;
 use super::artifact_provenance;
 use super::compare_version_text;
 use super::copy_file_to_path_checked_locked;
@@ -191,7 +191,8 @@ impl Resolver {
                 has_expected_hash = expected_hash.is_some(),
             )
             .entered();
-            let cache_lock = acquire_artifact_path_lock(&cache_path)?;
+            let cache_lock =
+                acquire_artifact_path_lock_cancellable(&cache_path, &self.cancellation_token)?;
             self.cancellation_token.bail_if_cancelled()?;
             prepare_existing_artifact_for_reuse(&cache_path, expected_hash.as_ref())?;
 
@@ -319,7 +320,8 @@ impl Resolver {
 
         let (checkout_dir, portable_source_root, repository_dir) =
             self.source_build_checkout_paths(remote_url, &source_git.commit, &source_git.root);
-        let _source_build_lock = acquire_artifact_path_lock(&checkout_dir)?;
+        let _source_build_lock =
+            acquire_artifact_path_lock_cancellable(&checkout_dir, &self.cancellation_token)?;
         materialize_source_build(
             &self.cancellation_token,
             remote_url,
@@ -680,7 +682,8 @@ impl Resolver {
             return Ok(None);
         }
 
-        let _cache_read_lock = acquire_artifact_path_read_lock(cache_path)?;
+        let _cache_read_lock =
+            acquire_artifact_path_read_lock_cancellable(cache_path, &self.cancellation_token)?;
         let expected_actual_hash = match expected_hash {
             Some(expected_hash) => {
                 let actual_hash = ContentHash::from_path(cache_path, expected_hash.algorithm)?;

@@ -1211,7 +1211,7 @@ fn execute_dependency_deobf_dependency(
                 output = %remapped.display()
             )
             .entered();
-            acquire_artifact_path_lock(&remapped)?
+            acquire_artifact_path_lock_cancellable(&remapped, &resolver.cancellation_token)?
         };
         if remapped.is_file() {
             tracing::debug!(
