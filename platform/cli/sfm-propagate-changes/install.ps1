@@ -1,5 +1,7 @@
 $installerRevisionEnvironmentName = "SFM_PROPAGATE_CHANGES_INSTALL_GIT_REVISION"
-$installerRevision = [string](& git -C $PSScriptRoot rev-parse --verify --short=9 HEAD)
+$installerWorktreeRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..\..")).Path
+$installerSafeDirectoryArgument = "safe.directory=$installerWorktreeRoot"
+$installerRevision = [string](& git -c $installerSafeDirectoryArgument -C $installerWorktreeRoot rev-parse --verify --short=9 HEAD)
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to determine the sfm-propagate-changes worktree revision."
     exit $LASTEXITCODE
