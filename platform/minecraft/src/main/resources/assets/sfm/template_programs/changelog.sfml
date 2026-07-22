@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add a persistent, theme-aware source review ledger with visible reviewed, approved, audit, and stale states
 -- Add an experimental two-panel SFM workspace with typed command-palette screen opening
 -- Add a read-only file explorer workspace with safe directory drops and reusable side-by-side text previews
 -- Add experimental runtime SFM shortcuts with action details and command-palette binding badges

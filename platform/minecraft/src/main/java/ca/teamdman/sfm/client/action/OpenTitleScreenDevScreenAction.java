@@ -91,6 +91,18 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             "Search the Minecraft item registry and choose a typed icon"
     );
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SOURCE_REVIEW_TITLE = new LocalizationEntry(
+            "gui.sfm.client_action.developer.source_review.title",
+            "Source Review Ledger"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SOURCE_REVIEW_DESCRIPTION = new LocalizationEntry(
+            "gui.sfm.client_action.developer.source_review.description",
+            "Review fixture-driven source changes with persistent decisions and audit status"
+    );
+
     private final SFMTitleScreenDevScreen devScreen;
 
     public OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen devScreen) {
@@ -106,6 +118,7 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             case FILE_EXPLORER -> FILE_EXPLORER_TITLE.getComponent();
             case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_TITLE.getComponent();
             case ITEM_ICON_PICKER -> ITEM_ICON_PICKER_TITLE.getComponent();
+            case SOURCE_REVIEW -> SOURCE_REVIEW_TITLE.getComponent();
         };
     }
 
@@ -118,6 +131,7 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             case FILE_EXPLORER -> FILE_EXPLORER_DESCRIPTION.getComponent();
             case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_DESCRIPTION.getComponent();
             case ITEM_ICON_PICKER -> ITEM_ICON_PICKER_DESCRIPTION.getComponent();
+            case SOURCE_REVIEW -> SOURCE_REVIEW_DESCRIPTION.getComponent();
         };
     }
 
@@ -129,6 +143,9 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
         }
         if (devScreen == SFMTitleScreenDevScreen.ITEM_ICON_PICKER) {
             return Optional.of(SFMItemIcon.vanilla("compass", "Item icon picker"));
+        }
+        if (devScreen == SFMTitleScreenDevScreen.SOURCE_REVIEW) {
+            return Optional.of(SFMItemIcon.vanilla("writable_book", "Source review ledger"));
         }
         return Optional.empty();
     }
