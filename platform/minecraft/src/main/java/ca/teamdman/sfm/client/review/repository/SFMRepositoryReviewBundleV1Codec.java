@@ -58,25 +58,25 @@ public final class SFMRepositoryReviewBundleV1Codec {
         JsonElement parsed = JsonParser.parseString(json);
         if (!parsed.isJsonObject()) throw invalid("Bundle root must be an object");
         JsonObject root = parsed.getAsJsonObject();
-        requireEqual(text(root, "schema"), SFMRepositoryReviewBundleV1.SCHEMA, "bundle schema");
+        requireEqual(requiredText(root, "schema"), SFMRepositoryReviewBundleV1.SCHEMA, "bundle schema");
         JsonObject repositoryObject = object(root, "repository");
-        String repositoryName = nfcNonEmpty(text(repositoryObject, "name"), "repository.name");
+        String repositoryName = nfcNonEmpty(requiredText(repositoryObject, "name"), "repository.name");
         SFMRepositoryReviewBundleV1.Repository repository = new SFMRepositoryReviewBundleV1.Repository(
-                repositoryName, text(repositoryObject, "display_path"));
+                repositoryName, requiredText(repositoryObject, "display_path"));
         JsonObject producerObject = object(root, "producer");
         SFMRepositoryReviewBundleV1.Producer producer = new SFMRepositoryReviewBundleV1.Producer(
-                nonEmpty(text(producerObject, "id"), "producer.id"),
-                nonEmpty(text(producerObject, "contract_version"), "producer.contract_version"));
+                nonEmpty(requiredText(producerObject, "id"), "producer.id"),
+                nonEmpty(requiredText(producerObject, "contract_version"), "producer.contract_version"));
         SFMRepositoryReviewBundleV1.Snapshot before = parseSnapshot(object(root, "before"), "before");
         SFMRepositoryReviewBundleV1.Snapshot after = parseSnapshot(object(root, "after"), "after");
         if (before.id().equals(after.id())) throw invalid("Before and after snapshots must have distinct ids");
         SFMRepositoryReviewBundleV1.Comparison comparison = parseComparison(
                 object(root, "comparison"), before, after);
-        String id = text(root, "id");
+        String id = requiredText(root, "id");
         String expectedId = bundleId(repositoryName, before.id(), after.id());
         requireEqual(id, expectedId, "bundle id");
-        return new SFMRepositoryReviewBundleV1(text(root, "schema"), id,
-                nonEmpty(text(root, "name"), "name"), repository, producer, before, after, comparison);
+        return new SFMRepositoryReviewBundleV1(requiredText(root, "schema"), id,
+                nonEmpty(requiredText(root, "name"), "name"), repository, producer, before, after, comparison);
     }
 
     public static String bundleId(String repositoryName, String beforeSnapshotId, String afterSnapshotId) {
@@ -92,12 +92,12 @@ public final class SFMRepositoryReviewBundleV1Codec {
     }
 
     private static SFMRepositoryReviewBundleV1.Snapshot parseSnapshot(JsonObject value, String side) {
-        requireEqual(text(value, "schema"), SFMRepositoryReviewBundleV1.SNAPSHOT_SCHEMA, side + " snapshot schema");
+        requireEqual(requiredText(value, "schema"), SFMRepositoryReviewBundleV1.SNAPSHOT_SCHEMA, side + " snapshot schema");
         JsonObject sourceObject = object(value, "source");
         SFMRepositoryReviewBundleV1.Source source = new SFMRepositoryReviewBundleV1.Source(
-                nonEmpty(text(sourceObject, "kind"), side + ".source.kind"),
-                nonEmpty(text(sourceObject, "revision"), side + ".source.revision"),
-                nonEmpty(text(sourceObject, "label"), side + ".source.label"));
+                nonEmpty(requiredText(sourceObject, "kind"), side + ".source.kind"),
+                nonEmpty(requiredText(sourceObject, "revision"), side + ".source.revision"),
+                nonEmpty(requiredText(sourceObject, "label"), side + ".source.label"));
         JsonArray fileValues = array(value, "files");
         validateBounds(fileValues.size(), 0, 0, side);
         List<SFMRepositoryReviewBundleV1.FileEntry> files = new ArrayList<>(fileValues.size());
@@ -106,12 +106,12 @@ public final class SFMRepositoryReviewBundleV1Codec {
         long total = 0;
         for (JsonElement element : fileValues) {
             JsonObject file = asObject(element, side + " snapshot file");
-            String path = validatePath(text(file, "path"));
+            String path = validatePath(requiredText(file, "path"));
             if (!paths.add(path)) throw invalid("Duplicate path in " + side + " snapshot: " + path);
             if (previous != null && UTF8_ORDER.compare(previous, path) >= 0)
                 throw invalid(side + " snapshot files are not strictly path-sorted: " + path);
             previous = path;
-            String encodingName = text(file, "encoding");
+            String encodingName = requiredText(file, "encoding");
             SFMRepositoryReviewBundleV1.Encoding encoding;
             String text = null;
             String data = null;
@@ -119,26 +119,26 @@ public final class SFMRepositoryReviewBundleV1Codec {
             if ("utf8".equals(encodingName)) {
                 encoding = SFMRepositoryReviewBundleV1.Encoding.UTF8;
                 if (!file.has("text") || file.has("data")) throw invalid(path + " must contain text xor data");
-                text = text(file, "text");
+                text = requiredText(file, "text");
                 content = encodeUtf8(text, path);
             } else if ("base64".equals(encodingName)) {
                 encoding = SFMRepositoryReviewBundleV1.Encoding.BASE64;
                 if (!file.has("data") || file.has("text")) throw invalid(path + " must contain data xor text");
-                data = text(file, "data");
+                data = requiredText(file, "data");
                 if (!BASE64.matcher(data).matches()) throw invalid("Invalid padded RFC 4648 base64 for " + path);
                 try { content = Base64.getDecoder().decode(data); }
                 catch (IllegalArgumentException exception) { throw invalid("Invalid base64 for " + path); }
             } else throw invalid("Unknown encoding '" + encodingName + "' for " + path);
             total += content.length;
             validateBounds(fileValues.size(), content.length, total, side + ":" + path);
-            String sha256 = hash(text(file, "sha256"), path + " sha256");
+            String sha256 = hash(requiredText(file, "sha256"), path + " sha256");
             requireEqual(SFMReviewSessionV1Kernel.sha256(content), sha256, path + " content sha256");
             files.add(new SFMRepositoryReviewBundleV1.FileEntry(path, encoding, text, data, sha256, content));
         }
-        String id = text(value, "id");
+        String id = requiredText(value, "id");
         String expected = snapshotId(files);
         requireEqual(id, expected, side + " snapshot id");
-        return new SFMRepositoryReviewBundleV1.Snapshot(text(value, "schema"), id, source, files);
+        return new SFMRepositoryReviewBundleV1.Snapshot(requiredText(value, "schema"), id, source, files);
     }
 
     private static SFMRepositoryReviewBundleV1.Comparison parseComparison(
@@ -146,9 +146,9 @@ public final class SFMRepositoryReviewBundleV1Codec {
             SFMRepositoryReviewBundleV1.Snapshot before,
             SFMRepositoryReviewBundleV1.Snapshot after
     ) {
-        requireEqual(text(value, "schema"), SFMRepositoryReviewBundleV1.COMPARISON_SCHEMA, "comparison schema");
-        requireEqual(text(value, "before_snapshot_id"), before.id(), "comparison before_snapshot_id");
-        requireEqual(text(value, "after_snapshot_id"), after.id(), "comparison after_snapshot_id");
+        requireEqual(requiredText(value, "schema"), SFMRepositoryReviewBundleV1.COMPARISON_SCHEMA, "comparison schema");
+        requireEqual(requiredText(value, "before_snapshot_id"), before.id(), "comparison before_snapshot_id");
+        requireEqual(requiredText(value, "after_snapshot_id"), after.id(), "comparison after_snapshot_id");
         Map<String, SFMRepositoryReviewBundleV1.FileEntry> beforeFiles = filesByPath(before);
         Map<String, SFMRepositoryReviewBundleV1.FileEntry> afterFiles = filesByPath(after);
         List<SFMRepositoryReviewBundleV1.FileChange> changes = new ArrayList<>();
@@ -158,7 +158,7 @@ public final class SFMRepositoryReviewBundleV1Codec {
         for (JsonElement element : array(value, "file_changes")) {
             JsonObject change = asObject(element, "file change");
             SFMRepositoryReviewBundleV1.ChangeKind kind = enumValue(
-                    SFMRepositoryReviewBundleV1.ChangeKind.class, text(change, "kind"), "change kind");
+                    SFMRepositoryReviewBundleV1.ChangeKind.class, requiredText(change, "kind"), "change kind");
             String beforePath = nullableText(change, "before_path");
             String afterPath = nullableText(change, "after_path");
             if (beforePath != null) beforePath = validatePath(beforePath);
@@ -174,10 +174,10 @@ public final class SFMRepositoryReviewBundleV1Codec {
             List<SFMRepositoryReviewBundleV1.Operation> operations = new ArrayList<>();
             for (JsonElement operationElement : array(change, "operations")) {
                 JsonObject operation = asObject(operationElement, "comparison operation");
-                String operationId = nonEmpty(text(operation, "id"), "operation.id");
+                String operationId = nonEmpty(requiredText(operation, "id"), "operation.id");
                 if (!operationIds.add(operationId)) throw invalid("Duplicate operation id " + operationId);
                 SFMRepositoryReviewBundleV1.OperationKind operationKind = enumValue(
-                        SFMRepositoryReviewBundleV1.OperationKind.class, text(operation, "kind"), "operation kind");
+                        SFMRepositoryReviewBundleV1.OperationKind.class, requiredText(operation, "kind"), "operation kind");
                 SFMRepositoryReviewBundleV1.Selection beforeSelection = nullableSelection(
                         operation, "before", beforeFiles);
                 SFMRepositoryReviewBundleV1.Selection afterSelection = nullableSelection(
@@ -195,7 +195,7 @@ public final class SFMRepositoryReviewBundleV1Codec {
             changes.add(new SFMRepositoryReviewBundleV1.FileChange(
                     kind, beforePath, afterPath, binary, operations, diagnostics));
         }
-        return new SFMRepositoryReviewBundleV1.Comparison(text(value, "schema"), before.id(), after.id(), changes);
+        return new SFMRepositoryReviewBundleV1.Comparison(requiredText(value, "schema"), before.id(), after.id(), changes);
     }
 
     private static void validateChangePaths(SFMRepositoryReviewBundleV1.ChangeKind kind, String beforePath,
@@ -228,7 +228,7 @@ public final class SFMRepositoryReviewBundleV1Codec {
         if (!parent.has(name)) throw invalid("Missing explicit operation side '" + name + "'");
         if (parent.get(name) instanceof JsonNull) return null;
         JsonObject value = object(parent, name);
-        String path = validatePath(text(value, "path"));
+        String path = validatePath(requiredText(value, "path"));
         SFMRepositoryReviewBundleV1.FileEntry file = files.get(path);
         if (file == null) throw invalid("Dangling selection path " + path);
         if (file.encoding() != SFMRepositoryReviewBundleV1.Encoding.UTF8)
@@ -238,7 +238,7 @@ public final class SFMRepositoryReviewBundleV1Codec {
         byte[] bytes = file.content();
         if (start < 0 || end < start || end > bytes.length || !utf8Boundary(bytes, start) || !utf8Boundary(bytes, end))
             throw invalid("Selection range is out of bounds or splits UTF-8 for " + path);
-        String selectionHash = hash(text(value, "sha256"), "selection sha256");
+        String selectionHash = hash(requiredText(value, "sha256"), "selection sha256");
         requireEqual(SFMReviewSessionV1Kernel.sha256(java.util.Arrays.copyOfRange(bytes, start, end)),
                 selectionHash, "selected bytes sha256 for " + path);
         return new SFMRepositoryReviewBundleV1.Selection(path, start, end, selectionHash);
@@ -389,7 +389,7 @@ public final class SFMRepositoryReviewBundleV1Codec {
         if (!value.has(name)) throw invalid("Missing field '" + name + "'");
         return value.get(name).isJsonNull() ? null : value.get(name).getAsString();
     }
-    private static String text(JsonObject value, String name) {
+    private static String requiredText(JsonObject value, String name) {
         if (!value.has(name) || value.get(name).isJsonNull()) throw invalid("Missing field '" + name + "'");
         return value.get(name).getAsString();
     }

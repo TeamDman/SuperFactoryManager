@@ -236,12 +236,12 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
         int bottom = bounds.y() + bounds.height() - 28;
         GuiComponent.fill(poseStack, bounds.x(), bounds.y(), right, bounds.y() + bounds.height(),
                 theme.colour(SFMColourRole.PANEL_BACKGROUND));
-        draw(poseStack, minecraft, "Repository Review · " + bundle.summary().name(), bounds.x() + 8,
+        drawReviewText(poseStack, minecraft, "Repository Review · " + bundle.summary().name(), bounds.x() + 8,
                 bounds.y() + 7, bounds.width() - 16, theme.colour(SFMColourRole.TEXT_ACCENT), true);
-        draw(poseStack, minecraft, bundle.summary().beforeLabel() + " → " + bundle.summary().afterLabel()
+        drawReviewText(poseStack, minecraft, bundle.summary().beforeLabel() + " → " + bundle.summary().afterLabel()
                         + " · managed repository-review inbox", bounds.x() + 8, bounds.y() + 20,
                 bounds.width() - 16, theme.colour(SFMColourRole.TEXT_MUTED), false);
-        draw(poseStack, minecraft, "Changed " + bundle.summary().changedFileCount() + " · showing "
+        drawReviewText(poseStack, minecraft, "Changed " + bundle.summary().changedFileCount() + " · showing "
                         + visibleFiles().size() + " · / search · ↑/↓ browse · N comment", bounds.x() + 8,
                 bounds.y() + 33, bounds.width() - 16, theme.colour(SFMColourRole.TEXT_PRIMARY), false);
 
@@ -250,7 +250,7 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
         listY = top + 25;
         listWidth = Math.min(330, Math.max(190, bounds.width() / 3));
         GuiComponent.fill(poseStack, listX, top, listX + listWidth, bottom, 0xFF171B20);
-        draw(poseStack, minecraft, searching ? "Search: " + search + "_" : "CHANGED FILES",
+        drawReviewText(poseStack, minecraft, searching ? "Search: " + search + "_" : "CHANGED FILES",
                 listX + 6, top + 7, listWidth - 12, theme.colour(SFMColourRole.TEXT_ACCENT), true);
         renderFiles(poseStack, minecraft, theme, bottom);
 
@@ -270,10 +270,10 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
 
         if (editing) {
             GuiComponent.fill(poseStack, bounds.x() + 20, bottom - 38, right - 20, bottom - 10, 0xFF101419);
-            draw(poseStack, minecraft, "New comment: " + draft + "_", bounds.x() + 28, bottom - 30,
+            drawReviewText(poseStack, minecraft, "New comment: " + draft + "_", bounds.x() + 28, bottom - 30,
                     bounds.width() - 56, theme.colour(SFMColourRole.TEXT_PRIMARY), false);
         }
-        draw(poseStack, minecraft, status + " · generated " + generatedForActive() + " · user "
+        drawReviewText(poseStack, minecraft, status + " · generated " + generatedForActive() + " · user "
                         + humanCommentCount(), bounds.x() + 8, bounds.y() + bounds.height() - 16,
                 bounds.width() - 16, theme.colour(SFMColourRole.TEXT_ACCENT), false);
     }
@@ -288,10 +288,10 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
             String path = displayPath(file);
             var presentation = presentations.presentationFor(SFMFileExplorerEntry.file(path, fileName(path)));
             SFMItemIconRenderer.render(minecraft, presentation.itemIcon(), listX + 6, y + 2);
-            draw(poseStack, minecraft, kind(file).toUpperCase(Locale.ROOT) + "  " + fileName(path),
+            drawReviewText(poseStack, minecraft, kind(file).toUpperCase(Locale.ROOT) + "  " + fileName(path),
                     listX + 28, y + 6, listWidth - 34, presentation.textColour(), index == selected);
         }
-        if (rows.isEmpty()) draw(poseStack, minecraft, "No changed files match", listX + 8, listY + 8,
+        if (rows.isEmpty()) drawReviewText(poseStack, minecraft, "No changed files match", listX + 8, listY + 8,
                 listWidth - 16, theme.colour(SFMColourRole.TEXT_MUTED), false);
     }
 
@@ -299,7 +299,7 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
                                 SFMReviewCommentDataSource.DocumentView document, String label,
                                 int x, int y, int width, int bottom) {
         GuiComponent.fill(poseStack, x, y, x + width, bottom, 0xFF151A1E);
-        draw(poseStack, minecraft, label + " · " + (document == null ? "(none)" : fileName(document.path())),
+        drawReviewText(poseStack, minecraft, label + " · " + (document == null ? "(none)" : fileName(document.path())),
                 x + 5, y + 7, width - 10, label.equals("BEFORE") ? 0xFFFF6666 : 0xFF55FFFF, true);
         if (document == null) return;
         String[] lines = document.text().split("\\n", -1);
@@ -312,13 +312,13 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
                             y + 38 + index * 14, 0x665588CC);
                 }
             }
-            draw(poseStack, minecraft, String.format("%2d  %s", index + 1, lines[index]), x + 5,
+            drawReviewText(poseStack, minecraft, String.format("%2d  %s", index + 1, lines[index]), x + 5,
                     y + 28 + index * 14, width - 10, theme.colour(SFMColourRole.TEXT_PRIMARY), false);
         }
         int row = y + 28 + Math.min(lines.length, 8) * 14;
         for (var comment : commentsFor(document.id())) {
             int colour = comment.provenance().startsWith("human") ? 0xFFFFCC55 : 0xFF77AAFF;
-            draw(poseStack, minecraft, "• " + comment.text() + " · " + comment.provenance(),
+            drawReviewText(poseStack, minecraft, "• " + comment.text() + " · " + comment.provenance(),
                     x + 5, row, width - 10, colour, false);
             row += 13;
         }
@@ -386,8 +386,8 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
         return separator < 0 ? path : path.substring(separator + 1);
     }
 
-    private static void draw(PoseStack poseStack, Minecraft minecraft, String text,
-                             int x, int y, int width, int colour, boolean shadow) {
+    private static void drawReviewText(PoseStack poseStack, Minecraft minecraft, String text,
+                                       int x, int y, int width, int colour, boolean shadow) {
         if (width <= 0) return;
         SFMFontUtils.draw(poseStack, minecraft.font, minecraft.font.plainSubstrByWidth(text, width),
                 x, y, colour, shadow);
