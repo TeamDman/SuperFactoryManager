@@ -40,6 +40,11 @@ public final class SFMCommandPaletteActions {
             OpenKeyBindingScreenAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenReviewBundleAction> OPEN_REVIEW_BUNDLE = REGISTERER.register(
+            "review/open_bundle",
+            OpenReviewBundleAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, SFMThemeAction> THEME_RELOAD = REGISTERER.register(
             "theme/reload",
             () -> new SFMThemeAction(SFMThemeAction.Operation.RELOAD)
