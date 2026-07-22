@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.keybinding;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
+import ca.teamdman.sfm.client.action.SFMClientCommandInsertion;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import com.mojang.brigadier.ParseResults;
@@ -87,7 +88,12 @@ public final class SFMKeyBindingService {
                 origin,
                 () -> Minecraft.getInstance().screen == origin
         );
-        String command = stripSlash(intent.commandDraft()).trim();
+        String commandDraft = stripSlash(intent.commandDraft()).stripLeading();
+        String command = SFMClientCommandInsertion.prepare(
+                commandDraft,
+                SFMClientActions.commandTree(),
+                new SFMClientActionSource(context)
+        );
         ParseResults<SFMClientActionSource> parsed = SFMClientActions.commandTree().parse(
                 command,
                 new SFMClientActionSource(context)

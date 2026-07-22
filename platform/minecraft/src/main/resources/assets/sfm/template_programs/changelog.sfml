@@ -10,6 +10,8 @@ NAME "Changelog"
 -- Add an experimental two-panel SFM workspace with typed command-palette screen opening
 -- Add a read-only file explorer workspace with safe directory drops and reusable side-by-side text previews
 -- Add experimental runtime SFM shortcuts with action details and command-palette binding badges
+-- Add Minecraft ItemStack icons with accessible text to the file explorer and command palette
+-- Insert the required separator when a palette action still needs Brigadier arguments
 -- Rework CC:Tweaked support with mutable disk/label-gun handles and the Labeler turtle upgrade
 -- Add a flat CC:Tweaked SFM turtle peripheral with disk/gun editing and composable contiguous label discovery
 -- Add CC:Tweaked cable-network peripherals, structured SFM item details, and turtle inventory support

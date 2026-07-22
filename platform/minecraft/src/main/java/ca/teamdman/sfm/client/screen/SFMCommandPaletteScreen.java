@@ -3,6 +3,9 @@ package ca.teamdman.sfm.client.screen;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
+import ca.teamdman.sfm.client.action.SFMClientCommandInsertion;
+import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;
+import ca.teamdman.sfm.client.presentation.SFMItemIconResolver;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBinding;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingDisplay;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
@@ -12,6 +15,7 @@ import ca.teamdman.sfm.client.screen.widget.SFMConsoleWidget;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestion;
@@ -74,6 +78,12 @@ public final class SFMCommandPaletteScreen extends Screen {
             "Command could not be executed: %s"
     );
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry REQUIRED_ARGUMENT = new LocalizationEntry(
+            "gui.sfm.client_action.palette.required_argument",
+            "Separator inserted; provide the required argument"
+    );
+
     private static final int PANEL = 0xF0202020;
     private static final int BORDER = 0xFF707070;
     private static final int TEXT = 0xFFFFFFFF;
@@ -106,6 +116,7 @@ public final class SFMCommandPaletteScreen extends Screen {
     private long suggestionRevision;
     private long bindingCycleTicks;
     private boolean closing;
+    private boolean insertedRequiredArgumentSeparator;
 
     private SFMCommandPaletteScreen(
             SFMClientActionContext actionContext,
@@ -148,6 +159,19 @@ public final class SFMCommandPaletteScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return true;
+    }
+
+    @Override
+    public Component getNarrationMessage() {
+        if (selectedSuggestion < 0 || selectedSuggestion >= suggestions.size()) return TITLE.getComponent();
+        Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(selectedSuggestion));
+        if (actionId.isEmpty()) return TITLE.getComponent();
+        var action = SFMClientActions.registry().get(actionId.get());
+        if (action == null) return TITLE.getComponent();
+        var narration = TITLE.getComponent().copy().append(". ").append(action.title()).append(". ")
+                .append(action.description());
+        action.itemIcon(actionContext).ifPresent(icon -> narration.append(". Icon: " + icon.accessibleLabel()));
+        return narration;
     }
 
     @Override
@@ -324,10 +348,13 @@ public final class SFMCommandPaletteScreen extends Screen {
         fill(poseStack, right - 1, top, right, bottom, BORDER);
 
         SFMFontUtils.draw(poseStack, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD), left + 10, top + 12, TEXT, false);
+        Component guidance = insertedRequiredArgumentSeparator
+                ? REQUIRED_ARGUMENT.getComponent().withStyle(ChatFormatting.GOLD)
+                : ACCEPT_SUGGESTION.getComponent(Component.literal("Tab").withStyle(ChatFormatting.AQUA));
         SFMFontUtils.draw(
                 poseStack,
                 this.font,
-                ACCEPT_SUGGESTION.getComponent(Component.literal("Tab").withStyle(ChatFormatting.AQUA)),
+                guidance,
                 left + 10,
                 top + 54,
                 MUTED,
@@ -345,7 +372,10 @@ public final class SFMCommandPaletteScreen extends Screen {
                     fill(poseStack, left + 6, y - 2, right - 6, y + 14, 0xFF404040);
                 }
                 Suggestion suggestion = suggestions.get(suggestionIndex);
-                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion), left + 12, y, TEXT, false);
+                int textX = actionIcon(suggestion).isPresent()
+                        ? left + 10 + SFMItemIconRenderer.SIZE + 4
+                        : left + 12;
+                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion, textX - left), textX, y, TEXT, false);
                 renderBindingSummary(poseStack, suggestion, right, y);
             }
         }
@@ -363,7 +393,51 @@ public final class SFMCommandPaletteScreen extends Screen {
         this.consoleWidget.replaceLines(this.feedback);
         this.consoleWidget.render(poseStack, mouseX, mouseY, partialTick);
         super.render(poseStack, mouseX, mouseY, partialTick);
+        renderActionIconsOnTop(poseStack);
+        renderActionIconTooltip(poseStack, mouseX, mouseY);
         renderActionDetailsTooltip(poseStack, mouseX, mouseY);
+    }
+
+    private Optional<ca.teamdman.sfm.client.presentation.SFMItemIcon> actionIcon(Suggestion suggestion) {
+        Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
+        if (actionId.isEmpty()) return Optional.empty();
+        var action = SFMClientActions.registry().get(actionId.get());
+        return action == null ? Optional.empty() : action.itemIcon(actionContext);
+    }
+
+    private void renderActionIconsOnTop(PoseStack poseStack) {
+        // The palette is translucent and intentionally preserves the title/world colour buffer.
+        // Clear only stale scene depth before GUI item models so they cannot be hidden by the origin screen.
+        RenderSystem.clear(0x00000100, Minecraft.ON_OSX);
+        int count = visibleSuggestionCount();
+        for (int index = 0; index < count; index++) {
+            int suggestionIndex = firstVisibleSuggestion + index;
+            if (suggestionIndex >= suggestions.size()) break;
+            int y = panelTop() + 68 + index * SUGGESTION_ROW_HEIGHT;
+            actionIcon(suggestions.get(suggestionIndex)).ifPresent(icon ->
+                    SFMItemIconRenderer.render(minecraft, icon, panelLeft() + 10, y)
+            );
+        }
+    }
+
+    private void renderActionIconTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+        int firstY = panelTop() + 68;
+        int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
+        int suggestionIndex = firstVisibleSuggestion + visibleIndex;
+        int iconX = panelLeft() + 10;
+        int iconY = panelTop() + 68 + visibleIndex * SUGGESTION_ROW_HEIGHT;
+        if (visibleIndex < 0 || visibleIndex >= visibleSuggestionCount() || suggestionIndex >= suggestions.size()
+                || mouseX < iconX || mouseX >= iconX + SFMItemIconRenderer.SIZE
+                || mouseY < iconY || mouseY >= iconY + SFMItemIconRenderer.SIZE) return;
+        Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
+        if (actionId.isEmpty()) return;
+        var action = SFMClientActions.registry().get(actionId.get());
+        if (action == null) return;
+        action.itemIcon(actionContext).ifPresent(icon -> {
+            var resolved = SFMItemIconResolver.resolve(icon);
+            String fallback = resolved.usedFallback() ? " (using fallback item)" : "";
+            renderTooltip(poseStack, Component.literal(resolved.accessibleLabel() + fallback), mouseX, mouseY);
+        });
     }
 
     private void renderBindingSummary(PoseStack poseStack, Suggestion suggestion, int right, int y) {
@@ -397,14 +471,17 @@ public final class SFMCommandPaletteScreen extends Screen {
         List<Component> tooltip = new ArrayList<>();
         tooltip.add(action.title().copy().withStyle(ChatFormatting.AQUA));
         tooltip.add(action.description());
+        action.itemIcon(actionContext).ifPresent(icon -> tooltip.add(
+                Component.literal("Icon: " + icon.accessibleLabel()).withStyle(ChatFormatting.GRAY)
+        ));
         List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get());
         if (bindings.isEmpty()) tooltip.add(Component.literal("No key bindings").withStyle(ChatFormatting.GRAY));
         else bindings.forEach(binding -> tooltip.add(Component.literal(SFMKeyBindingDisplay.format(binding.sequence()))));
         renderComponentTooltip(poseStack, tooltip, mouseX, mouseY);
     }
 
-    private String truncateSuggestion(Suggestion suggestion) {
-        return font.plainSubstrByWidth(suggestion.getText(), Math.max(20, panelWidth() - 150));
+    private String truncateSuggestion(Suggestion suggestion, int leftInset) {
+        return font.plainSubstrByWidth(suggestion.getText(), Math.max(20, panelWidth() - 150 - leftInset));
     }
 
     private static Optional<ResourceLocation> suggestionActionId(Suggestion suggestion) {
@@ -519,6 +596,7 @@ public final class SFMCommandPaletteScreen extends Screen {
     }
 
     private void refreshSuggestions(String ignored) {
+        this.insertedRequiredArgumentSeparator = false;
         String command = commandInput();
         this.error = "";
         this.input.setSuggestion(command.isEmpty() ? INPUT_PLACEHOLDER.getString() : "");
@@ -547,12 +625,38 @@ public final class SFMCommandPaletteScreen extends Screen {
     private void applySelectedSuggestion() {
         if (this.selectedSuggestion < 0 || this.selectedSuggestion >= this.suggestions.size()) return;
         String current = commandInput();
-        String value = this.suggestions.get(this.selectedSuggestion).apply(current);
+        String suggestedValue = this.suggestions.get(this.selectedSuggestion).apply(current);
+        String value = SFMClientCommandInsertion.prepare(
+                suggestedValue,
+                SFMClientActions.commandTree(),
+                new SFMClientActionSource(actionContext)
+        );
         this.input.setValue(value);
+        this.insertedRequiredArgumentSeparator = !value.equals(suggestedValue);
         this.input.moveCursorToEnd();
     }
 
     private void executeInput() {
+        String rawCommand = commandInput().stripLeading();
+        String prepared = SFMClientCommandInsertion.prepare(
+                rawCommand,
+                SFMClientActions.commandTree(),
+                new SFMClientActionSource(actionContext)
+        );
+        if (!prepared.equals(rawCommand)) {
+            this.input.setValue(prepared);
+            this.insertedRequiredArgumentSeparator = true;
+            this.input.moveCursorToEnd();
+            return;
+        }
+        if (SFMClientCommandInsertion.isAwaitingRequiredArgument(
+                rawCommand,
+                SFMClientActions.commandTree(),
+                new SFMClientActionSource(actionContext)
+        )) {
+            this.insertedRequiredArgumentSeparator = true;
+            return;
+        }
         String command = normalizedCommand();
         if (command.isBlank()) return;
         try {
@@ -593,6 +697,25 @@ public final class SFMCommandPaletteScreen extends Screen {
                     "Command palette automation command could not be executed: " + normalized,
                     exception
             );
+        }
+    }
+
+    /** Sets the real palette input for a visual puppet without bypassing its responder. */
+    public void setInputForAutomation(String command) {
+        this.input.setValue(command);
+        this.input.moveCursorToEnd();
+    }
+
+    /** Exercises the same Enter path as a user and verifies its resulting draft. */
+    public void prepareIncompleteInputForAutomation(String command, String expected) {
+        setInputForAutomation(command);
+        executeInput();
+        if (!this.input.getValue().equals(expected)) {
+            throw new IllegalStateException("Expected palette input '" + expected + "' but found '"
+                    + this.input.getValue() + "'");
+        }
+        if (this.executeButton.active) {
+            throw new IllegalStateException("Incomplete palette input unexpectedly enabled Execute");
         }
     }
 

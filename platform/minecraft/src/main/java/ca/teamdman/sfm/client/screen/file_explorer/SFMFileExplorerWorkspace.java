@@ -14,8 +14,16 @@ public final class SFMFileExplorerWorkspace {
     }
 
     public static SFMScreenMultiplexer create(@Nullable Screen previousScreen, SFMFileExplorerSource source) {
+        return create(previousScreen, source, SFMFilePresentationRegistry.createDefault());
+    }
+
+    public static SFMScreenMultiplexer create(
+            @Nullable Screen previousScreen,
+            SFMFileExplorerSource source,
+            SFMFilePresentationRegistry presentations
+    ) {
         Controller controller = new Controller();
-        SFMFileExplorerPanel explorer = new SFMFileExplorerPanel(source, controller::open);
+        SFMFileExplorerPanel explorer = new SFMFileExplorerPanel(source, controller::open, presentations);
         controller.attachExplorer(explorer);
         return SFMScreenMultiplexer.create(previousScreen, explorer);
     }
