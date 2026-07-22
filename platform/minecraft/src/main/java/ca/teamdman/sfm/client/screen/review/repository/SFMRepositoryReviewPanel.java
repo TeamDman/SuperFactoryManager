@@ -190,7 +190,12 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
         for (int index = 0; index < line; index++) {
             start += lines[index].getBytes(StandardCharsets.UTF_8).length + 1;
         }
-        int end = start + lines[line].getBytes(StandardCharsets.UTF_8).length;
+        int selectedLineBytes = lines[line].getBytes(StandardCharsets.UTF_8).length;
+        if (selectedLineBytes == 0) {
+            status = "Selected line contains no glyphs";
+            return false;
+        }
+        int end = start + selectedLineBytes;
         selectedRange = new SFMReviewCommentDataSource.RangeView(document.id(), start, end);
         status = "Selected " + side.name().toLowerCase(Locale.ROOT) + " line " + (line + 1)
                 + " · UTF-8 [" + start + "," + end + ")";
@@ -302,8 +307,11 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
         drawReviewText(poseStack, minecraft, label + " · " + (document == null ? "(none)" : fileName(document.path())),
                 x + 5, y + 7, width - 10, label.equals("BEFORE") ? 0xFFFF6666 : 0xFF55FFFF, true);
         if (document == null) return;
+        List<SFMReviewCommentDataSource.CommentView> comments = commentsFor(document.id());
+        int visibleCommentCount = Math.min(comments.size(), 3);
+        int commentTop = visibleCommentCount == 0 ? bottom : bottom - visibleCommentCount * 13 - 8;
         String[] lines = document.text().split("\\n", -1);
-        for (int index = 0; index < lines.length && y + 28 + index * 14 < bottom; index++) {
+        for (int index = 0; index < lines.length && y + 28 + index * 14 < commentTop; index++) {
             if (selectedRange != null && selectedRange.documentRevisionId().equals(document.id())) {
                 int start = lineByteStart(lines, index);
                 int end = start + lines[index].getBytes(StandardCharsets.UTF_8).length;
@@ -315,8 +323,11 @@ public final class SFMRepositoryReviewPanel implements SFMScreenPanel {
             drawReviewText(poseStack, minecraft, String.format("%2d  %s", index + 1, lines[index]), x + 5,
                     y + 28 + index * 14, width - 10, theme.colour(SFMColourRole.TEXT_PRIMARY), false);
         }
-        int row = y + 28 + Math.min(lines.length, 8) * 14;
-        for (var comment : commentsFor(document.id())) {
+        if (visibleCommentCount > 0) {
+            GuiComponent.fill(poseStack, x + 2, commentTop, x + width - 2, bottom, 0xEE101419);
+        }
+        int row = commentTop + 4;
+        for (var comment : comments.stream().limit(visibleCommentCount).toList()) {
             int colour = comment.provenance().startsWith("human") ? 0xFFFFCC55 : 0xFF77AAFF;
             drawReviewText(poseStack, minecraft, "• " + comment.text() + " · " + comment.provenance(),
                     x + 5, row, width - 10, colour, false);
