@@ -53,6 +53,14 @@ public class SFMItemPickerQueryTests {
     }
 
     @Test
+    public void quotedResourceKeepsExplicitRegexSemantics() {
+        SFMItemPickerQuery.ParseResult result = SFMItemPickerQuery.parse("\"minecraft:iron.*\"");
+        assertTrue(result.valid(), result.diagnostic());
+        assertTrue(result.query().matches(IRON_INGOT));
+        assertFalse(result.query().matches(OAK_LOG));
+    }
+
+    @Test
     public void malformedMatcherProducesADiagnostic() {
         SFMItemPickerQuery.ParseResult result = SFMItemPickerQuery.parse("minecraft:* WITH TAG #");
         assertFalse(result.valid());
