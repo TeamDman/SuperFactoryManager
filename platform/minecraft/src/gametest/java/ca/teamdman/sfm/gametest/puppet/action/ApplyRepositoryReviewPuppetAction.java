@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
-import ca.teamdman.sfm.client.screen.review.repository.SFMRepositoryReviewPanel;
+import ca.teamdman.sfm.client.screen.review.repository.SFMRepositoryReviewChangedFilesPanel;
+import ca.teamdman.sfm.client.screen.review.repository.SFMRepositoryReviewWorkspaceModel;
 import ca.teamdman.sfm.client.screen.review.comment.SFMReviewCommentDataSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
@@ -19,26 +20,32 @@ public record ApplyRepositoryReviewPuppetAction(String command) implements SFMPu
         if (!(Minecraft.getInstance().screen instanceof SFMScreenMultiplexer multiplexer)) {
             throw new IllegalStateException("Expected repository-review multiplexer");
         }
-        SFMRepositoryReviewPanel panel = multiplexer.panels().stream()
-                .filter(SFMRepositoryReviewPanel.class::isInstance)
-                .map(SFMRepositoryReviewPanel.class::cast)
+        SFMRepositoryReviewWorkspaceModel model = multiplexer.panels().stream()
+                .filter(SFMRepositoryReviewChangedFilesPanel.class::isInstance)
+                .map(SFMRepositoryReviewChangedFilesPanel.class::cast)
+                .map(SFMRepositoryReviewChangedFilesPanel::model)
                 .findFirst()
                 .orElseThrow();
         if (command.startsWith("select:")) {
-            panel.selectFile(Integer.parseInt(command.substring(7)));
+            model.selectFile(Integer.parseInt(command.substring(7)));
         } else if (command.startsWith("line:")) {
             String[] parts = command.split(":");
             SFMReviewCommentDataSource.Side side = SFMReviewCommentDataSource.Side.valueOf(
                     parts[1].toUpperCase(Locale.ROOT));
-            panel.selectSourceLine(side, Integer.parseInt(parts[2]));
+            model.selectSourceLine(side, Integer.parseInt(parts[2]));
         } else if (command.startsWith("search:")) {
-            panel.setSearch(command.substring(7));
+            model.setSearch(command.substring(7));
+        } else if (command.startsWith("change:")) {
+            model.revealFirstChange(SFMReviewCommentDataSource.Side.valueOf(
+                    command.substring(7).toUpperCase(Locale.ROOT)));
         } else if (command.startsWith("comment:")) {
-            panel.beginComment();
-            panel.setDraft(command.substring(8));
-            panel.submitComment();
+            model.beginComment();
+            model.setDraft(command.substring(8));
+            model.submitComment();
         } else if (command.equals("refresh")) {
-            panel.refresh();
+            model.refresh();
+        } else if (command.startsWith("show:")) {
+            model.show(SFMRepositoryReviewWorkspaceModel.Blade.valueOf(command.substring(5).toUpperCase(Locale.ROOT)));
         } else {
             throw new IllegalArgumentException("Unknown repository-review command " + command);
         }
