@@ -33,6 +33,34 @@ public class SFMItemPickerModelTests {
     }
 
     @Test
+    public void sfmlWildcardQueriesFilterThroughTheMatcherAst() {
+        SFMItemPickerModel model = model("minecraft:chest");
+        model.setQuery("minecraft:*o*");
+        assertEquals(
+                List.of(id("minecraft:compass"), id("minecraft:book"), id("minecraft:diamond")),
+                model.filtered().stream().map(SFMItemPickerEntry::itemId).toList()
+        );
+        assertTrue(model.diagnostic().isEmpty());
+    }
+
+    @Test
+    public void malformedSfmlQueryIsVisibleInsteadOfBecomingFuzzyText() {
+        SFMItemPickerModel model = model("minecraft:chest");
+        model.setQuery("minecraft:* WITH TAG #");
+        assertTrue(model.filtered().isEmpty());
+        assertTrue(model.diagnostic().startsWith("Invalid SFML item matcher:"));
+        assertTrue(model.narration().contains("Invalid SFML item matcher"));
+    }
+
+    @Test
+    public void tagQueryExplainsWhenTitleScreenRegistryTagsAreUnavailable() {
+        SFMItemPickerModel model = model("minecraft:chest");
+        model.setQuery("* WITH TAG #forge:chests");
+        assertTrue(model.filtered().isEmpty());
+        assertTrue(model.diagnostic().contains("world or server supplies registry tags"));
+    }
+
+    @Test
     public void emptySearchHasClearStateAndNoSelection() {
         SFMItemPickerModel model = model("minecraft:chest");
         model.setQuery("not-present");

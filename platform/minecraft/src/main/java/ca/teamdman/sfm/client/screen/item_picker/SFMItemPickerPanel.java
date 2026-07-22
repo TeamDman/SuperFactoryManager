@@ -221,7 +221,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
         border(poseStack, layout.search(), 0xFF8A8A8A);
         String query = model.query();
         Component value = query.isEmpty()
-                ? Component.literal("Search by item name or registry id...").withStyle(ChatFormatting.DARK_GRAY)
+                ? Component.literal("Search names, ids, or an SFML matcher...").withStyle(ChatFormatting.DARK_GRAY)
                 : Component.literal(query + "_");
         SFMFontUtils.draw(poseStack, minecraft.font, value,
                 layout.search().x() + inset, layout.search().y() + 7, TEXT, true);
@@ -269,19 +269,19 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
             border(poseStack, layout.preview(), BORDER);
             int x = layout.preview().x() + 5;
             int y = layout.preview().y() + 3;
-            model.selection().ifPresent(entry -> {
-                if (!model.diagnostic().isEmpty()) {
-                    int lineY = y;
-                    for (var line : minecraft.font.split(
-                            Component.literal(model.diagnostic()),
-                            layout.preview().width() - 10
-                    )) {
-                        SFMFontUtils.draw(poseStack, minecraft.font, line, x, lineY, ERROR, true);
-                        lineY += minecraft.font.lineHeight;
-                        if (lineY >= layout.preview().y() + layout.preview().height() - 2) break;
-                    }
-                    return;
+            if (!model.diagnostic().isEmpty()) {
+                int lineY = y;
+                for (var line : minecraft.font.split(
+                        Component.literal(model.diagnostic()),
+                        layout.preview().width() - 10
+                )) {
+                    SFMFontUtils.draw(poseStack, minecraft.font, line, x, lineY, ERROR, true);
+                    lineY += minecraft.font.lineHeight;
+                    if (lineY >= layout.preview().y() + layout.preview().height() - 2) break;
                 }
+                return;
+            }
+            model.selection().ifPresent(entry -> {
                 SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x, y + 1);
                 SFMFontUtils.draw(poseStack, minecraft.font,
                         trim(minecraft, "Current: " + entry.accessibleName(), layout.preview().width() - 28),

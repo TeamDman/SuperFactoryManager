@@ -29,6 +29,14 @@ public final class TitleScreenItemPickerGamePuppet {
         puppet.capture("dense-icon-tooltip", caption(
                 "Dense icons retain hover details: the selected Chest tooltip exposes its accessible name and registry id."
         ));
+        puppet.configureItemPicker(ConfigureItemPickerPuppetAction.View.WILDCARD_MATCHER);
+        puppet.capture("sfml-wildcard-matcher", caption(
+                "The search field parses the SFML matcher minecraft:*chest* and shows every matching registry item."
+        ));
+        puppet.configureItemPicker(ConfigureItemPickerPuppetAction.View.TAG_MATCHER);
+        puppet.capture("sfml-tag-matcher", caption(
+                "WITH TAG uses the same AST and explains that tags need a joined world/server when unavailable."
+        ));
         puppet.configureItemPicker(ConfigureItemPickerPuppetAction.View.SEARCH_DISK);
         puppet.capture("search-program-disk", caption(
                 "Searching names or registry ids filters to the typed sfm:disk selection."
@@ -51,7 +59,7 @@ public final class TitleScreenItemPickerGamePuppet {
         puppet.openItemPicker(true);
         puppet.configureItemPicker(ConfigureItemPickerPuppetAction.View.MULTIPLEXED_SEARCH);
         puppet.capture("multiplexed-picker", caption(
-                "Dense mode remains searchable and readable as a compact focused panel beside the originating screen."
+                "Inset child bounds keep dense content inside the multiplexer-owned cyan focus border."
         ));
     }
 

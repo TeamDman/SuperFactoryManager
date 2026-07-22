@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen.item_picker;
 
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -30,7 +31,12 @@ public final class SFMItemPickerRegistryEntries {
         for (ResourceLocation id : SFMWellKnownRegistries.ITEMS.keys()) {
             Item item = SFMWellKnownRegistries.ITEMS.get(id);
             if (item == null || item == Items.AIR) continue;
-            answer.add(new SFMItemPickerEntry(id, new ItemStack(item).getHoverName().getString()));
+            ItemStack stack = new ItemStack(item);
+            answer.add(new SFMItemPickerEntry(
+                    id,
+                    stack.getHoverName().getString(),
+                    SFMResourceTypes.ITEM.get().getTagsForStack(stack).distinct().toList()
+            ));
         }
         answer.sort(Comparator
                 .comparingInt((SFMItemPickerEntry entry) -> FEATURED_ORDER.getOrDefault(entry.itemId().toString(), 100))

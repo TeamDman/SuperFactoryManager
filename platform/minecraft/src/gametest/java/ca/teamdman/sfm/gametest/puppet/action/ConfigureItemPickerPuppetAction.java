@@ -14,6 +14,8 @@ public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAct
         GALLERY,
         DENSE_GRID,
         DENSE_TOOLTIP,
+        WILDCARD_MATCHER,
+        TAG_MATCHER,
         SEARCH_DISK,
         KEYBOARD_SELECTION,
         UNAVAILABLE,
@@ -52,6 +54,24 @@ public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAct
                 panel.pressForAutomation(GLFW.GLFW_KEY_RIGHT, 0);
                 assertSelected(panel, "minecraft:chest");
                 panel.showSelectionTooltipForAutomation();
+            }
+            case WILDCARD_MATCHER -> {
+                ensureDense(panel);
+                panel.setQueryForAutomation("minecraft:*chest*");
+                if (panel.model().filtered().size() < 2) {
+                    throw new IllegalStateException("Wildcard matcher did not expose multiple chest items");
+                }
+                if (!panel.model().diagnostic().isEmpty()) {
+                    throw new IllegalStateException(panel.model().diagnostic());
+                }
+            }
+            case TAG_MATCHER -> {
+                ensureDense(panel);
+                panel.setQueryForAutomation("* WITH TAG #forge:chests");
+                if (!panel.model().filtered().isEmpty()
+                        || !panel.model().diagnostic().contains("until a world or server supplies registry tags")) {
+                    throw new IllegalStateException("Title-screen tag availability diagnostic was not exposed");
+                }
             }
             case SEARCH_DISK -> {
                 ensureDetailed(panel);

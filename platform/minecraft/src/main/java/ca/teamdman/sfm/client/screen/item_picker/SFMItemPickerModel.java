@@ -29,6 +29,7 @@ public final class SFMItemPickerModel {
     private String query = "";
     private int selectionIndex;
     private String diagnostic = "";
+    private String queryDiagnostic = "";
     private String interaction = "Type to filter the item registry";
     private ViewMode viewMode = ViewMode.DETAILED;
 
@@ -48,7 +49,7 @@ public final class SFMItemPickerModel {
     public List<SFMItemPickerEntry> filtered() { return filtered; }
     public String query() { return query; }
     public int selectionIndex() { return selectionIndex; }
-    public String diagnostic() { return diagnostic; }
+    public String diagnostic() { return queryDiagnostic.isEmpty() ? diagnostic : queryDiagnostic; }
     public String interaction() { return interaction; }
     public ResourceLocation fallbackItem() { return fallbackItem; }
     public ViewMode viewMode() { return viewMode; }
@@ -60,10 +61,27 @@ public final class SFMItemPickerModel {
     public void setQuery(String value) {
         query = Objects.requireNonNull(value, "value");
         ResourceLocation prior = selection().map(SFMItemPickerEntry::itemId).orElse(null);
-        filtered = entries.stream().filter(entry -> entry.matches(query)).toList();
+        diagnostic = "";
+        if (SFMItemPickerQuery.usesSFMLSyntax(query)) {
+            SFMItemPickerQuery.ParseResult parsed = SFMItemPickerQuery.parse(query);
+            queryDiagnostic = parsed.valid() ? "" : "Invalid SFML item matcher: " + parsed.diagnostic();
+            if (parsed.valid() && parsed.query().usesTags() && entries.stream().allMatch(e -> e.tags().isEmpty())) {
+                queryDiagnostic = "Item tags are unavailable until a world or server supplies registry tags";
+                filtered = List.of();
+            } else {
+                filtered = parsed.valid()
+                        ? entries.stream().filter(parsed.query()::matches).toList()
+                        : List.of();
+            }
+        } else {
+            queryDiagnostic = "";
+            filtered = entries.stream().filter(entry -> entry.matches(query)).toList();
+        }
         selectionIndex = indexOf(filtered, prior);
         if (selectionIndex < 0) selectionIndex = 0;
-        interaction = filtered.isEmpty()
+        interaction = !queryDiagnostic.isEmpty()
+                ? queryDiagnostic
+                : filtered.isEmpty()
                 ? "No registry items match '" + query + "'"
                 : filtered.size() + " matching registry item" + (filtered.size() == 1 ? "" : "s");
     }
@@ -128,7 +146,7 @@ public final class SFMItemPickerModel {
     public String narration() {
         String selected = selection().map(entry -> entry.accessibleName() + ", " + entry.itemId())
                 .orElse("no item selected");
-        String problem = diagnostic.isEmpty() ? "" : ". " + diagnostic;
+        String problem = diagnostic().isEmpty() ? "" : ". " + diagnostic();
         return "Item icon picker. " + viewMode.displayName() + " view. Search " + query + ". "
                 + filtered.size() + " results. Selected " + selected
                 + problem;
