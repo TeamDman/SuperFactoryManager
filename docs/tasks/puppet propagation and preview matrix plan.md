@@ -359,6 +359,16 @@ Implementation commit: `fcfec4fed` (`feat: add puppet preview matrix`).
 
 ### [!] 3.2 Calibrate safe client parallelism
 
+**Build-isolation investigation (2026-07-21):** Independent feature worktrees
+already use distinct `build/sfm-toolchain/.locks/build-cache.lock` paths, but a
+three-way compile probe failed while concurrently opening the shared Forge
+`userdev.jar.lock`. This is an artifact lock-file open/retry defect, not proof
+that all 1.19.2 builds require serialization. Resolve and validate the lock
+hierarchy in the
+[parallel worktree build isolation plan](parallel%20worktree%20build%20isolation%20plan.md)
+before using build contention to choose client parallelism. GPU, focus, and
+memory constraints remain separate reasons to cap simultaneous live clients.
+
 **Blocker (2026-07-15):** `puppet list --branch 1.19.4` completed with an
 empty catalog, while the same command on 1.19.2 found the three baseline
 puppets. Two concurrent target runs cannot calibrate the shared walkthrough

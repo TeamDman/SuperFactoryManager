@@ -795,6 +795,41 @@ Commands, Save, and Cancel controls can pan out of view and be recovered;
 Commands opens `/sfm action ` plus usable completions, and no fixed SFML/Done
 button or grammar-drag behavior remains.
 
+### [ ] 0.5 Make palette icons and incomplete-command insertion presentation-aware
+
+Follow the dedicated
+[in-game theming, item icons, and color inputs plan](in-game%20theming%20item%20icons%20and%20color%20inputs%20plan.md):
+
+- extend action presentation metadata with an item-icon resolver and accessible
+  text fallback;
+- render the resolved `ItemStack` at a stable 16x16 position without increasing
+  the palette row height;
+- let file-oriented actions resolve their icon through the same extension
+  registry as the file explorer; and
+- resolve colours through semantic theme roles instead of palette-local ARGB
+  constants.
+
+When accepting or activating a Brigadier suggestion that ends at an action
+literal but still requires arguments, insert the token-separating space
+automatically. The echo example must become exactly:
+
+```text
+sfm action invoke sfm:echo␠
+```
+
+where `␠` denotes the inserted ASCII space and the caret follows it. Do not
+fake executability or append a
+space inside a resource location while it is still being typed. Derive the
+decision from Brigadier's parsed node/range and remaining child arguments.
+Returning from a shortcut-driven incomplete invocation uses the same helper, so
+mouse selection, Tab completion, direct palette typing, and dynamic keybindings
+cannot diverge.
+
+Add parser/caret tests for terminal actions, required string arguments,
+optional arguments, invalid literals, already-present whitespace, and quoted
+input. Supersede the dynamic-keybindings puppet's incomplete-command frame with
+one that visibly shows the trailing separator and disabled Execute button.
+
 ## Phase 1 — Establish dynamic layers and correct grammar behavior
 
 ### [ ] 1.1 Extract pure global-glyph, dynamic-layer, and placement models

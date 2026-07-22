@@ -186,6 +186,24 @@ this CLI epoch incorrectly treats those numbers as globally unique. Separate
 invocations are the reliable existing workflow; no CLI code was changed in this
 Java exploration track.
 
+## ItemStack icon and scheme follow-up
+
+The current registry deliberately proved deterministic extension matching with
+ASCII markers such as `[J]`, `[CFG]`, and `[DIR]`. Supersede those markers with
+Minecraft-native `ItemStack` icons as specified by the
+[in-game theming, item icons, and color inputs plan](in-game%20theming%20item%20icons%20and%20color%20inputs%20plan.md).
+
+The file explorer remains responsible for path/type classification; the theme
+resolves that semantic presentation to an item registry id, text style, and
+colour. Preserve longest-suffix matching and cover directories, `.sfml`,
+`.java`, `.json`, `.toml`, `.properties`, `.md`, `.txt`, `.tar.gz`, `.gz`,
+extensionless files, and unknown files. A missing modded item must fall back to
+a shipped vanilla item and accessible text rather than leaving an empty row.
+
+Add a puppet using the falsified hierarchy that shows enough file types at once
+to compare the icons, then switch to a user-defined icon scheme without
+restarting the client.
+
 ## Limitations and follow-up
 
 - The source is the bounded in-memory fixture. These captures do not validate a

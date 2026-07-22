@@ -372,6 +372,57 @@ at `t=0`, an intermediate changed file/state, final `t=-1`, an action with
 its source events, an exported/reopened snapshot, and malformed/bounded-error
 presentation.
 
+### [ ] 2.6 Refine inventory geometry, keyframes, and animation time
+
+Use the first seven-frame puppet as the baseline, then bring the falsified
+inventory presentation into alignment with Minecraft's real container layout:
+
+- derive chest, main player-inventory, and hotbar slot origins from the
+  corresponding 1.19.2 `ChestScreen`/`AbstractContainerScreen` menu geometry;
+- preserve the visible vertical gap between the player's 3x9 inventory and
+  1x9 hotbar instead of rendering four uniformly spaced rows;
+- center the orange timeline heading from `font.width(text)` and the panel's
+  actual content bounds, including narrow responsive layouts;
+- extract or reuse the Draw/text-editor crosshair renderer for the virtual
+  cursor so cursor shape, hotspot, scale, and theme roles are consistent; and
+- keep the cursor/held stack anchored to exact source and destination slot
+  centers at ownership keyframes.
+
+Replace the integer-frame-only mental model with two related coordinates:
+
+```text
+keyframe position:  0, 1, 2, ... N
+animation time:     0.0 .. total_duration
+transition i:       keyframe i -> i+1 with its own duration and easing
+```
+
+An animation time inside a transition resolves to a fractional keyframe
+position. For example, keyframe position `1.1` is ten percent through the
+transition from keyframe 1 to keyframe 2, independent of whether that
+transition lasts one second or ten. Discrete ownership changes occur at named
+keyframes; presentation properties such as cursor position interpolate between
+them. The first implementation uses linear interpolation and deterministic
+client ticks, while leaving easing as typed transition metadata.
+
+Distinguish transport operations:
+
+- previous/next **keyframe** jumps to a semantic ownership boundary;
+- optional previous/next **frame/substep** advances the sampled animation;
+- play advances animation time according to per-transition durations; and
+- seeking by either coordinate deterministically derives the other.
+
+Expose keyframe position and wall-clock/deterministic animation time as two
+stackable horizontal tracks when both are useful. One track is linear in
+keyframe space (`0..N`); the other is linear in total duration (for example,
+`0..40s`). Scrubbing either updates the same immutable replay state and never
+depends on prior playback history.
+
+Add focused interpolation, zero-duration, unequal-duration, boundary,
+reverse-seek, and resize tests. The superseding puppet must show the hotbar gap,
+properly centered heading, shared crosshair, exact ownership keyframes, at least
+one visibly interpolated position, a keyframe jump, and a time-based seek across
+two transitions with different durations.
+
 ## Phase 3 — Prove generic panel observation with a normal calculator
 
 The calculator is a proving application, not the owner of recording. Generic
