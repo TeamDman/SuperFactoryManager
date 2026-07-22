@@ -137,9 +137,33 @@ fn resolve_output(value: &str) -> eyre::Result<PathBuf> {
 }
 
 fn managed_inbox() -> eyre::Result<PathBuf> {
-    let project = directories_next::ProjectDirs::from("ca", "teamdman", "SFM")
-        .ok_or_else(|| eyre::eyre!("application-data directory is unavailable"))?;
-    Ok(project.data_local_dir().join("review-bundles"))
+    #[cfg(windows)]
+    let local_app_data = std::env::var_os("LOCALAPPDATA")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from);
+    #[cfg(not(windows))]
+    let local_app_data: Option<PathBuf> = None;
+
+    let base_dirs = directories_next::BaseDirs::new()
+        .ok_or_else(|| eyre::eyre!("user home directory is unavailable"))?;
+    Ok(managed_inbox_from_roots(
+        local_app_data.as_deref(),
+        base_dirs.home_dir(),
+    ))
+}
+
+fn managed_inbox_from_roots(local_app_data: Option<&Path>, user_home: &Path) -> PathBuf {
+    local_app_data.map_or_else(
+        || {
+            user_home
+                .join(".local")
+                .join("share")
+                .join("teamdman")
+                .join("SFM")
+                .join("review-bundles")
+        },
+        |root| root.join("teamdman").join("SFM").join("review-bundles"),
+    )
 }
 
 fn validate_managed_name(value: &str) -> eyre::Result<()> {
@@ -218,5 +242,20 @@ mod tests {
             );
         }
         validate_managed_name("sfm-review_1.19.2").expect("valid managed name");
+    }
+
+    #[test]
+    fn managed_inbox_exactly_matches_java_windows_and_fallback_layouts() {
+        assert_eq!(
+            managed_inbox_from_roots(
+                Some(Path::new("C:/Users/Fixture/AppData/Local")),
+                Path::new("C:/Users/Fixture"),
+            ),
+            PathBuf::from("C:/Users/Fixture/AppData/Local/teamdman/SFM/review-bundles")
+        );
+        assert_eq!(
+            managed_inbox_from_roots(None, Path::new("C:/Users/Fixture")),
+            PathBuf::from("C:/Users/Fixture/.local/share/teamdman/SFM/review-bundles")
+        );
     }
 }
