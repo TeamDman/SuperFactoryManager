@@ -724,6 +724,7 @@ fn execute_run(
     apply_game_test_filter_property(&mut properties, kind, run_options);
     apply_game_puppet_filter_property(&mut properties, kind, run_options);
     apply_game_puppet_game_test_property(&mut properties, kind, run_options);
+    apply_game_puppet_viewport_selection_property(&mut properties, kind, run_options);
     if let Some(automation_mode) = kind.automation_mode() {
         properties.insert(
             "sfm.clientRun.mode".to_string(),
@@ -2225,6 +2226,19 @@ fn apply_game_puppet_game_test_property(
     properties.insert("sfm.gamePuppet.gameTest".to_string(), game_test.to_string());
 }
 
+fn apply_game_puppet_viewport_selection_property(
+    properties: &mut BTreeMap<String, String>,
+    kind: RunKind,
+    run_options: &RunOptions,
+) {
+    if matches!(kind, RunKind::GameTestPreview) {
+        properties.insert(
+            "sfm.gamePuppet.viewportSelection".to_string(),
+            run_options.game_puppet_viewport_selection.clone(),
+        );
+    }
+}
+
 fn apply_client_title_screen_property(
     properties: &mut BTreeMap<String, String>,
     kind: RunKind,
@@ -3384,6 +3398,12 @@ fn validate_game_puppet_completion(output: &str, launch_log: &Path) -> eyre::Res
             launch_log.display()
         );
     }
+    if !output.contains("SFM_GAME_PUPPET_VIEWPORT_RESTORED") {
+        eyre::bail!(
+            "runGameTestPreview completed without proving viewport restoration. See {}",
+            launch_log.display()
+        );
+    }
     tracing::info!("Validated game puppet preview completion.");
     Ok(())
 }
@@ -3391,6 +3411,7 @@ fn validate_game_puppet_completion(output: &str, launch_log: &Path) -> eyre::Res
 #[derive(Debug)]
 struct GamePuppetPreviewArtifact {
     puppet_name: String,
+    variant: String,
     capture_name: String,
     figure_number: u32,
     relative_path: PathBuf,
@@ -3402,10 +3423,14 @@ struct GamePuppetPreviewArtifact {
 
 #[derive(Clone, Debug, Default)]
 struct GamePuppetPreviewCaptureMetadata {
+    puppet: Option<String>,
+    variant: Option<String>,
+    capture: Option<String>,
     figure_number: Option<u32>,
     camera: Option<GamePuppetPreviewCamera>,
     screen: Option<String>,
     hud_hidden: Option<bool>,
+    viewport: Option<GamePuppetPreviewVariantObservation>,
 }
 
 #[derive(Clone, Debug, Facet)]
@@ -3427,6 +3452,9 @@ pub(crate) struct GamePuppetPreviewManifest {
     #[facet(rename = "gameTest")]
     pub(crate) game_test: Option<String>,
     pub(crate) viewport: GamePuppetPreviewViewport,
+    #[facet(rename = "viewportSelection")]
+    #[facet(default)]
+    pub(crate) viewport_selection: String,
     #[facet(rename = "captureProfile")]
     pub(crate) capture_profile: GamePuppetPreviewCaptureProfile,
     pub(crate) captures: Vec<GamePuppetPreviewManifestCapture>,
@@ -3453,6 +3481,10 @@ pub(crate) struct GamePuppetPreviewManifestCapture {
     pub(crate) puppet: String,
     pub(crate) figure: u32,
     pub(crate) capture: String,
+    #[facet(default)]
+    pub(crate) variant: String,
+    #[facet(default)]
+    pub(crate) viewport: Option<GamePuppetPreviewVariantObservation>,
     pub(crate) path: String,
     pub(crate) width: u32,
     pub(crate) height: u32,
@@ -3461,6 +3493,26 @@ pub(crate) struct GamePuppetPreviewManifestCapture {
     pub(crate) screen: Option<String>,
     #[facet(rename = "hudHidden")]
     pub(crate) hud_hidden: Option<bool>,
+}
+
+#[derive(Clone, Debug, Facet)]
+pub(crate) struct GamePuppetPreviewVariantObservation {
+    #[facet(rename = "actualWindowWidth")]
+    pub(crate) actual_window_width: u16,
+    #[facet(rename = "actualWindowHeight")]
+    pub(crate) actual_window_height: u16,
+    #[facet(rename = "framebufferWidth")]
+    pub(crate) framebuffer_width: u16,
+    #[facet(rename = "framebufferHeight")]
+    pub(crate) framebuffer_height: u16,
+    #[facet(rename = "requestedGuiScale")]
+    pub(crate) requested_gui_scale: String,
+    #[facet(rename = "effectiveGuiScale")]
+    pub(crate) effective_gui_scale: u16,
+    #[facet(rename = "logicalWidth")]
+    pub(crate) logical_width: u16,
+    #[facet(rename = "logicalHeight")]
+    pub(crate) logical_height: u16,
 }
 
 #[expect(
@@ -3514,14 +3566,14 @@ fn publish_game_puppet_preview_artifacts(
             .file_name()
             .and_then(|name| name.to_str())
             .ok_or_else(|| eyre::eyre!("Screenshot filename was not valid UTF-8: {}", staging_path.display()))?;
-        let Some((puppet_name, capture_with_extension)) = file_name.split_once("__") else {
-            eyre::bail!("Unexpected preview screenshot filename: {file_name}");
-        };
-        let Some(capture_name) = capture_with_extension.strip_suffix(".png") else {
-            eyre::bail!("Preview screenshot was not a PNG: {file_name}");
-        };
-        if !is_safe_preview_name(puppet_name) || !is_safe_preview_name(capture_name) {
-            eyre::bail!("Preview screenshot filename was not safely namespaced: {file_name}");
+        let metadata = capture_metadata.get(file_name).cloned().ok_or_else(|| {
+            eyre::eyre!("Preview screenshot had no authoritative capture marker: {file_name}")
+        })?;
+        let puppet_name = metadata.puppet.as_deref().ok_or_else(|| eyre::eyre!("Capture marker omitted puppet for {file_name}"))?;
+        let capture_name = metadata.capture.as_deref().ok_or_else(|| eyre::eyre!("Capture marker omitted capture for {file_name}"))?;
+        let variant = metadata.variant.as_deref().ok_or_else(|| eyre::eyre!("Capture marker omitted viewport variant for {file_name}"))?;
+        if !is_safe_preview_name(puppet_name) || !is_safe_preview_name(capture_name) || !is_safe_variant_id(variant) {
+            eyre::bail!("Preview screenshot marker was not safely namespaced: {file_name}");
         }
 
         let bytes = fs::read(&staging_path)
@@ -3530,22 +3582,19 @@ fn publish_game_puppet_preview_artifacts(
             .ok_or_else(|| eyre::eyre!("Preview screenshot was not a valid PNG: {}", staging_path.display()))?;
         let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
 
-        let metadata = capture_metadata
-            .get(&(puppet_name.to_string(), capture_name.to_string()))
-            .cloned()
-            .unwrap_or_default();
         let figure_number = metadata.figure_number.ok_or_else(|| {
             eyre::eyre!(
                 "Preview screenshot did not report a positive figure number: {file_name}"
             )
         })?;
-        if !used_figure_numbers.insert(figure_number) {
+        if !used_figure_numbers.insert((puppet_name.to_string(), capture_name.to_string(), variant.to_string(), figure_number)) {
             eyre::bail!(
                 "Preview screenshots reported duplicate figure number {figure_number}: {file_name}"
             );
         }
         let relative_path = preview_run_relative_root
             .join(puppet_name)
+            .join(variant.replace('@', "_"))
             .join(game_puppet_preview_artifact_file_name(figure_number, capture_name));
         let destination = artifact_root.join(&relative_path);
         if let Some(parent) = destination.parent() {
@@ -3562,6 +3611,7 @@ fn publish_game_puppet_preview_artifacts(
         tracing::info!(preview_artifact = %destination.display(), "Game puppet preview artifact");
         artifacts.push(GamePuppetPreviewArtifact {
             puppet_name: puppet_name.to_string(),
+            variant: variant.to_string(),
             capture_name: capture_name.to_string(),
             figure_number,
             relative_path,
@@ -3580,6 +3630,12 @@ fn publish_game_puppet_preview_artifacts(
     let manifest = render_game_puppet_preview_manifest(plan, run_options, &artifacts)?;
     fs::write(&manifest_path, manifest)
         .wrap_err_with(|| format!("Failed to write {}", manifest_path.display()))?;
+    let index_path = preview_run_root.join("index.html");
+    fs::write(&index_path, render_game_puppet_preview_contact_sheet(&artifacts, true))
+        .wrap_err_with(|| format!("Failed to write {}", index_path.display()))?;
+    fs::write(artifact_root.join("index.html"), render_game_puppet_preview_contact_sheet(&artifacts, false))
+        .wrap_err("Failed to write latest viewport contact sheet")?;
+    tracing::info!(preview_contact_sheet = %index_path.display(), "Game puppet viewport contact sheet");
     Ok(manifest_path)
 }
 
@@ -3641,7 +3697,7 @@ fn safe_game_puppet_preview_run_name(value: &str) -> String {
 
 fn parse_game_puppet_capture_metadata(
     launch_output: &str,
-) -> BTreeMap<(String, String), GamePuppetPreviewCaptureMetadata> {
+) -> BTreeMap<String, GamePuppetPreviewCaptureMetadata> {
     let mut captures = BTreeMap::new();
     for line in launch_output
         .lines()
@@ -3651,16 +3707,18 @@ fn parse_game_puppet_capture_metadata(
             .split_whitespace()
             .filter_map(|field| field.split_once('='))
             .collect::<BTreeMap<_, _>>();
-        let Some((puppet, capture)) = fields
-            .get("puppet")
-            .zip(fields.get("capture"))
-            .filter(|(puppet, capture)| {
-                is_safe_preview_name(puppet) && is_safe_preview_name(capture)
-            })
+        let Some(file) = fields.get("file").filter(|file| {
+            Path::new(file)
+                .extension()
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("png"))
+        })
         else {
             continue;
         };
         let metadata = GamePuppetPreviewCaptureMetadata {
+            puppet: fields.get("puppet").map(|value| (*value).to_string()),
+            variant: fields.get("variant").map(|value| (*value).to_string()),
+            capture: fields.get("capture").map(|value| (*value).to_string()),
             figure_number: fields
                 .get("figure")
                 .and_then(|value| value.parse::<u32>().ok())
@@ -3675,10 +3733,32 @@ fn parse_game_puppet_capture_metadata(
                 "false" => Some(false),
                 _ => None,
             }),
+            viewport: parse_game_puppet_preview_viewport(&fields),
         };
-        captures.insert(((*puppet).to_string(), (*capture).to_string()), metadata);
+        captures.insert((*file).to_string(), metadata);
     }
     captures
+}
+
+fn parse_game_puppet_preview_viewport(fields: &BTreeMap<&str, &str>) -> Option<GamePuppetPreviewVariantObservation> {
+    let number = |name| fields.get(name)?.parse::<u16>().ok();
+    Some(GamePuppetPreviewVariantObservation {
+        actual_window_width: number("actual_width")?,
+        actual_window_height: number("actual_height")?,
+        framebuffer_width: number("framebuffer_width")?,
+        framebuffer_height: number("framebuffer_height")?,
+        requested_gui_scale: fields.get("requested_gui_scale")?.to_string(),
+        effective_gui_scale: number("effective_gui_scale")?,
+        logical_width: number("logical_width")?,
+        logical_height: number("logical_height")?,
+    })
+}
+
+fn is_safe_variant_id(value: &str) -> bool {
+    value.split_once('@').is_some_and(|(size, scale)| {
+        size.split_once('x').is_some_and(|(width, height)| width.parse::<u16>().is_ok() && height.parse::<u16>().is_ok())
+            && (scale == "auto" || scale.parse::<std::num::NonZeroU16>().is_ok())
+    })
 }
 
 fn game_puppet_preview_artifact_file_name(figure_number: u32, capture_name: &str) -> String {
@@ -3729,6 +3809,7 @@ fn render_game_puppet_preview_manifest(
             width: run_options.preview_width,
             height: run_options.preview_height,
         },
+        viewport_selection: run_options.game_puppet_viewport_selection.clone(),
         capture_profile: GamePuppetPreviewCaptureProfile {
             native_main_render_target: true,
             hide_hud: true,
@@ -3740,6 +3821,8 @@ fn render_game_puppet_preview_manifest(
                 puppet: artifact.puppet_name.clone(),
                 figure: artifact.figure_number,
                 capture: artifact.capture_name.clone(),
+                variant: artifact.variant.clone(),
+                viewport: artifact.metadata.viewport.clone(),
                 path: artifact.relative_path.to_string_lossy().replace('\\', "/"),
                 width: artifact.width,
                 height: artifact.height,
@@ -3751,6 +3834,42 @@ fn render_game_puppet_preview_manifest(
             .collect(),
     };
     Ok(facet_json::to_string_pretty(&manifest)?)
+}
+
+fn render_game_puppet_preview_contact_sheet(artifacts: &[GamePuppetPreviewArtifact], from_run_root: bool) -> String {
+    let mut groups = BTreeMap::<(&str, &str), Vec<&GamePuppetPreviewArtifact>>::new();
+    for artifact in artifacts {
+        groups.entry((&artifact.puppet_name, &artifact.capture_name)).or_default().push(artifact);
+    }
+    let mut html = String::from("<!doctype html><meta charset=\"utf-8\"><title>SFM viewport preview</title><style>body{font:14px system-ui;background:#111;color:#eee;margin:24px}h2{margin-top:40px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #555;padding:8px;vertical-align:top;background:#222}th{background:#181818}.cell img{width:100%;min-width:220px;max-width:420px;height:auto}.meta{font-family:monospace;margin-bottom:8px;color:#8ee;white-space:nowrap}</style><h1>SFM viewport preview</h1>");
+    for ((puppet, capture), cells) in groups {
+        let sizes = cells.iter().filter_map(|cell| cell.metadata.viewport.as_ref().map(|view| (view.actual_window_width, view.actual_window_height))).collect::<BTreeSet<_>>();
+        let mut scales = cells.iter().filter_map(|cell| cell.metadata.viewport.as_ref().map(|view| view.requested_gui_scale.clone())).collect::<Vec<_>>();
+        scales.sort_by_key(|scale| if scale == "auto" { 0 } else { scale.parse::<u16>().unwrap_or(u16::MAX).saturating_add(1) });
+        scales.dedup();
+        let _ = write!(html, "<h2>{} / {}</h2><table><thead><tr><th>Window</th>", escape_html(puppet), escape_html(capture));
+        for scale in &scales { let _ = write!(html, "<th>GUI {}</th>", escape_html(scale)); }
+        html.push_str("</tr></thead><tbody>");
+        for (width, height) in sizes {
+            let _ = write!(html, "<tr><th>{width}×{height}</th>");
+            for scale in &scales {
+                let cell = cells.iter().find(|cell| cell.metadata.viewport.as_ref().is_some_and(|view| view.actual_window_width == width && view.actual_window_height == height && view.requested_gui_scale == *scale));
+                if let Some(artifact) = cell {
+                    let view = artifact.metadata.viewport.as_ref().expect("filtered viewport cell");
+                    let path = if from_run_root { artifact.relative_path.components().skip(2).collect::<PathBuf>() } else { artifact.relative_path.clone() };
+                    let path = escape_html(&path.to_string_lossy().replace('\\', "/"));
+                    let _ = write!(html, "<td class=\"cell\"><div class=\"meta\">effective {} · logical {}×{} · framebuffer {}×{}</div><a href=\"{path}\"><img loading=\"lazy\" src=\"{path}\" alt=\"{}\"></a></td>", view.effective_gui_scale, view.logical_width, view.logical_height, view.framebuffer_width, view.framebuffer_height, escape_html(capture));
+                } else { html.push_str("<td>unsupported</td>"); }
+            }
+            html.push_str("</tr>");
+        }
+        html.push_str("</tbody></table>");
+    }
+    html
+}
+
+fn escape_html(value: &str) -> String {
+    value.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
 }
 
 #[cfg(test)]
@@ -3835,6 +3954,7 @@ mod game_puppet_preview_tests {
                 width: 1280,
                 height: 720,
             },
+            viewport_selection: "preferred".to_string(),
             capture_profile: GamePuppetPreviewCaptureProfile {
                 native_main_render_target: true,
                 hide_hud: true,
@@ -3844,6 +3964,8 @@ mod game_puppet_preview_tests {
                 puppet: "move_1_stack_direct_walkthrough".to_string(),
                 figure: 1,
                 capture: "overview-00".to_string(),
+                variant: "1280x720@auto".to_string(),
+                viewport: None,
                 path: "move_1_stack_direct_walkthrough/figure_01_overview-00.png".to_string(),
                 width: 1280,
                 height: 807,
@@ -3868,14 +3990,11 @@ mod game_puppet_preview_tests {
     #[test]
     fn capture_metadata_is_read_from_the_structured_client_marker() {
         let metadata = parse_game_puppet_capture_metadata(
-            "SFM_GAME_PUPPET_CAPTURE_QUEUED puppet=move_1_stack_direct_walkthrough capture=overview-00 file=move_1_stack_direct_walkthrough__overview-00.png figure=1 camera_x=7.5 camera_y=-52.5 camera_z=0.5 camera_yaw=90.0 camera_pitch=35.5 screen=world hud_hidden=true",
+            "SFM_GAME_PUPPET_CAPTURE_QUEUED puppet=move_1_stack_direct_walkthrough variant=1280x720@auto capture=overview-00 file=move_1_stack_direct_walkthrough__overview-00.png figure=1 actual_width=1280 actual_height=720 framebuffer_width=1280 framebuffer_height=720 requested_gui_scale=auto effective_gui_scale=3 logical_width=427 logical_height=240 camera_x=7.5 camera_y=-52.5 camera_z=0.5 camera_yaw=90.0 camera_pitch=35.5 screen=world hud_hidden=true",
         );
         let capture = metadata
-            .get(&(
-                "move_1_stack_direct_walkthrough".to_string(),
-                "overview-00".to_string(),
-            ))
-            .expect("capture metadata should be indexed by puppet and capture");
+            .get("move_1_stack_direct_walkthrough__overview-00.png")
+            .expect("capture metadata should be indexed by emitted file");
         let camera = capture.camera.as_ref().expect("camera pose should be recorded");
         assert!((camera.x - 7.5).abs() < f64::EPSILON);
         assert!((camera.y + 52.5).abs() < f64::EPSILON);
@@ -3883,6 +4002,8 @@ mod game_puppet_preview_tests {
         assert_eq!(capture.figure_number, Some(1));
         assert_eq!(capture.screen.as_deref(), Some("world"));
         assert_eq!(capture.hud_hidden, Some(true));
+        assert_eq!(capture.variant.as_deref(), Some("1280x720@auto"));
+        assert_eq!(capture.viewport.as_ref().map(|viewport| viewport.logical_width), Some(427));
     }
 }
 

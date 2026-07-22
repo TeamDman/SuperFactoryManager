@@ -18,6 +18,7 @@ public final class SFMProperties {
     private static final String GAME_TEST_MAX_PROGRAM_RUN_MILLIS_PROPERTY = "sfm.gametest.maxProgramRunMillis";
     private static final String GAME_PUPPET_SELECTION_PROPERTY = "sfm.gamePuppetSelection";
     private static final String GAME_PUPPET_GAME_TEST_PROPERTY = "sfm.gamePuppet.gameTest";
+    private static final String GAME_PUPPET_VIEWPORT_SELECTION_PROPERTY = "sfm.gamePuppet.viewportSelection";
     private static final String USER_DIRECTORY_PROPERTY = "user.dir";
 
     private SFMProperties() {
@@ -59,6 +60,10 @@ public final class SFMProperties {
 
     public static String gamePuppetSelection() {
         return property(GAME_PUPPET_SELECTION_PROPERTY);
+    }
+
+    public static String gamePuppetViewportSelection() {
+        return property(GAME_PUPPET_VIEWPORT_SELECTION_PROPERTY);
     }
 
     /**
