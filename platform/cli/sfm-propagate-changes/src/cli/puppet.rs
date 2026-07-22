@@ -51,6 +51,9 @@ pub struct PuppetRunArgs {
     /// Window height used for native screenshot captures.
     #[facet(default, args::named)]
     pub height: Option<u16>,
+    /// Viewport variants to run: declared, preferred, or WIDTHxHEIGHT@auto|SCALE.
+    #[facet(default = "declared", args::named)]
+    pub variant: String,
     /// Mute Minecraft audio during the puppet run by default. Use `--no-mute` to hear it.
     #[facet(default = true, args::named)]
     pub mute: bool,
@@ -88,6 +91,7 @@ impl PuppetArgs {
                 args.game_test,
                 args.width,
                 args.height,
+                &args.variant,
                 args.mute,
                 args.keep_open,
                 cancellation_token,

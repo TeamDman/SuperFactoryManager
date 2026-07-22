@@ -8,6 +8,7 @@ pub struct RunOptions {
     pub game_test_filter: Option<String>,
     pub game_puppet_filter: Option<String>,
     pub game_puppet_game_test: Option<String>,
+    pub game_puppet_viewport_selection: String,
     pub game_test_bisect: Option<GameTestBisectOptions>,
     pub client_puppet_keep_open: ClientPuppetKeepOpen,
     pub game_puppet_keep_open: GamePuppetKeepOpen,

@@ -376,7 +376,12 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         String safeCaptureName = validateCaptureName(captureName);
         PuppetCaptureState state = active.captures.computeIfAbsent(
                 safeCaptureName, name -> {
-                    String fileName = active.definition.puppetName() + "__" + name + ".png";
+                    String variantSuffix = active.definition.viewportProfile() == SFMGamePuppetViewportProfile.CURRENT
+                            ? ""
+                            : "__viewport-" + active.viewportVariant.width() + "x" + active.viewportVariant.height()
+                              + "-gui-" + active.viewportVariant.requestedScaleName()
+                              + "-effective-" + active.viewportObservation.effectiveGuiScale();
+                    String fileName = active.definition.puppetName() + "__" + name + variantSuffix + ".png";
                     return new PuppetCaptureState(
                             name,
                             new File(new File(minecraft.gameDirectory, "screenshots"), fileName),
@@ -408,11 +413,20 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                                 ? "world"
                                 : minecraft.screen.getClass().getSimpleName();
             SFM.LOGGER.info(
-                    "SFM_GAME_PUPPET_CAPTURE_QUEUED puppet={} capture={} file={} figure={} camera_x={} camera_y={} camera_z={} camera_yaw={} camera_pitch={} screen={} hud_hidden={}",
+                    "SFM_GAME_PUPPET_CAPTURE_QUEUED puppet={} variant={} capture={} file={} figure={} actual_width={} actual_height={} framebuffer_width={} framebuffer_height={} requested_gui_scale={} effective_gui_scale={} logical_width={} logical_height={} camera_x={} camera_y={} camera_z={} camera_yaw={} camera_pitch={} screen={} hud_hidden={}",
                     active.definition.puppetName(),
+                    active.viewportVariant.id(),
                     safeCaptureName,
                     state.file.getName(),
                     state.figureNumber,
+                    active.viewportObservation.windowWidth(),
+                    active.viewportObservation.windowHeight(),
+                    active.viewportObservation.framebufferWidth(),
+                    active.viewportObservation.framebufferHeight(),
+                    active.viewportVariant.requestedScaleName(),
+                    active.viewportObservation.effectiveGuiScale(),
+                    active.viewportObservation.logicalWidth(),
+                    active.viewportObservation.logicalHeight(),
                     cameraPosition.x,
                     cameraPosition.y,
                     cameraPosition.z,
@@ -426,8 +440,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         state.ticks++;
         if (state.file.isFile() && state.file.length() > 0L) {
             SFM.LOGGER.info(
-                    "SFM_GAME_PUPPET_CAPTURE_WRITTEN puppet={} capture={} file={}",
+                    "SFM_GAME_PUPPET_CAPTURE_WRITTEN puppet={} variant={} capture={} file={}",
                     active.definition.puppetName(),
+                    active.viewportVariant.id(),
                     safeCaptureName,
                     state.file.getName()
             );

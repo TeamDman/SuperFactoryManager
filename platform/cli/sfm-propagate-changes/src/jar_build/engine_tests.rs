@@ -453,7 +453,7 @@ fn game_puppet_preview_uses_its_own_selection_property_and_viewport() {
 fn game_puppet_completion_requires_an_explicit_success_marker() {
     let launch_log = Path::new("preview-launch.log");
     validate_game_puppet_completion(
-        "SFM_GAME_PUPPET_COMPLETE failed=0 total=1",
+        "SFM_GAME_PUPPET_COMPLETE failed=0 total=1\nSFM_GAME_PUPPET_VIEWPORT_RESTORED actual_width=1280 actual_height=720",
         launch_log
     )
     .unwrap();

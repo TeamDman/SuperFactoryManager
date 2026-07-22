@@ -66,7 +66,11 @@ public final class SFMGamePuppetDiscovery {
                     + methodName + "(SFMGamePuppetHelper): " + owner.getName()
             );
         }
-        return new SFMDiscoveredGamePuppet(puppetName(owner), method);
+        return new SFMDiscoveredGamePuppet(
+                puppetName(owner),
+                method,
+                owner.getAnnotation(SFMGamePuppet.class).viewportProfile()
+        );
     }
 
     private static Collection<SFMDiscoveredGamePuppet> filterSelectedPuppets(
