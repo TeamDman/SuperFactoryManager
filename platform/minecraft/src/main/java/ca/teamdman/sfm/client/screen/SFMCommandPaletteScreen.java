@@ -12,6 +12,10 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.widget.SFMConsoleWidget;
+import ca.teamdman.sfm.client.theme.SFMClientTheme;
+import ca.teamdman.sfm.client.theme.SFMClientThemeService;
+import ca.teamdman.sfm.client.theme.SFMColourRole;
+import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -84,11 +88,6 @@ public final class SFMCommandPaletteScreen extends Screen {
             "Separator inserted; provide the required argument"
     );
 
-    private static final int PANEL = 0xF0202020;
-    private static final int BORDER = 0xFF707070;
-    private static final int TEXT = 0xFFFFFFFF;
-    private static final int MUTED = 0xFFB0B0B0;
-    private static final int ERROR = 0xFFFF5555;
     private static final int MAX_SUGGESTIONS = 8;
     private static final int CONSOLE_HEIGHT = 72;
     private static final int EMPTY_CONSOLE_HEIGHT = 18;
@@ -336,18 +335,24 @@ public final class SFMCommandPaletteScreen extends Screen {
     @Override
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
         layoutWidgets();
-        fill(poseStack, 0, 0, this.width, this.height, 0x66000000);
+        SFMClientTheme theme = SFMClientThemeService.active();
+        int panel = theme.colour(SFMColourRole.PANEL_BACKGROUND);
+        int border = theme.colour(SFMColourRole.PANEL_BORDER);
+        int text = theme.colour(SFMColourRole.TEXT_PRIMARY);
+        int muted = theme.colour(SFMColourRole.TEXT_MUTED);
+        int errorColour = theme.colour(SFMColourRole.TEXT_ERROR);
+        fill(poseStack, 0, 0, this.width, this.height, theme.colour(SFMColourRole.SCREEN_OVERLAY));
         int left = panelLeft();
         int top = panelTop();
         int right = left + panelWidth();
         int bottom = top + panelHeight();
-        fill(poseStack, left, top, right, bottom, PANEL);
-        fill(poseStack, left, top, right, top + 1, BORDER);
-        fill(poseStack, left, bottom - 1, right, bottom, BORDER);
-        fill(poseStack, left, top, left + 1, bottom, BORDER);
-        fill(poseStack, right - 1, top, right, bottom, BORDER);
+        fill(poseStack, left, top, right, bottom, panel);
+        fill(poseStack, left, top, right, top + 1, border);
+        fill(poseStack, left, bottom - 1, right, bottom, border);
+        fill(poseStack, left, top, left + 1, bottom, border);
+        fill(poseStack, right - 1, top, right, bottom, border);
 
-        SFMFontUtils.draw(poseStack, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD), left + 10, top + 12, TEXT, false);
+        SFMFontUtils.draw(poseStack, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD), left + 10, top + 12, text, false);
         Component guidance = insertedRequiredArgumentSeparator
                 ? REQUIRED_ARGUMENT.getComponent().withStyle(ChatFormatting.GOLD)
                 : ACCEPT_SUGGESTION.getComponent(Component.literal("Tab").withStyle(ChatFormatting.AQUA));
@@ -357,25 +362,25 @@ public final class SFMCommandPaletteScreen extends Screen {
                 guidance,
                 left + 10,
                 top + 54,
-                MUTED,
+                muted,
                 false
         );
         int visibleSuggestions = visibleSuggestionCount();
         if (suggestions.isEmpty()) {
-            SFMFontUtils.draw(poseStack, this.font, EMPTY_RESULTS.getComponent(), left + 10, top + 72, MUTED, false);
+            SFMFontUtils.draw(poseStack, this.font, EMPTY_RESULTS.getComponent(), left + 10, top + 72, muted, false);
         } else {
             for (int i = 0; i < visibleSuggestions; i++) {
                 int suggestionIndex = firstVisibleSuggestion + i;
                 if (suggestionIndex >= suggestions.size()) break;
                 int y = top + 72 + i * SUGGESTION_ROW_HEIGHT;
                 if (suggestionIndex == selectedSuggestion) {
-                    fill(poseStack, left + 6, y - 2, right - 6, y + 14, 0xFF404040);
+                    fill(poseStack, left + 6, y - 2, right - 6, y + 14, theme.colour(SFMColourRole.PANEL_SELECTION));
                 }
                 Suggestion suggestion = suggestions.get(suggestionIndex);
                 int textX = actionIcon(suggestion).isPresent()
                         ? left + 10 + SFMItemIconRenderer.SIZE + 4
                         : left + 12;
-                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion, textX - left), textX, y, TEXT, false);
+                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion, textX - left), textX, y, text, false);
                 renderBindingSummary(poseStack, suggestion, right, y);
             }
         }
@@ -386,7 +391,7 @@ public final class SFMCommandPaletteScreen extends Screen {
                     truncateToPanel(this.error),
                     left + 10,
                     consoleTop(top) - 12,
-                    ERROR,
+                    errorColour,
                     false
             );
         }
@@ -402,7 +407,9 @@ public final class SFMCommandPaletteScreen extends Screen {
         Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return Optional.empty();
         var action = SFMClientActions.registry().get(actionId.get());
-        return action == null ? Optional.empty() : action.itemIcon(actionContext);
+        if (action == null) return Optional.empty();
+        var themed = SFMClientThemeService.active().actionIcons().get(actionId.get());
+        return themed == null ? action.itemIcon(actionContext) : Optional.of(themed);
     }
 
     private void renderActionIconsOnTop(PoseStack poseStack) {
@@ -454,7 +461,8 @@ public final class SFMCommandPaletteScreen extends Screen {
             bindingText = SFMKeyBindingDisplay.format(bindings.get(index).sequence());
         }
         String suffix = bindingText.isEmpty() ? "[?]" : bindingText + "  [?]";
-        SFMFontUtils.draw(poseStack, font, suffix, right - 12 - font.width(suffix), y, 0xFF80D8FF, false);
+        SFMFontUtils.draw(poseStack, font, suffix, right - 12 - font.width(suffix), y,
+                SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT), false);
     }
 
     private void renderActionDetailsTooltip(PoseStack poseStack, int mouseX, int mouseY) {
@@ -704,6 +712,20 @@ public final class SFMCommandPaletteScreen extends Screen {
     public void setInputForAutomation(String command) {
         this.input.setValue(command);
         this.input.moveCursorToEnd();
+    }
+
+    /** Displays deterministic theme reload feedback for the visual puppet. */
+    public void showThemeFeedbackForAutomation(List<String> messages) {
+        this.feedback.clear();
+        messages.forEach(message -> this.feedback.add(Component.literal(message)));
+    }
+
+    /** Displays live SFML syntax components using the current runtime theme for visual proof. */
+    public void showThemeSyntaxForAutomation(String program) {
+        this.feedback.clear();
+        this.feedback.add(Component.literal("Live SFML syntax - gold keywords, pink italic strings")
+                .withStyle(style -> style.withColor(SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT))));
+        this.feedback.addAll(ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false));
     }
 
     /** Exercises the same Enter path as a user and verifies its resulting draft. */
