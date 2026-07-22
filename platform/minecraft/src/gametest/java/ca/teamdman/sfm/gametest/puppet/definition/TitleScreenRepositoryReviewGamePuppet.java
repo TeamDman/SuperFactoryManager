@@ -3,13 +3,14 @@ package ca.teamdman.sfm.gametest.puppet.definition;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetViewportProfile;
 import ca.teamdman.sfm.gametest.puppet.action.PrepareRepositoryReviewFixturePuppetAction;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.network.chat.Component;
 
 /** Join-ready walkthrough; loader integration replaces fixture reset/bootstrap, not the UI actions. */
-@SFMGamePuppet
+@SFMGamePuppet(viewportProfile = SFMGamePuppetViewportProfile.COMMON_RESPONSIVE)
 public final class TitleScreenRepositoryReviewGamePuppet {
     public static final String SEARCH_PROPERTY = "sfm.repositoryReviewPuppetSearch";
 

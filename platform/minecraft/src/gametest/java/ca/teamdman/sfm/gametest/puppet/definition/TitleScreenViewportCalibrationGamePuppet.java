@@ -3,12 +3,13 @@ package ca.teamdman.sfm.gametest.puppet.definition;
 import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMViewportCalibrationWorkspace;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetViewportProfile;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.network.chat.Component;
 
 /** Preferred-viewport proof that the same diagnostic leaf composes in four workspace shapes. */
-@SFMGamePuppet
+@SFMGamePuppet(viewportProfile = SFMGamePuppetViewportProfile.COMMON_RESPONSIVE)
 public final class TitleScreenViewportCalibrationGamePuppet {
     private static final int TITLE_SCREEN_FADE_IN_TICKS = 20;
 
