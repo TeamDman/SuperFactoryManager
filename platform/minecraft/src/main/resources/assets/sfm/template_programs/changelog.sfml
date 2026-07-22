@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Open validated repository review bundles from the command palette and restore persisted comments
 -- Make literal punctuation in unquoted SFML wildcard matchers match only itself
 -- Add a comment-driven before/after review workspace with overlap, hashtag styles, migration, and legacy projection
 -- Add a persistent, theme-aware source review ledger with visible reviewed, approved, audit, and stale states
