@@ -642,6 +642,28 @@ The coordinator owns the shared schema and canonical plans. Feature agents work
 from one reviewed `1.19.2` baseline, do not update canonical plan copies, and
 return tests plus captioned puppets before an integration goal merges anything.
 
+### Active implementation wave — 2026-07-22
+
+All three tracks fork from contract commit `378719839` and return to the
+canonical `1.19.2` branch through coordinator-reviewed merges. No track may
+change `.g4` files or propagate to later Minecraft versions.
+
+1. **Literal-safe globs** — `feat/1.19.2/literal-safe-globs` owns Phase 0,
+   including the shared conversion helper, regression tests, changelog, and an
+   observable matcher puppet.
+2. **Review comment kernel** — `feat/1.19.2/review-comment-kernel` owns the Java
+   and Rust v1 models, fixture conformance, selector evaluation, persistence,
+   and legacy projection. The coordinator alone may install a changed Rust CLI
+   into `PATH`; the track uses its local build until that epoch is accepted.
+3. **Review comment UI** — `feat/1.19.2/review-comment-ui` owns the in-game
+   comment, overlap, colorization, navigation, migration, and legacy-projection
+   presentation plus 1200x720 puppet evidence. It consumes the frozen contract
+   through a narrow interface so the kernel can merge first.
+
+The integration gate is: clean track commits, focused and full tests, inspected
+puppet evidence, kernel-before-UI merge order, canonical compile and full test,
+then freshly recaptured and inspected puppets from the merged head.
+
 ## Implementation phases
 
 ### [ ] Phase 0 — Correct literal wildcard conversion
