@@ -9,7 +9,7 @@ NAME "Changelog"
 ---- 4.35.0 PRE ----
 -- Add an experimental two-panel SFM workspace with typed command-palette screen opening
 -- Add a read-only file explorer workspace with safe directory drops and reusable side-by-side text previews
--- Add experimental runtime SFM shortcuts with action details and command-palette binding badges
+-- Add searchable runtime SFM shortcuts with action details, cycling palette badges, and typed command prompting
 -- Add Minecraft ItemStack icons with accessible text to the file explorer and command palette
 -- Add reloadable TOML client themes for palette/timeline colours, SFML syntax styles, and item icons
 -- Insert the required separator when a palette action still needs Brigadier arguments

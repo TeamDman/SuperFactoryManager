@@ -2,11 +2,13 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.action.SFMClientCommandInsertion;
 import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;
 import ca.teamdman.sfm.client.presentation.SFMItemIconResolver;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBinding;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBindingCycle;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingDisplay;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
@@ -170,6 +172,9 @@ public final class SFMCommandPaletteScreen extends Screen {
         var narration = TITLE.getComponent().copy().append(". ").append(action.title()).append(". ")
                 .append(action.description());
         action.itemIcon(actionContext).ifPresent(icon -> narration.append(". Icon: " + icon.accessibleLabel()));
+        int bindingCount = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get()).size();
+        narration.append(". " + bindingCount + (bindingCount == 1 ? " binding" : " bindings")
+                + ". Open details to inspect or configure them.");
         return narration;
     }
 
@@ -450,18 +455,14 @@ public final class SFMCommandPaletteScreen extends Screen {
     private void renderBindingSummary(PoseStack poseStack, Suggestion suggestion, int right, int y) {
         Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return;
-        List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get()).stream()
-                .filter(SFMKeyBinding::enabled)
-                .toList();
-        String bindingText = "";
-        if (!bindings.isEmpty()) {
-            int index = bindings.size() == 1
-                    ? 0
-                    : (int) ((bindingCycleTicks / 20L) % bindings.size());
-            bindingText = SFMKeyBindingDisplay.format(bindings.get(index).sequence());
-        }
-        String suffix = bindingText.isEmpty() ? "[?]" : bindingText + "  [?]";
-        SFMFontUtils.draw(poseStack, font, suffix, right - 12 - font.width(suffix), y,
+        List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get());
+        String bindingText = SFMKeyBindingCycle.displayedSequence(bindings, bindingCycleTicks);
+        int bindingAreaLeft = right - 146;
+        int bindingAreaWidth = 108;
+        String shown = font.plainSubstrByWidth(bindingText, bindingAreaWidth);
+        SFMFontUtils.draw(poseStack, font, shown, bindingAreaLeft, y,
+                SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT), false);
+        SFMFontUtils.draw(poseStack, font, "[?]", right - 28, y,
                 SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT), false);
     }
 
@@ -484,7 +485,9 @@ public final class SFMCommandPaletteScreen extends Screen {
         ));
         List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get());
         if (bindings.isEmpty()) tooltip.add(Component.literal("No key bindings").withStyle(ChatFormatting.GRAY));
-        else bindings.forEach(binding -> tooltip.add(Component.literal(SFMKeyBindingDisplay.format(binding.sequence()))));
+        else bindings.forEach(binding -> tooltip.add(Component.literal(
+                SFMKeyBindingDisplay.format(binding.sequence()) + (binding.enabled() ? "" : " (disabled)")
+        )));
         renderComponentTooltip(poseStack, tooltip, mouseX, mouseY);
     }
 
@@ -625,9 +628,7 @@ public final class SFMCommandPaletteScreen extends Screen {
     }
 
     private boolean isExecutable(ParseResults<SFMClientActionSource> parsed) {
-        return !parsed.getReader().canRead()
-                && parsed.getExceptions().isEmpty()
-                && parsed.getContext().getCommand() != null;
+        return SFMClientActionExecutor.isExecutable(parsed);
     }
 
     private void applySelectedSuggestion() {
@@ -680,10 +681,7 @@ public final class SFMCommandPaletteScreen extends Screen {
 
     private void executeCommand(String command) throws CommandSyntaxException {
         this.feedback.clear();
-        SFMClientActions.commandTree().execute(
-                command,
-                new SFMClientActionSource(this.actionContext, this.feedback::add)
-        );
+        SFMClientActionExecutor.execute(command, this.actionContext, this.feedback::add);
         this.error = "";
         resetToDefaultQuery();
     }
