@@ -128,6 +128,10 @@ public final class SFMGamePuppetHelper {
         add(new ShowRuntimeThemePuppetAction(view));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
+    public void showThemeSettings(ShowThemeSettingsPuppetAction.View view) {
+        add(new ShowThemeSettingsPuppetAction(view));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
 
     public void applySourceReviewFixtureCommand(String command) {
         add(new ApplySourceReviewFixturePuppetAction(command));

@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.screen.SFMGuiCrosshair;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
@@ -37,6 +38,7 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
     private @Nullable Minecraft minecraft;
     private SFMColorInputPanelLayout layout = SFMColorInputPanelLayout.fit(new SFMScreenPanelBounds(0, 0, 600, 360));
     private Drag drag = Drag.NONE;
+    private @Nullable SFMWorkspacePanelContext hostContext;
 
     public SFMColorInputPanel(
             SFMArgbColor initial,
@@ -74,6 +76,7 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
     @Override
     public void opened(Minecraft minecraft, SFMScreenPanelBounds bounds, SFMWorkspacePanelContext context) {
         this.minecraft = minecraft;
+        this.hostContext = context;
         this.layout = SFMColorInputPanelLayout.fit(bounds);
     }
 
@@ -84,6 +87,7 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
 
     @Override
     public void closed() {
+        hostContext = null;
         if (model.resolution() == SFMColorInputModel.Resolution.EDITING) cancel();
     }
 
@@ -403,6 +407,7 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
         confirmedResult = model.confirm();
         confirmCallback.accept(confirmedResult);
         diagnostic = null;
+        closeHostedPanel();
     }
 
     private void cancel() {
@@ -410,6 +415,11 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
         model.cancel();
         cancelCallback.run();
         diagnostic = null;
+        closeHostedPanel();
+    }
+
+    private void closeHostedPanel() {
+        if (hostContext != null) hostContext.submit(new SFMWorkspacePanelIntent.Close());
     }
 
     private void syncHex() {

@@ -54,6 +54,9 @@ public final class SFMCommandPaletteActions {
             "theme/open_file",
             () -> new SFMThemeAction(SFMThemeAction.Operation.OPEN_FILE)
     );
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenThemeSettingsAction> THEME_SETTINGS = REGISTERER.register(
+            "theme/settings", OpenThemeSettingsAction::new
+    );
 
     private SFMCommandPaletteActions() {
     }
