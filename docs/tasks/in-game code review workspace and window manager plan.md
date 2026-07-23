@@ -766,13 +766,16 @@ generated-payload research is recorded in
 That document is the durable technical companion to this checklist and should
 be consulted before repeating repository or loader research.
 
-#### [ ] 5.1 Synchronize the maintained Facet fork
+#### [x] 5.1 Synchronize the maintained Facet fork
 
-The local Facet checkout was inspected read-only on 2026-07-23. It is clean on
-local `main`, which tracks `mine/main`, at `5fd9cfaa4`. The cached remote refs
-show `mine/main` 75 commits ahead of and zero behind `origin/main`, whose cached
-tip is `3b20e02a2`; that upstream cache was eleven days old. Those numbers are
-not evidence about the latest upstream until both remotes are fetched.
+Completed 2026-07-23. Both remotes were fetched, current `origin/main`
+(`8edaa1639`) was merged without rewriting maintained history, and combined
+Rust 1.96 formatter/lint drift plus one Figue `IpAddr` default incompatibility
+were repaired. The supported Windows CI matrix passed 8,071/8,071 tests with
+the repository's explicit container, Swift, and TypeScript subject exclusions;
+full workspace/all-feature/all-target clippy passed with warnings denied.
+Maintained `main` and `mine/main` both resolve to the clean published checkpoint
+`05263dd6d119d271a21883636b23db6d45a2466f`.
 
 Before Vox design or delegation:
 
@@ -792,7 +795,7 @@ operation from agent creation, using the exact commit SHA; verify the worktree's
 `HEAD` equals that SHA before attaching an agent. Agents commit forward and do
 not push unless explicitly assigned publication ownership.
 
-#### [ ] 5.2 Re-survey Java support after synchronization
+#### [x] 5.2 Re-survey Java support after synchronization
 
 Current local and upstream-source evidence says Vox does not yet have an
 implemented Java target:
@@ -814,11 +817,11 @@ rewrite. Reuse only API naming, `CompletableFuture` and build scaffolding ideas.
 Do not restore its COBS framing, legacy handshake, ad hoc codecs, String-only
 dispatch or 32-bit-truncated method ids.
 
-After merging the latest upstream, repeat the survey across runtime, wire
-codec, transports, code generation, generated fixtures, conformance tests, and
-published artifacts. Treat stale documentation as a discrepancy to correct,
-not as proof of support. If upstream now supplies Java, evaluate and extend it;
-otherwise begin the experiment below.
+The post-merge survey confirmed the same result across runtime, wire codec,
+transports, generators, fixtures, conformance and artifacts: neither Phon nor
+Vox has a current Java implementation. `vox/DEVELOP.md` was stale, and its
+unimplemented Java command was corrected as part of the pushed contract
+checkpoint rather than treated as support evidence.
 
 #### [ ] 5.3 Implement the smallest conforming Java experiment
 
@@ -1443,21 +1446,21 @@ source-review, Theme Settings, and dynamic-key-binding puppets passed at
 frames were visually inspected. The wave is complete. Later Minecraft-version
 propagation remains out of scope.
 
-Track 5 first creates the coordinator-owned Facet integration branch
+Track 5 created the coordinator-owned Facet integration branch
 `teamy/vox-java` and worktree
-`G:\Programming\Repos\facet-worktrees\vox-java` after `mine/main` is
-synchronized, gated and pushed. The coordinator records a Java 17
-specification/public-interface checkpoint there and pushes it before delegated
-implementation begins.
+`G:\Programming\Repos\facet-worktrees\vox-java` from published Facet checkpoint
+`05263dd6d119d271a21883636b23db6d45a2466f`. The frozen Java 17 contract is
+`vox/docs/design/java-17-vertical-slice.md`; its clean pushed delegation
+checkpoint is `58c47981a1c171b07a30449db5a550a9029b0709`.
 
 Every delegated Facet worktree starts separately from that exact immutable
 checkpoint and verifies `HEAD` before an agent is attached:
 
-| Facet boundary | Proposed branch | Proposed worktree |
-| --- | --- | --- |
-| Phon Java | `teamy/vox-java-phon` | `G:\Programming\Repos\facet-worktrees\vox-java-phon` |
-| Java generators | `teamy/vox-java-codegen` | `G:\Programming\Repos\facet-worktrees\vox-java-codegen` |
-| Vox Java runtime | `teamy/vox-java-runtime` | `G:\Programming\Repos\facet-worktrees\vox-java-runtime` |
+| Facet boundary | Branch | Worktree | Status |
+| --- | --- | --- | --- |
+| Phon Java | `teamy/vox-java-phon` | `G:\Programming\Repos\facet-worktrees\vox-java-phon` | Dispatched from exact contract SHA |
+| Java generators | `teamy/vox-java-codegen` | `G:\Programming\Repos\facet-worktrees\vox-java-codegen` | Dispatched from exact contract SHA |
+| Vox Java runtime | `teamy/vox-java-runtime` | `G:\Programming\Repos\facet-worktrees\vox-java-runtime` | Dispatched from exact contract SHA |
 
 The independent SFM packaging-capability investigation uses branch
 `feat/1.19.2/vox-packaging-research` and worktree
@@ -1471,10 +1474,11 @@ After upstream conformance and artifact freeze, the Minecraft adapter uses
 branch `feat/1.19.2/vox-bridge` and worktree
 `D:\Repos\Minecraft\SFM\worktrees\1.19.2-vox-bridge`.
 
-### Prepared Track 5 delegation briefs — 2026-07-23
+### Active Track 5 delegation briefs — 2026-07-23
 
-These briefs are prepared but are not eligible for implementation dispatch
-until their stated gate is satisfied.
+The synchronization and contract gates were satisfied at the immutable SHAs
+above. V1, V2 and V3 were attached only after each separate worktree was
+verified clean and exactly at the contract checkpoint.
 
 #### Coordinator preflight — Facet synchronization and contract freeze
 
