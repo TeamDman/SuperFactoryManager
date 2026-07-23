@@ -862,12 +862,15 @@ Produce one small Java 17 Phon/Vox artifact, preferably with no third-party
 runtime dependencies, and prove that SFM can compile against and ship it.
 
 The SFM schema-v3 lockfile already maps dependency scope `bundle` to Gradle's
-`jarJar` configuration. Only Minecraft 26.1.2 currently declares the ANTLR
-runtime in that scope, and `gradle/jar-jar.gradle` selects the `jarJar` output
-for publication only on 26.1.2. The dedicated packaging research track must
-determine native Jar-in-Jar capability, selected publication artifact, metadata,
-classloader behavior and clean-instance loading for 1.19.2, 1.20.4, 1.21.1 and
-26.1.2.
+`jarJar` configuration. The completed packaging audit is recorded in
+[`vox-java-jar-in-jar-packaging-research.md`](../architecture/vox-java-jar-in-jar-packaging-research.md).
+It found loader-native JarJar support through ForgeGradle 5 on 1.19.2 and
+NeoGradle on 1.20.4, 1.21.1 and 26.1.2, but also found three SFM toolchain gaps:
+publication currently selects a bundled output only for 26.1.2, the Rust
+packager skips ForgeGradle's JarJar task, and schema-v3 cannot preserve the
+loader-specific Maven compatibility range required by ForgeGradle 5. Existing
+26.1.2 ANTLR packaging proves that the nested dependency can be byte-identical
+to the declared artifact, but it is not yet a cross-version acceptance proof.
 
 Use the dependency lock/CLI workflow rather than handwritten Gradle edits or
 direct Gradle commands. Preferred fallback order is loader-native Jar-in-Jar,
@@ -1517,17 +1520,16 @@ cancellation, timeout, shutdown and subject inactivity/disconnect exit. Keep
 connection/lane/schema state machines together. Use hand-written fixture DTOs
 until V1/V2 land; do not fork their codec or generated APIs.
 
-#### Agent P1 — SFM Jar-in-Jar capability research
+#### [x] Agent P1 — SFM Jar-in-Jar capability research
 
-This research can run independently after its SFM worktree is created from a
-recorded canonical SHA. Inspect repository and locally available
-Forge/NeoForge/Gradle plugin sources for 1.19.2, 1.20.4, 1.21.1 and 26.1.2.
-Using only `sfm-propagate-changes` workflows, build a harmless probe dependency
-through schema-v3 compile/runtime/bundle declarations where supported. Inspect
-the selected development, reobfuscated and published artifacts and launch clean
-instances. Produce a version matrix, exact commands, artifact evidence,
-classloader/conflict findings and native-JarJar/shading/vendoring recommendation.
-Do not alter production ANTLR or Vox declarations as an unreviewed side effect.
+Research commit `c2504223bb9c4b2dd66d1b3de6155a9fec1bd54d` was completed
+from canonical SFM commit `1bad3a53e7c888f91b83e2048ba2d6ae2d6f9eaf`
+and integrated into 1.19.2 as `71d203a2a`. It produced the cross-version
+capability and gap analysis linked from section 5.4 without changing production
+ANTLR or Vox declarations. The next packaging work is coordinator-owned:
+teach schema-v3 and the Rust packager to preserve loader-compatible dependency
+ranges, select bundled publication artifacts on every supported loader, and add
+installed-JAR inspection plus clean-instance launch/call acceptance.
 
 #### Coordinator integration and proof
 
