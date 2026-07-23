@@ -3675,6 +3675,10 @@ fn create_game_puppet_preview_run_root(
 }
 
 fn safe_game_puppet_preview_run_name(value: &str) -> String {
+    // Keep generated image paths below the legacy Windows file-URL boundary.
+    // The report still carries complete puppet/capture identities in its
+    // manifest and headings, so a compact run-directory hint is sufficient.
+    const MAX_RUN_NAME_CHARS: usize = 16;
     let mut output = value
         .bytes()
         .map(|byte| {
@@ -3686,7 +3690,7 @@ fn safe_game_puppet_preview_run_name(value: &str) -> String {
             }
         })
         .collect::<String>();
-    output.truncate(48);
+    output.truncate(MAX_RUN_NAME_CHARS);
     let output = output.trim_matches('-');
     if output.is_empty() {
         "puppet".to_string()
@@ -3927,8 +3931,10 @@ mod game_puppet_preview_tests {
         assert_ne!(first_id, second_id);
         assert!(first_root.is_dir());
         assert!(second_root.is_dir());
-        assert!(first_id.starts_with("title_screen_command_palette_echo-"));
-        assert!(second_id.starts_with("title_screen_command_palette_echo-"));
+        assert!(first_id.starts_with("title_screen_com-"));
+        assert!(second_id.starts_with("title_screen_com-"));
+        assert!(first_id.len() <= 36);
+        assert!(second_id.len() <= 36);
     }
 
     #[test]
