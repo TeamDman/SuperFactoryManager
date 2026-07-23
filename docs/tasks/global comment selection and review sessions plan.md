@@ -831,6 +831,156 @@ Both Java and Rust now consume and deterministically round-trip the fixture.
   added after region, removed before method, overlapping human/audit comments,
   F2 navigation, session reopen, snapshot advance, and migration failure.
 
+## Proposed structural selector and migration wave — 2026-07-23
+
+This is the next proposed Track 6 wave. It covers Phase 3 and the first complete
+vertical slice of Phase 4. It does not begin Phase 5 producer unification,
+multi-version derived approval, release completion policy, Vox, or general
+refactoring execution. No worktree or subagent is created until the maintainer
+accepts these briefs.
+
+### Coordinator-owned contract freeze before dispatch
+
+The canonical coordinator first commits a narrow, versioned handoff in
+`docs/architecture/review-selection-evaluation-v1.md` plus deterministic JSON
+fixtures. It defines the exact fields and normalization laws for the already
+reserved `text_match`, `syntax_region`, `symbol_query`, and `diff_region` rule
+kinds; scope hints and indexes; redundant witnesses; selector proposals;
+evaluation diagnostics; and migration reports. The existing
+`sfm.review-session/1` comment text and UTF-8 byte coordinates remain the
+authority. The new contract must not add a second tag, approval, or comment
+model.
+
+The first implementation uses a prepared structural sidecar produced by the
+Rust CLI and consumed by Java. This deliberately avoids requiring the unfinished
+Vox bridge for the first in-game proof. Rust/Arborium performs bounded Java
+syntax correspondence and emits deterministic proposals/evaluations; Minecraft
+loads the frozen result through an injectable provider. The UI may select among
+prepared candidates for an arbitrary literal range, but it must label unavailable
+live recomputation honestly. A future Vox integration may implement the same
+provider without changing the workspace.
+
+Before agents fork, the coordinator freezes these conceptual interfaces:
+
+```text
+SelectionEvaluator.evaluate(session, corpus, invalidationKeys)
+    -> CommentEvaluation[]
+
+StructuralSelectorProvider.proposals(documentRevisionId, literalUtf8Range)
+    -> SelectorProposal[]
+
+MigrationProvider.migrate(sourceSession, targetSnapshot)
+    -> MigrationReport
+```
+
+`SelectorProposal` contains the typed rule, human explanation, original literal
+witness, structural witnesses, confidence evidence rather than a magic score,
+and the exact candidate ranges. `MigrationReport` is derived evidence and never
+mutates historical comments. Its per-comment states include exact, relocated,
+content-changed, ambiguous, missing, invalid, and scope-missing. Effective
+`#approved` is suspended for every state except an unchanged exact or explicitly
+accepted relocation.
+
+### Proposed subagent A — Selection contract implementation and indexes
+
+| Field | Proposal |
+| --- | --- |
+| Branch | `feat/1.19.2/review-selection-evaluator` |
+| Worktree | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-review-selection-evaluator` |
+| Exclusive ownership | Java and Rust session/evaluation models and codecs; selection-rule normalization; scope planner and indexes; evaluator parity fixtures; no UI or Java parsing |
+| Deliverable | Executable text, syntax-region, symbol, diff-region, union, intersection, and difference rules with deterministic exact/relocated/changed/ambiguous/missing/invalid diagnostics and bounded invalidation keys |
+| Must not touch | Repository-review panels, command palette, puppet definitions, Arborium correspondence implementation, `.g4` files, later Minecraft branches, canonical plans, or the shared PATH CLI |
+
+Agent A is the only feature agent allowed to edit
+`SFMReviewSessionV1`, `SFMReviewSessionV1Codec`,
+`SFMReviewSessionV1Kernel`, or Rust `review_session_v1.rs` in this wave. It adds
+cross-language conformance fixtures for Unicode boundaries, duplicate ranges,
+missing scopes, ambiguous matches, content change, deterministic ordering, and
+incremental invalidation. It returns a clean commit, focused/full Java results,
+Rust `check-all.ps1`, audit impact, and proposed contract corrections to the
+coordinator rather than editing the canonical contract itself.
+
+### Proposed subagent B — Arborium Java correspondence producer
+
+| Field | Proposal |
+| --- | --- |
+| Branch | `feat/1.19.2/java-selector-correspondence` |
+| Worktree | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-java-selector-correspondence` |
+| Exclusive ownership | Rust Java-source parsing/correspondence modules, structural-sidecar production, CLI-local tests and fixtures; consumes Agent A's frozen types without changing them |
+| Deliverable | Declaration, body, signature, and return-type proposals plus B-to-C correspondence for unchanged rename, renamed-and-modified, moved declaration, overload, ambiguous, parse-gap, and removed-symbol cases |
+| Must not touch | Java/Minecraft UI, session codecs/evaluator types, repository bundle v1 semantics except an agreed optional sidecar reference, `.g4` files, later branches, canonical plans, or the shared PATH CLI |
+
+Agent B uses Arborium's Java tree as syntax evidence and does not claim semantic
+type inference that the implementation has not proved. It records parse gaps and
+all candidate witnesses rather than selecting an arbitrary first match. The
+producer must be deterministic under file-order changes, bounded by declared
+repository/path scopes, and usable against prepared directories as well as a
+Git revision pair. A focused CLI command or internal producer entry point is
+chosen by the frozen contract; the agent must not invent a competing review
+session format.
+
+### Proposed subagent C — Selector choice and migration workspace
+
+| Field | Proposal |
+| --- | --- |
+| Branch | `feat/1.19.2/review-migration-ui` |
+| Worktree | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-review-migration-ui` |
+| Exclusive ownership | Java provider boundary, shared review-workspace model integration, selector-choice panel, migration queue/details panels, commands/actions, focused UI tests, and captioned puppet |
+| Deliverable | Literal-versus-structural selector choice with explanations; exact/relocated/changed/ambiguous/missing/invalid presentation; retarget, confirm, edit, archive, and discard flows; persisted resolution and suspended-approval display |
+| Must not touch | Rust CLI, session wire types/codecs/evaluator internals, Java parser dependencies, `.g4` files, later branches, canonical plans, or the shared PATH CLI |
+
+Agent C begins against an injectable deterministic fixture implementing the
+frozen provider interfaces, so it can proceed in parallel without guessing
+Agent A or B internals. Integration replaces the fixture provider with the
+accepted structural sidecar adapter. The migration queue is a real composable
+panel group using the existing shared workspace model and Stack behavior; it
+must not reintroduce application-local manual splitting.
+
+### Required observable story and puppet evidence
+
+The merged puppet uses one three-snapshot Java fixture and keeps one selected
+method throughout the walkthrough:
+
+1. select a literal after-side return type and open selector choices;
+2. compare the conservative UTF-8 selector with an explained Java return-type
+   proposal and explicitly choose the structural rule;
+3. attach a human `#approved` comment and show its rule, witnesses, provenance,
+   and currently effective approval;
+4. advance B to C where an unchanged renamed method resolves with relocation;
+5. show a renamed-and-modified method as `content_changed` with approval
+   suspended;
+6. show two equally plausible overloads as `ambiguous`, including both candidate
+   ranges and no arbitrary winner;
+7. resolve the ambiguity through retarget/confirm, close the workspace, reopen,
+   and prove the decision persisted; and
+8. show a missing or invalid selector remaining in the queue rather than
+   silently disappearing.
+
+Each subject area receives one captioned screenshot at requested
+`1280x720@2` (effective GUI scale 2): selector choice, relocated approval,
+changed/suspended approval, ambiguous migration queue, resolved persistence,
+and missing/invalid diagnostics. Agent puppets may use only this exact fast path.
+After integration, the coordinator reruns the combined walkthrough through the
+accepted responsive profile and publishes the normal HTML contact sheet.
+
+### Merge order, gates, and stop conditions
+
+The coordinator reviews and merges A, then B, then C. Shared contract or codec
+changes flow only through A; shared Rust CLI routing conflicts are resolved when
+B merges; C consumes the integrated provider. Agents commit only their owned
+worktrees and report exact commands, results, screenshots, assumptions, and
+proposed plan wording. They do not update canonical plans, install to PATH,
+merge, propagate, or delete old evidence.
+
+Acceptance requires deterministic fixture round trips in Java and Rust,
+focused and full tests, Rust `check-all.ps1`, canonical compile/full Java suite,
+source audit, unchanged `.g4`, unchanged later-version heads, a clean canonical
+worktree, exact final CLI installation, and inspected effective-scale-2 plus
+responsive-profile puppet evidence. Stop the wave after selector evaluation,
+suggestion, and migration are proven. Compiler/audit comment production,
+colour-rule editing, multi-version approval, and release completion remain
+separate follow-up goals.
+
 ## Acceptance criteria
 
 - No `.g4` modification is required for review filtering or wildcard safety.
