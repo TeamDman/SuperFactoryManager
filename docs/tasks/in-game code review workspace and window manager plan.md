@@ -760,13 +760,19 @@ This is an independent upstream track in the maintained Facet fork at
 only through an accepted Vox Java artifact/protocol version and a later narrow
 Minecraft adapter.
 
+The verified protocol, historical-Java, SFM-packet, packaging and future
+generated-payload research is recorded in
+[`vox-java-phon-and-generated-packets.md`](../architecture/vox-java-phon-and-generated-packets.md).
+That document is the durable technical companion to this checklist and should
+be consulted before repeating repository or loader research.
+
 #### [ ] 5.1 Synchronize the maintained Facet fork
 
-The local Facet checkout was inspected read-only on 2026-07-20. It is clean on
+The local Facet checkout was inspected read-only on 2026-07-23. It is clean on
 local `main`, which tracks `mine/main`, at `5fd9cfaa4`. The cached remote refs
 show `mine/main` 75 commits ahead of and zero behind `origin/main`, whose cached
-tip is `3b20e02a2`. Those numbers are not evidence about the latest upstream
-until both remotes are fetched.
+tip is `3b20e02a2`; that upstream cache was eleven days old. Those numbers are
+not evidence about the latest upstream until both remotes are fetched.
 
 Before Vox design or delegation:
 
@@ -788,14 +794,25 @@ not push unless explicitly assigned publication ownership.
 
 #### [ ] 5.2 Re-survey Java support after synchronization
 
-Current local evidence says Vox does not yet have an implemented Java target:
+Current local and upstream-source evidence says Vox does not yet have an
+implemented Java target:
 
 - `vox/README.md` lists Rust, TypeScript, and Swift support;
 - `vox/rust/vox-codegen/src/targets/mod.rs` exports only `swift` and
   `typescript`;
 - `vox/DEVELOP.md` documents `cargo xtask codegen --java`, and
   `vox-codegen/src/lib.rs` claims Java support, but no corresponding target or
-  Java runtime is present in the checkout.
+  Java runtime is present; and
+- Phon has no Java implementation either. Vox Java is therefore blocked on a
+  conforming Java Phon schema/value/compatibility baseline, not merely a new
+  Vox target renderer.
+
+A historical Java subject/runtime existed at
+`b0593a9f6fec57737508e575b01e4bb079a828cf` and was removed by
+`bd6265411e21deffa5598c4f2719dcaddacf6d7a` during the Phon/schema-aware wire
+rewrite. Reuse only API naming, `CompletableFuture` and build scaffolding ideas.
+Do not restore its COBS framing, legacy handshake, ad hoc codecs, String-only
+dispatch or 32-bit-truncated method ids.
 
 After merging the latest upstream, repeat the survey across runtime, wire
 codec, transports, code generation, generated fixtures, conformance tests, and
@@ -806,25 +823,62 @@ otherwise begin the experiment below.
 #### [ ] 5.3 Implement the smallest conforming Java experiment
 
 Build from the Vox specification and golden vectors rather than translating
-the Rust implementation by intuition. The first vertical slice should include:
+the Rust implementation by intuition. First freeze a pushed specification and
+public-interface checkpoint for Java 17, TCP, Phon codec/adapters, generated
+bindings, runtime ownership, artifact layout and the deliberately unsupported
+surface.
 
-- Java DTO/service generation from the same Rust `ServiceDescriptor` and Facet
-  shapes used by existing TypeScript and Swift targets;
-- the minimum Vox wire codec and connection/runtime needed for unary,
-  bidirectional request/response;
-- one loopback transport chosen from source evidence—prefer an existing
-  cross-language TCP or WebSocket protocol over JNI for the first proof;
-- Java↔Rust conformance tests using Vox schema compatibility, wire fixtures,
-  correlation ids, errors, cancellation/timeouts, and version negotiation; and
-- a publishable Java artifact boundary suitable for Minecraft 1.19.2's Java
-  runtime constraints without leaking Rust implementation details into SFM.
+The implementation divides into three upstream ownership boundaries:
 
-Channels, file-descriptor passing, every transport, Android-specific packaging,
-and full language parity may follow after the unary bidirectional proof. The
-experiment must state its supported subset rather than silently accepting
-unsupported service shapes.
+1. **Phon Java:** schema/value models, canonical encoding, schema closures,
+   schema ids, compatibility plans, typed adapters and bounded failure behavior;
+2. **Java generation:** `phon-codegen::java`, `vox-codegen::targets::java`,
+   generated DTO/caller/handler/dispatcher/descriptors, embedded canonical
+   schemas, `cargo xtask codegen --java`, drift checks and
+   `javac --release 17`; and
+3. **Vox Java runtime:** TCP framing and prologues, self-describing handshake,
+   explicit connection driver, service lanes, schema binding, unary
+   request/response correlation, cancellation, timeouts, shutdown and a hosted
+   Java subject.
 
-#### [ ] 5.4 Prove shaped intent fulfillment across Java and Rust
+The first vertical slice is pure Java 17, TCP-only, unary and bidirectional. It
+must prove Rust-server/Java-client, Java-server/Rust-client and both directions
+on one connection for `echo(String)`, a nested DTO and a fallible method. It
+also proves compatible evolution, incompatible call behavior, schema-binding
+reuse, unknown method, invalid payload, cancellation, timeout and disconnect.
+
+Channels, file descriptors, WebSocket, Unix/shared-memory/Iroh transports,
+dynamic Facet values, automatic retry and optimized/JIT paths are explicitly
+unsupported. Their shapes fail code generation with useful diagnostics.
+
+Current Vox evolves its message protocol through schema exchange and
+compatibility plans rather than one global semantic version field. The Java
+runtime must still implement the versioned transport prologue, while an SFM
+application service may expose a separate capability/revision contract.
+
+#### [ ] 5.4 Prove a distributable Java artifact
+
+Produce one small Java 17 Phon/Vox artifact, preferably with no third-party
+runtime dependencies, and prove that SFM can compile against and ship it.
+
+The SFM schema-v3 lockfile already maps dependency scope `bundle` to Gradle's
+`jarJar` configuration. Only Minecraft 26.1.2 currently declares the ANTLR
+runtime in that scope, and `gradle/jar-jar.gradle` selects the `jarJar` output
+for publication only on 26.1.2. The dedicated packaging research track must
+determine native Jar-in-Jar capability, selected publication artifact, metadata,
+classloader behavior and clean-instance loading for 1.19.2, 1.20.4, 1.21.1 and
+26.1.2.
+
+Use the dependency lock/CLI workflow rather than handwritten Gradle edits or
+direct Gradle commands. Preferred fallback order is loader-native Jar-in-Jar,
+then shaded/relocated classes, then source vendoring. Generated service bindings
+may live in SFM source, but vendoring the complete runtime is a last resort.
+
+The artifact is not accepted until the published 1.19.2 mod launches and
+completes a real Vox call in a clean instance without a separately installed
+Vox JAR.
+
+#### [ ] 5.5 Prove shaped intent fulfillment across Java and Rust
 
 Define a language-neutral request/result contract for soliciting a shaped piece
 of information. Facet's Rust `Shape` and partial-struct builder can drive the
@@ -848,12 +902,20 @@ reports that state and may offer an explicit launch/retry workflow; it does not
 pretend the action succeeded or launch arbitrary commands silently.
 
 The connection is loopback-only by default, authenticated with a per-session
-capability/token, version-negotiated, bounded, and explicit about which actions
-may cross the process boundary. Network callbacks never directly mutate
-Minecraft state; they enqueue onto the appropriate game/client thread. eframe
-owns its own event loop and does not borrow Minecraft's GLFW context.
+capability/token, schema/capability-negotiated, bounded, and explicit about
+which actions may cross the process boundary. Loopback is not authentication.
+Network callbacks never directly mutate Minecraft state; they enqueue onto the
+appropriate game/client thread. eframe owns its own event loop and does not
+borrow Minecraft's GLFW context.
 
-#### [ ] 5.5 Explore coordinated Minecraft-window behavior
+The first reverse call is a structured fixed allowlist entry such as Echo, not
+an arbitrary Brigadier command string. The puppet proof shows connected,
+authenticated and pending states, the returned colour swatch, one accepted
+reverse action, one rejected action and cancellation/timeout/disconnect. A
+separate real eframe capture and the Minecraft captures are published together
+in one HTML report.
+
+#### [ ] 5.6 Explore coordinated Minecraft-window behavior
 
 Treat Minecraft and eframe as separately owned windows/surfaces first. Build on
 the existing puppet lifecycle ideas to discover, launch, focus, position, and
@@ -866,6 +928,28 @@ Only after the RPC and lifecycle contracts are reliable should this track
 consider side-by-side placement, returning focus, detecting a closed game,
 launch suggestions, or treating the Minecraft window as one surface in a
 larger developer workspace.
+
+#### [ ] 5.7 Explore Rust-defined generated SFM payloads later
+
+Do not rewrite the existing Minecraft packet channel during the first Vox
+integration. Today SFM keeps the same `SFMPacketDaddy` record/encoder/decoder/
+handler abstraction while adapting its registration shell from Forge
+`SimpleChannel` and `FriendlyByteBuf` on 1.19.2 to custom payloads and
+`StreamCodec<RegistryFriendlyByteBuf, T>` on newer versions.
+
+After Phon/Vox Java is stable, investigate Rust/Facet as the build-time source
+of truth for loader-neutral SFM payload schemas. Generate Java payload records,
+bounded field codecs, stable ids and registration descriptors, then adapt them
+to old `FriendlyByteBuf` and modern `StreamCodec` surfaces. Keep handlers,
+permission/sender/world/menu validation, game-thread scheduling and side
+effects hand-written.
+
+Minecraft-specific types require an explicit versioned adapter catalog.
+Prototype a portable packet first, then a bounded string/enum packet such as the
+disk-program mutation, and only later registry-aware values such as
+`ItemStack`. Compare direct generated Minecraft buffer operations with carrying
+a Phon envelope inside one custom payload; do not assume either representation
+without captured-vector tests and measurements.
 
 ### [~] Track 6 — Source comparison viewer and human review ledger
 
@@ -1055,8 +1139,13 @@ Track 2: drag/drop evidence ──> optional source-provider adapter
 Track 4: dynamic hotkeys + command drafts ──> shared command/prompt surface
                                              └─> optional Track 1 panel adapter
 
-Track 5: Vox Java + shaped intent UI ──> optional external fulfillment for Track 4
-                                      └─> bidirectional SFM action bridge
+Track 5: Phon Java ─> Vox Java/codegen ─> distributable artifact ─> SFM bridge
+                                                           ├─> external fulfillment for Track 4
+                                                           └─> bidirectional SFM action bridge
+
+Track 5 packaging research ────────────────────────────────┘
+
+Track 5 stable codegen foundation ──> future generated SFM payload research
 
 Snapshot/episode plan ──> immutable snapshots + action provenance ──┐
 CLI AST plan ───────────> optional structured comparison JSON ───────┼─> Track 6
@@ -1351,11 +1440,102 @@ source-review, Theme Settings, and dynamic-key-binding puppets passed at
 frames were visually inspected. The wave is complete. Later Minecraft-version
 propagation remains out of scope.
 
-Track 5 uses a separate Facet worktree whose final path and branch are chosen
-after `mine/main` is synchronized and pushed. Proposed names are branch
-`teamy/vox-java` and worktree `G:\Programming\Repos\facet-worktrees\vox-java`.
-The recorded post-merge commit SHA—not a moving branch name—is its creation
-base, as required by the Facet repository instructions.
+Track 5 first creates the coordinator-owned Facet integration branch
+`teamy/vox-java` and worktree
+`G:\Programming\Repos\facet-worktrees\vox-java` after `mine/main` is
+synchronized, gated and pushed. The coordinator records a Java 17
+specification/public-interface checkpoint there and pushes it before delegated
+implementation begins.
+
+Every delegated Facet worktree starts separately from that exact immutable
+checkpoint and verifies `HEAD` before an agent is attached:
+
+| Facet boundary | Proposed branch | Proposed worktree |
+| --- | --- | --- |
+| Phon Java | `teamy/vox-java-phon` | `G:\Programming\Repos\facet-worktrees\vox-java-phon` |
+| Java generators | `teamy/vox-java-codegen` | `G:\Programming\Repos\facet-worktrees\vox-java-codegen` |
+| Vox Java runtime | `teamy/vox-java-runtime` | `G:\Programming\Repos\facet-worktrees\vox-java-runtime` |
+
+The independent SFM packaging-capability investigation uses branch
+`feat/1.19.2/vox-packaging-research` and worktree
+`D:\Repos\Minecraft\SFM\worktrees\1.19.2-vox-packaging-research`. It may inspect
+and prove loader behavior before a final Vox artifact exists by using a harmless
+probe library. It reports per-version Jar-in-Jar support, metadata, selected
+publication artifact, clean-instance loading and fallback recommendations; it
+does not silently change production packaging.
+
+After upstream conformance and artifact freeze, the Minecraft adapter uses
+branch `feat/1.19.2/vox-bridge` and worktree
+`D:\Repos\Minecraft\SFM\worktrees\1.19.2-vox-bridge`.
+
+### Prepared Track 5 delegation briefs — 2026-07-23
+
+These briefs are prepared but are not eligible for implementation dispatch
+until their stated gate is satisfied.
+
+#### Coordinator preflight — Facet synchronization and contract freeze
+
+Owner: primary agent; no delegation.
+
+1. fetch `origin` and `mine` in the clean maintained Facet checkout;
+2. merge current `origin/main` into maintained `main`, resolve by project intent,
+   run required gates, commit and push `mine/main`;
+3. create and verify the `teamy/vox-java` integration worktree from that exact
+   pushed SHA;
+4. re-survey upstream Java/Phon support;
+5. write the Java 17 supported-subset, module/package, runtime-interface,
+   generated-API, artifact and conformance contracts in Facet-owned docs/spec;
+6. correct stale Java documentation as appropriate; and
+7. gate, commit, push and publish the immutable delegation SHA.
+
+Do not attach implementation agents before step 7.
+
+#### Agent V1 — Phon Java and conformance
+
+Own only `phon/java`, its Java test harness and the minimum Rust-side fixture
+emission explicitly assigned by the frozen contract. Implement canonical
+schemas/values, schema closures, schema ids, compatibility plans, typed adapters
+and bounds. Prove relevant conformance cases byte-for-byte, matching ids,
+evolution and malformed inputs under `javac --release 17`. Do not implement Vox
+connections, SFM code or change the frozen generated public interface without a
+coordinator decision.
+
+#### Agent V2 — Java source generation
+
+Own the Rust Java targets, deterministic generated fixtures and generator
+documentation. Implement Phon DTO/schema generation and Vox service caller,
+handler, dispatcher and descriptor generation against the frozen Java runtime
+interfaces. Add a real xtask flag, drift checks, Java 17 compilation and clear
+unsupported-shape diagnostics. Do not invent a second Java runtime or edit SFM.
+
+#### Agent V3 — Vox Java runtime and hosted subject
+
+Own `vox/java` runtime/subject code and focused interop scaffolding. Implement
+bounded TCP framing/prologues, self-describing handshake, explicit connection
+driver, service lanes, schema binding, unary request/response correlation,
+cancellation, timeout, shutdown and subject inactivity/disconnect exit. Keep
+connection/lane/schema state machines together. Use hand-written fixture DTOs
+until V1/V2 land; do not fork their codec or generated APIs.
+
+#### Agent P1 — SFM Jar-in-Jar capability research
+
+This research can run independently after its SFM worktree is created from a
+recorded canonical SHA. Inspect repository and locally available
+Forge/NeoForge/Gradle plugin sources for 1.19.2, 1.20.4, 1.21.1 and 26.1.2.
+Using only `sfm-propagate-changes` workflows, build a harmless probe dependency
+through schema-v3 compile/runtime/bundle declarations where supported. Inspect
+the selected development, reobfuscated and published artifacts and launch clean
+instances. Produce a version matrix, exact commands, artifact evidence,
+classloader/conflict findings and native-JarJar/shading/vendoring recommendation.
+Do not alter production ANTLR or Vox declarations as an unreviewed side effect.
+
+#### Coordinator integration and proof
+
+Integrate V1, then V2, then V3 into `teamy/vox-java`, resolving API mismatches in
+the integration branch rather than making agents rewrite history. Run the
+complete focused Rust/Java conformance matrix and freeze one reviewed artifact.
+Use P1's result to implement SFM bundling through the lockfile workflow. Only
+then dispatch the SFM Vox bridge/action/panel/puppet work.
 
 Each worktree has one agent owner at a time. Agents may commit within their own
 track so progress is durable and reviewable. They must not modify, clean, or
