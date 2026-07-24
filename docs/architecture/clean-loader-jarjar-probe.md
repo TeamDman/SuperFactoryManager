@@ -44,7 +44,9 @@ Artifact and plan inspection, with no installation:
 ```powershell
 cargo run -- jar clean-loader-probe `
   --release-jar <release.jar> `
+  --expected-release-sha256 <64-hex-sha256> `
   --forge-installer <forge-installer.jar> `
+  --expected-forge-installer-sha256 <64-hex-sha256> `
   --instance-dir <new-absent-directory> `
   --success-marker SFM_VOX_JAVA_PACKAGING_PROBE_READY `
   --expected-nested org.facet:vox-java `
@@ -58,7 +60,9 @@ Production Forge launch:
 ```powershell
 cargo run -- jar clean-loader-probe `
   --release-jar <release.jar> `
+  --expected-release-sha256 <64-hex-sha256> `
   --forge-installer <forge-installer.jar> `
+  --expected-forge-installer-sha256 <64-hex-sha256> `
   --instance-dir <new-absent-directory> `
   --success-marker SFM_VOX_JAVA_PACKAGING_PROBE_READY `
   --expected-nested org.facet:vox-java `
@@ -68,11 +72,12 @@ cargo run -- jar clean-loader-probe `
   --report-json <launch-report.json>
 ```
 
-The installer is explicit rather than silently downloaded so the report can
-identify the exact loader input. Forge's installer may still fetch missing
-Minecraft and runtime libraries from the repositories declared by Forge. A
-fully offline run therefore requires those installer inputs to have already
-been cached by the installer.
+Both inputs require explicit expected SHA-256 values and execution stops before
+installation if either differs. The installer is explicit rather than silently
+downloaded so the report can identify the exact loader input. Forge's installer
+may still fetch missing Minecraft and runtime libraries from the repositories
+declared by Forge. A fully offline run therefore requires those installer
+inputs to have already been cached by the installer.
 
 ## Negative gates
 
@@ -90,26 +95,17 @@ absent path for each proof. This makes the loader/runtime boundary auditable and
 prevents an earlier mod or manually installed library from satisfying the
 probe.
 
-## Executed Forge 1.19.2 evidence
+## Durable evidence
 
-The production gate passed on 2026-07-24 against the final rebuilt artifact:
+The command writes the complete schema-v2 report requested by `--report-json`.
+Beside it, the command writes a generated `*.evidence.json` manifest containing
+the SHA-256 of that exact full report and every installer/launch log that
+exists. The full report records the source commit, complete invocation,
+operating system, architecture, Java executable and version, all input and
+installed-copy hashes, numeric locator result, exact per-required-class source
+and loader evidence, exit status, and timeout state.
 
-- SFM release SHA-256:
-  `1D79F2D632F6D0C77D58CC401725C5D6BFE2B46793DF8E256B530E0B6E72A37E`;
-- nested `org.facet:vox-java:0.10.0-rc.5` SHA-256:
-  `427F04D7FABF4094462C677C71501290493948A563F86302232673E48C5DA181`;
-- Forge `1.19.2-43.4.0` installer SHA-256:
-  `13200FCC4B00959734CD7BB193CB4E5E6EA756635CDC9E61C23EC45AC632880E`;
-- exactly one file in `mods`, the SFM release JAR;
-- no nested Vox filename in either production argument file;
-- `JarInJarDependencyLocator` reported one discovered dependency;
-- `org.facet.vox.VoxResult` loaded from the nested
-  `META-INF/jarjar/vox-java-0.10.0-rc.5.jar` union URI through
-  `cpw.mods.modlauncher.TransformingClassLoader`;
-- SFM emitted `SFM_VOX_JAVA_PACKAGING_PROBE_READY`; and
-- the server accepted `stop` and exited zero without a timeout.
-
-The concise, checked-in evidence record is
-`evidence/clean-loader-jarjar-probe-1.19.2.json`. The full generated report,
-installer log, and class-load trace remain under the ignored
-`platform/minecraft/build/sfm-toolchain/clean-loader-*` proof directories.
+Checked-in evidence must consist of that generated full report and generated
+hash manifest. A manually summarized JSON file is not authoritative. Full logs
+may remain ignored when impractically large, but their exact hashes remain in
+the generated manifest.

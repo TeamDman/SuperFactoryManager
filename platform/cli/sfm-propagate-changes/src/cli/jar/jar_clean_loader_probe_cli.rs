@@ -12,9 +12,17 @@ pub struct JarCleanLoaderProbeArgs {
     #[facet(args::named)]
     pub release_jar: PathBuf,
 
+    /// Required SHA-256 of the exact release JAR, as 64 hexadecimal characters.
+    #[facet(args::named)]
+    pub expected_release_sha256: String,
+
     /// Forge installer JAR whose exact bytes will be recorded in the report.
     #[facet(args::named)]
     pub forge_installer: PathBuf,
+
+    /// Required SHA-256 of the exact Forge installer, as 64 hexadecimal characters.
+    #[facet(args::named)]
+    pub expected_forge_installer_sha256: String,
 
     /// New, absent directory in which to install and launch Forge.
     #[facet(args::named)]
@@ -61,7 +69,9 @@ impl JarCleanLoaderProbeArgs {
         CleanLoaderProbeCommand::new(
             CleanLoaderProbeOptions {
                 release_jar: self.release_jar,
+                expected_release_sha256: self.expected_release_sha256,
                 forge_installer: self.forge_installer,
+                expected_forge_installer_sha256: self.expected_forge_installer_sha256,
                 instance_dir: self.instance_dir,
                 success_marker: self.success_marker,
                 expected_nested: self.expected_nested,

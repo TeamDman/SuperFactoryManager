@@ -723,8 +723,12 @@ mod tests {
             "clean-loader-probe",
             "--release-jar",
             "sfm.jar",
+            "--expected-release-sha256",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "--forge-installer",
             "forge-installer.jar",
+            "--expected-forge-installer-sha256",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "--instance-dir",
             "clean-instance",
             "--success-marker",
@@ -747,6 +751,10 @@ mod tests {
             panic!("expected clean-loader-probe command");
         };
         assert_eq!(args.release_jar, std::path::PathBuf::from("sfm.jar"));
+        assert_eq!(
+            args.expected_release_sha256,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        );
         assert_eq!(args.expected_nested, vec!["org.facet:vox-java"]);
         assert_eq!(args.required_nested_class, vec!["org.facet.vox.VoxResult"]);
         assert_eq!(args.timeout, "90s");
