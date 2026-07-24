@@ -105,6 +105,11 @@ operating system, architecture, Java executable and version, all input and
 installed-copy hashes, numeric locator result, exact per-required-class source
 and loader evidence, exit status, and timeout state.
 
+The command refuses to produce evidence when its source revision is unknown.
+When Cargo cannot read Git metadata under a restricted build identity, supply
+the already-supported `SFM_PROPAGATE_CHANGES_INSTALL_GIT_REVISION` build-time
+override.
+
 Checked-in evidence must consist of that generated full report and generated
 hash manifest. A manually summarized JSON file is not authoritative. Full logs
 may remain ignored when impractically large, but their exact hashes remain in

@@ -100,10 +100,11 @@ impl CleanLoaderProbeCommand {
             &options.expected_forge_installer_sha256,
             &installer_sha256,
         )?;
+        let source_commit = source_commit()?;
         let mut report = CleanLoaderProbeReport {
             schema_version: 2,
             cli_source_revision: env!("GIT_REVISION").to_string(),
-            source_commit: source_commit(),
+            source_commit,
             invocation: std::env::args().collect(),
             operating_system: std::env::consts::OS.to_string(),
             architecture: std::env::consts::ARCH.to_string(),
@@ -1156,9 +1157,9 @@ fn write_report_and_manifest(
     Ok(())
 }
 
-fn source_commit() -> String {
+fn source_commit() -> eyre::Result<String> {
     let source_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    Command::new("git")
+    let value = Command::new("git")
         .args(["-C"])
         .arg(source_dir)
         .args(["rev-parse", "HEAD"])
@@ -1168,7 +1169,17 @@ fn source_commit() -> String {
         .and_then(|output| String::from_utf8(output.stdout).ok())
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| env!("GIT_REVISION").to_string())
+        .unwrap_or_else(|| env!("GIT_REVISION").to_string());
+    if !(7..=64).contains(&value.len())
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        eyre::bail!(
+            "Clean loader evidence requires an exact CLI source revision; rebuild with SFM_PROPAGATE_CHANGES_INSTALL_GIT_REVISION set when Git metadata is unavailable"
+        );
+    }
+    Ok(value)
 }
 
 #[cfg(test)]
