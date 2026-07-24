@@ -89,3 +89,27 @@ The command never deletes or reuses an instance. A caller must supply a new
 absent path for each proof. This makes the loader/runtime boundary auditable and
 prevents an earlier mod or manually installed library from satisfying the
 probe.
+
+## Executed Forge 1.19.2 evidence
+
+The production gate passed on 2026-07-24 against the final rebuilt artifact:
+
+- SFM release SHA-256:
+  `1D79F2D632F6D0C77D58CC401725C5D6BFE2B46793DF8E256B530E0B6E72A37E`;
+- nested `org.facet:vox-java:0.10.0-rc.5` SHA-256:
+  `427F04D7FABF4094462C677C71501290493948A563F86302232673E48C5DA181`;
+- Forge `1.19.2-43.4.0` installer SHA-256:
+  `13200FCC4B00959734CD7BB193CB4E5E6EA756635CDC9E61C23EC45AC632880E`;
+- exactly one file in `mods`, the SFM release JAR;
+- no nested Vox filename in either production argument file;
+- `JarInJarDependencyLocator` reported one discovered dependency;
+- `org.facet.vox.VoxResult` loaded from the nested
+  `META-INF/jarjar/vox-java-0.10.0-rc.5.jar` union URI through
+  `cpw.mods.modlauncher.TransformingClassLoader`;
+- SFM emitted `SFM_VOX_JAVA_PACKAGING_PROBE_READY`; and
+- the server accepted `stop` and exited zero without a timeout.
+
+The concise, checked-in evidence record is
+`evidence/clean-loader-jarjar-probe-1.19.2.json`. The full generated report,
+installer log, and class-load trace remain under the ignored
+`platform/minecraft/build/sfm-toolchain/clean-loader-*` proof directories.
