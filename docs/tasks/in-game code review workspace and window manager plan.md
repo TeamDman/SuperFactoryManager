@@ -1568,15 +1568,31 @@ explicit empty-cache rehydration and hosted/source-build provenance. The
 canonical architecture note records the useful evidence without exposing the
 experimental command surface.
 
-The final remaining gate for this wave is the hardened clean production Forge
-loader proof. It must launch an isolated instance containing exactly the final
-SFM JAR, verify the expected outer and nested hashes, reject loose Vox copies
-and inherited classpaths, prove the Forge Jar-in-Jar locator discovered one
-dependency, correlate loaded Vox classes with the nested union source and
-`TransformingClassLoader`, require a successful non-timeout exit, terminate the
-process tree safely, and preserve a hashed report/log bundle. Once that proof
-passes, the accepted generic harness and evidence can be checkpointed on
-canonical 1.19.2; branch-only probe code and schema-v3 `LocalImport` cannot.
+The hardened clean production Forge loader proof is complete and its generic
+harness is canonical through `70cffb5ce`. The command launched Forge 43.4.0 in
+an isolated instance containing exactly the final SFM JAR. It verified both
+expected hashes, rejected loose Vox copies and direct/inherited classpaths,
+observed exactly one Forge Jar-in-Jar dependency, and correlated
+`org.facet.vox.VoxResult` with both the nested `union:` source and Forge's
+`TransformingClassLoader`. The process exited zero without timing out.
+
+The full schema-v2 report is
+`docs/architecture/evidence/clean-loader-jarjar-probe-1.19.2.full.json`,
+SHA-256
+`76909EE81439977A49CDDE0C47356E42D8D7C9B693F631FFC7944AC17CFE1844`.
+Its adjacent evidence manifest has SHA-256
+`07EE0B05E5D57D234ABA5F196C4AE12629BE31E4CA4191BA3D1F6A19B3048710`
+and records the installer and launch-log hashes. The harness requires a known
+CLI source revision, the exact release and installer hashes, a successful
+non-timeout exit, and bounded process-tree cleanup, so an incomplete or
+unattributed run cannot be mistaken for proof.
+
+This completes the Java 17 unary artifact and production-loader wave. It does
+not merge the branch-only probe code, lock, or schema-v3 `LocalImport`.
+Concrete next implementation work is schema-v4 portable acquisition or the
+narrow Minecraft Vox bridge (endpoint lifecycle, one generated service, an
+action/panel, and puppet-visible success/failure states). The bridge must
+consume the frozen artifact rather than copying its protocol by hand.
 
 #### Coordinator preflight — Facet synchronization and contract freeze
 
