@@ -1,5 +1,6 @@
 use super::JarArtifactAuditArgs;
 use super::JarBuildArgs;
+use super::JarCleanLoaderProbeArgs;
 use super::JarCollectArgs;
 use super::JarCompareArgs;
 use super::JarDirArgs;
@@ -40,6 +41,8 @@ pub enum JarCommand {
     Build(JarBuildArgs),
     /// Compare the Gradle jar against the Rust-built jar
     Compare(JarCompareArgs),
+    /// Launch a release JAR in a freshly installed production loader instance
+    CleanLoaderProbe(JarCleanLoaderProbeArgs),
     /// Verify locked artifact cache and source provenance
     AuditArtifacts(JarArtifactAuditArgs),
     /// Collect jars from each MC version based on that version's `mod_version`
@@ -62,6 +65,7 @@ impl JarCommand {
             JarCommand::Plan(args) => args.invoke(cancellation_token),
             JarCommand::Build(args) => args.invoke(cancellation_token),
             JarCommand::Compare(args) => args.invoke(cancellation_token),
+            JarCommand::CleanLoaderProbe(args) => args.invoke(cancellation_token),
             JarCommand::AuditArtifacts(args) => args.invoke(cancellation_token),
             JarCommand::Collect(args) => args.invoke(),
             JarCommand::List(args) => args.invoke(),

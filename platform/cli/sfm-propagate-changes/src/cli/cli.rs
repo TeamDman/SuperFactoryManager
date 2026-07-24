@@ -717,6 +717,43 @@ mod tests {
     }
 
     #[test]
+    fn parses_jar_clean_loader_probe() {
+        let cli = figue::from_slice::<Cli>(&[
+            "jar",
+            "clean-loader-probe",
+            "--release-jar",
+            "sfm.jar",
+            "--forge-installer",
+            "forge-installer.jar",
+            "--instance-dir",
+            "clean-instance",
+            "--success-marker",
+            "SFM_NESTED_READY",
+            "--expected-nested",
+            "org.facet:vox-java",
+            "--required-nested-class",
+            "org.facet.vox.VoxResult",
+            "--timeout",
+            "90s",
+            "--plan-only",
+        ])
+        .into_result()
+        .expect("clean loader probe arguments should parse")
+        .value;
+        let Command::Jar(jar) = cli.command else {
+            panic!("expected jar command");
+        };
+        let JarCommand::CleanLoaderProbe(args) = jar.command else {
+            panic!("expected clean-loader-probe command");
+        };
+        assert_eq!(args.release_jar, std::path::PathBuf::from("sfm.jar"));
+        assert_eq!(args.expected_nested, vec!["org.facet:vox-java"]);
+        assert_eq!(args.required_nested_class, vec!["org.facet.vox.VoxResult"]);
+        assert_eq!(args.timeout, "90s");
+        assert!(args.plan_only);
+    }
+
+    #[test]
     fn parses_jar_compare_bare_parallel() {
         let cli = figue::from_slice::<Cli>(&["jar", "compare", "--branch", "core", "--parallel"])
             .into_result()
