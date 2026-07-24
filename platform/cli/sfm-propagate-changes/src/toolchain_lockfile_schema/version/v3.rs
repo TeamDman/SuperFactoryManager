@@ -84,8 +84,17 @@ pub(crate) struct DependencyComponentV3 {
 pub(crate) struct ComponentDeclarationV3 {
     pub(crate) acquisition: ComponentAcquisitionV3,
     pub(crate) scopes: Vec<DependencyScopeV3>,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub(crate) bundle: Option<BundlePolicyV3>,
     pub(crate) artifact_treatment: ArtifactTreatmentV3,
     pub(crate) data_run_policy: DataRunPolicyV3,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub(crate) struct BundlePolicyV3 {
+    pub(crate) accepted_version_range: String,
+    pub(crate) artifact_version: String,
+    pub(crate) is_obfuscated: bool,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -419,6 +428,8 @@ impl ArtifactLockfileV3 {
             }
         }
 
+        validate_unique_nested_bundle_paths(&self.dependencies)?;
+
         validate_platform_dependency(
             self,
             &self.platform.minecraft_dependency,
@@ -431,6 +442,31 @@ impl ArtifactLockfileV3 {
         )?;
         Ok(())
     }
+}
+
+fn validate_unique_nested_bundle_paths(dependencies: &[DependencyV3]) -> eyre::Result<()> {
+    let mut nested_paths = BTreeSet::new();
+    for dependency in dependencies {
+        for component in &dependency.components {
+            if component.declaration.bundle.is_none() {
+                continue;
+            }
+            let coordinate = component
+                .derived_checks
+                .resolved_coordinate
+                .as_deref()
+                .expect("bundle validation requires a resolved coordinate");
+            let path = nested_jar_path(coordinate)?;
+            if !nested_paths.insert(path.clone()) {
+                eyre::bail!(
+                    "bundle component `{}/{}` produces duplicate nested path `{path}`",
+                    dependency.id,
+                    component.id
+                );
+            }
+        }
+    }
+    Ok(())
 }
 
 fn validate_artifact_provenance(artifact: &ArtifactV3) -> eyre::Result<()> {
@@ -502,6 +538,18 @@ fn validate_component(
     if unique_scopes.len() != component.declaration.scopes.len() {
         eyre::bail!("component `{}` contains duplicate scopes", component.id);
     }
+    let has_bundle_scope = unique_scopes.contains(&DependencyScopeV3::Bundle);
+    match (&component.declaration.bundle, has_bundle_scope) {
+        (None, true) => eyre::bail!(
+            "component `{}` has bundle scope but no bundle policy",
+            component.id
+        ),
+        (Some(_), false) => eyre::bail!(
+            "component `{}` has bundle policy without bundle scope",
+            component.id
+        ),
+        _ => {}
+    }
 
     match &component.declaration.acquisition {
         ComponentAcquisitionV3::Maven(acquisition) => {
@@ -539,6 +587,7 @@ fn validate_component(
             artifact.id
         );
     }
+    validate_component_bundle(component)?;
 
     let provider_ids = collect_unique_ids(
         component.source_providers.iter().map(SourceProviderV3::id),
@@ -554,6 +603,165 @@ fn validate_component(
         provider.validate(repository_ids, artifact_ids)?;
     }
     Ok(())
+}
+
+fn validate_component_bundle(component: &DependencyComponentV3) -> eyre::Result<()> {
+    let Some(bundle) = &component.declaration.bundle else {
+        return Ok(());
+    };
+    if bundle.is_obfuscated {
+        eyre::bail!(
+            "component `{}` bundle policy must use is_obfuscated=false for plain Java libraries",
+            component.id
+        );
+    }
+    let coordinate = component
+        .derived_checks
+        .resolved_coordinate
+        .as_deref()
+        .ok_or_else(|| {
+            eyre::eyre!(
+                "component `{}` bundle policy requires a resolved Maven coordinate",
+                component.id
+            )
+        })?;
+    let selected_version = coordinate_version(coordinate)?;
+    if selected_version != bundle.artifact_version {
+        eyre::bail!(
+            "component `{}` bundle artifact_version `{}` does not match resolved coordinate version `{selected_version}`",
+            component.id,
+            bundle.artifact_version
+        );
+    }
+    validate_restricted_maven_range(&bundle.accepted_version_range, &bundle.artifact_version)
+        .map_err(|error| {
+            eyre::eyre!(
+                "component `{}` has invalid bundle accepted_version_range: {error}",
+                component.id
+            )
+        })
+}
+
+fn coordinate_version(coordinate: &str) -> eyre::Result<&str> {
+    let notation = coordinate
+        .split_once('@')
+        .map_or(coordinate, |(left, _)| left);
+    let parts = notation.split(':').collect::<Vec<_>>();
+    match parts.as_slice() {
+        [_, _, version] | [_, _, version, _] if !version.is_empty() => Ok(version),
+        _ => eyre::bail!("invalid resolved Maven coordinate `{coordinate}`"),
+    }
+}
+
+fn nested_jar_path(coordinate: &str) -> eyre::Result<String> {
+    let (notation, extension) = coordinate
+        .split_once('@')
+        .map_or((coordinate, "jar"), |(left, right)| (left, right));
+    let parts = notation.split(':').collect::<Vec<_>>();
+    let file_name = match parts.as_slice() {
+        [_, artifact, version] => format!("{artifact}-{version}.{extension}"),
+        [_, artifact, version, classifier] => {
+            format!("{artifact}-{version}-{classifier}.{extension}")
+        }
+        _ => eyre::bail!("invalid resolved Maven coordinate `{coordinate}`"),
+    };
+    Ok(format!("META-INF/jarjar/{file_name}"))
+}
+
+fn validate_restricted_maven_range(range: &str, selected: &str) -> eyre::Result<()> {
+    if range.len() < 3 {
+        eyre::bail!("`{range}` is not a restricted Maven version range");
+    }
+    let lower_inclusive = range.starts_with('[');
+    let lower_exclusive = range.starts_with('(');
+    let upper_inclusive = range.ends_with(']');
+    let upper_exclusive = range.ends_with(')');
+    if !(lower_inclusive || lower_exclusive) || !(upper_inclusive || upper_exclusive) {
+        eyre::bail!("`{range}` must use Maven interval delimiters");
+    }
+    let inner = &range[1..range.len() - 1];
+    if !inner.contains(',') {
+        if !lower_inclusive || !upper_inclusive || inner.is_empty() {
+            eyre::bail!("a single-version Maven range must use `[version]`");
+        }
+        if compare_maven_versions(selected, inner) != std::cmp::Ordering::Equal {
+            eyre::bail!("selected version `{selected}` is outside `{range}`");
+        }
+        return Ok(());
+    }
+    let mut bounds = inner.split(',');
+    let lower = bounds.next().unwrap_or_default().trim();
+    let upper = bounds.next().unwrap_or_default().trim();
+    if bounds.next().is_some() || (lower.is_empty() && upper.is_empty()) {
+        eyre::bail!("`{range}` must be one restricted Maven interval");
+    }
+    if !lower.is_empty() {
+        let ordering = compare_maven_versions(selected, lower);
+        if ordering == std::cmp::Ordering::Less
+            || (ordering == std::cmp::Ordering::Equal && lower_exclusive)
+        {
+            eyre::bail!("selected version `{selected}` is below `{range}`");
+        }
+    }
+    if !upper.is_empty() {
+        let ordering = compare_maven_versions(selected, upper);
+        if ordering == std::cmp::Ordering::Greater
+            || (ordering == std::cmp::Ordering::Equal && upper_exclusive)
+        {
+            eyre::bail!("selected version `{selected}` is above `{range}`");
+        }
+    }
+    Ok(())
+}
+
+fn compare_maven_versions(left: &str, right: &str) -> std::cmp::Ordering {
+    let left = version_tokens(left);
+    let right = version_tokens(right);
+    let length = left.len().max(right.len());
+    for index in 0..length {
+        let left = left.get(index).map_or("0", String::as_str);
+        let right = right.get(index).map_or("0", String::as_str);
+        let ordering = match (
+            left.chars().all(|character| character.is_ascii_digit()),
+            right.chars().all(|character| character.is_ascii_digit()),
+        ) {
+            (true, true) => {
+                let left = left.trim_start_matches('0');
+                let right = right.trim_start_matches('0');
+                left.len().cmp(&right.len()).then_with(|| left.cmp(right))
+            }
+            _ => left.to_ascii_lowercase().cmp(&right.to_ascii_lowercase()),
+        };
+        if ordering != std::cmp::Ordering::Equal {
+            return ordering;
+        }
+    }
+    std::cmp::Ordering::Equal
+}
+
+fn version_tokens(version: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut numeric = None;
+    for character in version.chars() {
+        if matches!(character, '.' | '-' | '_' | '+') {
+            if !current.is_empty() {
+                tokens.push(std::mem::take(&mut current));
+            }
+            numeric = None;
+            continue;
+        }
+        let next_numeric = character.is_ascii_digit();
+        if numeric.is_some_and(|value| value != next_numeric) && !current.is_empty() {
+            tokens.push(std::mem::take(&mut current));
+        }
+        current.push(character);
+        numeric = Some(next_numeric);
+    }
+    if !current.is_empty() {
+        tokens.push(current);
+    }
+    tokens
 }
 
 impl SourceProviderV3 {
@@ -750,6 +958,7 @@ mod tests {
                         requested_version: "1.19.2".to_string(),
                     }),
                     scopes: vec![DependencyScopeV3::Compile, DependencyScopeV3::Runtime],
+                    bundle: None,
                     artifact_treatment: ArtifactTreatmentV3::Plain,
                     data_run_policy: DataRunPolicyV3::Exclude,
                 },
@@ -830,5 +1039,100 @@ mod tests {
             .validate()
             .expect_err("mismatched component checks should fail");
         assert!(error.to_string().contains("derived checks disagree"));
+    }
+
+    #[test]
+    fn bundle_scope_requires_complete_policy() {
+        let mut lockfile = fixture();
+        lockfile.dependencies[0].components[0]
+            .declaration
+            .scopes
+            .push(DependencyScopeV3::Bundle);
+        let error = lockfile
+            .validate()
+            .expect_err("bundle scope without policy should fail");
+        assert!(error.to_string().contains("no bundle policy"));
+
+        lockfile.dependencies[0].components[0].declaration.bundle = Some(BundlePolicyV3 {
+            accepted_version_range: "[1,2)".to_string(),
+            artifact_version: "1".to_string(),
+            is_obfuscated: false,
+        });
+        lockfile
+            .validate()
+            .expect("matching policy should validate");
+    }
+
+    #[test]
+    fn bundle_policy_rejects_mismatch_obfuscation_and_out_of_range_version() {
+        let mut lockfile = fixture();
+        {
+            let declaration = &mut lockfile.dependencies[0].components[0].declaration;
+            declaration.scopes.push(DependencyScopeV3::Bundle);
+            declaration.bundle = Some(BundlePolicyV3 {
+                accepted_version_range: "[1,2)".to_string(),
+                artifact_version: "9".to_string(),
+                is_obfuscated: false,
+            });
+        }
+        let error = lockfile
+            .validate()
+            .expect_err("artifact mismatch should fail");
+        assert!(error.to_string().contains("does not match"));
+
+        {
+            let bundle = lockfile.dependencies[0].components[0]
+                .declaration
+                .bundle
+                .as_mut()
+                .expect("bundle");
+            bundle.artifact_version = "1".to_string();
+            bundle.accepted_version_range = "[2,3)".to_string();
+        }
+        let error = lockfile.validate().expect_err("range mismatch should fail");
+        assert!(error.to_string().contains("outside") || error.to_string().contains("below"));
+
+        {
+            let bundle = lockfile.dependencies[0].components[0]
+                .declaration
+                .bundle
+                .as_mut()
+                .expect("bundle");
+            bundle.accepted_version_range = "[1,2)".to_string();
+            bundle.is_obfuscated = true;
+        }
+        let error = lockfile
+            .validate()
+            .expect_err("obfuscated plain bundle should fail");
+        assert!(error.to_string().contains("is_obfuscated=false"));
+    }
+
+    #[test]
+    fn restricted_maven_range_compares_numeric_segments() {
+        validate_restricted_maven_range("[1.2,1.11)", "1.10")
+            .expect("numeric version must lie inside range");
+        validate_restricted_maven_range("[4.13.1]", "4.13.1").expect("exact restricted range");
+        let error = validate_restricted_maven_range("[1.2,1.10)", "1.10")
+            .expect_err("exclusive upper bound");
+        assert!(error.to_string().contains("above"));
+    }
+
+    #[test]
+    fn bundle_components_must_have_unique_nested_output_paths() {
+        let mut lockfile = fixture();
+        for (index, group) in ["one", "two"].into_iter().enumerate() {
+            let component = &mut lockfile.dependencies[index].components[0];
+            component.declaration.scopes.push(DependencyScopeV3::Bundle);
+            component.declaration.bundle = Some(BundlePolicyV3 {
+                accepted_version_range: "[1]".to_string(),
+                artifact_version: "1".to_string(),
+                is_obfuscated: false,
+            });
+            component.derived_checks.resolved_coordinate = Some(format!("{group}:shared:1"));
+        }
+        let error = lockfile
+            .validate()
+            .expect_err("duplicate nested filenames must fail");
+        assert!(error.to_string().contains("duplicate nested path"));
     }
 }

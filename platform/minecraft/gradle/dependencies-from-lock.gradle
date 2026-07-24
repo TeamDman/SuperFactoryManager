@@ -49,17 +49,44 @@ def sfmBaseLoaderCoordinate = { String coordinate ->
 }
 
 def sfmAdd = { String configuration, String coordinate, String treatment,
-               String dependencyId, String componentId, String kind, String policy ->
+               String dependencyId, String componentId, String kind, String policy,
+               Object bundlePolicy ->
     def key = "${configuration}|${coordinate}"
     if (!sfmSeen.add(key)) return
     def notation = coordinate
     if (!sfmNeoGradle && treatment == 'loader-managed-mod') {
         notation = fg.deobf(coordinate)
     }
-    dependencies.add(configuration, notation)
+    if (configuration == 'jarJar') {
+        if (!bundlePolicy) {
+            throw new GradleException("Missing bundle policy for ${dependencyId}/${componentId}")
+        }
+        if (bundlePolicy.is_obfuscated) {
+            throw new GradleException(
+                    "SFM currently supports only is_obfuscated=false JarJar libraries")
+        }
+        def coordinateParts = coordinate.split(':') as List
+        if (coordinateParts.size() < 3
+                || coordinateParts[2] != bundlePolicy.artifact_version) {
+            throw new GradleException(
+                    "Bundle artifact_version does not match ${coordinate}")
+        }
+        def jarJarDependency = dependencies.create(notation)
+        jarJar.ranged(jarJarDependency, bundlePolicy.accepted_version_range.toString())
+        dependencies.add(configuration, jarJarDependency)
+    } else {
+        dependencies.add(configuration, notation)
+    }
     sfmProjection << [configuration: configuration, coordinate: coordinate,
                       dependency: dependencyId, component: componentId,
                       kind: kind, policy: policy, treatment: treatment]
+    if (bundlePolicy) {
+        sfmProjection.last().bundle = [
+                accepted_version_range: bundlePolicy.accepted_version_range,
+                artifact_version: bundlePolicy.artifact_version,
+                is_obfuscated: bundlePolicy.is_obfuscated
+        ].asImmutable()
+    }
 }
 
 sfmLockfile.dependencies.each { dependency ->
@@ -73,7 +100,7 @@ sfmLockfile.dependencies.each { dependency ->
             sfmAdd(sfmNeoGradle ? 'implementation' : 'minecraft',
                     sfmBaseLoaderCoordinate(coordinate), 'plain',
                     dependency.id, component.id, dependency.kind,
-                    component.declaration.data_run_policy)
+                    component.declaration.data_run_policy, null)
             return
         }
         def effectiveScopes = component.declaration.scopes
@@ -84,7 +111,8 @@ sfmLockfile.dependencies.each { dependency ->
         sfmScopeConfigurations(effectiveScopes).each { configuration ->
             sfmAdd(configuration, coordinate, component.declaration.artifact_treatment,
                     dependency.id, component.id, dependency.kind,
-                    component.declaration.data_run_policy)
+                    component.declaration.data_run_policy,
+                    configuration == 'jarJar' ? component.declaration.bundle : null)
         }
     }
 }

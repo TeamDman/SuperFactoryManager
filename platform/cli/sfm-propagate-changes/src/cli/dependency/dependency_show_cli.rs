@@ -84,11 +84,21 @@ fn format_component(inventory: &DependencyInventory, component: &DependencyCompo
         .join(", ");
     let local_binary = inventory.local_path(&component.derived_checks.cache_path);
     let binary_status = inventory.binary_status(component).label();
+    let bundle = component.declaration.bundle.as_ref().map_or_else(
+        || "not bundled".to_string(),
+        |bundle| {
+            format!(
+                "range={}, artifact_version={}, is_obfuscated={}",
+                bundle.accepted_version_range, bundle.artifact_version, bundle.is_obfuscated
+            )
+        },
+    );
     let mut output = format!(
-        "\nComponent: {}\n  Acquisition: {}\n  Scopes: {}\n  Artifact treatment: {}\n  Data runs: {}\n  Resolved coordinate: {}\n  Resolved version: {}\n  Repository: {}\n  Repository URL: {}\n  Artifact URL: {}\n  Hash: {}\n  Locked cache path: {}\n  Binary JAR: {}: {}\n  Transformed JAR: not tracked by schema v3\n  Sources status: {}\n",
+        "\nComponent: {}\n  Acquisition: {}\n  Scopes: {}\n  Bundle policy: {}\n  Artifact treatment: {}\n  Data runs: {}\n  Resolved coordinate: {}\n  Resolved version: {}\n  Repository: {}\n  Repository URL: {}\n  Artifact URL: {}\n  Hash: {}\n  Locked cache path: {}\n  Binary JAR: {}: {}\n  Transformed JAR: not tracked by schema v3\n  Sources status: {}\n",
         component.id,
         acquisition_label(&component.declaration.acquisition),
         scopes,
+        bundle,
         treatment_label(component.declaration.artifact_treatment),
         data_policy_label(component.declaration.data_run_policy),
         component

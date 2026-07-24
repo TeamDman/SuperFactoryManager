@@ -988,6 +988,7 @@ impl Resolver {
 
         Ok(DependencyPlan {
             configuration: configuration.to_string(),
+            bundle: None,
             artifact_treatment:
                 crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
             data_run_policy:

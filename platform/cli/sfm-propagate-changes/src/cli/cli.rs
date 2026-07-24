@@ -1032,6 +1032,55 @@ mod tests {
     }
 
     #[test]
+    fn parses_dependency_add_bundle_policy() {
+        let cli = figue::from_slice::<Cli>(&[
+            "dependency",
+            "add",
+            "vox-java",
+            "--branch",
+            "1.19.2",
+            "--maven",
+            "org.facet:vox-java:0.1.3",
+            "--kind",
+            "library",
+            "--role",
+            "library",
+            "--scope",
+            "compile",
+            "--scope",
+            "runtime",
+            "--scope",
+            "bundle",
+            "--artifact-treatment",
+            "plain",
+            "--bundle-accepted-version-range",
+            "[0.1.0,0.2.0)",
+            "--bundle-artifact-version",
+            "0.1.3",
+        ])
+        .into_result()
+        .expect("bundled dependency add should parse")
+        .get_silent();
+        let Command::Dependency(crate::cli::dependency::DependencyArgs {
+            command: DependencyCommand::Add(args),
+        }) = cli.command
+        else {
+            panic!("expected dependency add command");
+        };
+        assert!(
+            args.scope.contains(
+                &crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3::Bundle
+            )
+        );
+        assert_eq!(
+            args.bundle_accepted_version_range.as_deref(),
+            Some("[0.1.0,0.2.0)")
+        );
+        assert_eq!(args.bundle_artifact_version.as_deref(), Some("0.1.3"));
+        assert!(!args.bundle_is_obfuscated);
+    }
+
+    #[test]
     fn parses_dependency_component_add() {
         let cli = figue::from_slice::<Cli>(&[
             "dependency",

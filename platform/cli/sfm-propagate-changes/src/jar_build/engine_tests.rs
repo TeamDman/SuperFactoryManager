@@ -15,6 +15,7 @@ use super::ChangedEntry;
 use super::DependencyLockEntry;
 use super::DependencyPlan;
 use super::DependencySource;
+use super::ExecutionContext;
 use super::ForgeUserdevConfig;
 use super::GraphNode;
 use super::JarCompareReport;
@@ -38,6 +39,7 @@ use super::SourceBuildProvenance;
 use super::SourceBuildSystem;
 use super::TargetJarCompareReport;
 use super::apply_client_automation_timing_properties;
+use super::add_loader_jarjar_entries;
 use super::apply_game_puppet_game_test_property;
 use super::apply_game_puppet_filter_property;
 use super::apply_game_test_filter_property;
@@ -811,6 +813,7 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
         configuration: "minecraft".to_string(),
         coordinate: MavenCoordinate::parse("net.minecraftforge:forge:1.19.2-43.4.0")
             .expect("coordinate should parse"),
+        bundle: None,
         artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     }];
@@ -826,6 +829,7 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
         configuration: "minecraft".to_string(),
         coordinate: MavenCoordinate::parse("net.neoforged:forge:1.20.1-47.1.65")
             .expect("coordinate should parse"),
+        bundle: None,
         artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     }];
@@ -844,6 +848,7 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
         configuration: "minecraft".to_string(),
         coordinate: MavenCoordinate::parse("net.neoforged:neoforge:20.2.86")
             .expect("coordinate should parse"),
+        bundle: None,
         artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     }];
@@ -870,6 +875,7 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
         configuration: "implementation".to_string(),
         coordinate: MavenCoordinate::parse("mekanism:Mekanism:1.19.2-10.3.8.477:api")
             .expect("coordinate should parse"),
+        bundle: None,
         artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     };
@@ -882,6 +888,7 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
         configuration: "minecraft".to_string(),
         coordinate: MavenCoordinate::parse("net.minecraftforge:forge:1.19.2-43.4.0")
             .expect("coordinate should parse"),
+        bundle: None,
         artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     };
@@ -894,6 +901,7 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
         configuration: "testImplementation".to_string(),
         coordinate: MavenCoordinate::parse("org.junit.jupiter:junit-jupiter-api:5.10.0")
             .expect("coordinate should parse"),
+        bundle: None,
         artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     };
@@ -907,6 +915,7 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
 fn forge_deobfuscation_only_transforms_loader_managed_mods() {
     let mut dependency = DependencyPlan {
         configuration: "implementation".to_owned(),
+        bundle: None,
         artifact_treatment:
             crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy:
@@ -922,6 +931,132 @@ fn forge_deobfuscation_only_transforms_loader_managed_mods() {
     dependency.artifact_treatment =
         crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod;
     assert!(super::requires_forge_dependency_deobf(&dependency));
+}
+
+#[test]
+fn loader_jarjar_metadata_is_deterministic_for_forge_and_neogradle() {
+    for kind in [
+        LoaderToolchainKind::ForgeGradleForge,
+        LoaderToolchainKind::NeoGradleUserdev,
+    ] {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let first = temp.path().join("zeta.jar");
+        let second = temp.path().join("alpha.jar");
+        fs::write(&first, b"zeta bytes").expect("fixture");
+        fs::write(&second, b"alpha bytes").expect("fixture");
+        let mut plan = minimal_plan_for_paths();
+        plan.minecraft_dir = temp.path().join("minecraft");
+        fs::create_dir_all(&plan.minecraft_dir).expect("minecraft dir");
+        plan.loader_toolchain.kind = kind;
+        plan.dependencies = vec![
+            bundled_dependency(
+                "example:zeta:1.5.0",
+                &first,
+                "[1.0,2.0)",
+                "1.5.0",
+            ),
+            bundled_dependency(
+                "example:alpha:3.1.4",
+                &second,
+                "[3.1,4.0)",
+                "3.1.4",
+            ),
+        ];
+        let context =
+            ExecutionContext::new(&plan, CancellationToken::new()).expect("context");
+        let mut entries = BTreeMap::new();
+        add_loader_jarjar_entries(&context, &mut entries).expect("JarJar entries");
+        assert_eq!(
+            entries
+                .get("META-INF/jarjar/alpha-3.1.4.jar")
+                .expect("alpha nested bytes"),
+            b"alpha bytes"
+        );
+        assert_eq!(
+            entries
+                .get("META-INF/jarjar/zeta-1.5.0.jar")
+                .expect("zeta nested bytes"),
+            b"zeta bytes"
+        );
+        let metadata_bytes = entries
+            .get("META-INF/jarjar/metadata.json")
+            .expect("metadata");
+        let metadata_text = std::str::from_utf8(metadata_bytes).expect("metadata UTF-8");
+        let metadata: super::JarJarMetadata =
+            facet_json::from_str(metadata_text).expect("metadata JSON");
+        assert_eq!(metadata.jars[0].identifier.artifact, "alpha");
+        assert_eq!(metadata.jars[0].version.range, "[3.1,4.0)");
+        assert_eq!(metadata.jars[0].version.artifact_version, "3.1.4");
+        assert!(!metadata.jars[0].is_obfuscated);
+        assert_eq!(metadata.jars[1].identifier.artifact, "zeta");
+    }
+}
+
+#[test]
+fn loader_jarjar_rejects_duplicate_paths_and_policy_mismatch() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let one = temp.path().join("one.jar");
+    let two = temp.path().join("two.jar");
+    fs::write(&one, b"one").expect("fixture");
+    fs::write(&two, b"two").expect("fixture");
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temp.path().join("minecraft");
+    fs::create_dir_all(&plan.minecraft_dir).expect("minecraft dir");
+    plan.dependencies = vec![
+        bundled_dependency("one:shared:1.0", &one, "[1.0]", "1.0"),
+        bundled_dependency("two:shared:1.0", &two, "[1.0]", "1.0"),
+    ];
+    let context = ExecutionContext::new(&plan, CancellationToken::new()).expect("context");
+    let error = add_loader_jarjar_entries(&context, &mut BTreeMap::new())
+        .expect_err("duplicate nested filename");
+    assert!(error.to_string().contains("Duplicate JarJar"));
+
+    plan.dependencies =
+        vec![bundled_dependency("one:shared:1.0", &one, "[1.0]", "2.0")];
+    let context = ExecutionContext::new(&plan, CancellationToken::new()).expect("context");
+    let error = add_loader_jarjar_entries(&context, &mut BTreeMap::new())
+        .expect_err("artifact version mismatch");
+    assert!(error.to_string().contains("does not match"));
+}
+
+#[test]
+fn loader_jarjar_omits_metadata_without_bundle_dependencies() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temp.path().join("minecraft");
+    fs::create_dir_all(&plan.minecraft_dir).expect("minecraft dir");
+    let context = ExecutionContext::new(&plan, CancellationToken::new()).expect("context");
+    let mut entries = BTreeMap::new();
+    add_loader_jarjar_entries(&context, &mut entries).expect("no bundle");
+    assert!(!entries.contains_key("META-INF/jarjar/metadata.json"));
+}
+
+fn bundled_dependency(
+    coordinate: &str,
+    path: &Path,
+    accepted_version_range: &str,
+    artifact_version: &str,
+) -> DependencyPlan {
+    DependencyPlan {
+        configuration: "jarJar".to_string(),
+        bundle: Some(
+            crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3 {
+                accepted_version_range: accepted_version_range.to_string(),
+                artifact_version: artifact_version.to_string(),
+                is_obfuscated: false,
+            },
+        ),
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        data_run_policy:
+            crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
+        notation: coordinate.to_string(),
+        resolved_notation: coordinate.to_string(),
+        source: DependencySource::Maven,
+        cache_path: path.to_path_buf(),
+        url: None,
+        dynamic_version: false,
+    }
 }
 
 #[test]
@@ -1246,6 +1381,7 @@ fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
     plan.artifacts = Vec::new();
     plan.dependencies = vec![DependencyPlan {
         configuration: "implementation".to_string(),
+        bundle: None,
         artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
         notation: "g:a:1".to_string(),
@@ -2210,6 +2346,7 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         }),
         dependencies: vec![DependencyPlan {
             configuration: "implementation".to_string(),
+            bundle: None,
             artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
             data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
             notation: "g:a:1".to_string(),
@@ -2352,6 +2489,7 @@ fn artifact_portability_audit_reads_dependency_provenance() {
     plan.artifacts.clear();
     plan.dependencies = vec![DependencyPlan {
         configuration: "implementation".to_string(),
+        bundle: None,
         artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
         notation: "example:local-only:1.0.0".to_string(),

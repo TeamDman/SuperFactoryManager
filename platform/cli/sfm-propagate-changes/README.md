@@ -18,6 +18,23 @@ Gradle is a compatibility consumer of this schema v3 lockfile. The Gradle script
 coordinates and semantic scopes into the active ForgeGradle or NeoGradle dialect; do not maintain
 versioned dependency declarations separately in Gradle files.
 
+Libraries shipped inside SFM use the `bundle` scope together with an explicit loader policy. The
+exact Maven coordinate selects the bytes; `--bundle-accepted-version-range` records the restricted
+Maven range that Forge/NeoForge may share with another enclosing mod. The exact artifact version
+defaults to the coordinate version and can be stated explicitly for review:
+
+```pwsh
+cargo run -- dependency add vox-java --branch 1.19.2 `
+  --maven org.facet:vox-java:0.1.3 --kind library --role library `
+  --scope compile --scope runtime --scope bundle --artifact-treatment plain `
+  --bundle-accepted-version-range '[0.1.0,0.2.0)' `
+  --bundle-artifact-version 0.1.3
+```
+
+The initial plain-Java packaging policy requires `is_obfuscated=false`; the CLI therefore uses
+that safe default and rejects its opt-in obfuscation flag. Both the Rust packager and Gradle
+projection consume the same locked range and exact version.
+
 Binary artifacts and materialized source trees are managed cache state. By default they are kept
 in the platform cache directory; set `SFM_PROPAGATE_CHANGES_CACHE` to use an isolated cache. The
 portable `$sfm-cache` paths recorded in the lockfile resolve beneath that cache and must not be

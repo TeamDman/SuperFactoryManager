@@ -21,6 +21,7 @@ use crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactPurposeV3;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactV3;
+use crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3;
 use crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3;
 use crate::toolchain_lockfile_schema::version::v3::ComponentDeclarationV3;
 use crate::toolchain_lockfile_schema::version::v3::ComponentDerivedChecksV3;
@@ -79,6 +80,15 @@ pub struct DependencyAddArgs {
     /// Artifact treatment. Mods default to loader-managed-mod.
     #[facet(default, args::named)]
     pub(crate) artifact_treatment: Option<ArtifactTreatmentV3>,
+    /// Loader-compatible Maven range used for Jar-in-Jar sharing.
+    #[facet(default, args::named)]
+    pub(crate) bundle_accepted_version_range: Option<String>,
+    /// Exact version recorded in Jar-in-Jar metadata. Defaults to the Maven coordinate version.
+    #[facet(default, args::named)]
+    pub(crate) bundle_artifact_version: Option<String>,
+    /// Whether nested classes use Minecraft obfuscated names. Plain Java libraries must omit this flag.
+    #[facet(default, args::named)]
+    pub(crate) bundle_is_obfuscated: bool,
     /// Human-readable display name.
     #[facet(default, args::named)]
     pub display_name: Option<String>,
@@ -227,6 +237,7 @@ pub(super) fn add_component(
     }
     let coordinate = MavenCoordinate::parse(maven_coordinate(args)?)?;
     coordinate.require_exact()?;
+    validate_bundle_options(args, &coordinate)?;
     let (resolved, evidence, append_artifact) =
         resolve_component_artifact(&inventory, args, &coordinate, cancellation_token, fetcher)?;
     let hash = evidence.hash;
@@ -365,25 +376,7 @@ fn add_curseforge_dependency(
     cancellation_token: &CancellationToken,
     fetcher: &dyn ArtifactFetcher,
 ) -> eyre::Result<DependencyAddReport> {
-    validate_dependency_id(&args.id)?;
-    if inventory
-        .lockfile
-        .dependencies
-        .iter()
-        .any(|dependency| dependency.id == args.id)
-    {
-        eyre::bail!("Dependency '{}' already exists.", args.id);
-    }
-    if args.scope.is_empty() {
-        eyre::bail!("At least one --scope is required.");
-    }
-    if args
-        .repository
-        .as_deref()
-        .is_some_and(|id| id != "cursemaven")
-    {
-        eyre::bail!("CurseForge dependencies use the configured 'cursemaven' repository.");
-    }
+    validate_new_curseforge_dependency(&inventory, args)?;
     cancellation_token.bail_if_cancelled()?;
     let project = metadata.fetch_project(project_id)?;
     if project.id != project_id {
@@ -465,6 +458,39 @@ fn add_curseforge_dependency(
     })
 }
 
+fn validate_new_curseforge_dependency(
+    inventory: &DependencyInventory,
+    args: &DependencyAddArgs,
+) -> eyre::Result<()> {
+    validate_dependency_id(&args.id)?;
+    if inventory
+        .lockfile
+        .dependencies
+        .iter()
+        .any(|dependency| dependency.id == args.id)
+    {
+        eyre::bail!("Dependency '{}' already exists.", args.id);
+    }
+    if args.scope.is_empty() {
+        eyre::bail!("At least one --scope is required.");
+    }
+    if args.scope.contains(&DependencyScopeV3::Bundle)
+        || args.bundle_accepted_version_range.is_some()
+        || args.bundle_artifact_version.is_some()
+        || args.bundle_is_obfuscated
+    {
+        eyre::bail!("bundle policy is supported only for exact Maven dependencies");
+    }
+    if args
+        .repository
+        .as_deref()
+        .is_some_and(|id| id != "cursemaven")
+    {
+        eyre::bail!("CurseForge dependencies use the configured 'cursemaven' repository.");
+    }
+    Ok(())
+}
+
 fn append_lock_entries(
     inventory: &mut DependencyInventory,
     args: &DependencyAddArgs,
@@ -490,6 +516,7 @@ fn append_lock_entries(
                 repository_id: resolved.repository_id.clone(),
             }),
             scopes,
+            bundle: bundle_policy(args, coordinate),
             artifact_treatment: args
                 .artifact_treatment
                 .unwrap_or(ArtifactTreatmentV3::LoaderManagedMod),
@@ -544,6 +571,55 @@ fn append_lock_entries(
     });
 }
 
+fn validate_bundle_options(
+    args: &DependencyAddArgs,
+    coordinate: &MavenCoordinate,
+) -> eyre::Result<()> {
+    let has_bundle_scope = args.scope.contains(&DependencyScopeV3::Bundle);
+    let has_bundle_options = args.bundle_accepted_version_range.is_some()
+        || args.bundle_artifact_version.is_some()
+        || args.bundle_is_obfuscated;
+    if !has_bundle_scope && has_bundle_options {
+        eyre::bail!("bundle policy options require --scope bundle");
+    }
+    if !has_bundle_scope {
+        return Ok(());
+    }
+    if args.bundle_accepted_version_range.is_none() {
+        eyre::bail!("--scope bundle requires --bundle-accepted-version-range");
+    }
+    if args.bundle_is_obfuscated {
+        eyre::bail!("plain Java bundle dependencies require is_obfuscated=false");
+    }
+    if args
+        .bundle_artifact_version
+        .as_deref()
+        .is_some_and(|version| version != coordinate.version)
+    {
+        eyre::bail!(
+            "--bundle-artifact-version must match the exact Maven coordinate version `{}`",
+            coordinate.version
+        );
+    }
+    Ok(())
+}
+
+fn bundle_policy(args: &DependencyAddArgs, coordinate: &MavenCoordinate) -> Option<BundlePolicyV3> {
+    args.scope
+        .contains(&DependencyScopeV3::Bundle)
+        .then(|| BundlePolicyV3 {
+            accepted_version_range: args
+                .bundle_accepted_version_range
+                .clone()
+                .expect("bundle options validated before lock mutation"),
+            artifact_version: args
+                .bundle_artifact_version
+                .clone()
+                .unwrap_or_else(|| coordinate.version.clone()),
+            is_obfuscated: args.bundle_is_obfuscated,
+        })
+}
+
 struct CurseforgeLockEntryInputs<'a> {
     project_id: CurseforgeProjectId,
     file_id: CurseforgeProjectFileId,
@@ -577,6 +653,7 @@ fn append_curseforge_lock_entries(
                 repository_id: inputs.resolved.repository_id.clone(),
             }),
             scopes,
+            bundle: None,
             artifact_treatment: args
                 .artifact_treatment
                 .unwrap_or(ArtifactTreatmentV3::LoaderManagedMod),

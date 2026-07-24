@@ -2445,16 +2445,15 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
     }
     stage_project_resources(context, &staged_resources_dir, &javac_resources_dir)?;
     let mut package_fingerprint_paths = vec![classes_dir.clone(), staged_resources_dir.clone()];
-    if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        package_fingerprint_paths.extend(
-            context
-                .plan
-                .dependencies
-                .iter()
-                .filter(|dependency| dependency.configuration == "jarJar")
-                .map(|dependency| dependency.cache_path.clone()),
-        );
-    } else {
+    package_fingerprint_paths.extend(
+        context
+            .plan
+            .dependencies
+            .iter()
+            .filter(|dependency| dependency.configuration == "jarJar")
+            .map(|dependency| dependency.cache_path.clone()),
+    );
+    if context.plan.loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev {
         package_fingerprint_paths.push(mixin_reobf_mapping.clone());
         package_fingerprint_paths.push(reobf_mapping.clone());
     }
@@ -2636,8 +2635,11 @@ fn package_fingerprint_extras(context: &ExecutionContext<'_>) -> Vec<String> {
     }));
     extras.extend(context.plan.dependencies.iter().map(|dependency| {
         format!(
-            "dependency:{}:{}:{}",
-            dependency.configuration, dependency.notation, dependency.resolved_notation
+            "dependency:{}:{}:{}:{:?}",
+            dependency.configuration,
+            dependency.notation,
+            dependency.resolved_notation,
+            dependency.bundle
         )
     }));
     extras
@@ -2807,7 +2809,7 @@ fn write_project_development_jar(
     let mut entries = BTreeMap::new();
     add_directory_to_jar_entries(context, &mut entries, classes_dir)?;
     add_directory_to_jar_entries(context, &mut entries, resources_dir)?;
-    add_neogradle_jarjar_entries(context, &mut entries)?;
+    add_loader_jarjar_entries(context, &mut entries)?;
 
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent)?;
@@ -2842,38 +2844,62 @@ fn write_project_development_jar(
     Ok(())
 }
 
-fn add_neogradle_jarjar_entries(
+fn add_loader_jarjar_entries(
     context: &ExecutionContext<'_>,
     entries: &mut BTreeMap<String, Vec<u8>>,
 ) -> eyre::Result<()> {
-    if context.plan.loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev {
+    if !matches!(
+        context.plan.loader_toolchain.kind,
+        LoaderToolchainKind::ForgeGradleForge | LoaderToolchainKind::NeoGradleUserdev
+    ) {
         return Ok(());
     }
 
     let mut metadata_entries = Vec::new();
-    for dependency in context
+    let mut dependencies = context
         .plan
         .dependencies
         .iter()
         .filter(|dependency| dependency.configuration == "jarJar")
-    {
+        .collect::<Vec<_>>();
+    dependencies.sort_by(|left, right| {
+        left.resolved_notation
+            .cmp(&right.resolved_notation)
+            .then_with(|| left.cache_path.cmp(&right.cache_path))
+    });
+    for dependency in dependencies {
         let coordinate = MavenCoordinate::parse(&dependency.resolved_notation)?;
+        let bundle = dependency.bundle.as_ref().ok_or_else(|| {
+            eyre::eyre!(
+                "JarJar dependency `{}` is missing its schema v3 bundle policy",
+                dependency.resolved_notation
+            )
+        })?;
+        if coordinate.version != bundle.artifact_version {
+            eyre::bail!(
+                "JarJar dependency `{}` resolved version does not match bundle artifact_version `{}`",
+                dependency.resolved_notation,
+                bundle.artifact_version
+            );
+        }
         context.assert_allowed_input(&dependency.cache_path)?;
         let path = format!("META-INF/jarjar/{}", coordinate.file_name());
         let bytes = fs::read(&dependency.cache_path)
             .wrap_err_with(|| format!("Failed to read {}", dependency.cache_path.display()))?;
-        entries.insert(path.clone(), bytes);
+        if entries.insert(path.clone(), bytes).is_some() {
+            eyre::bail!("Duplicate JarJar nested output path `{path}`");
+        }
         metadata_entries.push(JarJarMetadataEntry {
             identifier: JarJarIdentifier {
                 group: coordinate.group,
                 artifact: coordinate.artifact,
             },
             version: JarJarVersion {
-                range: format!("[{}]", coordinate.version),
-                artifact_version: coordinate.version,
+                range: bundle.accepted_version_range.clone(),
+                artifact_version: bundle.artifact_version.clone(),
             },
             path,
-            is_obfuscated: false,
+            is_obfuscated: bundle.is_obfuscated,
         });
     }
 
