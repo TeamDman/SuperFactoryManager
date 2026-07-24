@@ -1594,6 +1594,15 @@ narrow Minecraft Vox bridge (endpoint lifecycle, one generated service, an
 action/panel, and puppet-visible success/failure states). The bridge must
 consume the frozen artifact rather than copying its protocol by hand.
 
+The canonical clean-loader commits and completed evidence were propagated
+through the maintained version chain. The clean propagation checkpoint heads
+are `90a89d692` (1.19.2), `6bc6347e3` (1.19.4), `3355a19b9` (1.20), `1dd5a5974`
+(1.20.1), `8e2179256` (1.20.2), `f37703eb0` (1.20.3), `b9685f7f2`
+(1.20.4), `3f38cc2ea` (1.21.0), `e566751ea` (1.21.1), and `929fdf38c`
+(26.1.2). The version-surface audit reports zero CLI-source divergence
+warnings; its Java warnings are the existing cross-version Java differences,
+not changes introduced by this CLI/docs-only propagation.
+
 #### Coordinator preflight — Facet synchronization and contract freeze
 
 Owner: primary agent; no delegation.
