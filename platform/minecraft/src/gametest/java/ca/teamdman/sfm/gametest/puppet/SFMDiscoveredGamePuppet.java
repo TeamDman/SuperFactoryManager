@@ -5,7 +5,8 @@ import java.lang.reflect.Method;
 
 public record SFMDiscoveredGamePuppet(
         String puppetName,
-        Method method
+        Method method,
+        SFMGamePuppetViewportProfile viewportProfile
 ) {
     public void declare(SFMGamePuppetHelper helper) {
         try {

@@ -1435,7 +1435,7 @@ fn execute_artifact_audit_targets_sequential(
         .entered();
         record_artifact_audit_result(
             &target,
-            audit_artifacts_for_target(options, &target),
+            audit_artifacts_for_target(options, &target, cancellation_token),
             &mut reports,
             &mut failures,
         );
@@ -1503,7 +1503,7 @@ fn execute_artifact_audit_targets_parallel(
                         worktree = %target.worktree_path.display(),
                     )
                     .entered();
-                    let result = audit_artifacts_for_target(options, &target);
+                    let result = audit_artifacts_for_target(options, &target, &cancellation_token);
                     let failed = result.as_ref().map_or(true, |report| !report.report.passed);
                     if failed && !options.error_action.should_continue() {
                         stop_starting.store(true, AtomicOrdering::Release);
@@ -1570,6 +1570,7 @@ fn record_artifact_audit_result(
 fn audit_artifacts_for_target(
     options: &ArtifactAuditOptions,
     target: &WorktreeTarget,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<TargetArtifactAuditReport> {
     let worktree_path = target.worktree_path.as_path().to_path_buf();
     let minecraft_dir = worktree_path.join("platform").join("minecraft");
@@ -1584,6 +1585,7 @@ fn audit_artifacts_for_target(
         &common_cache_dir,
         minecraft_version,
         options.require_portable_artifacts,
+        cancellation_token,
     )?;
 
     Ok(TargetArtifactAuditReport {
@@ -1599,6 +1601,7 @@ fn audit_artifact_lockfile(
     common_cache_dir: &Path,
     minecraft_version: &str,
     require_portable_artifacts: bool,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<ArtifactAuditReport> {
     let mut report = ArtifactAuditReport::new(lockfile_path.to_path_buf());
     let Some(lockfile) = read_optional_artifact_lockfile(lockfile_path, minecraft_version)? else {
@@ -1642,6 +1645,7 @@ fn audit_artifact_lockfile(
             minecraft_dir,
             common_cache_dir,
             require_portable_artifacts,
+            cancellation_token,
         )?;
     }
 
@@ -1655,6 +1659,7 @@ fn audit_locked_artifact(
     minecraft_dir: &Path,
     common_cache_dir: &Path,
     require_portable_artifacts: bool,
+    cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
     if !artifact.source.is_fresh_slate_portable() {
         let message = format!(
@@ -1700,7 +1705,8 @@ fn audit_locked_artifact(
         return Ok(());
     };
 
-    let _cache_read_lock = acquire_artifact_path_read_lock(&artifact_path)?;
+    let _cache_read_lock =
+        acquire_artifact_path_read_lock_cancellable(&artifact_path, cancellation_token)?;
     let actual_hash = ContentHash::from_path(&artifact_path, artifact.hash.algorithm)?;
     if actual_hash != artifact.hash {
         if let Some(weak) = artifact.weak.as_ref() {
