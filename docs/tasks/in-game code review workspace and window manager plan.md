@@ -1458,9 +1458,9 @@ checkpoint and verifies `HEAD` before an agent is attached:
 
 | Facet boundary | Branch | Worktree | Status |
 | --- | --- | --- | --- |
-| Phon Java | `teamy/vox-java-phon` | `G:\Programming\Repos\facet-worktrees\vox-java-phon` | Dispatched from exact contract SHA |
-| Java generators | `teamy/vox-java-codegen` | `G:\Programming\Repos\facet-worktrees\vox-java-codegen` | Dispatched from exact contract SHA |
-| Vox Java runtime | `teamy/vox-java-runtime` | `G:\Programming\Repos\facet-worktrees\vox-java-runtime` | Dispatched from exact contract SHA |
+| Phon Java | `teamy/vox-java-phon` | `G:\Programming\Repos\facet-worktrees\vox-java-phon` | Integrated as `a2ed54681` |
+| Java generators | `teamy/vox-java-codegen` | `G:\Programming\Repos\facet-worktrees\vox-java-codegen` | Integrated through `31018976c` and `1b0b255d0` |
+| Vox Java runtime | `teamy/vox-java-runtime` | `G:\Programming\Repos\facet-worktrees\vox-java-runtime` | Integrated as `2bbd7e32f`, then reconciled with the generated APIs |
 
 The independent SFM packaging-capability investigation uses branch
 `feat/1.19.2/vox-packaging-research` and worktree
@@ -1479,6 +1479,104 @@ branch `feat/1.19.2/vox-bridge` and worktree
 The synchronization and contract gates were satisfied at the immutable SHAs
 above. V1, V2 and V3 were attached only after each separate worktree was
 verified clean and exactly at the contract checkpoint.
+
+#### Integration result — 2026-07-23
+
+V1, V2 and V3 are complete and integrated on `teamy/vox-java`. The maintained
+Facet fork's reviewed integration head is
+`5e719ed9f5d1f36ba41242c2c057e74d67ecb3c9`, pushed to
+`mine/teamy/vox-java`. The integration sequence includes the three delegated
+heads plus full generated-response adapters, packaging/test xtasks, both wire
+directions, a Java-hosted service, runtime wire schemas, and negative and
+schema-evolution conformance.
+
+`cargo xtask package-java` proves 72 Phon assertions, stream framing, the Vox
+runtime, generated responses, deterministic assembly, a clean consumer smoke
+and `jdeps`. It creates one Java 17 artifact:
+
+```text
+G:\Programming\Repos\facet-worktrees\vox-java\vox\java\target\vox-java-0.10.0-rc.5.jar
+SHA-256 E714A48080D453097F1E819DEFBE42412B73F8E17C1B5D0AA4A6BEA52DF734C3
+```
+
+The artifact contains the runtime-generated `HandshakeWireSchemas` and
+`MessageWireSchemas` classes but excludes Testbed application services.
+Package-scoped formatting and focused generator/xtask Clippy with warnings
+denied pass. Full-workspace formatting remains subject to the existing Windows
+path-length limitation. Run `package-java` before the wire suite because the
+wire subjects intentionally consume its generated `java/target/test-classes`
+rather than maintaining a second generated fixture surface.
+
+The real Rust/Java TCP suite passes ten behavioral cases:
+
+1. Java caller to Rust echo;
+2. Rust caller to Java-hosted echo;
+3. bidirectional calls on one connection;
+4. cancellation/timeout aborting the Rust handler;
+5. disconnect terminalizing a pending call and letting Java exit;
+6. invalid payload rejected before dispatch;
+7. application errors in both directions;
+8. the normative unknown-method outcome;
+9. compatible schema evolution; and
+10. incompatible argument schema rejected before dispatch.
+
+Channels/streaming, a separately isolated incompatible-response-schema case,
+richer authorization policy, and the Minecraft bridge remain later slices.
+The unary Java 17 vertical slice and its artifact boundary are frozen.
+
+The SFM cross-loader packaging foundation is canonical commit
+`31d788969b743b774d86b451f83a0136612ef14f`. It introduces schema-v3 bundle
+policy fields for accepted ranges, exact artifact version and obfuscation,
+preserves those fields in Gradle and Rust packaging, fingerprints policy, and
+audits the installed JAR. The Rust CLI gate passes with 344 tests and one
+ignored test. It propagated cleanly to every maintained Minecraft branch:
+
+| Branch | Propagated head |
+| --- | --- |
+| `1.19.2` | `31d788969b743b774d86b451f83a0136612ef14f` |
+| `1.19.4` | `8fedc8ee0` |
+| `1.20` | `b1daa4e03` |
+| `1.20.1` | `84a04ff49` |
+| `1.20.2` | `4ad6a3e2a` |
+| `1.20.3` | `a47aecbb2` |
+| `1.20.4` | `c5bbe031f` |
+| `1.21.0` | `19323ef9a` |
+| `1.21.1` | `ef0f8feb5` |
+| `26.1.2` | `7742f3c4b` |
+
+The 26.1.2 ANTLR declaration is explicitly `[4.13.1]`, version `4.13.1`,
+unobfuscated. Post-propagation version-surface audit has zero warnings and all
+named worktrees are clean.
+
+The branch-only SFM artifact probe
+`teamy/vox-java-artifact-probe` freezes the Facet artifact above as
+`org.facet:vox-java:0.10.0-rc.5` with exact accepted range
+`[0.10.0-rc.5]`. Its definitive Rust-built SFM JAR has SHA-256
+`8E2B3D9789B0AC089EB660A0888C53B1F0FF9CC5DFE8A4D7A345F6838A34B733`;
+the single nested JAR has the exact input SHA-256 above and locked BLAKE3
+`7fe683de7c2400366b8dfa42d777fcb5aefdb9b4`. Artifact audit verifies 109
+entries with no errors and one expected non-portable-source warning, and the
+userdev smoke directly invokes the nested public API.
+
+The artifact probe's lock, runtime marker and `LocalImport` implementation must
+not be merged to canonical. They add a new semantic variant without the
+required schema bump, and the lock-path parser is still host-dependent:
+portable lock paths must use `/` and lexically reject backslashes, drives, UNC,
+absolute, empty, `.` and `..` components before conversion to a host
+`PathBuf`. Promote this only as schema v4, with platform-independent tests,
+explicit empty-cache rehydration and hosted/source-build provenance. The
+canonical architecture note records the useful evidence without exposing the
+experimental command surface.
+
+The final remaining gate for this wave is the hardened clean production Forge
+loader proof. It must launch an isolated instance containing exactly the final
+SFM JAR, verify the expected outer and nested hashes, reject loose Vox copies
+and inherited classpaths, prove the Forge Jar-in-Jar locator discovered one
+dependency, correlate loaded Vox classes with the nested union source and
+`TransformingClassLoader`, require a successful non-timeout exit, terminate the
+process tree safely, and preserve a hashed report/log bundle. Once that proof
+passes, the accepted generic harness and evidence can be checkpointed on
+canonical 1.19.2; branch-only probe code and schema-v3 `LocalImport` cannot.
 
 #### Coordinator preflight — Facet synchronization and contract freeze
 
