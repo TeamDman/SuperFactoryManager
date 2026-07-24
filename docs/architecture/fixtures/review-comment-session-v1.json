@@ -1,0 +1,131 @@
+{
+  "schema": "sfm.review-session/1",
+  "id": "sfm:fixture/comment-overlap",
+  "title": "Comment overlap and migration fixture",
+  "coordinate_system": "utf8_byte_half_open",
+  "revision_lanes": [
+    {
+      "id": "sfm-1.19.2",
+      "repository": {
+        "id": "sfm",
+        "root_hint": "D:/Repos/Minecraft/SFM/repos2/1.19.2"
+      },
+      "version_label": "1.19.2",
+      "before": {
+        "id": "before-fixture",
+        "documents": [
+          {
+            "id": "sfm-1.19.2:before:Example.java",
+            "path": "src/Example.java",
+            "encoding": "utf-8",
+            "sha256": "7d6f24a7009bb6ed2127375c62598df95032c610153c0f10bdd518155fd8ee86",
+            "text": "class Example {\n    void oldName() {\n        run();\n    }\n}\n"
+          }
+        ]
+      },
+      "after": {
+        "id": "after-fixture",
+        "documents": [
+          {
+            "id": "sfm-1.19.2:after:Example.java",
+            "path": "src/Example.java",
+            "encoding": "utf-8",
+            "sha256": "bcd536e5e65e16178c3a5a875266efa096e4c7b440a0b2aadbeb02b1d664d3e7",
+            "text": "class Example {\n    void newName() {\n        run();\n        audit();\n    }\n}\n"
+          }
+        ]
+      }
+    }
+  ],
+  "comments": [
+    {
+      "id": "approved-method",
+      "text": "#approved Replacement method reviewed.",
+      "provenance": {
+        "kind": "human",
+        "producer": "fixture-reviewer",
+        "version": "1",
+        "parent_comment_ids": []
+      },
+      "selection_rule": {
+        "kind": "literal_utf8_range",
+        "document_revision_id": "sfm-1.19.2:after:Example.java",
+        "start_byte": 20,
+        "end_byte": 74,
+        "document_sha256": "bcd536e5e65e16178c3a5a875266efa096e4c7b440a0b2aadbeb02b1d664d3e7",
+        "selected_text_sha256": "fe00e75b698b90fbfd3df9f936a2c902810fc4f81e2542bf69dea512ffca9ffa"
+      }
+    },
+    {
+      "id": "overlapping-problem",
+      "text": "#problem #audit-forbidden Explain the audit call.",
+      "provenance": {
+        "kind": "sfm_audit",
+        "producer": "fixture:audit-call",
+        "version": "1",
+        "parent_comment_ids": []
+      },
+      "selection_rule": {
+        "kind": "literal_utf8_range",
+        "document_revision_id": "sfm-1.19.2:after:Example.java",
+        "start_byte": 60,
+        "end_byte": 68,
+        "document_sha256": "bcd536e5e65e16178c3a5a875266efa096e4c7b440a0b2aadbeb02b1d664d3e7",
+        "selected_text_sha256": "bcf68cbe2a30234ff01d1eae9bee05b4b603652ee9c044d827cda59e8ec68304"
+      }
+    },
+    {
+      "id": "cross-side-intent",
+      "text": "#needs-change Confirm the rename and added audit behavior together.",
+      "provenance": {
+        "kind": "human",
+        "producer": "fixture-reviewer",
+        "version": "1",
+        "parent_comment_ids": []
+      },
+      "selection_rule": {
+        "kind": "union",
+        "rules": [
+          {
+            "kind": "literal_utf8_range",
+            "document_revision_id": "sfm-1.19.2:before:Example.java",
+            "start_byte": 20,
+            "end_byte": 57,
+            "document_sha256": "7d6f24a7009bb6ed2127375c62598df95032c610153c0f10bdd518155fd8ee86",
+            "selected_text_sha256": "75b0f341b1aea37104e963131b488d72ff6fee72c30c78ae030682067aaa1332"
+          },
+          {
+            "kind": "literal_utf8_range",
+            "document_revision_id": "sfm-1.19.2:after:Example.java",
+            "start_byte": 20,
+            "end_byte": 74,
+            "document_sha256": "bcd536e5e65e16178c3a5a875266efa096e4c7b440a0b2aadbeb02b1d664d3e7",
+            "selected_text_sha256": "fe00e75b698b90fbfd3df9f936a2c902810fc4f81e2542bf69dea512ffca9ffa"
+          }
+        ]
+      }
+    }
+  ],
+  "style_rules": [
+    {
+      "id": "approved-background",
+      "required_hashtags": ["#approved"],
+      "priority": 10,
+      "background": "#4422AA44",
+      "enabled": true
+    },
+    {
+      "id": "problem-underline",
+      "required_hashtags": ["#problem"],
+      "priority": 100,
+      "underline": "#FFFF5555",
+      "gutter_marker": "#FFFF5555",
+      "enabled": true
+    }
+  ],
+  "completion_policy": {
+    "coverage_mode": "changed_surface",
+    "approval_hashtag": "#approved",
+    "blocking_hashtags": ["#problem", "#needs-change"]
+  }
+}

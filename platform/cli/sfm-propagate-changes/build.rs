@@ -1,3 +1,4 @@
+use std::env;
 use std::process::Command;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
@@ -32,15 +33,19 @@ fn add_exe_resources() {
 fn add_git_revision() {
     add_git_revision_inputs();
 
-    // Try to get a short git revision; on failure, set to "unknown".
-    let rev =
-        git_output(&["rev-parse", "--short", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
+    // `cargo install --path` builds from a temporary source copy without `.git`. The installer
+    // captures its worktree revision before Cargo makes that copy and supplies this narrow override.
+    let rev = install_git_revision_override().unwrap_or_else(|| {
+        git_output(&["rev-parse", "--short", "HEAD"]).unwrap_or_else(|| "unknown".to_string())
+    });
 
     println!("cargo:rustc-env=GIT_REVISION={rev}");
 }
 
 /// Re-run the build script when the current git revision changes.
 fn add_git_revision_inputs() {
+    println!("cargo:rerun-if-env-changed=SFM_PROPAGATE_CHANGES_INSTALL_GIT_REVISION");
+
     if let Some(head_path) = git_output(&["rev-parse", "--git-path", "HEAD"]) {
         println!("cargo:rerun-if-changed={head_path}");
     }
@@ -50,6 +55,21 @@ fn add_git_revision_inputs() {
     {
         println!("cargo:rerun-if-changed={head_ref_path}");
     }
+}
+
+fn install_git_revision_override() -> Option<String> {
+    let value = env::var_os("SFM_PROPAGATE_CHANGES_INSTALL_GIT_REVISION")?;
+    let value = value.into_string().unwrap_or_else(|_| {
+        panic!("SFM_PROPAGATE_CHANGES_INSTALL_GIT_REVISION must be valid Unicode")
+    });
+    assert!(
+        (7..=64).contains(&value.len())
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)),
+        "SFM_PROPAGATE_CHANGES_INSTALL_GIT_REVISION must contain 7 to 64 lowercase hexadecimal characters"
+    );
+    Some(value)
 }
 
 fn git_output(args: &[&str]) -> Option<String> {

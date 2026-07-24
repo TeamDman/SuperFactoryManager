@@ -260,6 +260,7 @@ fn migrate_dependencies(
                         declaration: ComponentDeclarationV3 {
                             acquisition,
                             scopes: reference.scopes.clone(),
+                            bundle: None,
                             artifact_treatment: component
                                 .artifact_treatment
                                 .expect("diagnostics require artifact treatment"),
