@@ -233,6 +233,36 @@ fn add_rejects_dynamic_and_malformed_coordinates() {
 }
 
 #[test]
+fn bundle_cli_options_require_scope_and_capture_explicit_policy() {
+    let coordinate = MavenCoordinate::parse("org.facet:vox-java:0.1.3").expect("coordinate");
+    let mut dependency_args = args(&coordinate.canonical);
+    dependency_args.kind = Some(DependencyKindV3::Library);
+    dependency_args.artifact_treatment = Some(ArtifactTreatmentV3::Plain);
+    dependency_args.scope = vec![
+        DependencyScopeV3::Compile,
+        DependencyScopeV3::Runtime,
+        DependencyScopeV3::Bundle,
+    ];
+    let error =
+        validate_bundle_options(&dependency_args, &coordinate).expect_err("range is required");
+    assert!(error.to_string().contains("bundle-accepted-version-range"));
+
+    dependency_args.bundle_accepted_version_range = Some("[0.1.0,0.2.0)".to_string());
+    validate_bundle_options(&dependency_args, &coordinate).expect("bundle options");
+    let policy = bundle_policy(&dependency_args, &coordinate).expect("bundle policy");
+    assert_eq!(policy.accepted_version_range, "[0.1.0,0.2.0)");
+    assert_eq!(policy.artifact_version, "0.1.3");
+    assert!(!policy.is_obfuscated);
+
+    dependency_args
+        .scope
+        .retain(|scope| *scope != DependencyScopeV3::Bundle);
+    let error =
+        validate_bundle_options(&dependency_args, &coordinate).expect_err("policy without scope");
+    assert!(error.to_string().contains("require --scope bundle"));
+}
+
+#[test]
 fn add_curseforge_locks_validated_exact_project_and_file() {
     let directory = tempfile::tempdir().expect("temp directory");
     let cache_home = CacheHome(directory.path().join("isolated-cache"));
@@ -429,6 +459,9 @@ fn args(coordinate: &str) -> DependencyAddArgs {
         ],
         repository: Some("squiddev".to_owned()),
         artifact_treatment: None,
+        bundle_accepted_version_range: None,
+        bundle_artifact_version: None,
+        bundle_is_obfuscated: false,
         display_name: Some("CC:Tweaked".to_owned()),
         project_url: Some("https://tweaked.cc".to_owned()),
         notes: None,
@@ -450,6 +483,9 @@ fn curseforge_args() -> DependencyAddArgs {
         scope: vec![DependencyScopeV3::Compile, DependencyScopeV3::Runtime],
         repository: Some("cursemaven".to_owned()),
         artifact_treatment: Some(ArtifactTreatmentV3::LoaderManagedMod),
+        bundle_accepted_version_range: None,
+        bundle_artifact_version: None,
+        bundle_is_obfuscated: false,
         display_name: None,
         project_url: None,
         notes: None,

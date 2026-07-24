@@ -1,10 +1,12 @@
 use super::ArtifactLockWaitPolicy;
 use super::artifact_lock::open_lock_file;
+use super::artifact_lock::open_lock_file_with_policy;
+use super::artifact_lock::wait_for_retry;
+use crate::cancellation::CancellationToken;
 use eyre::Context;
 use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
-use std::thread;
 use std::time::Instant;
 
 #[derive(Debug)]
@@ -26,7 +28,22 @@ impl ArtifactReadLock {
             lock = %lock_path.as_ref().display()
         )
         .entered();
-        Self::acquire_with_policy(lock_path, artifact, ArtifactLockWaitPolicy::default())
+        Self::acquire_with_policy(lock_path, artifact, &ArtifactLockWaitPolicy::default())
+    }
+
+    /// # Errors
+    ///
+    /// Returns an error if waiting is cancelled, times out, or the OS lock operation fails.
+    pub fn acquire_with_cancellation(
+        lock_path: impl AsRef<Path>,
+        artifact: impl Into<String>,
+        cancellation_token: CancellationToken,
+    ) -> eyre::Result<Self> {
+        Self::acquire_with_policy(
+            lock_path,
+            artifact,
+            &ArtifactLockWaitPolicy::default().with_cancellation(cancellation_token),
+        )
     }
 
     /// # Errors
@@ -35,24 +52,34 @@ impl ArtifactReadLock {
     pub fn acquire_with_policy(
         lock_path: impl AsRef<Path>,
         artifact: impl Into<String>,
-        policy: ArtifactLockWaitPolicy,
+        policy: &ArtifactLockWaitPolicy,
     ) -> eyre::Result<Self> {
         let lock_path = lock_path.as_ref().to_path_buf();
         let artifact = artifact.into();
-        let file = open_lock_file(&lock_path)?;
         let started = Instant::now();
         let mut last_log = Instant::now()
             .checked_sub(policy.log_interval)
             .unwrap_or_else(Instant::now);
+        let file = open_lock_file_with_policy(
+            &lock_path,
+            &artifact,
+            "shared_read",
+            policy,
+            started,
+            &mut last_log,
+        )?;
 
         loop {
+            policy.bail_if_cancelled()?;
             if try_lock_shared_file(&file, &lock_path)? {
                 if started.elapsed() > policy.retry_interval {
                     tracing::info!(
                         artifact = %artifact,
                         lock = %lock_path.display(),
                         waited_ms = started.elapsed().as_millis(),
-                        "acquired artifact read lock after waiting"
+                        pid = std::process::id(),
+                        operation = "shared_read",
+                        "acquired_shared_lock"
                     );
                 }
                 return Ok(Self {
@@ -67,11 +94,13 @@ impl ArtifactReadLock {
                     artifact = %artifact,
                     lock = %lock_path.display(),
                     waited_ms = started.elapsed().as_millis(),
-                    "waiting for artifact read lock"
+                    pid = std::process::id(),
+                    operation = "shared_read",
+                    "waiting_for_shared_lock"
                 );
                 last_log = Instant::now();
             }
-            thread::sleep(policy.retry_interval);
+            wait_for_retry(policy, started, &lock_path, &artifact, "shared_read")?;
         }
     }
 

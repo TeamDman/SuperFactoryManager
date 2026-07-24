@@ -93,6 +93,11 @@
             "scopes": [
               "bundle"
             ],
+            "bundle": {
+              "accepted_version_range": "[4.13.1]",
+              "artifact_version": "4.13.1",
+              "is_obfuscated": false
+            },
             "artifact_treatment": "plain",
             "data_run_policy": "include"
           },

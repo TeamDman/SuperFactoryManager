@@ -2000,7 +2000,7 @@ fn download_to_path_overwrite_with_expected_hash(
     expected_hash: &ContentHash,
 ) -> eyre::Result<()> {
     cancellation_token.bail_if_cancelled()?;
-    let _lock = acquire_artifact_path_lock(path)?;
+    let _lock = acquire_artifact_path_lock_cancellable(path, cancellation_token)?;
     download_to_path_overwrite_locked(
         cancellation_token,
         client,
@@ -2019,7 +2019,7 @@ fn download_to_path_overwrite(
     overwrite: bool,
 ) -> eyre::Result<()> {
     cancellation_token.bail_if_cancelled()?;
-    let _lock = acquire_artifact_path_lock(path)?;
+    let _lock = acquire_artifact_path_lock_cancellable(path, cancellation_token)?;
     download_to_path_overwrite_locked(cancellation_token, client, url, path, overwrite, None)
 }
 
@@ -2179,12 +2179,31 @@ fn copy_file_to_path_checked_locked(
     Ok(())
 }
 
+#[cfg(test)]
 fn acquire_artifact_path_lock(path: &Path) -> eyre::Result<ArtifactLock> {
     ArtifactLock::acquire(artifact_lock_path(path)?, path.display().to_string())
 }
 
-fn acquire_artifact_path_read_lock(path: &Path) -> eyre::Result<ArtifactReadLock> {
-    ArtifactReadLock::acquire(artifact_lock_path(path)?, path.display().to_string())
+fn acquire_artifact_path_lock_cancellable(
+    path: &Path,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<ArtifactLock> {
+    ArtifactLock::acquire_with_cancellation(
+        artifact_lock_path(path)?,
+        path.display().to_string(),
+        cancellation_token.clone(),
+    )
+}
+
+fn acquire_artifact_path_read_lock_cancellable(
+    path: &Path,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<ArtifactReadLock> {
+    ArtifactReadLock::acquire_with_cancellation(
+        artifact_lock_path(path)?,
+        path.display().to_string(),
+        cancellation_token.clone(),
+    )
 }
 
 fn artifact_lock_path(path: &Path) -> eyre::Result<PathBuf> {
