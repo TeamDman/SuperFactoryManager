@@ -331,6 +331,7 @@ struct McpConfigPlan {
 #[derive(Clone, Debug, Facet)]
 struct DependencyPlan {
     configuration: String,
+    bundle: Option<crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3>,
     artifact_treatment:
         crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
     data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3,

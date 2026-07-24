@@ -20,6 +20,7 @@ pub mod puppet;
 mod puppet_artifacts;
 mod puppet_matrix;
 pub mod repo_root;
+pub mod review;
 pub mod run;
 pub mod server;
 pub mod test;
