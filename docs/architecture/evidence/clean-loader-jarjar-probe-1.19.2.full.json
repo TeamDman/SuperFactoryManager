@@ -1,0 +1,84 @@
+{
+  "schema_version": 2,
+  "cli_source_revision": "87c94670b1c4b1bb50a2d05978bb05a83d777caa",
+  "source_commit": "87c94670b1c4b1bb50a2d05978bb05a83d777caa",
+  "invocation": [
+    "target\\debug\\sfm-propagate-changes.exe",
+    "jar",
+    "clean-loader-probe",
+    "--release-jar",
+    "D:\\Repos\\Minecraft\\SFM\\worktrees\\vox-java-artifact-probe\\platform\\minecraft\\build\\libs\\Super Factory Manager (SFM)-MC1.19.2-4.34.0-rust.jar",
+    "--expected-release-sha256",
+    "8E2B3D9789B0AC089EB660A0888C53B1F0FF9CC5DFE8A4D7A345F6838A34B733",
+    "--forge-installer",
+    "C:\\tmp\\forge-1.19.2-43.4.0-installer.jar",
+    "--expected-forge-installer-sha256",
+    "13200FCC4B00959734CD7BB193CB4E5E6EA756635CDC9E61C23EC45AC632880E",
+    "--instance-dir",
+    "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\platform\\minecraft\\build\\sfm-toolchain\\clean-loader-instances\\run-8e2b-hard-source",
+    "--success-marker",
+    "SFM_VOX_JAVA_PACKAGING_PROBE_READY",
+    "--expected-nested",
+    "org.facet:vox-java",
+    "--required-nested-class",
+    "org.facet.vox.VoxResult",
+    "--timeout",
+    "5m",
+    "--install-timeout",
+    "15m",
+    "--report-json",
+    "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\docs\\architecture\\evidence\\clean-loader-jarjar-probe-1.19.2.full.json"
+  ],
+  "operating_system": "windows",
+  "architecture": "x86_64",
+  "status": "passed",
+  "release_jar": "D:\\Repos\\Minecraft\\SFM\\worktrees\\vox-java-artifact-probe\\platform\\minecraft\\build\\libs\\Super Factory Manager (SFM)-MC1.19.2-4.34.0-rust.jar",
+  "expected_release_sha256": "8E2B3D9789B0AC089EB660A0888C53B1F0FF9CC5DFE8A4D7A345F6838A34B733",
+  "release_sha256": "8E2B3D9789B0AC089EB660A0888C53B1F0FF9CC5DFE8A4D7A345F6838A34B733",
+  "installed_release_sha256": "8E2B3D9789B0AC089EB660A0888C53B1F0FF9CC5DFE8A4D7A345F6838A34B733",
+  "forge_installer": "C:\\tmp\\forge-1.19.2-43.4.0-installer.jar",
+  "expected_forge_installer_sha256": "13200FCC4B00959734CD7BB193CB4E5E6EA756635CDC9E61C23EC45AC632880E",
+  "forge_installer_sha256": "13200FCC4B00959734CD7BB193CB4E5E6EA756635CDC9E61C23EC45AC632880E",
+  "java_executable": "C:\\Users\\Teamy\\.jdks\\jbrsdk-17.0.6-windows-x64-b829.9\\bin\\java.exe",
+  "java_version_output": "openjdk version \"17.0.6\" 2023-01-17\r\nOpenJDK Runtime Environment JBR-17.0.6+10-829.9-nomod (build 17.0.6+10-b829.9)\r\nOpenJDK 64-Bit Server VM JBR-17.0.6+10-829.9-nomod (build 17.0.6+10-b829.9, mixed mode)",
+  "rejected_java_environment": [],
+  "instance_dir": "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\platform\\minecraft\\build\\sfm-toolchain\\clean-loader-instances\\run-8e2b-hard-source",
+  "nested_artifacts": [
+    {
+      "group": "org.facet",
+      "artifact": "vox-java",
+      "range": "[0.10.0-rc.5]",
+      "artifact_version": "0.10.0-rc.5",
+      "path": "META-INF/jarjar/vox-java-0.10.0-rc.5.jar",
+      "is_obfuscated": false,
+      "sha256": "E714A48080D453097F1E819DEFBE42412B73F8E17C1B5D0AA4A6BEA52DF734C3"
+    }
+  ],
+  "required_nested_classes": [
+    "org.facet.vox.VoxResult"
+  ],
+  "mods": [
+    "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\platform\\minecraft\\build\\sfm-toolchain\\clean-loader-instances\\run-8e2b-hard-source\\mods\\Super Factory Manager (SFM)-MC1.19.2-4.34.0-rust.jar"
+  ],
+  "launch_argfiles": [
+    "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\platform\\minecraft\\build\\sfm-toolchain\\clean-loader-instances\\run-8e2b-hard-source\\user_jvm_args.txt",
+    "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\platform\\minecraft\\build\\sfm-toolchain\\clean-loader-instances\\run-8e2b-hard-source\\libraries\\net\\minecraftforge\\forge\\1.19.2-43.4.0\\win_args.txt"
+  ],
+  "direct_nested_classpath_entries": [],
+  "loose_nested_artifact_copies": [],
+  "install_log": "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\platform\\minecraft\\build\\sfm-toolchain\\clean-loader-instances\\run-8e2b-hard-source\\sfm-clean-loader-proof\\installer.log",
+  "launch_log": "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\platform\\minecraft\\build\\sfm-toolchain\\clean-loader-instances\\run-8e2b-hard-source\\sfm-clean-loader-proof\\launch.log",
+  "success_marker": "SFM_VOX_JAVA_PACKAGING_PROBE_READY",
+  "success_marker_observed": true,
+  "loader_locator_observed": true,
+  "loader_locator_dependency_count": 1,
+  "required_class_evidence": [
+    {
+      "class_name": "org.facet.vox.VoxResult",
+      "source_line": "[stdout] [8.914s][info ][class,load] org.facet.vox.VoxResult source: union:/D:/Repos/Minecraft/SFM/worktrees/clean-loader-probe/platform/minecraft/build/sfm-toolchain/clean-loader-instances/run-8e2b-hard-source/mods/Super%20Factory%20Manager%20(SFM)-MC1.19.2-4.34.0-rust.jar%2399_/META-INF/jarjar/vox-java-0.10.0-rc.5.jar%23108!/",
+      "loader_line": "[stdout] [8.914s][debug][class,load]  klass: 0x0000000800b3ac70 super: 0x00000008000410c0 loader: [loader data: 0x000002432bb442f0 for instance a 'cpw/mods/modlauncher/TransformingClassLoader'{0x00000004010000a0}] bytes: 2775 checksum: 4bc96fa3"
+    }
+  ],
+  "exit_code": 0,
+  "timed_out": false
+}
