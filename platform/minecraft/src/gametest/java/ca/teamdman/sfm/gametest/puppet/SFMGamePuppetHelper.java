@@ -1,9 +1,13 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.ManagerScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
+import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMViewportCalibrationWorkspace;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -116,12 +120,167 @@ public final class SFMGamePuppetHelper {
         add(new OpenCommandPalettePuppetAction());
     }
 
+    public void showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View view) {
+        add(new ShowDynamicKeyBindingPuppetAction(view));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void showRuntimeTheme(ShowRuntimeThemePuppetAction.View view) {
+        add(new ShowRuntimeThemePuppetAction(view));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+    public void showThemeSettings(ShowThemeSettingsPuppetAction.View view) {
+        add(new ShowThemeSettingsPuppetAction(view));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void applySourceReviewFixtureCommand(String command) {
+        add(new ApplySourceReviewFixturePuppetAction(command));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+    public void applyReviewCommentFixtureCommand(String command) {
+        add(new ApplyReviewCommentFixturePuppetAction(command));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     /**
      * Executes a command through the visible palette input and waits for its
      * rendered output to settle.
      */
     public void executeCommandPalette(String command) {
         add(new ExecuteCommandPalettePuppetAction(command));
+    }
+
+    public void setCommandPaletteInput(String command) {
+        add(new SetCommandPaletteInputPuppetAction(command, null));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void prepareIncompleteCommandPaletteInput(String command, String expected) {
+        add(new SetCommandPaletteInputPuppetAction(command, expected));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void waitForScreen(Class<? extends Screen> screenType) {
+        add(new WaitForScreenPuppetAction(screenType));
+    }
+
+    /** Sends a real mouse-click callback to the center of one workspace panel. */
+    public void clickWorkspacePanel(int panelIndex) {
+        add(new ClickWorkspacePanelPuppetAction(panelIndex));
+    }
+
+    public void openViewportCalibration(SFMViewportCalibrationWorkspace.Allocation allocation) {
+        add(new OpenViewportCalibrationPuppetAction(Objects.requireNonNull(allocation)));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void openFalsifiedInventoryTimeline() {
+        add(new OpenFalsifiedInventoryTimelinePuppetAction());
+    }
+
+    public void seekFalsifiedInventoryTimeline(int timestep) {
+        add(new SeekFalsifiedInventoryTimelinePuppetAction(timestep));
+    }
+
+    public void seekFalsifiedInventoryKeyframePosition(double position) {
+        add(new SeekFalsifiedInventoryKeyframePositionPuppetAction(position));
+    }
+
+    public void seekFalsifiedInventoryElapsedTicks(double ticks) {
+        add(new SeekFalsifiedInventoryElapsedTicksPuppetAction(ticks));
+    }
+
+    public void jumpFalsifiedInventoryKeyframe(int direction) {
+        add(new JumpFalsifiedInventoryKeyframePuppetAction(direction));
+    }
+
+    public void dragFalsifiedInventoryTimeline(int fromTimestep, int toTimestep) {
+        add(new DragFalsifiedInventoryTimelinePuppetAction(fromTimestep, toTimestep));
+    }
+
+    public void openColorInput(boolean toSide) { add(new OpenColorInputPuppetAction(toSide)); }
+    public void setColorInputHueSaturation(double hue, double saturation) {
+        add(new SetColorInputHueSaturationPuppetAction(hue, saturation));
+    }
+    public void setColorInputValue(double value) { add(new SetColorInputValuePuppetAction(value)); }
+    public void adjustColorInputChannel(int channel, int direction, int clicks) {
+        add(new AdjustColorInputChannelPuppetAction(channel, direction, clicks));
+    }
+    public void selectColorInputRecent(int index) { add(new SelectColorInputRecentPuppetAction(index)); }
+    public void resetColorInput() { add(new ResetColorInputPuppetAction()); }
+    public void setColorInputHex(String hex, boolean rgbaOrder) { add(new SetColorInputHexPuppetAction(hex, rgbaOrder)); }
+    public void confirmColorInput() { add(new ConfirmColorInputPuppetAction()); }
+    public void applyRepositoryReviewCommand(String command) { add(new ApplyRepositoryReviewPuppetAction(command)); }
+    public void prepareRepositoryReviewFixture() { add(new PrepareRepositoryReviewFixturePuppetAction()); }
+
+    /** Invokes the current screen's own close/back behavior. */
+    public void closeScreenNaturally() {
+        add(new CloseScreenNaturallyPuppetAction());
+    }
+
+    /** Executes a palette action whose success replaces the palette with a screen. */
+    public void executeCommandPaletteAndWaitForScreen(
+            String command,
+            Class<?> expectedScreen
+    ) {
+        add(new ExecuteCommandPaletteAndWaitForScreenPuppetAction(command, expectedScreen));
+    }
+
+    public void pressFileExplorerKey(int keyCode) {
+        add(new PressFileExplorerKeyPuppetAction(keyCode));
+    }
+
+    public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
+        add(new SetFileExplorerSnapshotPuppetAction(snapshot));
+    }
+
+    public void openFileExplorer(SFMFileExplorerSource source) {
+        add(new OpenFileExplorerPuppetAction(source));
+    }
+
+    public void openItemIconGallery() {
+        add(new OpenItemIconGalleryPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void openItemPicker(boolean multiplexed) {
+        add(new OpenItemPickerPuppetAction(multiplexed));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void configureItemPicker(ConfigureItemPickerPuppetAction.View view) {
+        add(new ConfigureItemPickerPuppetAction(view));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void showLiteralGlobDiagnostic() {
+        add(new ShowLiteralGlobDiagnosticPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void deliverFileExplorerDropFixture() {
+        add(new DeliverFileExplorerDropFixturePuppetAction());
+    }
+
+    public void clickFileExplorerRow(int visibleRowIndex) {
+        add(new ClickFileExplorerRowPuppetAction(visibleRowIndex));
+    }
+
+    public void assertFileExplorerWorkspace(
+            int panelCount,
+            String expectedRootName,
+            String expectedViewerPath,
+            String expectedViewerText,
+            boolean rememberOrRequireViewerIdentity
+    ) {
+        add(new AssertFileExplorerWorkspacePuppetAction(
+                panelCount,
+                expectedRootName,
+                expectedViewerPath,
+                expectedViewerText,
+                rememberOrRequireViewerIdentity
+        ));
     }
 
     /**
