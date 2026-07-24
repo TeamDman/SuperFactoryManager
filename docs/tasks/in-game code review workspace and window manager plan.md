@@ -1596,6 +1596,42 @@ narrow Minecraft Vox bridge (endpoint lifecycle, one generated service, an
 action/panel, and puppet-visible success/failure states). The bridge must
 consume the frozen artifact rather than copying its protocol by hand.
 
+Before either implementation begins, perform a deliberate post-implementation
+review of the completed Phon/Vox Java slice. This is a fresh-eyes review rather
+than another feature pass. Check the Java 17 contract and documentation for
+incorrect platform assumptions like the corrected records/sealed-types claim;
+review public API ergonomics, generated-versus-handwritten ownership, protocol
+fidelity, schema negotiation, bounds, concurrency, cancellation, shutdown,
+error surfaces, deterministic generation and packaging; and identify missing
+negative, lifecycle and clean-consumer tests. Record findings by severity and
+separate required corrections from future enhancements. Rebuild and republish
+the frozen artifact only if code or generated output changes.
+
+The bridge planning that follows must preserve a strict capability boundary:
+
+- SFM gameplay and ordinary in-game functionality remain self-sufficient on
+  the Java/Minecraft side. They must not require a Rust process.
+- The mount workflow should work with only the mod and Java so a player can
+  move seamlessly between an in-game disk and VSCode without installing or
+  launching the Rust development toolchain.
+- Vox is an optional development-environment bridge for capabilities that
+  genuinely cross the game/process boundary: building SFM source from an
+  in-game command-palette action, invoking repository/compiler/audit tooling,
+  presenting richer external interfaces, and returning structured progress,
+  diagnostics and results.
+- Every bridged action declares availability and requirements. An unavailable
+  endpoint produces an explanatory disabled or launch-suggestion state rather
+  than weakening unrelated mod functionality.
+- Shared intent/result schemas may be Java-native and reusable locally; only
+  the adapter that transports them out of process depends on Vox.
+
+The next planning artifact should be a capability matrix with rows for mount,
+disk editing, formatting, parsing, compiling, testing, auditing and source
+builds, and columns for Java-only implementation, optional Vox enhancement,
+external prerequisites, failure behavior and observable in-game proof. This
+keeps the bridge additive instead of quietly turning the Rust CLI into a
+runtime dependency of the mod.
+
 The canonical clean-loader commits and completed evidence were propagated
 through the maintained version chain. The clean propagation checkpoint heads
 are `90a89d692` (1.19.2), `6bc6347e3` (1.19.4), `3355a19b9` (1.20), `1dd5a5974`
