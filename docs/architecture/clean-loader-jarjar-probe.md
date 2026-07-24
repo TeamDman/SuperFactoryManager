@@ -114,3 +114,19 @@ Checked-in evidence must consist of that generated full report and generated
 hash manifest. A manually summarized JSON file is not authoritative. Full logs
 may remain ignored when impractically large, but their exact hashes remain in
 the generated manifest.
+
+## Executed Forge 1.19.2 proof
+
+The generated evidence in
+`evidence/clean-loader-jarjar-probe-1.19.2.full.json` records a passing
+production Forge 43.4.0 launch of the exact SFM release artifact with SHA-256
+`8E2B3D9789B0AC089EB660A0888C53B1F0FF9CC5DFE8A4D7A345F6838A34B733`.
+Forge's JarJar locator found one dependency, and
+`org.facet.vox.VoxResult` loaded from
+`META-INF/jarjar/vox-java-0.10.0-rc.5.jar`, whose SHA-256 is
+`E714A48080D453097F1E819DEFBE42412B73F8E17C1B5D0AA4A6BEA52DF734C3`,
+through ModLauncher's `TransformingClassLoader`.
+
+The adjacent generated `*.evidence.json` file records the exact report and
+runtime-log hashes. The checked-in full report has SHA-256
+`76909EE81439977A49CDDE0C47356E42D8D7C9B693F631FFC7944AC17CFE1844`.

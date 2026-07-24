@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_commit": "87c94670b1c4b1bb50a2d05978bb05a83d777caa",
+  "report": {
+    "path": "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\docs\\architecture\\evidence\\clean-loader-jarjar-probe-1.19.2.full.json",
+    "sha256": "76909EE81439977A49CDDE0C47356E42D8D7C9B693F631FFC7944AC17CFE1844"
+  },
+  "logs": [
+    {
+      "path": "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\platform\\minecraft\\build\\sfm-toolchain\\clean-loader-instances\\run-8e2b-hard-source\\sfm-clean-loader-proof\\installer.log",
+      "sha256": "95A1A7C383EFA452E899BBBDCA7DC70F2284D01EB1DC5777FC71E0AEA326DA63"
+    },
+    {
+      "path": "D:\\Repos\\Minecraft\\SFM\\worktrees\\clean-loader-probe\\platform\\minecraft\\build\\sfm-toolchain\\clean-loader-instances\\run-8e2b-hard-source\\sfm-clean-loader-proof\\launch.log",
+      "sha256": "1685DB3FEB0C57162734DFB8D2DA00C7A27ED406B025CF3C9E8C1992A485726E"
+    }
+  ]
+}
