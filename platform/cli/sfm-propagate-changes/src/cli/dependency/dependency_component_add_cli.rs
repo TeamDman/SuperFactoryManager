@@ -34,6 +34,15 @@ pub struct DependencyComponentAddArgs {
     /// Artifact treatment. Defaults to loader-managed-mod.
     #[facet(default, args::named)]
     pub(crate) artifact_treatment: Option<ArtifactTreatmentV3>,
+    /// Loader-compatible Maven range used for Jar-in-Jar sharing.
+    #[facet(default, args::named)]
+    pub(crate) bundle_accepted_version_range: Option<String>,
+    /// Exact version recorded in Jar-in-Jar metadata. Defaults to the Maven coordinate version.
+    #[facet(default, args::named)]
+    pub(crate) bundle_artifact_version: Option<String>,
+    /// Whether nested classes use Minecraft obfuscated names.
+    #[facet(default, args::named)]
+    pub(crate) bundle_is_obfuscated: bool,
 }
 
 impl DependencyComponentAddArgs {
@@ -61,6 +70,9 @@ impl DependencyComponentAddArgs {
             scope: self.scope,
             repository: self.repository,
             artifact_treatment: self.artifact_treatment,
+            bundle_accepted_version_range: self.bundle_accepted_version_range,
+            bundle_artifact_version: self.bundle_artifact_version,
+            bundle_is_obfuscated: self.bundle_is_obfuscated,
             display_name: None,
             project_url: None,
             notes: None,

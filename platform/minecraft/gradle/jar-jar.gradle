@@ -10,15 +10,27 @@ if (!project.ext.has('sfmArchiveNameConfigured')) {
     throw new GradleException("jar-jar.gradle requires archive-name.gradle to be applied first")
 }
 
-def sfmUsesBundledJar = project.findProperty('minecraft_version') == '26.1.2'
+if (!project.ext.has('sfmProjectedDependencies')) {
+    throw new GradleException("jar-jar.gradle requires dependencies-from-lock.gradle")
+}
 
-if (sfmUsesBundledJar && project.plugins.hasPlugin('net.neoforged.gradle.userdev')) {
+def sfmUsesBundledJar = project.sfmProjectedDependencies.any {
+    it.configuration == 'jarJar'
+}
+
+if (sfmUsesBundledJar) {
     tasks.named('jar').configure {
         archiveClassifier.set('slim')
     }
 
     tasks.named('jarJar').configure {
         archiveClassifier.set('')
+    }
+
+    if (project.plugins.hasPlugin('net.minecraftforge.gradle')) {
+        tasks.named('jarJar').configure {
+            finalizedBy tasks.named('reobfJarJar')
+        }
     }
 
     ext.sfmPublishedJarTask = tasks.named('jarJar')
