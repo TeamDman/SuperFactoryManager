@@ -35,6 +35,7 @@ ratatui = "0.30.0"
 rayon = "1.12.0"
 reqwest = { version = "0.12.24", default-features = false, features = ["blocking", "multipart", "rustls-tls"] }
 sha1 = "0.10.6"
+sha2 = "0.10.9"
 tempfile = "3.27.0"
 tokio = { version = "1.49.0", features = ["full"] }
 tree-sitter-patched-arborium = "=0.25.10"
@@ -43,6 +44,8 @@ tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 tracing-tracy = { version = "0.11.4", optional = true, default-features = false, features = ["enable", "system-tracing", "context-switch-tracing", "sampling", "code-transfer", "callstack-inlines", "only-localhost"] }
 tracy-client = { version = "0.18.4", optional = true, default-features = false }
+unicode-normalization = "0.1.24"
+walkdir = "2.5.0"
 zip = { version = "2.4.2", default-features = false, features = ["deflate"] }
 
 [target.'cfg(windows)'.dependencies]
