@@ -45,6 +45,27 @@ manager logs use `TranslatableLogger` and `TranslatableLogEvent`, while
 instances. They can converge on a shared client record/view model only after
 their lifecycle, locality, and translation semantics are explicit.
 
+## Integration consumers recorded 2026-07-21
+
+The [in-game review workspace](in-game%20code%20review%20workspace%20and%20window%20manager%20plan.md)
+and [snapshot/episode plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md)
+introduce additional consumers of reusable read-only diagnostic presentation:
+
+- the action-details and dynamic-keymapping screens show binding conflicts,
+  unavailable reasons, parse failures, and replay diagnostics;
+- the source-comparison workspace shows comparison/parser/audit diagnostics;
+- the Episode Inspector shows selected action results and errors; and
+- the generic multiplexer recorder/ownership layer shows capture, ownership,
+  and replay failures while its ordinary calculator proving panel remains free
+  of dedicated trace UI.
+
+These consumers may embed `SFMConsoleWidget` or reuse its styled scrolling
+model, but their authoritative structured state remains in their own models.
+Raw episode events/actions, review decisions, source code, calculator state, and
+keybinding configuration are not converted into ordinary log lines merely to
+reuse the widget. Conversely, the console plan does not become responsible for
+snapshot rehydration, action replay, or review-ledger persistence.
+
 ## Current architecture and constraints
 
 - `SFM.LOGGER` is the normal Log4j logger used throughout client, common, and
@@ -59,12 +80,13 @@ their lifecycle, locality, and translation semantics are explicit.
   synchronization lifecycle. The useful text styling and scrolling behavior
   should be extracted rather than making the global console depend on a
   manager block.
-- `SFMCommandPaletteScreen` currently keeps a small feedback list and renders
-  command results directly. This is presentation state, not a logging stream.
-  The first output slice can replace that list with `SFMConsoleWidgetLogger`
-  backed by `TranslatableLogger` and reuse the existing log-event styling.
-  This is initially a client-console channel, not a substitute for observing
-  the global `SFM.LOGGER` stream.
+- `SFMCommandPaletteScreen` now hosts the initial `SFMConsoleWidget`; the
+  widget has its own clipped viewport, wheel/scrollbar behavior, follow-tail
+  state, and bounded line model. Completing the current milestone still
+  requires the shared `SFMConsoleWidgetLogger` output contract and removal of
+  any remaining palette-owned feedback path. This is initially a
+  client-console channel, not a substitute for observing the global
+  `SFM.LOGGER` stream.
 - Log4j appender/configuration APIs and Minecraft GUI/rendering APIs vary across
   supported Minecraft branches. Version-sensitive installation and screen
   details must stay behind the existing helper seams and be audited.

@@ -11,6 +11,8 @@ public final class ActivePuppet {
     public final SFMDiscoveredGamePuppet definition;
 
     public final SFMGamePuppetHelper helper;
+    public final SFMGamePuppetViewportVariant viewportVariant;
+    public final SFMGamePuppetViewportController viewportController;
 
     public final String worldId;
 
@@ -37,15 +39,21 @@ public final class ActivePuppet {
     public boolean failureRecorded;
 
     public boolean success;
+    public boolean declared;
+    public boolean viewportPrepared;
+    public SFMGamePuppetViewportObservation viewportObservation;
 
     ActivePuppet(
             SFMDiscoveredGamePuppet definition,
-            SFMGamePuppetHelper helper
+            SFMGamePuppetHelper helper,
+            SFMGamePuppetViewportVariant viewportVariant
     ) {
 
         this.definition = definition;
         this.helper = helper;
-        this.worldId = SFMGamePuppetHarness.WORLD_ID_PREFIX + definition.puppetName();
+        this.viewportVariant = viewportVariant;
+        this.viewportController = new SFMGamePuppetViewportController(viewportVariant);
+        this.worldId = SFMGamePuppetHarness.WORLD_ID_PREFIX + definition.puppetName() + "_" + viewportVariant.id().replace('@', '_');
     }
 
 }

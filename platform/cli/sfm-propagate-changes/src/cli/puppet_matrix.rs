@@ -7,6 +7,7 @@ use crate::cli::run::invoke_game_puppet;
 use crate::cli::run::normalize_game_puppet_game_test;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::GamePuppetPreviewManifest;
+use crate::jar_build::GamePuppetPreviewVariantObservation;
 use crate::jar_build::Parallelism;
 use crate::jar_build::game_puppet_preview_artifact_root;
 use crate::jar_build::hash::ContentHash;
@@ -42,6 +43,9 @@ pub struct PuppetMatrixArgs {
     /// Window height used for native screenshot captures.
     #[facet(default, args::named)]
     pub height: Option<u16>,
+    /// Viewport variants per branch target: declared, preferred, or WIDTHxHEIGHT@auto|SCALE.
+    #[facet(default = "declared", args::named)]
+    pub variant: String,
     /// Mute Minecraft audio during each puppet run by default. Use `--no-mute` to hear it.
     #[facet(default = true, args::named)]
     pub mute: bool,
@@ -83,6 +87,10 @@ struct PuppetMatrixCapture {
     puppet: String,
     figure: u32,
     capture: String,
+    #[facet(default)]
+    variant: String,
+    #[facet(default)]
+    viewport: Option<GamePuppetPreviewVariantObservation>,
     #[facet(rename = "sourcePath")]
     source_path: String,
     #[facet(rename = "matrixPath")]
@@ -139,6 +147,7 @@ impl PuppetMatrixArgs {
                 self.game_test.clone(),
                 self.width,
                 self.height,
+                &self.variant,
                 self.mute,
                 expected_game_test.as_deref(),
                 cancellation_token.clone(),
@@ -206,6 +215,7 @@ fn run_matrix_target(
     game_test: Option<String>,
     width: Option<u16>,
     height: Option<u16>,
+    viewport_selection: &str,
     mute: bool,
     expected_game_test: Option<&str>,
     cancellation_token: CancellationToken,
@@ -221,6 +231,7 @@ fn run_matrix_target(
         game_test,
         width,
         height,
+        viewport_selection,
         mute,
         None,
         cancellation_token,
@@ -249,7 +260,7 @@ fn collect_target_preview(
     let mut used_figures = BTreeSet::new();
     let mut validated = Vec::with_capacity(source_manifest.captures.len());
     for capture in &source_manifest.captures {
-        if capture.figure == 0 || !used_figures.insert(capture.figure) {
+        if capture.figure == 0 || !used_figures.insert((capture.figure, capture.variant.clone())) {
             eyre::bail!(
                 "Preview manifest for branch '{}' has duplicate or zero figure {}",
                 target.branch,
@@ -288,6 +299,8 @@ fn collect_target_preview(
             puppet: capture.puppet.clone(),
             figure: capture.figure,
             capture: capture.capture.clone(),
+            variant: capture.variant.clone(),
+            viewport: capture.viewport.clone(),
             source_path: portable_path(&source_relative_path),
             matrix_path: portable_path(&matrix_relative_path),
             width,
@@ -495,7 +508,12 @@ fn render_matrix_index(manifest: &PuppetMatrixManifest) -> String {
     let figures = manifest
         .targets
         .iter()
-        .flat_map(|target| target.captures.iter().map(|capture| capture.figure))
+        .flat_map(|target| {
+            target
+                .captures
+                .iter()
+                .map(|capture| (capture.figure, capture.variant.clone()))
+        })
         .collect::<BTreeSet<_>>();
     let mut html = String::from(
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>SFM puppet preview matrix</title><style>body{font-family:system-ui,sans-serif;margin:2rem}table{border-collapse:collapse}th,td{border:1px solid #bbb;padding:.5rem;vertical-align:top}img{max-width:320px;height:auto}code{white-space:pre-wrap}.failed{color:#a00}</style></head><body>",
@@ -505,8 +523,17 @@ fn render_matrix_index(manifest: &PuppetMatrixManifest) -> String {
         "<h1>SFM puppet preview matrix</h1><p>Selection: <code>{}</code></p><table><thead><tr><th>Branch</th><th>Result</th>",
         html_escape(&manifest.puppet_selection)
     );
-    for figure in &figures {
-        let _ = write!(html, "<th>Figure {figure}</th>");
+    for (figure, variant) in &figures {
+        let variant = if variant.is_empty() {
+            "singleton"
+        } else {
+            variant
+        };
+        let _ = write!(
+            html,
+            "<th>Figure {figure}<br><code>{}</code></th>",
+            html_escape(variant)
+        );
     }
     html.push_str("</tr></thead><tbody>");
     for target in &manifest.targets {
@@ -530,19 +557,24 @@ fn render_matrix_index(manifest: &PuppetMatrixManifest) -> String {
             "<br><code>{}</code></td>",
             html_escape(&target.diagnostic_log)
         );
-        for figure in &figures {
+        for (figure, variant) in &figures {
             match target
                 .captures
                 .iter()
-                .find(|capture| capture.figure == *figure)
+                .find(|capture| capture.figure == *figure && capture.variant == *variant)
             {
                 Some(capture) => {
                     let path = html_escape(&capture.matrix_path);
                     let _ = write!(
                         html,
-                        "<td><a href=\"{path}\"><img src=\"{path}\" alt=\"{}\"></a><br>{}</td>",
+                        "<td><a href=\"{path}\"><img src=\"{path}\" alt=\"{}\"></a><br>{}<br><code>{}</code></td>",
                         html_escape(&capture.capture),
-                        html_escape(&capture.capture)
+                        html_escape(&capture.capture),
+                        html_escape(if capture.variant.is_empty() {
+                            "singleton"
+                        } else {
+                            &capture.variant
+                        })
                     );
                 }
                 None => html.push_str("<td>—</td>"),

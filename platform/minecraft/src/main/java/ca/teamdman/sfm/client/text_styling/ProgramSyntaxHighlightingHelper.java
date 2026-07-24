@@ -2,7 +2,8 @@ package ca.teamdman.sfm.client.text_styling;
 
 import ca.teamdman.langs.SFMLLexer;
 import ca.teamdman.sfm.client.ProgramTokenContextActions;
-import net.minecraft.ChatFormatting;
+import ca.teamdman.sfm.client.theme.SFMClientThemeService;
+import ca.teamdman.sfm.client.theme.SFMSyntaxStyle;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -66,21 +67,21 @@ public class ProgramSyntaxHighlightingHelper {
         tokens.fill();
         for (Token token : tokens.getTokens()) {
             if (token.getType() == SFMLLexer.EOF) break;
-            highlights.add(new TokenHighlight(token.getStartIndex(), token.getStopIndex(), token.getText(), getColour(token), token));
+            SFMSyntaxStyle style = SFMClientThemeService.active().syntax(syntaxTokenId(token));
+            highlights.add(new TokenHighlight(token.getStartIndex(), token.getStopIndex(), token.getText(), style.colour(), token));
         }
         return highlights;
     }
 
     private static Style getStyle(Token token, boolean showContextActionHints) {
-        Style style = Style.EMPTY;
-        style = style.withColor(getColour(token));
+        Style style = SFMClientThemeService.active().syntax(syntaxTokenId(token)).apply(Style.EMPTY);
         if (showContextActionHints && ProgramTokenContextActions.hasContextAction(token)) {
             style = style.withUnderlined(true);
         }
         return style;
     }
 
-    private static ChatFormatting getColour(Token token) {
+    public static String syntaxTokenId(Token token) {
         //noinspection EnhancedSwitchMigration
         switch (token.getType()) {
             case SFMLLexer.SIDE:
@@ -95,14 +96,14 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.RIGHT:
             case SFMLLexer.FRONT:
             case SFMLLexer.BACK:
-                return ChatFormatting.DARK_PURPLE;
+                return "direction";
             case SFMLLexer.LINE_COMMENT:
-                return ChatFormatting.GRAY;
+                return "comment";
             case SFMLLexer.INPUT:
             case SFMLLexer.FROM:
             case SFMLLexer.TO:
             case SFMLLexer.OUTPUT:
-                return ChatFormatting.LIGHT_PURPLE;
+                return "io";
             case SFMLLexer.NAME:
             case SFMLLexer.EVERY:
             case SFMLLexer.END:
@@ -114,10 +115,10 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.TRUE:
             case SFMLLexer.FALSE:
             case SFMLLexer.FORGET:
-                return ChatFormatting.BLUE;
+                return "keyword";
             case SFMLLexer.IDENTIFIER:
             case SFMLLexer.STRING:
-                return ChatFormatting.GREEN;
+                return "string";
             case SFMLLexer.TICKS:
             case SFMLLexer.TICK:
             case SFMLLexer.GLOBAL:
@@ -137,7 +138,7 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.OR:
             case SFMLLexer.IN:
             case SFMLLexer.EMPTY:
-                return ChatFormatting.GOLD;
+                return "modifier";
             case SFMLLexer.NUMBER:
             case SFMLLexer.PLUS:
             case SFMLLexer.GT:
@@ -154,19 +155,19 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.WITHOUT:
             case SFMLLexer.HASHTAG:
             case SFMLLexer.TAG:
-                return ChatFormatting.AQUA;
+                return "number";
             case SFMLLexer.UNUSED:
             case SFMLLexer.REDSTONE:
             case SFMLLexer.PULSE:
-                return ChatFormatting.RED;
+                return "redstone";
             case SFMLLexer.ROUND:
             case SFMLLexer.ROBIN:
             case SFMLLexer.BY:
             case SFMLLexer.BLOCK:
             case SFMLLexer.LABEL:
-                return ChatFormatting.YELLOW;
+                return "round_robin";
             default:
-                return ChatFormatting.WHITE;
+                return "default";
         }
     }
 
@@ -174,7 +175,7 @@ public class ProgramSyntaxHighlightingHelper {
             int startIndex,
             int stopIndex,
             String text,
-            ChatFormatting colour,
+            int colour,
             Token token
     ) {
     }

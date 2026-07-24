@@ -359,6 +359,16 @@ Implementation commit: `fcfec4fed` (`feat: add puppet preview matrix`).
 
 ### [!] 3.2 Calibrate safe client parallelism
 
+**Build-isolation investigation (2026-07-21):** Independent feature worktrees
+already use distinct `build/sfm-toolchain/.locks/build-cache.lock` paths, but a
+three-way compile probe failed while concurrently opening the shared Forge
+`userdev.jar.lock`. This is an artifact lock-file open/retry defect, not proof
+that all 1.19.2 builds require serialization. Resolve and validate the lock
+hierarchy in the
+[parallel worktree build isolation plan](parallel%20worktree%20build%20isolation%20plan.md)
+before using build contention to choose client parallelism. GPU, focus, and
+memory constraints remain separate reasons to cap simultaneous live clients.
+
 **Blocker (2026-07-15):** `puppet list --branch 1.19.4` completed with an
 empty catalog, while the same command on 1.19.2 found the three baseline
 puppets. Two concurrent target runs cannot calibrate the shared walkthrough
@@ -384,6 +394,51 @@ sfm-propagate-changes.exe puppet matrix move_1_stack_direct_walkthrough --branch
 **Completion criteria:** The chosen default is supported by recorded two-target
 evidence, and a resource/contention failure produces recoverable matrix status
 rather than lost artifacts or hung launches.
+
+### [x] 3.3 Compose the version matrix with definition-owned viewport variants
+
+This is a second matrix axis, not a request to launch another Minecraft client
+for every resolution/GUI-scale cell. The authoritative lifecycle is specified
+in the
+[interactive GameTest preview capture plan](interactive%20gametest%20preview%20capture%20plan.md):
+each puppet definition declares a viewport profile, and the Java harness repeats
+the complete fresh puppet scenario for the selected variants inside the one
+client already launched for that branch target.
+
+The Rust `puppet matrix` collector continues to own branch/version targets and
+at most one live process per such target. It consumes each target's
+variant-aware preview manifest and produces a composed identity:
+
+```text
+(branch, minecraftVersion, puppet, logicalFigure, capture, viewportVariant)
+```
+
+Its index should allow a reviewer to fix one logical capture and compare
+version rows against viewport/scale columns, or fix one viewport variant and
+retain the existing branch-by-figure view. It must display requested window
+size, actual GLFW size, framebuffer size, requested/effective GUI scale, and
+logical Minecraft screen size. Auto remains a distinct requested column even
+when its effective scale equals a numeric column.
+
+Selection is passed once at client startup (`declared`, `preferred`, or one
+exact variant). Rust must not duplicate Java profile expansion or send per-cell
+REST messages. A target fails on missing/duplicate variant identities,
+unsupported silent clamping, inconsistent logical figures, invalid PNGs, or a
+failed environment restoration, while retaining valid completed cells.
+
+**Completion criteria:** a one-branch responsive puppet yields one recorded
+client process and a browsable multi-variant contact sheet; `--variant
+preferred` yields exactly one cell; the existing singleton and multi-version
+paths remain backward compatible; and adding a second branch composes axes
+without multiplying client launches by viewport count.
+
+Completed on canonical `1.19.2` on 2026-07-22. `puppet run` and `puppet
+matrix` accept `declared`, `preferred`, and exact viewport selections; Java
+expands the definition-owned profile inside one client and Rust publishes the
+variant-aware contact sheet. The merged two-puppet proof produced 30 complete
+scenarios and 210 PNGs in one Minecraft process. The generated latest HTML is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/index.html`.
+Cross-version propagation remains a separate Phase 4/release decision.
 
 ## Phase 4 — Propagate and prove the version matrix
 

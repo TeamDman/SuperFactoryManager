@@ -48,6 +48,8 @@ public final class SFMGamePuppetHarness {
     private static boolean pauseOnLostFocusCaptured;
     private static boolean pauseOnLostFocusBeforeAutomation;
     private static List<SFMDiscoveredGamePuppet> selectedPuppets = List.of();
+    private static List<PuppetExecution> selectedExecutions = new ArrayList<>();
+    private static SFMGamePuppetViewportSelection viewportSelection;
     private static ActivePuppet activePuppet;
 
     private SFMGamePuppetHarness() {
@@ -61,8 +63,9 @@ public final class SFMGamePuppetHarness {
         if (awaitingTitleScreen) {
             if (activePuppet != null) {
                 SFM.LOGGER.info(
-                        "SFM_GAME_PUPPET_RETURNED_TO_TITLE puppet={} success={}",
+                        "SFM_GAME_PUPPET_RETURNED_TO_TITLE puppet={} variant={} success={}",
                         activePuppet.definition.puppetName(),
+                        activePuppet.viewportVariant.id(),
                         activePuppet.success
                 );
             }
@@ -74,7 +77,17 @@ public final class SFMGamePuppetHarness {
             if (!initialized) {
                 initialized = true;
                 selectedPuppets = List.copyOf(SFMGamePuppetDiscovery.gatherSelectedPuppets());
-                SFM.LOGGER.info("SFM_GAME_PUPPET_TITLE_READY selected={}", selectedPuppets.size());
+                viewportSelection = SFMGamePuppetViewportSelection.parse(SFMProperties.gamePuppetViewportSelection());
+                List<PuppetExecution> executions = new ArrayList<>();
+                for (SFMDiscoveredGamePuppet puppet : selectedPuppets) {
+                    for (SFMGamePuppetViewportVariant variant : viewportSelection.resolve(
+                            puppet.viewportProfile(),
+                            Minecraft.getInstance().getWindow().getScreenWidth(),
+                            Minecraft.getInstance().getWindow().getScreenHeight()
+                    )) executions.add(new PuppetExecution(puppet, variant));
+                }
+                selectedExecutions = executions;
+                SFM.LOGGER.info("SFM_GAME_PUPPET_TITLE_READY selected={} executions={} viewport_selection={}", selectedPuppets.size(), selectedExecutions.size(), viewportSelection.kind());
             }
             startNextPuppet();
         } catch (Throwable throwable) {
@@ -102,6 +115,22 @@ public final class SFMGamePuppetHarness {
         }
 
         ActivePuppet active = activePuppet;
+        try {
+            if (!active.viewportPrepared) {
+                if (!active.viewportController.tick(minecraft, active)) return;
+                active.viewportPrepared = true;
+            }
+            if (!active.declared) {
+                active.definition.declare(active.helper);
+                active.helper.validate();
+                active.declared = true;
+                SFM.LOGGER.info("SFM_GAME_PUPPET_STARTED puppet={} variant={} location={}", active.definition.puppetName(), active.viewportVariant.id(), active.definition.location());
+            }
+        } catch (Throwable throwable) {
+            failActivePuppet(active, throwable);
+            returnToTitle(minecraft);
+            return;
+        }
         if (++active.totalActionTicks > ACTION_TIMEOUT_TICKS) {
             failActivePuppet(
                     active,
@@ -127,28 +156,16 @@ public final class SFMGamePuppetHarness {
         if (activePuppet != null || awaitingTitleScreen || completed) {
             return;
         }
-        if (nextPuppetIndex >= selectedPuppets.size()) {
+        if (nextPuppetIndex >= selectedExecutions.size()) {
             finishRun();
             return;
         }
 
-        SFMDiscoveredGamePuppet definition = selectedPuppets.get(nextPuppetIndex++);
+        PuppetExecution execution = selectedExecutions.get(nextPuppetIndex++);
+        SFMDiscoveredGamePuppet definition = execution.definition();
         SFMGamePuppetHelper helper = new SFMGamePuppetHelper();
-        ActivePuppet active = new ActivePuppet(definition, helper);
+        ActivePuppet active = new ActivePuppet(definition, helper, execution.variant());
         activePuppet = active;
-        try {
-            definition.declare(helper);
-            helper.validate();
-            SFM.LOGGER.info(
-                    "SFM_GAME_PUPPET_STARTED puppet={} location={}",
-                    definition.puppetName(),
-                    definition.location()
-            );
-        } catch (Throwable throwable) {
-            failActivePuppet(active, throwable);
-            activePuppet = null;
-            startNextPuppet();
-        }
     }
 
     private static void returnToTitle(Minecraft minecraft) {
@@ -168,7 +185,8 @@ public final class SFMGamePuppetHarness {
     }
 
     private static void completeSuccessfulPuppet(Minecraft minecraft, ActivePuppet active) {
-        if (nextPuppetIndex < selectedPuppets.size()) {
+        expandNumericVariantsAfterAutoProbe(minecraft, active);
+        if (nextPuppetIndex < selectedExecutions.size()) {
             returnToTitle(minecraft);
             return;
         }
@@ -195,6 +213,19 @@ public final class SFMGamePuppetHarness {
         finishRun();
     }
 
+    private static void expandNumericVariantsAfterAutoProbe(Minecraft minecraft, ActivePuppet active) {
+        if (viewportSelection.kind() != SFMGamePuppetViewportSelection.Kind.DECLARED
+            || active.definition.viewportProfile() == SFMGamePuppetViewportProfile.CURRENT
+            || active.viewportVariant.guiScale() != 0) return;
+        int maximumScale = SFMGamePuppetViewportController.maximumScale(minecraft);
+        List<PuppetExecution> numeric = new ArrayList<>();
+        for (int scale = 1; scale <= maximumScale; scale++) {
+            numeric.add(new PuppetExecution(active.definition, new SFMGamePuppetViewportVariant(active.viewportVariant.width(), active.viewportVariant.height(), scale)));
+        }
+        selectedExecutions.addAll(nextPuppetIndex, numeric);
+        SFM.LOGGER.info("SFM_GAME_PUPPET_VIEWPORT_EXPANDED puppet={} variant={} numeric_scales={} execution_total={}", active.definition.puppetName(), active.viewportVariant.id(), maximumScale, selectedExecutions.size());
+    }
+
     private static void tickFinalWorldHold(Minecraft minecraft) {
         if (finalWorldHoldTicksRemaining-- > 0) {
             return;
@@ -209,11 +240,12 @@ public final class SFMGamePuppetHarness {
             return;
         }
         completed = true;
+        SFMGamePuppetViewportController.requestRestore(Minecraft.getInstance());
         restoreRuntimeOptions(Minecraft.getInstance());
         SFM.LOGGER.info(
                 "SFM_GAME_PUPPET_COMPLETE failed={} total={}",
                 failedPuppetCount,
-                selectedPuppets.size()
+                selectedExecutions.size()
         );
         int titleExitSeconds = SFMProperties.clientRunTitleExitSeconds(25);
         if (titleExitSeconds < 0) {
@@ -225,6 +257,9 @@ public final class SFMGamePuppetHarness {
     }
 
     private static void tickAutoExit() {
+        if (!SFMGamePuppetViewportController.tickRestore(Minecraft.getInstance())) {
+            return;
+        }
         if (exitTicksRemaining < 0) {
             return;
         }
@@ -349,5 +384,8 @@ public final class SFMGamePuppetHarness {
         } catch (Throwable throwable) {
             active.gameTestStartFailure = throwable;
         }
+    }
+
+    private record PuppetExecution(SFMDiscoveredGamePuppet definition, SFMGamePuppetViewportVariant variant) {
     }
 }
