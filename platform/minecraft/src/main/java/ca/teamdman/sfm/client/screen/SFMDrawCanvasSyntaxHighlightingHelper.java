@@ -71,7 +71,7 @@ public class SFMDrawCanvasSyntaxHighlightingHelper {
             return colours;
         }
         for (ProgramSyntaxHighlightingHelper.TokenHighlight highlight : ProgramSyntaxHighlightingHelper.getTokenHighlights(projection.text())) {
-            int colour = formattingToRgb(highlight.colour(), defaultColour);
+            int colour = highlight.colour();
             for (int index = highlight.startIndex(); index <= highlight.stopIndex() && index < projection.glyphsByCharIndex().size(); index++) {
                 SFMDrawCanvasModel.CanvasGlyph glyph = projection.glyphsByCharIndex().get(index);
                 if (glyph != null) {

@@ -5,6 +5,22 @@ import ca.teamdman.sfm.client.handler.SFMCommandPaletteKeyHandler;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerPanel;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerLayout;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMPathFileExplorerSource;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMReadOnlyTextPanel;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerWorkspace;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
+import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+import ca.teamdman.sfm.client.screen.workspace.timeline.SFMFalsifiedInventoryReplayPanel;
+import ca.teamdman.sfm.client.screen.workspace.timeline.SFMTimelinePanel;
+import ca.teamdman.sfm.client.screen.color.SFMArgbColor;
+import ca.teamdman.sfm.client.screen.color.SFMColorInputPanel;
+import ca.teamdman.sfm.client.screen.color.SFMColorInputPanelLayout;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -16,6 +32,7 @@ import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Overlay;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -38,8 +55,12 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
+import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,6 +68,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     private final ActivePuppet active;
 
     private final Minecraft minecraft;
+    private SFMWorkspacePanelId rememberedFileViewerId;
 
     SFMGamePuppetMinecraftRuntime(
             ActivePuppet active,
@@ -195,6 +217,11 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public String currentScreenName() {
+        return minecraft.screen == null ? "world" : minecraft.screen.getClass().getName();
+    }
+
+    @Override
     public boolean openCommandPalette() {
         return SFMCommandPaletteKeyHandler.openFromCurrentScreen();
     }
@@ -205,6 +232,134 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalStateException("Expected command palette before executing a command");
         }
         palette.executeCommandForAutomation(command);
+    }
+
+    @Override
+    public void pressFileExplorerKey(int keyCode) {
+        requireFileExplorerPanel().keyPressed(keyCode, 0, 0);
+    }
+
+    @Override
+    public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
+        requireFileExplorerPanel().acceptSnapshot(snapshot);
+    }
+
+    @Override
+    public void openFileExplorer(SFMFileExplorerSource source) {
+        minecraft.setScreen(SFMFileExplorerWorkspace.create(minecraft.screen, source));
+    }
+
+    @Override
+    public boolean isFileExplorerOpen() {
+        try {
+            requireFileExplorerPanel();
+            return true;
+        } catch (IllegalStateException exception) {
+            return false;
+        }
+    }
+
+    @Override
+    public void deliverFileExplorerDropFixture() {
+        if (minecraft.screen == null) throw new IllegalStateException("Expected a screen for file drop delivery");
+        Path fixture = minecraft.gameDirectory.toPath().resolve("sfm-file-explorer-drop-fixture");
+        try {
+            Files.createDirectories(fixture);
+            Files.writeString(fixture.resolve("alpha.txt"), "alpha content from dropped root\nline two\n");
+            Files.writeString(fixture.resolve("beta.txt"), "beta replacement content\nline two\n");
+        } catch (IOException exception) {
+            throw new IllegalStateException("Unable to prepare deterministic file-drop fixture", exception);
+        }
+        minecraft.screen.onFilesDrop(List.of(fixture));
+    }
+
+    @Override
+    public void clickFileExplorerRow(int visibleRowIndex) {
+        SFMScreenMultiplexer multiplexer = requireFileExplorerMultiplexer();
+        int panelIndex = -1;
+        for (int i = 0; i < multiplexer.panels().size(); i++) {
+            if (multiplexer.panels().get(i) instanceof SFMFileExplorerPanel) {
+                panelIndex = i;
+                break;
+            }
+        }
+        if (panelIndex < 0) throw new IllegalStateException("Workspace has no explorer panel");
+        SFMWorkspacePanelId panelId = multiplexer.panelIds().get(panelIndex);
+        SFMScreenPanelBounds bounds = multiplexer.panelBounds(panelId);
+        if (bounds == null) throw new IllegalStateException("Explorer panel has no allocated bounds");
+        SFMFileExplorerLayout layout = SFMFileExplorerLayout.calculate(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        double mouseX = layout.list().x() + Math.max(1, layout.list().width() / 2D);
+        double mouseY = layout.list().y() + visibleRowIndex * SFMFileExplorerPanel.ROW_HEIGHT
+                + SFMFileExplorerPanel.ROW_HEIGHT / 2D;
+        multiplexer.mouseClicked(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+    }
+
+    @Override
+    public void assertFileExplorerWorkspace(
+            int panelCount,
+            String expectedRootName,
+            String expectedViewerPath,
+            String expectedViewerText,
+            boolean rememberOrRequireViewerIdentity
+    ) {
+        SFMScreenMultiplexer multiplexer = requireFileExplorerMultiplexer();
+        if (multiplexer.panels().size() != panelCount) {
+            throw new IllegalStateException("Expected " + panelCount + " panels but found " + multiplexer.panels().size());
+        }
+        SFMFileExplorerPanel explorer = requireFileExplorerPanel();
+        if (!expectedRootName.isEmpty()) {
+            if (!(explorer.model().source() instanceof SFMPathFileExplorerSource pathSource)
+                    || !pathSource.root().getFileName().toString().equals(expectedRootName)) {
+                throw new IllegalStateException("Explorer root did not match " + expectedRootName);
+            }
+        }
+        SFMReadOnlyTextPanel viewer = multiplexer.panels().stream()
+                .filter(SFMReadOnlyTextPanel.class::isInstance)
+                .map(SFMReadOnlyTextPanel.class::cast)
+                .findFirst().orElse(null);
+        if (expectedViewerPath.isEmpty()) {
+            if (viewer != null) throw new IllegalStateException("Expected no viewer panel");
+        } else {
+            if (viewer == null || !viewer.path().equals(expectedViewerPath)
+                    || !viewer.text().contains(expectedViewerText)) {
+                throw new IllegalStateException("Viewer did not show expected path/content");
+            }
+            int viewerIndex = multiplexer.panels().indexOf(viewer);
+            SFMWorkspacePanelId viewerId = multiplexer.panelIds().get(viewerIndex);
+            if (rememberOrRequireViewerIdentity) {
+                if (rememberedFileViewerId == null) rememberedFileViewerId = viewerId;
+                else if (!rememberedFileViewerId.equals(viewerId)) {
+                    throw new IllegalStateException("Viewer panel identity changed across previews");
+                }
+            }
+        }
+        if (panelCount == 2) {
+            SFMScreenPanelBounds first = multiplexer.panelBounds(multiplexer.panelIds().get(0));
+            SFMScreenPanelBounds second = multiplexer.panelBounds(multiplexer.panelIds().get(1));
+            if (first == null || second == null || Math.abs(first.width() - second.width()) > 1
+                    || second.x() - first.x() - first.width() != 2) {
+                throw new IllegalStateException("Expected equal-share horizontal allocation; first=" + first + ", second=" + second);
+            }
+        }
+    }
+
+    private SFMScreenMultiplexer requireFileExplorerMultiplexer() {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected file explorer workspace");
+        }
+        return multiplexer;
+    }
+
+    private SFMFileExplorerPanel requireFileExplorerPanel() {
+        if (minecraft.screen instanceof SFMFileExplorerScreen screen) return screen.panel();
+        if (minecraft.screen instanceof SFMScreenMultiplexer multiplexer) {
+            return multiplexer.panels().stream()
+                    .filter(SFMFileExplorerPanel.class::isInstance)
+                    .map(SFMFileExplorerPanel.class::cast)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Workspace has no file explorer panel"));
+        }
+        throw new IllegalStateException("Expected file explorer screen or workspace");
     }
 
     @Override
@@ -221,7 +376,12 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         String safeCaptureName = validateCaptureName(captureName);
         PuppetCaptureState state = active.captures.computeIfAbsent(
                 safeCaptureName, name -> {
-                    String fileName = active.definition.puppetName() + "__" + name + ".png";
+                    String variantSuffix = active.definition.viewportProfile() == SFMGamePuppetViewportProfile.CURRENT
+                            ? ""
+                            : "__viewport-" + active.viewportVariant.width() + "x" + active.viewportVariant.height()
+                              + "-gui-" + active.viewportVariant.requestedScaleName()
+                              + "-effective-" + active.viewportObservation.effectiveGuiScale();
+                    String fileName = active.definition.puppetName() + "__" + name + variantSuffix + ".png";
                     return new PuppetCaptureState(
                             name,
                             new File(new File(minecraft.gameDirectory, "screenshots"), fileName),
@@ -253,11 +413,20 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                                 ? "world"
                                 : minecraft.screen.getClass().getSimpleName();
             SFM.LOGGER.info(
-                    "SFM_GAME_PUPPET_CAPTURE_QUEUED puppet={} capture={} file={} figure={} camera_x={} camera_y={} camera_z={} camera_yaw={} camera_pitch={} screen={} hud_hidden={}",
+                    "SFM_GAME_PUPPET_CAPTURE_QUEUED puppet={} variant={} capture={} file={} figure={} actual_width={} actual_height={} framebuffer_width={} framebuffer_height={} requested_gui_scale={} effective_gui_scale={} logical_width={} logical_height={} camera_x={} camera_y={} camera_z={} camera_yaw={} camera_pitch={} screen={} hud_hidden={}",
                     active.definition.puppetName(),
+                    active.viewportVariant.id(),
                     safeCaptureName,
                     state.file.getName(),
                     state.figureNumber,
+                    active.viewportObservation.windowWidth(),
+                    active.viewportObservation.windowHeight(),
+                    active.viewportObservation.framebufferWidth(),
+                    active.viewportObservation.framebufferHeight(),
+                    active.viewportVariant.requestedScaleName(),
+                    active.viewportObservation.effectiveGuiScale(),
+                    active.viewportObservation.logicalWidth(),
+                    active.viewportObservation.logicalHeight(),
                     cameraPosition.x,
                     cameraPosition.y,
                     cameraPosition.z,
@@ -271,8 +440,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         state.ticks++;
         if (state.file.isFile() && state.file.length() > 0L) {
             SFM.LOGGER.info(
-                    "SFM_GAME_PUPPET_CAPTURE_WRITTEN puppet={} capture={} file={}",
+                    "SFM_GAME_PUPPET_CAPTURE_WRITTEN puppet={} variant={} capture={} file={}",
                     active.definition.puppetName(),
+                    active.viewportVariant.id(),
                     safeCaptureName,
                     state.file.getName()
             );
@@ -415,6 +585,87 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void closeScreenNaturally() {
+        Screen screen = minecraft.screen;
+        if (screen == null) {
+            throw new IllegalStateException("Expected a screen to close naturally");
+        }
+        screen.onClose();
+    }
+
+    @Override
+    public boolean clickWorkspacePanel(int panelIndex) {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected SFM screen multiplexer before focusing a panel");
+        }
+        if (panelIndex < 0 || panelIndex >= multiplexer.panels().size()) {
+            throw new IllegalArgumentException("Workspace panel index is out of range: " + panelIndex);
+        }
+        double mouseX = (panelIndex + 0.5D) * multiplexer.width / multiplexer.panels().size();
+        double mouseY = multiplexer.height / 2D;
+        multiplexer.mouseClicked(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        return multiplexer.focusedPanel() == panelIndex;
+    }
+
+    @Override
+    public void openFalsifiedInventoryTimeline() {
+        minecraft.setScreen(SFMScreenMultiplexer.create(
+                minecraft.screen,
+                new SFMTimelinePanel(new SFMFalsifiedInventoryReplayPanel(), 20)
+        ));
+    }
+
+    @Override
+    public void seekFalsifiedInventoryTimeline(int timestep) {
+        requireFalsifiedInventoryTimeline().seek(timestep);
+    }
+
+    @Override
+    public void seekFalsifiedInventoryKeyframePosition(double position) {
+        requireFalsifiedInventoryTimeline().seekKeyframePosition(position);
+    }
+
+    @Override
+    public void seekFalsifiedInventoryElapsedTicks(double ticks) {
+        requireFalsifiedInventoryTimeline().seekElapsedTicks(ticks);
+    }
+
+    @Override
+    public void jumpFalsifiedInventoryKeyframe(int direction) {
+        requireFalsifiedInventoryTimeline().jumpKeyframe(direction);
+    }
+
+    @Override
+    public void dragFalsifiedInventoryTimeline(int fromTimestep, int toTimestep) {
+        SFMTimelinePanel timeline = requireFalsifiedInventoryTimeline();
+        SFMScreenMultiplexer multiplexer = (SFMScreenMultiplexer) minecraft.screen;
+        timeline.seek(fromTimestep);
+        double fromX = timeline.xForTimestep(fromTimestep);
+        double toX = timeline.xForTimestep(toTimestep);
+        double y = timeline.trackY();
+        multiplexer.mouseClicked(fromX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseDragged(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT, toX - fromX, 0D);
+        multiplexer.mouseReleased(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        if (timeline.model().current() != toTimestep) {
+            throw new IllegalStateException(
+                    "Timeline drag selected " + timeline.model().current() + " instead of " + toTimestep
+            );
+        }
+    }
+
+    private SFMTimelinePanel requireFalsifiedInventoryTimeline() {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected SFM screen multiplexer for inventory timeline");
+        }
+        return multiplexer.panels().stream()
+                .filter(SFMTimelinePanel.class::isInstance)
+                .map(SFMTimelinePanel.class::cast)
+                .filter(panel -> panel.title().getString().contains("Falsified chest replay"))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Workspace has no falsified inventory timeline"));
+    }
+
+    @Override
     public void openManagerProgramEditor() {
 
         if (!(minecraft.screen instanceof ManagerScreen managerScreen)) {
@@ -425,6 +676,89 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalStateException("Manager program editor button is unavailable");
         }
         buttons.get(1).onPress();
+    }
+
+    @Override
+    public void openColorInput(boolean toSide) {
+        SFMColorInputPanel panel = new SFMColorInputPanel(
+                new SFMArgbColor(0xFF3366CC),
+                java.util.List.of(new SFMArgbColor(0xFFFFAA00), new SFMArgbColor(0xFF44CC66),
+                        new SFMArgbColor(0x808844CC)),
+                colour -> SFM.LOGGER.info("SFM_COLOR_INPUT_CONFIRMED value={}", colour.toHex(SFMArgbColor.HexOrder.ARGB)),
+                () -> SFM.LOGGER.info("SFM_COLOR_INPUT_CANCELLED")
+        );
+        if (toSide) SFMScreenMultiplexer.openToSide(minecraft.screen, panel);
+        else minecraft.setScreen(SFMScreenMultiplexer.create(minecraft.screen, panel));
+    }
+
+    @Override
+    public void setColorInputHueSaturation(double hue, double saturation) {
+        SFMColorInputPanel panel = requireColorInput();
+        SFMColorInputPanelLayout.Rect field = panel.layout().hueSaturation();
+        clickWorkspace(field.x() + hue * (field.width() - 1D),
+                field.y() + (1D - saturation) * (field.height() - 1D));
+    }
+
+    @Override
+    public void setColorInputValue(double value) {
+        SFMColorInputPanelLayout.Rect slider = requireColorInput().layout().valueSlider();
+        clickWorkspace(slider.x() + value * (slider.width() - 1D), slider.y() + slider.height() / 2D);
+    }
+
+    @Override
+    public void adjustColorInputChannel(int channel, int direction, int clicks) {
+        if (channel < 0 || channel > 3 || (direction != -1 && direction != 1) || clicks < 0) {
+            throw new IllegalArgumentException("Invalid colour channel adjustment");
+        }
+        SFMColorInputPanelLayout.Rect channels = requireColorInput().layout().channels();
+        int rowHeight = channels.height() / 4;
+        double x = direction < 0 ? channels.right() - 30D : channels.right() - 9D;
+        double y = channels.y() + channel * rowHeight + rowHeight / 2D;
+        for (int i = 0; i < clicks; i++) clickWorkspace(x, y);
+    }
+
+    @Override
+    public void selectColorInputRecent(int index) {
+        SFMColorInputPanel panel = requireColorInput();
+        SFMColorInputPanelLayout.Rect recents = panel.layout().recents();
+        int size = Math.min(20, recents.height());
+        clickWorkspace(recents.x() + index * (size + 4) + size / 2D, recents.y() + size / 2D);
+    }
+
+    @Override public void resetColorInput() { clickRect(requireColorInput().layout().reset()); }
+
+    @Override
+    public void setColorInputHex(String hex, boolean rgbaOrder) {
+        requireColorInput().setHexValue(hex,
+                rgbaOrder ? SFMArgbColor.HexOrder.RGBA : SFMArgbColor.HexOrder.ARGB);
+    }
+
+    @Override
+    public void confirmColorInput() {
+        SFMColorInputPanel panel = requireColorInput();
+        clickRect(panel.layout().confirm());
+        if (panel.confirmedResult() == null) throw new IllegalStateException("Colour input did not confirm a typed result");
+    }
+
+    private SFMColorInputPanel requireColorInput() {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected SFM workspace for colour input");
+        }
+        return multiplexer.panels().stream().filter(SFMColorInputPanel.class::isInstance)
+                .map(SFMColorInputPanel.class::cast).findFirst()
+                .orElseThrow(() -> new IllegalStateException("Workspace has no colour input panel"));
+    }
+
+    private void clickRect(SFMColorInputPanelLayout.Rect rect) {
+        clickWorkspace(rect.x() + rect.width() / 2D, rect.y() + rect.height() / 2D);
+    }
+
+    private void clickWorkspace(double x, double y) {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected SFM workspace before mouse input");
+        }
+        multiplexer.mouseClicked(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseReleased(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
     }
 
     private BlockPos absolute(BlockPos local) {

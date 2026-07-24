@@ -99,6 +99,7 @@ impl RunClientArgs {
                 game_test,
                 width,
                 height,
+                "declared",
                 mute,
                 keep_open,
                 cancellation_token,

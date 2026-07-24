@@ -297,6 +297,7 @@ fn create_plan_for_target(
             )
         }))?;
         for (plan, dependency) in dependency_plans.iter_mut().zip(selected) {
+            plan.bundle.clone_from(&dependency.bundle);
             plan.artifact_treatment = dependency.artifact_treatment;
             plan.data_run_policy = dependency.data_run_policy;
         }
@@ -1223,6 +1224,7 @@ fn read_mcp_config(artifact: &ArtifactPlan) -> eyre::Result<McpConfigPlan> {
 struct ParsedDependency {
     configuration: String,
     coordinate: MavenCoordinate,
+    bundle: Option<crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3>,
     artifact_treatment:
         crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
     data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
@@ -1269,6 +1271,9 @@ fn project_v3_dependencies(
                 projected.push(ParsedDependency {
                     configuration: configuration.to_owned(),
                     coordinate: coordinate.clone(),
+                    bundle: (configuration == "jarJar")
+                        .then(|| component.declaration.bundle.clone())
+                        .flatten(),
                     artifact_treatment: component.declaration.artifact_treatment,
                     data_run_policy: component.declaration.data_run_policy,
                 });
@@ -1283,6 +1288,7 @@ fn project_v3_dependencies(
     projected.dedup_by(|left, right| {
         left.configuration == right.configuration
             && left.coordinate == right.coordinate
+            && left.bundle == right.bundle
             && left.artifact_treatment == right.artifact_treatment
             && left.data_run_policy == right.data_run_policy
     });
