@@ -1483,12 +1483,14 @@ verified clean and exactly at the contract checkpoint.
 #### Integration result — 2026-07-23
 
 V1, V2 and V3 are complete and integrated on `teamy/vox-java`. The maintained
-Facet fork's reviewed integration head is
-`5e719ed9f5d1f36ba41242c2c057e74d67ecb3c9`, pushed to
-`mine/teamy/vox-java`. The integration sequence includes the three delegated
-heads plus full generated-response adapters, packaging/test xtasks, both wire
-directions, a Java-hosted service, runtime wire schemas, and negative and
-schema-evolution conformance.
+Facet fork's reviewed code and frozen-artifact commit is
+`5e719ed9f5d1f36ba41242c2c057e74d67ecb3c9`. The branch's current pushed head is
+documentation-only correction `21f71915a`, which clarifies that the Java 17
+baseline permits records and sealed types while excluding virtual threads and
+language/library APIs introduced after Java 17. The integration sequence
+includes the three delegated heads plus full generated-response adapters,
+packaging/test xtasks, both wire directions, a Java-hosted service, runtime
+wire schemas, and negative and schema-evolution conformance.
 
 `cargo xtask package-java` proves 72 Phon assertions, stream framing, the Vox
 runtime, generated responses, deterministic assembly, a clean consumer smoke
