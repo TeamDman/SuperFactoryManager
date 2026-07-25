@@ -24,7 +24,7 @@ The Rust terminal implementation is now planned as a separate public
 MPL-2.0 `TeamDman/teamy-terminal` repository rather than as a dependency on the
 larger Teamy Studio application. Its core/Vulkan/font workspace, bootstrap,
 path-override iteration, pinned-dependency transition, and subagent gates are
-recorded in [Teamy Terminal Repository and Vulkan Renderer Plan](teamy%20terminal%20repository%20and%20Vulkan%20renderer%20plan.md).
+recorded in the authoritative [Teamy Terminal Repository and Vulkan Renderer Plan](https://github.com/TeamDman/teamy-terminal/blob/main/docs/tasks/teamy%20terminal%20repository%20and%20Vulkan%20renderer%20plan.md).
 
 ## Product outcome
 
