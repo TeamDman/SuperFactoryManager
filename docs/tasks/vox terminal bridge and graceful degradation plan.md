@@ -20,6 +20,12 @@ The motivating reference implementation is Teamy Studio at
 This is a design and implementation plan, not permission to make the Minecraft
 mod depend on Teamy Studio or on a Rust process at runtime.
 
+The Rust terminal implementation is now planned as a separate public
+MPL-2.0 `TeamDman/teamy-terminal` repository rather than as a dependency on the
+larger Teamy Studio application. Its core/Vulkan/font workspace, bootstrap,
+path-override iteration, pinned-dependency transition, and subagent gates are
+recorded in [Teamy Terminal Repository and Vulkan Renderer Plan](teamy%20terminal%20repository%20and%20Vulkan%20renderer%20plan.md).
+
 ## Product outcome
 
 The command palette can open a terminal panel inside the SFM multiplexer. The

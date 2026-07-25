@@ -1,0 +1,235 @@
+# Teamy Terminal Repository and Vulkan Renderer Plan
+
+This plan records the corrected project name: **`teamy-terminal`**. The
+voice transcription that called it `teeny-terminal` was an error.
+
+The terminal core and renderer should move out of Teamy Studio into a small
+public MPL-2.0 repository owned by `TeamDman`. Teamy Studio currently contains
+unrelated application, ML/PyTorch, CUDA/Burn, and windowing work. Those things
+should not be required to build, test, or embed the terminal.
+
+The reference for the first Vulkan renderer is
+`G:\Programming\Repos\cursor-latency` at revision `6c07705` (`Fix transparent
+Vulkan window`). It already uses `ash 0.38`, `ash-window 0.13`, `winit 0.30`,
+`shaderc`, `raw-window-handle`, and a direct Vulkan instance/device/swapchain
+setup. Reuse its proven seams deliberately; do not copy its entire
+application.
+
+## Repository bootstrap
+
+The repository does not currently exist on GitHub. Once creation is authorized
+for the execution turn, the coordinator should:
+
+```text
+gh repo create TeamDman/teamy-terminal --public --license MPL-2.0 \
+  --description "Portable terminal core and Vulkan renderer"
+git clone https://github.com/TeamDman/teamy-terminal.git \
+  G:\Programming\Repos\teamy-terminal
+```
+
+The initial commit should contain the MPL-2.0 license, README, contribution
+and development notes, a Cargo workspace, and a passing headless test. The
+repository must not begin by importing the Teamy Studio workspace or its
+PyTorch/CUDA dependencies.
+
+## Cargo workspace shape
+
+Start with a deliberately small workspace:
+
+```text
+teamy-terminal/
+  Cargo.toml
+  crates/
+    teamy-terminal-core/
+    teamy-terminal-font/
+    teamy-terminal-renderer/
+    teamy-terminal-cli/
+  fixtures/
+  docs/
+```
+
+- `teamy-terminal-core` is renderer-free and owns terminal semantics.
+- `teamy-terminal-font` owns the Teamy font/rasterization algorithm once the
+  extraction seam is clear. It may begin as a renderer-internal module, but a
+  separate crate is preferred so the core never depends on graphics.
+- `teamy-terminal-renderer` owns Vulkan presentation, off-screen rendering,
+  readback, frame encoding, and the windowed demo. It uses `ash` directly,
+  with `ash-window`/`winit` only at the platform/window boundary.
+- `teamy-terminal-cli` owns headless replay, PowerShell process plumbing,
+  PNG/frame artifacts, and small diagnostics. It is not part of the core
+  runtime dependency graph.
+
+The workspace should use the repository's normal Rust patterns: edition 2024,
+workspace package metadata, locked dependencies, `check-all.ps1`, explicit
+error context, focused fixtures, and tests that can run without a visible
+window or GPU. Renderer `unsafe` code must be isolated at the Vulkan boundary.
+
+## Terminal core
+
+The core is the primary product. It must be usable on a headless machine and
+must not depend on `ash`, `winit`, DirectX, CUDA, PyTorch, or Minecraft.
+
+The first stable seam should cover:
+
+- create a session with columns, rows, scrollback, and bounded limits;
+- apply terminal output bytes and mutate screen/cursor/style state;
+- expose visible rows/cells, cursor, selection, scrollback, and damage;
+- resize deterministically;
+- encode key/text/mouse events without platform-window assumptions;
+- expose prompt/command ranges and future semantic handles as metadata; and
+- snapshot and replay state through deterministic fixtures.
+
+The core should distinguish terminal semantics from process hosting. A shell or
+PowerShell adapter may feed bytes into the core, but the core itself should be
+testable by applying fixture bytes directly.
+
+### Harmless PowerShell smoke
+
+The first process-backed smoke should run PowerShell without profiles and emit
+one predictable value per row, for example `1..1000`. The exact executable
+selection (`pwsh.exe` first, Windows PowerShell fallback where available),
+working directory, timeout, environment, and output bound must be explicit.
+
+The smoke is not a security boundary for arbitrary commands. It exists to
+prove that process output reaches the core, rows are preserved, and the
+headless runner can produce a bounded transcript and snapshot.
+
+Required headless evidence:
+
+- `pwsh.exe -NoProfile` (or documented fallback) starts and exits cleanly;
+- rows 1 through 1000 are observed in order;
+- the core snapshot contains the expected final rows and cursor state;
+- output and scrollback bounds are enforced; and
+- the same fixture can replay without launching PowerShell.
+
+## Vulkan renderer
+
+The renderer should be a thin Vulkan presentation layer, not another terminal
+engine. The first renderer is Windows-focused but should avoid DirectX-specific
+types so that the platform boundary remains portable.
+
+### Initial Vulkan surface
+
+- Load Vulkan through `ash::Entry`.
+- Use `ash-window` and `raw-window-handle` only to create a platform surface.
+- Select a physical device with graphics and presentation support.
+- Create a swapchain, render pass/pipeline, synchronization, and resize path.
+- Render font glyphs and terminal cells from a core snapshot.
+- Support an off-screen target and CPU-visible readback independent of a
+  presentable window.
+- Encode PNG snapshots and bounded raw/compressed RGBA frames for consumers
+  such as Minecraft.
+
+The first off-screen path should be able to run headlessly or with a software
+Vulkan device where available. It must not require CUDA. A native GPU shared
+handle is explicitly out of scope for the first cross-process frame protocol.
+
+### Texture/frame output
+
+The renderer should expose a renderer-neutral frame result containing sequence,
+dimensions, stride, format, full-frame/dirty-tile kind, and bytes. PNG is for
+artifacts/keyframes; raw or losslessly compressed dirty tiles are for live
+interaction. This output maps directly to the SFM Vox texture presentation
+plan without making Minecraft understand Vulkan objects.
+
+## Font rendering extraction
+
+Teamy Studio's existing font algorithm is valuable, but the new repository must
+extract only the terminal-relevant implementation:
+
+- glyph shaping/rasterization inputs and deterministic atlas output;
+- font metrics and cell placement;
+- style/color mapping; and
+- a renderer-neutral glyph instance or bitmap representation.
+
+Application panels, Teamy Studio window chrome, CUDA/Burn integrations, and
+unrelated workspace models must remain outside `teamy-terminal-font`.
+
+## SFM dependency strategy
+
+The SFM CLI should consume the new project in two stages:
+
+1. **Iteration:** use a local path override to the checkout at
+   `G:\Programming\Repos\teamy-terminal`. The override must be local-only or
+   branch-specific and never become an absolute path committed into the
+   canonical SFM source or propagated to other Minecraft versions. A Cargo
+   config patch is preferred over a permanent absolute path in the manifest.
+2. **Stabilization:** publish a reviewed `teamy-terminal` version and replace
+   the local override with an exact git revision or pinned registry version,
+   including lockfile hashes and source provenance in the existing SFM
+   dependency workflow.
+
+The first SFM integration should depend only on `teamy-terminal-core` and the
+portable frame/protocol crate. Vulkan and the renderer remain optional
+development tooling; ordinary SFM gameplay and Java-local terminal fallback
+must not require a GPU, Vulkan loader, or Rust process.
+
+The CLI integration should be feature-gated and capability-aware. A missing
+local checkout or unavailable Rust renderer must produce a clear development
+tooling diagnostic, not break unrelated `sfm-propagate-changes` commands.
+
+## Parallel subagent plan
+
+After the repository is created and the initial workspace commit exists, use
+isolated worktrees under `G:\Programming\Repos\teamy-terminal-worktrees\`:
+
+| Track | Scope | Reviewable result |
+| --- | --- | --- |
+| Core | `teamy-terminal-core` semantics, replay fixtures, bounded PowerShell smoke | Headless `1..1000` proof, snapshots, parser/resize/key tests, no renderer dependencies |
+| Vulkan | `teamy-terminal-renderer` from the cursor-latency `ash`/`winit` seam | Windowed and off-screen Vulkan proof, resize, PNG/raw frame output, device/loader diagnostics |
+| Font | Extract the Teamy font algorithm into `teamy-terminal-font` | Deterministic glyph/atlas fixture and one renderer-consumable text frame |
+| Integration | Coordinator-owned SFM path override and later pinned dependency | CLI compiles with local checkout, then lockfile-pinned artifact; no version-branch propagation until stable |
+
+Core and font can begin in parallel after the workspace bootstrap. The Vulkan
+agent can use a temporary fake glyph source while the font seam settles. The
+SFM integration agent must wait for the core crate's first stable API and must
+not add a permanent path dependency before the repository has a commit to
+reference.
+
+## Acceptance gates
+
+### Repository gate
+
+- Public `TeamDman/teamy-terminal` exists with MPL-2.0 metadata.
+- Fresh clone works on the supported Windows development machine.
+- `cargo fmt --all -- --check`, Clippy with warnings denied, build, and tests
+  pass without Teamy Studio, PyTorch, CUDA, or Minecraft.
+
+### Core gate
+
+- Headless PowerShell `1..1000` smoke passes with `-NoProfile`.
+- Replay fixture reproduces the same rows, cursor, scrollback, and damage.
+- Bounds, malformed output, resize, cancellation, and process exit are tested.
+
+### Renderer gate
+
+- `ash` Vulkan window starts or fails with an actionable loader/device reason.
+- Off-screen render produces a deterministic PNG and frame bytes.
+- Resize and dirty-region behavior are covered.
+- No DirectX handle, CUDA runtime, or Teamy Studio application dependency is
+  required.
+
+### SFM gate
+
+- Java-local terminal remains functional with no Rust checkout or renderer.
+- The CLI's local path override is isolated and documented.
+- A pinned published dependency is used only after the API and artifact are
+  reviewed; then canonical compile/test and puppet proof run before any
+  propagation to later Minecraft branches.
+
+## Immediate next steps
+
+1. Coordinator creates the public repository and initial MPL-2.0 workspace.
+2. Coordinator records the initial commit and creates the three worktrees.
+3. Dispatch core, Vulkan, and font agents with the gates above.
+4. Review the core headless `1..1000` proof before connecting SFM.
+5. Integrate the local core path into `sfm-propagate-changes` behind a
+   development-only feature, then replace it with a pinned dependency after
+   stabilization.
+6. Add the SFM Java-local terminal puppet and later the optional Vox texture
+   mode using the renderer-neutral frame output.
+
+The colour-picker bridge remains deferred. This repository work is the
+development-tooling foundation that lets us pursue the terminal without
+dragging Teamy Studio's unrelated CUDA/ML surface into either SFM or the new
+terminal project.
