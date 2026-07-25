@@ -317,6 +317,34 @@ All network callbacks decode and validate off-thread, then enqueue Minecraft
 state changes through `Minecraft.getInstance().execute`. eframe remains in its
 own process and owns its own window/event loop.
 
+### Portable colour-prompt presentation boundary
+
+Before implementing the Vox colour-picker flow, refactor the reusable Java
+ARGB colour-input panel so its area above the editing controls is a composable
+header slot. The default remains the current two-line header: a vertical
+composition of centered formatted-text panels, preserving today’s title and
+supporting text, spacing, alignment and compact-layout behavior. Callers may
+replace that slot with another Java-owned panel when a prompt needs different
+local presentation; the colour controls and typed ARGB result remain unchanged.
+
+The Vox wire contract must carry portable structured prompt content only (for
+example, title, explanatory text, and bounded formatting data). Rust supplies
+that content; the Java bridge validates it and renders a local centered-text
+header panel, then supplies it to the colour panel’s header slot. Rust never
+sends an arbitrary Minecraft panel, widget tree, renderer callback or layout
+instruction across the wire. Java owns Minecraft UI composition, bounds,
+formatting policy, accessibility and theme resolution; Rust owns the semantic
+prompt intent and its typed result.
+
+The focused validation slice must prove that the ordinary colour panel is
+visually unchanged, a Vox prompt uses the custom local header, long or
+multi-line content stays bounded and centered at supported GUI scales, invalid
+or oversized prompt fields are rejected or safely truncated, and the typed
+ARGB result still round-trips. The puppet proof should capture both the
+default header and the connected Vox prompt, including cancellation,
+disconnect/timeout and no-stale-callback terminal states. This keeps the
+colour panel reusable without making ordinary theme editing depend on Vox.
+
 The first visual proof is:
 
 1. open **Vox bridge** from the command palette;
