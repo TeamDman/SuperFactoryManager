@@ -15,6 +15,66 @@ Vulkan window`). It already uses `ash 0.38`, `ash-window 0.13`, `winit 0.30`,
 setup. Reuse its proven seams deliberately; do not copy its entire
 application.
 
+## Initialization from `teamy-rust-cli`
+
+The repository should be initialized from the maintained single-crate
+template at `G:\Programming\Repos\teamy-rust-cli`, rather than assembled from
+an empty Cargo project or copied from Teamy Studio. The template is a source
+of repository conventions and quality gates, not a dependency of the finished
+terminal workspace.
+
+After cloning the empty public repository, run the template's initializer from
+the template checkout against the new destination (or use the equivalent
+reviewed scaffold operation):
+
+```powershell
+Push-Location G:\Programming\Repos\teamy-rust-cli
+cargo run -- init G:\Programming\Repos\teamy-terminal
+Pop-Location
+```
+
+The initializer deliberately excludes `.git`, `target`, the template's
+initialization skill, and the legacy `init-other-repo.ps1`; it preserves an
+existing destination `README.md` and `LICENSE`. Inspect the generated diff
+before committing and replace every template placeholder: package name and
+URLs, README/examples, environment variable names, implementation source URL,
+and the top-level CLI description. Do not copy Teamy Studio's application,
+PyTorch, CUDA, Burn, or DirectX workspace into the new repository.
+
+The generated single package is then converted into the planned workspace.
+Keep the template's repository-level files and conventions where they remain
+useful, but move product code into the workspace crates below. The root
+workspace should set a default member for `teamy-terminal-cli` so the familiar
+`cargo run -- --help` and `cargo run -- --version` smoke commands continue to
+work even though the implementation is split across crates. The CLI may start
+with no product subcommands; Figue's built-in help/version/completion surface
+is still required and must not be removed while the terminal commands are
+being designed.
+
+### Conventions to retain from the template
+
+- Figue/Facet argument definitions and the generated built-in `--help` and
+  `--version` behavior, including repository, branch, revision, worktree, and
+  build-time metadata.
+- `color-eyre` error context, structured tracing/logging, cooperative
+  cancellation, and Windows console/ANSI handling where applicable.
+- The explicit Rust and Clippy lint policy in `Cargo.toml`; warnings remain
+  visible and the quality gate continues to run with `-D warnings`.
+- `build.rs` metadata/resource hooks, `rustfmt.toml`, `clippy.toml`, the MPL-2.0
+  license, and the template's repository documentation pattern.
+- The template's CLI round-trip/fuzz-test approach, adapted so workspace
+  tests cover the real terminal commands and fixtures rather than the example
+  `cache`, `home`, and `init` commands.
+
+`check-all.ps1` must be adapted from the template's single-package commands to
+explicit workspace validation while preserving its intent: nightly formatting,
+all-workspace/all-target Clippy with warnings denied, an all-feature build, and
+tests for every workspace member. Any Windows resource step that is not needed
+by a library crate belongs only to the CLI package. The template's `init`
+subcommand and example command groups are bootstrap aids and should be removed
+or replaced after the first workspace commit; they must not become accidental
+terminal product API.
+
 ## Repository bootstrap
 
 The repository does not currently exist on GitHub. Once creation is authorized
@@ -219,7 +279,9 @@ reference.
 
 ## Immediate next steps
 
-1. Coordinator creates the public repository and initial MPL-2.0 workspace.
+1. Coordinator creates the public repository, runs the `teamy-rust-cli`
+   initializer, performs the placeholder audit, and commits the initial
+   MPL-2.0 workspace plus the adapted quality gate.
 2. Coordinator records the initial commit and creates the three worktrees.
 3. Dispatch core, Vulkan, and font agents with the gates above.
 4. Review the core headless `1..1000` proof before connecting SFM.
