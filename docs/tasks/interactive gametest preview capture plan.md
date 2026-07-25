@@ -384,16 +384,23 @@ index can select a logical capture and show resolution rows against scale
 columns. Missing, duplicated, silently clamped, or cross-variant captures fail
 that target while preserving completed artifacts.
 
-### Viewport calibration panel
+### Size-display/debug panel
 
-Add a reusable `SFMScreenPanel` test card rather than diagnosing allocation
-through application screens alone. It should render TV-style colour bars,
-one-logical-unit/checkerboard rulers, exact corner and centre markers, the panel
-bounds supplied by its host, GLFW window and framebuffer measurements, logical
-screen dimensions, requested/effective GUI scale, responsive mode, and
-screen/local mouse coordinates. Its puppet captures full-screen, one-half,
-one-third, and a nested allocation. This exposes border overlap, off-by-one
-allocation, input transforms, minimum-size failure, and high-DPI disagreement.
+Use a reusable `SFMScreenPanel` leaf whose purpose is to make allocation
+immediately visible, not to present a verbose diagnostic dashboard. It fills
+its entire host bounds with a caller-selected opaque solid colour and centers
+only the supplied logical width × height text inside that region. The text
+colour is selected by the documented WCAG relative-luminance contrast rule,
+choosing the better-contrasting opaque black or white foreground. There are no
+colour bars, checkerboard rulers, pointer coordinates, window/framebuffer
+measurements, repeated GUI diagnostics, or “diagnostic mode” presentation.
+
+The panel is reusable as a leaf in horizontal, vertical, and nested split
+layouts. The size-display workspace fixture assigns distinct colours to full,
+half, third, and nested leaves so dividers, allocation bounds, and future
+header-slot composition can be inspected at a glance. Its logical dimensions
+come from a narrow injectable source, keeping the panel testable while allowing
+the live puppet to show the current GUI-scaled logical size.
 
 ### Implementation slices and acceptance
 
@@ -406,8 +413,9 @@ allocation, input transforms, minimum-size failure, and high-DPI disagreement.
 3. **Variant artifacts:** extend manifest parsing, validation, paths, and the
    contact sheet without conflating the existing Minecraft-version matrix with
    the in-process viewport loop.
-4. **Calibration proof:** capture and inspect the diagnostic panel across the
-   accepted common profile and nested allocations.
+4. **Size-display proof:** capture and inspect the solid-colour size-display
+   panel across the accepted common profile and nested allocations; verify
+   readable centered dimensions and the contrast rule at supported scales.
 5. **Repository-review adoption:** opt the review puppet into the profile only
    after its fixture/session lifecycle is variant-isolated; use the resulting
    evidence to drive the responsive composition work in the workspace plan.
@@ -426,7 +434,7 @@ boundary is reviewed; later API differences belong behind
 The responsive extension is implemented on canonical `1.19.2`. Track A landed
 at `c33e576532246d349ab85ba2f16011a9ffda50b1`; the merged CLI was installed
 from canonical revision `a4d7f85ef`. The final combined invocation selected
-`title_screen_viewport_calibration,title_screen_repository_review` with
+`title_screen_size_display,title_screen_repository_review` with
 `--variant declared`. One Minecraft process completed 30 fresh scenarios:
 15 accepted viewport/GUI-scale variants for each puppet. The accepted profile
 contains 640x480, 854x480, 1280x720, and 1920x1080; Auto resolved to effective
@@ -434,15 +442,32 @@ scales 2, 2, 3, and 4 respectively, and supported numeric scales remained
 separate columns. Requested window and framebuffer sizes matched actual values,
 and the harness restored 1280x720 Auto/effective 3 after the run.
 
-The run published 210 valid PNGs: 60 calibration captures and 150 repository
+The run published 210 valid PNGs: 60 size-display captures and 150 repository
 review captures. Its immutable report is
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_viewport_calibration-title_screen_r-20260722-195214-678/index.html`;
 the generated `game-test-preview/index.html` alias points at the latest evidence.
 The coordinator inspected smallest-Auto, wide scale-1, largest-Auto, and nested
-calibration cells. Variant-isolated fixture roots retained exactly one restored
+size-display cells. Variant-isolated fixture roots retained exactly one restored
 review comment per scenario. `preferred` and exact selection remain available
 as the single-scenario fast paths. Later Minecraft branches and `.g4` files
 were intentionally untouched in this wave.
+
+### Size-display redesign completion — 2026-07-25
+
+The former viewport-calibration test card was replaced in canonical 1.19.2 by
+`SFMSizeDisplayPanel`, `SFMSizeDisplayGeometry`, and
+`SFMSizeDisplayWorkspace`. The old runtime diagnostics, colour bars,
+checkerboard, markers, pointer data, and misleading diagnostic-mode labels
+were removed. Puppet and action labels now use `size-display-*`; the historical
+feature-branch and immutable report path retain their old names only as
+provenance for the already-published run.
+
+Focused tests cover centered placement, opaque solid backgrounds, black/white
+contrast selection, invalid text dimensions, logical-size validation, and
+full/half/third/nested split geometry with distinct colours. The next accepted
+puppet run must regenerate the responsive contact sheet under the new stable
+size-display figure ids and inspect full, half, third, nested, smallest-Auto,
+wide numeric-scale, and largest-Auto captures for readability.
 
 ## Implementation phases
 

@@ -1308,13 +1308,13 @@ panel-group contract, installs that baseline's CLI, and creates:
 | Agent track | Branch | Worktree | Exclusive scope and deliverable |
 | --- | --- | --- | --- |
 | A — Viewport sweep framework | `feat/1.19.2/puppet-viewport-sweep` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-puppet-viewport-sweep` | Rust CLI selection plus Java definition/harness/runtime loop; GLFW resize probe; requested/actual geometry; fresh full run per variant in one process; restoration; variant-aware manifest/contact sheet; no application layout changes |
-| B — Viewport calibration panel | `feat/1.19.2/viewport-calibration-panel` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-viewport-calibration-panel` | Reusable test-card `SFMScreenPanel`, pure bounds/input tests, full/half/third/nested puppet; starts against the frozen panel API and reports rather than invents Track A interfaces; opts into the accepted profile after Track A integration |
+| B — Size-display panel | `feat/1.19.2/viewport-calibration-panel` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-viewport-calibration-panel` | Historical branch name retained for provenance; deliverable is the reusable solid-colour `SFMScreenPanel`, pure allocation/contrast tests, and full/half/third/nested puppet proof |
 | C — Responsive review composition | `feat/1.19.2/repository-review-responsive` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-repository-review-responsive` | Shared review workspace model; distinct file/before/after/comment panels; first-class Stack and typed panel-group insertion needed by those views; wide/medium/narrow/maximize behavior; preferred-variant puppet initially; no viewport harness or persistence-format changes |
 
 Track A owns the cross-language viewport contract to avoid Rust and Java agents
 independently designing the same marker schema. Track B is initially independent
 and must use the existing panel boundary; after A merges, it receives a bounded
-follow-up to adopt the declared profile and capture the full calibration sheet.
+follow-up to adopt the declared profile and capture the full size-display sheet.
 Track C may extract the model/views and pure-test layout policy in parallel, but
 must not guess Track A's runtime API. Its live full-profile proof waits for A.
 
@@ -1333,8 +1333,9 @@ change `.g4` files.
 - `preferred` and one exact variant run only one scenario for fast iteration.
 - Original window/GUI scale and fixture/session state restore after success,
   failure, and cancellation; no variant accumulates another variant's comment.
-- The calibration panel proves host bounds and input transforms at full, half,
-  third, and nested allocation across the accepted profile.
+- The size-display panel makes full, half, third, and nested allocated regions
+  immediately visible through caller-selected solid colours and centered logical
+  dimensions across the accepted profile.
 - Repository review uses shared workspace nodes rather than a replacement
   manual three-column calculation, and responsive modes are chosen from logical
   bounds.
@@ -1351,7 +1352,7 @@ change `.g4` files.
 #### Wave completion record — 2026-07-22
 
 All three tracks were merged into canonical `1.19.2`: viewport framework
-`c33e576532246d349ab85ba2f16011a9ffda50b1`, calibration panel
+`c33e576532246d349ab85ba2f16011a9ffda50b1`, historical calibration-panel
 `bb2867e24247db765e6242357580436d86ba978a`, responsive review workspace
 `3cd93ddfd89901ddacf38956a7cef4a1951334c9`, and its hidden-Stack focus fix
 `4db084c3ab56fd8a8e099805e54479c88256152b`. The conflict resolution preserves
@@ -1365,12 +1366,39 @@ select wide, medium, or narrow composition; `Ctrl+M` maximizes/restores the
 focused leaf. The merged declared-profile puppet visibly exercises palette
 opening, browsing/search, changed-range and nonempty selection evidence,
 complete comment details, close, reopen, and exactly one restored user comment.
-The calibration puppet supplies full, half, equal-thirds, and nested allocation
+The size-display puppet supplies full, half, equal-thirds, and nested allocation
 proof. Together they completed 30 scenarios and 210 captures in one Minecraft
 process; the browsable contact sheet is the generated
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/index.html`.
 The next Track 6 slice remains structural correspondence and durable selector
 migration; it was not started by this wave.
+
+#### Size-display redesign — 2026-07-25
+
+The former verbose viewport-calibration test card is replaced by the reusable
+`SFMSizeDisplayPanel`, `SFMSizeDisplayGeometry`, and
+`SFMSizeDisplayWorkspace` surface. Each leaf paints its complete host bounds in
+a caller-selected opaque solid colour and centers only the live logical width ×
+height. Its foreground uses the better-contrasting opaque black or white value
+from the documented relative-luminance rule. The repeated window/framebuffer/
+GUI diagnostics, colour bars, checkerboard, pointer coordinates, markers and
+misleading diagnostic-mode presentation are removed.
+
+The workspace remains a composable split fixture: full, half, equal-thirds and
+nested horizontal/vertical allocations use distinct colours, while a narrow
+injectable logical-size source keeps the leaf deterministic in tests and live
+in the responsive puppet. `title_screen_size_display` now captures all four
+shapes with stable `size-display-*` figure ids. The preferred 1280×720 Auto run
+produced a fresh four-capture proof under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_siz-20260725-114601-896/`;
+the captures were visually inspected for region distinction, centered text,
+contrast and logical dimensions.
+
+Focused size-display tests pass, and the full Java suite passes with only the
+repository's existing Windows symlink assumptions aborted. Before the Vox
+colour-picker flow, this leaf is the intended allocation-debug surface for
+reviewing nested header-slot composition without introducing remote UI or
+changing the Vox wire boundary.
 
 The historical first integration branch merged Tracks 1 and 3 and is now part
 of canonical 1.19.2. Future concurrently developed Tracks 4, 6, or 7 should

@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
-import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMViewportCalibrationWorkspace;
+import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMSizeDisplayWorkspace;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
@@ -170,8 +170,8 @@ public final class SFMGamePuppetHelper {
         add(new ClickWorkspacePanelPuppetAction(panelIndex));
     }
 
-    public void openViewportCalibration(SFMViewportCalibrationWorkspace.Allocation allocation) {
-        add(new OpenViewportCalibrationPuppetAction(Objects.requireNonNull(allocation)));
+    public void openSizeDisplay(SFMSizeDisplayWorkspace.Allocation allocation) {
+        add(new OpenSizeDisplayPuppetAction(Objects.requireNonNull(allocation)));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 

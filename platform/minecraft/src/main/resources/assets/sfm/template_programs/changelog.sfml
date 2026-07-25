@@ -7,7 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
--- Add a composable viewport calibration panel for checking panel bounds, GUI scale, pointer coordinates, and nested workspace allocation
+-- Add a composable size-display panel that makes solid-colour panel bounds and logical dimensions visible in nested layouts
 -- Make repository review a responsive group of changed-file, source, and complete comment-detail panels
 -- Add single-client responsive viewport sweeps and browsable puppet evidence reports
 -- Open validated repository review bundles from the command palette and restore persisted comments
