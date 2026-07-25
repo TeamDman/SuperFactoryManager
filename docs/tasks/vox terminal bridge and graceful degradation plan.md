@@ -153,6 +153,43 @@ panel and inside horizontal, vertical, tab, and nested split layouts. Rust
 frames describe terminal content; the Java panel owns all layout and theme
 decisions.
 
+## Optional Rust-rendered texture presentation
+
+The preferred Rust-backed presentation experiment is a texture stream rather
+than reimplementing Teamy Studio's renderer in Java. Teamy Studio can render
+its terminal into an off-screen target using its existing DirectX/font
+pipeline; Java then owns a Minecraft texture resource and blits the received
+frame inside a terminal panel. Keyboard, mouse, resize, focus, and paste events
+travel in the opposite direction through the same session.
+
+The process boundary needs to be treated honestly: a DirectX GPU texture
+handle cannot normally be handed directly to Minecraft's separate LWJGL/OpenGL
+context. The first transport must therefore be a bounded pixel-frame protocol
+(for example RGBA/BGRA tiles or a compressed frame) with sequence number,
+dimensions, stride/format, dirty rectangles, and an optional cursor/selection
+overlay. A later native shared-resource experiment may use explicit
+DirectX/OpenGL interop only if it can prove device/context ownership, lifetime,
+security, and graceful fallback. It must not be assumed merely because both
+sides call the result a texture.
+
+The Java texture panel owns upload, resource lifetime, clipping, aspect-ratio
+policy, GUI-scale/layout bounds, and dropped/stale-frame handling. Rust owns
+the font rasterization and terminal appearance in texture mode. A resize of
+the multiplexer leaf sends a bounded render-target request to Rust; Java never
+accepts arbitrary remote layout instructions. The frame protocol should allow
+the Java-local backend to use the same presentation seam with a locally
+rendered fallback, or to select the structured-cell renderer when a texture
+stream is unavailable.
+
+Texture mode is an optional capability negotiated at connect time. Its proof
+must show: the unmistakable Teamy Studio terminal appearance, keyboard input
+round-tripping to the Rust session, resize/re-render behavior, a dropped-frame
+or disconnect state, and fallback to the Java-local terminal without losing
+the session's useful status. Captures should include full-screen, nested-panel,
+narrow-window, and supported GUI-scale layouts. This is a presentation mode
+for terminal content, not a way to send Minecraft panels or executable UI over
+the wire.
+
 ## Phased implementation
 
 ### Phase 0 — Contract fixtures and capability matrix
@@ -203,6 +240,19 @@ state to distinguish Java-local proof from Rust-connected proof.
   frame, cancellation, reconnect, and clean shutdown states.
 - Re-run the same puppet scenario against both Java-local and Rust backends;
   the screen and action model should not fork.
+
+### Phase 3a — Texture presentation experiment
+
+- Add a negotiated `texture-frame` capability alongside the structured-cell
+  capability.
+- Implement a bounded RGBA/BGRA frame or dirty-tile message, Java-side texture
+  upload, sequence/lifetime checks, and resize requests.
+- Adapt Teamy Studio's DirectX off-screen terminal renderer to produce the
+  portable frame in a headless proof first; do not make Minecraft depend on a
+  shared native GPU handle.
+- Capture connected texture mode, input round-trip, resize, stale/disconnected
+  frame handling, and Java-local fallback before considering native graphics
+  interop.
 
 ### Phase 4 — Development-environment capabilities
 

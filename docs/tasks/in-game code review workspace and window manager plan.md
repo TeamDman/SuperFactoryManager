@@ -1401,6 +1401,15 @@ colour-picker flow, this leaf is the intended allocation-debug surface for
 reviewing nested header-slot composition without introducing remote UI or
 changing the Vox wire boundary.
 
+#### Allocated-dimensions correction — 2026-07-25
+
+The size-display leaf now reads the bounds allocated to that leaf. The focused
+test and refreshed preferred puppet prove that half leaves show `210 × 238`
+and `211 × 238`, while nested leaves show `210 × 238`, `211 × 117`, and
+`211 × 117`; they no longer repeat the full `427 × 240` viewport. The proof is
+under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_siz-20260725-123242-832/`.
+
 The historical first integration branch merged Tracks 1 and 3 and is now part
 of canonical 1.19.2. Future concurrently developed Tracks 4, 6, or 7 should
 still meet on an explicitly named integration branch after each has a coherent

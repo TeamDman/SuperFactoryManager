@@ -484,6 +484,19 @@ viewport media rule switches to a single-column flow for narrow reports. The
 publisher is covered by a focused unit test and remains the source of truth;
 generated reports are regenerated as evidence rather than hand-edited.
 
+### Allocated-dimensions correction — 2026-07-25
+
+The live size-display leaf now derives its displayed dimensions from the
+`SFMScreenPanelBounds` supplied by the workspace allocator instead of reading
+the full Minecraft window from `Minecraft.getWindow()`. The focused Java test
+asserts that an injected leaf reports its own bounds. The refreshed preferred
+puppet proof is under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_siz-20260725-123242-832/`:
+the half capture visibly reports `210 × 238` and `211 × 238`, while the nested
+capture reports `210 × 238`, `211 × 117`, and `211 × 117`. This confirms that
+the debug leaf exposes allocation geometry rather than repeating the full
+`427 × 240` viewport.
+
 ## Implementation phases
 
 ### [ ] 1. Add puppet discovery and selection
