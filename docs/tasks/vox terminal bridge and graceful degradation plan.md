@@ -205,6 +205,25 @@ the wire.
 
 ## Phased implementation
 
+### Active delegation wave — 2026-07-25
+
+The first concrete batch is deliberately split across independent repositories
+and worktrees. Agents must commit their own branches and report tests/evidence;
+the coordinator owns canonical-plan edits, review, merge order, and the final
+Minecraft proof.
+
+| Track | Branch / worktree | Acceptance target |
+| --- | --- | --- |
+| Java-local terminal | `feat/1.19.2/terminal-java-local` / `D:\Repos\Minecraft\SFM\worktrees\1.19.2-terminal-java-local` | In-process service/client, bounded virtual filesystem, safe commands, composable panel, command-palette action, focused tests, and a Java-local puppet proof. |
+| Vox terminal contract | `teamy/vox-java-terminal-contract` / `G:\Programming\Repos\facet-worktrees\vox-java-terminal-contract` | Generated portable session/input/resize/frame/cancellation/error DTOs plus deterministic schema and round-trip fixtures on the reviewed `teamy/vox-java` base. |
+| Teamy Studio frame probe | `teamy/terminal-frame-probe` / `G:\Programming\Repos\teamy-studio-terminal-frame-probe` | Headless off-screen terminal capture, PNG artifact, bounded raw/compressed frame seam, and readback/latency evidence without native GPU-handle interop. |
+
+The contract and frame-probe tracks may proceed in parallel with the Java-local
+slice. Integration is coordinator-owned: first review the generated contract,
+then adapt the Java service/panel, and only afterward connect the optional Rust
+texture presentation. No agent should edit the canonical `1.19.2` worktree or
+silently broaden the scope into the colour-picker bridge.
+
 ### Phase 0 — Contract fixtures and capability matrix
 
 - Record the schema in the Facet/Vox integration worktree and generate Java
