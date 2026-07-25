@@ -224,6 +224,48 @@ then adapt the Java service/panel, and only afterward connect the optional Rust
 texture presentation. No agent should edit the canonical `1.19.2` worktree or
 silently broaden the scope into the colour-picker bridge.
 
+### Delegation wave results — 2026-07-25
+
+All three tracks reached a reviewable boundary without being merged into
+canonical `1.19.2`:
+
+- **Java-local terminal:** `bc97e8bc2` on
+  `feat/1.19.2/terminal-java-local`. It contains the typed in-process
+  service/client, bounded virtual filesystem, deterministic commands, terminal
+  panel, command-palette action, focused filesystem/service tests, and
+  `title_screen_java_local_terminal` puppet definition. Pure terminal classes
+  compile with JDK 17. Feature-worktree CLI compile/test/puppet generation
+  could not produce a screenshot because the CLI targets the canonical branch
+  build lock; canonical verification is the next integration step.
+- **Vox terminal contract:** `144382fd5` on
+  `teamy/vox-java-terminal-contract`. It adds the Rust-authoritative Terminal
+  service, generated Java 17 DTO/client/handler/dispatcher/descriptors,
+  capability and frame bounds, cancellation/disconnect/error types, generator
+  integration, design notes, and
+  `vox/test-fixtures/terminal/terminal-contract-v1.json`. The focused Phon
+  round-trip/bounds tests (2), generated-source Java 17 gate (1), codegen
+  freshness check, and formatting checks pass. A broad direct-javac run hit a
+  JDK `Cannot close compiler resources` fatal error without diagnostics; the
+  focused generated-source gate is green.
+- **Teamy Studio frame probe:** `e03e9d5` on `teamy/terminal-frame-probe`.
+  It adds bounded Raw RGBA8, full-PNG, dirty-PNG-tile, and input/resize frame
+  seams. Five focused tests and clippy pass. Review artifacts include a
+  256×128 terminal frame, raw bytes, and metrics showing raw 131072 B, full
+  PNG 2515 B, and three dirty PNG tiles 1430 B with approximately 3 ms CPU
+  encoding. The full replay suite still has one pre-existing missing-fixture
+  failure.
+
+The Teamy Studio DirectX follow-up also produced a real 1040×680 off-screen
+render after temporarily setting `CUDARC_CUDA_VERSION=13020` with a target
+directory on `D:`. The existing cudarc 0.19.7 lock only supports through
+13.2; `teamy-llm-service` uses cudarc 0.19.8 and `13030`. The render then
+failed only on a stale expected scene/color snapshot, not renderer startup.
+No CUDA or Teamy Studio source changes were committed in that follow-up.
+
+The next coordinator-owned step is to review these three boundaries, cherry-pick
+the contract and Java slice in that order, and run canonical compile/tests plus
+the Java-local puppet before attempting the optional Vox texture adapter.
+
 ### Phase 0 — Contract fixtures and capability matrix
 
 - Record the schema in the Facet/Vox integration worktree and generate Java
