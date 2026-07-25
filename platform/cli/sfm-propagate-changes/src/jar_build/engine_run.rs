@@ -3845,14 +3845,30 @@ fn render_game_puppet_preview_contact_sheet(artifacts: &[GamePuppetPreviewArtifa
     for artifact in artifacts {
         groups.entry((&artifact.puppet_name, &artifact.capture_name)).or_default().push(artifact);
     }
-    let mut html = String::from("<!doctype html><meta charset=\"utf-8\"><title>SFM viewport preview</title><style>body{font:14px system-ui;background:#111;color:#eee;margin:24px}h2{margin-top:40px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #555;padding:8px;vertical-align:top;background:#222}th{background:#181818}.cell img{width:100%;min-width:220px;max-width:420px;height:auto}.meta{font-family:monospace;margin-bottom:8px;color:#8ee;white-space:nowrap}</style><h1>SFM viewport preview</h1>");
+    let mut html = String::from(
+        r#"<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SFM viewport preview</title><style>
+body{font:14px/1.4 system-ui,sans-serif;background:#111;color:#eee;margin:clamp(12px,3vw,24px)}
+h1{margin:0 0 1rem;font-size:clamp(1.35rem,2vw,2rem)}
+.preview-sections{display:flex;flex-wrap:wrap;align-items:flex-start;gap:1rem}
+.capture-section{box-sizing:border-box;flex:1 1 34rem;min-width:min(100%,20rem);max-width:60rem;padding:1rem;border:1px solid #555;border-radius:6px;background:#181818}
+.capture-section h2{margin:0 0 .75rem;font-size:1.05rem;overflow-wrap:anywhere}
+.table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+table{border-collapse:collapse;width:100%;min-width:34rem}
+th,td{border:1px solid #555;padding:8px;vertical-align:top;background:#222}
+th{background:#181818;text-align:left}
+.cell{min-width:220px}
+.cell img{display:block;width:100%;max-width:420px;height:auto}
+.meta{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;margin-bottom:8px;color:#8ee;white-space:normal;overflow-wrap:anywhere}
+@media (max-width:700px){body{margin:12px}.preview-sections{display:block}.capture-section{max-width:none;margin-bottom:1rem}.capture-section:last-child{margin-bottom:0}}
+</style></head><body><h1>SFM viewport preview</h1><main class="preview-sections">"#,
+    );
     for ((puppet, capture), cells) in groups {
         let sizes = cells.iter().filter_map(|cell| cell.metadata.viewport.as_ref().map(|view| (view.actual_window_width, view.actual_window_height))).collect::<BTreeSet<_>>();
         let mut scales = cells.iter().filter_map(|cell| cell.metadata.viewport.as_ref().map(|view| view.requested_gui_scale.clone())).collect::<Vec<_>>();
         scales.sort_by_key(|scale| if scale == "auto" { 0 } else { scale.parse::<u16>().unwrap_or(u16::MAX).saturating_add(1) });
         scales.dedup();
-        let _ = write!(html, "<h2>{} / {}</h2><table><thead><tr><th>Window</th>", escape_html(puppet), escape_html(capture));
-        for scale in &scales { let _ = write!(html, "<th>GUI {}</th>", escape_html(scale)); }
+        let _ = write!(html, "<section class=\"capture-section\"><h2>{} / {}</h2><div class=\"table-wrap\"><table><thead><tr><th scope=\"col\">Window</th>", escape_html(puppet), escape_html(capture));
+        for scale in &scales { let _ = write!(html, "<th scope=\"col\">GUI {}</th>", escape_html(scale)); }
         html.push_str("</tr></thead><tbody>");
         for (width, height) in sizes {
             let _ = write!(html, "<tr><th>{width}×{height}</th>");
@@ -3867,8 +3883,9 @@ fn render_game_puppet_preview_contact_sheet(artifacts: &[GamePuppetPreviewArtifa
             }
             html.push_str("</tr>");
         }
-        html.push_str("</tbody></table>");
+        html.push_str("</tbody></table></div></section>");
     }
+    html.push_str("</main></body></html>");
     html
 }
 
@@ -3880,14 +3897,18 @@ fn escape_html(value: &str) -> String {
 mod game_puppet_preview_tests {
     use super::ContentHash;
     use super::ContentHashAlgorithm;
+    use super::GamePuppetPreviewArtifact;
+    use super::GamePuppetPreviewCaptureMetadata;
     use super::GamePuppetPreviewCaptureProfile;
     use super::GamePuppetPreviewManifest;
     use super::GamePuppetPreviewManifestCapture;
+    use super::GamePuppetPreviewVariantObservation;
     use super::GamePuppetPreviewViewport;
     use super::create_game_puppet_preview_run_root;
     use super::game_puppet_preview_artifact_file_name;
     use super::is_safe_preview_name;
     use super::parse_game_puppet_capture_metadata;
+    use super::render_game_puppet_preview_contact_sheet;
     use super::png_dimensions;
     use tempfile::tempdir;
 
@@ -3911,6 +3932,58 @@ mod game_puppet_preview_tests {
             game_puppet_preview_artifact_file_name(12, "disk-program"),
             "figure_12_disk-program.png"
         );
+    }
+
+    #[test]
+    fn preview_contact_sheet_wraps_independent_capture_sections() {
+        let artifact = |puppet: &str, capture: &str, figure: u32, scale: &str| {
+            GamePuppetPreviewArtifact {
+                puppet_name: puppet.to_string(),
+                variant: format!("1280x720@{scale}"),
+                capture_name: capture.to_string(),
+                figure_number: figure,
+                relative_path: std::path::PathBuf::from(format!("{puppet}/{capture}-{scale}.png")),
+                width: 1280,
+                height: 720,
+                hash: ContentHash::from_bytes(b"preview", ContentHashAlgorithm::Blake3),
+                metadata: GamePuppetPreviewCaptureMetadata {
+                    puppet: Some(puppet.to_string()),
+                    variant: Some(format!("1280x720@{scale}")),
+                    capture: Some(capture.to_string()),
+                    figure_number: Some(figure),
+                    camera: None,
+                    screen: Some("title".to_string()),
+                    hud_hidden: Some(true),
+                    viewport: Some(GamePuppetPreviewVariantObservation {
+                        actual_window_width: 1280,
+                        actual_window_height: 720,
+                        framebuffer_width: 1280,
+                        framebuffer_height: 720,
+                        requested_gui_scale: scale.to_string(),
+                        effective_gui_scale: if scale == "auto" { 3 } else { 2 },
+                        logical_width: 427,
+                        logical_height: 240,
+                    }),
+                },
+            }
+        };
+        let html = render_game_puppet_preview_contact_sheet(
+            &[
+                artifact("puppet_a", "first", 1, "auto"),
+                artifact("puppet_b", "second", 2, "1"),
+            ],
+            false,
+        );
+
+        assert!(html.contains("<main class=\"preview-sections\">"));
+        assert_eq!(html.matches("<section class=\"capture-section\">").count(), 2);
+        assert!(html.contains("display:flex"));
+        assert!(html.contains("flex-wrap:wrap"));
+        assert!(html.contains("overflow-x:auto"));
+        assert!(html.contains("@media (max-width:700px)"));
+        assert!(html.contains("alt=\"first\""));
+        assert!(html.contains("height:auto"));
+        assert!(html.contains("</main></body></html>"));
     }
 
     #[test]

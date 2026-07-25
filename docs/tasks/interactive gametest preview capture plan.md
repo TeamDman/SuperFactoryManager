@@ -469,6 +469,19 @@ puppet run must regenerate the responsive contact sheet under the new stable
 size-display figure ids and inspect full, half, third, nested, smallest-Auto,
 wide numeric-scale, and largest-Auto captures for readability.
 
+### Responsive report layout completion — 2026-07-25
+
+The generated `game-test-preview/index.html` report now renders each independent
+puppet/capture group as a semantic section inside a responsive flex-wrapping
+container. Sections share rows when the report viewport has room and wrap into
+additional rows instead of forcing one long column. Each section keeps readable
+minimum sizing, while its table can scroll horizontally in a narrow window;
+images retain their aspect ratio, captions remain associated with their cells,
+and image alt text plus table column scopes preserve accessibility. A small
+viewport media rule switches to a single-column flow for narrow reports. The
+publisher is covered by a focused unit test and remains the source of truth;
+generated reports are regenerated as evidence rather than hand-edited.
+
 ## Implementation phases
 
 ### [ ] 1. Add puppet discovery and selection
