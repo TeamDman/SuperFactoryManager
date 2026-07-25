@@ -15,6 +15,28 @@ Vulkan window`). It already uses `ash 0.38`, `ash-window 0.13`, `winit 0.30`,
 setup. Reuse its proven seams deliberately; do not copy its entire
 application.
 
+The upstream Ash checkout at `G:\Programming\Repos\ash` is also available as
+the API and example reference. Its `ash` crate is `0.38.0+1.4.352` and the
+workspace includes `ash-examples` and `ash-window`. Use it to verify loader,
+instance/device, extension, swapchain, synchronization, pointer-chain, and
+validation-layer conventions against the actual low-level API rather than
+relying only on the cursor-latency application code. The Ash repository is a
+reference checkout, not a source tree to vendor wholesale: `teamy-terminal`
+should consume the reviewed crates from crates.io/git with a locked revision
+and keep its own narrow renderer boundary and error diagnostics.
+
+The two references have complementary roles:
+
+- `ash` and `ash-examples` answer “what does the raw Vulkan API and its safety
+  boundary require?”
+- `cursor-latency` answers “how has this machine already assembled a working
+  `ash`/`ash-window`/`winit` surface, including the transparent-window seam?”
+
+The Vulkan worktree should cite which example or application seam informed a
+change, and its acceptance evidence must still include a headless/off-screen
+path so a missing window, loader, or GPU does not make the terminal core or
+CLI unusable.
+
 ## Initialization from `teamy-rust-cli`
 
 The repository should be initialized from the maintained single-crate
