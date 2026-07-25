@@ -1621,8 +1621,14 @@ This completes the Java 17 unary artifact and production-loader wave. It does
 not merge the branch-only probe code, lock, or schema-v3 `LocalImport`.
 Concrete next implementation work is schema-v4 portable acquisition or the
 narrow Minecraft Vox bridge (endpoint lifecycle, one generated service, an
-action/panel, and puppet-visible success/failure states). The bridge must
-consume the frozen artifact rather than copying its protocol by hand.
+action/panel, and puppet-visible success/failure states). The preferred first
+user-facing bridge is now the terminal capability rather than the colour-picker
+demo: it must provide a Java-local virtual-terminal fallback, then use the same
+typed service through Vox/Rust when available. The detailed scope, Teamy Studio
+reference seams, Java/Rust ownership boundary, capability matrix, and puppet
+proof are recorded in [Vox Terminal Bridge and Graceful Degradation Plan](vox%20terminal%20bridge%20and%20graceful%20degradation%20plan.md).
+The bridge must consume the frozen artifact rather than copying its protocol by
+hand.
 
 Before either implementation begins, perform a deliberate post-implementation
 review of the completed Phon/Vox Java slice. This is a fresh-eyes review rather
@@ -1653,12 +1659,12 @@ The bridge planning that follows must preserve a strict capability boundary:
 - Shared intent/result schemas may be Java-native and reusable locally; only
   the adapter that transports them out of process depends on Vox.
 
-The next planning artifact should be a capability matrix with rows for mount,
-disk editing, formatting, parsing, compiling, testing, auditing and source
-builds, and columns for Java-only implementation, optional Vox enhancement,
-external prerequisites, failure behavior and observable in-game proof. This
-keeps the bridge additive instead of quietly turning the Rust CLI into a
-runtime dependency of the mod.
+The capability matrix is now the first phase of the terminal bridge plan. It
+has rows for mount, disk editing, formatting, parsing, compiling, testing,
+auditing and source builds, and columns for Java-only implementation, optional
+Vox enhancement, external prerequisites, failure behavior and observable
+in-game proof. This keeps the bridge additive instead of quietly turning the
+Rust CLI into a runtime dependency of the mod.
 
 The canonical clean-loader commits and completed evidence were propagated
 through the maintained version chain. The clean propagation checkpoint heads
