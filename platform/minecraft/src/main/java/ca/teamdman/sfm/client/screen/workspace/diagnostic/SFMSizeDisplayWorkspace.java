@@ -20,7 +20,7 @@ public final class SFMSizeDisplayWorkspace {
     }
 
     public static SFMScreenMultiplexer create(@Nullable Screen previous, Allocation allocation) {
-        return create(previous, allocation, SFMSizeDisplayDimensionsSource.minecraftLogicalSize());
+        return create(previous, allocation, SFMSizeDisplayDimensionsSource.allocatedPanel());
     }
 
     /** Allows puppet fixtures and pure tests to supply a stable logical-size source. */
@@ -33,7 +33,7 @@ public final class SFMSizeDisplayWorkspace {
     }
 
     public static SFMWorkspaceLayout layout(Allocation allocation) {
-        return layout(allocation, SFMSizeDisplayDimensionsSource.minecraftLogicalSize());
+        return layout(allocation, SFMSizeDisplayDimensionsSource.allocatedPanel());
     }
 
     public static SFMWorkspaceLayout layout(

@@ -1386,13 +1386,14 @@ misleading diagnostic-mode presentation are removed.
 
 The workspace remains a composable split fixture: full, half, equal-thirds and
 nested horizontal/vertical allocations use distinct colours, while a narrow
-injectable logical-size source keeps the leaf deterministic in tests and live
-in the responsive puppet. `title_screen_size_display` now captures all four
-shapes with stable `size-display-*` figure ids. The preferred 1280×720 Auto run
+dimensions source receives each leaf's allocated bounds (with deterministic
+overrides available to tests). `title_screen_size_display` now captures all
+four shapes with stable `size-display-*` figure ids. The preferred 1280×720 Auto run
 produced a fresh four-capture proof under
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_siz-20260725-114601-896/`;
 the captures were visually inspected for region distinction, centered text,
-contrast and logical dimensions.
+contrast and logical dimensions. Each leaf must report its own allocation—for
+example, a half or nested leaf must not repeat the full 427 × 240 window size.
 
 Focused size-display tests pass, and the full Java suite passes with only the
 repository's existing Windows symlink assumptions aborted. Before the Vox

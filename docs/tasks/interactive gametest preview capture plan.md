@@ -399,8 +399,8 @@ The panel is reusable as a leaf in horizontal, vertical, and nested split
 layouts. The size-display workspace fixture assigns distinct colours to full,
 half, third, and nested leaves so dividers, allocation bounds, and future
 header-slot composition can be inspected at a glance. Its logical dimensions
-come from a narrow injectable source, keeping the panel testable while allowing
-the live puppet to show the current GUI-scaled logical size.
+come from the allocated leaf bounds, keeping the live puppet honest about each
+panel's size while allowing tests to inject deterministic values when needed.
 
 ### Implementation slices and acceptance
 
@@ -467,7 +467,9 @@ contrast selection, invalid text dimensions, logical-size validation, and
 full/half/third/nested split geometry with distinct colours. The next accepted
 puppet run must regenerate the responsive contact sheet under the new stable
 size-display figure ids and inspect full, half, third, nested, smallest-Auto,
-wide numeric-scale, and largest-Auto captures for readability.
+wide numeric-scale, and largest-Auto captures for readability. The dimensions
+shown in each leaf must be its own allocated logical bounds, not the full
+Minecraft window dimensions.
 
 ### Responsive report layout completion — 2026-07-25
 

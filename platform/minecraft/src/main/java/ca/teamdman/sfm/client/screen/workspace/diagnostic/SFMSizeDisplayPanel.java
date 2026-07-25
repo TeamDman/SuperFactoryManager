@@ -20,7 +20,7 @@ public final class SFMSizeDisplayPanel implements SFMScreenPanel {
     private final SFMSizeDisplayDimensionsSource dimensionsSource;
 
     public SFMSizeDisplayPanel(String label, int backgroundColour) {
-        this(label, backgroundColour, SFMSizeDisplayDimensionsSource.minecraftLogicalSize());
+        this(label, backgroundColour, SFMSizeDisplayDimensionsSource.allocatedPanel());
     }
 
     public SFMSizeDisplayPanel(
@@ -74,7 +74,7 @@ public final class SFMSizeDisplayPanel implements SFMScreenPanel {
                 backgroundColour
         );
 
-        SFMSizeDisplayDimensions dimensions = dimensionsSource.snapshot(minecraft);
+        SFMSizeDisplayDimensions dimensions = dimensionsSource.snapshot(bounds);
         String text = dimensions.width() + " × " + dimensions.height();
         SFMSizeDisplayGeometry geometry = SFMSizeDisplayGeometry.create(
                 bounds,
