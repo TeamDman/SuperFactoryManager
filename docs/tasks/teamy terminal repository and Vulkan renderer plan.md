@@ -99,8 +99,13 @@ terminal product API.
 
 ## Repository bootstrap
 
-The repository does not currently exist on GitHub. Once creation is authorized
-for the execution turn, the coordinator should:
+The public repository now exists at
+`https://github.com/TeamDman/teamy-terminal`, with an MPL-2.0 license, and the
+working clone is `G:\Programming\Repos\teamy-terminal`. The repository plan is
+mirrored into that checkout under `docs/tasks` so the implementation and its
+design record travel together.
+
+The intended initializer command is still:
 
 ```text
 gh repo create TeamDman/teamy-terminal --public --license MPL-2.0 \
@@ -108,6 +113,15 @@ gh repo create TeamDman/teamy-terminal --public --license MPL-2.0 \
 git clone https://github.com/TeamDman/teamy-terminal.git \
   G:\Programming\Repos\teamy-terminal
 ```
+
+During this bootstrap the normal `cargo run -- init` path could not compile
+the template because its direct Facet pin and the Facet revision selected by
+`teamy-cancellation` were different, making `StopAfterArgs` fail its `Facet`
+bound. The template's compatibility initializer was therefore used for this
+first copy; it applies the same exclusions and preserve-existing-license rules
+without changing the template repository. Resolving that dependency skew and
+returning to the normal initializer remains a template-maintenance follow-up,
+not a reason to import unrelated Teamy Studio dependencies here.
 
 The initial commit should contain the MPL-2.0 license, README, contribution
 and development notes, a Cargo workspace, and a passing headless test. The
@@ -301,10 +315,9 @@ reference.
 
 ## Immediate next steps
 
-1. Coordinator creates the public repository, runs the `teamy-rust-cli`
-   initializer, performs the placeholder audit, and commits the initial
-   MPL-2.0 workspace plus the adapted quality gate.
-2. Coordinator records the initial commit and creates the three worktrees.
+1. Convert the template-derived single package into the planned MPL-2.0
+   workspace and commit the placeholder audit plus adapted quality gate.
+2. Record that workspace commit and create the three isolated worktrees.
 3. Dispatch core, Vulkan, and font agents with the gates above.
 4. Review the core headless `1..1000` proof before connecting SFM.
 5. Integrate the local core path into `sfm-propagate-changes` behind a
