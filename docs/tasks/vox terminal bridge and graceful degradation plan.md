@@ -167,7 +167,12 @@ handle cannot normally be handed directly to Minecraft's separate LWJGL/OpenGL
 context. The first transport must therefore be a bounded pixel-frame protocol
 (for example RGBA/BGRA tiles or a compressed frame) with sequence number,
 dimensions, stride/format, dirty rectangles, and an optional cursor/selection
-overlay. A later native shared-resource experiment may use explicit
+overlay. PNG is appropriate for puppet screenshots, saved snapshots, and a
+low-frequency proof because it is easy to validate and archive, but encoding a
+full PNG for every keystroke is needlessly latency- and CPU-sensitive. The live
+MVP should therefore permit raw or losslessly compressed dirty tiles, with a
+PNG/keyframe fallback when a full refresh is needed. A later native
+shared-resource experiment may use explicit
 DirectX/OpenGL interop only if it can prove device/context ownership, lifetime,
 security, and graceful fallback. It must not be assumed merely because both
 sides call the result a texture.
@@ -180,6 +185,14 @@ accepts arbitrary remote layout instructions. The frame protocol should allow
 the Java-local backend to use the same presentation seam with a locally
 rendered fallback, or to select the structured-cell renderer when a texture
 stream is unavailable.
+
+The live frame envelope should include a monotonically increasing sequence,
+session id, pixel width/height, logical panel bounds, pixel format, stride,
+full-frame versus dirty-tile kind, compression kind, and an optional cursor or
+selection layer. Java rejects oversized, out-of-order, malformed, or stale
+frames and may drop intermediate frames while retaining the newest complete
+frame. The protocol must distinguish a terminal snapshot PNG intended for
+archive/replay from a presentation frame intended for immediate upload.
 
 Texture mode is an optional capability negotiated at connect time. Its proof
 must show: the unmistakable Teamy Studio terminal appearance, keyboard input
