@@ -1308,13 +1308,13 @@ panel-group contract, installs that baseline's CLI, and creates:
 | Agent track | Branch | Worktree | Exclusive scope and deliverable |
 | --- | --- | --- | --- |
 | A — Viewport sweep framework | `feat/1.19.2/puppet-viewport-sweep` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-puppet-viewport-sweep` | Rust CLI selection plus Java definition/harness/runtime loop; GLFW resize probe; requested/actual geometry; fresh full run per variant in one process; restoration; variant-aware manifest/contact sheet; no application layout changes |
-| B — Viewport calibration panel | `feat/1.19.2/viewport-calibration-panel` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-viewport-calibration-panel` | Reusable test-card `SFMScreenPanel`, pure bounds/input tests, full/half/third/nested puppet; starts against the frozen panel API and reports rather than invents Track A interfaces; opts into the accepted profile after Track A integration |
+| B — Size-display panel | `feat/1.19.2/viewport-calibration-panel` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-viewport-calibration-panel` | Historical branch name retained for provenance; deliverable is the reusable solid-colour `SFMScreenPanel`, pure allocation/contrast tests, and full/half/third/nested puppet proof |
 | C — Responsive review composition | `feat/1.19.2/repository-review-responsive` | `D:\Repos\Minecraft\SFM\worktrees\1.19.2-repository-review-responsive` | Shared review workspace model; distinct file/before/after/comment panels; first-class Stack and typed panel-group insertion needed by those views; wide/medium/narrow/maximize behavior; preferred-variant puppet initially; no viewport harness or persistence-format changes |
 
 Track A owns the cross-language viewport contract to avoid Rust and Java agents
 independently designing the same marker schema. Track B is initially independent
 and must use the existing panel boundary; after A merges, it receives a bounded
-follow-up to adopt the declared profile and capture the full calibration sheet.
+follow-up to adopt the declared profile and capture the full size-display sheet.
 Track C may extract the model/views and pure-test layout policy in parallel, but
 must not guess Track A's runtime API. Its live full-profile proof waits for A.
 
@@ -1333,8 +1333,9 @@ change `.g4` files.
 - `preferred` and one exact variant run only one scenario for fast iteration.
 - Original window/GUI scale and fixture/session state restore after success,
   failure, and cancellation; no variant accumulates another variant's comment.
-- The calibration panel proves host bounds and input transforms at full, half,
-  third, and nested allocation across the accepted profile.
+- The size-display panel makes full, half, third, and nested allocated regions
+  immediately visible through caller-selected solid colours and centered logical
+  dimensions across the accepted profile.
 - Repository review uses shared workspace nodes rather than a replacement
   manual three-column calculation, and responsive modes are chosen from logical
   bounds.
@@ -1351,7 +1352,7 @@ change `.g4` files.
 #### Wave completion record — 2026-07-22
 
 All three tracks were merged into canonical `1.19.2`: viewport framework
-`c33e576532246d349ab85ba2f16011a9ffda50b1`, calibration panel
+`c33e576532246d349ab85ba2f16011a9ffda50b1`, historical calibration-panel
 `bb2867e24247db765e6242357580436d86ba978a`, responsive review workspace
 `3cd93ddfd89901ddacf38956a7cef4a1951334c9`, and its hidden-Stack focus fix
 `4db084c3ab56fd8a8e099805e54479c88256152b`. The conflict resolution preserves
@@ -1365,12 +1366,49 @@ select wide, medium, or narrow composition; `Ctrl+M` maximizes/restores the
 focused leaf. The merged declared-profile puppet visibly exercises palette
 opening, browsing/search, changed-range and nonempty selection evidence,
 complete comment details, close, reopen, and exactly one restored user comment.
-The calibration puppet supplies full, half, equal-thirds, and nested allocation
+The size-display puppet supplies full, half, equal-thirds, and nested allocation
 proof. Together they completed 30 scenarios and 210 captures in one Minecraft
 process; the browsable contact sheet is the generated
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/index.html`.
 The next Track 6 slice remains structural correspondence and durable selector
 migration; it was not started by this wave.
+
+#### Size-display redesign — 2026-07-25
+
+The former verbose viewport-calibration test card is replaced by the reusable
+`SFMSizeDisplayPanel`, `SFMSizeDisplayGeometry`, and
+`SFMSizeDisplayWorkspace` surface. Each leaf paints its complete host bounds in
+a caller-selected opaque solid colour and centers only the live logical width ×
+height. Its foreground uses the better-contrasting opaque black or white value
+from the documented relative-luminance rule. The repeated window/framebuffer/
+GUI diagnostics, colour bars, checkerboard, pointer coordinates, markers and
+misleading diagnostic-mode presentation are removed.
+
+The workspace remains a composable split fixture: full, half, equal-thirds and
+nested horizontal/vertical allocations use distinct colours, while a narrow
+dimensions source receives each leaf's allocated bounds (with deterministic
+overrides available to tests). `title_screen_size_display` now captures all
+four shapes with stable `size-display-*` figure ids. The preferred 1280×720 Auto run
+produced a fresh four-capture proof under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_siz-20260725-114601-896/`;
+the captures were visually inspected for region distinction, centered text,
+contrast and logical dimensions. Each leaf must report its own allocation—for
+example, a half or nested leaf must not repeat the full 427 × 240 window size.
+
+Focused size-display tests pass, and the full Java suite passes with only the
+repository's existing Windows symlink assumptions aborted. Before the Vox
+colour-picker flow, this leaf is the intended allocation-debug surface for
+reviewing nested header-slot composition without introducing remote UI or
+changing the Vox wire boundary.
+
+#### Allocated-dimensions correction — 2026-07-25
+
+The size-display leaf now reads the bounds allocated to that leaf. The focused
+test and refreshed preferred puppet prove that half leaves show `210 × 238`
+and `211 × 238`, while nested leaves show `210 × 238`, `211 × 117`, and
+`211 × 117`; they no longer repeat the full `427 × 240` viewport. The proof is
+under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_siz-20260725-123242-832/`.
 
 The historical first integration branch merged Tracks 1 and 3 and is now part
 of canonical 1.19.2. Future concurrently developed Tracks 4, 6, or 7 should
@@ -1483,12 +1521,14 @@ verified clean and exactly at the contract checkpoint.
 #### Integration result — 2026-07-23
 
 V1, V2 and V3 are complete and integrated on `teamy/vox-java`. The maintained
-Facet fork's reviewed integration head is
-`5e719ed9f5d1f36ba41242c2c057e74d67ecb3c9`, pushed to
-`mine/teamy/vox-java`. The integration sequence includes the three delegated
-heads plus full generated-response adapters, packaging/test xtasks, both wire
-directions, a Java-hosted service, runtime wire schemas, and negative and
-schema-evolution conformance.
+Facet fork's reviewed code and frozen-artifact commit is
+`5e719ed9f5d1f36ba41242c2c057e74d67ecb3c9`. The branch's current pushed head is
+documentation-only correction `21f71915a`, which clarifies that the Java 17
+baseline permits records and sealed types while excluding virtual threads and
+language/library APIs introduced after Java 17. The integration sequence
+includes the three delegated heads plus full generated-response adapters,
+packaging/test xtasks, both wire directions, a Java-hosted service, runtime
+wire schemas, and negative and schema-evolution conformance.
 
 `cargo xtask package-java` proves 72 Phon assertions, stream framing, the Vox
 runtime, generated responses, deterministic assembly, a clean consumer smoke
@@ -1591,8 +1631,59 @@ This completes the Java 17 unary artifact and production-loader wave. It does
 not merge the branch-only probe code, lock, or schema-v3 `LocalImport`.
 Concrete next implementation work is schema-v4 portable acquisition or the
 narrow Minecraft Vox bridge (endpoint lifecycle, one generated service, an
-action/panel, and puppet-visible success/failure states). The bridge must
-consume the frozen artifact rather than copying its protocol by hand.
+action/panel, and puppet-visible success/failure states). The preferred first
+user-facing bridge is now the terminal capability rather than the colour-picker
+demo: it must provide a Java-local virtual-terminal fallback, then use the same
+typed service through Vox/Rust when available. The detailed scope, Teamy Studio
+reference seams, Java/Rust ownership boundary, capability matrix, and puppet
+proof are recorded in [Vox Terminal Bridge and Graceful Degradation Plan](vox%20terminal%20bridge%20and%20graceful%20degradation%20plan.md).
+The bridge must consume the frozen artifact rather than copying its protocol by
+hand.
+
+Before either implementation begins, perform a deliberate post-implementation
+review of the completed Phon/Vox Java slice. This is a fresh-eyes review rather
+than another feature pass. Check the Java 17 contract and documentation for
+incorrect platform assumptions like the corrected records/sealed-types claim;
+review public API ergonomics, generated-versus-handwritten ownership, protocol
+fidelity, schema negotiation, bounds, concurrency, cancellation, shutdown,
+error surfaces, deterministic generation and packaging; and identify missing
+negative, lifecycle and clean-consumer tests. Record findings by severity and
+separate required corrections from future enhancements. Rebuild and republish
+the frozen artifact only if code or generated output changes.
+
+The bridge planning that follows must preserve a strict capability boundary:
+
+- SFM gameplay and ordinary in-game functionality remain self-sufficient on
+  the Java/Minecraft side. They must not require a Rust process.
+- The mount workflow should work with only the mod and Java so a player can
+  move seamlessly between an in-game disk and VSCode without installing or
+  launching the Rust development toolchain.
+- Vox is an optional development-environment bridge for capabilities that
+  genuinely cross the game/process boundary: building SFM source from an
+  in-game command-palette action, invoking repository/compiler/audit tooling,
+  presenting richer external interfaces, and returning structured progress,
+  diagnostics and results.
+- Every bridged action declares availability and requirements. An unavailable
+  endpoint produces an explanatory disabled or launch-suggestion state rather
+  than weakening unrelated mod functionality.
+- Shared intent/result schemas may be Java-native and reusable locally; only
+  the adapter that transports them out of process depends on Vox.
+
+The capability matrix is now the first phase of the terminal bridge plan. It
+has rows for mount, disk editing, formatting, parsing, compiling, testing,
+auditing and source builds, and columns for Java-only implementation, optional
+Vox enhancement, external prerequisites, failure behavior and observable
+in-game proof. This keeps the bridge additive instead of quietly turning the
+Rust CLI into a runtime dependency of the mod.
+
+The canonical clean-loader commits and completed evidence were propagated
+through the maintained version chain. The clean propagation checkpoint heads
+are `90a89d692` (1.19.2), `6bc6347e3` (1.19.4), `3355a19b9` (1.20), `1dd5a5974`
+(1.20.1), `8e2179256` (1.20.2), `f37703eb0` (1.20.3), `b9685f7f2`
+(1.20.4), `3f38cc2ea` (1.21.0), `e566751ea` (1.21.1), and `929fdf38c`
+(26.1.2). The version-surface audit reports zero CLI-source divergence
+warnings; its Java warnings are the existing cross-version Java differences,
+not changes introduced by this CLI/docs-only propagation.
 
 #### Coordinator preflight — Facet synchronization and contract freeze
 

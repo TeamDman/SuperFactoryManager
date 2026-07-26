@@ -168,6 +168,22 @@ theme cannot smuggle executable or oversized data through an icon.
   channels, preview swatch, recent colours, and a mouse-accessible colour
   field/wheel. The result is a typed colour value; the panel is not coupled to
   a particular preference.
+- Refine that reusable panel before the Vox colour-picker flow: expose a
+  composable header slot above the editing controls. Preserve the current
+  default two-line header as vertically composed centered formatted-text
+  panels, including its existing spacing/alignment and compact behavior, while
+  allowing a caller to supply another Java-owned header panel.
+- Keep the Vox prompt portable and presentation-safe. Rust sends structured
+  prompt content only; the Java bridge validates it and renders a local
+  centered-text header panel for the slot. The wire contract must not accept
+  arbitrary remote Minecraft panels, widgets, renderers or layout instructions.
+  Java owns composition, bounds, formatting, accessibility and theme handling;
+  Rust owns semantic prompt content and the typed ARGB result.
+- Validate the default-header regression, custom Vox-header rendering,
+  bounded/centered long and multi-line content at supported GUI scales,
+  invalid/oversized prompt handling, typed ARGB round-trip, and terminal
+  cancellation/timeout/disconnect behavior with no stale callback. Capture
+  both default and Vox-header states in the colour-input puppet.
 - Add an item-icon picker backed by the item registry with search, current
   stack preview, fallback/reset, and keyboard navigation.
 - Add theme and icon-scheme panels that list semantic properties, open the
