@@ -45,6 +45,11 @@ public final class SFMCommandPaletteActions {
             OpenReviewBundleAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenTerminalAction> OPEN_TERMINAL = REGISTERER.register(
+            "terminal/open",
+            OpenTerminalAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, SFMThemeAction> THEME_RELOAD = REGISTERER.register(
             "theme/reload",
             () -> new SFMThemeAction(SFMThemeAction.Operation.RELOAD)
