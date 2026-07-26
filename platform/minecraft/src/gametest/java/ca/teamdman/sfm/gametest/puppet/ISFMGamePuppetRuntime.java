@@ -27,6 +27,14 @@ public interface ISFMGamePuppetRuntime {
 
     void executeCommandPalette(String command);
 
+    void openTerminal();
+
+    void executeTerminal(String command);
+
+    void scrollTerminal(double delta);
+
+    void pressTerminalKey(int keyCode);
+
     void pressFileExplorerKey(int keyCode);
 
     void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot);
