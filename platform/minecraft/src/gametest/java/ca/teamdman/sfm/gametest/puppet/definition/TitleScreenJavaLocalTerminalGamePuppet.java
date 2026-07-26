@@ -17,7 +17,7 @@ public final class TitleScreenJavaLocalTerminalGamePuppet {
         puppet.waitForOverlayToNotBePresent(LoadingOverlay.class);
         puppet.waitTicks(20);
         puppet.openCommandPalette();
-        puppet.executeCommandPalette("terminal/open");
+        puppet.executeCommandPalette("sfm action invoke sfm:terminal/open");
         puppet.executeTerminal("pwd");
         puppet.executeTerminal("write /workspace/hello.txt edited in game");
         puppet.executeTerminal("ls /workspace");

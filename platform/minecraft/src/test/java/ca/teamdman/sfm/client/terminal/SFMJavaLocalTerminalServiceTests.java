@@ -37,7 +37,7 @@ class SFMJavaLocalTerminalServiceTests {
         scrollback.appendAll(java.util.List.of("one", "two", "three", "four", "five"));
         scrollback.setViewportLineCount(2);
         scrollback.scrollOlder(2);
-        assertEquals(java.util.List.of("one", "two"), scrollback.visibleLines());
+        assertEquals(java.util.List.of("two", "three"), scrollback.visibleLines());
 
         scrollback.appendAll(java.util.List.of("six", "seven"));
         assertEquals(java.util.List.of("three", "four"), scrollback.visibleLines());

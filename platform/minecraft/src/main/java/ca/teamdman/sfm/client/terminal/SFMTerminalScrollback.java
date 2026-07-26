@@ -29,12 +29,16 @@ public final class SFMTerminalScrollback {
 
     public void appendAll(List<String> newLines) {
         if (newLines.isEmpty()) return;
-        int previousSize = lines.size();
+        boolean followingOutput = isFollowingOutput();
+        int previousFirstVisibleIndex = firstVisibleIndex();
         lines.addAll(newLines);
         int removed = Math.max(0, lines.size() - maxLines);
         if (removed > 0) lines.subList(0, removed).clear();
-        if (scrollOffsetFromBottom > 0) {
-            scrollOffsetFromBottom += lines.size() - previousSize - removed;
+        if (!followingOutput) {
+            // Preserve the viewed row while new output arrives. If bounded
+            // retention evicted that row, clamp to the oldest retained row.
+            int nextFirstVisibleIndex = Math.max(0, previousFirstVisibleIndex - removed);
+            scrollOffsetFromBottom = lines.size() - viewportLineCount - nextFirstVisibleIndex;
         }
         scrollOffsetFromBottom = clampOffset(scrollOffsetFromBottom);
         revision++;

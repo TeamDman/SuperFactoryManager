@@ -243,16 +243,17 @@ canonical `1.19.2`:
   compile with JDK 17. Feature-worktree CLI compile/test/puppet generation
   could not produce a screenshot because the CLI targets the canonical branch
   build lock; canonical verification is the next integration step.
-- **Vox terminal contract:** `144382fd5` on
-  `teamy/vox-java-terminal-contract`. It adds the Rust-authoritative Terminal
+- **Vox terminal contract:** the reviewed worktree now ends at `26fda8736`
+  on `teamy/vox-java-terminal-contract`, based on the reviewed contract
+  commits `144382fd5` and `35461380d`. It adds the Rust-authoritative Terminal
   service, generated Java 17 DTO/client/handler/dispatcher/descriptors,
   capability and frame bounds, cancellation/disconnect/error types, generator
   integration, design notes, and
-  `vox/test-fixtures/terminal/terminal-contract-v1.json`. The focused Phon
-  round-trip/bounds tests (2), generated-source Java 17 gate (1), codegen
-  freshness check, and formatting checks pass. A broad direct-javac run hit a
-  JDK `Cannot close compiler resources` fatal error without diagnostics; the
-  focused generated-source gate is green.
+  `vox/test-fixtures/terminal/terminal-contract-v1.json`. The elevated
+  `test-java` and `package-java` gates pass, including the generated-source
+  checks, reproducible assembly, fresh consumer, and `jdeps` checks. The
+  packaged runtime JAR includes the generated `Terminal*` bindings while
+  excluding testbed/application fixtures.
 - **Teamy Studio frame probe:** `e03e9d5` on `teamy/terminal-frame-probe`.
   It adds bounded Raw RGBA8, full-PNG, dirty-PNG-tile, and input/resize frame
   seams. Five focused tests and clippy pass. Review artifacts include a
@@ -268,30 +269,71 @@ directory on `D:`. The existing cudarc 0.19.7 lock only supports through
 failed only on a stale expected scene/color snapshot, not renderer startup.
 No CUDA or Teamy Studio source changes were committed in that follow-up.
 
-The next coordinator-owned step is to review these three boundaries, cherry-pick
-the contract and Java slice in that order, and run canonical compile/tests plus
-the Java-local puppet before attempting the optional Vox texture adapter.
+The packaged contract review is complete. The next coordinator-owned step is
+to establish a portable SFM acquisition path for that exact artifact, then pin
+it in the canonical 1.19.2 lockfile and run canonical compile/tests before
+adding the optional Vox adapter. The Java-local backend remains the default.
 
 Coordinator status after the standalone terminal baseline: `teamy-terminal`
 main contains the bounded core scrollback/reflow, dirty rendering, Tracy
 profiling, idle-scheduler, and dirty-render-default commits locally; they are
 not pushed from this worktree. The SFM 1.19.2 branch already contains the
-Java-local terminal baseline at `ae5526cb7`. The generated Vox contract remains
-upstream in the Facet/Vox repository at `144382fd5`; SFM should consume a
-frozen artifact through a narrow adapter later rather than vendor generated
-runtime sources now.
+Java-local terminal baseline at `ae5526cb7`. The reviewed Vox contract is
+frozen as the `vox-java-0.10.0-rc.5` artifact produced at `26fda8736`, but it
+is not yet consumed by SFM: the current lock workflow has no portable
+Cargo/xtask source-build acquisition for this JAR, and a workspace-relative
+Maven URL would not reproduce from a clean checkout. Generated runtime
+sources are not vendored into SFM.
 
 The integration order is therefore:
 
-1. Keep the generated contract boundary at `144382fd5` reviewed and pinned in
-   the upstream Facet/Vox workstream; do not vendor it into SFM yet.
-2. Run canonical 1.19.2 compile/tests and the Java-local command-palette puppet
+1. Keep the generated contract boundary at `26fda8736` reviewed and require a
+   portable Maven/HTTP artifact or an SFM-supported source-build recipe for
+   `org.facet:vox-java:0.10.0-rc.5`; do not vendor generated runtime sources
+   into SFM.
+2. Run canonical 1.19.2 compile/tests with the lockfile pin and the Java-local command-palette puppet
    from the canonical worktree.
 3. Add and prove bounded scrollback interaction in the Java-local screen: output
    beyond the viewport, scroll up/down or wheel input, resize/reflow while
    scrolled, return-to-bottom behavior, and bounded memory/output rows.
 4. Re-run the same proof with the optional Rust endpoint only after the
    Java-local screen and scrollback contract are stable.
+
+### Canonical Java-local validation — 2026-07-26
+
+The canonical `1.19.2` worktree now has the first Java-local acceptance proof
+from the actual propagation CLI, rather than only the focused class tests:
+
+- `sfm-propagate-changes.exe run compile --branch 1.19.2 --explain-rebuild`
+  completed successfully after granting the CLI access to its user-level
+  artifact-cache locks.
+- `sfm-propagate-changes.exe test run --branch 1.19.2` completed with 419
+  tests found, 417 passed, 0 failed, and 2 aborted because this Windows
+  client lacks the privilege needed to create symbolic links. The focused
+  `SFMJavaLocalTerminalServiceTests` run is also green.
+- `sfm-propagate-changes.exe puppet run title_screen_java_local_terminal
+  --branch 1.19.2 --width 1280 --height 720 --wait-for-build-lock` passed with
+  `failed=0`, opened the terminal through the command palette, exercised safe
+  commands and bounded scrollback, and wrote the
+  `title_screen_java_local_terminal__java-local-terminal.png` capture under
+  `platform/minecraft/runGameTestPreview/screenshots/`.
+
+The proof caught and fixed two bookkeeping-level correctness issues: the
+scrollback viewport now preserves the viewed row while new output arrives
+and clamps only when bounded retention evicts that row, and the puppet uses
+the canonical fully-qualified `sfm action invoke sfm:terminal/open` command.
+These changes are currently uncommitted local work in the canonical worktree.
+The Java-local phase is therefore ready for an intentional commit/review. The
+reviewed Vox contract is packaged but deliberately not pinned in SFM until a
+portable acquisition route exists. The artifact is `vox-java-0.10.0-rc.5`, produced at contract commit
+`26fda8736`; its SHA-256 is
+`18312E1CA5F7242644E77FAB02B6C22CB4253E760E7DA0B827E5656EB98ADDA2` and its
+locked BLAKE3 content hash is
+`50625f8ccd3c3a074a45f5195e2033a0e2963a73`. The earlier `javac --release 17`
+failure was an environment permission issue accessing the JDK `ct.sym`; the
+elevated `test-java` and `package-java` gates now pass. A local Maven/cache
+probe was intentionally discarded because it would not satisfy clean-checkout
+portability. No Cloud Terrastodon changes are part of that work.
 
 ### Phase 0 — Contract fixtures and capability matrix
 
