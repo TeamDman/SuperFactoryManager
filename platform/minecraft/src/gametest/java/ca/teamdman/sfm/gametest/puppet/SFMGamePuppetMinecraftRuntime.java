@@ -14,6 +14,8 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerWorkspace;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
+import ca.teamdman.sfm.client.terminal.SFMJavaLocalTerminalService;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.screen.workspace.timeline.SFMFalsifiedInventoryReplayPanel;
@@ -235,6 +237,17 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void openTerminal() {
+        SFMScreenMultiplexer.openToSide(minecraft.screen, new SFMTerminalPanel(new SFMJavaLocalTerminalService()));
+    }
+
+    @Override
+    public void executeTerminal(String command) {
+        SFMTerminalPanel panel = requireTerminalPanel();
+        panel.executeForAutomation(command);
+    }
+
+    @Override
     public void pressFileExplorerKey(int keyCode) {
         requireFileExplorerPanel().keyPressed(keyCode, 0, 0);
     }
@@ -348,6 +361,17 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalStateException("Expected file explorer workspace");
         }
         return multiplexer;
+    }
+
+    private SFMTerminalPanel requireTerminalPanel() {
+        if (minecraft.screen instanceof SFMScreenMultiplexer multiplexer) {
+            return multiplexer.panels().stream()
+                    .filter(SFMTerminalPanel.class::isInstance)
+                    .map(SFMTerminalPanel.class::cast)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Workspace has no terminal panel"));
+        }
+        throw new IllegalStateException("Expected terminal workspace");
     }
 
     private SFMFileExplorerPanel requireFileExplorerPanel() {

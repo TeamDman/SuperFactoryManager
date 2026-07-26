@@ -1,0 +1,107 @@
+package ca.teamdman.sfm.client.terminal;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/** Deterministic, dependency-free terminal backend for players without Vox. */
+public final class SFMJavaLocalTerminalService implements SFMTerminalService {
+    private final SFMVirtualFileSystem filesystem;
+
+    public SFMJavaLocalTerminalService() {
+        this(new SFMVirtualFileSystem());
+        filesystem.put("/workspace/README.txt", "Java-local SFM terminal workspace");
+        filesystem.put("/workspace/notes.txt", "This bounded tree is safe to edit in game.");
+    }
+
+    public SFMJavaLocalTerminalService(SFMVirtualFileSystem filesystem) {
+        this.filesystem = filesystem;
+    }
+
+    public SFMVirtualFileSystem filesystem() {
+        return filesystem;
+    }
+
+    @Override
+    public SFMTerminalSession openSession() {
+        return new Session();
+    }
+
+    private final class Session implements SFMTerminalSession {
+        private String workingDirectory = "/";
+
+        @Override
+        public SFMTerminalResponse execute(String command) {
+            if (command == null || command.isBlank()) return SFMTerminalResponse.ok(List.of(), workingDirectory);
+            List<String> tokens = tokenize(command.trim());
+            String name = tokens.get(0);
+            try {
+                return switch (name) {
+                    case "pwd" -> SFMTerminalResponse.ok(List.of(workingDirectory), workingDirectory);
+                    case "ls" -> list(tokens);
+                    case "cat" -> cat(tokens);
+                    case "echo" -> SFMTerminalResponse.ok(List.of(String.join(" ", tokens.subList(1, tokens.size()))), workingDirectory);
+                    case "write" -> write(tokens);
+                    case "cd" -> changeDirectory(tokens);
+                    default -> SFMTerminalResponse.error("command not found: " + name, workingDirectory);
+                };
+            } catch (IllegalArgumentException | IllegalStateException exception) {
+                return SFMTerminalResponse.error(exception.getMessage(), workingDirectory);
+            }
+        }
+
+        @Override
+        public String workingDirectory() {
+            return workingDirectory;
+        }
+
+        private SFMTerminalResponse list(List<String> tokens) {
+            if (tokens.size() > 2) return SFMTerminalResponse.error("usage: ls [directory]", workingDirectory);
+            String directory = tokens.size() == 1 ? workingDirectory : resolve(tokens.get(1));
+            return SFMTerminalResponse.ok(filesystem.list(directory), workingDirectory);
+        }
+
+        private SFMTerminalResponse cat(List<String> tokens) {
+            if (tokens.size() != 2) return SFMTerminalResponse.error("usage: cat <file>", workingDirectory);
+            String value = filesystem.read(resolve(tokens.get(1)));
+            return value == null ? SFMTerminalResponse.error("cat: file not found", workingDirectory)
+                    : SFMTerminalResponse.ok(List.of(value), workingDirectory);
+        }
+
+        private SFMTerminalResponse write(List<String> tokens) {
+            if (tokens.size() < 3) return SFMTerminalResponse.error("usage: write <file> <text>", workingDirectory);
+            filesystem.put(resolve(tokens.get(1)), String.join(" ", tokens.subList(2, tokens.size())));
+            return SFMTerminalResponse.ok(List.of("wrote " + resolve(tokens.get(1))), workingDirectory);
+        }
+
+        private SFMTerminalResponse changeDirectory(List<String> tokens) {
+            if (tokens.size() != 2) return SFMTerminalResponse.error("usage: cd <directory>", workingDirectory);
+            String target = resolve(tokens.get(1));
+            if (!target.equals("/") && filesystem.list(target).isEmpty()) {
+                return SFMTerminalResponse.error("cd: directory not found", workingDirectory);
+            }
+            workingDirectory = SFMVirtualFileSystem.normalizeDirectory(target);
+            return SFMTerminalResponse.ok(List.of(), workingDirectory);
+        }
+
+        private String resolve(String path) {
+            return SFMVirtualFileSystem.normalizeDirectory(path.startsWith("/") ? path : workingDirectory + "/" + path);
+        }
+
+        private List<String> tokenize(String input) {
+            // Deliberately small shell: quoted text is retained without invoking a host shell.
+            List<String> result = new ArrayList<>();
+            StringBuilder current = new StringBuilder();
+            boolean quoted = false;
+            for (int i = 0; i < input.length(); i++) {
+                char character = input.charAt(i);
+                if (character == '"') quoted = !quoted;
+                else if (Character.isWhitespace(character) && !quoted) {
+                    if (current.length() > 0) { result.add(current.toString()); current.setLength(0); }
+                } else current.append(character);
+            }
+            if (quoted) throw new IllegalArgumentException("unterminated quote");
+            if (current.length() > 0) result.add(current.toString());
+            return result;
+        }
+    }
+}

@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add a Java-local in-game terminal with bounded virtual files, safe commands, and a Rust/Vox-unavailable fallback
 -- Add a composable size-display panel that makes solid-colour panel bounds and logical dimensions visible in nested layouts
 -- Make repository review a responsive group of changed-file, source, and complete comment-detail panels
 -- Add single-client responsive viewport sweeps and browsable puppet evidence reports

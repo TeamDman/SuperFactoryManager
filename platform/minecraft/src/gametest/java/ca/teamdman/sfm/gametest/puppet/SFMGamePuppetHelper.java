@@ -151,6 +151,16 @@ public final class SFMGamePuppetHelper {
         add(new ExecuteCommandPalettePuppetAction(command));
     }
 
+    public void openTerminal() {
+        add(new OpenTerminalPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void executeTerminal(String command) {
+        add(new ExecuteTerminalPuppetAction(command));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void setCommandPaletteInput(String command) {
         add(new SetCommandPaletteInputPuppetAction(command, null));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
