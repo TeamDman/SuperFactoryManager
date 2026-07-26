@@ -277,8 +277,8 @@ adding the optional Vox adapter. The Java-local backend remains the default.
 Coordinator status after the standalone terminal baseline: `teamy-terminal`
 main contains the bounded core scrollback/reflow, dirty rendering, Tracy
 profiling, idle-scheduler, and dirty-render-default commits locally; they are
-not pushed from this worktree. The SFM 1.19.2 branch already contains the
-Java-local terminal baseline at `ae5526cb7`. The reviewed Vox contract is
+not pushed from this worktree. The SFM 1.19.2 branch now contains the reviewed
+Java-local terminal acceptance baseline at `c996521da`. The reviewed Vox contract is
 frozen as the `vox-java-0.10.0-rc.5` artifact produced at `26fda8736`, but it
 is not yet consumed by SFM: the current lock workflow has no portable
 Cargo/xtask source-build acquisition for this JAR, and a workspace-relative
@@ -322,9 +322,10 @@ The proof caught and fixed two bookkeeping-level correctness issues: the
 scrollback viewport now preserves the viewed row while new output arrives
 and clamps only when bounded retention evicts that row, and the puppet uses
 the canonical fully-qualified `sfm action invoke sfm:terminal/open` command.
-These changes are currently uncommitted local work in the canonical worktree.
-The Java-local phase is therefore ready for an intentional commit/review. The
-reviewed Vox contract is packaged but deliberately not pinned in SFM until a
+The Java-local phase is committed as `c996521da` in the canonical worktree and
+has been propagated baseline-first through every version worktree from
+`1.19.4` through `26.1.2`; all version worktrees were clean after the merge.
+The reviewed Vox contract is packaged but deliberately not pinned in SFM until a
 portable acquisition route exists. The artifact is `vox-java-0.10.0-rc.5`, produced at contract commit
 `26fda8736`; its SHA-256 is
 `18312E1CA5F7242644E77FAB02B6C22CB4253E760E7DA0B827E5656EB98ADDA2` and its
@@ -334,6 +335,15 @@ failure was an environment permission issue accessing the JDK `ct.sym`; the
 elevated `test-java` and `package-java` gates now pass. A local Maven/cache
 probe was intentionally discarded because it would not satisfy clean-checkout
 portability. No Cloud Terrastodon changes are part of that work.
+
+The focused `SFMJavaLocalTerminalServiceTests` run remains green after the
+commit and propagation. The propagation command was
+`sfm-propagate-changes.exe git merge --auto-abort`; no push was performed.
+Later attempts to rerun that focused test after propagation timed out before
+launching Java (including `--no-refresh --no-wait-for-build-lock`), with no
+test failure or child process reported. Treat this as an SFM cache/build-lock
+diagnostic to resolve before the next compile gate, not as evidence of a Java
+terminal regression.
 
 ### Phase 0 — Contract fixtures and capability matrix
 
