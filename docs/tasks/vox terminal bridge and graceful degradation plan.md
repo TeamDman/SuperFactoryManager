@@ -272,6 +272,27 @@ The next coordinator-owned step is to review these three boundaries, cherry-pick
 the contract and Java slice in that order, and run canonical compile/tests plus
 the Java-local puppet before attempting the optional Vox texture adapter.
 
+Coordinator status after the standalone terminal baseline: `teamy-terminal`
+main contains local commits `f068281` (bounded core scrollback/reflow and safe
+resize handling) and `0d052a2` (dirty rendering, Tracy profiling, dependency
+alignment, and recorded performance evidence). These commits are not pushed
+from this worktree yet. The Rust core now has bounded scrollback, but the
+Minecraft Java panel and bridge do not expose or prove scrollback yet; that is
+the next Java-local acceptance gate, not a reason to begin native texture
+interop.
+
+The integration order is therefore:
+
+1. Review and integrate the generated contract boundary at `144382fd5`.
+2. Review and integrate the Java-local terminal slice at `bc97e8bc2`.
+3. Run canonical 1.19.2 compile/tests and the Java-local command-palette puppet
+   from the canonical worktree.
+4. Add and prove bounded scrollback interaction in the Java screen: output
+   beyond the viewport, scroll up/down or wheel input, resize/reflow while
+   scrolled, return-to-bottom behavior, and bounded memory/output rows.
+5. Re-run the same proof with the optional Rust endpoint only after the
+   Java-local screen and scrollback contract are stable.
+
 ### Phase 0 — Contract fixtures and capability matrix
 
 - Record the schema in the Facet/Vox integration worktree and generate Java
@@ -292,6 +313,12 @@ the Java-local puppet before attempting the optional Vox texture adapter.
 - Add the composable terminal panel and command-palette action.
 - Add replayable input events and snapshots so this mode can be tested without
   a live Rust process.
+- Make bounded scrollback a first-class Java-local behavior: expose a stable
+  scrollback sequence/witness or viewport offset, handle wheel/page/home/end
+  navigation, preserve the user's scroll position while output arrives, and
+  return to the live bottom on explicit follow-output input.
+- Add deterministic tests for scrollback bounds, output while scrolled,
+  resize/reflow while scrolled, and stale snapshot rejection.
 - Integrate the mounted-disk adapter only after the virtual backend is stable;
   preserve the mount feature's Java-only operation.
 
@@ -303,8 +330,10 @@ Create a puppet that proves, without Rust installed or reachable:
 2. show Java-local status and a prompt;
 3. run `pwd`, `ls`, and `cat` against a falsified in-memory tree;
 4. edit a file and show the updated buffer/output;
-5. resize or place the terminal in nested panels; and
-6. simulate an unavailable Rust endpoint and show a useful fallback message.
+5. generate enough output to exercise bounded scrollback, scroll away from the
+   live bottom, receive more output, resize, and return to the newest row;
+6. resize or place the terminal in nested panels; and
+7. simulate an unavailable Rust endpoint and show a useful fallback message.
 
 Capture at the supported viewport/GUI-scale matrix, including a narrow layout.
 The report should include the backend status in captions and preserve enough
