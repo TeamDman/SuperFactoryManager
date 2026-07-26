@@ -80,9 +80,14 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         for (String line : scrollback.visibleLines()) {
             if (y >= inputY) break;
             int color = line.startsWith("error:") ? ERROR : TEXT;
-            SFMFontUtils.draw(poseStack, minecraft.font,
-                    minecraft.font.plainSubstrByWidth(line, width), left, y, color, false);
-            y += lineHeight;
+            String remaining = line;
+            do {
+                String rendered = minecraft.font.plainSubstrByWidth(remaining, width);
+                if (rendered.isEmpty()) rendered = remaining.substring(0, 1);
+                SFMFontUtils.draw(poseStack, minecraft.font, rendered, left, y, color, false);
+                y += lineHeight;
+                remaining = remaining.substring(rendered.length());
+            } while (!remaining.isEmpty() && y < inputY);
         }
         GuiComponent.fill(poseStack, bounds.x() + 4, inputY - 4, bounds.x() + bounds.width() - 4,
                 bounds.y() + bounds.height() - 4, INPUT);

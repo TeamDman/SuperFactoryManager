@@ -161,6 +161,16 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    public void scrollTerminal(double delta) {
+        add(new ScrollTerminalPuppetAction(delta));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void pressTerminalKey(int keyCode) {
+        add(new PressTerminalKeyPuppetAction(keyCode));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void setCommandPaletteInput(String command) {
         add(new SetCommandPaletteInputPuppetAction(command, null));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));

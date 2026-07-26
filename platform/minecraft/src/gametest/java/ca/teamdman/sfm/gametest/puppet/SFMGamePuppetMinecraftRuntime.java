@@ -248,6 +248,23 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void scrollTerminal(double delta) {
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMTerminalPanel panel = requireTerminalPanel();
+        int panelIndex = multiplexer.panels().indexOf(panel);
+        if (panelIndex < 0) throw new IllegalStateException("Workspace has no terminal panel index");
+        SFMScreenPanelBounds bounds = multiplexer.panelBounds(multiplexer.panelIds().get(panelIndex));
+        if (bounds == null) throw new IllegalStateException("Terminal panel has no allocated bounds");
+        multiplexer.mouseScrolled(bounds.x() + bounds.width() / 2D,
+                bounds.y() + bounds.height() / 2D, delta);
+    }
+
+    @Override
+    public void pressTerminalKey(int keyCode) {
+        requireTerminalPanel().keyPressed(keyCode, 0, 0);
+    }
+
+    @Override
     public void pressFileExplorerKey(int keyCode) {
         requireFileExplorerPanel().keyPressed(keyCode, 0, 0);
     }
@@ -364,13 +381,15 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     private SFMTerminalPanel requireTerminalPanel() {
-        if (minecraft.screen instanceof SFMScreenMultiplexer multiplexer) {
-            return multiplexer.panels().stream()
-                    .filter(SFMTerminalPanel.class::isInstance)
-                    .map(SFMTerminalPanel.class::cast)
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("Workspace has no terminal panel"));
-        }
+        return requireTerminalMultiplexer().panels().stream()
+                .filter(SFMTerminalPanel.class::isInstance)
+                .map(SFMTerminalPanel.class::cast)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Workspace has no terminal panel"));
+    }
+
+    private SFMScreenMultiplexer requireTerminalMultiplexer() {
+        if (minecraft.screen instanceof SFMScreenMultiplexer multiplexer) return multiplexer;
         throw new IllegalStateException("Expected terminal workspace");
     }
 
