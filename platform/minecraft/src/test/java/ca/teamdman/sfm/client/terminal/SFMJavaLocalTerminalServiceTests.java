@@ -30,4 +30,40 @@ class SFMJavaLocalTerminalServiceTests {
         assertFalse(session.execute("cat /missing.txt").success());
         assertFalse(session.execute("rm -rf /").success());
     }
+
+    @Test
+    void scrollbackIsBoundedAndKeepsTheViewedRowsStableWhileOutputArrives() {
+        SFMTerminalScrollback scrollback = new SFMTerminalScrollback(5);
+        scrollback.appendAll(java.util.List.of("one", "two", "three", "four", "five"));
+        scrollback.setViewportLineCount(2);
+        scrollback.scrollOlder(2);
+        assertEquals(java.util.List.of("one", "two"), scrollback.visibleLines());
+
+        scrollback.appendAll(java.util.List.of("six", "seven"));
+        assertEquals(java.util.List.of("three", "four"), scrollback.visibleLines());
+        assertEquals(5, scrollback.lines().size());
+        assertEquals(java.util.List.of("three", "four", "five", "six", "seven"), scrollback.lines());
+    }
+
+    @Test
+    void scrollbackSupportsNavigationResizeAndStaleSnapshotDetection() {
+        SFMTerminalScrollback scrollback = new SFMTerminalScrollback(10);
+        scrollback.appendAll(java.util.List.of("0", "1", "2", "3", "4", "5"));
+        scrollback.setViewportLineCount(3);
+        scrollback.scrollToTop();
+        assertEquals(java.util.List.of("0", "1", "2"), scrollback.visibleLines());
+
+        scrollback.setViewportLineCount(4);
+        assertEquals(java.util.List.of("0", "1", "2", "3"), scrollback.visibleLines());
+        scrollback.pageDown();
+        assertTrue(scrollback.isFollowingOutput());
+        assertEquals(java.util.List.of("2", "3", "4", "5"), scrollback.visibleLines());
+
+        SFMTerminalScrollback.Snapshot snapshot = scrollback.snapshot();
+        scrollback.append("6");
+        assertFalse(scrollback.isCurrent(snapshot));
+        scrollback.followOutput();
+        assertTrue(scrollback.isFollowingOutput());
+        assertEquals(java.util.List.of("3", "4", "5", "6"), scrollback.visibleLines());
+    }
 }

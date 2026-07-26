@@ -11,7 +11,6 @@ import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /** Composable terminal leaf. It intentionally renders only the local service's transcript. */
@@ -22,7 +21,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private static final int ERROR = 0xFFFF7777;
     private static final int INPUT = 0xFF162530;
     private final SFMTerminalClient client;
-    private final List<String> transcript = new ArrayList<>();
+    private final SFMTerminalScrollback scrollback = new SFMTerminalScrollback();
     private String input = "";
     private SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 1, 1);
     private SFMWorkspacePanelContext context;
@@ -33,8 +32,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     public SFMTerminalPanel(SFMTerminalClient client) {
         this.client = client;
-        transcript.add("Java-local terminal · Rust/Vox unavailable fallback");
-        transcript.add("Type pwd, ls, cat <file>, echo <text>, or write <file> <text>");
+        scrollback.appendAll(List.of(
+                "Java-local terminal · Rust/Vox unavailable fallback",
+                "Type pwd, ls, cat <file>, echo <text>, or write <file> <text>"
+        ));
     }
 
     @Override
@@ -72,14 +73,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         int lineHeight = minecraft.font.lineHeight + 2;
         int inputY = bounds.y() + bounds.height() - lineHeight - 8;
         int visibleLines = Math.max(0, (inputY - bounds.y() - 22) / lineHeight);
-        int first = Math.max(0, transcript.size() - visibleLines);
+        scrollback.setViewportLineCount(Math.max(1, visibleLines));
         int y = bounds.y() + 8;
         SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left, y, TEXT, false);
         y += lineHeight + 4;
-        for (int i = first; i < transcript.size() && y < inputY; i++) {
-            int color = transcript.get(i).startsWith("error:") ? ERROR : TEXT;
+        for (String line : scrollback.visibleLines()) {
+            if (y >= inputY) break;
+            int color = line.startsWith("error:") ? ERROR : TEXT;
             SFMFontUtils.draw(poseStack, minecraft.font,
-                    minecraft.font.plainSubstrByWidth(transcript.get(i), width), left, y, color, false);
+                    minecraft.font.plainSubstrByWidth(line, width), left, y, color, false);
             y += lineHeight;
         }
         GuiComponent.fill(poseStack, bounds.x() + 4, inputY - 4, bounds.x() + bounds.width() - 4,
@@ -91,6 +93,30 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_PAGE_UP) {
+            scrollback.pageUp();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_PAGE_DOWN) {
+            scrollback.pageDown();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_UP) {
+            scrollback.scrollOlder(1);
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_DOWN) {
+            scrollback.scrollNewer(1);
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_HOME) {
+            scrollback.scrollToTop();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_END) {
+            scrollback.followOutput();
+            return true;
+        }
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             if (!input.isEmpty()) input = input.substring(0, input.length() - 1);
             return true;
@@ -114,9 +140,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private void submitInput() {
         String command = input.trim();
         if (command.isEmpty()) return;
-        transcript.add("> " + command);
+        scrollback.append("> " + command);
         SFMTerminalResponse response = client.execute(command);
-        for (String line : response.lines()) transcript.add((response.success() ? "" : "error: ") + line);
+        scrollback.appendAll(response.lines().stream()
+                .map(line -> (response.success() ? "" : "error: ") + line)
+                .toList());
         input = "";
     }
 
@@ -127,7 +155,24 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     public List<String> transcript() {
-        return List.copyOf(transcript);
+        return scrollback.lines();
+    }
+
+    public List<String> visibleTranscript() {
+        return scrollback.visibleLines();
+    }
+
+    public SFMTerminalScrollback scrollback() {
+        return scrollback;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (mouseX < bounds.x() || mouseX >= bounds.x() + bounds.width()
+                || mouseY < bounds.y() || mouseY >= bounds.y() + bounds.height()) return false;
+        if (delta > 0) scrollback.scrollOlder(Math.max(1, (int) Math.ceil(delta)));
+        else if (delta < 0) scrollback.scrollNewer(Math.max(1, (int) Math.ceil(-delta)));
+        return delta != 0;
     }
 
     public SFMTerminalClient client() {

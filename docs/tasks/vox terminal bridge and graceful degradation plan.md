@@ -273,24 +273,24 @@ the contract and Java slice in that order, and run canonical compile/tests plus
 the Java-local puppet before attempting the optional Vox texture adapter.
 
 Coordinator status after the standalone terminal baseline: `teamy-terminal`
-main contains local commits `f068281` (bounded core scrollback/reflow and safe
-resize handling) and `0d052a2` (dirty rendering, Tracy profiling, dependency
-alignment, and recorded performance evidence). These commits are not pushed
-from this worktree yet. The Rust core now has bounded scrollback, but the
-Minecraft Java panel and bridge do not expose or prove scrollback yet; that is
-the next Java-local acceptance gate, not a reason to begin native texture
-interop.
+main contains the bounded core scrollback/reflow, dirty rendering, Tracy
+profiling, idle-scheduler, and dirty-render-default commits locally; they are
+not pushed from this worktree. The SFM 1.19.2 branch already contains the
+Java-local terminal baseline at `ae5526cb7`. The generated Vox contract remains
+upstream in the Facet/Vox repository at `144382fd5`; SFM should consume a
+frozen artifact through a narrow adapter later rather than vendor generated
+runtime sources now.
 
 The integration order is therefore:
 
-1. Review and integrate the generated contract boundary at `144382fd5`.
-2. Review and integrate the Java-local terminal slice at `bc97e8bc2`.
-3. Run canonical 1.19.2 compile/tests and the Java-local command-palette puppet
+1. Keep the generated contract boundary at `144382fd5` reviewed and pinned in
+   the upstream Facet/Vox workstream; do not vendor it into SFM yet.
+2. Run canonical 1.19.2 compile/tests and the Java-local command-palette puppet
    from the canonical worktree.
-4. Add and prove bounded scrollback interaction in the Java screen: output
+3. Add and prove bounded scrollback interaction in the Java-local screen: output
    beyond the viewport, scroll up/down or wheel input, resize/reflow while
    scrolled, return-to-bottom behavior, and bounded memory/output rows.
-5. Re-run the same proof with the optional Rust endpoint only after the
+4. Re-run the same proof with the optional Rust endpoint only after the
    Java-local screen and scrollback contract are stable.
 
 ### Phase 0 — Contract fixtures and capability matrix
