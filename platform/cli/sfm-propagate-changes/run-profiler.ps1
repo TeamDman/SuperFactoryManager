@@ -219,15 +219,9 @@ if (-not (Test-Path $sfmPath)) {
 Write-Host "Capture: $capturePath"
 Write-Host "Traced command log: $commandLogPath"
 Write-Host "Logging SFM toolchain runtime performance information to $capturePath"
-$wt = Get-Command wt.exe -ErrorAction SilentlyContinue
 $captureLaunchStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-
-if ($wt) {
-	Start-Process -FilePath "wt.exe" -ArgumentList @("-w", "new", "tracy-capture.exe", "-o", $capturePath)
-} else {
-	Write-Warning "wt.exe not found in PATH; launching tracy-capture in the current session"
-	$capture = Start-Process -FilePath "tracy-capture.exe" -ArgumentList @("-o", $capturePath) -PassThru
-}
+Write-Host "Launching tracy-capture in the current console"
+$capture = Start-Process -FilePath "tracy-capture.exe" -ArgumentList @("-o", $capturePath) -NoNewWindow -PassThru
 $captureLaunchStopwatch.Stop()
 $captureLaunchElapsed = $captureLaunchStopwatch.Elapsed
 Write-Host "Capture launch time: $(Format-Elapsed $captureLaunchElapsed)"
