@@ -10,6 +10,7 @@ use super::DependencySource;
 use super::MavenCoordinate;
 use super::Repository;
 use super::SourceGitProvenance;
+use super::SourceBuildSystem;
 use super::acquire_artifact_path_lock_cancellable;
 use super::acquire_artifact_path_read_lock_cancellable;
 use super::artifact_provenance;
@@ -319,7 +320,12 @@ impl Resolver {
         };
 
         let (checkout_dir, portable_source_root, repository_dir) =
-            self.source_build_checkout_paths(remote_url, &source_git.commit, &source_git.root);
+            self.source_build_checkout_paths(
+                remote_url,
+                &source_git.commit,
+                &source_git.root,
+                &source_build.build_system,
+            );
         let _source_build_lock =
             acquire_artifact_path_lock_cancellable(&checkout_dir, &self.cancellation_token)?;
         materialize_source_build(
@@ -388,15 +394,25 @@ impl Resolver {
         remote_url: &str,
         commit: &str,
         locked_root: &Path,
+        build_system: &SourceBuildSystem,
     ) -> (PathBuf, PathBuf, PathBuf) {
         let common_cache_dir = self.cache_dir.parent().unwrap_or(&self.cache_dir);
+        let compact_checkout = || {
+            super::source_build_root()
+                .join("sfm-source-builds")
+                .join(source_build_checkout_key(remote_url, commit))
+        };
         if let Ok(relative) = locked_root.strip_prefix(Path::new("$sfm-cache")) {
             let repository = SourceCacheLayout::git(remote_url, commit).repository;
             let repository_relative = repository
                 .strip_prefix(Path::new("$sfm-cache"))
                 .expect("source cache layout is rooted at $sfm-cache");
             return (
-                common_cache_dir.join(relative),
+                if matches!(build_system, SourceBuildSystem::CargoCommand) {
+                    compact_checkout()
+                } else {
+                    common_cache_dir.join(relative)
+                },
                 locked_root.to_path_buf(),
                 common_cache_dir.join(repository_relative),
             );
@@ -411,9 +427,13 @@ impl Resolver {
             .strip_prefix(Path::new("$sfm-cache"))
             .expect("source cache layout is rooted at $sfm-cache");
         (
-            common_cache_dir
-                .join("source-builds-gix")
-                .join(checkout_key),
+            if matches!(build_system, SourceBuildSystem::CargoCommand) {
+                compact_checkout()
+            } else {
+                common_cache_dir
+                    .join("source-builds-gix")
+                    .join(checkout_key)
+            },
             portable_source_root,
             common_cache_dir.join(repository_relative),
         )
