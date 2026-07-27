@@ -82,6 +82,7 @@ use super::should_include_project_run_dependencies;
 use super::should_keep_split_minecraft_runtime_entry;
 use super::should_package_project_entry;
 use super::source_build_checkout_key;
+use super::source_build_provenance;
 use super::source_git_provenance;
 use super::write_compare_reports;
 use super::write_unique_temp_file;
@@ -1917,6 +1918,77 @@ fn explicit_source_mekanism_artifacts_record_source_build_commands() {
         "apiJar",
         "build/libs/Mekanism-26.1.2-10.8.0.86-api.jar",
     );
+}
+
+#[test]
+fn explicit_source_vox_artifacts_record_cargo_source_build_commands() {
+    let test_dir = TestDir::new("vox-cargo-source-build-provenance");
+    let source_root = test_dir.path.join("facet");
+    let artifact_path = Path::new("vox")
+        .join("java")
+        .join("target")
+        .join("vox-java-0.10.0-rc.5.jar");
+    fs::create_dir_all(source_root.join("vox").join("xtask"))
+        .expect("Vox xtask directory should be created");
+    fs::write(source_root.join("Cargo.toml"), "[workspace]\nmembers = [\"vox/xtask\"]\n")
+        .expect("Cargo workspace marker should be written");
+    fs::write(
+        source_root.join("vox").join("xtask").join("Cargo.toml"),
+        "[package]\nname = \"vox-xtask\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("Vox xtask manifest should be written");
+    fs::create_dir_all(
+        source_root
+            .join(&artifact_path)
+            .parent()
+            .expect("Vox artifact should have a parent"),
+    )
+    .expect("Vox artifact directory should be created");
+    fs::write(source_root.join(&artifact_path), b"vox artifact")
+        .expect("Vox artifact should be written");
+
+    run_git(&source_root, ["init"]);
+    run_git(&source_root, ["config", "user.name", "SFM Test"]);
+    run_git(
+        &source_root,
+        ["config", "user.email", "sfm-test@example.test"],
+    );
+    run_git(
+        &source_root,
+        [
+            "remote",
+            "add",
+            "origin",
+            "https://github.com/facet-rs/facet.git",
+        ],
+    );
+    run_git(&source_root, ["add", "."]);
+    run_git(&source_root, ["commit", "-m", "initial Vox artifact"]);
+    let source_git = source_git_provenance(&source_root.join(&artifact_path))
+        .expect("Vox source Git provenance should be available");
+
+    let source_build = source_build_provenance(
+        &ArtifactSource::ExplicitSource,
+        Some("org.facet:vox-java:0.10.0-rc.5"),
+        Some(&artifact_path),
+        Some(&source_git),
+    )
+    .expect("Vox source should record a Cargo build recipe");
+
+    assert_eq!(source_build.build_system, SourceBuildSystem::CargoCommand);
+    assert_eq!(
+        source_build.tasks,
+        vec![
+            "run",
+            "--locked",
+            "--package",
+            "vox-xtask",
+            "--",
+            "package-java"
+        ]
+    );
+    assert!(source_build.environment.is_empty());
+    assert_eq!(source_build.output_path, artifact_path);
 }
 
 #[test]
