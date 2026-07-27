@@ -1800,6 +1800,37 @@ fn source_build_checkout_key(remote_url: &str, commit: &str) -> String {
     .hex()
 }
 
+/// Return the physical root used for source builds that may invoke Windows
+/// tools with path-sensitive behavior (notably `javac`).
+///
+/// `SFM_SOURCE_BUILD_ROOT` is an explicit escape hatch for installations that
+/// have a suitable short writable directory elsewhere. On Windows, prefer an
+/// existing directory directly below the system drive when available; the
+/// normal per-user temp directory can still be long enough to make a Cargo
+/// checkout's generated Java class paths fail even when long-path support is
+/// enabled. Other platforms retain the normal temp-directory behavior.
+fn source_build_root() -> PathBuf {
+    if let Some(root) = std::env::var_os("SFM_SOURCE_BUILD_ROOT") {
+        if !root.is_empty() {
+            return PathBuf::from(root);
+        }
+    }
+
+    #[cfg(windows)]
+    if let Some(system_drive) = std::env::var_os("SystemDrive") {
+        let drive = system_drive.to_string_lossy();
+        let short_root = PathBuf::from(format!(
+            r"{}\tmp",
+            drive.trim_end_matches(['\\', '/'])
+        ));
+        if short_root.is_dir() {
+            return short_root;
+        }
+    }
+
+    std::env::temp_dir()
+}
+
 fn materialize_source_build(
     cancellation_token: &CancellationToken,
     remote_url: &str,
@@ -1857,13 +1888,29 @@ fn materialize_cargo_source_build(
         "running Cargo source build"
     );
     let mut command = Command::new("cargo");
+    let cargo_target_dir = cargo_source_build_target_dir(checkout_dir);
     command
         .current_dir(checkout_dir)
-        .args(&source_build.tasks);
+        .args(&source_build.tasks)
+        // Managed source-build checkouts can live below a long Windows cache path.
+        // Keep Cargo's generated target tree in a compact temp path so rustc does
+        // not hit MAX_PATH before the source-build output is packaged.
+        .env("CARGO_TARGET_DIR", &cargo_target_dir);
+    tracing::debug!(target_dir = %cargo_target_dir.display(), "using compact Cargo target directory");
     for (key, value) in &source_build.environment {
         command.env(key, value);
     }
     run_source_build_process(cancellation_token, &mut command, "source-build-cargo")
+}
+
+fn cargo_source_build_target_dir(checkout_dir: &Path) -> PathBuf {
+    let checkout_name = checkout_dir
+        .file_name()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("source-build"));
+    source_build_root()
+        .join("sfm-cargo-target")
+        .join(checkout_name)
 }
 
 fn materialize_gradle_wrapper_source_build(
