@@ -50,6 +50,8 @@ use super::audit_artifact_lockfile;
 use super::acquire_build_cache_lock;
 use super::build_artifact_lockfile;
 use super::build_cache_lock_path;
+use super::cargo_source_build_target_dir;
+use super::source_build_root;
 use super::compare_version_text;
 use super::copy_file_to_path_checked;
 use super::diagnostic_counts_from_log_text;
@@ -1989,6 +1991,27 @@ fn explicit_source_vox_artifacts_record_cargo_source_build_commands() {
     );
     assert!(source_build.environment.is_empty());
     assert_eq!(source_build.output_path, artifact_path);
+}
+
+#[test]
+fn cargo_source_build_target_dir_avoids_long_managed_checkout_paths() {
+    let checkout = Path::new(r"C:\Users\Teamy\AppData\Local\teamdman\sfm-propagate-changes\cache\minecraft-toolchain\source-builds\facet-aa75598dabb2138b18365cdf0d97ca94a34c5319");
+    let target = cargo_source_build_target_dir(checkout);
+
+    assert_eq!(target.file_name(), checkout.file_name());
+    assert!(target.starts_with(source_build_root().join("sfm-cargo-target")));
+    assert!(!target.starts_with(checkout));
+}
+
+#[test]
+fn source_build_root_is_not_nested_in_the_managed_cache() {
+    let checkout = Path::new(r"C:\Users\Teamy\AppData\Local\teamdman\sfm-propagate-changes\cache\minecraft-toolchain\source-builds\facet-aa75598dabb2138b18365cdf0d97ca94a34c5319");
+
+    assert!(!source_build_root().starts_with(checkout));
+    #[cfg(windows)]
+    if Path::new(r"C:\tmp").is_dir() {
+        assert_eq!(source_build_root(), PathBuf::from(r"C:\tmp"));
+    }
 }
 
 #[test]
