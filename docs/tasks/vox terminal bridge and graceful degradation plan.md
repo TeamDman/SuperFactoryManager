@@ -337,13 +337,14 @@ probe was intentionally discarded because it would not satisfy clean-checkout
 portability. No Cloud Terrastodon changes are part of that work.
 
 The focused `SFMJavaLocalTerminalServiceTests` run remains green after the
-commit and propagation. The propagation command was
-`sfm-propagate-changes.exe git merge --auto-abort`; no push was performed.
-Later attempts to rerun that focused test after propagation timed out before
-launching Java (including `--no-refresh --no-wait-for-build-lock`), with no
-test failure or child process reported. Treat this as an SFM cache/build-lock
-diagnostic to resolve before the next compile gate, not as evidence of a Java
-terminal regression.
+commit and propagation. A fresh elevated rerun of
+`sfm-propagate-changes.exe run compile --branch 1.19.2 --no-refresh
+--no-wait-for-build-lock` passed, as did the corresponding full JUnit gate
+(`419` tests found, `417` passed, `0` failed, and `2` expected Windows
+symlink-privilege aborts) and the focused terminal filter. The non-elevated
+account could not open the existing user-level Forge artifact lock; this was
+an ACL/environment issue, not a Java-terminal failure. The propagation command
+was `sfm-propagate-changes.exe git merge --auto-abort`; no push was performed.
 
 ### Portable Cargo source-build support — 2026-07-26
 
