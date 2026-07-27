@@ -270,11 +270,11 @@ failed only on a stale expected scene/color snapshot, not renderer startup.
 No CUDA or Teamy Studio source changes were committed in that follow-up.
 
 The packaged contract review is complete, and the coordinator-owned portable
-Cargo/xtask acquisition route is now implemented. The remaining coordinator
-step is to publish or otherwise expose the exact reviewed contract revision so
-SFM can pin it in the canonical 1.19.2 lockfile, then run canonical
-compile/tests before adding the optional Vox adapter. The Java-local backend
-remains the default.
+Cargo/xtask acquisition route is now implemented. The reviewed contract was
+merged into and pushed on `TeamDman/facet` `main` at
+`aa75598dabb2138b18365cdf0d97ca94a34c5319`; SFM now pins that published
+revision in its canonical 1.19.2 lockfile. The Java-local backend remains the
+default while the optional Vox adapter is implemented and verified.
 
 Coordinator status after the standalone terminal baseline: `teamy-terminal`
 main contains the bounded core scrollback/reflow, dirty rendering, Tracy
@@ -282,24 +282,21 @@ profiling, idle-scheduler, and dirty-render-default commits locally; they are
 not pushed from this worktree. The SFM 1.19.2 branch now contains the reviewed
 Java-local terminal acceptance baseline at `c996521da`. The reviewed Vox contract is
 frozen as the `vox-java-0.10.0-rc.5` artifact produced at `26fda8736`, but it
-is not yet consumed by SFM: the portable Cargo/xtask source-build recipe now
-exists, while the exact contract commit remains unreachable from the configured
-Facet remotes. A workspace-relative Maven URL would not reproduce from a clean
-checkout, and generated runtime sources are not vendored into SFM.
+is now consumed by SFM through the pinned `TeamDman/facet` `main` revision and
+the portable Cargo/xtask source-build recipe. A workspace-relative Maven URL
+is not used, and generated runtime sources are not vendored into SFM.
 
 The integration order is therefore:
 
-1. Keep the generated contract boundary at `26fda8736` reviewed and retain the
-   SFM-supported source-build recipe for `org.facet:vox-java:0.10.0-rc.5`;
-   publish the exact revision or provide a portable Maven/HTTP artifact before
-   pinning it, and do not vendor generated runtime sources into SFM.
-2. Run canonical 1.19.2 compile/tests with the lockfile pin and the Java-local command-palette puppet
-   from the canonical worktree.
-3. Add and prove bounded scrollback interaction in the Java-local screen: output
-   beyond the viewport, scroll up/down or wheel input, resize/reflow while
-   scrolled, return-to-bottom behavior, and bounded memory/output rows.
-4. Re-run the same proof with the optional Rust endpoint only after the
-   Java-local screen and scrollback contract are stable.
+1. Keep the generated contract boundary at `26fda8736` reviewed and the
+   published Facet `main` revision pinned through the SFM-supported Cargo
+   source-build recipe for `org.facet:vox-java:0.10.0-rc.5`.
+2. Keep the canonical compile/test and Java-local command-palette puppet proof
+   green from the canonical worktree.
+3. Implement and prove the optional `SFMVoxBridge` against the pinned generated
+   Java contract while preserving Java-local fallback.
+4. Re-run the same terminal scenario against the optional Rust endpoint, then
+   pursue the separate texture-presentation experiment.
 
 ### Canonical Java-local validation — 2026-07-26
 
@@ -327,16 +324,15 @@ the canonical fully-qualified `sfm action invoke sfm:terminal/open` command.
 The Java-local phase is committed as `c996521da` in the canonical worktree and
 has been propagated baseline-first through every version worktree from
 `1.19.4` through `26.1.2`; all version worktrees were clean after the merge.
-The reviewed Vox contract is packaged but deliberately not pinned in SFM until a
-portable acquisition route exists. The artifact is `vox-java-0.10.0-rc.5`, produced at contract commit
-`26fda8736`; its SHA-256 is
-`18312E1CA5F7242644E77FAB02B6C22CB4253E760E7DA0B827E5656EB98ADDA2` and its
+The reviewed Vox contract is now pinned through the published Facet `main`
+revision `aa75598dabb2138b18365cdf0d97ca94a34c5319`. The artifact is
+`vox-java-0.10.0-rc.5`, produced from contract commit `26fda8736`; its
+published-main SHA-256 is
+`728884A046A0A754144E67D6EECC89002EA9138C50A20AC83A1FFFC9C33E59B8` and its
 locked BLAKE3 content hash is
-`50625f8ccd3c3a074a45f5195e2033a0e2963a73`. The earlier `javac --release 17`
-failure was an environment permission issue accessing the JDK `ct.sym`; the
-elevated `test-java` and `package-java` gates now pass. A local Maven/cache
-probe was intentionally discarded because it would not satisfy clean-checkout
-portability. No Cloud Terrastodon changes are part of that work.
+`3bd59c93fd5d602821c4460dc4e5255635c355f9`. The old locally cached artifact
+was stale and was rejected by the content-hash check. No Cloud Terrastodon
+changes are part of that work.
 
 The focused `SFMJavaLocalTerminalServiceTests` run remains green after the
 commit and propagation. A fresh elevated rerun of
@@ -371,17 +367,22 @@ vox/java/target/vox-java-0.10.0-rc.5.jar
 
 The recipe is materialized from the locked Git commit into SFM's managed
 source-build cache, and its output is copied into the Maven cache with the
-existing content-hash and provenance checks. The focused CLI test suite passed
-361 tests with one pre-existing ignored network test. This closes the earlier
+existing content-hash and provenance checks. The focused CLI suite passes 363
+tests with one pre-existing ignored network test. This closes the earlier
 "no Cargo/xtask acquisition path" implementation gap without adding a Gradle
 requirement.
 
-The dependency is still not pinned in `sfm-toolchain.lock.json`: contract
-commit `26fda8736` is not reachable from either configured Facet remote, and a
-fresh checkout cannot materialize an unreachable commit. Publishing that exact
-reviewed commit or producing a portable Maven/HTTP artifact remains the next
-external acquisition gate; no local path or generated-source vendoring is an
-acceptable substitute.
+The source-build path also accounts for a Windows-specific portability limit:
+the Vox packaging task invokes `javac`, which failed from the long per-user
+temp checkout even though the generated sources and Cargo target were already
+separated. SFM now uses `SFM_SOURCE_BUILD_ROOT` when set, otherwise an existing
+`%SystemDrive%\tmp` directory on Windows, and finally the normal temp directory
+as a fallback. Cargo checkouts and target outputs both use this root. On this
+client, a fresh physical checkout under `C:\tmp` passed the full
+`cargo run --locked --package vox-xtask -- package-java` task, and the
+canonical SFM compile then passed. `LongPathsEnabled` is therefore not a
+required prerequisite for this acquisition route; the short physical root is
+the deterministic fix.
 
 ### Phase 0 — Contract fixtures and capability matrix
 
