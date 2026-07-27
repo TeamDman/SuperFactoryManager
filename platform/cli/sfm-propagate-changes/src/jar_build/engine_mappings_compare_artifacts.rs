@@ -1722,11 +1722,28 @@ fn source_build_provenance(
     }
     let source_git = source_git?;
     let source_relative_path = source_relative_path?;
-    if !source_git.root.join("gradlew").is_file() && !source_git.root.join("gradlew.bat").is_file()
+    let coordinate = coordinate.and_then(|coordinate| MavenCoordinate::parse(coordinate).ok())?;
+    let has_gradle_wrapper =
+        source_git.root.join("gradlew").is_file() || source_git.root.join("gradlew.bat").is_file();
+    if !has_gradle_wrapper && is_vox_java_cargo_source(&source_git.root, &coordinate, source_relative_path)
     {
+        return Some(SourceBuildProvenance {
+            build_system: SourceBuildSystem::CargoCommand,
+            tasks: vec![
+                "run".to_string(),
+                "--locked".to_string(),
+                "--package".to_string(),
+                "vox-xtask".to_string(),
+                "--".to_string(),
+                "package-java".to_string(),
+            ],
+            environment: BTreeMap::new(),
+            output_path: source_relative_path.to_path_buf(),
+        });
+    }
+    if !has_gradle_wrapper {
         return None;
     }
-    let coordinate = coordinate.and_then(|coordinate| MavenCoordinate::parse(coordinate).ok())?;
     let mut environment = BTreeMap::new();
     if let Some(build_number) = explicit_source_build_number(&coordinate) {
         environment.insert("BUILD_NUMBER".to_string(), build_number);
@@ -1738,6 +1755,22 @@ fn source_build_provenance(
         environment,
         output_path: source_relative_path.to_path_buf(),
     })
+}
+
+fn is_vox_java_cargo_source(
+    source_root: &Path,
+    coordinate: &MavenCoordinate,
+    source_relative_path: &Path,
+) -> bool {
+    coordinate.group == "org.facet"
+        && coordinate.artifact == "vox-java"
+        && source_root.join("Cargo.toml").is_file()
+        && source_root.join("vox").join("xtask").join("Cargo.toml").is_file()
+        && source_relative_path
+            == Path::new("vox")
+                .join("java")
+                .join("target")
+                .join(format!("vox-java-{}.jar", coordinate.version))
 }
 
 fn explicit_source_build_task(coordinate: &MavenCoordinate) -> String {
@@ -1784,7 +1817,53 @@ fn materialize_source_build(
             checkout_dir,
             repository_dir,
         ),
+        SourceBuildSystem::CargoCommand => materialize_cargo_source_build(
+            cancellation_token,
+            remote_url,
+            commit,
+            source_build,
+            checkout_dir,
+            repository_dir,
+        ),
     }
+}
+
+fn materialize_cargo_source_build(
+    cancellation_token: &CancellationToken,
+    remote_url: &str,
+    commit: &str,
+    source_build: &SourceBuildProvenance,
+    checkout_dir: &Path,
+    repository_dir: &Path,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
+    if source_build.tasks.is_empty() {
+        eyre::bail!("Source build for {remote_url}@{commit} has no Cargo command");
+    }
+    prepare_source_build_checkout(
+        cancellation_token,
+        remote_url,
+        commit,
+        checkout_dir,
+        repository_dir,
+    )?;
+    cancellation_token.bail_if_cancelled()?;
+    tracing::info!(
+        remote = remote_url,
+        commit,
+        checkout = %checkout_dir.display(),
+        tasks = ?source_build.tasks,
+        output = %source_build.output_path.display(),
+        "running Cargo source build"
+    );
+    let mut command = Command::new("cargo");
+    command
+        .current_dir(checkout_dir)
+        .args(&source_build.tasks);
+    for (key, value) in &source_build.environment {
+        command.env(key, value);
+    }
+    run_source_build_process(cancellation_token, &mut command, "source-build-cargo")
 }
 
 fn materialize_gradle_wrapper_source_build(

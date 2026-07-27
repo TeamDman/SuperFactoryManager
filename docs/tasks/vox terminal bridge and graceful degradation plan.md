@@ -345,6 +345,31 @@ test failure or child process reported. Treat this as an SFM cache/build-lock
 diagnostic to resolve before the next compile gate, not as evidence of a Java
 terminal regression.
 
+### Portable Cargo source-build support — 2026-07-26
+
+The canonical propagation CLI now recognizes the reviewed Vox runtime source
+layout and records a portable `CargoCommand` recipe for
+`org.facet:vox-java:0.10.0-rc.5`:
+
+```text
+cargo run --locked --package vox-xtask -- package-java
+vox/java/target/vox-java-0.10.0-rc.5.jar
+```
+
+The recipe is materialized from the locked Git commit into SFM's managed
+source-build cache, and its output is copied into the Maven cache with the
+existing content-hash and provenance checks. The focused CLI test suite passed
+361 tests with one pre-existing ignored network test. This closes the earlier
+"no Cargo/xtask acquisition path" implementation gap without adding a Gradle
+requirement.
+
+The dependency is still not pinned in `sfm-toolchain.lock.json`: contract
+commit `26fda8736` is not reachable from either configured Facet remote, and a
+fresh checkout cannot materialize an unreachable commit. Publishing that exact
+reviewed commit or producing a portable Maven/HTTP artifact remains the next
+external acquisition gate; no local path or generated-source vendoring is an
+acceptable substitute.
+
 ### Phase 0 — Contract fixtures and capability matrix
 
 - Record the schema in the Facet/Vox integration worktree and generate Java

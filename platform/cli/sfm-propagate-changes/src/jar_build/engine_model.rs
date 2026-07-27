@@ -199,6 +199,7 @@ pub(crate) struct SourceBuildProvenance {
 #[repr(u8)]
 pub(crate) enum SourceBuildSystem {
     GradleWrapper,
+    CargoCommand,
 }
 
 #[derive(Clone, Debug, Default, Facet)]
