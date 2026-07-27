@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.17]
+
+### Changes on code
+
+- **Activity bar**
+  - GitHub changes to their API
+- **Syntax**
+  - Added all new keywords to different places
+- **Dependecies**
+  - Update most of them, since, well, TypeScript 7 goes faster and some old stuff
+  - Added a command to install them
+
 ## [0.0.15]
 
 ### Changes on code

@@ -64,6 +64,7 @@ import { SetOpContext } from "./SFMLParser";
 import { LabelAccessContext } from "./SFMLParser";
 import { RoundrobinContext } from "./SFMLParser";
 import { LabelContext } from "./SFMLParser";
+import { EmptyslotsContext } from "./SFMLParser";
 import { IdentifierContext } from "./SFMLParser";
 import { StringContext } from "./SFMLParser";
 import { NumberContext } from "./SFMLParser";
@@ -796,6 +797,17 @@ export interface SFMLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitLabel?: (ctx: LabelContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.emptyslots`.
+	 * @param ctx the parse tree
+	 */
+	enterEmptyslots?: (ctx: EmptyslotsContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.emptyslots`.
+	 * @param ctx the parse tree
+	 */
+	exitEmptyslots?: (ctx: EmptyslotsContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `SFMLParser.identifier`.
