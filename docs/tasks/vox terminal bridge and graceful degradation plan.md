@@ -351,6 +351,13 @@ The profiler wrapper now starts `tracy-capture.exe` with
 `Start-Process -NoNewWindow`, so capture output stays in the invoking
 Codex/current console instead of opening an explicit `wt.exe` window.
 
+The follow-up commits `727816f05` and `7af8f8efd` were propagated with
+`sfm-propagate-changes.exe git merge --auto-abort`. All ten version worktrees
+from `1.19.2` through `26.1.2` are clean and contain the canonical
+`7af8f8efd` commit as an ancestor. A fresh canonical compile and full JUnit
+rerun after propagation again completed with 419 tests found, 417 passed,
+0 failed, and the same two expected symlink-privilege aborts.
+
 ### Portable Cargo source-build support — 2026-07-26
 
 The canonical propagation CLI now recognizes the reviewed Vox runtime source
