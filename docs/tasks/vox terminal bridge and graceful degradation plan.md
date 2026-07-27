@@ -269,10 +269,12 @@ directory on `D:`. The existing cudarc 0.19.7 lock only supports through
 failed only on a stale expected scene/color snapshot, not renderer startup.
 No CUDA or Teamy Studio source changes were committed in that follow-up.
 
-The packaged contract review is complete. The next coordinator-owned step is
-to establish a portable SFM acquisition path for that exact artifact, then pin
-it in the canonical 1.19.2 lockfile and run canonical compile/tests before
-adding the optional Vox adapter. The Java-local backend remains the default.
+The packaged contract review is complete, and the coordinator-owned portable
+Cargo/xtask acquisition route is now implemented. The remaining coordinator
+step is to publish or otherwise expose the exact reviewed contract revision so
+SFM can pin it in the canonical 1.19.2 lockfile, then run canonical
+compile/tests before adding the optional Vox adapter. The Java-local backend
+remains the default.
 
 Coordinator status after the standalone terminal baseline: `teamy-terminal`
 main contains the bounded core scrollback/reflow, dirty rendering, Tracy
@@ -280,17 +282,17 @@ profiling, idle-scheduler, and dirty-render-default commits locally; they are
 not pushed from this worktree. The SFM 1.19.2 branch now contains the reviewed
 Java-local terminal acceptance baseline at `c996521da`. The reviewed Vox contract is
 frozen as the `vox-java-0.10.0-rc.5` artifact produced at `26fda8736`, but it
-is not yet consumed by SFM: the current lock workflow has no portable
-Cargo/xtask source-build acquisition for this JAR, and a workspace-relative
-Maven URL would not reproduce from a clean checkout. Generated runtime
-sources are not vendored into SFM.
+is not yet consumed by SFM: the portable Cargo/xtask source-build recipe now
+exists, while the exact contract commit remains unreachable from the configured
+Facet remotes. A workspace-relative Maven URL would not reproduce from a clean
+checkout, and generated runtime sources are not vendored into SFM.
 
 The integration order is therefore:
 
-1. Keep the generated contract boundary at `26fda8736` reviewed and require a
-   portable Maven/HTTP artifact or an SFM-supported source-build recipe for
-   `org.facet:vox-java:0.10.0-rc.5`; do not vendor generated runtime sources
-   into SFM.
+1. Keep the generated contract boundary at `26fda8736` reviewed and retain the
+   SFM-supported source-build recipe for `org.facet:vox-java:0.10.0-rc.5`;
+   publish the exact revision or provide a portable Maven/HTTP artifact before
+   pinning it, and do not vendor generated runtime sources into SFM.
 2. Run canonical 1.19.2 compile/tests with the lockfile pin and the Java-local command-palette puppet
    from the canonical worktree.
 3. Add and prove bounded scrollback interaction in the Java-local screen: output
@@ -345,6 +347,9 @@ symlink-privilege aborts) and the focused terminal filter. The non-elevated
 account could not open the existing user-level Forge artifact lock; this was
 an ACL/environment issue, not a Java-terminal failure. The propagation command
 was `sfm-propagate-changes.exe git merge --auto-abort`; no push was performed.
+The profiler wrapper now starts `tracy-capture.exe` with
+`Start-Process -NoNewWindow`, so capture output stays in the invoking
+Codex/current console instead of opening an explicit `wt.exe` window.
 
 ### Portable Cargo source-build support — 2026-07-26
 
