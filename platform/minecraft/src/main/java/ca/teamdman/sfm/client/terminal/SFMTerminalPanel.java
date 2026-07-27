@@ -13,7 +13,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
-/** Composable terminal leaf. It intentionally renders only the local service's transcript. */
+/** Composable terminal leaf. Rust/Vox frames are presented when that backend is configured. */
 public final class SFMTerminalPanel implements SFMScreenPanel {
     private static final int PANEL = 0xF0101218;
     private static final int TEXT = 0xFFE8F0F2;
@@ -21,19 +21,29 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private static final int ERROR = 0xFFFF7777;
     private static final int INPUT = 0xFF162530;
     private final SFMTerminalClient client;
+    private final SFMVoxTerminalService voxService;
+    private final SFMTerminalPngRenderer pngRenderer = new SFMTerminalPngRenderer();
     private final SFMTerminalScrollback scrollback = new SFMTerminalScrollback();
     private String input = "";
     private SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 1, 1);
     private SFMWorkspacePanelContext context;
+    private Minecraft minecraft;
 
     public SFMTerminalPanel(SFMTerminalService service) {
-        this(new SFMTerminalClient(service));
+        this(new SFMTerminalClient(service), service instanceof SFMVoxTerminalService vox ? vox : null);
     }
 
     public SFMTerminalPanel(SFMTerminalClient client) {
+        this(client, null);
+    }
+
+    private SFMTerminalPanel(SFMTerminalClient client, SFMVoxTerminalService voxService) {
         this.client = client;
+        this.voxService = voxService;
         scrollback.appendAll(List.of(
-                "Java-local terminal · Rust/Vox unavailable fallback",
+                voxService == null
+                        ? "Java-local terminal · Rust/Vox unavailable fallback"
+                        : "Rust-authoritative terminal · full PNG Vox mode",
                 "Type pwd, ls, cat <file>, echo <text>, or write <file> <text>"
         ));
     }
@@ -45,11 +55,13 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public Component narration() {
-        return Component.literal("Java-local terminal at " + client.workingDirectory());
+        return Component.literal((voxService == null ? "Java-local terminal at " : "Rust/Vox terminal at ")
+                + client.workingDirectory());
     }
 
     @Override
     public void opened(Minecraft minecraft, SFMScreenPanelBounds bounds, SFMWorkspacePanelContext context) {
+        this.minecraft = minecraft;
         this.bounds = bounds;
         this.context = context;
     }
@@ -57,10 +69,18 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public void resized(Minecraft minecraft, SFMScreenPanelBounds bounds) {
         this.bounds = bounds;
+        if (voxService != null) {
+            int cellWidth = Math.max(1, minecraft.font.width("W"));
+            int cellHeight = Math.max(1, minecraft.font.lineHeight + 2);
+            voxService.resize(bounds.width() / cellWidth, bounds.height() / cellHeight);
+        }
     }
 
     @Override
     public void closed() {
+        if (minecraft != null) pngRenderer.close(minecraft);
+        if (voxService != null) voxService.close();
+        minecraft = null;
         context = null;
     }
 
@@ -74,12 +94,19 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         int inputY = bounds.y() + bounds.height() - lineHeight - 8;
         int visibleLines = Math.max(0, (inputY - bounds.y() - 22) / lineHeight);
         scrollback.setViewportLineCount(Math.max(1, visibleLines));
-        int y = bounds.y() + 8;
-        SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left, y, TEXT, false);
-        y += lineHeight + 4;
-        for (String line : scrollback.visibleLines()) {
+        int contentTop = bounds.y() + lineHeight + 12;
+        SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
+                bounds.y() + 8, TEXT, false);
+        if (voxService != null && pngRenderer.render(poseStack, minecraft, left, contentTop, width,
+                Math.max(1, inputY - contentTop - 4), voxService.latestSnapshot())) {
+            renderInput(poseStack, minecraft, left, width, inputY, focused);
+            return;
+        }
+        int y = contentTop;
+        for (SFMTerminalLine terminalLine : scrollback.visibleLineEntries()) {
             if (y >= inputY) break;
-            int color = line.startsWith("error:") ? ERROR : TEXT;
+            String line = terminalLine.text();
+            int color = line.startsWith("error:") ? ERROR : terminalLine.color();
             String remaining = line;
             do {
                 String rendered = minecraft.font.plainSubstrByWidth(remaining, width);
@@ -89,11 +116,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 remaining = remaining.substring(rendered.length());
             } while (!remaining.isEmpty() && y < inputY);
         }
-        GuiComponent.fill(poseStack, bounds.x() + 4, inputY - 4, bounds.x() + bounds.width() - 4,
-                bounds.y() + bounds.height() - 4, INPUT);
-        String prompt = "> " + input + (focused ? "_" : "");
-        SFMFontUtils.draw(poseStack, minecraft.font,
-                minecraft.font.plainSubstrByWidth(prompt, width), left, inputY, MUTED, false);
+        renderInput(poseStack, minecraft, left, width, inputY, focused);
     }
 
     @Override
@@ -147,9 +170,13 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (command.isEmpty()) return;
         scrollback.append("> " + command);
         SFMTerminalResponse response = client.execute(command);
-        scrollback.appendAll(response.lines().stream()
-                .map(line -> (response.success() ? "" : "error: ") + line)
-                .toList());
+        if (response.success()) {
+            scrollback.appendStyledAll(response.styledLines());
+        } else {
+            scrollback.appendStyledAll(response.styledLines().stream()
+                    .map(line -> new SFMTerminalLine("error: " + line.text(), ERROR))
+                    .toList());
+        }
         input = "";
     }
 
@@ -182,5 +209,14 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     public SFMTerminalClient client() {
         return client;
+    }
+
+    private void renderInput(PoseStack poseStack, Minecraft minecraft, int left, int width, int inputY,
+                             boolean focused) {
+        GuiComponent.fill(poseStack, bounds.x() + 4, inputY - 4, bounds.x() + bounds.width() - 4,
+                bounds.y() + bounds.height() - 4, INPUT);
+        String prompt = "> " + input + (focused ? "_" : "");
+        SFMFontUtils.draw(poseStack, minecraft.font,
+                minecraft.font.plainSubstrByWidth(prompt, width), left, inputY, MUTED, false);
     }
 }

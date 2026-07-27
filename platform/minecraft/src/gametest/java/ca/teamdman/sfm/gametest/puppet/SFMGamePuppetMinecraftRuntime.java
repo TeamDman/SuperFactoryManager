@@ -15,7 +15,7 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
-import ca.teamdman.sfm.client.terminal.SFMJavaLocalTerminalService;
+import ca.teamdman.sfm.client.terminal.SFMTerminalServiceFactory;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.screen.workspace.timeline.SFMFalsifiedInventoryReplayPanel;
@@ -238,7 +238,8 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 
     @Override
     public void openTerminal() {
-        SFMScreenMultiplexer.openToSide(minecraft.screen, new SFMTerminalPanel(new SFMJavaLocalTerminalService()));
+        SFMScreenMultiplexer.openToSide(minecraft.screen,
+                new SFMTerminalPanel(SFMTerminalServiceFactory.create()));
     }
 
     @Override

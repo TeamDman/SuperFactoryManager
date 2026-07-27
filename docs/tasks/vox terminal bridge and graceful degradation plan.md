@@ -39,10 +39,12 @@ same Java screen and typed terminal contract work in three modes:
    uses the same service contract but applies path containment, size, encoding,
    and mutation policy before touching disk.
 3. **Vox/Rust terminal** — an optional development-environment mode. Java is a
-   Vox client and Rust is the service, using Teamy Studio's terminal engine or
-   another Rust implementation. It may provide a real shell, richer VT
-   behavior, semantic prompt/symbol information, compilation, audit, and other
-   repository tooling.
+   thin Vox client and Rust is authoritative for the PTY, command execution, VT
+   parsing, scrollback, colors, cursor state, and terminal rasterization. The
+   first presentation mode is a bounded full PNG snapshot; Java uploads and
+   displays that image in the panel and sends input/resize messages back. It
+   may later provide richer VT behavior, semantic prompt/symbol information,
+   compilation, audit, and other repository tooling.
 
 The first two modes must remain useful when Rust is not installed, the game is
 offline, the endpoint is stopped, authentication fails, or the protocol is
@@ -56,16 +58,19 @@ Java owns all Minecraft-facing concerns:
 
 - the terminal panel, multiplexer allocation, focus, keyboard/mouse routing,
   clipping, theme, accessibility text, and GUI-scale behavior;
-- the local service implementation and virtual/local filesystem policy;
-- validation of every inbound frame, bounded buffering, thread handoff through
-  the Minecraft executor, and terminal lifecycle shown to the player; and
+- the local service implementation and virtual/local filesystem policy when
+  the Java-local backend is selected;
+- Vox connection/input/resize plumbing, validation of every inbound frame,
+  bounded buffering, PNG texture upload, thread handoff through the Minecraft
+  executor, and terminal lifecycle shown to the player; and
 - graceful fallback when the optional endpoint is absent or unhealthy.
 
 Rust owns optional development-environment concerns:
 
 - a real process-backed shell or Teamy Studio terminal engine;
 - VT parsing, terminal screen state, cursor/style state, scrollback, replay,
-  and semantic prompt/symbol/handle metadata;
+  semantic prompt/symbol/handle metadata, and the visual contents of every
+  Rust-backed frame;
 - repository/compiler/audit commands that are inappropriate for the Java-only
   gameplay runtime; and
 - richer external interfaces such as eframe, when the user explicitly asks
@@ -73,8 +78,9 @@ Rust owns optional development-environment concerns:
 
 The wire contract carries portable data and intent only. Rust never sends a
 Minecraft `Screen`, panel, widget tree, renderer callback, arbitrary layout
-instruction, or Java object reference. Java renders the terminal locally,
-whether the service is Java-local or remote.
+instruction, or Java object reference. In Java-local mode the panel renders
+the local transcript; in Vox mode it displays the Rust-owned full-frame PNG
+and does not independently reinterpret terminal output or colors.
 
 ## Contract shape
 
@@ -159,14 +165,23 @@ panel and inside horizontal, vertical, tab, and nested split layouts. Rust
 frames describe terminal content; the Java panel owns all layout and theme
 decisions.
 
-## Optional Rust-rendered texture presentation
+## Rust-owned PNG presentation
 
-The preferred Rust-backed presentation experiment is a texture stream rather
-than reimplementing Teamy Studio's renderer in Java. Teamy Studio can render
+The initial Rust-backed presentation is deliberately a complete PNG frame
+rather than a cell protocol or native GPU-handle interop. Rust owns the PTY,
+VT state, font rasterization, and pixel contents; Java receives a bounded full
+PNG, decodes it on the Minecraft render thread, uploads it to a dynamic
+texture, and blits it inside the terminal panel. Keyboard, mouse, resize,
+focus, and paste events travel in the opposite direction through the same
+session. This gives us an end-to-end correctness proof before optimizing
+unchanged glyphs, dirty regions, or GPU paths.
+
+The eventual texture-stream experiment can replace the PNG payload without
+changing the ownership boundary or panel contract. Teamy Studio can render
 its terminal into an off-screen target using its existing DirectX/font
 pipeline; Java then owns a Minecraft texture resource and blits the received
-frame inside a terminal panel. Keyboard, mouse, resize, focus, and paste events
-travel in the opposite direction through the same session.
+frame inside a terminal panel. Native GPU-handle interop remains out of scope
+for the first implementation.
 
 The process boundary needs to be treated honestly: a DirectX GPU texture
 handle cannot normally be handed directly to Minecraft's separate LWJGL/OpenGL
@@ -408,9 +423,69 @@ using the wrong `ItemRenderer` signatures in
 changed by this terminal work.
 
 The next implementation slice is the actual Rust endpoint plus a decoder and
-Java panel presentation for the bounded `STRUCTURED_CELLS` or raster snapshot;
-that work must preserve the currently verified Java-local fallback and must
-not modify Cloud Terrastodon.
+Java panel presentation for a bounded full PNG snapshot; that work must
+preserve the currently verified Java-local fallback and must not modify Cloud
+Terrastodon.
+
+### Rust-authoritative PNG endpoint — 2026-07-26
+
+The implementation now follows the intended ownership boundary:
+
+- `G:\Programming\Repos\teamy-terminal\tools\vox-terminal-server` is an
+  isolated Cargo workspace because the main Teamy Terminal workspace still
+  pins an older Facet revision through the `weavy` dependency. It uses the
+  published Facet `main` revision and the generated Terminal contract.
+- The endpoint owns a real `pwsh -NoProfile` PTY, answers the initial terminal
+  device/cursor queries, feeds VT bytes into `TerminalSession`, and rasterizes
+  the complete session into a bounded CPU PNG using the terminal font crate.
+- The focused Rust puppet test runs `1..100; Write-Host -ForegroundColor Cyan
+  "hello, world!"; exit`, verifies the terminal state and cyan cell, and
+  verifies the returned payload is a bounded PNG. The test is green.
+- `SFMVoxTerminalService` now sends carriage-return input, accepts only full
+  PNG frames with a valid signature, and retains the defensive snapshot for
+  the panel. `SFMTerminalPngRenderer` decodes/uploads one frame per server
+  sequence and replaces the prior dynamic texture safely.
+- `sfm.terminal.voxEndpoint=HOST:PORT` opts the command-palette action and
+  game-puppet runtime into the Rust backend. With the property absent, the
+  Java-local backend remains the deterministic fallback. The terminal puppet
+  has a Rust path that captures the `1..100` and cyan `Write-Host` states.
+
+The SFM-side source changes are ready for the local review commit and are not
+propagated. The next verification gate is now bookkeeping plus commit/
+propagation: the focused
+Java tests and the live endpoint-backed Minecraft puppet capture are green.
+Only after the server and SFM changes are committed should they be propagated;
+performance work such as dirty glyph/tile updates is explicitly deferred until
+the full-PNG correctness proof is captured.
+
+### Live TCP and Minecraft presentation proof — 2026-07-27
+
+The isolated server was built and launched hidden on a loopback TCP port. The
+canonical puppet was run with
+`JAVA_TOOL_OPTIONS=-Dsfm.terminal.voxEndpoint=127.0.0.1:63946`; it completed
+with exit code zero and produced:
+
+- `title_screen_java_local_terminal__vox-terminal-powershell-range.png`,
+  showing the Rust-rendered `1..100` tail (`62..100`) in the bounded 40-row
+  viewport; and
+- `title_screen_java_local_terminal__vox-terminal-powershell-cyan.png`,
+  showing the Rust-rendered cyan `hello, world!` output.
+
+The first attempt correctly fell back after the initial PTY drain exceeded the
+old three-second Java timeout. Raising the correctness-first RPC timeout to
+15 seconds fixed the live startup. A second presentation issue was also found
+by visual inspection: the dynamic texture needed an explicit Minecraft shader
+sampler binding in addition to the texture-manager bind. The corrected live
+captures match the raw Rust PNG. The raw endpoint test and focused
+`SFMVoxTerminalServiceTests`/`SFMJavaLocalTerminalServiceTests` gates are green.
+
+The current intentional limitation is that the first contract advertises text
+input and full snapshots, but not key/mouse/scroll operations. Thus Home in
+the Java puppet cannot yet scroll the Rust-owned viewport; the range capture
+shows the terminal's bounded tail. The next correctness slice is a Rust-owned
+scroll request plus Java key/wheel forwarding, followed by another captured
+proof. No performance optimization or Cloud Terrastodon change is part of
+this slice.
 
 ### Phase 0 — Contract fixtures and capability matrix
 

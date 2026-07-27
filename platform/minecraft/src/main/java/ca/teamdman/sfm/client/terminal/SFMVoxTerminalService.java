@@ -15,6 +15,7 @@ import org.facet.vox.generated.TerminalError;
 import org.facet.vox.generated.TerminalFrameEncoding;
 import org.facet.vox.generated.TerminalFrameKind;
 import org.facet.vox.generated.TerminalInputResult;
+import org.facet.vox.generated.TerminalResizeRequest;
 import org.facet.vox.generated.TerminalServiceDescriptor;
 import org.facet.vox.generated.TerminalSnapshot;
 import org.facet.vox.generated.TerminalSnapshotRequest;
@@ -37,16 +38,16 @@ import java.util.concurrent.TimeUnit;
 /**
  * Optional Java client for the generated Vox terminal service.
  *
- * <p>The Java-local service remains the default. This class is deliberately
- * usable as a probe/adapter without changing the panel: Vox snapshots are
- * retained as bounded typed frames, while decoding structured-cell payloads
- * and rendering them remains a separate presentation slice.
+ * <p>Rust owns the PTY, VT state, and rasterization. Java only sends terminal
+ * input and retains the latest bounded full-frame PNG for presentation. The
+ * Java-local service is still available as an explicit degradation path when
+ * the endpoint cannot be reached.
  */
 public final class SFMVoxTerminalService implements SFMTerminalService, AutoCloseable {
     private static final int REQUEST_WIDTH = 120;
     private static final int REQUEST_HEIGHT = 40;
     private static final int MAX_FRAME_BYTES = 4 * 1024 * 1024;
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(15);
 
     private final InetSocketAddress endpoint;
     private final SFMTerminalService fallbackService;
@@ -61,6 +62,8 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     private String failure;
     private TerminalSnapshot latestSnapshot;
     private long clientSequence;
+    private int requestedWidth = REQUEST_WIDTH;
+    private int requestedHeight = REQUEST_HEIGHT;
     private boolean closed;
 
     public SFMVoxTerminalService(InetSocketAddress endpoint) {
@@ -148,9 +151,9 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
                 client = new TerminalClient(lane);
                 TerminalCapabilities capabilities = new TerminalCapabilities(
                         true, false, false, false, true, false, false, false,
-                        REQUEST_WIDTH, REQUEST_HEIGHT, MAX_FRAME_BYTES);
+                        requestedWidth, requestedHeight, MAX_FRAME_BYTES);
                 TerminalConnectRequest request = new TerminalConnectRequest(
-                        "sfm-terminal", REQUEST_WIDTH, REQUEST_HEIGHT, capabilities, nextSequence());
+                        "sfm-terminal", requestedWidth, requestedHeight, capabilities, nextSequence());
                 TerminalConnectResult connected = requireSuccess(
                         await(client.connect(request), "connecting terminal"), "connecting terminal");
                 sessionId = connected.sessionId();
@@ -162,13 +165,44 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         }
     }
 
+    /** Sends a bounded logical terminal resize; the next frame remains Rust-owned. */
+    public void resize(int width, int height) {
+        int boundedWidth = Math.max(1, Math.min(240, width));
+        int boundedHeight = Math.max(1, Math.min(120, height));
+        synchronized (lock) {
+            if (closed) return;
+            requestedWidth = boundedWidth;
+            requestedHeight = boundedHeight;
+            if (sessionId == null) return;
+            try {
+                requireSuccess(
+                        await(client.resize(new TerminalResizeRequest(
+                                sessionId, boundedWidth, boundedHeight, nextSequence())), "resizing terminal"),
+                        "resizing terminal");
+                TerminalSnapshot snapshot = requireSuccess(
+                        await(client.snapshot(new TerminalSnapshotRequest(
+                                sessionId, 0, MAX_FRAME_BYTES, nextSequence())), "reading resized terminal snapshot"),
+                        "reading resized terminal snapshot");
+                if (snapshot.encoding() != TerminalFrameEncoding.PNG
+                        || snapshot.kind() != TerminalFrameKind.FULL
+                        || !isPng(snapshot.payload())) {
+                    throw new IllegalStateException("resized Vox terminal did not return a full PNG frame");
+                }
+                latestSnapshot = snapshot;
+            } catch (Exception error) {
+                failure = "Vox terminal resize unavailable: " + describe(error);
+                closeTransportLocked();
+            }
+        }
+    }
+
     private SFMTerminalResponse execute(String command, SFMTerminalSession fallbackSession) {
         String workingDirectory = workingDirectory();
         try {
             ensureConnected();
             TerminalInputResult input = requireSuccess(
                     await(client.sendText(new TerminalTextInput(
-                            sessionId, command + "\n", nextSequence())), "sending terminal text"),
+                            sessionId, command + "\r", nextSequence())), "sending terminal text"),
                     "sending terminal text");
             TerminalSnapshot snapshot = requireSuccess(
                     await(client.snapshot(new TerminalSnapshotRequest(
@@ -180,10 +214,11 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
             if (snapshot.kind() != TerminalFrameKind.FULL) {
                 throw new IllegalStateException("Vox terminal dirty tiles are not enabled in SFM yet");
             }
-            if (snapshot.encoding() != TerminalFrameEncoding.RGBA8
-                    && snapshot.encoding() != TerminalFrameEncoding.BGRA8
-                    && snapshot.encoding() != TerminalFrameEncoding.PNG) {
-                throw new IllegalStateException("Vox terminal structured cells are not enabled in SFM yet");
+            if (snapshot.encoding() != TerminalFrameEncoding.PNG) {
+                throw new IllegalStateException("Rust terminal must provide a full PNG frame in the initial SFM integration");
+            }
+            if (!isPng(snapshot.payload())) {
+                throw new IllegalStateException("Vox terminal returned a payload without a PNG signature");
             }
             synchronized (lock) {
                 latestSnapshot = snapshot;
@@ -270,6 +305,19 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         Throwable cause = unwrap(error);
         String message = cause.getMessage();
         return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
+    }
+
+    static boolean isPng(byte[] payload) {
+        return payload != null
+                && payload.length >= 8
+                && payload[0] == (byte) 0x89
+                && payload[1] == 0x50
+                && payload[2] == 0x4E
+                && payload[3] == 0x47
+                && payload[4] == 0x0D
+                && payload[5] == 0x0A
+                && payload[6] == 0x1A
+                && payload[7] == 0x0A;
     }
 
     private final class Session implements SFMTerminalSession {

@@ -28,12 +28,20 @@ public final class SFMTerminalScrollback {
     }
 
     public void appendAll(List<String> newLines) {
+        appendStyledAll(newLines.stream().map(SFMTerminalLine::plain).toList());
+    }
+
+    public void appendStyledAll(List<SFMTerminalLine> newLines) {
         if (newLines.isEmpty()) return;
         boolean followingOutput = isFollowingOutput();
         int previousFirstVisibleIndex = firstVisibleIndex();
-        lines.addAll(newLines);
+        lines.addAll(newLines.stream().map(SFMTerminalLine::text).toList());
+        colors.addAll(newLines.stream().map(SFMTerminalLine::color).toList());
         int removed = Math.max(0, lines.size() - maxLines);
-        if (removed > 0) lines.subList(0, removed).clear();
+        if (removed > 0) {
+            lines.subList(0, removed).clear();
+            colors.subList(0, removed).clear();
+        }
         if (!followingOutput) {
             // Preserve the viewed row while new output arrives. If bounded
             // retention evicted that row, clamp to the oldest retained row.
@@ -108,6 +116,16 @@ public final class SFMTerminalScrollback {
         return Collections.unmodifiableList(new ArrayList<>(lines));
     }
 
+    public List<SFMTerminalLine> visibleLineEntries() {
+        int first = firstVisibleIndex();
+        int end = Math.min(lines.size(), first + viewportLineCount);
+        List<SFMTerminalLine> visible = new ArrayList<>(end - first);
+        for (int index = first; index < end; index++) {
+            visible.add(new SFMTerminalLine(lines.get(index), colors.get(index)));
+        }
+        return Collections.unmodifiableList(visible);
+    }
+
     public List<String> visibleLines() {
         int first = firstVisibleIndex();
         int end = Math.min(lines.size(), first + viewportLineCount);
@@ -134,6 +152,8 @@ public final class SFMTerminalScrollback {
     private int clampOffset(int offset) {
         return Math.max(0, Math.min(maxOffset(), offset));
     }
+
+    private final List<Integer> colors = new ArrayList<>();
 
     public record Snapshot(
             long revision,

@@ -3,21 +3,21 @@ package ca.teamdman.sfm.client.action;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
-import ca.teamdman.sfm.client.terminal.SFMJavaLocalTerminalService;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
+import ca.teamdman.sfm.client.terminal.SFMTerminalServiceFactory;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Opens the Java-only terminal; Vox is an optional future backend. */
+/** Opens the Rust-authoritative terminal when a Vox endpoint is configured. */
 public final class OpenTerminalAction implements SFMClientAction<SFMClientActionContext> {
     @Override
     public Component title() { return Component.literal("Open terminal"); }
 
     @Override
     public Component description() {
-        return Component.literal("Open the Java-local terminal (works without Rust or Vox)");
+        return Component.literal("Open the terminal (Rust/Vox when configured, Java-local fallback otherwise)");
     }
 
     @Override
@@ -32,7 +32,7 @@ public final class OpenTerminalAction implements SFMClientAction<SFMClientAction
         if (minecraft.screen instanceof SFMCommandPaletteScreen palette) palette.onClose();
         SFMScreenChangeHelpers.setScreen(SFMScreenMultiplexer.create(
                 origin,
-                new SFMTerminalPanel(new SFMJavaLocalTerminalService())
+                new SFMTerminalPanel(SFMTerminalServiceFactory.create())
         ));
         return 1;
     }

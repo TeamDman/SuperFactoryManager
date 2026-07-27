@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.terminal;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -10,6 +11,15 @@ import org.facet.vox.ConnectionOptions;
 import org.junit.jupiter.api.Test;
 
 class SFMVoxTerminalServiceTests {
+    @Test
+    void acceptsOnlyPayloadsWithThePngSignature() {
+        assertTrue(SFMVoxTerminalService.isPng(new byte[]{
+                (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        }));
+        assertFalse(SFMVoxTerminalService.isPng(new byte[]{0x50, 0x4E, 0x47}));
+        assertFalse(SFMVoxTerminalService.isPng(null));
+    }
+
     @Test
     void unavailableEndpointFallsBackToJavaLocalBackend() {
         try (SFMVoxTerminalService vox = unavailableService(new SFMJavaLocalTerminalService())) {
