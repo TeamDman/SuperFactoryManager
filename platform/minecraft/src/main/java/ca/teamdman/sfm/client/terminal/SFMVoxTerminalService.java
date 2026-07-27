@@ -12,6 +12,8 @@ import org.facet.vox.generated.TerminalConnectRequest;
 import org.facet.vox.generated.TerminalConnectResult;
 import org.facet.vox.generated.TerminalDisconnectRequest;
 import org.facet.vox.generated.TerminalError;
+import org.facet.vox.generated.TerminalFrameEncoding;
+import org.facet.vox.generated.TerminalFrameKind;
 import org.facet.vox.generated.TerminalInputResult;
 import org.facet.vox.generated.TerminalServiceDescriptor;
 import org.facet.vox.generated.TerminalSnapshot;
@@ -20,6 +22,7 @@ import org.facet.vox.generated.TerminalTextInput;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -46,6 +49,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3);
 
     private final InetSocketAddress endpoint;
+    private final SFMTerminalService fallbackService;
     private final ConnectionOptions connectionOptions;
     private final Duration callTimeout;
     private final ExecutorService driver;
@@ -60,7 +64,11 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     private boolean closed;
 
     public SFMVoxTerminalService(InetSocketAddress endpoint) {
-        this(endpoint, ConnectionOptions.builder()
+        this(endpoint, new SFMJavaLocalTerminalService());
+    }
+
+    public SFMVoxTerminalService(InetSocketAddress endpoint, SFMTerminalService fallbackService) {
+        this(endpoint, fallbackService, ConnectionOptions.builder()
                 .handshakeTimeout(Duration.ofMillis(500))
                 .idleTimeout(DEFAULT_TIMEOUT)
                 .closeTimeout(Duration.ofSeconds(1))
@@ -68,8 +76,12 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     }
 
     public SFMVoxTerminalService(
-            InetSocketAddress endpoint, ConnectionOptions connectionOptions, Duration callTimeout) {
+            InetSocketAddress endpoint,
+            SFMTerminalService fallbackService,
+            ConnectionOptions connectionOptions,
+            Duration callTimeout) {
         this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
+        this.fallbackService = Objects.requireNonNull(fallbackService, "fallbackService");
         this.connectionOptions = Objects.requireNonNull(connectionOptions, "connectionOptions");
         this.callTimeout = requirePositive(callTimeout, "callTimeout");
         this.driver = Executors.newSingleThreadExecutor(runnable -> {
@@ -81,7 +93,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
 
     @Override
     public SFMTerminalSession openSession() {
-        return new Session();
+        return new Session(fallbackService.openSession());
     }
 
     /** Returns the latest bounded frame received from Vox, if any. */
@@ -135,7 +147,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
                 await(lane.opened(), "opening terminal lane");
                 client = new TerminalClient(lane);
                 TerminalCapabilities capabilities = new TerminalCapabilities(
-                        true, true, false, true, true, false, true, true,
+                        true, false, false, false, true, false, false, false,
                         REQUEST_WIDTH, REQUEST_HEIGHT, MAX_FRAME_BYTES);
                 TerminalConnectRequest request = new TerminalConnectRequest(
                         "sfm-terminal", REQUEST_WIDTH, REQUEST_HEIGHT, capabilities, nextSequence());
@@ -150,7 +162,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         }
     }
 
-    private SFMTerminalResponse execute(String command) {
+    private SFMTerminalResponse execute(String command, SFMTerminalSession fallbackSession) {
         String workingDirectory = workingDirectory();
         try {
             ensureConnected();
@@ -165,6 +177,14 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
             if (snapshot.payload().length > MAX_FRAME_BYTES) {
                 throw new IllegalStateException("Vox terminal snapshot exceeds the frame bound");
             }
+            if (snapshot.kind() != TerminalFrameKind.FULL) {
+                throw new IllegalStateException("Vox terminal dirty tiles are not enabled in SFM yet");
+            }
+            if (snapshot.encoding() != TerminalFrameEncoding.RGBA8
+                    && snapshot.encoding() != TerminalFrameEncoding.BGRA8
+                    && snapshot.encoding() != TerminalFrameEncoding.PNG) {
+                throw new IllegalStateException("Vox terminal structured cells are not enabled in SFM yet");
+            }
             synchronized (lock) {
                 latestSnapshot = snapshot;
             }
@@ -172,7 +192,12 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
                     "Vox terminal accepted command",
                     "frame sequence: " + input.frameSequence()), workingDirectory);
         } catch (Exception error) {
-            return SFMTerminalResponse.error(describe(error), workingDirectory);
+            SFMTerminalResponse local = fallbackSession.execute(command);
+            List<String> lines = new ArrayList<>();
+            lines.add("Vox unavailable; Java-local fallback active");
+            lines.add(describe(error));
+            lines.addAll(local.lines());
+            return new SFMTerminalResponse(local.success(), lines, local.workingDirectory());
         }
     }
 
@@ -214,8 +239,8 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     private void closeTransportLocked() {
         if (client != null && sessionId != null) {
             try {
-                await(client.disconnect(new TerminalDisconnectRequest(
-                        sessionId, "SFM terminal closed", nextSequence())), "disconnecting terminal");
+                client.disconnect(new TerminalDisconnectRequest(
+                        sessionId, "SFM terminal closed", nextSequence()));
             } catch (Exception ignored) {
                 // Transport shutdown remains best effort after a failed optional endpoint.
             }
@@ -248,17 +273,23 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     }
 
     private final class Session implements SFMTerminalSession {
+        private final SFMTerminalSession fallbackSession;
+
+        private Session(SFMTerminalSession fallbackSession) {
+            this.fallbackSession = Objects.requireNonNull(fallbackSession, "fallbackSession");
+        }
+
         @Override
         public SFMTerminalResponse execute(String command) {
             if (command == null || command.isBlank()) {
                 return SFMTerminalResponse.ok(List.of(), workingDirectory());
             }
-            return SFMVoxTerminalService.this.execute(command);
+            return SFMVoxTerminalService.this.execute(command, fallbackSession);
         }
 
         @Override
         public String workingDirectory() {
-            return SFMVoxTerminalService.this.workingDirectory();
+            return fallbackSession.workingDirectory();
         }
     }
 }

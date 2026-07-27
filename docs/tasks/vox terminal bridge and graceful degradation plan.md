@@ -384,6 +384,34 @@ canonical SFM compile then passed. `LongPathsEnabled` is therefore not a
 required prerequisite for this acquisition route; the short physical root is
 the deterministic fix.
 
+### Java Vox adapter and propagation — 2026-07-26
+
+The canonical SFM branch now contains `SFMVoxTerminalService` at
+`26965ca95`. It owns the optional Vox connection driver and terminal lane,
+performs generated `connect`, `send_text`, `snapshot`, `disconnect`, and
+reconnect operations, enforces the negotiated frame bound, and retains a
+defensive snapshot-payload handoff for the future cell/frame renderer. An
+unavailable endpoint fails closed with a visible response; the existing
+Java-local service and panel remain the default. The focused adapter tests and
+the full canonical JUnit gate pass with only the two known Windows
+symlink-privilege assumptions aborted.
+
+The required oldest-first propagation command completed after preserving each
+Minecraft version's lock inventory and adding the same published Vox pin. The
+ten supported worktrees from `1.19.2` through `26.1.2` are clean, contain the
+canonical adapter commit as an ancestor, and each lockfile has exactly one
+`vox-java` dependency and one
+`org-facet-vox-java-0-10-0-rc-5-3bd59c93` artifact. The 1.19.4 compile was
+also attempted; it remains blocked by three pre-existing Minecraft API calls
+using the wrong `ItemRenderer` signatures in
+`SFMItemIconRenderer` and `SFMFalsifiedInventoryReplayPanel`, which were not
+changed by this terminal work.
+
+The next implementation slice is the actual Rust endpoint plus a decoder and
+Java panel presentation for the bounded `STRUCTURED_CELLS` or raster snapshot;
+that work must preserve the currently verified Java-local fallback and must
+not modify Cloud Terrastodon.
+
 ### Phase 0 — Contract fixtures and capability matrix
 
 - Record the schema in the Facet/Vox integration worktree and generate Java

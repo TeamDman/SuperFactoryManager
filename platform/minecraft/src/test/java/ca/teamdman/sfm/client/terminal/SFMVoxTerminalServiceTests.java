@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.client.terminal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.InetSocketAddress;
@@ -12,22 +11,22 @@ import org.junit.jupiter.api.Test;
 
 class SFMVoxTerminalServiceTests {
     @Test
-    void unavailableEndpointFailsClosedWithoutReplacingJavaLocalBackend() {
-        try (SFMVoxTerminalService vox = unavailableService()) {
+    void unavailableEndpointFallsBackToJavaLocalBackend() {
+        try (SFMVoxTerminalService vox = unavailableService(new SFMJavaLocalTerminalService())) {
             SFMTerminalService.SFMTerminalSession session = vox.openSession();
 
             SFMTerminalResponse response = session.execute("pwd");
 
-            assertFalse(response.success());
-            assertTrue(response.lines().get(0).startsWith("Vox terminal unavailable:"));
-            assertTrue(response.workingDirectory().startsWith("vox://127.0.0.1:"));
+            assertTrue(response.success());
+            assertTrue(response.lines().get(0).equals("Vox unavailable; Java-local fallback active"));
+            assertTrue(response.lines().stream().anyMatch(line -> line.equals("/")));
             assertTrue(vox.latestSnapshot().isEmpty());
         }
     }
 
     @Test
     void blankCommandsRemainNoOpsWhenVoxIsUnavailable() {
-        try (SFMVoxTerminalService vox = unavailableService()) {
+        try (SFMVoxTerminalService vox = unavailableService(new SFMJavaLocalTerminalService())) {
             SFMTerminalResponse response = vox.openSession().execute("  ");
 
             assertTrue(response.success());
@@ -35,11 +34,11 @@ class SFMVoxTerminalServiceTests {
         }
     }
 
-    private static SFMVoxTerminalService unavailableService() {
+    private static SFMVoxTerminalService unavailableService(SFMTerminalService fallback) {
         ConnectionOptions options = ConnectionOptions.builder()
                 .handshakeTimeout(Duration.ofMillis(100))
                 .build();
         return new SFMVoxTerminalService(
-                new InetSocketAddress("127.0.0.1", 1), options, Duration.ofMillis(250));
+                new InetSocketAddress("127.0.0.1", 1), fallback, options, Duration.ofMillis(250));
     }
 }
