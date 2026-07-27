@@ -1877,6 +1877,40 @@
       ]
     },
     {
+      "id": "vox-java",
+      "kind": "library",
+      "role": "library",
+      "display_name": "Vox Java terminal contract",
+      "project_url": "https://github.com/TeamDman/facet",
+      "notes": "Pinned to the published Facet main revision; SFM materializes the Java artifact with the Cargo xtask source-build recipe.",
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.facet:vox-java:0.10.0-rc.5",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "org-facet-vox-java-0-10-0-rc-5-3bd59c93",
+            "resolved_coordinate": "org.facet:vox-java:0.10.0-rc.5",
+            "expected_hash": "blake3:3bd59c93fd5d602821c4460dc4e5255635c355f9",
+            "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
       "id": "worldedit",
       "kind": "mod",
       "role": "integration",
@@ -3114,6 +3148,44 @@
       "hash": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8",
       "cache_path": "$sfm-cache\\maven\\org\\abego\\treelayout\\org.abego.treelayout.core\\1.0.3\\org.abego.treelayout.core-1.0.3.jar",
       "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-facet-vox-java-0-10-0-rc-5-3bd59c93",
+      "owner": {
+        "dependency_id": "vox-java",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "org.facet:vox-java:0.10.0-rc.5",
+      "repository_id": "maven-central",
+      "url": "https://github.com/TeamDman/facet",
+      "hash": "blake3:3bd59c93fd5d602821c4460dc4e5255635c355f9",
+      "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar",
+      "provenance": "source-build",
+      "source_git": {
+        "root": "$sfm-cache\\source-builds\\facet-aa75598dabb2138b18365cdf0d97ca94a34c5319",
+        "commit": "aa75598dabb2138b18365cdf0d97ca94a34c5319",
+        "branch": "main",
+        "dirty": false,
+        "remote_url": "https://github.com/TeamDman/facet"
+      },
+      "source_build": {
+        "build_system": "cargo-command",
+        "tasks": [
+          "run",
+          "--locked",
+          "--package",
+          "vox-xtask",
+          "--",
+          "package-java"
+        ],
+        "environment": {},
+        "output_path": "vox\\java\\target\\vox-java-0.10.0-rc.5.jar"
+      },
       "weak": null
     },
     {
