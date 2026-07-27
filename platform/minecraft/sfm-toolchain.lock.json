@@ -563,6 +563,40 @@
           ]
         }
       ]
+    },
+    {
+      "id": "vox-java",
+      "kind": "library",
+      "role": "library",
+      "display_name": "Vox Java terminal contract",
+      "project_url": "https://github.com/TeamDman/facet",
+      "notes": "Pinned to the published Facet main revision; SFM materializes the Java artifact with the Cargo xtask source-build recipe.",
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.facet:vox-java:0.10.0-rc.5",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "org-facet-vox-java-0-10-0-rc-5-3bd59c93",
+            "resolved_coordinate": "org.facet:vox-java:0.10.0-rc.5",
+            "expected_hash": "blake3:3bd59c93fd5d602821c4460dc4e5255635c355f9",
+            "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar"
+          },
+          "source_providers": []
+        }
+      ]
     }
   ],
   "artifacts": [
