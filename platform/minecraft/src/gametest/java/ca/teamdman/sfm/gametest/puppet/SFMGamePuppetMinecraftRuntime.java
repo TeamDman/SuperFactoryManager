@@ -239,7 +239,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     @Override
     public void openTerminal() {
         SFMScreenMultiplexer.openToSide(minecraft.screen,
-                new SFMTerminalPanel(SFMTerminalServiceFactory.create()));
+                new SFMTerminalPanel(SFMTerminalServiceFactory.createRepl()));
     }
 
     @Override

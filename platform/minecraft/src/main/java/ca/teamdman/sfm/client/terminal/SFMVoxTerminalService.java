@@ -140,7 +140,9 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         synchronized (lock) {
             if (closed) throw new IllegalStateException("Vox terminal service is closed");
             if (sessionId != null) return;
-            if (failure != null) throw new IllegalStateException(failure);
+            // A failed optional endpoint is retryable. The server may be started
+            // after Minecraft, so a prior fallback must not poison this service.
+            failure = null;
 
             try {
                 connection = VoxConnection.connect(endpoint, connectionOptions);
@@ -191,6 +193,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
                 latestSnapshot = snapshot;
             } catch (Exception error) {
                 failure = "Vox terminal resize unavailable: " + describe(error);
+                latestSnapshot = null;
                 closeTransportLocked();
             }
         }
@@ -227,6 +230,9 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
                     "Vox terminal accepted command",
                     "frame sequence: " + input.frameSequence()), workingDirectory);
         } catch (Exception error) {
+            synchronized (lock) {
+                latestSnapshot = null;
+            }
             SFMTerminalResponse local = fallbackSession.execute(command);
             List<String> lines = new ArrayList<>();
             lines.add("Vox unavailable; Java-local fallback active");

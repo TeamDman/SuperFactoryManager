@@ -65,6 +65,7 @@ use super::extract_failed_gametest_names;
 use super::extract_sfm_game_test_names;
 use super::game_puppet_launch_timeout;
 use super::is_excluded_source;
+use super::is_api_classifier;
 use super::minecraft_library_jars_from_version_json;
 use super::normalize_manifest_bytes;
 use super::parchment_coordinate;
@@ -81,11 +82,13 @@ use super::rust_output_jar_path;
 use super::preview_program_args;
 use super::set_minecraft_option;
 use super::should_include_project_run_dependencies;
+use super::should_include_plain_run_dependencies;
 use super::should_keep_split_minecraft_runtime_entry;
 use super::should_package_project_entry;
 use super::source_build_checkout_key;
 use super::source_build_provenance;
 use super::source_git_provenance;
+use super::dependency_selected_for_run;
 use super::write_compare_reports;
 use super::write_unique_temp_file;
 use super::validate_game_puppet_completion;
@@ -484,6 +487,18 @@ fn solo_client_dependency_exclusion_applies_to_client_smoke() {
     ));
     assert!(!should_include_project_run_dependencies(
         RunKind::ClientSmoke,
+        &solo_options
+    ));
+    assert!(should_include_plain_run_dependencies(
+        RunKind::Client,
+        &solo_options
+    ));
+    assert!(should_include_plain_run_dependencies(
+        RunKind::ClientSmoke,
+        &solo_options
+    ));
+    assert!(should_include_plain_run_dependencies(
+        RunKind::ClientPuppet,
         &solo_options
     ));
     assert!(should_include_project_run_dependencies(
@@ -1099,6 +1114,37 @@ fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
         .expect("Mekanism API projection");
     assert_eq!(mekanism_api.configuration, "implementation");
     assert!(!mekanism_api.loader_managed());
+    let vox_java = projected
+        .iter()
+        .find(|dependency| {
+            dependency.coordinate.to_string() == "org.facet:vox-java:0.10.0-rc.5"
+        })
+        .expect("Vox Java projection");
+    assert_eq!(vox_java.configuration, "implementation");
+    assert!(!vox_java.loader_managed());
+    assert_eq!(
+        vox_java.data_run_policy,
+        crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include
+    );
+    let solo_smoke_plain: Vec<_> = projected
+        .iter()
+        .filter(|dependency| {
+            !dependency.loader_managed()
+                && dependency_selected_for_run(
+                    &dependency.configuration,
+                    dependency.data_run_policy,
+                    RunKind::ClientSmoke,
+                )
+                && !is_api_classifier(&dependency.coordinate)
+        })
+        .map(|dependency| dependency.coordinate.to_string())
+        .collect();
+    assert!(solo_smoke_plain.iter().any(|coordinate| {
+        coordinate == "org.facet:vox-java:0.10.0-rc.5"
+    }));
+    assert!(!solo_smoke_plain
+        .iter()
+        .any(|coordinate| coordinate.starts_with("mekanism:Mekanism:")));
     assert!(projected.iter().any(|dependency| {
         dependency.configuration == "minecraft"
             && dependency.coordinate.to_string() == "net.minecraftforge:forge:1.19.2-43.4.0"

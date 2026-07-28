@@ -46,6 +46,30 @@ same Java screen and typed terminal contract work in three modes:
    may later provide richer VT behavior, semantic prompt/symbol information,
    compilation, audit, and other repository tooling.
 
+### Explicit user-facing modes and lifecycle actions
+
+The command palette must make backend selection explicit instead of silently
+changing the meaning of one action based on a JVM property:
+
+- `sfm:repl/open` always opens the Java-local virtual terminal. It remains
+  useful even when a Rust server is running.
+- `sfm:terminal/open` tries to open the Rust-backed terminal using the current
+  Rust server endpoint. If the endpoint is absent or unavailable, it opens a
+  visibly labelled retryable fallback rather than permanently disabling the
+  panel.
+- `sfm:terminal/connect-rust-server [address]` accepts an optional
+  `HOST:PORT` (also `:PORT` for loopback), otherwise using the client-configured
+  default endpoint. It updates the current Rust terminal connection and can be
+  invoked after the Minecraft client has already started.
+- `sfm:terminal/start-rust-server [address]` launches the configured
+  `teamy-terminal.exe serve [address]` process hidden, reuses an already-live
+  endpoint, and then connects the Rust terminal. SFM must track only processes
+  it started so an explicitly launched server is never killed accidentally.
+
+The client config should own the default loopback address/port (initially
+`127.0.0.1:63946`) and an optional executable path. The JVM property remains a
+test/puppet override during migration, not the normal manual-launch contract.
+
 The first two modes must remain useful when Rust is not installed, the game is
 offline, the endpoint is stopped, authentication fails, or the protocol is
 incompatible. A failed optional connection produces a visible status and a
@@ -422,10 +446,10 @@ using the wrong `ItemRenderer` signatures in
 `SFMItemIconRenderer` and `SFMFalsifiedInventoryReplayPanel`, which were not
 changed by this terminal work.
 
-The next implementation slice is the actual Rust endpoint plus a decoder and
-Java panel presentation for a bounded full PNG snapshot; that work must
-preserve the currently verified Java-local fallback and must not modify Cloud
-Terrastodon.
+The next implementation slice is launch ergonomics and lifecycle recovery
+around the already-proven bounded full-PNG endpoint. It must preserve the
+explicit Java-local `repl` path, must not modify Cloud Terrastodon, and must
+make starting the server after Minecraft a supported flow.
 
 ### Rust-authoritative PNG endpoint — 2026-07-26
 
@@ -445,18 +469,18 @@ The implementation now follows the intended ownership boundary:
   PNG frames with a valid signature, and retains the defensive snapshot for
   the panel. `SFMTerminalPngRenderer` decodes/uploads one frame per server
   sequence and replaces the prior dynamic texture safely.
-- `sfm.terminal.voxEndpoint=HOST:PORT` opts the command-palette action and
-  game-puppet runtime into the Rust backend. With the property absent, the
-  Java-local backend remains the deterministic fallback. The terminal puppet
-  has a Rust path that captures the `1..100` and cyan `Write-Host` states.
+- `sfm.terminal.voxEndpoint=HOST:PORT` is currently the test/puppet override
+  for the Rust endpoint. With the property absent, the Java-local backend
+  remains the deterministic fallback until the explicit action/configuration
+  split is implemented. The terminal puppet has a Rust path that captures the
+  `1..100` and cyan `Write-Host` states.
 
-The SFM-side source changes are ready for the local review commit and are not
-propagated. The next verification gate is now bookkeeping plus commit/
-propagation: the focused
-Java tests and the live endpoint-backed Minecraft puppet capture are green.
-Only after the server and SFM changes are committed should they be propagated;
-performance work such as dirty glyph/tile updates is explicitly deferred until
-the full-PNG correctness proof is captured.
+The SFM-side source changes are committed locally at `211e5cb1b` and are not
+propagated. The focused Java tests and live endpoint-backed Minecraft puppet
+capture are green. The next verification gate is the full canonical SFM gate,
+followed by oldest-first propagation; performance work such as dirty
+glyph/tile updates is explicitly deferred until the full-PNG correctness proof
+and lifecycle behavior are stable.
 
 ### Live TCP and Minecraft presentation proof — 2026-07-27
 
@@ -486,6 +510,62 @@ shows the terminal's bounded tail. The next correctness slice is a Rust-owned
 scroll request plus Java key/wheel forwarding, followed by another captured
 proof. No performance optimization or Cloud Terrastodon change is part of
 this slice.
+
+### Manual launch ergonomics and `--solo` correction — 2026-07-27
+
+The first manual instructions exposed two integration gaps:
+
+- `--solo` currently skips `resolve_run_plain_dependencies` and the
+  deobfuscated project dependency path wholesale. The locked `vox-java`
+  dependency is a required plain runtime library with
+  `data_run_policy: include`, not a loader-managed Minecraft mod and not
+  currently a Jar-in-Jar dependency. This can omit `org.facet.vox.*` even
+  though optional mods such as Mekanism were the intended things to omit.
+- The user currently has to start an isolated Cargo workspace and pass a JVM
+  property before launching SFM. That is a development proof, not an
+  acceptable manual workflow.
+
+The implementation status for those gates is now:
+
+1. **Complete.** Solo classpath construction retains required plain runtime
+   libraries while omitting loader-managed mod jars and deobfuscated outputs.
+   The lockfile projection regression and the rebuilt effective smoke
+   classpath both prove `vox-java` is present and Mekanism is absent.
+2. **Complete.** `repl/open` is Java-local, `terminal/open` is Rust-preferred
+   with fallback, and endpoint/executable defaults live in `SFMClientConfig`.
+   `terminal/connect-rust-server [address]` accepts `HOST:PORT`, `:PORT`, or a
+   bare port; JVM properties remain explicit test/puppet overrides.
+3. **Complete.** `SFMVoxTerminalService` clears transient connection failure
+   state and retries on later resize/execute requests.
+4. **Complete.** `terminal/start-rust-server [address]` launches the configured
+   `teamy-terminal.exe serve HOST:PORT` with no console window, waits for TCP
+   readiness, and then opens the Rust-backed panel. The Java-only action does
+   not probe or depend on the Rust process.
+5. **In progress.** The Rust-start puppet proves Java-started Rust, full PNG
+   frames, `1..100`, and cyan `Write-Host` output. Remaining lifecycle work is
+   a focused restart/stop matrix and explicit manual proof of every ordering
+   permutation; it is not required to change the Rust-authoritative frame
+   contract.
+
+#### Evidence — 2026-07-27
+
+- The rebuilt canonical command
+  `sfm-propagate-changes.exe run client --solo --smoke --branch 1.19.2`
+  reached the title screen. Its authoritative
+  `runClientSmoke/minecraftClasspath.txt` contains 123 entries including
+  `org.facet:vox-java:0.10.0-rc.5` and no Mekanism entry.
+- The Rust CLI passes 16 focused library tests, including the bounded PNG Vox
+  puppet and `serve :0` stop-after smoke. The SFM CLI passes the solo-classpath
+  and lockfile-projection regressions.
+- `sfm:title_screen_rust_terminal` completed with
+  `SFM_GAME_PUPPET_COMPLETE failed=0`, producing the range and cyan captures
+  under `build/sfm-toolchain/artifacts/game-test-preview`. The Java action
+  launched `teamy-terminal.exe` and the captured panel shows Rust-authoritative
+  PNG output.
+
+The server process must remain owned by the Rust CLI, not reimplemented in
+Java. Java owns only process launch, endpoint selection, transport state, and
+the panel; Rust remains authoritative for terminal visual state.
 
 ### Phase 0 — Contract fixtures and capability matrix
 

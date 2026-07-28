@@ -2,13 +2,12 @@ package ca.teamdman.sfm.gametest.puppet.definition;
 
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
-import ca.teamdman.sfm.client.terminal.SFMTerminalServiceFactory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
-/** Proof of the useful terminal path when Rust/Vox is absent. */
+/** Proof of the Java-only terminal path, independent of Rust/Vox availability. */
 @SFMGamePuppet
 public final class TitleScreenJavaLocalTerminalGamePuppet {
     private TitleScreenJavaLocalTerminalGamePuppet() {
@@ -18,20 +17,7 @@ public final class TitleScreenJavaLocalTerminalGamePuppet {
         puppet.waitForOverlayToNotBePresent(LoadingOverlay.class);
         puppet.waitTicks(20);
         puppet.openCommandPalette();
-        puppet.executeCommandPalette("sfm action invoke sfm:terminal/open");
-        if (SFMTerminalServiceFactory.voxConfigured()) {
-            puppet.executeTerminal("1..100");
-            puppet.pressTerminalKey(GLFW.GLFW_KEY_HOME);
-            puppet.capture("vox-terminal-powershell-range", Component.literal("SFM Terminal ")
-                    .withStyle(ChatFormatting.GOLD)
-                    .append(Component.literal("Rust-authoritative PNG terminal range output 1..100.")));
-            puppet.pressTerminalKey(GLFW.GLFW_KEY_END);
-            puppet.executeTerminal("write-host -foregroundcolor cyan \"hello, world!\"");
-            puppet.capture("vox-terminal-powershell-cyan", Component.literal("SFM Terminal ")
-                    .withStyle(ChatFormatting.GOLD)
-                    .append(Component.literal("Rust-authoritative PNG terminal with cyan Write-Host output.")));
-            return;
-        }
+        puppet.executeCommandPalette("sfm action invoke sfm:repl/open");
         puppet.executeTerminal("pwd");
         puppet.executeTerminal("write /workspace/hello.txt edited in game");
         puppet.executeTerminal("ls /workspace");

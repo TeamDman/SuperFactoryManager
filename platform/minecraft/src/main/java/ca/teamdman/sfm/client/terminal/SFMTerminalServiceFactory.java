@@ -1,45 +1,123 @@
 package ca.teamdman.sfm.client.terminal;
 
+import ca.teamdman.sfm.common.config.SFMConfig;
+
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.time.Duration;
 import java.util.Optional;
 
-/** Selects the Rust endpoint when explicitly configured, otherwise local fallback. */
+/** Builds explicit Java-local or Rust-backed terminal services. */
 public final class SFMTerminalServiceFactory {
     public static final String VOX_ENDPOINT_PROPERTY = "sfm.terminal.voxEndpoint";
+    public static final String VOX_SERVER_EXECUTABLE_PROPERTY = "sfm.terminal.rustServerExecutable";
+    public static final String DEFAULT_ENDPOINT = "127.0.0.1:63946";
+    private static final Duration SERVER_READY_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration SERVER_READY_RETRY = Duration.ofMillis(50);
+    private static Process ownedRustServer;
 
     private SFMTerminalServiceFactory() {
     }
 
-    public static SFMTerminalService create() {
-        return configuredEndpoint()
-                .<SFMTerminalService>map(SFMVoxTerminalService::new)
-                .orElseGet(SFMJavaLocalTerminalService::new);
+    /** Creates the Java-only terminal; it never probes or depends on Rust. */
+    public static SFMTerminalService createRepl() {
+        return new SFMJavaLocalTerminalService();
     }
 
-    public static boolean voxConfigured() {
-        return configuredEndpoint().isPresent();
+    /** Creates a Rust-preferred terminal with Java-local fallback. */
+    public static SFMVoxTerminalService createRust() {
+        return new SFMVoxTerminalService(configuredEndpoint().orElseThrow());
     }
 
-    static Optional<InetSocketAddress> configuredEndpoint() {
-        String value = System.getProperty(VOX_ENDPOINT_PROPERTY, "").trim();
-        if (value.isEmpty()) return Optional.empty();
+    /** Starts or adopts the configured server and waits for its TCP endpoint to accept connections. */
+    public static synchronized InetSocketAddress startRustServer(String rawAddress)
+            throws IOException, InterruptedException {
+        String source = rawAddress == null ? "terminalRustServerAddress" : "start-rust-server address";
+        String configuredAddress = rawAddress == null
+                ? SFMConfig.getOrFallback(SFMConfig.CLIENT_CONFIG.terminalRustServerAddress, DEFAULT_ENDPOINT)
+                : rawAddress;
+        InetSocketAddress endpoint = parseEndpoint(configuredAddress, source);
+        if (!awaitEndpoint(endpoint, Duration.ZERO)) {
+            if (ownedRustServer == null || !ownedRustServer.isAlive()) {
+                String executableProperty = System.getProperty(VOX_SERVER_EXECUTABLE_PROPERTY, "").trim();
+                String executable = executableProperty.isEmpty()
+                        ? SFMConfig.getOrFallback(
+                        SFMConfig.CLIENT_CONFIG.terminalRustServerExecutable, "teamy-terminal.exe")
+                        : executableProperty;
+                if (executable == null || executable.isBlank()) {
+                    throw new IOException("terminalRustServerExecutable is empty");
+                }
+                ProcessBuilder processBuilder = new ProcessBuilder(
+                        executable.trim(), "serve", endpoint.getHostString() + ":" + endpoint.getPort());
+                processBuilder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+                processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
+                ownedRustServer = processBuilder.start();
+                ownedRustServer.getOutputStream().close();
+                Process server = ownedRustServer;
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    if (server.isAlive()) {
+                        server.destroy();
+                    }
+                }, "sfm-rust-terminal-shutdown"));
+            }
+            if (!awaitEndpoint(endpoint, SERVER_READY_TIMEOUT)) {
+                if (ownedRustServer != null && !ownedRustServer.isAlive()) {
+                    throw new IOException("teamy-terminal exited with code " + ownedRustServer.exitValue());
+                }
+                throw new IOException("Rust terminal server did not become ready at " + endpoint);
+            }
+        }
+        return endpoint;
+    }
+
+    /** Waits for a loopback endpoint without sending application data. */
+    public static boolean awaitEndpoint(InetSocketAddress endpoint, Duration timeout)
+            throws IOException, InterruptedException {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        do {
+            try (Socket socket = new Socket()) {
+                socket.connect(endpoint, 200);
+                return true;
+            } catch (IOException ignored) {
+                if (timeout.isZero()) return false;
+            }
+            Thread.sleep(SERVER_READY_RETRY.toMillis());
+        } while (System.nanoTime() < deadline);
+        return false;
+    }
+
+    /** Resolves the configured endpoint, retaining the JVM property as a test override. */
+    public static Optional<InetSocketAddress> configuredEndpoint() {
+        String property = System.getProperty(VOX_ENDPOINT_PROPERTY, "").trim();
+        String value = property.isEmpty()
+                ? SFMConfig.getOrFallback(SFMConfig.CLIENT_CONFIG.terminalRustServerAddress, DEFAULT_ENDPOINT)
+                : property;
+        return Optional.of(parseEndpoint(value, property.isEmpty() ? "terminalRustServerAddress" : VOX_ENDPOINT_PROPERTY));
+    }
+
+    /** Parses HOST:PORT, :PORT, or a bare port as a loopback endpoint. */
+    public static InetSocketAddress parseEndpoint(String raw, String source) {
+        String value = raw == null ? "" : raw.trim();
+        if (value.startsWith(":")) value = "127.0.0.1" + value;
+        else if (value.chars().allMatch(Character::isDigit)) value = "127.0.0.1:" + value;
+
         int separator = value.lastIndexOf(':');
         if (separator <= 0 || separator == value.length() - 1) {
             throw new IllegalArgumentException(
-                    "The " + VOX_ENDPOINT_PROPERTY + " value must be HOST:PORT, got: " + value);
+                    "The " + source + " value must be HOST:PORT, :PORT, or PORT, got: " + raw);
         }
         String host = value.substring(0, separator).trim();
-        int port;
         try {
-            port = Integer.parseInt(value.substring(separator + 1).trim());
+            int port = Integer.parseInt(value.substring(separator + 1).trim());
+            if (port < 1 || port > 65535) {
+                throw new IllegalArgumentException(
+                        "The " + source + " port must be within 1..65535, got: " + port);
+            }
+            return new InetSocketAddress(host, port);
         } catch (NumberFormatException error) {
             throw new IllegalArgumentException(
-                    "The " + VOX_ENDPOINT_PROPERTY + " port must be numeric, got: " + value, error);
+                    "The " + source + " port must be numeric, got: " + raw, error);
         }
-        if (port < 1 || port > 65535) {
-            throw new IllegalArgumentException(
-                    "The " + VOX_ENDPOINT_PROPERTY + " port must be within 1..65535, got: " + port);
-        }
-        return Optional.of(new InetSocketAddress(host, port));
     }
 }
