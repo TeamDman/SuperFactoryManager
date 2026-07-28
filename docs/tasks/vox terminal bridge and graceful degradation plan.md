@@ -590,9 +590,14 @@ normal focus traversal. Deterministic Java tests cover the sequence boundary.
 
 The focused Rust gates now pass: the CLI Vox puppet, key mapping tests, mouse
 mode/encoding tests, and the terminal-core mouse-mode tests. Main/test Java
-source compilation also passes; the remaining proof is a live puppet that
-captures control-key editing, mouse-mode delivery, streaming `1..10000`
-output, triple-Esc/triple-Tab behavior, and disconnect/retry handling.
+source compilation also passes. Commit `df80cb38d` fixed the Java frame-poller
+timing and changed the automation hook to obtain a synchronous command frame;
+the live capture
+`build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-title_screen-20260728-000407-517/title_screen_rust_terminal/1280x720_auto/figure_02_rust-terminal-powershell-cyan.png`
+now visibly contains the Rust-rendered range and cyan `Write-Host` output.
+The remaining proof is a live puppet that captures control-key editing,
+mouse-mode delivery, streaming `1..10000` output, triple-Esc/triple-Tab
+behavior, and disconnect/retry handling.
 
 ### Phase 0 — Contract fixtures and capability matrix
 
