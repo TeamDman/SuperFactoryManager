@@ -24,10 +24,16 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private final SFMVoxTerminalService voxService;
     private final SFMTerminalPngRenderer pngRenderer = new SFMTerminalPngRenderer();
     private final SFMTerminalScrollback scrollback = new SFMTerminalScrollback();
+    private final SFMTerminalFocusSequence focusSequence = new SFMTerminalFocusSequence();
     private String input = "";
     private SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 1, 1);
     private SFMWorkspacePanelContext context;
     private Minecraft minecraft;
+    private int renderLeft;
+    private int renderTop;
+    private int renderWidth;
+    private int renderHeight;
+    private int pressedMouseButtons;
 
     public SFMTerminalPanel(SFMTerminalService service) {
         this(new SFMTerminalClient(service), service instanceof SFMVoxTerminalService vox ? vox : null);
@@ -95,10 +101,14 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         int visibleLines = Math.max(0, (inputY - bounds.y() - 22) / lineHeight);
         scrollback.setViewportLineCount(Math.max(1, visibleLines));
         int contentTop = bounds.y() + lineHeight + 12;
+        renderLeft = left;
+        renderTop = contentTop;
+        renderWidth = width;
+        renderHeight = Math.max(1, inputY - contentTop - 4);
         SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
                 bounds.y() + 8, TEXT, false);
         if (voxService != null && pngRenderer.render(poseStack, minecraft, left, contentTop, width,
-                Math.max(1, inputY - contentTop - 4), voxService.latestSnapshot())) {
+                renderHeight, voxService.latestSnapshot())) {
             renderInput(poseStack, minecraft, left, width, inputY, focused);
             return;
         }
@@ -121,6 +131,33 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            if (focusSequence.escape(System.nanoTime()) == SFMTerminalFocusSequence.Decision.EXIT) {
+                if (context != null) context.submit(new ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent.Close());
+                return true;
+            }
+            if (voxService != null) voxService.sendKey(keyCode, modifiers, true, false);
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_TAB) {
+            SFMTerminalFocusSequence.Decision decision = focusSequence.tab(System.nanoTime());
+            if (decision == SFMTerminalFocusSequence.Decision.JAVA_FOCUS) {
+                // Returning false lets Minecraft's Screen focus traversal own
+                // this third Tab instead of sending it to the PTY.
+                return false;
+            }
+            if (voxService != null) voxService.sendKey(keyCode, modifiers, true, false);
+            else input += "\t";
+            return true;
+        }
+        focusSequence.reset();
+        if (voxService != null) {
+            if (!isPrintableKey(keyCode)
+                    || (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) != 0) {
+                voxService.sendKey(keyCode, modifiers, true, false);
+            }
+            return true;
+        }
         if (keyCode == GLFW.GLFW_KEY_PAGE_UP) {
             scrollback.pageUp();
             return true;
@@ -157,7 +194,23 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     @Override
+    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        if (voxService == null) return false;
+        if (!isPrintableKey(keyCode)
+                || (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) != 0) {
+            voxService.sendKey(keyCode, modifiers, false, false);
+        }
+        return true;
+    }
+
+    @Override
     public boolean charTyped(char character, int modifiers) {
+        if (voxService != null) {
+            if (character >= 0x20 && character != 0x7F) {
+                voxService.sendText(String.valueOf(character));
+            }
+            return true;
+        }
         if (character >= 0x20 && character != 0x7F && input.length() < 512) {
             input += character;
             return true;
@@ -182,6 +235,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     /** Deterministic hook for puppet proofs; normal users use keyboard input. */
     public void executeForAutomation(String command) {
+        if (voxService != null) {
+            voxService.sendText((command == null ? "" : command) + "\r");
+            return;
+        }
         input = command == null ? "" : command;
         submitInput();
     }
@@ -202,13 +259,72 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (mouseX < bounds.x() || mouseX >= bounds.x() + bounds.width()
                 || mouseY < bounds.y() || mouseY >= bounds.y() + bounds.height()) return false;
-        if (delta > 0) scrollback.scrollOlder(Math.max(1, (int) Math.ceil(delta)));
+        if (voxService != null) {
+            voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, 0, false,
+                    0, (int) Math.round(delta));
+        } else if (delta > 0) scrollback.scrollOlder(Math.max(1, (int) Math.ceil(delta)));
         else if (delta < 0) scrollback.scrollNewer(Math.max(1, (int) Math.ceil(-delta)));
         return delta != 0;
     }
 
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!containsTerminalPoint(mouseX, mouseY)) return false;
+        if (voxService == null) return false;
+        int mask = mouseMask(button);
+        pressedMouseButtons |= mask;
+        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true, 0, 0);
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (voxService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
+        pressedMouseButtons &= ~mouseMask(button);
+        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, false, 0, 0);
+        return true;
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (voxService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
+        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true, 0, 0);
+        return true;
+    }
+
+    @Override
+    public void mouseMoved(double mouseX, double mouseY) {
+        if (voxService != null && pressedMouseButtons != 0 && containsTerminalPoint(mouseX, mouseY)) {
+            voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, 0, true, 0, 0);
+        }
+    }
+
     public SFMTerminalClient client() {
         return client;
+    }
+
+    private boolean containsTerminalPoint(double mouseX, double mouseY) {
+        return mouseX >= renderLeft && mouseX < renderLeft + renderWidth
+                && mouseY >= renderTop && mouseY < renderTop + renderHeight;
+    }
+
+    private int logicalX(double mouseX) {
+        return Math.max(0, (int) ((mouseX - renderLeft) * voxService.logicalWidth() / Math.max(1, renderWidth)));
+    }
+
+    private int logicalY(double mouseY) {
+        return Math.max(0, (int) ((mouseY - renderTop) * voxService.logicalHeight() / Math.max(1, renderHeight)));
+    }
+
+    private static int mouseMask(int button) {
+        return button >= 0 && button < 8 ? 1 << button : 0;
+    }
+
+    private static boolean isPrintableKey(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_SPACE
+                || keyCode >= GLFW.GLFW_KEY_APOSTROPHE && keyCode <= GLFW.GLFW_KEY_GRAVE_ACCENT
+                || keyCode >= GLFW.GLFW_KEY_0 && keyCode <= GLFW.GLFW_KEY_9
+                || keyCode >= GLFW.GLFW_KEY_A && keyCode <= GLFW.GLFW_KEY_Z;
     }
 
     private void renderInput(PoseStack poseStack, Minecraft minecraft, int left, int width, int inputY,

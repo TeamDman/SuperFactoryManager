@@ -503,13 +503,12 @@ sampler binding in addition to the texture-manager bind. The corrected live
 captures match the raw Rust PNG. The raw endpoint test and focused
 `SFMVoxTerminalServiceTests`/`SFMJavaLocalTerminalServiceTests` gates are green.
 
-The current intentional limitation is that the first contract advertises text
-input and full snapshots, but not key/mouse/scroll operations. Thus Home in
-the Java puppet cannot yet scroll the Rust-owned viewport; the range capture
-shows the terminal's bounded tail. The next correctness slice is a Rust-owned
-scroll request plus Java key/wheel forwarding, followed by another captured
-proof. No performance optimization or Cloud Terrastodon change is part of
-this slice.
+The earlier intentional limitation—text input and full snapshots only—has now
+been removed at the bridge boundary. Rust implements the already-generated
+`send_key` and `send_mouse` operations, Java sends exact printable text and
+physical key transitions, and Rust encodes mouse reports only after the
+terminal has requested mouse tracking. No performance optimization or Cloud
+Terrastodon change is part of this slice.
 
 ### Manual launch ergonomics and `--solo` correction — 2026-07-27
 
@@ -566,6 +565,34 @@ The implementation status for those gates is now:
 The server process must remain owned by the Rust CLI, not reimplemented in
 Java. Java owns only process launch, endpoint selection, transport state, and
 the panel; Rust remains authoritative for terminal visual state.
+
+### Interactive Rust bridge: direct input and periodic publication — 2026-07-27
+
+This follow-up closes the most important correctness gap in the first PNG
+proof. `send_text` now means exact bytes and no longer adds an implicit Enter;
+Enter, Backspace, Ctrl sequences, modified navigation, Tab, Escape, and key
+release events travel through `send_key`. The Rust endpoint maps the generic
+GLFW key-code/modifier representation to terminal control bytes, including
+Ctrl+A/C, Ctrl+Backspace, Ctrl+Arrow, and Ctrl+Shift navigation, without
+hard-coding one special chord in Java.
+
+The terminal core records xterm mouse modes 1000/1002/1003/1006. Rust emits
+one-based SGR or legacy mouse reports only when those modes are enabled, and
+SFM maps panel coordinates to logical terminal cells for click, release, drag,
+move, and wheel events. SFM also owns a 50 ms snapshot poller using the
+server's sequence witness; unchanged snapshots carry no PNG payload, avoiding
+repainting/uploading an unchanged full frame.
+
+The hosted panel uses a 1.5-second triple-key escape hatch: the first two Esc
+or Tab presses are forwarded to the terminal, the third Esc submits the panel
+close intent, and the third Tab returns `false` so Minecraft can perform its
+normal focus traversal. Deterministic Java tests cover the sequence boundary.
+
+The focused Rust gates now pass: the CLI Vox puppet, key mapping tests, mouse
+mode/encoding tests, and the terminal-core mouse-mode tests. Main/test Java
+source compilation also passes; the remaining proof is a live puppet that
+captures control-key editing, mouse-mode delivery, streaming `1..10000`
+output, triple-Esc/triple-Tab behavior, and disconnect/retry handling.
 
 ### Phase 0 — Contract fixtures and capability matrix
 
