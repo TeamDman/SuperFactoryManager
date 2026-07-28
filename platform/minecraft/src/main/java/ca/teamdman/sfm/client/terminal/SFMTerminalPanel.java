@@ -236,7 +236,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     /** Deterministic hook for puppet proofs; normal users use keyboard input. */
     public void executeForAutomation(String command) {
         if (voxService != null) {
-            voxService.sendText((command == null ? "" : command) + "\r");
+            SFMTerminalResponse response = client.execute(command == null ? "" : command);
+            if (!response.success()) {
+                throw new IllegalStateException("Rust terminal automation command failed: "
+                        + String.join("; ", response.lines()));
+            }
             return;
         }
         input = command == null ? "" : command;

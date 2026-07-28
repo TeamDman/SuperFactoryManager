@@ -190,27 +190,19 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         try {
             future = currentClient.snapshot(new TerminalSnapshotRequest(
                     currentSession, afterSequence, MAX_FRAME_BYTES, nextSequence()));
+            TerminalSnapshot snapshot = requireSuccess(
+                    await(future, "polling terminal snapshot"), "polling terminal snapshot");
+            synchronized (lock) {
+                snapshotInFlight = false;
+                if (closed || (snapshot.payload().length == 0 && !snapshot.complete())) return;
+                validateSnapshot(snapshot, "polled terminal snapshot");
+                latestSnapshot = snapshot;
+            }
         } catch (Exception error) {
             synchronized (lock) {
                 snapshotInFlight = false;
             }
-            return;
         }
-        future.whenComplete((result, error) -> {
-            synchronized (lock) {
-                snapshotInFlight = false;
-                if (closed || error != null) return;
-                try {
-                    TerminalSnapshot snapshot = requireSuccess(result, "polling terminal snapshot");
-                    if (snapshot.payload().length == 0 && !snapshot.complete()) return;
-                    validateSnapshot(snapshot, "polled terminal snapshot");
-                    latestSnapshot = snapshot;
-                } catch (Exception ignored) {
-                    // The foreground request path owns user-visible fallback;
-                    // a single failed poll must not tear down a healthy panel.
-                }
-            }
-        });
     }
 
     private void ensureConnected() throws Exception {
