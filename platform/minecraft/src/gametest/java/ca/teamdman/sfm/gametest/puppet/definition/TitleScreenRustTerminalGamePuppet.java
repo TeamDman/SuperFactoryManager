@@ -19,12 +19,14 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:terminal/start-rust-server");
         puppet.executeTerminal("1..100");
+        puppet.waitTicks(30);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_HOME);
         puppet.capture("rust-terminal-powershell-range", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Rust-authoritative PNG terminal range output 1..100.")));
         puppet.pressTerminalKey(GLFW.GLFW_KEY_END);
         puppet.executeTerminal("write-host -foregroundcolor cyan \"hello, world!\"");
+        puppet.waitTicks(30);
         puppet.capture("rust-terminal-powershell-cyan", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Rust-authoritative PNG terminal with cyan Write-Host output.")));
