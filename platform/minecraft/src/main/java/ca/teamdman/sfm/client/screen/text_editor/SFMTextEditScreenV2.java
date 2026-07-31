@@ -7,6 +7,7 @@ import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
 import ca.teamdman.sfm.client.screen.SFMTextEditorConfigScreen;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMPreferredEditorDropdown;
 import ca.teamdman.sfm.client.text_editor.Caret;
 import ca.teamdman.sfm.client.text_editor.Cursor;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
@@ -248,6 +249,14 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
                         .setTooltip(this, font, SFMTextEditScreenV1.PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP)
                         .build()
         );
+        this.addRenderableWidget(SFMPreferredEditorDropdown.createForEditor(
+                22,
+                this.height - 24,
+                110,
+                20,
+                this,
+                () -> textEditContext.getContent()
+        ));
     }
 
     protected void renderTooltip(

@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.tick_graph.TickTimeGraphRenderState;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMPreferredEditorDropdown;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.common.command.ConfigCommandBehaviourInput;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
@@ -375,6 +376,13 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                         )
                         .build()
         );
+        this.addRenderableWidget(SFMPreferredEditorDropdown.create(
+                (this.width - this.imageWidth) / 2 - buttonWidth,
+                (this.height - this.imageHeight) / 2 + 16 + 50 - buttonHeight - 2,
+                buttonWidth,
+                buttonHeight,
+                false
+        ));
         editButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(

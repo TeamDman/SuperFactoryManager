@@ -1,13 +1,11 @@
 package ca.teamdman.sfm.client.screen;
 
-import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorIntellisenseLevel;
 import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
-import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -15,24 +13,6 @@ import net.minecraft.network.chat.CommonComponents;
 
 @SuppressWarnings("NotNullFieldNotInitialized")
 public class SFMTextEditorConfigScreen extends Screen {
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR = new LocalizationEntry(
-            "gui.sfm.program_editor_config.preferred_editor",
-            "Preferred Editor"
-    );
-
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_V1 = new LocalizationEntry(
-            "gui.sfm.program_editor_config.preferred_editor.v1",
-            "V1 (Default)"
-    );
-
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_V2 = new LocalizationEntry(
-            "gui.sfm.program_editor_config.preferred_editor.v2",
-            "V2"
-    );
-
     @SFMLocalizationDatagen
     public static final LocalizationEntry PROGRAM_EDITOR_CONFIG_SCREEN_TITLE = new LocalizationEntry(
             "gui.sfm.program_editor_config.title",
@@ -78,8 +58,6 @@ public class SFMTextEditorConfigScreen extends Screen {
 
     private final Runnable closeCallback;
 
-    private final boolean editorSelectorFeatureFlag = SFMEnvironmentUtils.isInIDE();
-
     private Button lineNumbersOnButton;
 
     private Button lineNumbersOffButton;
@@ -89,10 +67,6 @@ public class SFMTextEditorConfigScreen extends Screen {
     private Button intellisenseBasicButton;
 
     private Button intellisenseAdvancedButton;
-
-    private Button preferredEditorV1Button;
-
-    private Button preferredEditorV2Button;
 
     public SFMTextEditorConfigScreen(
             ISFMTextEditScreen parent,
@@ -140,15 +114,6 @@ public class SFMTextEditorConfigScreen extends Screen {
                 y + 50,
                 0xFFFFFFFF
         );
-        if (editorSelectorFeatureFlag) {
-            graphics.text(
-                    font,
-                    PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR.getComponent(),
-                    x,
-                    y + 100,
-                    0xFFFFFFFF
-            );
-        }
         graphics.centeredText(
                 font,
                 this.title,
@@ -179,6 +144,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                         .setText(CommonComponents.OPTION_ON)
                         .setOnPress(button -> {
                             config.showLineNumbers.set(true);
+                            config.showLineNumbers.save();
                             updateButtonStates();
                         })
                         .build();
@@ -189,6 +155,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                         .setText(CommonComponents.OPTION_OFF)
                         .setOnPress(button -> {
                             config.showLineNumbers.set(false);
+                            config.showLineNumbers.save();
                             updateButtonStates();
                         })
                         .build();
@@ -204,6 +171,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                         .setText(PROGRAM_EDITOR_CONFIG_INTELLISENSE_OFF)
                         .setOnPress(button -> {
                             config.intellisenseLevel.set(SFMTextEditorIntellisenseLevel.OFF);
+                            config.intellisenseLevel.save();
                             updateButtonStates();
                             parent.onPreferenceChanged();
                         })
@@ -215,6 +183,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                         .setText(PROGRAM_EDITOR_CONFIG_INTELLISENSE_BASIC)
                         .setOnPress(button -> {
                             config.intellisenseLevel.set(SFMTextEditorIntellisenseLevel.BASIC);
+                            config.intellisenseLevel.save();
                             updateButtonStates();
                             parent.onPreferenceChanged();
                         })
@@ -228,6 +197,7 @@ public class SFMTextEditorConfigScreen extends Screen {
                         .setText(PROGRAM_EDITOR_CONFIG_INTELLISENSE_ADVANCED)
                         .setOnPress(button -> {
                             config.intellisenseLevel.set(SFMTextEditorIntellisenseLevel.ADVANCED);
+                            config.intellisenseLevel.save();
                             updateButtonStates();
                             parent.onPreferenceChanged();
                         })
@@ -236,36 +206,6 @@ public class SFMTextEditorConfigScreen extends Screen {
         this.addRenderableWidget(intellisenseOffButton);
         this.addRenderableWidget(intellisenseBasicButton);
         this.addRenderableWidget(intellisenseAdvancedButton);
-
-        // Preferred Editor Buttons
-        preferredEditorV1Button =
-                new SFMButtonBuilder()
-                        .setPosition(x, y + 2 * spacing)
-                        .setSize(buttonWidth, buttonHeight)
-                        .setText(PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_V1)
-                        .setOnPress(button -> {
-                            //noinspection OptionalGetWithoutIsPresent
-                            config.preferredEditor.set(SFMTextEditors.V1.getId().get().identifier().toString());
-                            updateButtonStates();
-                        })
-                        .build();
-        preferredEditorV2Button =
-                new SFMButtonBuilder()
-                        .setPosition(x + buttonWidth + buttonSpacing, y + 2 * spacing)
-                        .setSize(buttonWidth, buttonHeight)
-                        .setText(PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_V2)
-                        .setOnPress(button -> {
-                            //noinspection OptionalGetWithoutIsPresent
-                            config.preferredEditor.set(SFMTextEditors.V2.getId().get().identifier().toString());
-                            updateButtonStates();
-                        })
-                        .build();
-        if (editorSelectorFeatureFlag) {
-            // This behaviour is not ready for release.
-            this.addRenderableWidget(preferredEditorV1Button);
-            this.addRenderableWidget(preferredEditorV2Button);
-        }
-
 
         // Done Button
         this.addRenderableWidget(
@@ -290,12 +230,6 @@ public class SFMTextEditorConfigScreen extends Screen {
                 config.intellisenseLevel.get() != SFMTextEditorIntellisenseLevel.BASIC;
         intellisenseAdvancedButton.active =
                 config.intellisenseLevel.get() != SFMTextEditorIntellisenseLevel.ADVANCED;
-
-        String currentEditor = config.preferredEditor.get();
-        //noinspection OptionalGetWithoutIsPresent
-        preferredEditorV1Button.active = !currentEditor.equals(SFMTextEditors.V1.getId().get().identifier().toString());
-        //noinspection OptionalGetWithoutIsPresent
-        preferredEditorV2Button.active = !currentEditor.equals(SFMTextEditors.V2.getId().get().identifier().toString());
     }
 
 }

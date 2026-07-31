@@ -117,15 +117,17 @@ public class SFMScreenChangeHelpers {
     ) {
 
         setOrPushScreen(new ExamplesScreen((chosenExample, templates) -> {
-            SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
+            ISFMTextEditScreen screen = createProgramEditScreen(new SFMTextEditScreenExampleProgramOpenContext(
                     chosenExample,
                     diskProgramString,
                     templates,
                     labelPositionHolder,
                     saveCallback
             ));
-            setOrPushScreen(screen);
-            screen.scrollToTop();
+            showTextEditScreen(screen);
+            if (screen instanceof SFMTextEditScreenV1 v1) {
+                v1.scrollToTop();
+            }
         }));
     }
 
@@ -169,7 +171,7 @@ public class SFMScreenChangeHelpers {
     public static void showChangelog() {
 
         SFMExampleProgram changelogExampleProgram = SFMExampleProgram.getChangelog();
-        SFMTextEditScreenV1 screen = new SFMTextEditScreenV1(new SFMTextEditScreenExampleProgramOpenContext(
+        ISFMTextEditScreen screen = createProgramEditScreen(new SFMTextEditScreenExampleProgramOpenContext(
                 changelogExampleProgram.programString(),
                 changelogExampleProgram.programString(),
                 List.of(changelogExampleProgram),
@@ -177,8 +179,10 @@ public class SFMScreenChangeHelpers {
                 newContent -> {
                 }
         ));
-        setOrPushScreen(screen);
-        screen.scrollToTop();
+        showTextEditScreen(screen);
+        if (screen instanceof SFMTextEditScreenV1 v1) {
+            v1.scrollToTop();
+        }
     }
 
     public static @Nullable Screen getCurrentScreen() {

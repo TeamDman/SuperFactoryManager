@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMPreferredEditorDropdown;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.common.config.SFMConfig;
@@ -215,6 +216,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                             () -> { }
                     )))
                     .build());
+            this.addRenderableWidget(SFMPreferredEditorDropdown.createForEditor(
+                    22,
+                    this.height - 24,
+                    110,
+                    20,
+                    this,
+                    this::getCurrentText
+            ));
         }
         sfmlButton = new SFMButtonBuilder()
                 .setPosition(this.width - 140, this.height - 24)
