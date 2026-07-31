@@ -7,6 +7,7 @@ import ca.teamdman.sfm.client.screen.*;
 import ca.teamdman.sfm.client.screen.widget.PickList;
 import ca.teamdman.sfm.client.screen.widget.PickListItem;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMPreferredEditorDropdown;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.config.SFMConfig;
@@ -370,13 +371,21 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                         .setTooltip(this, font, PROGRAM_EDIT_SCREEN_CONFIG_BUTTON_TOOLTIP)
                         .build()
         );
+        this.addRenderableWidget(SFMPreferredEditorDropdown.createForEditor(
+                this.width / 2 - 180,
+                this.height / 2 - 100 + 195,
+                110,
+                20,
+                this,
+                () -> textarea.getValue()
+        ));
         this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
-                                this.width / 2 - 2 - 150,
+                                this.width / 2 - 66,
                                 this.height / 2 - 100 + 195
                         )
-                        .setSize(200, 20)
+                        .setSize(130, 20)
                         .setText(CommonComponents.GUI_DONE)
                         .setOnPress((button) -> this.saveAndClose())
                         .setTooltip(this, font, PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP)
@@ -385,10 +394,10 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
-                                this.width / 2 - 2 + 100,
+                                this.width / 2 + 68,
                                 this.height / 2 - 100 + 195
                         )
-                        .setSize(100, 20)
+                        .setSize(130, 20)
                         .setText(CommonComponents.GUI_CANCEL)
                         .setOnPress((button) -> this.onClose())
                         .build()
