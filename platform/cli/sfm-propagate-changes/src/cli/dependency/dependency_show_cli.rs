@@ -229,6 +229,9 @@ fn acquisition_label(acquisition: &ComponentAcquisitionV3) -> String {
         ComponentAcquisitionV3::Toolchain(acquisition) => {
             format!("toolchain {}", acquisition.requested_version)
         }
+        ComponentAcquisitionV3::SourceBuild(acquisition) => {
+            format!("source-build artifact={}", acquisition.artifact_id)
+        }
     }
 }
 
