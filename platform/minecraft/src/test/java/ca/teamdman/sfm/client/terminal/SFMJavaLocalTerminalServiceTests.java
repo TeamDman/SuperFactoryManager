@@ -32,6 +32,20 @@ class SFMJavaLocalTerminalServiceTests {
     }
 
     @Test
+    void capturesPowerShellRangeAndCyanWriteHostSemantics() {
+        SFMTerminalService.SFMTerminalSession session = new SFMJavaLocalTerminalService().openSession();
+
+        SFMTerminalResponse range = session.execute("1..100");
+        assertEquals(100, range.lines().size());
+        assertEquals("1", range.lines().get(0));
+        assertEquals("100", range.lines().get(range.lines().size() - 1));
+
+        SFMTerminalResponse cyan = session.execute("write-host -foregroundcolor cyan \"hello, world!\"");
+        assertEquals(java.util.List.of("hello, world!"), cyan.lines());
+        assertEquals(SFMTerminalLine.CYAN, cyan.styledLines().get(0).color());
+    }
+
+    @Test
     void scrollbackIsBoundedAndKeepsTheViewedRowsStableWhileOutputArrives() {
         SFMTerminalScrollback scrollback = new SFMTerminalScrollback(5);
         scrollback.appendAll(java.util.List.of("one", "two", "three", "four", "five"));

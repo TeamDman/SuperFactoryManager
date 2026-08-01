@@ -5,10 +5,12 @@ use crate::toolchain_lockfile_schema::version::v2::ArtifactLockfileV2;
 use crate::toolchain_lockfile_schema::version::v2_migration::MigrationDiagnostic;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3;
 use crate::toolchain_lockfile_schema::version::v3::SCHEMA_VERSION as V3_SCHEMA_VERSION;
+use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
+use crate::toolchain_lockfile_schema::version::v4::SCHEMA_VERSION as V4_SCHEMA_VERSION;
 use eyre::Context;
 
 pub(crate) const ENGINE_SCHEMA_VERSION: u32 = 2;
-pub(crate) const LATEST_SCHEMA_VERSION: u32 = V3_SCHEMA_VERSION;
+pub(crate) const LATEST_SCHEMA_VERSION: u32 = V4_SCHEMA_VERSION;
 
 pub(crate) enum ToolchainLockfileDocument {
     V1(ArtifactLockfileV1),
@@ -17,6 +19,7 @@ pub(crate) enum ToolchainLockfileDocument {
         migration_diagnostics: Vec<MigrationDiagnostic>,
     },
     V3(ArtifactLockfileV3),
+    V4(ArtifactLockfileV4),
 }
 
 pub(crate) enum MigrationAnalysis {
@@ -25,7 +28,10 @@ pub(crate) enum MigrationAnalysis {
         diagnostics: Vec<MigrationDiagnostic>,
         candidate: Option<ArtifactLockfileV3>,
     },
-    Current(ArtifactLockfileV3),
+    LegacyV3 {
+        candidate: ArtifactLockfileV4,
+    },
+    CurrentV4(ArtifactLockfileV4),
 }
 
 pub(crate) fn parse_document(input: &str) -> eyre::Result<ToolchainLockfileDocument> {
@@ -58,6 +64,12 @@ pub(crate) fn parse_document(input: &str) -> eyre::Result<ToolchainLockfileDocum
             lockfile.validate()?;
             Ok(ToolchainLockfileDocument::V3(lockfile))
         }
+        V4_SCHEMA_VERSION => {
+            let lockfile: ArtifactLockfileV4 = facet_json::from_str(input)
+                .wrap_err("failed to parse toolchain lockfile schema v4")?;
+            lockfile.validate()?;
+            Ok(ToolchainLockfileDocument::V4(lockfile))
+        }
         version if version > LATEST_SCHEMA_VERSION => eyre::bail!(
             "toolchain lockfile schema_version {version} is newer than supported schema_version {LATEST_SCHEMA_VERSION}"
         ),
@@ -78,6 +90,10 @@ pub(crate) fn upgrade_to_latest(input: &str) -> eyre::Result<ArtifactLockfile> {
             Ok(lockfile.into_latest())
         }
         ToolchainLockfileDocument::V3(lockfile) => eyre::bail!(
+            "schema_version {} is valid but cannot be consumed by the legacy schema_version {ENGINE_SCHEMA_VERSION} engine",
+            lockfile.schema_version
+        ),
+        ToolchainLockfileDocument::V4(lockfile) => eyre::bail!(
             "schema_version {} is valid but cannot be consumed by the legacy schema_version {ENGINE_SCHEMA_VERSION} engine",
             lockfile.schema_version
         ),
@@ -110,15 +126,19 @@ pub(crate) fn analyze_migration(input: &str) -> eyre::Result<MigrationAnalysis> 
                 candidate,
             })
         }
-        ToolchainLockfileDocument::V3(lockfile) => Ok(MigrationAnalysis::Current(lockfile)),
+        ToolchainLockfileDocument::V3(lockfile) => Ok(MigrationAnalysis::LegacyV3 {
+            candidate: ArtifactLockfileV4::from_v3(lockfile),
+        }),
+        ToolchainLockfileDocument::V4(lockfile) => Ok(MigrationAnalysis::CurrentV4(lockfile)),
     }
 }
 
 pub(crate) fn read_current(input: &str) -> eyre::Result<ArtifactLockfileV3> {
     match parse_document(input)? {
         ToolchainLockfileDocument::V3(lockfile) => Ok(lockfile),
+        ToolchainLockfileDocument::V4(lockfile) => lockfile.effective_lockfile("rust-toolchain"),
         ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => eyre::bail!(
-            "dependency commands require schema version 3; run dependency migrate --branch <branch> first"
+            "dependency commands require schema version 3 or 4; run dependency migrate --branch <branch> first"
         ),
     }
 }
@@ -157,14 +177,27 @@ mod tests {
 
     #[test]
     fn future_schema_version_is_rejected_before_version_parse() {
-        let Err(error) = parse_document(r#"{"schema_version": 4}"#) else {
+        let Err(error) = parse_document(r#"{"schema_version": 5}"#) else {
             panic!("future schema should fail");
         };
 
         assert!(
             error
                 .to_string()
-                .contains("newer than supported schema_version 3")
+                .contains("newer than supported schema_version 4")
         );
+    }
+
+    #[test]
+    fn checked_in_v4_defaults_rust_commands_to_the_full_profile() {
+        let input = include_str!("../../../../minecraft/sfm-toolchain.lock.json");
+        let lockfile = read_current(input).expect("checked-in v4 lockfile should project");
+        assert!(lockfile.dependencies.iter().any(|dependency| {
+            dependency.id == "vox-java"
+                && dependency
+                    .components
+                    .iter()
+                    .any(|component| component.id == "main")
+        }));
     }
 }
