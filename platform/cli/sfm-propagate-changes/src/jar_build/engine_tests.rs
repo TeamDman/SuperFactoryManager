@@ -65,6 +65,7 @@ use super::extract_failed_gametest_names;
 use super::extract_sfm_game_test_names;
 use super::game_puppet_launch_timeout;
 use super::is_excluded_source;
+use super::is_api_classifier;
 use super::minecraft_library_jars_from_version_json;
 use super::normalize_manifest_bytes;
 use super::parchment_coordinate;
@@ -73,6 +74,7 @@ use super::partition_game_test_candidates;
 use super::portable_cache_path;
 use super::prepare_client_automation_options;
 use super::prepare_existing_artifact_for_reuse;
+use super::read_optional_artifact_lockfile;
 use super::replace_artifact_file;
 use super::resolve_loader_toolchain;
 use super::run_dependency_configurations;
@@ -81,11 +83,13 @@ use super::rust_output_jar_path;
 use super::preview_program_args;
 use super::set_minecraft_option;
 use super::should_include_project_run_dependencies;
+use super::should_include_plain_run_dependencies;
 use super::should_keep_split_minecraft_runtime_entry;
 use super::should_package_project_entry;
 use super::source_build_checkout_key;
 use super::source_build_provenance;
 use super::source_git_provenance;
+use super::dependency_selected_for_run;
 use super::write_compare_reports;
 use super::write_unique_temp_file;
 use super::validate_game_puppet_completion;
@@ -484,6 +488,18 @@ fn solo_client_dependency_exclusion_applies_to_client_smoke() {
     ));
     assert!(!should_include_project_run_dependencies(
         RunKind::ClientSmoke,
+        &solo_options
+    ));
+    assert!(should_include_plain_run_dependencies(
+        RunKind::Client,
+        &solo_options
+    ));
+    assert!(should_include_plain_run_dependencies(
+        RunKind::ClientSmoke,
+        &solo_options
+    ));
+    assert!(should_include_plain_run_dependencies(
+        RunKind::ClientPuppet,
         &solo_options
     ));
     assert!(should_include_project_run_dependencies(
@@ -1099,6 +1115,37 @@ fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
         .expect("Mekanism API projection");
     assert_eq!(mekanism_api.configuration, "implementation");
     assert!(!mekanism_api.loader_managed());
+    let vox_java = projected
+        .iter()
+        .find(|dependency| {
+            dependency.coordinate.to_string() == "org.facet:vox-java:0.10.0-rc.5"
+        })
+        .expect("Vox Java projection");
+    assert_eq!(vox_java.configuration, "implementation");
+    assert!(!vox_java.loader_managed());
+    assert_eq!(
+        vox_java.data_run_policy,
+        crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include
+    );
+    let solo_smoke_plain: Vec<_> = projected
+        .iter()
+        .filter(|dependency| {
+            !dependency.loader_managed()
+                && dependency_selected_for_run(
+                    &dependency.configuration,
+                    dependency.data_run_policy,
+                    RunKind::ClientSmoke,
+                )
+                && !is_api_classifier(&dependency.coordinate)
+        })
+        .map(|dependency| dependency.coordinate.to_string())
+        .collect();
+    assert!(solo_smoke_plain.iter().any(|coordinate| {
+        coordinate == "org.facet:vox-java:0.10.0-rc.5"
+    }));
+    assert!(!solo_smoke_plain
+        .iter()
+        .any(|coordinate| coordinate.starts_with("mekanism:Mekanism:")));
     assert!(projected.iter().any(|dependency| {
         dependency.configuration == "minecraft"
             && dependency.coordinate.to_string() == "net.minecraftforge:forge:1.19.2-43.4.0"
@@ -1841,6 +1888,93 @@ fn resolver_imports_from_explicit_project_artifact_source() {
 }
 
 #[test]
+fn resolver_prefers_explicit_artifact_source_over_locked_source_build() {
+    let test_dir = TestDir::new("resolver-explicit-source-priority");
+    let source_root = test_dir.path.join("source-project");
+    let libs_dir = source_root.join("build").join("libs");
+    fs::create_dir_all(&libs_dir).expect("source build libs should be created");
+    let coordinate =
+        MavenCoordinate::parse("example.group:artifact:1.0.0").expect("coordinate should parse");
+    let source_artifact = libs_dir.join(coordinate.file_name());
+    fs::write(&source_artifact, b"explicit source")
+        .expect("explicit source artifact should be written");
+    run_git(&source_root, ["init"]);
+    run_git(&source_root, ["config", "user.name", "SFM Test"]);
+    run_git(
+        &source_root,
+        ["config", "user.email", "sfm-test@example.test"],
+    );
+    run_git(&source_root, ["add", "."]);
+    run_git(&source_root, ["commit", "-m", "explicit source artifact"]);
+    let commit = git_stdout_test(&source_root, ["rev-parse", "HEAD"]);
+    let source_build = SourceBuildProvenance {
+        build_system: SourceBuildSystem::GradleWrapper,
+        tasks: vec!["jar".to_string()],
+        environment: BTreeMap::new(),
+        output_path: Path::new("build")
+            .join("libs")
+            .join(coordinate.file_name()),
+    };
+    let hash = ContentHash::from_bytes(b"explicit source", ContentHashAlgorithm::Blake3);
+    let lockfile = ArtifactLockfile {
+        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
+        minecraft_version: "1.19.2".to_string(),
+        maven_cache_dir: PathBuf::from("$sfm-cache").join("maven"),
+        allow_local_artifact_cache: false,
+        repositories: vec![Repository {
+            name: "maven-central".to_string(),
+            url: "http://127.0.0.1:1".to_string(),
+        }],
+        dependencies: Vec::new(),
+        artifacts: vec![ArtifactLockEntry {
+            coordinate: Some(coordinate.to_string()),
+            source: ArtifactSource::SourceBuild,
+            repository: Some("source-build".to_string()),
+            url: None,
+            cache_path: PathBuf::from("$sfm-cache")
+                .join("maven/example/group/artifact/1.0.0/artifact-1.0.0.jar"),
+            original_path: None,
+            source_relative_path: Some(source_build.output_path.clone()),
+            source_git: Some(super::SourceGitProvenance {
+                root: source_root.clone(),
+                commit,
+                branch: "main".to_string(),
+                dirty: false,
+                remote_url: None,
+            }),
+            source_build: Some(source_build),
+            hash,
+            weak: None,
+        }],
+    };
+
+    let resolver = Resolver::new(
+        test_dir.path.join("maven-cache"),
+        lockfile.repositories.clone(),
+        false,
+        false,
+        vec![source_root.clone()],
+        None,
+        Some(lockfile),
+        test_cancellation_token(),
+    )
+    .expect("resolver should build");
+    let artifact = resolver
+        .resolve_artifact(
+            ArtifactId::from("explicit-source-priority"),
+            &coordinate,
+            ArtifactPurpose::from("explicit source priority test"),
+        )
+        .expect("explicit artifact source should take priority");
+
+    assert_eq!(artifact.provenance.source, ArtifactSource::ExplicitSource);
+    assert_eq!(
+        fs::read(&artifact.cache_path).expect("cached artifact should be readable"),
+        b"explicit source"
+    );
+}
+
+#[test]
 fn explicit_source_mekanism_artifacts_record_source_build_commands() {
     let test_dir = TestDir::new("mekanism-source-build-provenance");
     let source_root = test_dir.path.join("Mekanism");
@@ -2073,7 +2207,10 @@ fn resolver_materializes_locked_artifact_from_source_build() {
 
     let resolver = Resolver::new(
         test_dir.path.join("maven-cache"),
-        Vec::new(),
+        vec![Repository {
+            name: "maven-central".to_string(),
+            url: "http://127.0.0.1:1".to_string(),
+        }],
         true,
         false,
         Vec::new(),
@@ -2113,6 +2250,60 @@ fn resolver_materializes_locked_artifact_from_source_build() {
     assert_eq!(
         artifact.provenance.source_relative_path.as_deref(),
         Some(output_path.as_path())
+    );
+}
+
+#[test]
+fn candidate_repositories_use_canonical_lockfile_ids() {
+    let resolver = Resolver::new(
+        PathBuf::from("maven-cache"),
+        vec![
+            Repository {
+                name: "modmaven".to_string(),
+                url: "https://modmaven.example".to_string(),
+            },
+            Repository {
+                name: "maven-central".to_string(),
+                url: "https://central.example".to_string(),
+            },
+            Repository {
+                name: "blamejared".to_string(),
+                url: "https://blamejared.example".to_string(),
+            },
+            Repository {
+                name: "jei".to_string(),
+                url: "https://jei.example".to_string(),
+            },
+        ],
+        false,
+        false,
+        Vec::new(),
+        None,
+        None,
+        test_cancellation_token(),
+    )
+    .expect("resolver should build");
+
+    let central_coordinate =
+        MavenCoordinate::parse("org.example:artifact:1.0.0").expect("coordinate should parse");
+    assert_eq!(
+        resolver
+            .candidate_repositories(&central_coordinate)
+            .iter()
+            .map(|repository| repository.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["maven-central"]
+    );
+
+    let jei_coordinate =
+        MavenCoordinate::parse("mezz.jei:jei-1.19.2:1.0.0").expect("coordinate should parse");
+    assert_eq!(
+        resolver
+            .candidate_repositories(&jei_coordinate)
+            .iter()
+            .map(|repository| repository.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["blamejared", "jei"]
     );
 }
 
@@ -2667,6 +2858,24 @@ fn artifact_audit_verifies_sfm_cache_lockfile_artifact() {
     assert_eq!(report.verified_artifacts, 1);
     assert_eq!(report.error_count, 0);
     assert_eq!(report.warning_count, 0);
+}
+
+#[test]
+fn artifact_audit_reader_accepts_checked_in_schema_v4_lockfile() {
+    let lockfile_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../minecraft/sfm-toolchain.lock.json");
+    let lockfile = read_optional_artifact_lockfile(&lockfile_path, "1.19.2")
+        .expect("schema-v4 lockfile should parse")
+        .expect("checked-in lockfile should exist");
+
+    assert_eq!(
+        lockfile.schema_version,
+        crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION
+    );
+    assert!(lockfile
+        .artifacts
+        .iter()
+        .any(|artifact| artifact.coordinate.as_deref() == Some("org.facet:vox-java:0.10.0-rc.5")));
 }
 
 #[test]

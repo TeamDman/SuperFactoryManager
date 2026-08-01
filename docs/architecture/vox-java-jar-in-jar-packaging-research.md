@@ -1,6 +1,7 @@
 # Vox Java Jar-in-Jar packaging research
 
-Research snapshot: 2026-07-23.
+Research snapshot: 2026-08-01. This document retains the original research and
+records the current implementation/validation status below.
 
 This report is the implementation-local result of Track 5 packaging agent P1.
 It supplements `vox-java-phon-and-generated-packets.md`. It does not change the
@@ -13,29 +14,28 @@ Phon/Vox runtime. All four investigated version families have a loader and
 build plugin capable of consuming and producing the same
 `META-INF/jarjar/metadata.json` layout:
 
-| Minecraft | Loader/build plugin in SFM | JarJar implementation | Task support | SFM publishes bundled output today |
+| Minecraft | Loader/build plugin in SFM | JarJar implementation | Task support | SFM full-artifact verification status |
 | --- | --- | --- | --- | --- |
-| 1.19.2 | Forge 43.4.0 / ForgeGradle 5.1.77 | Forge JarJar 0.3.16 | Yes | No |
+| 1.19.2 | Forge 43.4.0 / ForgeGradle 5.1.77 | Forge JarJar 0.3.16 | Yes | Rust and Gradle full artifacts verified through the SFM-managed local Maven cache |
 | 1.20.4 | NeoForge 20.4.231 / NeoGradle 7.0.57 | NeoForge JarJar 0.4.0 | Yes | No |
 | 1.21.1 | NeoForge 21.1.206 / NeoGradle 7.0.192 | NeoForge JarJar 0.4.1 | Yes | No |
 | 26.1.2 | NeoForge 26.1.2.72 / NeoGradle 7.1.27 | NeoForge JarJar 0.5.0 | Yes | Yes |
 
-The blockers are in SFM's projection, packaging and publication plumbing, not
-an absence of loader support:
+The remaining blockers are in SFM's source-artifact and compatibility plumbing,
+not an absence of loader support:
 
-1. `gradle/jar-jar.gradle` selects `jarJar` only when
-   `minecraft_version == '26.1.2'`.
-2. The Rust jar builder writes nested entries only for
-   `NeoGradleUserdev`; it skips ForgeGradle 1.19.2.
-3. Schema v3 records the `bundle` scope but cannot record the required accepted
-   version range separately from the exact artifact version.
-4. The current Gradle projection adds an ordinary exact module dependency to
-   `jarJar`. ForgeGradle 5 requires an actual Maven version range and rejects a
-   recommended version such as `1.2.3`; NeoGradle otherwise synthesizes an open
-   range such as `[1.2.3,)`. Neither implicit behavior is an adequate release
-   policy.
-5. The Rust builder currently hard-codes an exact range and
-   `isObfuscated: false`, rather than consuming packaging policy from the lock.
+1. The 1.19.2 lock now projects Vox to `jarJar` with an explicit bounded range,
+   and the Rust builder emits the nested JAR for both ForgeGradle and NeoGradle.
+2. The current Vox bytes came from two local Facet `main` commits newer than
+   the locked published revision; those commits must become reachable from the
+   locked remote or the artifact must be published.
+3. The Vox coordinate is not currently available from the configured remote
+   Maven repositories. Legacy Gradle now resolves the materialized artifact
+   through a self-discovered SFM-managed local Maven repository, but a clean
+   external build still needs a publication or source-build materialization.
+4. A portable Rust release build must be rerun after the source revision and
+   cache provenance agree; an explicit local artifact build is useful proof of
+   packaging but is not portable-release proof.
 
 No source vendoring is needed to begin. Native JarJar should be implemented and
 proved first. Shading remains a fallback for a dependency that cannot safely
@@ -97,8 +97,8 @@ recommended version. The SFM projection must therefore set an attribute/range
 through the plugin's `jarJar.ranged(...)` or equivalent dependency constraint;
 adding `jarJar 'group:artifact:1.2.3'` is insufficient on this version.
 
-The existing generated file
-`repos2/1.19.2/platform/minecraft/build/jarjar/jarJar/metadata.json` contains:
+Before Vox was projected to `jarJar`, the generated file
+`repos2/1.19.2/platform/minecraft/build/jarjar/jarJar/metadata.json` contained:
 
 ```json
 {
@@ -107,7 +107,10 @@ The existing generated file
 ```
 
 Its presence is artifact evidence that the task exists and has executed in the
-SFM project. It is empty because 1.19.2 has no current `bundle` declaration.
+SFM project. The current Gradle run reaches the packaging step through the
+self-discovered SFM-managed Maven cache. The local repository is conditional on
+the cache existing and does not alter the published artifact's dependency
+metadata.
 
 ### NeoGradle on 1.20.4, 1.21.1 and 26.1.2
 
@@ -131,26 +134,39 @@ feature even though that worktree currently has no retained task output.
 
 ### Selected Gradle artifact
 
-`platform/minecraft/gradle/jar-jar.gradle` presently says that only 26.1.2 uses
-the bundled artifact. On that branch it assigns:
+`platform/minecraft/gradle/jar-jar.gradle` now selects the bundled artifact when
+the projected dependency set contains a `jarJar` entry, independent of the
+Minecraft version. It assigns:
 
 - classifier `slim` to `jar`;
 - an empty classifier to `jarJar`; and
 - `sfmPublishedJarTask = jarJar`.
-
-All other branches assign `sfmPublishedJarTask = jar`, even when their plugin
-can produce `jarJar`. `platform/minecraft/gradle/publishing.gradle` publishes
-exactly `sfmPublishedJarTask`, so a nested dependency produced on 1.19.2,
-1.20.4 or 1.21.1 would currently be omitted from the publication.
 
 Selection should be based on whether the schema-v3 projection contains a
 `jarJar` dependency, not a hard-coded Minecraft version. The ordinary JAR may
 retain a `slim` classifier for diagnostics, while the unclassified release
 artifact must be the nested one.
 
+### Gradle local Maven discovery
+
+`gradle/repositories.gradle` discovers the SFM-managed Maven cache without a
+property supplied by the Rust harness. It honors the CLI's
+`SFM_PROPAGATE_CHANGES_CACHE` override, then mirrors `directories_next`'s
+platform cache locations and checks:
+
+```text
+<cache-root>/minecraft-toolchain/maven
+```
+
+When that directory exists it is added as `sfm-local` before the locked remote
+repositories. The repository uses `metadataSources { artifact() }` because SFM
+stores the content-addressed JAR and provenance sidecar rather than a Maven
+POM. If the cache is absent, Gradle's normal locked remote repository behavior
+is unchanged.
+
 ### Rust-built artifact
 
-`add_neogradle_jarjar_entries` in
+`add_loader_jarjar_entries` in
 `platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs` writes:
 
 ```text
@@ -158,13 +174,12 @@ META-INF/jarjar/<artifact filename>
 META-INF/jarjar/metadata.json
 ```
 
-for every projected `jarJar` dependency, but it returns immediately unless the
-loader toolchain is `NeoGradleUserdev`. That is a concrete parity defect for
-ForgeGradle 1.19.2: schema v3 can project a bundle and Forge can load it, but a
-Rust-built release silently omits it.
+for every projected `jarJar` dependency on both `ForgeGradleForge` and
+`NeoGradleUserdev`. The deterministic Rust tests and the 2026-08-01 full
+artifact inspection cover the Forge path.
 
-The metadata shape written by the Rust builder matches the loader format, but
-it currently uses:
+The metadata shape written by the Rust builder matches the loader format and
+now consumes the locked policy. The 2026-08-01 artifact contains:
 
 ```text
 range = [resolved-version]
@@ -212,6 +227,46 @@ The retained 26.1.2 userdev log discovers
 classpath also supplies loader libraries independently. It is not accepted as
 a clean-install runtime proof for the nested ANTLR bytes. Final Vox acceptance
 must launch the produced release JAR in an isolated instance.
+
+### Positive 1.19.2 Rust artifact — 2026-08-01
+
+The Rust full artifact
+`Super Factory Manager (SFM)-MC1.19.2-4.34.0-rust.jar` was built through
+`sfm-propagate-changes.exe jar build` with the explicit Facet/Vox artifact
+source. It is 2,926,764 bytes and contains:
+
+```text
+META-INF/jarjar/vox-java-0.10.0-rc.5.jar  403625 bytes
+META-INF/jarjar/metadata.json
+```
+
+The nested JAR SHA-256 is
+`2d0a45e8339be3229fe657c465470dfa10df34d040b43f6cd2cd5e6360419007`, exactly
+matching the source-built Vox JAR. The metadata records the `org.facet:vox-java`
+identifier, range `[0.10.0-rc.5]`, artifact version `0.10.0-rc.5`, and
+`isObfuscated: false`. This proves the Rust packaging bytes and metadata; it is
+not yet clean-install or portable-provenance proof because the current Facet
+commits are local and the Maven coordinate is not published in the configured
+repositories.
+
+### Positive 1.19.2 Gradle artifact — 2026-08-01
+
+The legacy ForgeGradle `jarJar` task was run through
+`sfm-propagate-changes.exe gradle run --branch 1.19.2 --show-logs jarJar`, with
+no Gradle property supplied by the harness. It completed `:jarJar` and
+`:reobfJarJar` successfully after Gradle discovered the SFM-managed local Maven
+cache. The resulting artifact
+`Super Factory Manager (SFM)-MC1.19.2-4.34.0.jar` is 2,948,745 bytes and
+contains:
+
+```text
+META-INF/jarjar/vox-java-0.10.0-rc.5.jar  403625 bytes
+META-INF/jarjar/metadata.json
+```
+
+The nested Vox SHA-256 is the same as the Rust-built artifact. This proves the
+Gradle compatibility path using materialized local bytes; it does not replace
+the clean-checkout source-build or public Maven publication gate.
 
 ## Loader and conflict behavior
 
