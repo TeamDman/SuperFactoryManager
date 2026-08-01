@@ -181,8 +181,12 @@ sfm-propagate-changes.exe jar build --branch 1.19.2 `
 
 - A fresh `jar build --require-portable-artifacts` first failed during remote
   artifact resolution: `modmaven.dev` returned bytes with hash
-  `d4736e46...` instead of the locked `ff6894ba...`. It stopped before source
-  materialization, so this result did not test the API hypothesis.
+  `d4736e46...` instead of the locked `ff6894ba...`. The resolver probed
+  ModMaven because `candidate_repositories` prefers display labels such as
+  `Maven Central`, while the schema-v3 projection supplies canonical IDs such
+  as `maven-central`; the failed preference lookup caused every repository to
+  be tried. This is a repository-selection bug, not evidence that ModMaven
+  hosts Vox, and it stopped the run before source materialization.
 - A controlled Gradle `jarJar` run against the known older `aa75598da` Vox JAR
   failed at `:compileJava` with four missing-symbol errors for
   `TerminalContentRequest` and `TerminalContentResult` in
@@ -190,10 +194,10 @@ sfm-propagate-changes.exe jar build --branch 1.19.2 `
 - The hypothesis is confirmed: the current SFM sources require the newer Vox
   API. Update the source-build pin and expected hash before rerunning the
   portable build.
-- The clean-cache probe also exposed a separate resolver concern: a
-  hash-mismatching remote response aborts before the existing source-build
-  fallback is attempted. Keep that as an explicit CLI hardening item; do not
-  confuse it with the now-confirmed Vox pin mismatch.
+- After repository preference is corrected, rerun the clean-cache experiment
+  to verify that Maven Central's miss proceeds to the existing source-build
+  fallback. Keep any remaining fallback behavior as a separate CLI hardening
+  item; do not confuse it with the now-confirmed Vox pin mismatch.
 
 ### Phase 1 — Freeze the release scope [in progress]
 
@@ -260,7 +264,7 @@ The user-testing fixes above are prerequisites for calling the Rust terminal or 
 - **Jar size misconception:** Vox is a small pure-Java runtime; it must be measured, but its size is not a reason to omit required runtime classes.
 - **Vox source reachability:** Facet `main` is ahead of the locked `aa75598da` revision and the current Vox coordinate is not published in configured Maven repositories. Publish/reach the exact revision, update the lock, and rerun the portable build before release.
 - **Gradle resolution:** The lock projection correctly requests `jarJar`, and legacy Gradle now consumes the source-built artifact through the self-discovered SFM-managed Maven repository. Clean external builds still require source-build materialization.
-- **Source-build fallback ordering:** The isolated clean-cache probe encountered a hash-mismatching remote response for the unpublished Vox coordinate and aborted before source-build fallback. Decide whether the resolver should prefer a declared source-build recipe or continue past a remote mismatch only after preserving the mismatch diagnostic and verifying the source-built bytes against the lock.
+- **Repository candidate selection:** The resolver's preferred repository table currently uses display names while schema-v3 projected repositories use canonical IDs. Correct the mapping and add a test proving `org.facet` only probes `maven-central`; then repeat the source-build fallback experiment before changing the Vox pin.
 - **Companion-server distribution:** Bundling Vox does not bundle `teamy-terminal.exe`; document and test the external server path and graceful fallback.
 - **Local branch divergence:** 1.19.2 is 211 commits ahead of origin. Create a reviewed checkpoint ref before publishing; do not push as part of this plan without approval.
 - **Open change intake:** PR #582 needs correctness and benchmark review; PR #486 is non-mergeable and should not enter the release by default.
