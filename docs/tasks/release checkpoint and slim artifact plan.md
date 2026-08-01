@@ -7,7 +7,7 @@
 
 ## Purpose
 
-Checkpoint the unpublished 1.19.2 work into a releasable product scope and graduate the prospective command-palette, Rust/Vox terminal, and related tooling features to a complete, distributable implementation. The release must have an explicit support statement, a known dependency footprint, and an artifact that can be installed and exercised outside userdev. A reduced `slim` profile is deferred until the full release path is mature and there is a demonstrated product need for it.
+Checkpoint the unpublished 1.19.2 work into a releasable product scope and graduate the prospective command-palette, Rust/Vox terminal, and related tooling features to a complete, distributable implementation. The release must have an explicit support statement, a known dependency footprint, and an artifact that can be installed and exercised outside userdev. The lockfile will provide feature-aware entry-point profiles so the Rust CLI can build the full feature set while legacy Gradle remains a low-friction Java-only contributor path by default.
 
 This plan coordinates the existing terminal-bridge, dependency-lock, and cross-version propagation plans. It does not replace them and does not authorize publishing or pushing by itself.
 
@@ -20,7 +20,8 @@ In scope:
 - Make Rust artifact planning and legacy Gradle dependency/source-set behavior agree.
 - Bundle the Java Vox runtime with loader-native Jar-in-Jar and prove the final artifact contains it.
 - Define the external `teamy-terminal` companion-server distribution and graceful absence behavior.
-- Keep the full/default artifact as the release target; revisit a reduced profile only after this checkpoint.
+- Keep the full Rust-toolchain feature set as the release target while preserving a Java-only Gradle contributor profile by default.
+- Add declarative lockfile feature membership and entry-point defaults; do not encode Rust/Vox or project-specific dependency names in Gradle scripts.
 - Produce release artifacts, clean-install evidence, release notes, and a PR/issue disposition matrix.
 - Propagate only the approved baseline changes oldest-first according to `docs/AGENTS.md`.
 
@@ -29,22 +30,24 @@ Out of scope for this checkpoint:
 - Cloud Terrastodon changes.
 - Replacing the legacy Gradle build or requiring Gradle for normal work.
 - Treating the incomplete Rust/Vox terminal bridge as release-ready without its remaining acceptance and packaging proof.
-- Implementing `jar build --slim` or `run client --slim` as a release prerequisite.
+- Requiring Cargo/Xtask during ordinary Gradle configuration or IntelliJ synchronization.
+- Treating `--slim` as the feature model. If a compatibility alias is ever added, it must select a declarative profile rather than hard-code exclusions.
 - A GPU/Vulkan renderer rewrite or adopting the Teamy Studio slug renderer.
 - Automatically merging or pushing open PRs.
 
 ## Established foundation
 
 - The canonical maintained worktree is the 1.19.2 branch at `D:\Repos\Minecraft\SFM\repos2\1.19.2`. `docs/AGENTS.md` requires work to start there and propagate forward with `sfm-propagate-changes.exe`; newer version worktrees must not be clobbered.
-- The canonical branch is 211 commits ahead of `origin/1.19.2` and currently has the terminal, palette, CLI-diagnostic, dependency-lock, and plan changes uncommitted. This is a checkpoint/publishing concern, not permission to push.
+- The canonical branch contains the local terminal, palette, CLI-diagnostic, dependency-lock, and plan checkpoint commits and remains intentionally unpublished. This is a checkpoint/publishing concern, not permission to push.
 - `platform/minecraft/gradle.properties` still reports `mod_version=4.34.0`, while `platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml` starts with `4.35.0 PRE`. The version and scope are therefore not release-locked.
-- `docs/tasks/puppet propagation and preview matrix plan.md` already contains the broad release sequence: release scope, metadata, version resources, automated tests, artifact collection, isolated installs, and player-like packaged verification. This plan supplies the missing slim/profile and release-triage contract.
+- `docs/tasks/puppet propagation and preview matrix plan.md` already contains the broad release sequence: release scope, metadata, version resources, automated tests, artifact collection, isolated installs, and player-like packaged verification. This plan supplies the missing feature-profile and release-triage contract.
 - `docs/tasks/vox terminal bridge and graceful degradation plan.md` remains active. Batch 1 and Batch 2 now have focused tests and live puppet proof; remaining release work is packaging, companion-server distribution, and final clean-install/runtime acceptance.
 - `docs/tasks/teamy terminal repository and Vulkan renderer plan.md` remains active for the Teamy Terminal side. The current PNG bridge is the release candidate path; GPU/Vulkan and slug-renderer work remain later optimization tracks.
 - `docs/tasks/cc tweaked integration plan.md` is marked Complete. Parking CC for a release is therefore a new product-scope decision; it must not silently rewrite the historical completion record.
 - `docs/tasks/dependency source management v3 plan.md` is active and is the source of truth for lockfile projection. The 1.19.2 lock classifies `cc-tweaked` as a loader-managed optional mod and now classifies `vox-java` as compile/runtime/bundle with an explicit bounded policy.
 - `docs/architecture/vox-java-jar-in-jar-packaging-research.md` records the existing Jar-in-Jar precedent. Forge 1.19.2 and the Rust builder both have the packaging path; the remaining release gates are source provenance/reachability, Gradle resolution of the source-built artifact, and clean-install runtime proof.
 - The recent Rust/SFM terminal commits are local unpublished functionality, including Rust input/frame routing and solo bridge actions. The normal Java-local fallback must remain usable when the Rust service is absent.
+- The existing `--solo` behavior is a run-time classpath selection, not a feature profile: it may omit loader-managed integration mod jars and deobfuscated project dependencies while retaining required plain libraries. It must not become the Gradle contributor default or silently disable JEI, CC:Tweaked, Mekanism, or other independently declared integrations.
 
 ## User-testing evidence — 2026-08-01
 
@@ -58,7 +61,7 @@ These findings should be included in the acceptance matrix before a release cand
 
 ## Confirmed constraints
 
-1. The full/default artifact is the primary release target; do not reduce scope to avoid unfinished work.
+1. The full Rust-toolchain feature set is the primary release target; the Java-only Gradle default exists for contributor compatibility and must not reduce the released product scope.
 2. Prospective player-facing features graduate only with focused regression tests, live acceptance proof, documented fallback behavior, and release notes.
 3. Dependency inclusion must be driven by lock/projection policy, with explicit classification for optional integrations and future dev-only tooling.
 4. The Rust CLI is the normal build/run entry point. Legacy Gradle remains a compatibility path and must continue to produce a coherent artifact when invoked directly.
@@ -66,8 +69,11 @@ These findings should be included in the acceptance matrix before a release cand
 6. Both Gradle and Rust builders must agree on Vox bundle policy, version range, artifact version, and `is_obfuscated=false`, and the final artifact must contain the nested JAR and metadata.
 7. `teamy-terminal.exe` is a separate companion server. The release must document how it is supplied/launched, while SFM must retain a graceful Java-local/unavailable-server path.
 8. CC:Tweaked is not nested in the SFM jar merely because SFM has optional CC integration. Its completed optional integration remains external unless a separate product decision changes that.
-9. A reduced `--slim` profile is deferred and must not become an implicit alias for Jar-in-Jar.
-10. Do not change Cloud Terrastodon, merge unrelated PRs, or push a checkpoint until the user explicitly asks for that release operation.
+9. Feature selection is declarative. Components may require named features, feature definitions may include transitive feature requirements and source-set ownership, and entry-point profiles select defaults. Components without a feature requirement remain selected, preserving the existing external-mod contributor experience.
+10. The Gradle entry point defaults to a Java-only profile with the Rust feature disabled. The Rust/SFM CLI entry point defaults to the full profile with the Rust feature enabled. Explicit feature selection may override either default.
+11. A Gradle sync or ordinary Java compile must not require Cargo, `vox-xtask`, or a source-built Vox artifact when the Rust feature is disabled. Enabling the Rust feature is an explicit opt-in that may require the managed source-build artifact to exist.
+12. `--solo` remains an explicit launch-mode control and is orthogonal to feature selection. It must continue to retain required plain runtime libraries even when it excludes integration mod jars.
+13. Do not change Cloud Terrastodon, merge unrelated PRs, or push a checkpoint until the user explicitly asks for that release operation.
 
 ## Release decision gates
 
@@ -78,28 +84,69 @@ These decisions are required before implementation is considered release-directe
 | Version | Is this release 4.35.0, or another version? | 4.35.0 is the candidate because the changelog has a 4.35.0 PRE section. | Approved version, changelog scope, `gradle.properties`, generated resources. |
 | CC support | Is CC:Tweaked retained as an optional player-facing integration, or parked behind the dev profile? | Retain until explicitly parked; it is not current SFM Jar-in-Jar bloat. | Final `mods.toml`, lock scopes, source boundary, clean install with and without CC. |
 | Vox/terminal | Is Vox and the Rust terminal a release feature, a dev-only feature, or deferred entirely? | Graduate it into the player-facing release after the remaining packaging, companion-server, and clean-install gates pass. | Feature matrix, default launch behavior, changelog/release notes. |
-| Artifact names | Which artifact is published as the release artifact? | Publish the full/default artifact with Vox nested; no slim artifact is required for this checkpoint. | Artifact inventory, nested-JAR metadata, publication task output. |
+| Feature/profile defaults | Which features are selected by each entry point? | Gradle defaults to Java-only; the Rust CLI defaults to the full Rust/Vox feature set; explicit selection overrides defaults. | Lockfile feature/profile model, Gradle sync/compile without Cargo, Rust full build, opt-in Gradle parity build. |
+| Artifact names | Which artifact is published as the release artifact? | Publish the full Rust-toolchain artifact with Vox nested. Gradle’s default Java-only output is a contributor compatibility artifact, not a replacement release artifact. | Artifact inventory, nested-JAR metadata, publication task output, profile-specific manifests. |
 | Version surface | Which maintained Minecraft worktrees receive the shared release changes? | Implement and prove on 1.19.2, then propagate the proven baseline oldest-first. | Propagation log and per-version validation matrix. |
 | Change intake | Which open PRs/issues are included in this release? | Require explicit triage; do not absorb old or non-mergeable work by default. | PR/issue matrix with include, defer, fix, or close decision. |
 
-## Deferred reduced-profile work
+## Feature profiles and legacy Gradle compatibility
 
-The previously proposed `--slim` profile is not part of the current release path. No implementation should add profile-specific exclusions merely to make the artifact smaller. After the full feature-bearing artifact is mature, we may revisit a shared `Full`/`Slim` model if a concrete distribution or development need justifies it. Any future profile must preserve the complete runtime closure of retained features and must remain independent from Jar-in-Jar selection.
+The previous `--slim` idea is superseded by a declarative feature/profile model.
+“Slim” now describes the default Gradle contributor experience—Rust is not
+selected and Cargo/Xtask/Vox source acquisition is not required—not a second
+hand-maintained dependency list or an artifact-size switch.
+
+The schema-v4 direction is:
+
+- A component can declare feature requirements. Existing dependencies without
+  requirements remain selected, so external integrations such as JEI,
+  CC:Tweaked, and Mekanism are not accidentally treated as `--solo` or hidden
+  by the Rust profile.
+- Feature definitions can express transitive feature requirements and the
+  source sets/resources owned by the feature. The initial `rust` feature owns
+  the Rust/Vox bridge and its source-built runtime closure.
+- Entry-point profiles declare defaults, for example `gradle: []` and
+  `rust-toolchain: [rust]`. The profile is selected by the tool invoking the
+  lockfile, not by a hardcoded module list in Groovy.
+- Explicit feature selection is an override with validation: unknown features,
+  missing required artifacts, and incompatible source-set combinations fail
+  clearly rather than silently producing a partial runtime.
+
+The exact field names belong in the schema migration, but the model must keep
+three concerns separate: dependency feature selection, run-time `--solo`
+classpath trimming, and Jar-in-Jar publication. A feature-disabled Gradle
+compile must not load Rust-owned Java sources that import Vox types; those
+sources need a feature-owned source boundary or an equivalent adapter boundary.
 
 ### Legacy Gradle compatibility
 
-The immediate Gradle work is full/default release compatibility and Vox Jar-in-Jar packaging. The compatibility work should be concentrated in the existing projection and publication seams:
+The immediate Gradle work is generic feature/profile projection and preserved
+legacy compatibility. The compatibility work should be concentrated in the
+existing projection and publication seams:
 
-- `platform/minecraft/gradle/dependencies-from-lock.gradle`: apply the lock policy before configurations are populated.
+- `platform/minecraft/gradle/dependencies-from-lock.gradle`: select the
+  entry-point profile before configurations are populated, then project every
+  component whose feature requirements are satisfied. It must not contain
+  Facet/Vox-specific conditionals.
+- `platform/minecraft/gradle/repositories.gradle`: register exclusive local
+  content only for enabled source-built modules; disabled source-built
+  components must not cause Cargo/Xtask or local-cache requirements during
+  sync.
 - `platform/minecraft/gradle/jar-jar.gradle`: select the nested artifact from the projected `jarJar` configuration and publish it as the unclassified release artifact.
 - `platform/minecraft/gradle/publishing.gradle`: publish the full artifact containing the nested Vox runtime.
 - `platform/minecraft/gradle/dependencies/1.19.2/dependencies.gradle`: preserve legacy direct-dependency compatibility and document which lock projection wins when both mechanisms are active.
 
-The full/default Gradle build must remain a valid fallback. Any later profile that excludes classes must first introduce a stable registration boundary or equivalent source-safe adapter; otherwise the main SFM class can fail to load before an optional-mod check runs.
+The default Gradle build must remain a valid Java-only fallback and must still
+load the other declared integration mods. An explicit Gradle Rust-feature
+profile must remain available for parity testing and must use the same lockfile
+selection and Jar-in-Jar policy as the Rust toolchain. Any profile that excludes
+classes must first introduce a stable registration boundary or equivalent
+source-safe adapter; otherwise the main SFM class can fail to load before an
+optional-mod check runs.
 
 ### Rust build/run compatibility
 
-The Rust path should first gain Forge Jar-in-Jar parity in the existing artifact planning/execution modules. It must consume the lockfile’s Vox bundle policy, emit `META-INF/jarjar/<artifact>.jar` and `META-INF/jarjar/metadata.json`, and include those entries in artifact audits. Add tests for exact nested bytes, metadata, Forge toolchain selection, and a full external-style launch. A future reduced profile must be threaded through the same layers rather than special-cased in a command handler.
+The Rust path should first gain Forge Jar-in-Jar parity in the existing artifact planning/execution modules. It must consume the lockfile’s Vox bundle policy, emit `META-INF/jarjar/<artifact>.jar` and `META-INF/jarjar/metadata.json`, and include those entries in artifact audits. Add tests for exact nested bytes, metadata, Forge toolchain selection, and a full external-style launch. Feature selection must be threaded through the same layers rather than special-cased in a command handler; the Rust entry point defaults to the full feature profile.
 
 ## Source references
 
@@ -112,7 +159,7 @@ The Rust path should first gain Forge Jar-in-Jar parity in the existing artifact
 - Version metadata: `D:\Repos\Minecraft\SFM\repos2\1.19.2\platform\minecraft\gradle.properties`
 - Mod dependency declarations: `D:\Repos\Minecraft\SFM\repos2\1.19.2\platform\minecraft\src\main\resources\META-INF\mods.toml`
 - Release/changelog candidate: `D:\Repos\Minecraft\SFM\repos2\1.19.2\platform\minecraft\src\main\resources\assets\sfm\template_programs\changelog.sfml`
-- Lockfile: `D:\Repos\Minecraft\SFM\repos2\1.19.2\dependencies.lock.json`
+- Lockfile: `D:\Repos\Minecraft\SFM\repos2\1.19.2\platform\minecraft\sfm-toolchain.lock.json`
 - Rust terminal repository: `G:\Programming\Repos\teamy-terminal`
 - Resumable-plan instructions used for this document: `G:\Programming\Repos\skills\.github\skills\resumable-implementation-plans\SKILL.md`
 
@@ -206,6 +253,50 @@ any remote repository. This is stronger than putting the local repository
 first. Remote repositories remain available for dependencies whose lock
 acquisition is genuinely remote.
 
+### Feature/profile model — next
+
+The source-acquisition migration must be designed together with feature
+selection. A source-built dependency is not merely an alternative download
+location: it may also belong to a feature that is intentionally absent from a
+legacy Gradle contributor build.
+
+The v4 lock model should therefore provide, in declarative data:
+
+- feature definitions and transitive feature requirements;
+- component feature requirements, with an empty requirement meaning the
+  component remains part of every normal projection;
+- feature-owned source sets/resources or source-boundary declarations; and
+- entry-point profiles whose defaults are selected by the invoking toolchain,
+  with Gradle defaulting to no Rust feature and the Rust/SFM CLI defaulting to
+  the full Rust feature set.
+
+The initial Rust feature should own the Rust/Vox bridge and its source-built
+runtime closure. Existing external integrations must remain independently
+selected. In particular, disabling Rust must not be implemented as `--solo`,
+and must not remove JEI, CC:Tweaked, Mekanism, or other ordinary lockfile
+components from the Gradle projection.
+
+The first implementation must also move or boundary Rust-owned Java sources
+that import Vox types. Merely omitting the Vox dependency while compiling the
+same source set would make the Java-only profile fail at compile time. Gradle
+configuration and IntelliJ sync must be able to select the Java-only profile
+without invoking Cargo, `vox-xtask`, or source acquisition. An explicit Rust
+feature selection may require a previously materialized managed artifact and
+must report a clear missing-artifact error.
+
+**Validation:** Use an isolated machine/cache profile to prove that ordinary
+Gradle configuration, IDE model generation, and Java compilation succeed with
+no Cargo/Xtask/Vox source artifact available; verify that the same projection
+still includes ordinary integration mods. Then enable the Rust feature
+explicitly in Gradle and through the Rust CLI, prove the full Vox/Jar-in-Jar
+closure, and run the existing `--solo` classpath tests to show that launch-mode
+trimming remains independent.
+
+**Completion criteria:** The lockfile, Gradle projection, and Rust planner
+agree on feature closure and entry-point defaults; Java-only Gradle users have
+no Rust setup requirement; Rust-toolchain users receive the full feature set by
+default; and explicit feature selection is tested in both directions.
+
 ### Source-build/API hypothesis experiment — complete (2026-08-01)
 
 Before changing the Vox pin, the existing source/build behavior was tested from
@@ -242,7 +333,7 @@ sfm-propagate-changes.exe jar build --branch 1.19.2 `
 
 ### Phase 1 — Freeze the release scope [in progress]
 
-**Work:** Decide the release version, supported Minecraft versions, player-facing feature list, CC policy, Vox/terminal policy, and whether the 4.35.0 PRE changelog is the candidate scope. The current direction is to graduate the terminal and command-palette work rather than hide it behind `--slim`.
+**Work:** Decide the release version, supported Minecraft versions, player-facing feature list, CC policy, Vox/terminal policy, feature/profile defaults, and whether the 4.35.0 PRE changelog is the candidate scope. The current direction is to graduate the terminal and command-palette work while keeping the Java-only Gradle profile as contributor compatibility rather than hiding product behavior behind an unmodeled `--slim` switch.
 
 **Validation:** Compare the approved matrix against the changelog, `mods.toml`, dependency lock, active plans, and current generated/version resources. Verify that every advertised integration has a clean-install test or is explicitly labeled experimental/dev-only.
 
@@ -258,15 +349,15 @@ sfm-propagate-changes.exe jar build --branch 1.19.2 `
 
 ### Phase 3 — Bundle Vox through Jar-in-Jar [in progress]
 
-**Work:** Add Vox’s explicit bundle policy to the lockfile, preserve compile/runtime projection, and make Gradle select the nested artifact for Forge 1.19.2. Correct the acquisition model so source-built Vox is not represented as a Maven Central publication; bump and migrate the lock schema if required.
+**Work:** Add Vox’s explicit bundle policy to the lockfile, preserve compile/runtime projection, and make Gradle select the nested artifact for Forge 1.19.2. Correct the acquisition model so source-built Vox is not represented as a Maven Central publication; add the declarative feature/profile model and bump/migrate the lock schema if required. Gradle’s default profile must exclude Rust-owned sources and artifacts without excluding unrelated integration dependencies.
 
-**Validation:** Rust packaging, lock projection, and legacy Gradle packaging through the self-discovered managed Maven cache are proven as recorded above. Complete the acquisition-model migration, then make the locked Vox source/artifact reproducible from a clean checkout, inspect both outputs, and run a clean Forge-style launch without an external Vox Java dependency.
+**Validation:** Rust packaging, lock projection, and legacy Gradle packaging through the self-discovered managed Maven cache are proven as recorded above. Complete the acquisition/profile migration, prove a Java-only Gradle sync/compile with no Cargo/Xtask/Vox artifact, then make the locked Vox source/artifact reproducible from a clean checkout, inspect both outputs, and run a clean Forge-style launch without an external Vox Java dependency.
 
-**Completion criteria:** The full Gradle artifact is deterministic, unclassified, and contains the required nested Vox runtime with valid Forge metadata; the source/artifact provenance is reproducible from a clean checkout.
+**Completion criteria:** The explicitly Rust-enabled Gradle artifact is deterministic, unclassified, and contains the required nested Vox runtime with valid Forge metadata; the default Java-only Gradle artifact remains compilable without Rust setup; and the source/artifact provenance is reproducible from a clean checkout.
 
 ### Phase 4 — Match the Rust artifact builder [in progress]
 
-**Work:** Keep the existing Forge/NeoGradle Rust Jar-in-Jar emission covered by the lock policy, and close the portable source-build/provenance path. The Forge emission and deterministic unit tests are already present.
+**Work:** Keep the existing Forge/NeoGradle Rust Jar-in-Jar emission covered by the lock policy, close the portable source-build/provenance path, and make the Rust entry point select the full feature profile by default. The Forge emission and deterministic unit tests are already present.
 
 **Validation:** Targeted Rust JarJar tests and the explicit-source full artifact pass. Re-run the artifact audit with `--require-portable-artifacts` after the Facet revision is reachable, compare nested entries and metadata with Gradle, and run an external-style launch.
 
@@ -274,7 +365,7 @@ sfm-propagate-changes.exe jar build --branch 1.19.2 `
 
 ### Phase 5 — Graduate feature acceptance and companion distribution [ ]
 
-**Work:** Close the remaining terminal and command-palette release gates, document how `teamy-terminal.exe` is installed or launched, retain the Java-local fallback, and keep CC as an external optional integration. Do not use a reduced profile to conceal missing functionality.
+**Work:** Close the remaining terminal and command-palette release gates, document how `teamy-terminal.exe` is installed or launched, retain the Java-local fallback, and keep CC as an external optional integration. Verify that the Gradle Java-only profile is a contributor path while the Rust CLI full profile remains the release path; do not use profile selection to conceal missing functionality.
 
 **Validation:** Exercise the default Java-local path, clean launch without the Rust service, launch with the Rust service when enabled, the relevant optional-mod combinations, and the packaged artifact with nested Vox.
 
@@ -307,7 +398,7 @@ The user-testing fixes above are prerequisites for calling the Rust terminal or 
 - **Gradle resolution:** The lock projection correctly requests `jarJar`, and legacy Gradle now consumes the source-built artifact through the self-discovered SFM-managed Maven repository. The final projection must use exclusive source-build content so a missing local artifact cannot fall through to unrelated remotes.
 - **Repository candidate selection:** The resolver's preferred repository table currently uses display names while schema-v3 projected repositories use canonical IDs. Correct the mapping and add a test proving `org.facet` only probes `maven-central`; then repeat the source-build fallback experiment before changing the Vox pin.
 - **Companion-server distribution:** Bundling Vox does not bundle `teamy-terminal.exe`; document and test the external server path and graceful fallback.
-- **Local branch divergence:** 1.19.2 is 211 commits ahead of origin. Create a reviewed checkpoint ref before publishing; do not push as part of this plan without approval.
+- **Local branch divergence:** 1.19.2 contains unpublished local checkpoint commits. Create a reviewed checkpoint ref before publishing; do not push as part of this plan without approval.
 - **Open change intake:** PR #582 needs correctness and benchmark review; PR #486 is non-mergeable and should not enter the release by default.
 - **Environment bookkeeping:** One feature worktree could not be inspected because Git safe-directory ownership differs for the sandbox user. Do not alter global Git configuration just to make the release appear clean.
 
@@ -316,9 +407,9 @@ The user-testing fixes above are prerequisites for calling the Rust terminal or 
 This plan is complete only when:
 
 1. The release version, support statement, and feature/dependency matrix are approved.
-2. Full/default behavior is preserved and separately verified.
-3. The full artifact contains the required Vox nested JAR and valid loader metadata.
-4. Gradle and Rust artifact builders agree on nested-JAR contents, dependency closure, and publication rules.
+2. Rust-toolchain full behavior and Gradle Java-only contributor behavior are separately verified.
+3. The Rust full artifact contains the required Vox nested JAR and valid loader metadata.
+4. Gradle and Rust artifact builders agree on nested-JAR contents, dependency closure, and publication rules when the Rust feature is explicitly enabled.
 5. The companion Rust server has a documented distribution path and graceful absence behavior.
 6. The release candidate passes clean-install, external-style launch, gameplay/puppet, and cross-version checks required by the approved matrix.
 7. PRs/issues have explicit disposition, release notes are ready, and a checkpoint ref is recorded.
