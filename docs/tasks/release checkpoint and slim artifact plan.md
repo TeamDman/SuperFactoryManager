@@ -297,6 +297,56 @@ agree on feature closure and entry-point defaults; Java-only Gradle users have
 no Rust setup requirement; Rust-toolchain users receive the full feature set by
 default; and explicit feature selection is tested in both directions.
 
+### Goal batch R-3A — Lockfile-driven entry-point profiles [ ]
+
+This is the first proposed implementation goal for the feature/profile
+direction. It groups the work above into a single verifiable boundary; it is
+not a top-k selection of unrelated incomplete tasks.
+
+#### R-3A.1 — Migrate the lock schema and 1.19.2 fixture [ ]
+
+Add the typed source-build acquisition and feature/profile model to the next
+lockfile schema, migrate v3 documents, and migrate the 1.19.2 fixture so Vox
+is owned by the Rust feature rather than falsely declared as a Maven Central
+publication. Preserve all existing non-Rust dependency declarations and
+provide schema/migration fixtures for both old and new documents.
+
+#### R-3A.2 — Implement generic feature closure [ ]
+
+Implement one lockfile-driven feature resolver used by both projections. It
+must resolve transitive feature requirements, reject unknown features, retain
+components with no feature requirement, and expose the selected source-set and
+artifact closure without hardcoded dependency names.
+
+#### R-3A.3 — Make Gradle Java-only by default [ ]
+
+Make the Gradle entry point select the Java-only profile unless explicitly
+overridden. Gradle configuration, IntelliJ synchronization, and Java
+compilation must not require Cargo, `vox-xtask`, Vox source acquisition, or a
+managed Vox artifact. Existing JEI, CC:Tweaked, Mekanism, and other ordinary
+integration projections must remain present.
+
+#### R-3A.4 — Make the Rust entry point full-featured by default [ ]
+
+Make the Rust/SFM CLI select the full Rust profile by default, with an
+explicit feature/profile override. `jar plan` must include the Vox closure in
+the default Rust projection, while the source-build resolver remains the
+authoritative acquisition path for that feature.
+
+#### R-3A.5 — Establish source and launch compatibility proof [ ]
+
+Move or boundary Rust-owned Java sources that import Vox types so the
+Java-only Gradle profile compiles. Add regression tests proving the two entry
+point defaults, ordinary integration retention, explicit Rust opt-in, and
+the existing `--solo` classpath behavior. Record isolated-cache Gradle and
+Rust-plan evidence in this plan.
+
+**R-3A completion boundary:** Stop after the schema, projections, source
+boundary, and profile tests pass. Do not include the portable source-build
+artifact proof, explicit Gradle Jar-in-Jar parity build, cross-version
+propagation, or release publication in this goal; those are subsequent
+release-plan work.
+
 ### Source-build/API hypothesis experiment — complete (2026-08-01)
 
 Before changing the Vox pin, the existing source/build behavior was tested from
