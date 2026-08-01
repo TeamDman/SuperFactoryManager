@@ -32,9 +32,9 @@ def readSourceExcludeList = { String name ->
 ext.sfmSourceExcludeVersion = sfmSourceExcludeVersion
 
 ext.sfmSourceSetJavaExcludes = [
-        main    : readSourceExcludeList('main-java'),
-        test    : readSourceExcludeList('test-java'),
-        gametest: readSourceExcludeList('gametest-java')
+        main    : (readSourceExcludeList('main-java') + (project.ext.sfmFeatureSourceExcludes?.main ?: [])),
+        test    : (readSourceExcludeList('test-java') + (project.ext.sfmFeatureSourceExcludes?.test ?: [])),
+        gametest: (readSourceExcludeList('gametest-java') + (project.ext.sfmFeatureSourceExcludes?.gametest ?: []))
 ]
 
 ext.sfmSourceExcludesConfigured = true
