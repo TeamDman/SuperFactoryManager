@@ -171,13 +171,13 @@ Do not begin implementation in a later phase while an earlier decision gate is u
 
 **Completion criteria:** The version and feature matrix is approved, the support statement is written, and the full artifact’s dependency closure—including Vox Jar-in-Jar and the companion-server requirement—is explicit.
 
-### Phase 2 — Commit the current baseline [in progress]
+### Phase 2 — Commit the current baseline [complete]
 
 **Work:** Commit the current 1.19.2 terminal, command-palette, puppet, CLI-diagnostic, dependency-lock, and plan changes in an intentional checkpoint. Keep Facet/Vox’s existing local commits and Teamy Terminal’s source changes separate from generated build output.
 
 **Validation:** Focused Teamy Terminal Vox tests pass; CLI artifact-lock tests pass; SFM compile and puppet evidence are recorded; each committed repository is clean except for intentionally ignored generated output.
 
-**Completion criteria:** The current work is recoverable from local commits with no source changes silently left outside the checkpoint.
+**Completion criteria:** The current work is recoverable from local commits with no source changes silently left outside the checkpoint. This is satisfied by the clean SFM, Facet/Vox, and Teamy Terminal worktrees and the local checkpoint commits.
 
 ### Phase 3 — Bundle Vox through Jar-in-Jar [in progress]
 
