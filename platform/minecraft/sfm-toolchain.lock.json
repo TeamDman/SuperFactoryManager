@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "platform": {
     "minecraft_dependency": "minecraft",
     "loader_dependency": "neoforge"
@@ -47,6 +47,17 @@
     {
       "id": "thermal",
       "url": "https://maven.covers1624.net"
+    }
+  ],
+  "features": [],
+  "profiles": [
+    {
+      "id": "gradle",
+      "features": []
+    },
+    {
+      "id": "rust-toolchain",
+      "features": []
     }
   ],
   "dependencies": [
@@ -1594,6 +1605,44 @@
       "weak": null
     },
     {
+      "id": "org-facet-vox-java-0-10-0-rc-5-3bd59c93",
+      "owner": {
+        "dependency_id": "vox-java",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "org.facet:vox-java:0.10.0-rc.5",
+      "repository_id": "maven-central",
+      "url": "https://github.com/TeamDman/facet",
+      "hash": "blake3:3bd59c93fd5d602821c4460dc4e5255635c355f9",
+      "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar",
+      "provenance": "source-build",
+      "source_git": {
+        "root": "$sfm-cache\\source-builds\\facet-aa75598dabb2138b18365cdf0d97ca94a34c5319",
+        "commit": "aa75598dabb2138b18365cdf0d97ca94a34c5319",
+        "branch": "main",
+        "dirty": false,
+        "remote_url": "https://github.com/TeamDman/facet"
+      },
+      "source_build": {
+        "build_system": "cargo-command",
+        "tasks": [
+          "run",
+          "--locked",
+          "--package",
+          "vox-xtask",
+          "--",
+          "package-java"
+        ],
+        "environment": {},
+        "output_path": "vox\\java\\target\\vox-java-0.10.0-rc.5.jar"
+      },
+      "weak": null
+    },
+    {
       "id": "org-jetbrains-annotations-24-0-1-9a3d2fae",
       "owner": null,
       "purposes": [
@@ -2030,44 +2079,6 @@
       "provenance": "remote-http",
       "source_git": null,
       "source_build": null,
-      "weak": null
-    },
-    {
-      "id": "org-facet-vox-java-0-10-0-rc-5-3bd59c93",
-      "owner": {
-        "dependency_id": "vox-java",
-        "component_id": "main"
-      },
-      "purposes": [
-        "build",
-        "runtime"
-      ],
-      "coordinate": "org.facet:vox-java:0.10.0-rc.5",
-      "repository_id": "maven-central",
-      "url": "https://github.com/TeamDman/facet",
-      "hash": "blake3:3bd59c93fd5d602821c4460dc4e5255635c355f9",
-      "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar",
-      "provenance": "source-build",
-      "source_git": {
-        "root": "$sfm-cache\\source-builds\\facet-aa75598dabb2138b18365cdf0d97ca94a34c5319",
-        "commit": "aa75598dabb2138b18365cdf0d97ca94a34c5319",
-        "branch": "main",
-        "dirty": false,
-        "remote_url": "https://github.com/TeamDman/facet"
-      },
-      "source_build": {
-        "build_system": "cargo-command",
-        "tasks": [
-          "run",
-          "--locked",
-          "--package",
-          "vox-xtask",
-          "--",
-          "package-java"
-        ],
-        "environment": {},
-        "output_path": "vox\\java\\target\\vox-java-0.10.0-rc.5.jar"
-      },
       "weak": null
     }
   ]
