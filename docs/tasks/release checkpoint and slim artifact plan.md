@@ -165,6 +165,42 @@ Do not begin implementation in a later phase while an earlier decision gate is u
 - This proves the Gradle compatibility path through the managed local repository. A clean checkout still needs either the locked source-build materialization or a published Maven coordinate; the local cache is not a substitute for external distribution.
 - The lock currently records Facet commit `aa75598da`, while the byte-accurate Vox artifact came from the two local `main` commits `8c3c23c31` and `973318f72`. Those commits must become reachable from the locked remote (or the artifact must be published) before a `--require-portable-artifacts` release build can pass. Do not claim this gate complete from the explicit-source build.
 
+### Lockfile acquisition-strategy correction — next
+
+The current schema-v3 Vox declaration says
+`declaration.acquisition.maven.repository_id = maven-central` even though its
+artifact provenance is `source-build` and no Vox Maven publication exists.
+This is a misleading legacy declaration and must not become the basis for
+repository fallback behavior.
+
+The next lockfile slice will represent source-build acquisition explicitly. If
+the strict v3 acquisition enum cannot express that without overloading Maven,
+bump the lockfile schema and add a migration. Keep the source-build recipe and
+exact Git provenance in the artifact evidence, while making the component
+declaration point to that source-built artifact rather than to a fictional
+remote publication.
+
+Gradle should then project source-built modules through an exclusive local
+repository content rule, conceptually:
+
+```groovy
+exclusiveContent {
+    forRepository {
+        maven {
+            name = 'sfm-source-builds'
+            url = uri(sfmLocalMavenRepository)
+            metadataSources { artifact() }
+        }
+    }
+    filter { includeModule('org.facet', 'vox-java') }
+}
+```
+
+The generated source-build content filters must prevent the same module from
+being searched in any remote repository. This is stronger than putting the
+local repository first. Remote repositories remain available for dependencies
+whose lock acquisition is genuinely remote.
+
 ### Source-build/API hypothesis experiment — complete (2026-08-01)
 
 Before changing the Vox pin, the existing source/build behavior was tested from
@@ -217,9 +253,9 @@ sfm-propagate-changes.exe jar build --branch 1.19.2 `
 
 ### Phase 3 — Bundle Vox through Jar-in-Jar [in progress]
 
-**Work:** Add Vox’s explicit bundle policy to the lockfile, preserve compile/runtime projection, and make Gradle select the nested artifact for Forge 1.19.2. Preserve legacy direct dependency compatibility while ensuring the lock projection is authoritative.
+**Work:** Add Vox’s explicit bundle policy to the lockfile, preserve compile/runtime projection, and make Gradle select the nested artifact for Forge 1.19.2. Correct the acquisition model so source-built Vox is not represented as a Maven Central publication; bump and migrate the lock schema if required.
 
-**Validation:** Rust packaging, lock projection, and legacy Gradle packaging through the self-discovered managed Maven cache are proven as recorded above. First complete the source-build/API hypothesis experiment. Then make the locked Vox source/artifact reproducible from a clean checkout, inspect both outputs, and run a clean Forge-style launch without an external Vox Java dependency.
+**Validation:** Rust packaging, lock projection, and legacy Gradle packaging through the self-discovered managed Maven cache are proven as recorded above. Complete the acquisition-model migration, then make the locked Vox source/artifact reproducible from a clean checkout, inspect both outputs, and run a clean Forge-style launch without an external Vox Java dependency.
 
 **Completion criteria:** The full Gradle artifact is deterministic, unclassified, and contains the required nested Vox runtime with valid Forge metadata; the source/artifact provenance is reproducible from a clean checkout.
 
@@ -263,7 +299,7 @@ The user-testing fixes above are prerequisites for calling the Rust terminal or 
 - **CC source loading:** CC is optional at runtime but directly referenced by SFM initialization code. Use an adapter/source boundary and clean no-CC launch proof before excluding it.
 - **Jar size misconception:** Vox is a small pure-Java runtime; it must be measured, but its size is not a reason to omit required runtime classes.
 - **Vox source reachability:** Facet `main` is ahead of the locked `aa75598da` revision and the current Vox coordinate is not published in configured Maven repositories. Publish/reach the exact revision, update the lock, and rerun the portable build before release.
-- **Gradle resolution:** The lock projection correctly requests `jarJar`, and legacy Gradle now consumes the source-built artifact through the self-discovered SFM-managed Maven repository. Clean external builds still require source-build materialization.
+- **Gradle resolution:** The lock projection correctly requests `jarJar`, and legacy Gradle now consumes the source-built artifact through the self-discovered SFM-managed Maven repository. The final projection must use exclusive source-build content so a missing local artifact cannot fall through to unrelated remotes.
 - **Repository candidate selection:** The resolver's preferred repository table currently uses display names while schema-v3 projected repositories use canonical IDs. Correct the mapping and add a test proving `org.facet` only probes `maven-central`; then repeat the source-build fallback experiment before changing the Vox pin.
 - **Companion-server distribution:** Bundling Vox does not bundle `teamy-terminal.exe`; document and test the external server path and graceful fallback.
 - **Local branch divergence:** 1.19.2 is 211 commits ahead of origin. Create a reviewed checkpoint ref before publishing; do not push as part of this plan without approval.
