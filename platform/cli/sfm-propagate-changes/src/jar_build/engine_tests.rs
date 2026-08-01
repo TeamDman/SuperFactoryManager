@@ -2119,7 +2119,10 @@ fn resolver_materializes_locked_artifact_from_source_build() {
 
     let resolver = Resolver::new(
         test_dir.path.join("maven-cache"),
-        Vec::new(),
+        vec![Repository {
+            name: "maven-central".to_string(),
+            url: "http://127.0.0.1:1".to_string(),
+        }],
         true,
         false,
         Vec::new(),
@@ -2159,6 +2162,60 @@ fn resolver_materializes_locked_artifact_from_source_build() {
     assert_eq!(
         artifact.provenance.source_relative_path.as_deref(),
         Some(output_path.as_path())
+    );
+}
+
+#[test]
+fn candidate_repositories_use_canonical_lockfile_ids() {
+    let resolver = Resolver::new(
+        PathBuf::from("maven-cache"),
+        vec![
+            Repository {
+                name: "modmaven".to_string(),
+                url: "https://modmaven.example".to_string(),
+            },
+            Repository {
+                name: "maven-central".to_string(),
+                url: "https://central.example".to_string(),
+            },
+            Repository {
+                name: "blamejared".to_string(),
+                url: "https://blamejared.example".to_string(),
+            },
+            Repository {
+                name: "jei".to_string(),
+                url: "https://jei.example".to_string(),
+            },
+        ],
+        false,
+        false,
+        Vec::new(),
+        None,
+        None,
+        test_cancellation_token(),
+    )
+    .expect("resolver should build");
+
+    let central_coordinate =
+        MavenCoordinate::parse("org.example:artifact:1.0.0").expect("coordinate should parse");
+    assert_eq!(
+        resolver
+            .candidate_repositories(&central_coordinate)
+            .iter()
+            .map(|repository| repository.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["maven-central"]
+    );
+
+    let jei_coordinate =
+        MavenCoordinate::parse("mezz.jei:jei-1.19.2:1.0.0").expect("coordinate should parse");
+    assert_eq!(
+        resolver
+            .candidate_repositories(&jei_coordinate)
+            .iter()
+            .map(|repository| repository.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["blamejared", "jei"]
     );
 }
 

@@ -433,7 +433,7 @@ portable provenance.
 exact source-build output; the rebuilt Vox JAR has the locked coordinate and
 hash; the old API-incompatible pin is no longer selected.
 
-#### R-4A.2 — Make source-build resolution strict and lock-directed [ ]
+#### R-4A.2 — Make source-build resolution strict and lock-directed [x]
 
 Fix the resolver path exposed by the hypothesis experiment. Source-built
 components must materialize from their locked source recipe rather than probe
@@ -490,6 +490,35 @@ or Cloud Terrastodon work in this goal.
 **Proposed goal text after approval:** `Complete Goal Batch R-4A in
 docs/tasks/release checkpoint and slim artifact plan.md: R-4A.1 through
 R-4A.5.`
+
+### R-4A progress evidence — 2026-08-01
+
+- R-4A.1 remains open. `git ls-remote mine refs/heads/main` reports
+  `aa75598dabb2138b18365cdf0d97ca94a34c5319`, while the required generated
+  content and mouse API changes are in the local-only commits `8c3c23c31` and
+  `973318f72`. No remote branch or tag inspected so far exposes those commits;
+  the lock pin must not be changed to an unreachable workstation revision.
+- R-4A.2 is complete in `resolve.rs`: a locked source-build artifact is
+  materialized before remote repository probing, and repository preference
+  selection uses canonical lock IDs rather than display-label guesses. The
+  source-build regression includes an intentionally unavailable Maven endpoint,
+  and the candidate-order regression covers `maven-central`, `blamejared`, and
+  `jei`.
+- R-4A.3 was attempted with the current Cargo-built CLI, a fresh cache at
+  `build/sfm-r4a-cache-20260801`, `--require-portable-artifacts`, and structured
+  debug logging. The source checkout and Cargo recipe completed successfully
+  for the reachable `aa75598da` commit, but the produced JAR hash was
+  `blake3:3bd59c93fd5d602821c4460dc4e5255635c355f9`, versus the locked
+  `blake3:ff6894bafc65fd9d24cafd60a967bd1c3182a377`. This is the expected
+  stale-source-provenance failure, not a repository-fallback failure.
+- Validation after the resolver change: `cargo fmt --check` passed and
+  `cargo test --offline --lib` passed 368 tests with 1 ignored. The installed
+  `sfm-propagate-changes.exe` is stale schema-v3 tooling; the R-4A evidence was
+  therefore gathered with the repository Cargo entry point, which reads the
+  committed schema-v4 lockfile.
+- R-4A.4 and R-4A.5 remain pending until a reachable source revision produces
+  the locked Vox bytes. No lock pin, Facet remote, Gradle publication, or
+  cross-version work was changed in this slice.
 
 ### Phase 1 — Freeze the release scope [in progress]
 

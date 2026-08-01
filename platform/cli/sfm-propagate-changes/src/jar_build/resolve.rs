@@ -216,6 +216,25 @@ impl Resolver {
         let mut attempted = Vec::new();
         if let Some(artifact) = {
             let _span = tracing::debug_span!(
+                "resolve_artifact_source_build",
+                has_materialization_lockfile = self.materialization_lockfile.is_some(),
+                has_expected_hash = expected_hash.is_some(),
+            )
+            .entered();
+            self.source_build_fallback(
+                &id,
+                &coordinate,
+                cache_path.clone(),
+                &required_for,
+                expected_hash.as_ref(),
+            )?
+        } {
+            return Ok(artifact);
+        }
+        self.cancellation_token.bail_if_cancelled()?;
+
+        if let Some(artifact) = {
+            let _span = tracing::debug_span!(
                 "resolve_artifact_remote",
                 repository_candidates = self.candidate_repositories(&coordinate).len(),
                 has_expected_hash = expected_hash.is_some(),
@@ -242,25 +261,6 @@ impl Resolver {
             )
             .entered();
             self.explicit_artifact_source_fallback(
-                &id,
-                &coordinate,
-                cache_path.clone(),
-                &required_for,
-                expected_hash.as_ref(),
-            )?
-        } {
-            return Ok(artifact);
-        }
-        self.cancellation_token.bail_if_cancelled()?;
-
-        if let Some(artifact) = {
-            let _span = tracing::debug_span!(
-                "resolve_artifact_source_build",
-                has_materialization_lockfile = self.materialization_lockfile.is_some(),
-                has_expected_hash = expected_hash.is_some(),
-            )
-            .entered();
-            self.source_build_fallback(
                 &id,
                 &coordinate,
                 cache_path.clone(),
@@ -1096,36 +1096,36 @@ impl Resolver {
         })
     }
 
-    fn candidate_repositories(&self, coordinate: &MavenCoordinate) -> Vec<&Repository> {
-        let preferred_names: &[&str] = if coordinate.group == "curse.maven" {
-            &["CurseMaven"]
+    pub(super) fn candidate_repositories(&self, coordinate: &MavenCoordinate) -> Vec<&Repository> {
+        let preferred_ids: &[&str] = if coordinate.group == "curse.maven" {
+            &["cursemaven"]
         } else if coordinate.group == "com.teamcofh" {
-            &["Thermal"]
+            &["thermal"]
         } else if coordinate.group == "mezz.jei" {
-            &["BlameJared", "JEI"]
+            &["blamejared", "jei"]
         } else if coordinate.group == "org.parchmentmc.data" {
-            &["Parchment"]
+            &["parchment"]
         } else if coordinate.group == "org.spongepowered" {
-            &["Sponge", "Maven Central"]
+            &["sponge", "maven-central"]
         } else if coordinate.group == "org.squiddev" {
-            &["SquidDev"]
+            &["squiddev"]
         } else if coordinate.group == "net.minecraftforge" || coordinate.group == "de.oceanlabs.mcp"
         {
-            &["Forge"]
+            &["forge"]
         } else if coordinate.group == "net.neoforged" {
-            &["NeoForged"]
+            &["neoforged"]
         } else if coordinate.group.starts_with("org.")
             || coordinate.group.starts_with("com.github.")
             || coordinate.group.starts_with("junit")
         {
-            &["Maven Central"]
+            &["maven-central"]
         } else {
             &[]
         };
 
         let mut selected = Vec::new();
-        for name in preferred_names {
-            if let Some(repo) = self.repositories.iter().find(|repo| repo.name == *name) {
+        for id in preferred_ids {
+            if let Some(repo) = self.repositories.iter().find(|repo| repo.name == *id) {
                 selected.push(repo);
             }
         }
