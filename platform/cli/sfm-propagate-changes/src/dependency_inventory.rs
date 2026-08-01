@@ -250,6 +250,9 @@ pub(crate) fn resolved_version(component: &DependencyComponentV3) -> String {
             .unwrap_or("unknown")
             .to_owned(),
         ComponentAcquisitionV3::Http(_) => "http".to_owned(),
+        ComponentAcquisitionV3::SourceBuild(acquisition) => {
+            format!("source-build:{}", acquisition.artifact_id)
+        }
     }
 }
 

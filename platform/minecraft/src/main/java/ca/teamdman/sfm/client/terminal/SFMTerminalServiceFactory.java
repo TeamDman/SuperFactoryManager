@@ -27,8 +27,34 @@ public final class SFMTerminalServiceFactory {
     }
 
     /** Creates a Rust-preferred terminal with Java-local fallback. */
-    public static SFMVoxTerminalService createRust() {
-        return new SFMVoxTerminalService(configuredEndpoint().orElseThrow());
+    public static SFMTerminalService createRust() {
+        InetSocketAddress endpoint = configuredEndpoint().orElseThrow();
+        return createRustOrFallback(endpoint);
+    }
+
+    /** Creates the optional Rust implementation without making Vox a Java compile-time dependency. */
+    public static SFMTerminalService createRust(InetSocketAddress endpoint) {
+        return instantiateRust(endpoint).orElseThrow(() -> new IllegalStateException(
+                "Rust/Vox terminal support is not present in this Java-only artifact"));
+    }
+
+    private static SFMTerminalService createRustOrFallback(InetSocketAddress endpoint) {
+        return instantiateRust(endpoint).orElseGet(SFMJavaLocalTerminalService::new);
+    }
+
+    private static Optional<SFMTerminalService> instantiateRust(InetSocketAddress endpoint) {
+        try {
+            Class<?> implementation = Class.forName(
+                    "ca.teamdman.sfm.client.terminal.SFMVoxTerminalService");
+            Object service = implementation
+                    .getConstructor(InetSocketAddress.class)
+                    .newInstance(endpoint);
+            return Optional.of((SFMTerminalService) service);
+        } catch (ClassNotFoundException error) {
+            return Optional.empty();
+        } catch (ReflectiveOperationException | ClassCastException error) {
+            throw new IllegalStateException("Could not construct Rust/Vox terminal service", error);
+        }
     }
 
     /** Starts or adopts the configured server and waits for its TCP endpoint to accept connections. */

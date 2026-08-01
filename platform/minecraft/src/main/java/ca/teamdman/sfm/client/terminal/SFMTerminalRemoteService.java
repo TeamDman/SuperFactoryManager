@@ -1,0 +1,30 @@
+package ca.teamdman.sfm.client.terminal;
+
+import java.util.Optional;
+
+/** Optional remote-terminal capability kept free of the Vox generated API. */
+public interface SFMTerminalRemoteService extends SFMTerminalService, AutoCloseable {
+    boolean resize(int columns, int rows);
+
+    boolean sendKey(int keyCode, int modifiers, boolean pressed, boolean repeat);
+
+    boolean sendText(String text);
+
+    boolean sendMouse(int x, int y, int buttons, int button, boolean pressed, boolean motion,
+                      int wheelX, int wheelY);
+
+    Optional<SFMTerminalFrame> latestFrame();
+
+    int logicalWidth();
+
+    int logicalHeight();
+
+    String contentForAutomation();
+
+    boolean cancel();
+
+    void reconnect();
+
+    @Override
+    void close();
+}

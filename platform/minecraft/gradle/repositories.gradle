@@ -6,14 +6,17 @@ if (project.ext.has('sfmRepositoriesConfigured')) {
 
 def sfmLockfilePath = file('sfm-toolchain.lock.json')
 if (!sfmLockfilePath.isFile()) {
-    throw new GradleException("Missing schema v3 dependency lockfile: ${sfmLockfilePath}")
+    throw new GradleException("Missing toolchain dependency lockfile: ${sfmLockfilePath}")
 }
 def sfmLockfile = new JsonSlurper().parse(sfmLockfilePath)
-if (sfmLockfile.schema_version != 3) {
-    throw new GradleException("Gradle repository projection requires schema version 3")
+if (!(sfmLockfile.schema_version in [3, 4])) {
+    throw new GradleException("Gradle repository projection requires schema version 3 or 4")
+}
+if (!project.ext.has('sfmEffectiveDependencies')) {
+    throw new GradleException("repositories.gradle requires lockfile-features.gradle")
 }
 def sfmGradleRepositoryIds = new LinkedHashSet<String>()
-sfmLockfile.dependencies.each { dependency ->
+sfmEffectiveDependencies.each { dependency ->
     dependency.components.each { component ->
         component.declaration.acquisition.each { kind, acquisition ->
             if (acquisition.repository_id) sfmGradleRepositoryIds.add(acquisition.repository_id)
@@ -47,16 +50,37 @@ if (!sfmCacheRoot) {
     }
 }
 def sfmLocalMavenRepository = new File(sfmCacheRoot, 'minecraft-toolchain/maven')
+def sfmSourceBuildModules = sfmSourceBuildArtifacts.collect { artifact ->
+    def coordinate = artifact.coordinate?.toString()
+    def parts = coordinate == null ? [] : coordinate.split(':') as List
+    if (parts.size() < 3) {
+        throw new GradleException(
+                "Source-built artifact ${artifact.id} must declare a Maven coordinate")
+    }
+    [parts[0], parts[1]]
+}.unique()
 
 repositories {
-    if (sfmLocalMavenRepository.isDirectory()) {
-        maven {
-            name = 'sfm-local'
-            url = uri(sfmLocalMavenRepository)
-            // SFM's managed cache records the artifact and provenance sidecar,
-            // but not a Maven POM. Resolve the locked JAR directly.
-            metadataSources {
-                artifact()
+    if (!sfmSourceBuildModules.isEmpty()) {
+        if (!sfmLocalMavenRepository.isDirectory()) {
+            throw new GradleException(
+                    "Profile '${project.ext.sfmLockfileProfile}' requires source-built artifacts, "
+                            + "but the managed Maven cache is missing: ${sfmLocalMavenRepository}")
+        }
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = 'sfm-source-build'
+                    url = uri(sfmLocalMavenRepository)
+                    // SFM's managed cache records the artifact and provenance sidecar,
+                    // but not a Maven POM. Resolve the locked JAR directly.
+                    metadataSources {
+                        artifact()
+                    }
+                }
+            }
+            filter {
+                sfmSourceBuildModules.each { module -> includeModule(module[0], module[1]) }
             }
         }
     }

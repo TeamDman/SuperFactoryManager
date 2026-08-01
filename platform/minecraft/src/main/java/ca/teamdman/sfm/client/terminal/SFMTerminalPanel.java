@@ -37,7 +37,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private static final int ERROR = 0xFFFF7777;
     private static final int INPUT = 0xFF162530;
     private final SFMTerminalClient client;
-    private final SFMVoxTerminalService voxService;
+    private final SFMTerminalRemoteService remoteService;
     private final SFMTerminalPngRenderer pngRenderer = new SFMTerminalPngRenderer();
     private final SFMTerminalScrollback scrollback = new SFMTerminalScrollback();
     private final SFMTerminalFocusSequence focusSequence = new SFMTerminalFocusSequence();
@@ -53,18 +53,18 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private boolean suppressPasteRelease;
 
     public SFMTerminalPanel(SFMTerminalService service) {
-        this(new SFMTerminalClient(service), service instanceof SFMVoxTerminalService vox ? vox : null);
+        this(new SFMTerminalClient(service), service instanceof SFMTerminalRemoteService remote ? remote : null);
     }
 
     public SFMTerminalPanel(SFMTerminalClient client) {
         this(client, null);
     }
 
-    private SFMTerminalPanel(SFMTerminalClient client, SFMVoxTerminalService voxService) {
+    private SFMTerminalPanel(SFMTerminalClient client, SFMTerminalRemoteService remoteService) {
         this.client = client;
-        this.voxService = voxService;
+        this.remoteService = remoteService;
         scrollback.appendAll(List.of(
-                voxService == null
+                remoteService == null
                         ? "Java-local terminal · Rust/Vox unavailable fallback"
                         : "Rust-authoritative terminal · full PNG Vox mode",
                 "Type pwd, ls, cat <file>, echo <text>, or write <file> <text>"
@@ -78,7 +78,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public Component narration() {
-        return Component.literal((voxService == null ? "Java-local terminal at " : "Rust/Vox terminal at ")
+        return Component.literal((remoteService == null ? "Java-local terminal at " : "Rust/Vox terminal at ")
                 + client.workingDirectory());
     }
 
@@ -92,17 +92,17 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public void resized(Minecraft minecraft, SFMScreenPanelBounds bounds) {
         this.bounds = bounds;
-        if (voxService != null) {
+        if (remoteService != null) {
             int cellWidth = Math.max(1, minecraft.font.width("W"));
             int cellHeight = Math.max(1, minecraft.font.lineHeight + 2);
-            voxService.resize(bounds.width() / cellWidth, bounds.height() / cellHeight);
+            remoteService.resize(bounds.width() / cellWidth, bounds.height() / cellHeight);
         }
     }
 
     @Override
     public void closed() {
         if (minecraft != null) pngRenderer.close(minecraft);
-        if (voxService != null) voxService.close();
+        if (remoteService != null) remoteService.close();
         minecraft = null;
         context = null;
     }
@@ -115,7 +115,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         int width = Math.max(1, bounds.width() - 16);
         int lineHeight = minecraft.font.lineHeight + 2;
         int inputY = bounds.y() + bounds.height() - lineHeight - 8;
-        int contentBottom = voxService == null ? inputY : bounds.y() + bounds.height() - 4;
+        int contentBottom = remoteService == null ? inputY : bounds.y() + bounds.height() - 4;
         int visibleLines = Math.max(0, (contentBottom - bounds.y() - 22) / lineHeight);
         scrollback.setViewportLineCount(Math.max(1, visibleLines));
         int contentTop = bounds.y() + lineHeight + 12;
@@ -125,8 +125,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         renderHeight = Math.max(1, contentBottom - contentTop - 4);
         SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
                 bounds.y() + 8, TEXT, false);
-        if (voxService != null && pngRenderer.render(poseStack, minecraft, left, contentTop, width,
-                renderHeight, voxService.latestSnapshot())) {
+        if (remoteService != null && pngRenderer.render(poseStack, minecraft, left, contentTop, width,
+                renderHeight, remoteService.latestFrame())) {
             renderFocusHint(poseStack, minecraft, left, width, contentBottom);
             return;
         }
@@ -144,7 +144,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 remaining = remaining.substring(rendered.length());
             } while (!remaining.isEmpty() && y < contentBottom);
         }
-        if (voxService == null) {
+        if (remoteService == null) {
             renderInput(poseStack, minecraft, left, width, inputY, focused);
         }
         renderFocusHint(poseStack, minecraft, left, width, contentBottom);
@@ -157,7 +157,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 if (context != null) context.submit(new ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent.Close());
                 return true;
             }
-            if (voxService != null) voxService.sendKey(keyCode, modifiers, true, false);
+            if (remoteService != null) remoteService.sendKey(keyCode, modifiers, true, false);
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_TAB) {
@@ -167,24 +167,24 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 // this third Tab instead of sending it to the PTY.
                 return false;
             }
-            if (voxService != null) voxService.sendKey(keyCode, modifiers, true, false);
+            if (remoteService != null) remoteService.sendKey(keyCode, modifiers, true, false);
             else input += "\t";
             return true;
         }
-        if (voxService != null && isPasteShortcut(keyCode, modifiers)) {
+        if (remoteService != null && isPasteShortcut(keyCode, modifiers)) {
             suppressPasteRelease = true;
             String clipboard = minecraft == null ? "" : minecraft.keyboardHandler.getClipboard();
-            if (!clipboard.isEmpty() && !voxService.sendText(clipboard)) {
+            if (!clipboard.isEmpty() && !remoteService.sendText(clipboard)) {
                 suppressPasteRelease = false;
                 return false;
             }
             return true;
         }
         focusSequence.reset();
-        if (voxService != null) {
+        if (remoteService != null) {
             if (!isPrintableKey(keyCode)
                     || (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) != 0) {
-                voxService.sendKey(keyCode, modifiers, true, false);
+                remoteService.sendKey(keyCode, modifiers, true, false);
             }
             return true;
         }
@@ -225,23 +225,23 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        if (voxService == null) return false;
+        if (remoteService == null) return false;
         if (suppressPasteRelease && keyCode == GLFW.GLFW_KEY_V) {
             suppressPasteRelease = false;
             return true;
         }
         if (!isPrintableKey(keyCode)
                 || (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) != 0) {
-            voxService.sendKey(keyCode, modifiers, false, false);
+            remoteService.sendKey(keyCode, modifiers, false, false);
         }
         return true;
     }
 
     @Override
     public boolean charTyped(char character, int modifiers) {
-        if (voxService != null) {
+        if (remoteService != null) {
             if (character >= 0x20 && character != 0x7F) {
-                voxService.sendText(String.valueOf(character));
+                remoteService.sendText(String.valueOf(character));
             }
             return true;
         }
@@ -269,7 +269,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     /** Deterministic hook for puppet proofs; normal users use keyboard input. */
     public void executeForAutomation(String command) {
-        if (voxService != null) {
+        if (remoteService != null) {
             SFMTerminalResponse response = client.execute(command == null ? "" : command);
             if (!response.success()) {
                 throw new IllegalStateException("Rust terminal automation command failed: "
@@ -283,38 +283,38 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     /** Deterministic hook for puppet proofs of the Vox cancellation RPC. */
     public void cancelForAutomation() {
-        if (voxService == null || !voxService.cancel()) {
+        if (remoteService == null || !remoteService.cancel()) {
             throw new IllegalStateException("Rust terminal cancellation failed");
         }
     }
 
     /** Clears the current Vox transport so the next witness establishes a fresh session. */
     public void reconnectForAutomation() {
-        if (voxService == null) {
+        if (remoteService == null) {
             throw new IllegalStateException("Java-local terminal has no Rust connection to reconnect");
         }
-        voxService.reconnect();
+        remoteService.reconnect();
     }
 
     /** Deterministic hook for puppet proofs of the Rust logical resize path. */
     public void resizeForAutomation(int columns, int rows) {
-        if (voxService == null || !voxService.resize(columns, rows)) {
+        if (remoteService == null || !remoteService.resize(columns, rows)) {
             throw new IllegalStateException("Rust terminal resize failed");
         }
     }
 
     /** Sends a key directly to Rust for child-TUI proofs without consuming SFM focus gestures. */
     public void pressKeyForAutomation(int keyCode, int modifiers) {
-        if (voxService == null
-                || !voxService.sendKey(keyCode, modifiers, true, false)
-                || !voxService.sendKey(keyCode, modifiers, false, false)) {
+        if (remoteService == null
+                || !remoteService.sendKey(keyCode, modifiers, true, false)
+                || !remoteService.sendKey(keyCode, modifiers, false, false)) {
             throw new IllegalStateException("Rust terminal direct key delivery failed");
         }
     }
 
     /** Deterministic hook for puppet proofs of the real clipboard paste shortcut. */
     public void pasteForAutomation(String text) {
-        if (voxService == null) {
+        if (remoteService == null) {
             input += text == null ? "" : text;
             return;
         }
@@ -332,7 +332,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     /** Returns the Rust-owned visible terminal text for deterministic puppet assertions. */
     public String contentForAutomation() {
-        if (voxService != null) return voxService.contentForAutomation();
+        if (remoteService != null) return remoteService.contentForAutomation();
         return String.join("\n", scrollback.lines());
     }
 
@@ -352,8 +352,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (mouseX < bounds.x() || mouseX >= bounds.x() + bounds.width()
                 || mouseY < bounds.y() || mouseY >= bounds.y() + bounds.height()) return false;
-        if (voxService != null) {
-            voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, 0, false,
+        if (remoteService != null) {
+            remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, 0, false,
                     false, 0, (int) Math.round(delta));
         } else if (delta > 0) scrollback.scrollOlder(Math.max(1, (int) Math.ceil(delta)));
         else if (delta < 0) scrollback.scrollNewer(Math.max(1, (int) Math.ceil(-delta)));
@@ -363,35 +363,35 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!containsTerminalPoint(mouseX, mouseY)) return false;
-        if (voxService == null) return false;
+        if (remoteService == null) return false;
         int mask = mouseMask(button);
         pressedMouseButtons |= mask;
-        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true,
+        remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true,
                 false, 0, 0);
         return true;
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (voxService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
+        if (remoteService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
         pressedMouseButtons &= ~mouseMask(button);
-        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, false,
+        remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, false,
                 false, 0, 0);
         return true;
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (voxService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
-        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
+        if (remoteService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
+        remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
                 button, true, true, 0, 0);
         return true;
     }
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
-        if (voxService != null && pressedMouseButtons != 0 && containsTerminalPoint(mouseX, mouseY)) {
-            voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
+        if (remoteService != null && pressedMouseButtons != 0 && containsTerminalPoint(mouseX, mouseY)) {
+            remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
                     0, true, true, 0, 0);
         }
     }
@@ -406,11 +406,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     private int logicalX(double mouseX) {
-        return Math.max(0, (int) ((mouseX - renderLeft) * voxService.logicalWidth() / Math.max(1, renderWidth)));
+        return Math.max(0, (int) ((mouseX - renderLeft) * remoteService.logicalWidth() / Math.max(1, renderWidth)));
     }
 
     private int logicalY(double mouseY) {
-        return Math.max(0, (int) ((mouseY - renderTop) * voxService.logicalHeight() / Math.max(1, renderHeight)));
+        return Math.max(0, (int) ((mouseY - renderTop) * remoteService.logicalHeight() / Math.max(1, renderHeight)));
     }
 
     private static int mouseMask(int button) {

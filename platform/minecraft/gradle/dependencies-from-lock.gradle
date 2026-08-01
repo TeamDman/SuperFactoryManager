@@ -2,12 +2,15 @@ import groovy.json.JsonSlurper
 
 def sfmLockfilePath = file('sfm-toolchain.lock.json')
 if (!sfmLockfilePath.isFile()) {
-    throw new GradleException("Missing schema v3 dependency lockfile: ${sfmLockfilePath}")
+    throw new GradleException("Missing toolchain dependency lockfile: ${sfmLockfilePath}")
 }
 
 def sfmLockfile = new JsonSlurper().parse(sfmLockfilePath)
-if (sfmLockfile.schema_version != 3) {
-    throw new GradleException("Gradle dependency projection requires schema version 3")
+if (!(sfmLockfile.schema_version in [3, 4])) {
+    throw new GradleException("Gradle dependency projection requires schema version 3 or 4")
+}
+if (!project.ext.has('sfmEffectiveDependencies')) {
+    throw new GradleException("dependencies-from-lock.gradle requires lockfile-features.gradle")
 }
 
 def sfmNeoGradle = pluginManager.hasPlugin('net.neoforged.gradle.userdev')
@@ -89,7 +92,7 @@ def sfmAdd = { String configuration, String coordinate, String treatment,
     }
 }
 
-sfmLockfile.dependencies.each { dependency ->
+sfmEffectiveDependencies.each { dependency ->
     if (dependency.id == sfmLockfile.platform.minecraft_dependency) return
     dependency.components.each { component ->
         def coordinate = component.derived_checks.resolved_coordinate
@@ -136,6 +139,6 @@ tasks.register('verifySfmDependencyProjection') {
                                                 'gametestImplementation', 'gametestRuntimeOnly']
             }
         }
-        logger.lifecycle("Verified ${sfmProjection.size()} schema v3 Gradle dependency projections (${sfmNeoGradle ? 'neogradle' : 'forgegradle'}, ${sfmRunData ? 'data' : 'normal'}).")
+        logger.lifecycle("Verified ${sfmProjection.size()} lockfile Gradle dependency projections (profile=${project.ext.sfmLockfileProfile}, ${sfmNeoGradle ? 'neogradle' : 'forgegradle'}, ${sfmRunData ? 'data' : 'normal'}).")
     }
 }

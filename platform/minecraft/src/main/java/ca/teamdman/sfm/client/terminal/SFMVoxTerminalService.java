@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
  * Java-local service is still available as an explicit degradation path when
  * the endpoint cannot be reached.
  */
-public final class SFMVoxTerminalService implements SFMTerminalService, AutoCloseable {
+public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private static final int REQUEST_WIDTH = 120;
     private static final int REQUEST_HEIGHT = 40;
     private static final int MAX_FRAME_BYTES = 4 * 1024 * 1024;
@@ -124,6 +124,18 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     public Optional<TerminalSnapshot> latestSnapshot() {
         synchronized (lock) {
             return Optional.ofNullable(latestSnapshot);
+        }
+    }
+
+    @Override
+    public Optional<SFMTerminalFrame> latestFrame() {
+        synchronized (lock) {
+            if (latestSnapshot == null) return Optional.empty();
+            return Optional.of(new SFMTerminalFrame(
+                    latestSnapshot.sequence(),
+                    latestSnapshot.kind() == TerminalFrameKind.FULL,
+                    latestSnapshot.encoding() == TerminalFrameEncoding.PNG,
+                    latestSnapshot.payload()));
         }
     }
 

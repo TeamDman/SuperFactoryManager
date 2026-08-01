@@ -105,6 +105,7 @@ pub(crate) enum ComponentAcquisitionV3 {
     CurseForge(CurseForgeAcquisitionV3),
     Http(HttpAcquisitionV3),
     Toolchain(ToolchainAcquisitionV3),
+    SourceBuild(SourceBuildAcquisitionV3),
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -130,6 +131,11 @@ pub(crate) struct HttpAcquisitionV3 {
 pub(crate) struct ToolchainAcquisitionV3 {
     pub(crate) kind: ToolchainComponentKindV3,
     pub(crate) requested_version: String,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub(crate) struct SourceBuildAcquisitionV3 {
+    pub(crate) artifact_id: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Facet, Hash, Ord, PartialEq, PartialOrd)]
@@ -565,6 +571,25 @@ fn validate_component(
         }
         ComponentAcquisitionV3::Toolchain(acquisition) => {
             require_nonempty(&acquisition.requested_version, "toolchain version")?;
+        }
+        ComponentAcquisitionV3::SourceBuild(acquisition) => {
+            require_reference(artifact_ids, &acquisition.artifact_id, "artifact")?;
+            let artifact = artifacts
+                .iter()
+                .find(|artifact| artifact.id == acquisition.artifact_id)
+                .expect("artifact reference validated above");
+            if artifact.provenance != ArtifactProvenanceV3::SourceBuild {
+                eyre::bail!(
+                    "source-build acquisition `{}` must reference a source-build artifact",
+                    acquisition.artifact_id
+                );
+            }
+            if artifact.coordinate.is_none() {
+                eyre::bail!(
+                    "source-build acquisition `{}` requires an artifact coordinate",
+                    acquisition.artifact_id
+                );
+            }
         }
     }
 

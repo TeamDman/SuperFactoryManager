@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.terminal.SFMTerminalServiceFactory;
-import ca.teamdman.sfm.client.terminal.SFMVoxTerminalService;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -38,7 +37,7 @@ public final class StartRustServerAction implements SFMClientAction<SFMClientAct
         String raw = ConnectRustServerAction.optionalAddress(context);
         try {
             InetSocketAddress endpoint = SFMTerminalServiceFactory.startRustServer(raw);
-            return OpenTerminalAction.open(target, new SFMVoxTerminalService(endpoint));
+            return OpenTerminalAction.open(target, SFMTerminalServiceFactory.createRust(endpoint));
         } catch (Exception error) {
             throw new SimpleCommandExceptionType(Component.literal(
                     "Could not start Rust terminal server: " + error.getMessage())).create();

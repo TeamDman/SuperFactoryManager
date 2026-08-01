@@ -297,13 +297,13 @@ agree on feature closure and entry-point defaults; Java-only Gradle users have
 no Rust setup requirement; Rust-toolchain users receive the full feature set by
 default; and explicit feature selection is tested in both directions.
 
-### Goal batch R-3A — Lockfile-driven entry-point profiles [ ]
+### Goal batch R-3A — Lockfile-driven entry-point profiles [x]
 
 This is the first proposed implementation goal for the feature/profile
 direction. It groups the work above into a single verifiable boundary; it is
 not a top-k selection of unrelated incomplete tasks.
 
-#### R-3A.1 — Migrate the lock schema and 1.19.2 fixture [ ]
+#### R-3A.1 — Migrate the lock schema and 1.19.2 fixture [x]
 
 Add the typed source-build acquisition and feature/profile model to the next
 lockfile schema, migrate v3 documents, and migrate the 1.19.2 fixture so Vox
@@ -311,14 +311,14 @@ is owned by the Rust feature rather than falsely declared as a Maven Central
 publication. Preserve all existing non-Rust dependency declarations and
 provide schema/migration fixtures for both old and new documents.
 
-#### R-3A.2 — Implement generic feature closure [ ]
+#### R-3A.2 — Implement generic feature closure [x]
 
 Implement one lockfile-driven feature resolver used by both projections. It
 must resolve transitive feature requirements, reject unknown features, retain
 components with no feature requirement, and expose the selected source-set and
 artifact closure without hardcoded dependency names.
 
-#### R-3A.3 — Make Gradle Java-only by default [ ]
+#### R-3A.3 — Make Gradle Java-only by default [x]
 
 Make the Gradle entry point select the Java-only profile unless explicitly
 overridden. Gradle configuration, IntelliJ synchronization, and Java
@@ -326,14 +326,14 @@ compilation must not require Cargo, `vox-xtask`, Vox source acquisition, or a
 managed Vox artifact. Existing JEI, CC:Tweaked, Mekanism, and other ordinary
 integration projections must remain present.
 
-#### R-3A.4 — Make the Rust entry point full-featured by default [ ]
+#### R-3A.4 — Make the Rust entry point full-featured by default [x]
 
 Make the Rust/SFM CLI select the full Rust profile by default, with an
 explicit feature/profile override. `jar plan` must include the Vox closure in
 the default Rust projection, while the source-build resolver remains the
 authoritative acquisition path for that feature.
 
-#### R-3A.5 — Establish source and launch compatibility proof [ ]
+#### R-3A.5 — Establish source and launch compatibility proof [x]
 
 Move or boundary Rust-owned Java sources that import Vox types so the
 Java-only Gradle profile compiles. Add regression tests proving the two entry
@@ -346,6 +346,37 @@ boundary, and profile tests pass. Do not include the portable source-build
 artifact proof, explicit Gradle Jar-in-Jar parity build, cross-version
 propagation, or release publication in this goal; those are subsequent
 release-plan work.
+
+### R-3A completion evidence — 2026-08-01
+
+- `platform/cli/sfm-propagate-changes/src/toolchain_lockfile_schema/version/v4.rs`
+  adds schema v4 feature/profile closure, source-boundary declarations, v3
+  migration, cycle/unknown-reference validation, and effective v3 projection
+  for the existing resolver. `read_current` selects `rust-toolchain` by
+  default, so the Rust/SFM entry point remains full-featured.
+- `platform/minecraft/sfm-toolchain.lock.json` is schema v4. Vox is a
+  `source-build` acquisition referencing its source-build artifact, owned by
+  the declarative `rust` feature; it is no longer described as Maven Central.
+  `gradle` selects no Rust feature, while `rust-toolchain` selects `rust`.
+- Gradle feature selection is generic and lock-driven in
+  `platform/minecraft/gradle/lockfile-features.gradle`. Default Gradle
+  projection excludes feature-owned Vox source/artifacts; `-PsfmProfile=rust-toolchain`
+  explicitly restores them. Repository projection uses exclusive local
+  content for selected source-built modules, so it cannot fall through to a
+  remote Maven repository.
+- The shared terminal panel/PNG renderer now depend on a transport-neutral
+  interface; only `SFMVoxTerminalService.java` and its test are feature-owned
+  Vox source files. Ordinary Gradle builds can compile the Java path without
+  the Vox jar while retaining CC:Tweaked, Mekanism, and other integrations.
+- Validation: `cargo test --manifest-path platform/cli/sfm-propagate-changes/Cargo.toml toolchain_lockfile_schema --lib`
+  passed 24/24; `cargo test ... solo_client --lib` passed 1/1; and
+  `cargo run --manifest-path platform/cli/sfm-propagate-changes/Cargo.toml -- dependency migrate --branch 1.19.2 --check`
+  reported canonical schema v4. Default `gradlew compileJava` and
+  `gradlew testClasses` passed, with no Vox main/test classes emitted;
+  explicit `gradlew compileJava -PsfmProfile=rust-toolchain` passed and
+  emitted `SFMVoxTerminalService.class`.
+- Boundary respected: no portable source-build proof, final Jar-in-Jar parity,
+  propagation, Cloud Terrastodon changes, or publication was attempted.
 
 ### Source-build/API hypothesis experiment — complete (2026-08-01)
 

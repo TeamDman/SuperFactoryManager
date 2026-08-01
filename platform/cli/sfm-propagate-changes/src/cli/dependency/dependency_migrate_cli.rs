@@ -36,18 +36,35 @@ impl DependencyMigrateArgs {
             .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
 
         match analyze_migration(&input)? {
-            MigrationAnalysis::Current(lockfile) => {
+            MigrationAnalysis::LegacyV3 { candidate } => {
+                let output = candidate
+                    .to_canonical_json()
+                    .wrap_err("Failed to serialize migrated schema v4 lockfile")?;
+                println!(
+                    "Migration check for {} (schema v3 -> v4):",
+                    lockfile_path.display()
+                );
+                if check {
+                    println!("  ready: schema v3 can be upgraded to the profile-aware v4 format");
+                    println!("\n{output}");
+                } else {
+                    write_lockfile_atomically(&lockfile_path, &input, output.as_bytes())?;
+                    println!("Migrated {} from schema v3 to v4.", lockfile_path.display());
+                }
+                Ok(())
+            }
+            MigrationAnalysis::CurrentV4(lockfile) => {
                 let output = lockfile
                     .to_canonical_json()
-                    .wrap_err("Failed to serialize canonical schema v3 lockfile")?;
+                    .wrap_err("Failed to serialize canonical schema v4 lockfile")?;
                 if output == input {
                     println!(
-                        "{} already uses canonical schema version 3.",
+                        "{} already uses canonical schema version 4.",
                         lockfile_path.display()
                     );
                 } else if check {
                     println!(
-                        "{} uses schema version 3 but is not canonically ordered.",
+                        "{} uses schema version 4 but is not canonically ordered.",
                         lockfile_path.display()
                     );
                 } else {

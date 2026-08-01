@@ -9,10 +9,6 @@ import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.system.MemoryUtil;
-import org.facet.vox.generated.TerminalFrameEncoding;
-import org.facet.vox.generated.TerminalFrameKind;
-import org.facet.vox.generated.TerminalSnapshot;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -30,11 +26,10 @@ final class SFMTerminalPngRenderer {
     private boolean failed;
 
     boolean render(PoseStack poseStack, Minecraft minecraft, int x, int y, int width, int height,
-                   Optional<TerminalSnapshot> snapshot) {
+                   Optional<SFMTerminalFrame> snapshot) {
         if (snapshot.isEmpty()) return false;
-        TerminalSnapshot frame = snapshot.get();
-        if (frame.encoding() != TerminalFrameEncoding.PNG || frame.kind() != TerminalFrameKind.FULL
-                || !SFMVoxTerminalService.isPng(frame.payload())) return false;
+        SFMTerminalFrame frame = snapshot.get();
+        if (!frame.png() || !frame.full() || !isPng(frame.payload())) return false;
         if (frame.sequence() == sequence && failed) return false;
         if (frame.sequence() != sequence) {
             try {
@@ -68,7 +63,7 @@ final class SFMTerminalPngRenderer {
         failed = false;
     }
 
-    private void upload(Minecraft minecraft, TerminalSnapshot frame) throws IOException {
+    private void upload(Minecraft minecraft, SFMTerminalFrame frame) throws IOException {
         byte[] payload = frame.payload();
         ByteBuffer encoded = MemoryUtil.memAlloc(payload.length);
         NativeImage image;
@@ -92,5 +87,18 @@ final class SFMTerminalPngRenderer {
         imageHeight = height;
         sequence = frame.sequence();
         failed = false;
+    }
+
+    private static boolean isPng(byte[] payload) {
+        return payload != null
+                && payload.length >= 8
+                && payload[0] == (byte) 0x89
+                && payload[1] == 0x50
+                && payload[2] == 0x4E
+                && payload[3] == 0x47
+                && payload[4] == 0x0D
+                && payload[5] == 0x0A
+                && payload[6] == 0x1A
+                && payload[7] == 0x0A;
     }
 }

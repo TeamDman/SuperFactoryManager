@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.terminal.SFMTerminalServiceFactory;
-import ca.teamdman.sfm.client.terminal.SFMVoxTerminalService;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -36,7 +35,7 @@ public final class ConnectRustServerAction implements SFMClientAction<SFMClientA
         InetSocketAddress endpoint = raw == null
                 ? SFMTerminalServiceFactory.configuredEndpoint().orElseThrow()
                 : SFMTerminalServiceFactory.parseEndpoint(raw, "connect-rust-server address");
-        return OpenTerminalAction.open(target, new SFMVoxTerminalService(endpoint));
+        return OpenTerminalAction.open(target, SFMTerminalServiceFactory.createRust(endpoint));
     }
 
     static String optionalAddress(CommandContext<SFMClientActionSource> context) {

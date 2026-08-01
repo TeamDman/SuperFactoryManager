@@ -153,7 +153,7 @@ impl ArtifactLockfileV3 {
         Ok(refreshed)
     }
 
-    fn canonicalize(&mut self) {
+    pub(crate) fn canonicalize(&mut self) {
         self.repositories
             .sort_by(|left, right| left.id.cmp(&right.id));
         self.dependencies
@@ -368,6 +368,7 @@ mod tests {
     use crate::toolchain_lockfile_schema::version::v3::MavenSourceDeclarationV3;
     use crate::toolchain_lockfile_schema::version::v3::MavenSourceDerivedChecksV3;
     use crate::toolchain_lockfile_schema::version::v3::MavenSourceProviderV3;
+    use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
     use std::path::PathBuf;
 
     const V3_LOCKFILE: &str = include_str!("../../../../../minecraft/sfm-toolchain.lock.json");
@@ -631,7 +632,11 @@ mod tests {
     }
 
     fn lockfile() -> ArtifactLockfileV3 {
-        facet_json::from_str(V3_LOCKFILE).expect("checked-in v3 lockfile should parse")
+        let lockfile: ArtifactLockfileV4 =
+            facet_json::from_str(V3_LOCKFILE).expect("checked-in v4 lockfile should parse");
+        lockfile
+            .effective_lockfile("rust-toolchain")
+            .expect("checked-in rust profile should project to v3")
     }
 
     fn add_git_provider(
