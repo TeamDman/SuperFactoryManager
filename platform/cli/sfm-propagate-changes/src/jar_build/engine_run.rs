@@ -3264,13 +3264,13 @@ fn resolve_run_classpath(
         let _span = tracing::debug_span!("resolve_run_classpath_forge_userdev_libraries").entered();
         legacy.extend(resolve_forge_userdev_libraries(context, resolver)?);
     };
-    if should_include_project_run_dependencies(kind, run_options) {
+    if should_include_plain_run_dependencies(kind, run_options) {
         let _span = tracing::debug_span!("resolve_run_classpath_plain_dependencies").entered();
         legacy.extend(resolve_run_plain_dependencies(context, resolver, kind)?);
     } else {
         tracing::info!(
             kind = kind.command_name(),
-            "solo client launch: skipping plain dependency jars"
+            "run kind does not include plain project runtime libraries"
         );
     }
 
@@ -3350,7 +3350,13 @@ fn resolve_neogradle_run_classpath(
     if should_include_project_run_dependencies(kind, run_options) {
         let _span =
             tracing::debug_span!("resolve_neogradle_run_classpath_run_dependencies").entered();
-        userdev_mods.extend(resolve_neogradle_run_dependencies(context, kind)?);
+        userdev_mods.extend(resolve_neogradle_run_dependencies(context, kind, true)?);
+    } else if should_include_plain_run_dependencies(kind, run_options) {
+        let _span = tracing::debug_span!(
+            "resolve_neogradle_run_classpath_required_plain_dependencies"
+        )
+        .entered();
+        userdev_mods.extend(resolve_neogradle_run_dependencies(context, kind, false)?);
     } else {
         tracing::info!(
             kind = kind.command_name(),
@@ -4093,6 +4099,14 @@ pub(super) fn should_include_project_run_dependencies(
     !is_solo_client_like_launch(kind, run_options)
 }
 
+pub(super) fn should_include_plain_run_dependencies(
+    kind: RunKind,
+    run_options: &RunOptions,
+) -> bool {
+    should_include_project_run_dependencies(kind, run_options)
+        || matches!(kind, RunKind::Client | RunKind::ClientSmoke)
+}
+
 fn is_solo_client_like_launch(
     kind: RunKind,
     run_options: &RunOptions,
@@ -4490,6 +4504,7 @@ fn resolve_run_deobf_dependencies(
 fn resolve_neogradle_run_dependencies(
     context: &ExecutionContext<'_>,
     kind: RunKind,
+    include_loader_managed_mods: bool,
 ) -> eyre::Result<Vec<PathBuf>> {
     let _span =
         tracing::debug_span!("resolve_neogradle_run_dependencies", kind = %kind.command_name())
@@ -4497,11 +4512,14 @@ fn resolve_neogradle_run_dependencies(
     let dependency_output = context.plan.cache_dir.join("dependencies");
     let mut output = Vec::new();
     for dependency in context.plan.dependencies.iter().filter(|dependency| {
-        dependency_selected_for_run(
-            &dependency.configuration,
-            dependency.data_run_policy,
-            kind,
-        )
+        (include_loader_managed_mods
+            || dependency.artifact_treatment
+                != crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod)
+            && dependency_selected_for_run(
+                &dependency.configuration,
+                dependency.data_run_policy,
+                kind,
+            )
             && MavenCoordinate::parse(&dependency.resolved_notation)
                 .is_ok_and(|coordinate| !is_api_classifier(&coordinate))
     }) {

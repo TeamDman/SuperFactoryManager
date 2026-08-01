@@ -1435,8 +1435,19 @@ fn read_optional_artifact_lockfile(
     }
     let content =
         fs::read_to_string(path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
-    let lockfile = crate::toolchain_lockfile_schema::upgrade_to_latest(&content)
-        .wrap_err_with(|| format!("Failed to parse {}", path.display()))?;
+    let lockfile = match crate::toolchain_lockfile_schema::upgrade_to_latest(&content) {
+        Ok(lockfile) => lockfile,
+        Err(legacy_error) => {
+            let current = crate::toolchain_lockfile_schema::read_current(&content).map_err(
+                |current_error| {
+                    eyre::eyre!(
+                        "legacy lockfile parse failed: {legacy_error}; current lockfile parse failed: {current_error}"
+                    )
+                },
+            )?;
+            project_current_lockfile_for_audit(current, minecraft_version)
+        }
+    };
     if lockfile.minecraft_version != minecraft_version {
         eyre::bail!(
             "Lockfile {} is for Minecraft {}, but this plan is for {}",
@@ -1446,6 +1457,99 @@ fn read_optional_artifact_lockfile(
         );
     }
     Ok(Some(lockfile))
+}
+
+fn project_current_lockfile_for_audit(
+    lockfile: crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
+    minecraft_version: &str,
+) -> ArtifactLockfile {
+    let repositories = lockfile
+        .repositories
+        .into_iter()
+        .map(|repository| Repository {
+            name: repository.id,
+            url: repository.url,
+        })
+        .collect();
+    let dependencies = lockfile
+        .dependencies
+        .into_iter()
+        .flat_map(|dependency| {
+            dependency.components.into_iter().map(|component| {
+                let resolved_notation = component
+                    .derived_checks
+                    .resolved_coordinate
+                    .clone()
+                    .unwrap_or_else(|| component.id.clone());
+                let source = match component.declaration.acquisition {
+                    crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3::CurseForge(
+                        _,
+                    ) => DependencySource::CurseMaven,
+                    _ => DependencySource::Maven,
+                };
+                DependencyLockEntry {
+                    configuration: "current".to_string(),
+                    notation: resolved_notation.clone(),
+                    resolved_notation,
+                    source,
+                    dynamic_version: false,
+                    cache_path: component.derived_checks.cache_path,
+                }
+            })
+        })
+        .collect();
+    let artifacts = lockfile
+        .artifacts
+        .into_iter()
+        .map(|artifact| {
+            let source = match artifact.provenance {
+                crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteMaven => {
+                    ArtifactSource::RemoteMaven
+                }
+                crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::RemoteHttp => {
+                    ArtifactSource::RemoteHttp
+                }
+                crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::SourceBuild => {
+                    ArtifactSource::SourceBuild
+                }
+                crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3::ToolchainGenerated => {
+                    ArtifactSource::ExistingSfmCacheUnknown
+                }
+            };
+            let source_relative_path = artifact
+                .source_build
+                .as_ref()
+                .map(|source_build| source_build.output_path.clone());
+            let weak = artifact.weak.map(|weak| WeakArtifactValidation {
+                metadata_path: weak.metadata_path,
+                mod_id: weak.mod_id,
+                version: weak.version,
+            });
+            ArtifactLockEntry {
+                coordinate: artifact.coordinate,
+                source,
+                repository: artifact.repository_id,
+                url: artifact.url,
+                cache_path: artifact.cache_path,
+                original_path: None,
+                source_relative_path,
+                source_git: artifact.source_git,
+                source_build: artifact.source_build,
+                hash: artifact.hash,
+                weak,
+            }
+        })
+        .collect();
+
+    ArtifactLockfile {
+        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
+        minecraft_version: minecraft_version.to_string(),
+        maven_cache_dir: PathBuf::from("$sfm-cache").join("maven"),
+        allow_local_artifact_cache: lockfile.policy.allow_local_artifact_cache,
+        repositories,
+        dependencies,
+        artifacts,
+    }
 }
 
 fn relative_path(base: &Path, path: &Path) -> PathBuf {
@@ -1810,10 +1914,10 @@ fn source_build_checkout_key(remote_url: &str, commit: &str) -> String {
 /// checkout's generated Java class paths fail even when long-path support is
 /// enabled. Other platforms retain the normal temp-directory behavior.
 fn source_build_root() -> PathBuf {
-    if let Some(root) = std::env::var_os("SFM_SOURCE_BUILD_ROOT") {
-        if !root.is_empty() {
-            return PathBuf::from(root);
-        }
+    if let Some(root) = std::env::var_os("SFM_SOURCE_BUILD_ROOT")
+        && !root.is_empty()
+    {
+        return PathBuf::from(root);
     }
 
     #[cfg(windows)]
@@ -1906,8 +2010,7 @@ fn materialize_cargo_source_build(
 fn cargo_source_build_target_dir(checkout_dir: &Path) -> PathBuf {
     let checkout_name = checkout_dir
         .file_name()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("source-build"));
+        .map_or_else(|| PathBuf::from("source-build"), PathBuf::from);
     source_build_root()
         .join("sfm-cargo-target")
         .join(checkout_name)
