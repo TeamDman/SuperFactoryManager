@@ -4,6 +4,8 @@ import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -15,6 +17,20 @@ import java.util.List;
 
 /** Composable terminal leaf. Rust/Vox frames are presented when that backend is configured. */
 public final class SFMTerminalPanel implements SFMScreenPanel {
+    private static final String FOCUS_HINT_SECONDS = "1.5";
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry ESCAPE_FOCUS_HINT = new LocalizationEntry(
+            "gui.sfm.terminal.escape_focus_hint",
+            "Press Esc %s more times within %s seconds to close terminal"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TAB_FOCUS_HINT = new LocalizationEntry(
+            "gui.sfm.terminal.tab_focus_hint",
+            "Press Tab %s more times within %s seconds to return focus to Minecraft"
+    );
+
     private static final int PANEL = 0xF0101218;
     private static final int TEXT = 0xFFE8F0F2;
     private static final int MUTED = 0xFF8AA0A8;
@@ -34,6 +50,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private int renderWidth;
     private int renderHeight;
     private int pressedMouseButtons;
+    private boolean suppressPasteRelease;
 
     public SFMTerminalPanel(SFMTerminalService service) {
         this(new SFMTerminalClient(service), service instanceof SFMVoxTerminalService vox ? vox : null);
@@ -98,23 +115,24 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         int width = Math.max(1, bounds.width() - 16);
         int lineHeight = minecraft.font.lineHeight + 2;
         int inputY = bounds.y() + bounds.height() - lineHeight - 8;
-        int visibleLines = Math.max(0, (inputY - bounds.y() - 22) / lineHeight);
+        int contentBottom = voxService == null ? inputY : bounds.y() + bounds.height() - 4;
+        int visibleLines = Math.max(0, (contentBottom - bounds.y() - 22) / lineHeight);
         scrollback.setViewportLineCount(Math.max(1, visibleLines));
         int contentTop = bounds.y() + lineHeight + 12;
         renderLeft = left;
         renderTop = contentTop;
         renderWidth = width;
-        renderHeight = Math.max(1, inputY - contentTop - 4);
+        renderHeight = Math.max(1, contentBottom - contentTop - 4);
         SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
                 bounds.y() + 8, TEXT, false);
         if (voxService != null && pngRenderer.render(poseStack, minecraft, left, contentTop, width,
                 renderHeight, voxService.latestSnapshot())) {
-            renderInput(poseStack, minecraft, left, width, inputY, focused);
+            renderFocusHint(poseStack, minecraft, left, width, contentBottom);
             return;
         }
         int y = contentTop;
         for (SFMTerminalLine terminalLine : scrollback.visibleLineEntries()) {
-            if (y >= inputY) break;
+            if (y >= contentBottom) break;
             String line = terminalLine.text();
             int color = line.startsWith("error:") ? ERROR : terminalLine.color();
             String remaining = line;
@@ -124,9 +142,12 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 SFMFontUtils.draw(poseStack, minecraft.font, rendered, left, y, color, false);
                 y += lineHeight;
                 remaining = remaining.substring(rendered.length());
-            } while (!remaining.isEmpty() && y < inputY);
+            } while (!remaining.isEmpty() && y < contentBottom);
         }
-        renderInput(poseStack, minecraft, left, width, inputY, focused);
+        if (voxService == null) {
+            renderInput(poseStack, minecraft, left, width, inputY, focused);
+        }
+        renderFocusHint(poseStack, minecraft, left, width, contentBottom);
     }
 
     @Override
@@ -148,6 +169,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             }
             if (voxService != null) voxService.sendKey(keyCode, modifiers, true, false);
             else input += "\t";
+            return true;
+        }
+        if (voxService != null && isPasteShortcut(keyCode, modifiers)) {
+            suppressPasteRelease = true;
+            String clipboard = minecraft == null ? "" : minecraft.keyboardHandler.getClipboard();
+            if (!clipboard.isEmpty() && !voxService.sendText(clipboard)) {
+                suppressPasteRelease = false;
+                return false;
+            }
             return true;
         }
         focusSequence.reset();
@@ -196,6 +226,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
         if (voxService == null) return false;
+        if (suppressPasteRelease && keyCode == GLFW.GLFW_KEY_V) {
+            suppressPasteRelease = false;
+            return true;
+        }
         if (!isPrintableKey(keyCode)
                 || (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) != 0) {
             voxService.sendKey(keyCode, modifiers, false, false);
@@ -247,6 +281,61 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         submitInput();
     }
 
+    /** Deterministic hook for puppet proofs of the Vox cancellation RPC. */
+    public void cancelForAutomation() {
+        if (voxService == null || !voxService.cancel()) {
+            throw new IllegalStateException("Rust terminal cancellation failed");
+        }
+    }
+
+    /** Clears the current Vox transport so the next witness establishes a fresh session. */
+    public void reconnectForAutomation() {
+        if (voxService == null) {
+            throw new IllegalStateException("Java-local terminal has no Rust connection to reconnect");
+        }
+        voxService.reconnect();
+    }
+
+    /** Deterministic hook for puppet proofs of the Rust logical resize path. */
+    public void resizeForAutomation(int columns, int rows) {
+        if (voxService == null || !voxService.resize(columns, rows)) {
+            throw new IllegalStateException("Rust terminal resize failed");
+        }
+    }
+
+    /** Sends a key directly to Rust for child-TUI proofs without consuming SFM focus gestures. */
+    public void pressKeyForAutomation(int keyCode, int modifiers) {
+        if (voxService == null
+                || !voxService.sendKey(keyCode, modifiers, true, false)
+                || !voxService.sendKey(keyCode, modifiers, false, false)) {
+            throw new IllegalStateException("Rust terminal direct key delivery failed");
+        }
+    }
+
+    /** Deterministic hook for puppet proofs of the real clipboard paste shortcut. */
+    public void pasteForAutomation(String text) {
+        if (voxService == null) {
+            input += text == null ? "" : text;
+            return;
+        }
+        String previous = minecraft == null ? "" : minecraft.keyboardHandler.getClipboard();
+        try {
+            minecraft.keyboardHandler.setClipboard(text == null ? "" : text);
+            if (!keyPressed(GLFW.GLFW_KEY_V, 0, GLFW.GLFW_MOD_CONTROL)) {
+                throw new IllegalStateException("Rust terminal rejected Ctrl+V paste");
+            }
+            keyReleased(GLFW.GLFW_KEY_V, 0, GLFW.GLFW_MOD_CONTROL);
+        } finally {
+            if (minecraft != null) minecraft.keyboardHandler.setClipboard(previous);
+        }
+    }
+
+    /** Returns the Rust-owned visible terminal text for deterministic puppet assertions. */
+    public String contentForAutomation() {
+        if (voxService != null) return voxService.contentForAutomation();
+        return String.join("\n", scrollback.lines());
+    }
+
     public List<String> transcript() {
         return scrollback.lines();
     }
@@ -265,7 +354,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 || mouseY < bounds.y() || mouseY >= bounds.y() + bounds.height()) return false;
         if (voxService != null) {
             voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, 0, false,
-                    0, (int) Math.round(delta));
+                    false, 0, (int) Math.round(delta));
         } else if (delta > 0) scrollback.scrollOlder(Math.max(1, (int) Math.ceil(delta)));
         else if (delta < 0) scrollback.scrollNewer(Math.max(1, (int) Math.ceil(-delta)));
         return delta != 0;
@@ -277,7 +366,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (voxService == null) return false;
         int mask = mouseMask(button);
         pressedMouseButtons |= mask;
-        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true, 0, 0);
+        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true,
+                false, 0, 0);
         return true;
     }
 
@@ -285,21 +375,24 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (voxService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
         pressedMouseButtons &= ~mouseMask(button);
-        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, false, 0, 0);
+        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, false,
+                false, 0, 0);
         return true;
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (voxService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
-        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true, 0, 0);
+        voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
+                button, true, true, 0, 0);
         return true;
     }
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
         if (voxService != null && pressedMouseButtons != 0 && containsTerminalPoint(mouseX, mouseY)) {
-            voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, 0, true, 0, 0);
+            voxService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
+                    0, true, true, 0, 0);
         }
     }
 
@@ -331,6 +424,12 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 || keyCode >= GLFW.GLFW_KEY_A && keyCode <= GLFW.GLFW_KEY_Z;
     }
 
+    private static boolean isPasteShortcut(int keyCode, int modifiers) {
+        return keyCode == GLFW.GLFW_KEY_V
+                && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0
+                && (modifiers & (GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) == 0;
+    }
+
     private void renderInput(PoseStack poseStack, Minecraft minecraft, int left, int width, int inputY,
                              boolean focused) {
         GuiComponent.fill(poseStack, bounds.x() + 4, inputY - 4, bounds.x() + bounds.width() - 4,
@@ -338,5 +437,21 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         String prompt = "> " + input + (focused ? "_" : "");
         SFMFontUtils.draw(poseStack, minecraft.font,
                 minecraft.font.plainSubstrByWidth(prompt, width), left, inputY, MUTED, false);
+    }
+
+    private void renderFocusHint(PoseStack poseStack, Minecraft minecraft, int left, int width, int contentBottom) {
+        SFMTerminalFocusSequence.Hint hint = focusSequence.hint(System.nanoTime());
+        if (hint == null) return;
+        LocalizationEntry entry = hint.kind() == SFMTerminalFocusSequence.HintKind.ESCAPE
+                ? ESCAPE_FOCUS_HINT
+                : TAB_FOCUS_HINT;
+        Component message = entry.getComponent(Integer.toString(hint.remaining()), FOCUS_HINT_SECONDS);
+        int lineHeight = minecraft.font.lineHeight + 2;
+        int y = contentBottom - lineHeight - 2;
+        int boxTop = y - 4;
+        GuiComponent.fill(poseStack, bounds.x() + 4, boxTop,
+                bounds.x() + bounds.width() - 4, contentBottom, 0xD0101218);
+        SFMFontUtils.draw(poseStack, minecraft.font,
+                minecraft.font.plainSubstrByWidth(message.getString(), width), left, y, MUTED, false);
     }
 }

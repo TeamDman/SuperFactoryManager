@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /** Builds explicit Java-local or Rust-backed terminal services. */
 public final class SFMTerminalServiceFactory {
@@ -69,6 +70,20 @@ public final class SFMTerminalServiceFactory {
             }
         }
         return endpoint;
+    }
+
+    /** Stops only a Rust server process started by this factory. */
+    public static synchronized void stopOwnedRustServer() {
+        Process server = ownedRustServer;
+        ownedRustServer = null;
+        if (server == null || !server.isAlive()) return;
+        server.destroy();
+        try {
+            if (!server.waitFor(2, TimeUnit.SECONDS)) server.destroyForcibly();
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            server.destroyForcibly();
+        }
     }
 
     /** Waits for a loopback endpoint without sending application data. */

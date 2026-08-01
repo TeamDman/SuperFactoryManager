@@ -31,9 +31,37 @@ public interface ISFMGamePuppetRuntime {
 
     void executeTerminal(String command);
 
+    /** Requests server-side cancellation without closing the Rust session. */
+    void cancelTerminal();
+
+    /** Stops and restarts only the Rust server process owned by SFM, then reconnects the panel. */
+    void restartRustTerminalServer();
+
+    void typeTerminalText(String text);
+
+    /** Places deterministic text in the clipboard and exercises the terminal Ctrl+V path. */
+    void pasteTerminalText(String text);
+
+    /** Writes the current terminal text and validates optional content witnesses. */
+    void writeTerminalContent(String artifactName, String requiredText, String forbiddenText);
+
+    void clickTerminal();
+
+    void dragTerminal();
+
+    void resizeTerminal(int columns, int rows);
+
     void scrollTerminal(double delta);
 
     void pressTerminalKey(int keyCode);
+
+    /** Sends one terminal key press/release pair with a GLFW modifier mask. */
+    default void pressTerminalKey(int keyCode, int modifiers) {
+        pressTerminalKey(keyCode);
+    }
+
+    /** Sends a key directly to the Rust PTY without applying SFM focus gestures. */
+    void pressTerminalKeyDirect(int keyCode, int modifiers);
 
     void pressFileExplorerKey(int keyCode);
 

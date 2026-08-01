@@ -61,6 +61,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -249,20 +250,128 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void cancelTerminal() {
+        SFMTerminalPanel panel = requireTerminalPanel();
+        panel.cancelForAutomation();
+    }
+
+    @Override
+    public void restartRustTerminalServer() {
+        SFMTerminalPanel panel = requireTerminalPanel();
+        SFMTerminalServiceFactory.stopOwnedRustServer();
+        panel.reconnectForAutomation();
+        try {
+            SFMTerminalServiceFactory.startRustServer(null);
+        } catch (Exception error) {
+            throw new IllegalStateException("Rust terminal server restart failed", error);
+        }
+    }
+
+    @Override
+    public void typeTerminalText(String text) {
+        SFMTerminalPanel panel = requireTerminalPanel();
+        for (int index = 0; index < text.length(); index++) {
+            if (!panel.charTyped(text.charAt(index), 0)) {
+                throw new IllegalStateException("Terminal rejected typed character at index " + index);
+            }
+        }
+    }
+
+    @Override
+    public void pasteTerminalText(String text) {
+        requireTerminalPanel().pasteForAutomation(text);
+    }
+
+    @Override
+    public void writeTerminalContent(String artifactName, String requiredText, String forbiddenText) {
+        SFMTerminalPanel panel = requireTerminalPanel();
+        String content = panel.contentForAutomation();
+        if (requiredText != null && !content.contains(requiredText)) {
+            throw new IllegalStateException(
+                    "Terminal content artifact " + artifactName + " is missing required text "
+                            + quoted(requiredText) + ":\n" + content);
+        }
+        if (forbiddenText != null && content.contains(forbiddenText)) {
+            throw new IllegalStateException(
+                    "Terminal content artifact " + artifactName + " contains forbidden text "
+                            + quoted(forbiddenText) + ":\n" + content);
+        }
+        String safeArtifactName = validateCaptureName(artifactName);
+        Path directory = minecraft.gameDirectory.toPath().resolve("terminal-content");
+        Path file = directory.resolve(active.definition.puppetName() + "__" + safeArtifactName + ".txt");
+        try {
+            Files.createDirectories(directory);
+            Files.writeString(file, content, StandardCharsets.UTF_8);
+        } catch (IOException error) {
+            throw new IllegalStateException("Could not write terminal content " + file, error);
+        }
+        SFM.LOGGER.info(
+                "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN puppet={} artifact={} file={} chars={} required={} forbidden={}",
+                active.definition.puppetName(),
+                safeArtifactName,
+                file.getFileName(),
+                content.length(),
+                requiredText,
+                forbiddenText
+        );
+    }
+
+    @Override
+    public void clickTerminal() {
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMScreenPanelBounds bounds = terminalBounds(multiplexer);
+        double x = bounds.x() + bounds.width() / 2D;
+        double y = bounds.y() + bounds.height() / 2D;
+        multiplexer.mouseClicked(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseReleased(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+    }
+
+    @Override
+    public void dragTerminal() {
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMScreenPanelBounds bounds = terminalBounds(multiplexer);
+        double y = bounds.y() + bounds.height() / 2D;
+        double fromX = bounds.x() + bounds.width() / 3D;
+        double toX = bounds.x() + bounds.width() * 2D / 3D;
+        multiplexer.mouseClicked(fromX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        // A real GLFW drag is observed as pointer motion while the button is
+        // held. Exercise that dispatch path directly so the puppet does not
+        // depend on Screen's internal mouse-capture bookkeeping.
+        multiplexer.mouseMoved(toX, y);
+        multiplexer.mouseDragged(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT, toX - fromX, 0D);
+        multiplexer.mouseReleased(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+    }
+
+    @Override
+    public void resizeTerminal(int columns, int rows) {
+        requireTerminalPanel().resizeForAutomation(columns, rows);
+    }
+
+    @Override
     public void scrollTerminal(double delta) {
         SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
-        SFMTerminalPanel panel = requireTerminalPanel();
-        int panelIndex = multiplexer.panels().indexOf(panel);
-        if (panelIndex < 0) throw new IllegalStateException("Workspace has no terminal panel index");
-        SFMScreenPanelBounds bounds = multiplexer.panelBounds(multiplexer.panelIds().get(panelIndex));
-        if (bounds == null) throw new IllegalStateException("Terminal panel has no allocated bounds");
+        SFMScreenPanelBounds bounds = terminalBounds(multiplexer);
         multiplexer.mouseScrolled(bounds.x() + bounds.width() / 2D,
                 bounds.y() + bounds.height() / 2D, delta);
     }
 
     @Override
     public void pressTerminalKey(int keyCode) {
-        requireTerminalPanel().keyPressed(keyCode, 0, 0);
+        pressTerminalKey(keyCode, 0);
+    }
+
+    @Override
+    public void pressTerminalKey(int keyCode, int modifiers) {
+        SFMTerminalPanel panel = requireTerminalPanel();
+        boolean handled = panel.keyPressed(keyCode, 0, modifiers);
+        if (handled) {
+            panel.keyReleased(keyCode, 0, modifiers);
+        }
+    }
+
+    @Override
+    public void pressTerminalKeyDirect(int keyCode, int modifiers) {
+        requireTerminalPanel().pressKeyForAutomation(keyCode, modifiers);
     }
 
     @Override
@@ -387,6 +496,15 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                 .map(SFMTerminalPanel.class::cast)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Workspace has no terminal panel"));
+    }
+
+    private SFMScreenPanelBounds terminalBounds(SFMScreenMultiplexer multiplexer) {
+        SFMTerminalPanel panel = requireTerminalPanel();
+        int panelIndex = multiplexer.panels().indexOf(panel);
+        if (panelIndex < 0) throw new IllegalStateException("Workspace has no terminal panel index");
+        SFMScreenPanelBounds bounds = multiplexer.panelBounds(multiplexer.panelIds().get(panelIndex));
+        if (bounds == null) throw new IllegalStateException("Terminal panel has no allocated bounds");
+        return bounds;
     }
 
     private SFMScreenMultiplexer requireTerminalMultiplexer() {
@@ -858,6 +976,10 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalArgumentException("Invalid game puppet capture name: " + captureName);
         }
         return captureName;
+    }
+
+    private static String quoted(String text) {
+        return "\"" + text.replace("\"", "\\\"") + "\"";
     }
 
 }

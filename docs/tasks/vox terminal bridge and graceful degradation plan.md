@@ -599,6 +599,134 @@ The remaining proof is a live puppet that captures control-key editing,
 mouse-mode delivery, streaming `1..10000` output, triple-Esc/triple-Tab
 behavior, and disconnect/retry handling.
 
+### User-testing follow-up — 2026-08-01
+
+Manual testing found three presentation/correctness gaps to close before this
+bridge can be treated as release-ready:
+
+- The Rust PNG path still leaves the Java-local `> _` input strip below the
+  blit. `SFMTerminalPanel` must give the Rust frame the full terminal content
+  area and must not render or buffer a Java prompt for `SFMVoxTerminalService`.
+- Triple-Esc closes correctly, but the user cannot discover the escape hatch.
+  `SFMTerminalFocusSequence` should expose progress/remaining-window state so
+  the panel can render a short status such as “Press Esc 2 more times within
+  1.5 seconds to close.” The triple-Tab Java-focus escape should receive the
+  corresponding cue without obscuring the terminal frame.
+- These behaviors need a real panel/puppet regression proof in addition to
+  the existing pure sequence tests. The status overlay must remain Java-owned
+  presentation; it must not be sent to or baked into the Rust terminal PNG.
+
+### Batch 1 resolution — 2026-08-01
+
+The three presentation gaps above are now closed in the canonical 1.19.2
+worktree. The Rust PNG path no longer renders the Java-local input strip; the
+panel renders localized, Java-owned Escape/Tab progress overlays while Rust
+remains authoritative for the PNG; and deterministic focus tests cover the
+count, timeout, and gesture-clearing boundaries. The real
+`title_screen_rust_terminal` puppet passed with four captures, including both
+guidance states plus `1..100` and cyan `Write-Host` output. The captures are
+under `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/`
+and `platform/minecraft/runGameTestPreview/screenshots/`.
+
+The command-palette fuzzy-search fix is tracked by the release checkpoint
+plan because it is a shared SFM action-surface issue, not a Vox transport
+issue. Its deterministic JUnit test passed 2/2, and the real
+`title_screen_command_palette` puppet passed with the live
+`sfm action invoke open` result list captured. The broader bridge work remains
+active: control/mouse/long-output/restart matrices and Rust scrollback are not
+being declared complete by this Batch 1 slice.
+
+### Batch 2 progress — machine-readable terminal content witnesses — 2026-08-01
+
+Screenshot captures are now paired with bounded text artifacts so puppet
+assertions do not depend on computer-vision interpretation. Facet's Terminal
+contract has a `get_content` method returning the Rust-owned visible grid,
+including the rendered prompt line, with a character bound and sequence
+witness. The generated Java contract and Rust/Facet Phon round-trip tests pass;
+the local Facet content-witness commit is `8c3c23c31` and has not been pushed.
+
+Teamy Terminal implements the endpoint by draining the PTY and returning the
+terminal core's visible text and OSC 133 prompt/command metadata. Its real
+PowerShell puppet test asserts both `1..100` and `hello, world!` through
+`get_content`. The local Teamy workspace temporarily uses sibling Facet paths
+until that commit can be replaced by the intended immutable pushed revision.
+
+The Vox key path now uses the existing ConPTY Win32 physical-key encoding and
+honors separate key-down/key-up transitions. The server-side `cancel` RPC sends
+an explicit Ctrl+C transition while retaining the session. A focused Teamy
+test and the real SFM puppet both prove that a `1..10000` stream returns to the
+profile's prompt before `10000` appears. The Rust service now launches the
+interactive PowerShell profile so this proof matches the manually tested
+terminal behavior; the user profile should keep PSReadLine history saving
+disabled for automation accounts.
+
+SFM exposes `writeTerminalContent(artifact, required, forbidden)` to game
+puppets. It writes UTF-8 files under
+`platform/minecraft/runGameTestPreview/terminal-content/` and fails the puppet
+when a required witness is absent or a forbidden witness is present. The live
+`title_screen_rust_terminal` run passed with artifacts for Ctrl+Backspace,
+control navigation, Ctrl+V paste, Ctrl+C interruption, protocol cancellation,
+`1..100`, and cyan output. The paste artifact contains the current profile
+prompt and `pasted-through-ctrl-v`, proving that the Minecraft clipboard
+shortcut reaches the Rust-owned PTY. The Ctrl+C and protocol-cancellation
+artifacts contain fresh profile prompts and output only through 72/71
+respectively; the `10000` forbidden-text assertions passed. The cancellation
+puppet waits for the prompt to settle before reading the content witness so
+the assertion covers the terminal state rather than a transient post-cancel
+frame. The installed PATH
+`teamy-terminal.exe` was refreshed from the local source so live SFM uses the
+same contract revision as the Java jar. The live cancellation artifact also
+proves the prompt is preserved (`❯` for the current Starship profile), rather
+than treating screenshot interpretation as a cancellation witness.
+
+The same live puppet now proves the remaining key/TUI behavior in the real
+Java-to-Vox path. Ctrl+L clears the earlier `ctrl-l-before` command before the
+`ctrl-l-after` witness is entered. The `ratatui-key-debug` executable renders
+its alternate-screen `Key Events` frame, and a direct automation-only triple
+Escape sequence is sent to the PTY so SFM's own third-Escape close gesture does
+not intercept it; the restored artifact contains the profile prompt and
+forbids `Key Events`. The direct key hook is test-only and does not change the
+user-facing Escape/Tab focus behavior.
+
+The Batch 2 interaction proof is now complete through the real Java-to-Vox
+path. Paste is covered by the live clipboard shortcut witness. The mouse
+contract uses an explicit `motion` boolean so drag/move events are distinct
+from button transitions; this replaces the temporary button-value sentinel
+and is covered by Teamy SGR drag assertions plus a Facet Phon round-trip
+fixture. Facet commit `973318f72` is committed locally (not published or
+pushed), imported through the supported SFM `--artifact-source` path, and
+the lock now records its exact local artifact hash and provenance. The local
+package wrapper still reports the known javac resource-cleanup exit-3 issue,
+so that gate is not claimed as fully green.
+
+The refreshed SFM compile and installed `teamy-terminal.exe` puppet pass with
+`SFM_GAME_PUPPET_COMPLETE failed=0`. The live artifacts prove resize delivery,
+mouse click/drag, wheel delivery, and alternate-screen restoration in addition
+to Ctrl+Backspace, Ctrl navigation, Ctrl+L, Ctrl+C, paste, streaming output,
+and cancellation. The puppet driver now exercises held-pointer motion through
+the same `mouseMoved` dispatch Minecraft uses during a real drag.
+
+The lifecycle proof is now complete as well. `SFMVoxTerminalService` rejects
+stale poll completions, does not enqueue a generated disconnect during an
+automation reconnect, and clones the connection options for each fresh Vox
+connection so the prior connection's owned scheduler cannot be reused after
+close. SFM owns only the Rust process it launches and restarts that process
+through the explicit puppet action. The live
+`title_screen_rust_terminal__rust-server-reconnected.txt` artifact contains
+the Rust PowerShell prompt after Java-local REPL use, Rust launch, owned-server
+stop, and reconnect. `contentForAutomation()` now waits briefly for a
+nonblank Rust content witness or prompt metadata, preventing a normal empty
+ConPTY startup frame from becoming a false failure. Rust scrollback remains a
+later extension; this content witness is intentionally a bounded visible-grid
+artifact rather than a scrollback replacement.
+
+Final focused verification for this slice is green: Teamy Terminal's six
+`vox_server` tests pass; SFM's `SFMTerminalFocusSequenceTests` pass 3/3; and
+`SFMClientActionPaletteSuggestionTests` pass 2/2. The focused real puppet
+passed with `failed=0 total=1`. The Facet motion Phon test is present but its
+offline run remains blocked only by the uncached `astral-tokio-tar v0.6.4`
+dependency. No repository was pushed, and Cloud Terrastodon was not changed.
+
 ### Phase 0 — Contract fixtures and capability matrix
 
 - Record the schema in the Facet/Vox integration worktree and generate Java

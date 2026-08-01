@@ -9,6 +9,12 @@ use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
+/// Windows can report `ERROR_ACCESS_DENIED` for a short-lived sharing race as
+/// well as for a genuinely inaccessible cache. Do not leave a command
+/// waiting for the full fifteen-minute artifact-lock budget when the latter
+/// is the more likely explanation.
+pub(super) const WINDOWS_ACCESS_DENIED_RETRY_MAX_WAIT: Duration = Duration::from_secs(10);
+
 #[derive(Debug)]
 pub struct ArtifactLock {
     file: File,
@@ -199,16 +205,30 @@ pub(super) fn open_lock_file_with_policy_using(
                 let open_retry_budget = open_retry_budget(lock_path, &error, policy.max_wait)
                     .expect("guard established an open retry budget");
                 if last_log.elapsed() >= policy.log_interval {
-                    tracing::info!(
-                        artifact,
-                        lock = %lock_path.display(),
-                        waited_ms = started.elapsed().as_millis(),
-                        pid = std::process::id(),
-                        operation,
-                        os_error = ?error.raw_os_error(),
-                        error_kind = ?error.kind(),
-                        "waiting_to_open"
-                    );
+                    let access_denied = cfg!(windows) && error.raw_os_error() == Some(5);
+                    if access_denied {
+                        tracing::warn!(
+                            artifact,
+                            lock = %lock_path.display(),
+                            waited_ms = started.elapsed().as_millis(),
+                            pid = std::process::id(),
+                            operation,
+                            os_error = ?error.raw_os_error(),
+                            retry_budget_ms = open_retry_budget.as_millis(),
+                            "Windows denied access while opening an artifact lock; retrying briefly before reporting the cache permission problem"
+                        );
+                    } else {
+                        tracing::info!(
+                            artifact,
+                            lock = %lock_path.display(),
+                            waited_ms = started.elapsed().as_millis(),
+                            pid = std::process::id(),
+                            operation,
+                            os_error = ?error.raw_os_error(),
+                            error_kind = ?error.kind(),
+                            "waiting_to_open"
+                        );
+                    }
                     *last_log = Instant::now();
                 }
                 if let Err(wait_error) = wait_for_retry_with_max(
@@ -219,7 +239,15 @@ pub(super) fn open_lock_file_with_policy_using(
                     artifact,
                     operation,
                 ) {
-                    return Err(open_error(lock_path, error).wrap_err(wait_error.to_string()));
+                    let wait_message = if cfg!(windows) && error.raw_os_error() == Some(5) {
+                        format!(
+                            "{wait_error}; {}",
+                            windows_access_denied_hint(WINDOWS_ACCESS_DENIED_RETRY_MAX_WAIT)
+                        )
+                    } else {
+                        wait_error.to_string()
+                    };
+                    return Err(open_error(lock_path, error).wrap_err(wait_message));
                 }
             }
             Err(error) => return Err(open_error(lock_path, error)),
@@ -230,10 +258,24 @@ pub(super) fn open_lock_file_with_policy_using(
 fn open_error(lock_path: &Path, error: std::io::Error) -> eyre::Report {
     let os_error = error.raw_os_error();
     let kind = error.kind();
-    eyre::Report::new(error).wrap_err(format!(
+    let report = eyre::Report::new(error).wrap_err(format!(
         "Failed to open artifact lock {} (os_error={os_error:?}, kind={kind:?})",
         lock_path.display()
-    ))
+    ));
+    if cfg!(windows) && os_error == Some(5) {
+        report.wrap_err(windows_access_denied_hint(
+            WINDOWS_ACCESS_DENIED_RETRY_MAX_WAIT,
+        ))
+    } else {
+        report
+    }
+}
+
+fn windows_access_denied_hint(retry_budget: Duration) -> String {
+    format!(
+        "Windows denied access to the artifact lock. In the Codex sandbox, os_error=5 commonly means the sandbox denied access to the user-level artifact-cache lock; rerun with normal Windows cache access (or outside the sandbox) before investigating a stale lock. Outside the sandbox, check permissions for the cache and lock path and close any process that may be using it. A real concurrent process can produce the same ambiguous error. The CLI only retries this condition for {} ms.",
+        retry_budget.as_millis()
+    )
 }
 
 pub(super) fn open_retry_budget(
@@ -245,9 +287,9 @@ pub(super) fn open_retry_budget(
     {
         match error.raw_os_error() {
             Some(32 | 33) => Some(policy_max_wait),
-            Some(5) if access_denied_can_be_a_transient_open_race(lock_path) => {
-                Some(policy_max_wait)
-            }
+            Some(5) if access_denied_can_be_a_transient_open_race(lock_path) => Some(
+                Duration::min(policy_max_wait, WINDOWS_ACCESS_DENIED_RETRY_MAX_WAIT),
+            ),
             _ => None,
         }
     }

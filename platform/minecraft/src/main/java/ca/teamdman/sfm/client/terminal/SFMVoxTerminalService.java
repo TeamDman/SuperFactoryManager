@@ -8,8 +8,11 @@ import org.facet.vox.VoxConnection;
 import org.facet.vox.VoxResult;
 import org.facet.vox.generated.TerminalCapabilities;
 import org.facet.vox.generated.TerminalClient;
+import org.facet.vox.generated.TerminalCancelRequest;
 import org.facet.vox.generated.TerminalConnectRequest;
 import org.facet.vox.generated.TerminalConnectResult;
+import org.facet.vox.generated.TerminalContentRequest;
+import org.facet.vox.generated.TerminalContentResult;
 import org.facet.vox.generated.TerminalDisconnectRequest;
 import org.facet.vox.generated.TerminalError;
 import org.facet.vox.generated.TerminalFrameEncoding;
@@ -18,9 +21,11 @@ import org.facet.vox.generated.TerminalInputResult;
 import org.facet.vox.generated.TerminalKeyInput;
 import org.facet.vox.generated.TerminalMouseInput;
 import org.facet.vox.generated.TerminalResizeRequest;
+import org.facet.vox.generated.TerminalResizeResult;
 import org.facet.vox.generated.TerminalServiceDescriptor;
 import org.facet.vox.generated.TerminalSnapshot;
 import org.facet.vox.generated.TerminalSnapshotRequest;
+import org.facet.vox.generated.TerminalState;
 import org.facet.vox.generated.TerminalTextInput;
 
 import java.net.InetSocketAddress;
@@ -50,7 +55,9 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     private static final int REQUEST_WIDTH = 120;
     private static final int REQUEST_HEIGHT = 40;
     private static final int MAX_FRAME_BYTES = 4 * 1024 * 1024;
+    private static final int MAX_CONTENT_CHARS = 256 * 1024;
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration CONTENT_READINESS_TIMEOUT = Duration.ofSeconds(3);
     private static final long FRAME_POLL_MILLIS = 50;
 
     private final InetSocketAddress endpoint;
@@ -66,6 +73,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     private String sessionId;
     private String failure;
     private TerminalSnapshot latestSnapshot;
+    private TerminalContentResult latestContent;
     private long clientSequence;
     private int requestedWidth = REQUEST_WIDTH;
     private int requestedHeight = REQUEST_HEIGHT;
@@ -128,6 +136,64 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         }
     }
 
+    /** Returns the latest Rust-owned visible text witness, if polling has produced one. */
+    public Optional<String> latestContentText() {
+        synchronized (lock) {
+            return latestContent == null ? Optional.empty() : Optional.of(latestContent.text());
+        }
+    }
+
+    /** Reads a bounded Rust-owned visible text witness for deterministic automation assertions. */
+    public String contentForAutomation() {
+        try {
+            ensureConnected();
+            TerminalClient currentClient;
+            String currentSession;
+            synchronized (lock) {
+                currentClient = client;
+                currentSession = sessionId;
+            }
+            TerminalContentResult content = readReadyContent(currentClient, currentSession);
+            synchronized (lock) {
+                latestContent = content;
+            }
+            return content.text();
+        } catch (Exception error) {
+            synchronized (lock) {
+                failure = "Vox terminal content unavailable: " + describe(error);
+                closeTransportLocked();
+            }
+            throw new IllegalStateException(failure, error);
+        }
+    }
+
+    /**
+     * A newly created ConPTY can expose one or more empty frames before the
+     * shell has written its prompt.  Automation reads are a synchronization
+     * surface, so wait briefly for the Rust-owned prompt instead of turning
+     * that normal startup window into a false reconnect failure.
+     */
+    private TerminalContentResult readReadyContent(TerminalClient currentClient, String currentSession)
+            throws Exception {
+        long deadline = System.nanoTime() + Math.min(
+                callTimeout.toNanos(), CONTENT_READINESS_TIMEOUT.toNanos());
+        TerminalContentResult content;
+        do {
+            content = requireSuccess(
+                    await(currentClient.getContent(new TerminalContentRequest(
+                            currentSession, 0, MAX_CONTENT_CHARS, nextSequence())),
+                            "reading terminal content"),
+                    "reading terminal content");
+            if (!content.text().isBlank() || content.prompt().promptPresent()) {
+                return content;
+            }
+            if (System.nanoTime() >= deadline) {
+                return content;
+            }
+            Thread.sleep(25);
+        } while (true);
+    }
+
     public int logicalWidth() {
         synchronized (lock) {
             return requestedWidth;
@@ -144,9 +210,10 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     public void reconnect() {
         synchronized (lock) {
             if (closed) return;
-            closeTransportLocked();
+            closeTransportLocked(false);
             failure = null;
             latestSnapshot = null;
+            latestContent = null;
             clientSequence = 0;
         }
     }
@@ -156,7 +223,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         synchronized (lock) {
             if (closed) return;
             closed = true;
-            closeTransportLocked();
+            closeTransportLocked(true);
         }
         driver.shutdownNow();
         poller.shutdownNow();
@@ -198,10 +265,44 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
                 validateSnapshot(snapshot, "polled terminal snapshot");
                 latestSnapshot = snapshot;
             }
+            pollContent();
         } catch (Exception error) {
             synchronized (lock) {
                 snapshotInFlight = false;
+                // A poll may belong to a transport that reconnect() already
+                // replaced. Never let that stale completion tear down the
+                // replacement client.
+                if (!closed && client == currentClient && Objects.equals(sessionId, currentSession)) {
+                    failure = "Vox terminal snapshot unavailable: " + describe(error);
+                    latestSnapshot = null;
+                    latestContent = null;
+                    closeTransportLocked();
+                }
             }
+        }
+    }
+
+    private void pollContent() {
+        TerminalClient currentClient;
+        String currentSession;
+        long afterSequence;
+        synchronized (lock) {
+            if (closed || client == null || sessionId == null) return;
+            currentClient = client;
+            currentSession = sessionId;
+            afterSequence = latestContent == null ? 0 : latestContent.sequence();
+        }
+        try {
+            TerminalContentResult content = requireSuccess(
+                    await(currentClient.getContent(new TerminalContentRequest(
+                            currentSession, afterSequence, MAX_CONTENT_CHARS, nextSequence())),
+                            "polling terminal content"),
+                    "polling terminal content");
+            synchronized (lock) {
+                if (!closed && content.complete()) latestContent = content;
+            }
+        } catch (Exception ignored) {
+            // The PNG stream remains the user-facing path; content is a test/debug witness.
         }
     }
 
@@ -214,7 +315,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
             failure = null;
 
             try {
-                connection = VoxConnection.connect(endpoint, connectionOptions);
+                connection = VoxConnection.connect(endpoint, freshConnectionOptions());
                 CompletableFuture<Void> closedFuture = connection.start(driver);
                 awaitConnectionOpen(closedFuture);
                 lane = connection.openLane(TerminalServiceDescriptor.INSTANCE, LaneOptions.defaults());
@@ -237,19 +338,24 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     }
 
     /** Sends a bounded logical terminal resize; the next frame remains Rust-owned. */
-    public void resize(int width, int height) {
+    public boolean resize(int width, int height) {
         int boundedWidth = Math.max(1, Math.min(240, width));
         int boundedHeight = Math.max(1, Math.min(120, height));
         synchronized (lock) {
-            if (closed) return;
+            if (closed) return false;
             requestedWidth = boundedWidth;
             requestedHeight = boundedHeight;
-            if (sessionId == null) return;
+            if (sessionId == null) return true;
             try {
-                requireSuccess(
+                TerminalResizeResult resized = requireSuccess(
                         await(client.resize(new TerminalResizeRequest(
                                 sessionId, boundedWidth, boundedHeight, nextSequence())), "resizing terminal"),
                         "resizing terminal");
+                if (resized.width() != boundedWidth || resized.height() != boundedHeight) {
+                    throw new IllegalStateException("resize response dimensions were "
+                            + resized.width() + "x" + resized.height() + " instead of "
+                            + boundedWidth + "x" + boundedHeight);
+                }
                 TerminalSnapshot snapshot = requireSuccess(
                         await(client.snapshot(new TerminalSnapshotRequest(
                                 sessionId, 0, MAX_FRAME_BYTES, nextSequence())), "reading resized terminal snapshot"),
@@ -258,10 +364,13 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
                     validateSnapshot(snapshot, "resized terminal snapshot");
                     latestSnapshot = snapshot;
                 }
+                return true;
             } catch (Exception error) {
                 failure = "Vox terminal resize unavailable: " + describe(error);
                 latestSnapshot = null;
+                latestContent = null;
                 closeTransportLocked();
+                return false;
             }
         }
     }
@@ -316,6 +425,32 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         }
     }
 
+    /** Request a server-side interrupt while retaining the Rust terminal session. */
+    public boolean cancel() {
+        try {
+            ensureConnected();
+            String currentSession;
+            TerminalClient currentClient;
+            synchronized (lock) {
+                currentSession = sessionId;
+                currentClient = client;
+            }
+            return requireSuccess(
+                    await(currentClient.cancel(new TerminalCancelRequest(
+                            currentSession,
+                            0,
+                            "SFM terminal cancellation",
+                            nextSequence())), "cancelling terminal operation"),
+                    "cancelling terminal operation").state() == TerminalState.READY;
+        } catch (Exception error) {
+            synchronized (lock) {
+                failure = "Vox terminal cancellation unavailable: " + describe(error);
+                closeTransportLocked();
+            }
+            return false;
+        }
+    }
+
     /** Send a terminal mouse transition in logical terminal-cell coordinates. */
     public boolean sendMouse(
             int x,
@@ -323,6 +458,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
             int buttons,
             int button,
             boolean pressed,
+            boolean motion,
             int wheelX,
             int wheelY) {
         try {
@@ -341,6 +477,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
                             Math.max(0, Math.min(255, buttons)),
                             Math.max(0, Math.min(255, button)),
                             pressed,
+                            motion,
                             wheelX,
                             wheelY,
                             nextSequence())), "sending terminal mouse"),
@@ -379,6 +516,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         } catch (Exception error) {
             synchronized (lock) {
                 latestSnapshot = null;
+                latestContent = null;
             }
             SFMTerminalResponse local = fallbackSession.execute(command);
             List<String> lines = new ArrayList<>();
@@ -428,6 +566,27 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         }
     }
 
+    /**
+     * Vox closes the scheduler owned by a connection when that connection is
+     * closed. Reconnects therefore need a fresh options instance rather than
+     * reusing the previous connection's scheduler.
+     */
+    private ConnectionOptions freshConnectionOptions() {
+        return ConnectionOptions.builder()
+                .maxFrameBytes(connectionOptions.maxFrameBytes())
+                .maxQueuedOutboundBytes(connectionOptions.maxQueuedOutboundBytes())
+                .maxQueuedOutboundMessages(connectionOptions.maxQueuedOutboundMessages())
+                .maxPendingRequests(connectionOptions.maxPendingRequests())
+                .maxOpenLanes(connectionOptions.maxOpenLanes())
+                .maxSchemaBytes(connectionOptions.maxSchemaBytes())
+                .maxSchemas(connectionOptions.maxSchemas())
+                .handshakeTimeout(connectionOptions.handshakeTimeout())
+                .idleTimeout(connectionOptions.idleTimeout())
+                .closeTimeout(connectionOptions.closeTimeout())
+                .handlerExecutor(connectionOptions.handlerExecutor())
+                .build();
+    }
+
     private static <T> T requireSuccess(VoxResult<T, TerminalError> result, String operation) {
         if (result.isSuccess()) return result.success();
         if (result.isApplicationError()) {
@@ -437,7 +596,11 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
     }
 
     private void closeTransportLocked() {
-        if (client != null && sessionId != null) {
+        closeTransportLocked(false);
+    }
+
+    private void closeTransportLocked(boolean requestDisconnect) {
+        if (requestDisconnect && client != null && sessionId != null) {
             try {
                 client.disconnect(new TerminalDisconnectRequest(
                         sessionId, "SFM terminal closed", nextSequence()));
@@ -451,6 +614,7 @@ public final class SFMVoxTerminalService implements SFMTerminalService, AutoClos
         lane = null;
         connection = null;
         sessionId = null;
+        latestContent = null;
     }
 
     private static Duration requirePositive(Duration value, String name) {

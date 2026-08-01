@@ -161,6 +161,58 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    public void cancelTerminal() {
+        add(new CancelTerminalPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Exercises an owned Rust server stop/restart and fresh Vox session. */
+    public void restartRustTerminalServer() {
+        add(new RestartRustTerminalServerPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Delivers printable characters through the real terminal charTyped callback. */
+    public void typeTerminalText(String text) {
+        add(new TypeTerminalTextPuppetAction(Objects.requireNonNull(text, "text")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Exercises Ctrl+V through the terminal's real clipboard callback. */
+    public void pasteTerminalText(String text) {
+        add(new PasteTerminalTextPuppetAction(Objects.requireNonNull(text, "text")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Writes the Rust-owned visible terminal text and checks optional witnesses. */
+    public void writeTerminalContent(String artifactName, String requiredText, String forbiddenText) {
+        add(new WriteTerminalContentPuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                requiredText,
+                forbiddenText
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Sends a real mouse click into the visible Rust terminal panel. */
+    public void clickTerminal() {
+        add(new ClickTerminalPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Sends a real mouse drag into the visible Rust terminal panel. */
+    public void dragTerminal() {
+        add(new DragTerminalPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Requests a deterministic logical resize of the Rust terminal. */
+    public void resizeTerminal(int columns, int rows) {
+        if (columns < 1 || rows < 1) throw new IllegalArgumentException("Terminal dimensions must be positive");
+        add(new ResizeTerminalPuppetAction(columns, rows));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void scrollTerminal(double delta) {
         add(new ScrollTerminalPuppetAction(delta));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
@@ -168,6 +220,18 @@ public final class SFMGamePuppetHelper {
 
     public void pressTerminalKey(int keyCode) {
         add(new PressTerminalKeyPuppetAction(keyCode));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Sends a terminal key with a GLFW modifier mask through the panel callbacks. */
+    public void pressTerminalKey(int keyCode, int modifiers) {
+        add(new PressTerminalKeyPuppetAction(keyCode, modifiers));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Sends a terminal key directly to Rust without invoking SFM focus gestures. */
+    public void pressTerminalKeyDirect(int keyCode, int modifiers) {
+        add(new PressTerminalKeyDirectPuppetAction(keyCode, modifiers));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 

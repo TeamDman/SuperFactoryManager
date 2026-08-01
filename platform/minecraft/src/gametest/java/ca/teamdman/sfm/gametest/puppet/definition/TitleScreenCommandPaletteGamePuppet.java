@@ -19,6 +19,13 @@ public final class TitleScreenCommandPaletteGamePuppet {
         puppet.waitTicks(TITLE_SCREEN_FADE_IN_TICKS);
         puppet.openCommandPalette();
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
+        puppet.setCommandPaletteInput("sfm action invoke open");
+        puppet.capture(
+                "command-palette-fuzzy-open",
+                Component.literal("SFM ")
+                        .withStyle(ChatFormatting.GOLD)
+                        .append(Component.literal("fuzzy action discovery for open."))
+        );
         puppet.capture(
                 "command-palette",
                 Component.literal("SFM ")

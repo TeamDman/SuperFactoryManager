@@ -9,8 +9,8 @@ use super::DependencyPlan;
 use super::DependencySource;
 use super::MavenCoordinate;
 use super::Repository;
-use super::SourceGitProvenance;
 use super::SourceBuildSystem;
+use super::SourceGitProvenance;
 use super::acquire_artifact_path_lock_cancellable;
 use super::acquire_artifact_path_read_lock_cancellable;
 use super::artifact_provenance;
@@ -319,8 +319,8 @@ impl Resolver {
             return Ok(None);
         };
 
-        let (checkout_dir, portable_source_root, repository_dir) =
-            self.source_build_checkout_paths(
+        let (checkout_dir, portable_source_root, repository_dir) = self
+            .source_build_checkout_paths(
                 remote_url,
                 &source_git.commit,
                 &source_git.root,

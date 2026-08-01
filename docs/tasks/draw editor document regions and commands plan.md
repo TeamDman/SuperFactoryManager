@@ -954,6 +954,15 @@ a server/player command parser.
 
 ### [ ] 2.2 Evolve palette search, customizable buttons, and Draw history
 
+**User-testing note — 2026-08-01:** The palette opens at `sfm action invoke`,
+but typing `open` does not currently fuzzy-rank the action candidates. The
+planned prefix/fuzzy-search slice must use a hybrid model: retain Brigadier as
+the authority for parse ranges, availability, typed arguments, and execution,
+while ranking the action-id suggestions with the existing fuzzy/string-distance
+logic already used by SFML intellisense. Add a regression test where a
+non-prefix query such as `open` surfaces the expected open actions without
+making an unavailable or syntactically invalid action executable.
+
 **Work:**
 
 - Refine the Phase 0 palette with prefix/fuzzy search, styled descriptions,

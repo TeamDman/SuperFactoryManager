@@ -1810,10 +1810,10 @@ fn source_build_checkout_key(remote_url: &str, commit: &str) -> String {
 /// checkout's generated Java class paths fail even when long-path support is
 /// enabled. Other platforms retain the normal temp-directory behavior.
 fn source_build_root() -> PathBuf {
-    if let Some(root) = std::env::var_os("SFM_SOURCE_BUILD_ROOT") {
-        if !root.is_empty() {
-            return PathBuf::from(root);
-        }
+    if let Some(root) = std::env::var_os("SFM_SOURCE_BUILD_ROOT")
+        && !root.is_empty()
+    {
+        return PathBuf::from(root);
     }
 
     #[cfg(windows)]
@@ -1906,8 +1906,7 @@ fn materialize_cargo_source_build(
 fn cargo_source_build_target_dir(checkout_dir: &Path) -> PathBuf {
     let checkout_name = checkout_dir
         .file_name()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("source-build"));
+        .map_or_else(|| PathBuf::from("source-build"), PathBuf::from);
     source_build_root()
         .join("sfm-cargo-target")
         .join(checkout_name)

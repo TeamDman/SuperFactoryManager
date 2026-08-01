@@ -618,7 +618,7 @@ public final class SFMCommandPaletteScreen extends Screen {
                 new SFMClientActionSource(this.actionContext)
         );
         this.executeButton.active = isExecutable(parsed);
-        tree.getCompletionSuggestions(parsed).thenAccept(result -> Minecraft.getInstance().execute(() -> {
+        tree.getPaletteSuggestions(command, parsed).thenAccept(result -> Minecraft.getInstance().execute(() -> {
             if (ACTIVE != this || revision != this.suggestionRevision) return;
             this.suggestions = result.getList();
             this.selectedSuggestion = this.suggestions.isEmpty() ? -1 : 0;
