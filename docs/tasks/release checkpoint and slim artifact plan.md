@@ -412,6 +412,85 @@ sfm-propagate-changes.exe jar build --branch 1.19.2 `
   fallback. Keep any remaining fallback behavior as a separate CLI hardening
   item; do not confuse it with the now-confirmed Vox pin mismatch.
 
+### Proposed goal batch R-4A — Portable Vox source-build and artifact parity [ ]
+
+This batch is prepared for activation after user approval. It is the next
+bounded slice after R-3A: turn the declarative source-build/profile model into
+reproducible artifact evidence. It does not change the Java-only Gradle
+default, propagate to other Minecraft versions, publish anything, or modify
+Cloud Terrastodon.
+
+#### R-4A.1 — Reconcile the reachable Vox source pin [ ]
+
+Confirm which Facet/Vox commit is reachable from the locked remote and contains
+the `TerminalContentRequest`/`TerminalContentResult` API required by the current
+SFM sources. Update the schema-v4 source-build pin, artifact identity, and
+expected BLAKE3 evidence only after the source commit is reachable and the
+artifact can be rebuilt from it. Do not use an unpushed workstation commit as
+portable provenance.
+
+**Completion criteria:** The lockfile names a reachable source revision and
+exact source-build output; the rebuilt Vox JAR has the locked coordinate and
+hash; the old API-incompatible pin is no longer selected.
+
+#### R-4A.2 — Make source-build resolution strict and lock-directed [ ]
+
+Fix the resolver path exposed by the hypothesis experiment. Source-built
+components must materialize from their locked source recipe rather than probe
+unrelated Maven repositories first. Remote repository selection for genuinely
+remote artifacts must use canonical lockfile repository IDs, not display-label
+guesses. Add regression coverage proving a source-built Vox request cannot fall
+through to ModMaven or another remote repository, and retain a clear diagnostic
+when the locked source revision or build output is unavailable.
+
+**Completion criteria:** A source-build request takes the source-build path in
+an isolated cache; a remote miss cannot be mistaken for a successful artifact;
+and repository candidates are selected from lock-directed canonical IDs.
+
+#### R-4A.3 — Prove an isolated portable Rust build and audit [ ]
+
+Run the SFM CLI against a fresh cache with no injected Gradle property and no
+pre-existing Vox artifact. Plan/build the 1.19.2 Rust profile, materialize the
+locked Facet source, verify the output hash and provenance, and run the
+portable-artifact audit. Use `--log-file` when observing a long-running CLI
+command so lock acquisition and source-build diagnostics remain inspectable
+under the Codex harness.
+
+**Completion criteria:** `jar plan`, `jar build`, and
+`jar audit-artifacts --require-portable-artifacts` succeed from the isolated
+cache, with recorded commands, artifact paths, hashes, source revision, and
+any environment-only limitations separated from product failures.
+
+#### R-4A.4 — Reprove full-profile Gradle Jar-in-Jar parity [ ]
+
+With the managed source-built Maven repository produced by R-4A.3, run the
+explicit `rust-toolchain` Gradle packaging path. Inspect the final unclassified
+artifact and confirm it contains the nested Vox JAR and Forge Jar-in-Jar
+metadata, while the default Gradle profile remains Java-only. Compare the
+nested Vox bytes and coordinates against the Rust artifact rather than merely
+checking that both builds compile.
+
+**Completion criteria:** The explicit Gradle full artifact and Rust artifact
+contain byte-identical Vox JARs with matching metadata and bundle policy; the
+default Gradle compile/test path still works without Cargo, Xtask, or Vox.
+
+#### R-4A.5 — Record the release-artifact handoff boundary [ ]
+
+Record the portable-build and parity evidence in this plan and update the
+artifact inventory/release gates. If an external clean Forge-style launch
+still needs a separate environment or companion-server step, record it as the
+next batch rather than silently expanding R-4A.
+
+**R-4A completion boundary:** Stop after reachable source provenance,
+strict source-build resolution, isolated Rust artifact proof, and explicit
+Gradle/Rust nested-JAR parity are complete. Do not include cross-version
+propagation, release version/changelog decisions, PR/issue intake, publication,
+or Cloud Terrastodon work in this goal.
+
+**Proposed goal text after approval:** `Complete Goal Batch R-4A in
+docs/tasks/release checkpoint and slim artifact plan.md: R-4A.1 through
+R-4A.5.`
+
 ### Phase 1 — Freeze the release scope [in progress]
 
 **Work:** Decide the release version, supported Minecraft versions, player-facing feature list, CC policy, Vox/terminal policy, feature/profile defaults, and whether the 4.35.0 PRE changelog is the candidate scope. The current direction is to graduate the terminal and command-palette work while keeping the Java-only Gradle profile as contributor compatibility rather than hiding product behavior behind an unmodeled `--slim` switch.
