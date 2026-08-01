@@ -39,10 +39,36 @@ same Java screen and typed terminal contract work in three modes:
    uses the same service contract but applies path containment, size, encoding,
    and mutation policy before touching disk.
 3. **Vox/Rust terminal** — an optional development-environment mode. Java is a
-   Vox client and Rust is the service, using Teamy Studio's terminal engine or
-   another Rust implementation. It may provide a real shell, richer VT
-   behavior, semantic prompt/symbol information, compilation, audit, and other
-   repository tooling.
+   thin Vox client and Rust is authoritative for the PTY, command execution, VT
+   parsing, scrollback, colors, cursor state, and terminal rasterization. The
+   first presentation mode is a bounded full PNG snapshot; Java uploads and
+   displays that image in the panel and sends input/resize messages back. It
+   may later provide richer VT behavior, semantic prompt/symbol information,
+   compilation, audit, and other repository tooling.
+
+### Explicit user-facing modes and lifecycle actions
+
+The command palette must make backend selection explicit instead of silently
+changing the meaning of one action based on a JVM property:
+
+- `sfm:repl/open` always opens the Java-local virtual terminal. It remains
+  useful even when a Rust server is running.
+- `sfm:terminal/open` tries to open the Rust-backed terminal using the current
+  Rust server endpoint. If the endpoint is absent or unavailable, it opens a
+  visibly labelled retryable fallback rather than permanently disabling the
+  panel.
+- `sfm:terminal/connect-rust-server [address]` accepts an optional
+  `HOST:PORT` (also `:PORT` for loopback), otherwise using the client-configured
+  default endpoint. It updates the current Rust terminal connection and can be
+  invoked after the Minecraft client has already started.
+- `sfm:terminal/start-rust-server [address]` launches the configured
+  `teamy-terminal.exe serve [address]` process hidden, reuses an already-live
+  endpoint, and then connects the Rust terminal. SFM must track only processes
+  it started so an explicitly launched server is never killed accidentally.
+
+The client config should own the default loopback address/port (initially
+`127.0.0.1:63946`) and an optional executable path. The JVM property remains a
+test/puppet override during migration, not the normal manual-launch contract.
 
 The first two modes must remain useful when Rust is not installed, the game is
 offline, the endpoint is stopped, authentication fails, or the protocol is
@@ -56,16 +82,19 @@ Java owns all Minecraft-facing concerns:
 
 - the terminal panel, multiplexer allocation, focus, keyboard/mouse routing,
   clipping, theme, accessibility text, and GUI-scale behavior;
-- the local service implementation and virtual/local filesystem policy;
-- validation of every inbound frame, bounded buffering, thread handoff through
-  the Minecraft executor, and terminal lifecycle shown to the player; and
+- the local service implementation and virtual/local filesystem policy when
+  the Java-local backend is selected;
+- Vox connection/input/resize plumbing, validation of every inbound frame,
+  bounded buffering, PNG texture upload, thread handoff through the Minecraft
+  executor, and terminal lifecycle shown to the player; and
 - graceful fallback when the optional endpoint is absent or unhealthy.
 
 Rust owns optional development-environment concerns:
 
 - a real process-backed shell or Teamy Studio terminal engine;
 - VT parsing, terminal screen state, cursor/style state, scrollback, replay,
-  and semantic prompt/symbol/handle metadata;
+  semantic prompt/symbol/handle metadata, and the visual contents of every
+  Rust-backed frame;
 - repository/compiler/audit commands that are inappropriate for the Java-only
   gameplay runtime; and
 - richer external interfaces such as eframe, when the user explicitly asks
@@ -73,8 +102,9 @@ Rust owns optional development-environment concerns:
 
 The wire contract carries portable data and intent only. Rust never sends a
 Minecraft `Screen`, panel, widget tree, renderer callback, arbitrary layout
-instruction, or Java object reference. Java renders the terminal locally,
-whether the service is Java-local or remote.
+instruction, or Java object reference. In Java-local mode the panel renders
+the local transcript; in Vox mode it displays the Rust-owned full-frame PNG
+and does not independently reinterpret terminal output or colors.
 
 ## Contract shape
 
@@ -159,14 +189,23 @@ panel and inside horizontal, vertical, tab, and nested split layouts. Rust
 frames describe terminal content; the Java panel owns all layout and theme
 decisions.
 
-## Optional Rust-rendered texture presentation
+## Rust-owned PNG presentation
 
-The preferred Rust-backed presentation experiment is a texture stream rather
-than reimplementing Teamy Studio's renderer in Java. Teamy Studio can render
+The initial Rust-backed presentation is deliberately a complete PNG frame
+rather than a cell protocol or native GPU-handle interop. Rust owns the PTY,
+VT state, font rasterization, and pixel contents; Java receives a bounded full
+PNG, decodes it on the Minecraft render thread, uploads it to a dynamic
+texture, and blits it inside the terminal panel. Keyboard, mouse, resize,
+focus, and paste events travel in the opposite direction through the same
+session. This gives us an end-to-end correctness proof before optimizing
+unchanged glyphs, dirty regions, or GPU paths.
+
+The eventual texture-stream experiment can replace the PNG payload without
+changing the ownership boundary or panel contract. Teamy Studio can render
 its terminal into an off-screen target using its existing DirectX/font
 pipeline; Java then owns a Minecraft texture resource and blits the received
-frame inside a terminal panel. Keyboard, mouse, resize, focus, and paste events
-travel in the opposite direction through the same session.
+frame inside a terminal panel. Native GPU-handle interop remains out of scope
+for the first implementation.
 
 The process boundary needs to be treated honestly: a DirectX GPU texture
 handle cannot normally be handed directly to Minecraft's separate LWJGL/OpenGL
@@ -407,10 +446,286 @@ using the wrong `ItemRenderer` signatures in
 `SFMItemIconRenderer` and `SFMFalsifiedInventoryReplayPanel`, which were not
 changed by this terminal work.
 
-The next implementation slice is the actual Rust endpoint plus a decoder and
-Java panel presentation for the bounded `STRUCTURED_CELLS` or raster snapshot;
-that work must preserve the currently verified Java-local fallback and must
-not modify Cloud Terrastodon.
+The next implementation slice is launch ergonomics and lifecycle recovery
+around the already-proven bounded full-PNG endpoint. It must preserve the
+explicit Java-local `repl` path, must not modify Cloud Terrastodon, and must
+make starting the server after Minecraft a supported flow.
+
+### Rust-authoritative PNG endpoint — 2026-07-26
+
+The implementation now follows the intended ownership boundary:
+
+- `G:\Programming\Repos\teamy-terminal\tools\vox-terminal-server` is an
+  isolated Cargo workspace because the main Teamy Terminal workspace still
+  pins an older Facet revision through the `weavy` dependency. It uses the
+  published Facet `main` revision and the generated Terminal contract.
+- The endpoint owns a real `pwsh -NoProfile` PTY, answers the initial terminal
+  device/cursor queries, feeds VT bytes into `TerminalSession`, and rasterizes
+  the complete session into a bounded CPU PNG using the terminal font crate.
+- The focused Rust puppet test runs `1..100; Write-Host -ForegroundColor Cyan
+  "hello, world!"; exit`, verifies the terminal state and cyan cell, and
+  verifies the returned payload is a bounded PNG. The test is green.
+- `SFMVoxTerminalService` now sends carriage-return input, accepts only full
+  PNG frames with a valid signature, and retains the defensive snapshot for
+  the panel. `SFMTerminalPngRenderer` decodes/uploads one frame per server
+  sequence and replaces the prior dynamic texture safely.
+- `sfm.terminal.voxEndpoint=HOST:PORT` is currently the test/puppet override
+  for the Rust endpoint. With the property absent, the Java-local backend
+  remains the deterministic fallback until the explicit action/configuration
+  split is implemented. The terminal puppet has a Rust path that captures the
+  `1..100` and cyan `Write-Host` states.
+
+The SFM-side source changes are committed locally at `211e5cb1b` and are not
+propagated. The focused Java tests and live endpoint-backed Minecraft puppet
+capture are green. The next verification gate is the full canonical SFM gate,
+followed by oldest-first propagation; performance work such as dirty
+glyph/tile updates is explicitly deferred until the full-PNG correctness proof
+and lifecycle behavior are stable.
+
+### Live TCP and Minecraft presentation proof — 2026-07-27
+
+The isolated server was built and launched hidden on a loopback TCP port. The
+canonical puppet was run with
+`JAVA_TOOL_OPTIONS=-Dsfm.terminal.voxEndpoint=127.0.0.1:63946`; it completed
+with exit code zero and produced:
+
+- `title_screen_java_local_terminal__vox-terminal-powershell-range.png`,
+  showing the Rust-rendered `1..100` tail (`62..100`) in the bounded 40-row
+  viewport; and
+- `title_screen_java_local_terminal__vox-terminal-powershell-cyan.png`,
+  showing the Rust-rendered cyan `hello, world!` output.
+
+The first attempt correctly fell back after the initial PTY drain exceeded the
+old three-second Java timeout. Raising the correctness-first RPC timeout to
+15 seconds fixed the live startup. A second presentation issue was also found
+by visual inspection: the dynamic texture needed an explicit Minecraft shader
+sampler binding in addition to the texture-manager bind. The corrected live
+captures match the raw Rust PNG. The raw endpoint test and focused
+`SFMVoxTerminalServiceTests`/`SFMJavaLocalTerminalServiceTests` gates are green.
+
+The earlier intentional limitation—text input and full snapshots only—has now
+been removed at the bridge boundary. Rust implements the already-generated
+`send_key` and `send_mouse` operations, Java sends exact printable text and
+physical key transitions, and Rust encodes mouse reports only after the
+terminal has requested mouse tracking. No performance optimization or Cloud
+Terrastodon change is part of this slice.
+
+### Manual launch ergonomics and `--solo` correction — 2026-07-27
+
+The first manual instructions exposed two integration gaps:
+
+- `--solo` currently skips `resolve_run_plain_dependencies` and the
+  deobfuscated project dependency path wholesale. The locked `vox-java`
+  dependency is a required plain runtime library with
+  `data_run_policy: include`, not a loader-managed Minecraft mod and not
+  currently a Jar-in-Jar dependency. This can omit `org.facet.vox.*` even
+  though optional mods such as Mekanism were the intended things to omit.
+- The user currently has to start an isolated Cargo workspace and pass a JVM
+  property before launching SFM. That is a development proof, not an
+  acceptable manual workflow.
+
+The implementation status for those gates is now:
+
+1. **Complete.** Solo classpath construction retains required plain runtime
+   libraries while omitting loader-managed mod jars and deobfuscated outputs.
+   The lockfile projection regression and the rebuilt effective smoke
+   classpath both prove `vox-java` is present and Mekanism is absent.
+2. **Complete.** `repl/open` is Java-local, `terminal/open` is Rust-preferred
+   with fallback, and endpoint/executable defaults live in `SFMClientConfig`.
+   `terminal/connect-rust-server [address]` accepts `HOST:PORT`, `:PORT`, or a
+   bare port; JVM properties remain explicit test/puppet overrides.
+3. **Complete.** `SFMVoxTerminalService` clears transient connection failure
+   state and retries on later resize/execute requests.
+4. **Complete.** `terminal/start-rust-server [address]` launches the configured
+   `teamy-terminal.exe serve HOST:PORT` with no console window, waits for TCP
+   readiness, and then opens the Rust-backed panel. The Java-only action does
+   not probe or depend on the Rust process.
+5. **In progress.** The Rust-start puppet proves Java-started Rust, full PNG
+   frames, `1..100`, and cyan `Write-Host` output. Remaining lifecycle work is
+   a focused restart/stop matrix and explicit manual proof of every ordering
+   permutation; it is not required to change the Rust-authoritative frame
+   contract.
+
+#### Evidence — 2026-07-27
+
+- The rebuilt canonical command
+  `sfm-propagate-changes.exe run client --solo --smoke --branch 1.19.2`
+  reached the title screen. Its authoritative
+  `runClientSmoke/minecraftClasspath.txt` contains 123 entries including
+  `org.facet:vox-java:0.10.0-rc.5` and no Mekanism entry.
+- The Rust CLI passes 16 focused library tests, including the bounded PNG Vox
+  puppet and `serve :0` stop-after smoke. The SFM CLI passes the solo-classpath
+  and lockfile-projection regressions.
+- `sfm:title_screen_rust_terminal` completed with
+  `SFM_GAME_PUPPET_COMPLETE failed=0`, producing the range and cyan captures
+  under `build/sfm-toolchain/artifacts/game-test-preview`. The Java action
+  launched `teamy-terminal.exe` and the captured panel shows Rust-authoritative
+  PNG output.
+
+The server process must remain owned by the Rust CLI, not reimplemented in
+Java. Java owns only process launch, endpoint selection, transport state, and
+the panel; Rust remains authoritative for terminal visual state.
+
+### Interactive Rust bridge: direct input and periodic publication — 2026-07-27
+
+This follow-up closes the most important correctness gap in the first PNG
+proof. `send_text` now means exact bytes and no longer adds an implicit Enter;
+Enter, Backspace, Ctrl sequences, modified navigation, Tab, Escape, and key
+release events travel through `send_key`. The Rust endpoint maps the generic
+GLFW key-code/modifier representation to terminal control bytes, including
+Ctrl+A/C, Ctrl+Backspace, Ctrl+Arrow, and Ctrl+Shift navigation, without
+hard-coding one special chord in Java.
+
+The terminal core records xterm mouse modes 1000/1002/1003/1006. Rust emits
+one-based SGR or legacy mouse reports only when those modes are enabled, and
+SFM maps panel coordinates to logical terminal cells for click, release, drag,
+move, and wheel events. SFM also owns a 50 ms snapshot poller using the
+server's sequence witness; unchanged snapshots carry no PNG payload, avoiding
+repainting/uploading an unchanged full frame.
+
+The hosted panel uses a 1.5-second triple-key escape hatch: the first two Esc
+or Tab presses are forwarded to the terminal, the third Esc submits the panel
+close intent, and the third Tab returns `false` so Minecraft can perform its
+normal focus traversal. Deterministic Java tests cover the sequence boundary.
+
+The focused Rust gates now pass: the CLI Vox puppet, key mapping tests, mouse
+mode/encoding tests, and the terminal-core mouse-mode tests. Main/test Java
+source compilation also passes. Commit `df80cb38d` fixed the Java frame-poller
+timing and changed the automation hook to obtain a synchronous command frame;
+the live capture
+`build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-title_screen-20260728-000407-517/title_screen_rust_terminal/1280x720_auto/figure_02_rust-terminal-powershell-cyan.png`
+now visibly contains the Rust-rendered range and cyan `Write-Host` output.
+The remaining proof is a live puppet that captures control-key editing,
+mouse-mode delivery, streaming `1..10000` output, triple-Esc/triple-Tab
+behavior, and disconnect/retry handling.
+
+### User-testing follow-up — 2026-08-01
+
+Manual testing found three presentation/correctness gaps to close before this
+bridge can be treated as release-ready:
+
+- The Rust PNG path still leaves the Java-local `> _` input strip below the
+  blit. `SFMTerminalPanel` must give the Rust frame the full terminal content
+  area and must not render or buffer a Java prompt for `SFMVoxTerminalService`.
+- Triple-Esc closes correctly, but the user cannot discover the escape hatch.
+  `SFMTerminalFocusSequence` should expose progress/remaining-window state so
+  the panel can render a short status such as “Press Esc 2 more times within
+  1.5 seconds to close.” The triple-Tab Java-focus escape should receive the
+  corresponding cue without obscuring the terminal frame.
+- These behaviors need a real panel/puppet regression proof in addition to
+  the existing pure sequence tests. The status overlay must remain Java-owned
+  presentation; it must not be sent to or baked into the Rust terminal PNG.
+
+### Batch 1 resolution — 2026-08-01
+
+The three presentation gaps above are now closed in the canonical 1.19.2
+worktree. The Rust PNG path no longer renders the Java-local input strip; the
+panel renders localized, Java-owned Escape/Tab progress overlays while Rust
+remains authoritative for the PNG; and deterministic focus tests cover the
+count, timeout, and gesture-clearing boundaries. The real
+`title_screen_rust_terminal` puppet passed with four captures, including both
+guidance states plus `1..100` and cyan `Write-Host` output. The captures are
+under `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/`
+and `platform/minecraft/runGameTestPreview/screenshots/`.
+
+The command-palette fuzzy-search fix is tracked by the release checkpoint
+plan because it is a shared SFM action-surface issue, not a Vox transport
+issue. Its deterministic JUnit test passed 2/2, and the real
+`title_screen_command_palette` puppet passed with the live
+`sfm action invoke open` result list captured. The broader bridge work remains
+active: control/mouse/long-output/restart matrices and Rust scrollback are not
+being declared complete by this Batch 1 slice.
+
+### Batch 2 progress — machine-readable terminal content witnesses — 2026-08-01
+
+Screenshot captures are now paired with bounded text artifacts so puppet
+assertions do not depend on computer-vision interpretation. Facet's Terminal
+contract has a `get_content` method returning the Rust-owned visible grid,
+including the rendered prompt line, with a character bound and sequence
+witness. The generated Java contract and Rust/Facet Phon round-trip tests pass;
+the local Facet content-witness commit is `8c3c23c31` and has not been pushed.
+
+Teamy Terminal implements the endpoint by draining the PTY and returning the
+terminal core's visible text and OSC 133 prompt/command metadata. Its real
+PowerShell puppet test asserts both `1..100` and `hello, world!` through
+`get_content`. The local Teamy workspace temporarily uses sibling Facet paths
+until that commit can be replaced by the intended immutable pushed revision.
+
+The Vox key path now uses the existing ConPTY Win32 physical-key encoding and
+honors separate key-down/key-up transitions. The server-side `cancel` RPC sends
+an explicit Ctrl+C transition while retaining the session. A focused Teamy
+test and the real SFM puppet both prove that a `1..10000` stream returns to the
+profile's prompt before `10000` appears. The Rust service now launches the
+interactive PowerShell profile so this proof matches the manually tested
+terminal behavior; the user profile should keep PSReadLine history saving
+disabled for automation accounts.
+
+SFM exposes `writeTerminalContent(artifact, required, forbidden)` to game
+puppets. It writes UTF-8 files under
+`platform/minecraft/runGameTestPreview/terminal-content/` and fails the puppet
+when a required witness is absent or a forbidden witness is present. The live
+`title_screen_rust_terminal` run passed with artifacts for Ctrl+Backspace,
+control navigation, Ctrl+V paste, Ctrl+C interruption, protocol cancellation,
+`1..100`, and cyan output. The paste artifact contains the current profile
+prompt and `pasted-through-ctrl-v`, proving that the Minecraft clipboard
+shortcut reaches the Rust-owned PTY. The Ctrl+C and protocol-cancellation
+artifacts contain fresh profile prompts and output only through 72/71
+respectively; the `10000` forbidden-text assertions passed. The cancellation
+puppet waits for the prompt to settle before reading the content witness so
+the assertion covers the terminal state rather than a transient post-cancel
+frame. The installed PATH
+`teamy-terminal.exe` was refreshed from the local source so live SFM uses the
+same contract revision as the Java jar. The live cancellation artifact also
+proves the prompt is preserved (`❯` for the current Starship profile), rather
+than treating screenshot interpretation as a cancellation witness.
+
+The same live puppet now proves the remaining key/TUI behavior in the real
+Java-to-Vox path. Ctrl+L clears the earlier `ctrl-l-before` command before the
+`ctrl-l-after` witness is entered. The `ratatui-key-debug` executable renders
+its alternate-screen `Key Events` frame, and a direct automation-only triple
+Escape sequence is sent to the PTY so SFM's own third-Escape close gesture does
+not intercept it; the restored artifact contains the profile prompt and
+forbids `Key Events`. The direct key hook is test-only and does not change the
+user-facing Escape/Tab focus behavior.
+
+The Batch 2 interaction proof is now complete through the real Java-to-Vox
+path. Paste is covered by the live clipboard shortcut witness. The mouse
+contract uses an explicit `motion` boolean so drag/move events are distinct
+from button transitions; this replaces the temporary button-value sentinel
+and is covered by Teamy SGR drag assertions plus a Facet Phon round-trip
+fixture. Facet commit `973318f72` is committed locally (not published or
+pushed), imported through the supported SFM `--artifact-source` path, and
+the lock now records its exact local artifact hash and provenance. The local
+package wrapper still reports the known javac resource-cleanup exit-3 issue,
+so that gate is not claimed as fully green.
+
+The refreshed SFM compile and installed `teamy-terminal.exe` puppet pass with
+`SFM_GAME_PUPPET_COMPLETE failed=0`. The live artifacts prove resize delivery,
+mouse click/drag, wheel delivery, and alternate-screen restoration in addition
+to Ctrl+Backspace, Ctrl navigation, Ctrl+L, Ctrl+C, paste, streaming output,
+and cancellation. The puppet driver now exercises held-pointer motion through
+the same `mouseMoved` dispatch Minecraft uses during a real drag.
+
+The lifecycle proof is now complete as well. `SFMVoxTerminalService` rejects
+stale poll completions, does not enqueue a generated disconnect during an
+automation reconnect, and clones the connection options for each fresh Vox
+connection so the prior connection's owned scheduler cannot be reused after
+close. SFM owns only the Rust process it launches and restarts that process
+through the explicit puppet action. The live
+`title_screen_rust_terminal__rust-server-reconnected.txt` artifact contains
+the Rust PowerShell prompt after Java-local REPL use, Rust launch, owned-server
+stop, and reconnect. `contentForAutomation()` now waits briefly for a
+nonblank Rust content witness or prompt metadata, preventing a normal empty
+ConPTY startup frame from becoming a false failure. Rust scrollback remains a
+later extension; this content witness is intentionally a bounded visible-grid
+artifact rather than a scrollback replacement.
+
+Final focused verification for this slice is green: Teamy Terminal's six
+`vox_server` tests pass; SFM's `SFMTerminalFocusSequenceTests` pass 3/3; and
+`SFMClientActionPaletteSuggestionTests` pass 2/2. The focused real puppet
+passed with `failed=0 total=1`. The Facet motion Phon test is present but its
+offline run remains blocked only by the uncached `astral-tokio-tar v0.6.4`
+dependency. No repository was pushed, and Cloud Terrastodon was not changed.
 
 ### Phase 0 — Contract fixtures and capability matrix
 

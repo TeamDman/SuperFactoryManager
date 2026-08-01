@@ -8,6 +8,7 @@ NAME "Changelog"
 
 ---- 4.35.0 PRE ----
 -- Add a Java-local in-game terminal with bounded virtual files, safe commands, and a Rust/Vox-unavailable fallback
+-- Add an optional Rust-authoritative Vox terminal mode with full-PNG in-game presentation and Java-local fallback
 -- Add bounded Java-local terminal scrollback with wheel, page, Home, End, and follow-output navigation
 -- Fix Java-local terminal scrollback preserving the viewed output while new lines arrive
 -- Add a composable size-display panel that makes solid-colour panel bounds and logical dimensions visible in nested layouts

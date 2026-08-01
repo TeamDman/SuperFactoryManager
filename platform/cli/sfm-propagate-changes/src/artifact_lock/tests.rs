@@ -273,11 +273,11 @@ fn open_failure_classification_distinguishes_access_races_from_terminal_paths() 
 
     assert_eq!(
         super::artifact_lock::open_retry_budget(&lock_path, &access_denied, policy_wait),
-        Some(policy_wait)
+        Some(super::artifact_lock::WINDOWS_ACCESS_DENIED_RETRY_MAX_WAIT)
     );
     assert_eq!(
         super::artifact_lock::open_retry_budget(&absent_lock_path, &access_denied, policy_wait),
-        Some(policy_wait)
+        Some(super::artifact_lock::WINDOWS_ACCESS_DENIED_RETRY_MAX_WAIT)
     );
     assert_eq!(
         super::artifact_lock::open_retry_budget(&lock_path, &sharing_violation, policy_wait),
@@ -377,6 +377,16 @@ fn persistent_readonly_access_denied_is_immediate_and_preserves_diagnostics() {
     assert!(rendered.contains(&lock_path.display().to_string()));
     assert!(rendered.contains("os_error=Some(5)"), "{rendered}");
     assert!(rendered.contains("kind=PermissionDenied"), "{rendered}");
+    assert!(
+        rendered.contains("Windows denied access to the artifact lock"),
+        "{rendered}"
+    );
+    assert!(
+        rendered.contains("Codex sandbox")
+            && rendered.contains("sandbox denied access")
+            && rendered.contains("normal Windows cache access"),
+        "{rendered}"
+    );
 
     let mut permissions = std::fs::metadata(&lock_path)
         .expect("metadata")
