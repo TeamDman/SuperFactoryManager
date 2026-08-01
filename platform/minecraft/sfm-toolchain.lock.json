@@ -1895,8 +1895,14 @@
             },
             "scopes": [
               "compile",
-              "runtime"
+              "runtime",
+              "bundle"
             ],
+            "bundle": {
+              "accepted_version_range": "[0.10.0-rc.5]",
+              "artifact_version": "0.10.0-rc.5",
+              "is_obfuscated": false
+            },
             "artifact_treatment": "plain",
             "data_run_policy": "include"
           },
