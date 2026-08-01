@@ -50,6 +50,21 @@ public final class SFMCommandPaletteActions {
             OpenTerminalAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenReplAction> OPEN_REPL = REGISTERER.register(
+            "repl/open",
+            OpenReplAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, ConnectRustServerAction> CONNECT_RUST_SERVER = REGISTERER.register(
+            "terminal/connect-rust-server",
+            ConnectRustServerAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, StartRustServerAction> START_RUST_SERVER = REGISTERER.register(
+            "terminal/start-rust-server",
+            StartRustServerAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, SFMThemeAction> THEME_RELOAD = REGISTERER.register(
             "theme/reload",
             () -> new SFMThemeAction(SFMThemeAction.Operation.RELOAD)
