@@ -21,7 +21,46 @@ sfmLockfile.dependencies.each { dependency ->
     }
 }
 
+// The propagation CLI materializes source-built and remote artifacts under its
+// managed Maven cache. Discover that cache here so legacy Gradle tasks can
+// consume the same locked bytes without requiring the CLI to inject a Gradle
+// property or relying on the user's global ~/.m2 repository.
+def sfmCacheRoot = System.getenv('SFM_PROPAGATE_CHANGES_CACHE')
+if (!sfmCacheRoot) {
+    def sfmUserHome = new File(System.getProperty('user.home'))
+    def sfmOsName = System.getProperty('os.name').toLowerCase()
+    if (sfmOsName.contains('win')) {
+        def sfmLocalAppData = System.getenv('LOCALAPPDATA')
+        sfmCacheRoot = sfmLocalAppData
+                ? new File(sfmLocalAppData, 'teamdman/sfm-propagate-changes/cache').path
+                : new File(sfmUserHome, 'AppData/Local/teamdman/sfm-propagate-changes/cache').path
+    } else if (sfmOsName.contains('mac')) {
+        sfmCacheRoot = new File(
+                sfmUserHome,
+                'Library/Caches/teamdman/sfm-propagate-changes'
+        ).path
+    } else {
+        def sfmXdgCacheHome = System.getenv('XDG_CACHE_HOME')
+        sfmCacheRoot = sfmXdgCacheHome
+                ? new File(sfmXdgCacheHome, 'teamdman/sfm-propagate-changes').path
+                : new File(sfmUserHome, '.cache/teamdman/sfm-propagate-changes').path
+    }
+}
+def sfmLocalMavenRepository = new File(sfmCacheRoot, 'minecraft-toolchain/maven')
+
 repositories {
+    if (sfmLocalMavenRepository.isDirectory()) {
+        maven {
+            name = 'sfm-local'
+            url = uri(sfmLocalMavenRepository)
+            // SFM's managed cache records the artifact and provenance sidecar,
+            // but not a Maven POM. Resolve the locked JAR directly.
+            metadataSources {
+                artifact()
+            }
+        }
+    }
+
     sfmLockfile.repositories
             .findAll { sfmGradleRepositoryIds.contains(it.id) }
             .each { lockedRepository ->

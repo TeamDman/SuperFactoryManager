@@ -160,7 +160,9 @@ Do not begin implementation in a later phase while an earlier decision gate is u
 - `cargo test --manifest-path platform/cli/sfm-propagate-changes/Cargo.toml loader_jarjar --offline` passed 3/3, including deterministic Forge and NeoGradle metadata coverage.
 - `sfm-propagate-changes.exe jar plan --branch 1.19.2 --artifact-source G:\Programming\Repos\facet\vox\java\target --dry-run` produced a plan with `org.facet:vox-java:0.10.0-rc.5` in `jarJar` and the locked bundle policy.
 - The Rust full artifact build passed with the explicit Facet/Vox source. `platform/minecraft/build/libs/Super Factory Manager (SFM)-MC1.19.2-4.34.0-rust.jar` is 2,926,764 bytes and contains `META-INF/jarjar/vox-java-0.10.0-rc.5.jar` (403,625 bytes) plus `META-INF/jarjar/metadata.json`. The nested JAR SHA-256 is byte-identical to the source artifact: `2d0a45e8339be3229fe657c465470dfa10df34d040b43f6cd2cd5e6360419007`.
-- The legacy ForgeGradle `jarJar` task was attempted through `sfm-propagate-changes.exe` and failed before packaging because `org.facet:vox-java:0.10.0-rc.5` is not present in the configured remote Maven repositories. This is a real compatibility/distribution gate, not evidence that JarJar metadata is malformed.
+- The legacy ForgeGradle `jarJar` task now passes through `sfm-propagate-changes.exe gradle run --branch 1.19.2 --show-logs jarJar` without any injected Gradle property. `repositories.gradle` discovers the SFM-managed Maven cache itself, and the 49.4-second run completed `:jarJar` and `:reobfJarJar` successfully.
+- The Gradle full artifact `platform/minecraft/build/libs/Super Factory Manager (SFM)-MC1.19.2-4.34.0.jar` is 2,948,745 bytes and contains `META-INF/jarjar/vox-java-0.10.0-rc.5.jar` (403,625 bytes) plus `META-INF/jarjar/metadata.json`. Its nested Vox JAR SHA-256 is the same as the Rust artifact: `2d0a45e8339be3229fe657c465470dfa10df34d040b43f6cd2cd5e6360419007`.
+- This proves the Gradle compatibility path through the managed local repository. A clean checkout still needs either the locked source-build materialization or a published Maven coordinate; the local cache is not a substitute for external distribution.
 - The lock currently records Facet commit `aa75598da`, while the byte-accurate Vox artifact came from the two local `main` commits `8c3c23c31` and `973318f72`. Those commits must become reachable from the locked remote (or the artifact must be published) before a `--require-portable-artifacts` release build can pass. Do not claim this gate complete from the explicit-source build.
 
 ### Phase 1 — Freeze the release scope [in progress]
@@ -183,7 +185,7 @@ Do not begin implementation in a later phase while an earlier decision gate is u
 
 **Work:** Add Vox’s explicit bundle policy to the lockfile, preserve compile/runtime projection, and make Gradle select the nested artifact for Forge 1.19.2. Preserve legacy direct dependency compatibility while ensuring the lock projection is authoritative.
 
-**Validation:** Rust packaging and lock projection are proven as recorded above. Complete the gate by making the locked Vox source/artifact reachable, making the legacy Gradle path resolve it, inspecting both Gradle and Rust outputs, and running a clean Forge-style launch without an external Vox Java dependency.
+**Validation:** Rust packaging, lock projection, and legacy Gradle packaging through the self-discovered managed Maven cache are proven as recorded above. Complete the gate by making the locked Vox source/artifact reproducible from a clean checkout, inspecting both outputs, and running a clean Forge-style launch without an external Vox Java dependency.
 
 **Completion criteria:** The full Gradle artifact is deterministic, unclassified, and contains the required nested Vox runtime with valid Forge metadata; the source/artifact provenance is reproducible from a clean checkout.
 
@@ -227,7 +229,7 @@ The user-testing fixes above are prerequisites for calling the Rust terminal or 
 - **CC source loading:** CC is optional at runtime but directly referenced by SFM initialization code. Use an adapter/source boundary and clean no-CC launch proof before excluding it.
 - **Jar size misconception:** Vox is a small pure-Java runtime; it must be measured, but its size is not a reason to omit required runtime classes.
 - **Vox source reachability:** Facet `main` is ahead of the locked `aa75598da` revision and the current Vox coordinate is not published in configured Maven repositories. Publish/reach the exact revision, update the lock, and rerun the portable build before release.
-- **Gradle resolution:** The lock projection correctly requests `jarJar`, but legacy Gradle cannot consume a source-built artifact without a reachable Maven publication or an explicit materialization/repository bridge.
+- **Gradle resolution:** The lock projection correctly requests `jarJar`, and legacy Gradle now consumes the source-built artifact through the self-discovered SFM-managed Maven repository. Clean external builds still require a reachable Maven publication or source-build materialization.
 - **Companion-server distribution:** Bundling Vox does not bundle `teamy-terminal.exe`; document and test the external server path and graceful fallback.
 - **Local branch divergence:** 1.19.2 is 211 commits ahead of origin. Create a reviewed checkpoint ref before publishing; do not push as part of this plan without approval.
 - **Open change intake:** PR #582 needs correctness and benchmark review; PR #486 is non-mergeable and should not enter the release by default.
