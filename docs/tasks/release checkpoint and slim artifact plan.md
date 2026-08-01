@@ -181,7 +181,8 @@ declaration point to that source-built artifact rather than to a fictional
 remote publication.
 
 Gradle should then project source-built modules through an exclusive local
-repository content rule, conceptually:
+repository content rule. The following is only a demonstration of the Gradle
+mechanism, not the implementation target:
 
 ```groovy
 exclusiveContent {
@@ -192,14 +193,18 @@ exclusiveContent {
             metadataSources { artifact() }
         }
     }
-    filter { includeModule('org.facet', 'vox-java') }
+    filter { includeModule('<group from lockfile>', '<artifact from lockfile>') }
 }
 ```
 
-The generated source-build content filters must prevent the same module from
-being searched in any remote repository. This is stronger than putting the
-local repository first. Remote repositories remain available for dependencies
-whose lock acquisition is genuinely remote.
+The actual Groovy projection must read the new lock schema, enumerate every
+source-build acquisition, derive its Maven module identity from the locked
+coordinate, and generate the `includeModule` filters. It must not contain
+Facet, Vox, or any other project-specific module names. The generated
+source-build content filters must prevent those modules from being searched in
+any remote repository. This is stronger than putting the local repository
+first. Remote repositories remain available for dependencies whose lock
+acquisition is genuinely remote.
 
 ### Source-build/API hypothesis experiment — complete (2026-08-01)
 
