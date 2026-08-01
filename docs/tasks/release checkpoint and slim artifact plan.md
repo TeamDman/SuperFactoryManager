@@ -420,7 +420,7 @@ reproducible artifact evidence. It does not change the Java-only Gradle
 default, propagate to other Minecraft versions, publish anything, or modify
 Cloud Terrastodon.
 
-#### R-4A.1 — Reconcile the reachable Vox source pin [ ]
+#### R-4A.1 — Reconcile the reachable Vox source pin [x]
 
 Confirm which Facet/Vox commit is reachable from the locked remote and contains
 the `TerminalContentRequest`/`TerminalContentResult` API required by the current
@@ -447,7 +447,7 @@ when the locked source revision or build output is unavailable.
 an isolated cache; a remote miss cannot be mistaken for a successful artifact;
 and repository candidates are selected from lock-directed canonical IDs.
 
-#### R-4A.3 — Prove an isolated portable Rust build and audit [ ]
+#### R-4A.3 — Prove an isolated portable Rust build and audit [x]
 
 Run the SFM CLI against a fresh cache with no injected Gradle property and no
 pre-existing Vox artifact. Plan/build the 1.19.2 Rust profile, materialize the
@@ -461,7 +461,7 @@ under the Codex harness.
 cache, with recorded commands, artifact paths, hashes, source revision, and
 any environment-only limitations separated from product failures.
 
-#### R-4A.4 — Reprove full-profile Gradle Jar-in-Jar parity [ ]
+#### R-4A.4 — Reprove full-profile Gradle Jar-in-Jar parity [x]
 
 With the managed source-built Maven repository produced by R-4A.3, run the
 explicit `rust-toolchain` Gradle packaging path. Inspect the final unclassified
@@ -474,7 +474,7 @@ checking that both builds compile.
 contain byte-identical Vox JARs with matching metadata and bundle policy; the
 default Gradle compile/test path still works without Cargo, Xtask, or Vox.
 
-#### R-4A.5 — Record the release-artifact handoff boundary [ ]
+#### R-4A.5 — Record the release-artifact handoff boundary [x]
 
 Record the portable-build and parity evidence in this plan and update the
 artifact inventory/release gates. If an external clean Forge-style launch
@@ -493,32 +493,56 @@ R-4A.5.`
 
 ### R-4A progress evidence — 2026-08-01
 
-- R-4A.1 remains open. `git ls-remote mine refs/heads/main` reports
-  `aa75598dabb2138b18365cdf0d97ca94a34c5319`, while the required generated
-  content and mouse API changes are in the local-only commits `8c3c23c31` and
-  `973318f72`. No remote branch or tag inspected so far exposes those commits;
-  the lock pin must not be changed to an unreachable workstation revision.
-- R-4A.2 is complete in `resolve.rs`: a locked source-build artifact is
-  materialized before remote repository probing, and repository preference
-  selection uses canonical lock IDs rather than display-label guesses. The
-  source-build regression includes an intentionally unavailable Maven endpoint,
-  and the candidate-order regression covers `maven-central`, `blamejared`, and
-  `jei`.
-- R-4A.3 was attempted with the current Cargo-built CLI, a fresh cache at
-  `build/sfm-r4a-cache-20260801`, `--require-portable-artifacts`, and structured
-  debug logging. The source checkout and Cargo recipe completed successfully
-  for the reachable `aa75598da` commit, but the produced JAR hash was
-  `blake3:3bd59c93fd5d602821c4460dc4e5255635c355f9`, versus the locked
-  `blake3:ff6894bafc65fd9d24cafd60a967bd1c3182a377`. This is the expected
-  stale-source-provenance failure, not a repository-fallback failure.
-- Validation after the resolver change: `cargo fmt --check` passed and
-  `cargo test --offline --lib` passed 368 tests with 1 ignored. The installed
-  `sfm-propagate-changes.exe` is stale schema-v3 tooling; the R-4A evidence was
-  therefore gathered with the repository Cargo entry point, which reads the
-  committed schema-v4 lockfile.
-- R-4A.4 and R-4A.5 remain pending until a reachable source revision produces
-  the locked Vox bytes. No lock pin, Facet remote, Gradle publication, or
-  cross-version work was changed in this slice.
+- R-4A.1 is complete. The Facet commits were pushed to `mine/main` (`https://github.com/teamdman/facet`), and `git ls-remote mine refs/heads/main` now reports the reachable full revision
+  `973318f727128f5ec17c67ab9498cb9e9be2a5e6`. The lockfile pins that revision,
+  the `org.facet:vox-java:0.10.0-rc.5` source-build output, and
+  `blake3:ff6894bafc65fd9d24cafd60a967bd1c3182a377`. The rebuilt 403,625-byte
+  Vox JAR contains the required `TerminalContentRequest`/`TerminalContentResult`
+  and `TerminalGetContent*` generated classes.
+- R-4A.2 is complete in `resolve.rs`: explicit `--artifact-source` takes
+  precedence, then a locked source-build recipe, then locked remote candidates,
+  then local cache fallback. Source-built artifacts therefore cannot fall
+  through to ModMaven or another remote repository. Canonical repository IDs are
+  used for candidate selection, with regressions for source-build isolation,
+  explicit-source precedence, and `maven-central`/`blamejared`/`jei` ordering.
+- The schema-v4 audit reader was corrected to project the selected current
+  profile into the existing audit model while preserving schema-v1/v2 audit
+  compatibility. The checked-in lockfile's volatile Mojang version-manifest
+  identity was refreshed to the bytes actually consumed by this build
+  (`version-manifest-v2-867e9731`, `blake3:867e97315bd3e7100125db20739d0c1ab40ef0a8`).
+- R-4A.3 is complete from the fresh cache
+  `build/sfm-r4a-cache-20260801-new`, with no injected Gradle property and no
+  pre-existing Vox artifact. `jar plan`, `jar build --require-portable-artifacts`,
+  and `jar audit-artifacts --require-portable-artifacts` succeeded. The Rust
+  artifact is
+  `platform/minecraft/build/libs/Super Factory Manager (SFM)-MC1.19.2-4.34.0-rust.jar`
+  (2,929,365 bytes); the audit verified 109/109 artifacts with zero errors,
+  warnings, or non-portable artifacts. The portable cache also records the Vox
+  source-build provenance and exact locked hash.
+- R-4A.4 is complete. Default Gradle validation passed with
+  `gradlew compileJava testClasses -PsfmProfile=gradle`, and explicit full-profile
+  packaging passed with `gradlew jarJar -PsfmProfile=rust-toolchain`. The Gradle
+  artifact is
+  `platform/minecraft/build/libs/Super Factory Manager (SFM)-MC1.19.2-4.34.0.jar`.
+  Its nested Vox JAR and the Rust artifact's nested Vox JAR are both 403,625
+  bytes with SHA-256
+  `2D0A45E8339BE3229FE657C465470DFA10DF34D040B43F6CD2CD5E6360419007`, and
+  their `META-INF/jarjar/metadata.json` entries match exactly for
+  `org.facet:vox-java` at `[0.10.0-rc.5]`. The whole-archive comparator reports
+  one intentional Gradle-only `SFMClientSmokeRunHarness.class`, with no changed
+  or extra entries and identical normalized manifests; deciding whether the
+  Rust executor should include that test harness is deferred beyond R-4A.
+- R-4A.5 is complete at the release-artifact handoff boundary: the reachable
+  source pin, strict acquisition behavior, isolated Rust artifact, full-profile
+  Gradle Jar-in-Jar bytes, default Java-only Gradle path, and audit evidence are
+  recorded here. The next release work may address clean Forge-style launch
+  validation and the deferred smoke-harness difference, but this batch does not
+  propagate across Minecraft versions, publish SFM, change release metadata,
+  or modify Cloud Terrastodon.
+- Final CLI validation: `cargo fmt --all -- --check` passed and the elevated
+  `cargo test --offline --lib` suite passed 370 tests with 1 ignored. The
+  sandbox-only ripgrep subprocess test also passes when run outside the Codex
+  sandbox; its in-sandbox `os_error=5` is an environment limitation.
 
 ### Phase 1 — Freeze the release scope [in progress]
 

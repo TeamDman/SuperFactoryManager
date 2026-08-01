@@ -216,6 +216,25 @@ impl Resolver {
         let mut attempted = Vec::new();
         if let Some(artifact) = {
             let _span = tracing::debug_span!(
+                "resolve_artifact_explicit_source",
+                artifact_source_count = self.artifact_sources.len(),
+                has_expected_hash = expected_hash.is_some(),
+            )
+            .entered();
+            self.explicit_artifact_source_fallback(
+                &id,
+                &coordinate,
+                cache_path.clone(),
+                &required_for,
+                expected_hash.as_ref(),
+            )?
+        } {
+            return Ok(artifact);
+        }
+        self.cancellation_token.bail_if_cancelled()?;
+
+        if let Some(artifact) = {
+            let _span = tracing::debug_span!(
                 "resolve_artifact_source_build",
                 has_materialization_lockfile = self.materialization_lockfile.is_some(),
                 has_expected_hash = expected_hash.is_some(),
@@ -247,25 +266,6 @@ impl Resolver {
                 &required_for,
                 expected_hash.as_ref(),
                 &mut attempted,
-            )?
-        } {
-            return Ok(artifact);
-        }
-        self.cancellation_token.bail_if_cancelled()?;
-
-        if let Some(artifact) = {
-            let _span = tracing::debug_span!(
-                "resolve_artifact_explicit_source",
-                artifact_source_count = self.artifact_sources.len(),
-                has_expected_hash = expected_hash.is_some(),
-            )
-            .entered();
-            self.explicit_artifact_source_fallback(
-                &id,
-                &coordinate,
-                cache_path.clone(),
-                &required_for,
-                expected_hash.as_ref(),
             )?
         } {
             return Ok(artifact);
