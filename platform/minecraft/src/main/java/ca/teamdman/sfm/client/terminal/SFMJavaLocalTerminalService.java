@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.terminal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /** Deterministic, dependency-free terminal backend for players without Vox. */
 public final class SFMJavaLocalTerminalService implements SFMTerminalService {
@@ -33,7 +34,7 @@ public final class SFMJavaLocalTerminalService implements SFMTerminalService {
         public SFMTerminalResponse execute(String command) {
             if (command == null || command.isBlank()) return SFMTerminalResponse.ok(List.of(), workingDirectory);
             List<String> tokens = tokenize(command.trim());
-            String name = tokens.get(0);
+            String name = tokens.get(0).toLowerCase(Locale.ROOT);
             try {
                 return switch (name) {
                     case "pwd" -> SFMTerminalResponse.ok(List.of(workingDirectory), workingDirectory);
@@ -42,6 +43,8 @@ public final class SFMJavaLocalTerminalService implements SFMTerminalService {
                     case "echo" -> SFMTerminalResponse.ok(List.of(String.join(" ", tokens.subList(1, tokens.size()))), workingDirectory);
                     case "write" -> write(tokens);
                     case "cd" -> changeDirectory(tokens);
+                    case "1..100" -> boundedNumberRange(tokens);
+                    case "write-host" -> writeHost(tokens);
                     default -> SFMTerminalResponse.error("command not found: " + name, workingDirectory);
                 };
             } catch (IllegalArgumentException | IllegalStateException exception) {
@@ -81,6 +84,41 @@ public final class SFMJavaLocalTerminalService implements SFMTerminalService {
             }
             workingDirectory = SFMVirtualFileSystem.normalizeDirectory(target);
             return SFMTerminalResponse.ok(List.of(), workingDirectory);
+        }
+
+        private SFMTerminalResponse boundedNumberRange(List<String> tokens) {
+            if (tokens.size() != 1) return SFMTerminalResponse.error("usage: 1..100", workingDirectory);
+            List<String> lines = new ArrayList<>(100);
+            for (int value = 1; value <= 100; value++) lines.add(Integer.toString(value));
+            return SFMTerminalResponse.ok(lines, workingDirectory);
+        }
+
+        private SFMTerminalResponse writeHost(List<String> tokens) {
+            if (tokens.size() < 2) return SFMTerminalResponse.styledOk(
+                    List.of(new SFMTerminalLine("", SFMTerminalLine.DEFAULT_COLOR)), workingDirectory);
+            int index = 1;
+            int color = SFMTerminalLine.DEFAULT_COLOR;
+            if (index + 1 < tokens.size() && tokens.get(index).equalsIgnoreCase("-foregroundcolor")) {
+                color = parseForegroundColor(tokens.get(index + 1));
+                index += 2;
+            }
+            if (index < tokens.size() && tokens.get(index).equalsIgnoreCase("-nonewline")) index++;
+            String message = String.join(" ", tokens.subList(index, tokens.size()));
+            return SFMTerminalResponse.styledOk(List.of(new SFMTerminalLine(message, color)), workingDirectory);
+        }
+
+        private int parseForegroundColor(String value) {
+            return switch (value.toLowerCase(Locale.ROOT)) {
+                case "cyan" -> SFMTerminalLine.CYAN;
+                case "white" -> SFMTerminalLine.DEFAULT_COLOR;
+                case "gray", "grey" -> 0xFFAAAAAA;
+                case "red" -> 0xFFFF5555;
+                case "green" -> 0xFF55FF55;
+                case "yellow" -> 0xFFFFFF55;
+                case "blue" -> 0xFF5555FF;
+                case "magenta" -> 0xFFFF55FF;
+                default -> throw new IllegalArgumentException("unsupported foreground color: " + value);
+            };
         }
 
         private String resolve(String path) {
