@@ -165,6 +165,36 @@ Do not begin implementation in a later phase while an earlier decision gate is u
 - This proves the Gradle compatibility path through the managed local repository. A clean checkout still needs either the locked source-build materialization or a published Maven coordinate; the local cache is not a substitute for external distribution.
 - The lock currently records Facet commit `aa75598da`, while the byte-accurate Vox artifact came from the two local `main` commits `8c3c23c31` and `973318f72`. Those commits must become reachable from the locked remote (or the artifact must be published) before a `--require-portable-artifacts` release build can pass. Do not claim this gate complete from the explicit-source build.
 
+### Source-build/API hypothesis experiment — complete (2026-08-01)
+
+Before changing the Vox pin, the existing source/build behavior was tested from
+isolated caches with no Gradle property injection. The experiment answered
+whether the current lock naturally materializes the pinned Facet revision and
+whether the resulting older Vox API is actually incompatible with the current
+SFM Java sources.
+
+```pwsh
+$env:SFM_PROPAGATE_CHANGES_CACHE = 'C:\tmp\sfm-vox-lock-hypothesis-20260801'
+sfm-propagate-changes.exe jar build --branch 1.19.2 `
+  --require-portable-artifacts --wait-for-build-lock
+```
+
+- A fresh `jar build --require-portable-artifacts` first failed during remote
+  artifact resolution: `modmaven.dev` returned bytes with hash
+  `d4736e46...` instead of the locked `ff6894ba...`. It stopped before source
+  materialization, so this result did not test the API hypothesis.
+- A controlled Gradle `jarJar` run against the known older `aa75598da` Vox JAR
+  failed at `:compileJava` with four missing-symbol errors for
+  `TerminalContentRequest` and `TerminalContentResult` in
+  `SFMVoxTerminalService.java`.
+- The hypothesis is confirmed: the current SFM sources require the newer Vox
+  API. Update the source-build pin and expected hash before rerunning the
+  portable build.
+- The clean-cache probe also exposed a separate resolver concern: a
+  hash-mismatching remote response aborts before the existing source-build
+  fallback is attempted. Keep that as an explicit CLI hardening item; do not
+  confuse it with the now-confirmed Vox pin mismatch.
+
 ### Phase 1 — Freeze the release scope [in progress]
 
 **Work:** Decide the release version, supported Minecraft versions, player-facing feature list, CC policy, Vox/terminal policy, and whether the 4.35.0 PRE changelog is the candidate scope. The current direction is to graduate the terminal and command-palette work rather than hide it behind `--slim`.
@@ -185,7 +215,7 @@ Do not begin implementation in a later phase while an earlier decision gate is u
 
 **Work:** Add Vox’s explicit bundle policy to the lockfile, preserve compile/runtime projection, and make Gradle select the nested artifact for Forge 1.19.2. Preserve legacy direct dependency compatibility while ensuring the lock projection is authoritative.
 
-**Validation:** Rust packaging, lock projection, and legacy Gradle packaging through the self-discovered managed Maven cache are proven as recorded above. Complete the gate by making the locked Vox source/artifact reproducible from a clean checkout, inspecting both outputs, and running a clean Forge-style launch without an external Vox Java dependency.
+**Validation:** Rust packaging, lock projection, and legacy Gradle packaging through the self-discovered managed Maven cache are proven as recorded above. First complete the source-build/API hypothesis experiment. Then make the locked Vox source/artifact reproducible from a clean checkout, inspect both outputs, and run a clean Forge-style launch without an external Vox Java dependency.
 
 **Completion criteria:** The full Gradle artifact is deterministic, unclassified, and contains the required nested Vox runtime with valid Forge metadata; the source/artifact provenance is reproducible from a clean checkout.
 
@@ -229,7 +259,8 @@ The user-testing fixes above are prerequisites for calling the Rust terminal or 
 - **CC source loading:** CC is optional at runtime but directly referenced by SFM initialization code. Use an adapter/source boundary and clean no-CC launch proof before excluding it.
 - **Jar size misconception:** Vox is a small pure-Java runtime; it must be measured, but its size is not a reason to omit required runtime classes.
 - **Vox source reachability:** Facet `main` is ahead of the locked `aa75598da` revision and the current Vox coordinate is not published in configured Maven repositories. Publish/reach the exact revision, update the lock, and rerun the portable build before release.
-- **Gradle resolution:** The lock projection correctly requests `jarJar`, and legacy Gradle now consumes the source-built artifact through the self-discovered SFM-managed Maven repository. Clean external builds still require a reachable Maven publication or source-build materialization.
+- **Gradle resolution:** The lock projection correctly requests `jarJar`, and legacy Gradle now consumes the source-built artifact through the self-discovered SFM-managed Maven repository. Clean external builds still require source-build materialization.
+- **Source-build fallback ordering:** The isolated clean-cache probe encountered a hash-mismatching remote response for the unpublished Vox coordinate and aborted before source-build fallback. Decide whether the resolver should prefer a declared source-build recipe or continue past a remote mismatch only after preserving the mismatch diagnostic and verifying the source-built bytes against the lock.
 - **Companion-server distribution:** Bundling Vox does not bundle `teamy-terminal.exe`; document and test the external server path and graceful fallback.
 - **Local branch divergence:** 1.19.2 is 211 commits ahead of origin. Create a reviewed checkpoint ref before publishing; do not push as part of this plan without approval.
 - **Open change intake:** PR #582 needs correctness and benchmark review; PR #486 is non-mergeable and should not enter the release by default.
