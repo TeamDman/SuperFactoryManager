@@ -20,6 +20,10 @@ In scope:
 - Make Rust artifact planning and legacy Gradle dependency/source-set behavior agree.
 - Bundle the Java Vox runtime with loader-native Jar-in-Jar and prove the final artifact contains it.
 - Define the external `teamy-terminal` companion-server distribution and graceful absence behavior.
+- Reproduce the current multi-second Rust-terminal presentation delay and use
+  the linked renderer/transport matrix to decide whether the release path is
+  Rust CPU pixels, Rust GPU/slug pixels, Java semantic-cell rendering, or a
+  recorded deferral.
 - Keep the full Rust-toolchain feature set as the release target while preserving a Java-only Gradle contributor profile by default.
 - Add declarative lockfile feature membership and entry-point defaults; do not encode Rust/Vox or project-specific dependency names in Gradle scripts.
 - Produce release artifacts, clean-install evidence, release notes, and a PR/issue disposition matrix.
@@ -32,7 +36,10 @@ Out of scope for this checkpoint:
 - Treating the incomplete Rust/Vox terminal bridge as release-ready without its remaining acceptance and packaging proof.
 - Requiring Cargo/Xtask during ordinary Gradle configuration or IntelliJ synchronization.
 - Treating `--slim` as the feature model. If a compatibility alias is ever added, it must select a declarative profile rather than hard-code exclusions.
-- A GPU/Vulkan renderer rewrite or adopting the Teamy Studio slug renderer.
+- Predetermining a GPU/Vulkan rewrite as the release answer. Teamy Terminal
+  Phase 3.6 and Vox bridge V-4 may implement and compare the Teamy Studio slug
+  path, but this release plan consumes their evidence rather than assuming the
+  GPU candidate wins.
 - Automatically merging or pushing open PRs.
 
 ## Established foundation
@@ -41,8 +48,8 @@ Out of scope for this checkpoint:
 - The canonical branch contains the local terminal, palette, CLI-diagnostic, dependency-lock, and plan checkpoint commits and remains intentionally unpublished. This is a checkpoint/publishing concern, not permission to push.
 - `platform/minecraft/gradle.properties` still reports `mod_version=4.34.0`, while `platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml` starts with `4.35.0 PRE`. The version and scope are therefore not release-locked.
 - `docs/tasks/puppet propagation and preview matrix plan.md` already contains the broad release sequence: release scope, metadata, version resources, automated tests, artifact collection, isolated installs, and player-like packaged verification. This plan supplies the missing feature-profile and release-triage contract.
-- `docs/tasks/vox terminal bridge and graceful degradation plan.md` remains active. Batch 1 and Batch 2 now have focused tests and live puppet proof; remaining release work is packaging, companion-server distribution, and final clean-install/runtime acceptance.
-- `docs/tasks/teamy terminal repository and Vulkan renderer plan.md` remains active for the Teamy Terminal side. The current PNG bridge is the release candidate path; GPU/Vulkan and slug-renderer work remain later optimization tracks.
+- `docs/tasks/vox terminal bridge and graceful degradation plan.md` remains active. Batch 1 and Batch 2 now have focused tests and live puppet proof; remaining release work includes native-size presentation, a computational witness for the current multi-second lag, the Rust CPU/Rust GPU/Java renderer matrix, packaging, companion-server distribution, and final clean-install/runtime acceptance.
+- `docs/tasks/teamy terminal repository and Vulkan renderer plan.md` remains active for the Teamy Terminal side. The current CPU full-PNG bridge is the correctness baseline, not yet the release-performance winner. Phase 3.6 owns the Rust CPU/GPU renderers and comparative harness; Vox bridge V-4 owns Java renderers and end-to-end Minecraft evidence.
 - `docs/tasks/cc tweaked integration plan.md` is marked Complete. Parking CC for a release is therefore a new product-scope decision; it must not silently rewrite the historical completion record.
 - `docs/tasks/dependency source management v3 plan.md` is active and is the source of truth for lockfile projection. The 1.19.2 lock classifies `cc-tweaked` as a loader-managed optional mod and now classifies `vox-java` as compile/runtime/bundle with an explicit bounded policy.
 - `docs/architecture/vox-java-jar-in-jar-packaging-research.md` records the existing Jar-in-Jar precedent. Forge 1.19.2 and the Rust builder both have the packaging path; the remaining release gates are source provenance/reachability, Gradle resolution of the source-built artifact, and clean-install runtime proof.
@@ -108,8 +115,38 @@ not only the names of the proposed features.
 - At GUI scale 7, Java currently appears to stretch a smaller Rust PNG. The
   eventual bridge contract must preserve the requested `columns × rows`, let
   Rust increase font/cell pixel dimensions, and present the resulting frame
-  without Java bitmap upscaling. CPU `fontdue` is the correctness baseline;
-  Teamy Studio slug/GPU adoption remains later work.
+  without Java bitmap upscaling. CPU `fontdue` is the correctness baseline.
+- The current Rust-backed terminal also has a user-perceived multi-second lag.
+  This is a release-risk observation until correlated input/output-to-present
+  timing reproduces it. CPU `fontdue`, PNG encoding/transfer, Java decode,
+  texture churn/upload, and Minecraft render scheduling remain hypotheses.
+  The linked terminal plans compare Rust CPU/fontdue, Rust GPU/slug, Java
+  vanilla-font cells, and Java Caskaydia cells visually and temporally.
+
+## Terminal performance release gate [ ]
+
+This plan does not duplicate the implementation details in Teamy Terminal
+Phase 3.6 or Vox bridge V-4. It coordinates their release consequence:
+
+- **R-PERF.1:** The current default has a machine-readable, correlated witness
+  for the same multi-second delay perceived by the user. If unattended puppets
+  cannot reproduce it, typed capture actions produce the same manifest from a
+  manual session.
+- **R-PERF.2:** Matched evidence exists for Rust CPU/fontdue, Rust GPU/slug,
+  Java vanilla-font semantic cells, and Java Caskaydia semantic cells, with
+  renderer and transport varied independently. The report includes semantic
+  correctness, native-size images/diffs, p50/p95/p99/max end-to-end latency,
+  Rust/Java/GPU stages, bytes, allocations, texture uploads, and frame outcomes.
+- **R-PERF.3:** The release scope records the selected default/fallback or an
+  explicit terminal-feature deferral. A short GPU span, reduced transport
+  bytes, or a visually appealing screenshot alone is not acceptance; the
+  original workload must have no unexplained multi-second presentation delay.
+
+The renderer candidates and reporting tool can be developed concurrently in
+the separate worktrees/tasks listed by the linked plans after their shared
+correlation and semantic-cell contracts are reviewed. The final matrix,
+release choice, packaging statement, and propagation remain sequential
+integration gates.
 
 ## Action vocabulary decision — 2026-08-02
 
@@ -1030,11 +1067,24 @@ R-4A.5.`
 
 ### Phase 5 — Graduate feature acceptance and companion distribution [ ]
 
-**Work:** Close the remaining terminal and command-palette release gates, document how `teamy-terminal.exe` is installed or launched, retain the independently openable Java-local REPL, and keep CC as an external optional integration. Verify that the Gradle Java-only profile is a contributor path while the Rust CLI full profile remains the release path; do not use profile selection to conceal missing functionality.
+**Work:** Close the remaining terminal and command-palette release gates,
+including R-PERF.1 through R-PERF.3; document how `teamy-terminal.exe` is
+installed or launched, retain the independently openable Java-local REPL, and
+keep CC as an external optional integration. Verify that the Gradle Java-only
+profile is a contributor path while the Rust CLI full profile remains the
+release path; do not use profile selection to conceal missing functionality.
 
-**Validation:** Exercise the default Java-local path, clean launch without the Rust service, launch with the Rust service when enabled, the relevant optional-mod combinations, and the packaged artifact with nested Vox.
+**Validation:** Exercise the default Java-local path, clean launch without the
+Rust service, launch with the Rust service when enabled, the relevant
+optional-mod combinations, and the packaged artifact with nested Vox. Attach
+the correlated lag witness and matched renderer/transport visual-temporal
+report to the release decision.
 
-**Completion criteria:** Each advertised feature has deterministic behavior, tests, a release-note/support statement, and no hidden development-only dependency. The terminal bridge is either fully released with its companion-server story or explicitly deferred by a recorded decision.
+**Completion criteria:** Each advertised feature has deterministic behavior,
+tests, a release-note/support statement, and no hidden development-only
+dependency. The terminal bridge is either fully released with its
+companion-server story and no unexplained multi-second delay in the matched
+acceptance workload, or explicitly deferred by a recorded decision.
 
 The user-testing fixes above are prerequisites for calling the Rust terminal or command palette release-ready; the current direction is to finish the remaining gates and promote them, not to exclude them from the artifact.
 

@@ -22,8 +22,9 @@ mod depend on Teamy Studio or on a Rust process at runtime.
 
 ## User-testing follow-up — 2026-08-02
 
-The next SFM bridge slice is a presentation-state correction, not a renderer
-optimization. The terminal panel must expose two explicit states:
+The earlier immediate SFM bridge slice was a presentation-state correction,
+not a renderer optimization. The release-checkpoint evidence later in this
+document records its completion. The terminal panel exposes two explicit states:
 
 - disconnected: show status plus Start/Retry, with no stale Java-local REPL
   help text in the Rust panel; and
@@ -42,16 +43,185 @@ CPU `fontdue` path is sufficient for this correctness proof. Teamy Terminal
 owns the later slug/GPU renderer and dirty-upload optimization; those are not
 part of the immediate panel/action goal.
 
+The next correctness gate is native-size/cell-metric negotiation. The next
+performance gate is to reproduce the user's current multi-second lag with
+correlated measurements before choosing among Rust CPU, Rust GPU/slug, or Java
+cell rendering.
+
 ### Batch 3 planning items
 
-- **V-3.1:** implement and test disconnected/connected terminal presentation,
+- **[x] V-3.1:** implement and test disconnected/connected terminal presentation,
   including Start/Retry and stale-frame rejection;
-- **V-3.2:** expose terminal and size-display scenes through the panel registry;
-- **V-3.3:** document and test the logical-size/cell-metric frame contract at
+- **[x] V-3.2:** expose terminal and size-display scenes through the panel registry;
+- **[ ] V-3.3:** document and test the logical-size/cell-metric frame contract at
   normal scale and GUI scale 7, asserting stable columns/rows, larger Rust
   font/cell pixels, native frame dimensions, and no Java bitmap upscaling; and
-- **V-3.4:** keep scrollback, persistent swapchain targets, dirty uploads, and
-  slug/GPU rasterization as subsequent renderer slices.
+- **[ ] V-3.4:** execute the evidence-driven renderer/transport comparison
+  detailed below. Rust scrollback remains a separate functionality slice.
+
+## Terminal performance and rendering comparison program — 2026-08-02
+
+The current user-visible symptom is a perceived multi-second delay in the
+Rust-backed Minecraft terminal. CPU `fontdue` rasterization is the leading
+hypothesis, but the current standalone Rust Tracy captures cannot prove the
+cause of a bridged delay. The active path also performs Rust frame generation,
+GPU or CPU readback where applicable, PNG encoding, Vox polling/transport,
+Java PNG decoding, `NativeImage` allocation, Minecraft dynamic-texture
+registration/upload, render-thread scheduling, scaling, and panel
+presentation. Every stage is a candidate until the correlated SFM witness says
+otherwise.
+
+The comparison must vary renderer and transport independently:
+
+| Renderer | Required font variants | Required transport comparisons |
+| --- | --- | --- |
+| Rust CPU `fontdue` | Caskaydia Cove Nerd Font Mono | full PNG baseline, full raw pixels, dirty pixels/tiles where supported |
+| Rust Vulkan slug | the same named/versioned Caskaydia face | GPU readback plus the same portable pixel transports; no assumed native-handle sharing |
+| Java/Minecraft text | vanilla Minecraft font and Caskaydia Cove Nerd Font Mono | bounded semantic terminal cells/damage, never lossy plain transcript text |
+
+The Java Caskaydia comparator must use the same face version and verify its
+font bytes/hash and license provenance. If Minecraft 1.19.2 and later versions
+require different font-provider setup, isolate that through the normal
+version-dependent adapter boundary. Java's vanilla-font result remains a
+first-class comparison even though its glyph geometry and appearance will not
+be pixel-identical to Caskaydia.
+
+### [ ] V-4.1 Reproduce and correlate the current lag
+
+Add a correlation id and terminal/frame sequence that can be followed from a
+Java input or expected-output marker through Rust input receipt, PTY/VT update,
+snapshot/damage, rasterization, encode/send, Java receive/decode/upload, panel
+render, and the first presented frame containing that sequence. Record local
+monotonic stage durations and Java-observed end-to-end latency; do not subtract
+unsynchronized process clocks. Include queue depth, poll wait, dropped,
+coalesced, stale, and superseded frames.
+
+The reproducer must cover cold/warm caches, idle and prompt typing,
+`1..100`, `1..10000 | Out-Host`, cyan ANSI output, scroll flood,
+alternate-screen restoration, resize, full-screen/split/narrow panels, normal
+GUI scale, and GUI scale 7. Run repeated samples. If an unattended puppet does
+not reproduce the multi-second delay, add typed capture start/mark/stop actions
+and use the exact manual interaction to produce the same manifest. This item
+is not complete until the perceived delay can be pointed to in milliseconds
+and associated with one or more measured stages.
+
+### [ ] V-4.2 Introduce explicit presentation backends and capabilities
+
+Keep the existing Rust-authoritative terminal session independent from the
+presentation backend. Add an explicit Java panel presentation interface whose
+implementations can consume full pixels, dirty pixels/tiles, or semantic
+cells. Backend and transport names must appear in configuration, capability
+negotiation, screenshots, content artifacts, traces, and result manifests;
+unsupported combinations fail clearly instead of silently falling back and
+spoiling a comparison.
+
+Semantic transport is not a string transcript. It must preserve bounded cell
+content, foreground/background, bold, underline, inverse, width/continuation,
+cursor shape/location, selection, full-refresh/damage regions, logical grid,
+cell metrics, session, and sequence. Rust remains authoritative for PTY, VT,
+scrollback, terminal modes, and damage semantics. Java owns only the chosen
+Minecraft presentation and input/layout integration.
+
+### [ ] V-4.3 Implement the two Java text/font comparators
+
+Implement one semantic-cell renderer using Minecraft's vanilla font and one
+using Caskaydia Cove Nerd Font Mono. Both consume the same terminal-cell
+snapshot and must support colors/styles, cursor/selection, wide and combining
+cells, fallback/missing glyphs, clipping, native panel dimensions, GUI-scale
+changes, and damage/full-refresh behavior. Preserve the Caskaydia font license
+and record the exact bytes/version used by Rust and Java.
+
+Do not optimize by dropping terminal information or by turning styled cells
+back into lines of plain text. The Java renderers are performance and visual
+comparators and may become a production choice only after the matrix; they do
+not change Rust's authority over terminal state.
+
+### [ ] V-4.4 Instrument Minecraft decode, upload, and presentation
+
+Add bounded Java-side timing and counters for snapshot polling and wait,
+payload bytes, PNG or raw decode, `NativeImage` and other allocations, texture
+creation versus reuse, texture registration/update/upload, dirty upload area,
+render-thread queue delay, panel draw CPU time, Minecraft frame interval,
+garbage collection where observable, dropped/stale/coalesced frames, and the
+last terminal sequence actually presented. Distinguish CPU submission from GPU
+completion where an OpenGL timing/query seam is practical; otherwise label the
+measurement honestly.
+
+The current `SFMTerminalPngRenderer` decodes a new PNG and registers a dynamic
+texture when a sequence changes, so decode/allocation/registration/upload and
+bitmap scaling are explicit hypotheses alongside `fontdue`. Measure them
+before introducing texture reuse, raw/dirty uploads, or scheduling changes,
+then retain matched evidence for each accepted change.
+
+### [ ] V-4.5 Generate matched visual and temporal artifacts
+
+For one deterministic terminal snapshot/workload set, retain machine-readable
+content/cell witnesses, each native-resolution screenshot, difference or heat
+maps, and an HTML/JSON report containing renderer, transport, font identity,
+font/cell metrics, grid, panel/window dimensions, GUI scale, cache state,
+environment, source revisions, timing distributions, bytes, allocations,
+uploads, and frame outcomes. The report must compare:
+
+1. Rust CPU/fontdue with Caskaydia;
+2. Rust GPU/slug with Caskaydia;
+3. Java semantic cells with the vanilla Minecraft font; and
+4. Java semantic cells with Caskaydia.
+
+Exact pixels are required only for deterministic repeat runs or genuinely
+equivalent paths. Cross-font/rasterizer checks use semantic cell assertions,
+geometry/color/glyph-occupancy checks, perceptual/image-distance metrics, and
+side-by-side review so antialiasing differences are tolerated without hiding
+missing glyphs, wrong colors, stale cursors, or stretched frames.
+
+Temporal results must include p50/p95/p99/max input-to-present and
+output-complete-to-present latency, Rust and Java CPU stages, GPU/readback time
+when available, rasterized cells/pixels, encode and transfer bytes, upload
+bytes/regions, frames rendered/presented/dropped/coalesced/stale, and resize or
+reflow time. Separate cold startup from warm steady state.
+
+### [ ] V-4.6 Select the default from end-to-end evidence
+
+Re-run the original multi-second witness against every valid renderer and
+transport combination. A faster Rust slug span is not sufficient if GPU
+readback, encoding, transfer, or Java upload erases the gain. A low-bandwidth
+Java semantic path is not sufficient if Minecraft font rendering blocks the
+render thread or fails visual/terminal correctness. Select the default and
+fallback policy from complete latency distributions, visual evidence,
+resource use, correctness, packaging, and graceful degradation. Retain the
+Rust CPU path as a correctness reference and at least one Java semantic
+comparator for diagnosis even when neither is the shipping default.
+
+No implementation is considered successful while the matched workload still
+contains unexplained multi-second presentation delays. Record rejected and
+deferred combinations, exact reasons, commands, manifests, and source
+revisions so the decision can be repeated rather than remembered.
+
+### Parallel work allocation
+
+After V-4.1 establishes the correlation vocabulary and the first V-4.2
+contract revision is reviewed, the following tracks may run concurrently as
+separate subagents or user-visible Codex tasks backed by isolated
+branches/worktrees. One integration owner
+controls contract and generated-code changes; agents must not concurrently
+edit canonical plans or generated Vox outputs.
+
+| Track | Repository/ownership | Parallel output |
+| --- | --- | --- |
+| S0 — lag witness and Java telemetry | canonical-oldest SFM terminal/panel and puppet surfaces | V-4.1/V-4.4 current-path manifest |
+| S1 — Rust CPU and pixel transports | Teamy Terminal CPU/font/frame paths | full/dirty PNG/raw reference artifacts |
+| S2 — Rust GPU/slug | isolated Teamy Studio audit plus Teamy Terminal Vulkan backend | true GPU glyph artifacts and stage timings |
+| S3 — Java vanilla font | isolated 1.19.2 SFM worktree | semantic-cell vanilla renderer and captures |
+| S4 — Java Caskaydia font | isolated 1.19.2 SFM worktree/resources | same-font Java renderer, licensing, captures |
+| S5 — semantic Vox capability | isolated Facet/Vox contract worktree | bounded cells/damage schema, generated round trips, immutable revision |
+| S6 — comparison reports | renderer-independent artifact tooling | HTML/JSON visual and temporal matrix |
+
+S1–S6 may proceed in parallel after the shared schema draft. S3/S4 follow the
+oldest-branch-first rule and are integrated on canonical 1.19.2 before any
+`sfm-propagate-changes.exe git merge`. S5 must not change Cloud Terrastodon.
+The V-4.5 matrix and V-4.6 default decision are integration gates after all
+candidate artifacts are available. The corresponding Rust implementation
+details and source-of-truth statuses live in Teamy Terminal Phase 3.6; this SFM
+plan owns Minecraft presentation, end-to-end bridge evidence, and propagation.
 
 The Rust terminal implementation is now planned as a separate public
 MPL-2.0 `TeamDman/teamy-terminal` repository rather than as a dependency on the
@@ -74,11 +244,13 @@ contracts where useful, but they are distinct user-facing surfaces:
    and mutation policy before touching disk.
 3. **Vox/Rust terminal scene** — an optional development-environment surface.
    Java is a thin Vox client and Rust is authoritative for the PTY, command execution, VT
-   parsing, scrollback, colors, cursor state, and terminal rasterization. The
+   parsing, scrollback, colors, cursor state, and terminal visual semantics. The
    first presentation mode is a bounded full PNG snapshot; Java uploads and
    displays that image in the panel and sends input/resize messages back. It
-   may later provide richer VT behavior, semantic prompt/symbol information,
-   compilation, audit, and other repository tooling.
+   may negotiate a Rust pixel renderer or a Java semantic-cell renderer without
+   moving terminal-state authority into Java. It may later provide richer VT
+   behavior, semantic prompt/symbol information, compilation, audit, and other
+   repository tooling.
 
 ### Explicit user-facing modes and lifecycle actions
 
@@ -124,16 +296,17 @@ Java owns all Minecraft-facing concerns:
 - the local service implementation and virtual/local filesystem policy when
   the Java-local backend is selected;
 - Vox connection/input/resize plumbing, validation of every inbound frame,
-  bounded buffering, PNG texture upload, thread handoff through the Minecraft
-  executor, and terminal lifecycle shown to the player; and
+  bounded buffering, negotiated pixel or semantic-cell presentation, PNG/raw
+  texture upload, Minecraft-font rendering, thread handoff through the
+  Minecraft executor, and terminal lifecycle shown to the player; and
 - graceful fallback when the optional endpoint is absent or unhealthy.
 
 Rust owns optional development-environment concerns:
 
 - a real process-backed shell or Teamy Studio terminal engine;
 - VT parsing, terminal screen state, cursor/style state, scrollback, replay,
-  semantic prompt/symbol/handle metadata, and the visual contents of every
-  Rust-backed frame;
+  semantic prompt/symbol/handle metadata, terminal-cell/damage semantics, and
+  the visual contents of Rust-rendered pixel frames;
 - repository/compiler/audit commands that are inappropriate for the Java-only
   gameplay runtime; and
 - richer external interfaces such as eframe, when the user explicitly asks
@@ -142,8 +315,10 @@ Rust owns optional development-environment concerns:
 The wire contract carries portable data and intent only. Rust never sends a
 Minecraft `Screen`, panel, widget tree, renderer callback, arbitrary layout
 instruction, or Java object reference. In Java-local mode the panel renders
-the local transcript; in Vox mode it displays the Rust-owned full-frame PNG
-and does not independently reinterpret terminal output or colors.
+the local transcript. In Vox pixel modes it displays Rust-owned frame pixels;
+in Vox semantic-cell modes it renders the Rust-owned cells and damage using
+the explicitly selected Java font backend. Java does not reparse PTY bytes or
+invent terminal colors, styles, cursor state, width, or damage semantics.
 
 ## Contract shape
 
@@ -489,7 +664,7 @@ using the wrong `ItemRenderer` signatures in
 `SFMItemIconRenderer` and `SFMFalsifiedInventoryReplayPanel`, which were not
 changed by this terminal work.
 
-The next implementation slice is launch ergonomics and lifecycle recovery
+At that 2026-07-26 checkpoint, the next implementation slice was launch ergonomics and lifecycle recovery
 around the already-proven bounded full-PNG endpoint. It must preserve the
 explicit Java-local `repl` path, must not modify Cloud Terrastodon, and must
 make starting the server after Minecraft a supported flow.
@@ -784,7 +959,8 @@ The old terminal-opening and lifecycle ids are not compatibility aliases. Use
 `sfm:terminal/server/start` or `sfm:terminal/server/connect` only to manage
 the Rust endpoint. Rust scrollback, crisp font-size negotiation without Java
 bitmap upscaling, clean-install companion-server packaging, and the later
-Vulkan/slug renderer remain open plan items.
+Rust CPU/GPU/Java renderer comparison remain open plan items. The detailed
+performance and visual evidence gates are V-4.1 through V-4.6 above.
 
 Final focused verification for this slice is green: Teamy Terminal's six
 `vox_server` tests pass; SFM's `SFMTerminalFocusSequenceTests` pass 3/3; and
