@@ -22,32 +22,27 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.util.stream.Collectors;
 
 public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, SFMDocumentActionTarget {
     @SFMLocalizationDatagen
-    public static final LocalizationEntry DRAW_CANVAS_READ_ONLY_DOCUMENT = new LocalizationEntry(
-            "gui.sfm.draw_canvas.read_only",
+    public static final LocalizationEntry TEXT_EDITOR_V3_READ_ONLY_DOCUMENT = new LocalizationEntry(
+            "gui.sfm.text_editor_v3.read_only",
             "Read-only document"
     );
     @SFMLocalizationDatagen
-    public static final LocalizationEntry DRAW_CANVAS_SFML_BUTTON_TOOLTIP_PREFIX = new LocalizationEntry(
-            "gui.sfm.draw_canvas.sfml_button.tooltip.prefix",
-            "Drag onto the canvas to insert "
-    );
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry DRAW_CANVAS_DONE_BUTTON_TOOLTIP_PREFIX = new LocalizationEntry(
-            "gui.sfm.draw_canvas.done_button.tooltip.prefix",
+    public static final LocalizationEntry TEXT_EDITOR_V3_DONE_BUTTON_TOOLTIP_PREFIX = new LocalizationEntry(
+            "gui.sfm.text_editor_v3.done_button.tooltip.prefix",
             "Press "
     );
     @SFMLocalizationDatagen
-    public static final LocalizationEntry DRAW_CANVAS_DONE_BUTTON_TOOLTIP_SUFFIX = new LocalizationEntry(
-            "gui.sfm.draw_canvas.done_button.tooltip.suffix",
+    public static final LocalizationEntry TEXT_EDITOR_V3_DONE_BUTTON_TOOLTIP_SUFFIX = new LocalizationEntry(
+            "gui.sfm.text_editor_v3.done_button.tooltip.suffix",
             " to save"
     );
 
@@ -93,7 +88,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private final List<Button> diagnosticButtons = new ArrayList<>();
     private final List<EmbeddedDocument> embeddedDocuments = new ArrayList<>();
     private Button canvasFocusTarget;
-    private Button sfmlButton;
     private double cameraX;
     private double cameraY;
     private double zoom = 1.0D;
@@ -137,7 +131,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     public SFMDrawCanvasScreen(Screen previousScreen, boolean pushed) {
-        super(Component.literal("SFM Draw Canvas"));
+        super(Component.literal("Text Editor v3"));
         this.previousScreen = previousScreen;
         this.openContext = null;
         this.pushed = pushed;
@@ -155,7 +149,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             Screen previousScreen,
             boolean pushed
     ) {
-        super(Component.literal("SFM Draw Canvas"));
+        super(Component.literal("Text Editor v3"));
         this.previousScreen = previousScreen;
         this.openContext = openContext;
         this.pushed = pushed;
@@ -201,10 +195,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         this.setInitialFocus(canvasFocusTarget);
         this.setFocused(canvasFocusTarget);
         canvasFocusTarget.setFocused(true);
-        grammarFocusTarget = new CanvasFocusTarget(grammarPanelLeft(), grammarPanelTop(), grammarPanelWidth(), grammarPanelHeight(), false);
-        grammarFocusTarget.visible = grammarPanelVisible;
-        grammarFocusTarget.active = grammarPanelVisible;
-        this.addRenderableWidget(grammarFocusTarget);
         diagnosticButtons.clear();
         addDiagnosticButton(8, 8, () -> showCrosshairCoordinates, value -> showCrosshairCoordinates = value, "Coords");
         addDiagnosticButton(8, 32, () -> showGlyphBoundingBoxes, value -> showGlyphBoundingBoxes = value, "Glyph Bounds");
@@ -223,14 +213,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                     )))
                     .build());
         }
-        sfmlButton = new SFMButtonBuilder()
-                .setPosition(this.width - 140, this.height - 24)
-                .setSize(48, 20)
-                .setText(Component.literal("SFML"))
-                .setOnPress(button -> { })
-                .setTooltip(this, font, sfmlButtonTooltip())
-                .build();
-        this.addRenderableWidget(sfmlButton);
         this.addRenderableWidget(new SFMButtonBuilder()
                 .setPosition(this.width - 88, this.height - 24)
                 .setSize(80, 20)
@@ -255,7 +237,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (showCursorTrail) {
             renderCursorTrail(poseStack);
         }
-        renderEmbeddedDocuments(poseStack);
         renderGlyphs(poseStack);
         if (!hideSelection) {
             renderGlyphSelectionHighlights(poseStack);
@@ -270,16 +251,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (diagnosticControlsVisible) {
             renderInputDiagnostics(poseStack);
         }
-        if (grammarPanelVisible) {
-            renderGrammarPanel(poseStack);
-        }
         super.render(poseStack, mouseX, mouseY, partialTick);
-        if (draggingGrammarInsert) {
-            renderGrammarInsertDrag(poseStack, mouseX, mouseY);
-        }
-        if (grammarPanelVisible && isGrammarPanelFocused()) {
-            renderReadOnlyMessage(poseStack);
-        }
     }
 
     @Override
@@ -296,28 +268,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             double mouseY,
             int button
     ) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && sfmlButton != null && sfmlButton.isMouseOver(mouseX, mouseY)) {
-            beginGrammarInsertDrag(mouseX, mouseY);
-            return true;
-        }
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && beginEmbeddedDocumentResize(mouseX, mouseY)) {
-            focusMainCanvas();
-            return true;
-        }
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && super.mouseClicked(mouseX, mouseY, button)) {
             return true;
-        }
-        if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
-            if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-                beginGrammarPan(mouseX, mouseY);
-                focusGrammarPanel();
-                return true;
-            }
-            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-                grammarModel.setActiveCursors(grammarScreenToCanvasX(mouseX), grammarScreenToCanvasY(mouseY));
-                focusGrammarPanel();
-                return true;
-            }
         }
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
             beginPan(mouseX, mouseY);
@@ -354,25 +306,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             rememberCursorPosition();
             return true;
         }
-        if (resizingEmbeddedDocument != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            resizeEmbeddedDocument(mouseX, mouseY);
-            return true;
-        }
-        if (grammarPanning && button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
-            grammarCameraX = grammarPanAnchorCameraX - (mouseX - grammarPanAnchorMouseX) / grammarZoom;
-            grammarCameraY = grammarPanAnchorCameraY - (mouseY - grammarPanAnchorMouseY) / grammarZoom;
-            grammarModel.setCursor(grammarScreenToCanvasX(mouseX), grammarScreenToCanvasY(mouseY));
-            return true;
-        }
-        if (draggingGrammarInsert && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            return true;
-        }
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
-                grammarModel.setActiveCursors(grammarScreenToCanvasX(mouseX), grammarScreenToCanvasY(mouseY));
-                focusGrammarPanel();
-                return true;
-            }
             if (hasAltDown()) {
                 model().addCursorAvoidingCrowding(
                         screenToCanvasX(mouseX),
@@ -400,20 +334,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             panning = false;
             return true;
         }
-        if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && grammarPanning) {
-            grammarPanning = false;
-            return true;
-        }
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && resizingEmbeddedDocument != null) {
-            resizingEmbeddedDocument.fitContent(this.font.lineHeight);
-            resizingEmbeddedDocument = null;
-            resizingCorner = null;
-            return true;
-        }
-        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && draggingGrammarInsert) {
-            finishGrammarInsertDrag(mouseX, mouseY);
-            return true;
-        }
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
@@ -425,17 +345,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     ) {
         if (delta == 0.0D) {
             return super.mouseScrolled(mouseX, mouseY, delta);
-        }
-        if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
-            double focusX = grammarScreenToCanvasX(mouseX);
-            double focusY = grammarScreenToCanvasY(mouseY);
-            double scaleFactor = Math.pow(ZOOM_STEP, delta);
-            grammarZoom = Mth.clamp(grammarZoom * scaleFactor, MIN_ZOOM, MAX_ZOOM);
-            grammarCameraX = focusX - (mouseX - grammarPanelCenterX()) / grammarZoom;
-            grammarCameraY = focusY - (mouseY - grammarPanelCenterY()) / grammarZoom;
-            grammarModel.setCursor(focusX, focusY);
-            focusGrammarPanel();
-            return true;
         }
         double focusX = screenToCanvasX(mouseX);
         double focusY = screenToCanvasY(mouseY);
@@ -463,7 +372,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (Character.isISOControl(codePoint)) {
             return super.charTyped(codePoint, modifiers);
         }
-        if (isGrammarPanelFocused()) {
+        if (openContext != null && openContext.readOnly()) {
             return true;
         }
         String text = Character.toString(codePoint);
@@ -485,9 +394,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             refreshDiagnosticControls();
             return true;
         }
-        if (isGrammarPanelFocused()) {
-            return handleGrammarPanelKeyPressed(keyCode, modifiers);
-        }
         if (keyCode == GLFW.GLFW_KEY_F1) {
             model().focusPreviousCursor((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
             rememberCursorPosition();
@@ -506,6 +412,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             return true;
         }
         if (Screen.isPaste(keyCode)) {
+            if (openContext != null && openContext.readOnly()) {
+                return true;
+            }
             pasteClipboardText();
             return true;
         }
@@ -585,26 +494,31 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            if (openContext != null && openContext.readOnly()) return true;
             model().deleteLeftWord(this.font.lineHeight);
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_DELETE && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            if (openContext != null && openContext.readOnly()) return true;
             model().deleteRightWord(this.font.lineHeight);
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+            if (openContext != null && openContext.readOnly()) return true;
             model().deleteLeft(this.font.lineHeight);
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_DELETE) {
+            if (openContext != null && openContext.readOnly()) return true;
             model().deleteNearestAndMoveRight(this.font.lineHeight);
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (openContext != null && openContext.readOnly()) return true;
             if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
                 saveDocumentAndClose();
             } else {
@@ -626,103 +540,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             suppressNextNumpadPanChar = false;
         }
         return super.keyReleased(keyCode, scanCode, modifiers);
-    }
-
-    private boolean handleGrammarPanelKeyPressed(
-            int keyCode,
-            int modifiers
-    ) {
-        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
-            if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
-                saveDocumentAndClose();
-            }
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_F1) {
-            grammarModel.focusPreviousCursor((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_F4) {
-            grammarModel.focusNextCursor((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
-            return true;
-        }
-        if (handleGrammarCameraShortcut(keyCode, modifiers)) {
-            return true;
-        }
-        if (Screen.isCopy(keyCode)) {
-            copyGrammarTextToClipboard();
-            return true;
-        }
-        if (Screen.isPaste(keyCode)) {
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_A && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-            grammarModel.ensureCursorClosestToEachGlyph();
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_L && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-            grammarModel.ensureCursorClosestToEachGlyphOnActiveCursorLines(this.font.lineHeight);
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_COMMA && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-            grammarModel.discardCursorsNotClosestToAnyGlyph();
-            return true;
-        }
-        if (handleGrammarArrowAddCursorShortcut(keyCode, modifiers)) {
-            return true;
-        }
-        if (handleGrammarNumpadCameraPan(keyCode)) {
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_LEFT) {
-            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-                grammarModel.moveCursorLeftWord(this.font.lineHeight, this.font.width(" "));
-            } else {
-                grammarModel.moveCursorLeft(this.font.lineHeight, this.font.width(" "));
-            }
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_RIGHT) {
-            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-                grammarModel.moveCursorRightWord(this.font.lineHeight, this.font.width(" "));
-            } else {
-                grammarModel.moveCursorRight(this.font.width(" "));
-            }
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_UP) {
-            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-                grammarModel.moveCursorUpToGlyph(this.font.lineHeight);
-            } else {
-                grammarModel.moveCursorUp(this.font.lineHeight);
-            }
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_DOWN) {
-            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-                grammarModel.moveCursorDownToGlyph(this.font.lineHeight);
-            } else {
-                grammarModel.moveCursorDown(this.font.lineHeight);
-            }
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_HOME) {
-            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-                grammarModel.moveCursorToDocumentStart();
-            } else {
-                grammarModel.moveCursorToLineStart();
-            }
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_END) {
-            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
-                grammarModel.moveCursorToDocumentEnd();
-            } else {
-                grammarModel.moveCursorToLineEnd();
-            }
-            return true;
-        }
-        return keyCode == GLFW.GLFW_KEY_BACKSPACE || keyCode == GLFW.GLFW_KEY_DELETE;
     }
 
     private boolean handleNumpadCameraPan(int keyCode) {
@@ -795,39 +612,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         return false;
     }
 
-    private boolean handleGrammarNumpadCameraPan(int keyCode) {
-        double x = 0.0D;
-        double y = 0.0D;
-        switch (keyCode) {
-            case GLFW.GLFW_KEY_KP_7 -> {
-                x = -1.0D;
-                y = -1.0D;
-            }
-            case GLFW.GLFW_KEY_KP_8 -> y = -1.0D;
-            case GLFW.GLFW_KEY_KP_9 -> {
-                x = 1.0D;
-                y = -1.0D;
-            }
-            case GLFW.GLFW_KEY_KP_4 -> x = -1.0D;
-            case GLFW.GLFW_KEY_KP_6 -> x = 1.0D;
-            case GLFW.GLFW_KEY_KP_1 -> {
-                x = -1.0D;
-                y = 1.0D;
-            }
-            case GLFW.GLFW_KEY_KP_2 -> y = 1.0D;
-            case GLFW.GLFW_KEY_KP_3 -> {
-                x = 1.0D;
-                y = 1.0D;
-            }
-            default -> {
-                return false;
-            }
-        }
-        grammarPanCamera(x * KEYBOARD_PAN_SCREEN_PIXELS, y * KEYBOARD_PAN_SCREEN_PIXELS);
-        suppressNextNumpadPanChar = true;
-        return true;
-    }
-
     private boolean handleArrowAddCursorShortcut(
             int keyCode,
             int modifiers
@@ -872,77 +656,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 model().addCursor(model().cursorCanvasX(), model().cursorCanvasY() + lineHeight);
             }
             rememberCursorPosition();
-            return true;
-        }
-        return false;
-    }
-
-    private boolean handleGrammarCameraShortcut(
-            int keyCode,
-            int modifiers
-    ) {
-        if ((modifiers & GLFW.GLFW_MOD_CONTROL) == 0) {
-            return false;
-        }
-        if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 && (keyCode == GLFW.GLFW_KEY_9 || keyCode == GLFW.GLFW_KEY_KP_9)) {
-            fitGrammarContentToPanel();
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_0 || keyCode == GLFW.GLFW_KEY_KP_0) {
-            grammarZoom = 1.0D;
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_EQUAL || keyCode == GLFW.GLFW_KEY_KP_ADD) {
-            grammarZoomAtPanelCenter(ZOOM_STEP);
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_MINUS || keyCode == GLFW.GLFW_KEY_KP_SUBTRACT) {
-            grammarZoomAtPanelCenter(1.0D / ZOOM_STEP);
-            return true;
-        }
-        return false;
-    }
-
-    private boolean handleGrammarArrowAddCursorShortcut(
-            int keyCode,
-            int modifiers
-    ) {
-        if ((modifiers & GLFW.GLFW_MOD_ALT) == 0) {
-            return false;
-        }
-        boolean wordTarget = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
-        int lineHeight = this.font.lineHeight;
-        int spaceWidth = this.font.width(" ");
-        if (keyCode == GLFW.GLFW_KEY_LEFT) {
-            if (wordTarget) {
-                grammarModel.addCursorLeftWord(lineHeight, spaceWidth);
-            } else {
-                grammarModel.addCursor(grammarModel.cursorCanvasX() - spaceWidth, grammarModel.cursorCanvasY());
-            }
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_RIGHT) {
-            if (wordTarget) {
-                grammarModel.addCursorRightWord(lineHeight, spaceWidth);
-            } else {
-                grammarModel.addCursor(grammarModel.cursorCanvasX() + spaceWidth, grammarModel.cursorCanvasY());
-            }
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_UP) {
-            if (wordTarget) {
-                grammarModel.addCursorUpToGlyph(lineHeight);
-            } else {
-                grammarModel.addCursor(grammarModel.cursorCanvasX(), grammarModel.cursorCanvasY() - lineHeight);
-            }
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_DOWN) {
-            if (wordTarget) {
-                grammarModel.addCursorDownToGlyph(lineHeight);
-            } else {
-                grammarModel.addCursor(grammarModel.cursorCanvasX(), grammarModel.cursorCanvasY() + lineHeight);
-            }
             return true;
         }
         return false;
@@ -1078,7 +791,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
 
     @Override
     public void saveDocument() {
-        if (openContext != null) {
+        if (openContext != null && !openContext.readOnly()) {
             openContext.saveWriter().accept(getCurrentText());
         }
     }
@@ -1088,7 +801,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         onClose();
     }
 
-    private void finishClose() {
+    protected void finishClose() {
         if (pushed) {
             SFMScreenChangeHelpers.popScreen();
         } else {
@@ -1340,126 +1053,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
     }
 
-    private void renderEmbeddedDocuments(PoseStack poseStack) {
-        for (EmbeddedDocument document : embeddedDocuments) {
-            renderEmbeddedDocument(poseStack, document);
-        }
-    }
-
-    private void renderEmbeddedDocument(
-            PoseStack poseStack,
-            EmbeddedDocument document
-    ) {
-        int left = (int) Math.floor(canvasToScreenX(document.canvasX));
-        int top = (int) Math.floor(canvasToScreenY(document.canvasY));
-        int right = (int) Math.ceil(canvasToScreenX(document.canvasX + document.canvasWidth));
-        int bottom = (int) Math.ceil(canvasToScreenY(document.canvasY + document.canvasHeight));
-        if (right < 0 || bottom < 0 || left > this.width || top > this.height) {
-            return;
-        }
-
-        fill(poseStack, left, top, right, bottom, EMBEDDED_DOCUMENT_BACKGROUND);
-        drawRectOutline(poseStack, left, top, right, bottom, EMBEDDED_DOCUMENT_BORDER);
-        int titleWidth = this.font.width(document.title);
-        fill(poseStack, left, top - 14, Math.min(right, left + titleWidth + 12), top, PANEL_TAB_BACKGROUND);
-        SFMFontUtils.draw(poseStack, this.font, Component.literal(document.title), left + 6, top - 11, HUD_TEXT, true);
-        renderEmbeddedDocumentGlyphs(poseStack, document, left, top, right, bottom);
-        renderEmbeddedDocumentHandles(poseStack, left, top, right, bottom);
-    }
-
-    private void renderEmbeddedDocumentGlyphs(
-            PoseStack poseStack,
-            EmbeddedDocument document,
-            int left,
-            int top,
-            int right,
-            int bottom
-    ) {
-        Map<SFMDrawCanvasModel.CanvasGlyph, Integer> glyphColours = SFMDrawCanvasSyntaxHighlightingHelper.buildAntlrGrammarHighlightColours(
-                document.model.glyphs(),
-                this.font.width(" "),
-                this.font.lineHeight,
-                GLYPH
-        );
-        double scale = document.contentZoom * zoom;
-        for (SFMDrawCanvasModel.CanvasGlyph glyph : document.model.glyphs()) {
-            double canvasX = document.canvasX + document.canvasWidth / 2.0D + (glyph.x() - document.cameraX) * document.contentZoom;
-            double canvasY = document.canvasY + document.canvasHeight / 2.0D + (glyph.y() - document.cameraY) * document.contentZoom;
-            double screenX = canvasToScreenX(canvasX);
-            double screenY = canvasToScreenY(canvasY);
-            if (screenX > right || screenX + glyph.width() * scale < left || screenY > bottom || screenY + this.font.lineHeight * scale < top) {
-                continue;
-            }
-            poseStack.pushPose();
-            poseStack.translate(screenX, screenY, 0.0D);
-            poseStack.scale((float) scale, (float) scale, 1.0F);
-            SFMFontUtils.draw(poseStack, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
-            poseStack.popPose();
-        }
-    }
-
-    private void renderEmbeddedDocumentHandles(
-            PoseStack poseStack,
-            int left,
-            int top,
-            int right,
-            int bottom
-    ) {
-        int handle = 5;
-        fill(poseStack, left - handle, top - handle, left + handle, top + handle, EMBEDDED_DOCUMENT_HANDLE);
-        fill(poseStack, right - handle, top - handle, right + handle, top + handle, EMBEDDED_DOCUMENT_HANDLE);
-        fill(poseStack, left - handle, bottom - handle, left + handle, bottom + handle, EMBEDDED_DOCUMENT_HANDLE);
-        fill(poseStack, right - handle, bottom - handle, right + handle, bottom + handle, EMBEDDED_DOCUMENT_HANDLE);
-    }
-
-    private void renderGrammarInsertDrag(
-            PoseStack poseStack,
-            int mouseX,
-            int mouseY
-    ) {
-        drawDashedLine(
-                poseStack,
-                (int) Math.round(grammarInsertStartX),
-                (int) Math.round(grammarInsertStartY),
-                mouseX,
-                mouseY,
-                INSERT_DRAG_LINE
-        );
-        int previewWidth = Math.max(180, (int) Math.round(260.0D * zoom));
-        int previewHeight = Math.max(100, (int) Math.round(160.0D * zoom));
-        drawRectOutline(
-                poseStack,
-                mouseX,
-                mouseY,
-                mouseX + previewWidth,
-                mouseY + previewHeight,
-                INSERT_DRAG_LINE
-        );
-    }
-
-    private void drawDashedLine(
-            PoseStack poseStack,
-            int startX,
-            int startY,
-            int endX,
-            int endY,
-            int color
-    ) {
-        double dx = endX - startX;
-        double dy = endY - startY;
-        double length = Math.sqrt(dx * dx + dy * dy);
-        if (length <= 0.0D) {
-            return;
-        }
-        int segments = Math.max(1, (int) (length / 6.0D));
-        for (int i = 0; i <= segments; i += 2) {
-            double t = (double) i / (double) segments;
-            int x = (int) Math.round(startX + dx * t);
-            int y = (int) Math.round(startY + dy * t);
-            fill(poseStack, x - 1, y - 1, x + 2, y + 2, color);
-        }
-    }
-
     private void drawRectOutline(
             PoseStack poseStack,
             int left,
@@ -1691,15 +1284,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         return (screenY - this.height / 2.0D) / zoom + cameraY;
     }
 
-    private MutableComponent sfmlButtonTooltip() {
-        return DRAW_CANVAS_SFML_BUTTON_TOOLTIP_PREFIX.getComponent()
-                .append(Component.literal("SFML.g4").withStyle(ChatFormatting.AQUA));
-    }
-
     private MutableComponent doneButtonTooltip() {
-        return DRAW_CANVAS_DONE_BUTTON_TOOLTIP_PREFIX.getComponent()
+        return TEXT_EDITOR_V3_DONE_BUTTON_TOOLTIP_PREFIX.getComponent()
                 .append(Component.literal("Shift+Enter").withStyle(ChatFormatting.AQUA))
-                .append(DRAW_CANVAS_DONE_BUTTON_TOOLTIP_SUFFIX.getComponent());
+                .append(TEXT_EDITOR_V3_DONE_BUTTON_TOOLTIP_SUFFIX.getComponent());
     }
 
     private void beginGrammarInsertDrag(
@@ -1718,9 +1306,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             double mouseY
     ) {
         draggingGrammarInsert = false;
-        if (sfmlButton != null && sfmlButton.isMouseOver(mouseX, mouseY)) {
-            return;
-        }
         double canvasX = screenToCanvasX(mouseX);
         double canvasY = screenToCanvasY(mouseY);
         EmbeddedDocument document = EmbeddedDocument.create(
@@ -2102,7 +1687,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private void renderReadOnlyMessage(PoseStack poseStack) {
-        Component message = DRAW_CANVAS_READ_ONLY_DOCUMENT.getComponent();
+        Component message = TEXT_EDITOR_V3_READ_ONLY_DOCUMENT.getComponent();
         int width = this.font.width(message);
         int left = (this.width - width) / 2 - 8;
         int top = this.height - 48;

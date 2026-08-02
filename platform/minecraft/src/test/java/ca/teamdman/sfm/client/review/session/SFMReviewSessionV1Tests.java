@@ -1,7 +1,5 @@
 package ca.teamdman.sfm.client.review.session;
 
-import ca.teamdman.sfm.client.screen.review.SFMReviewLedger;
-import ca.teamdman.sfm.client.screen.review.SFMSourceComparisonFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -105,22 +103,6 @@ class SFMReviewSessionV1Tests {
         assertTrue(loaded.recoveredLastValid());
         assertEquals(session, loaded.session().orElseThrow());
         assertTrue(loaded.diagnostics().stream().anyMatch(message -> message.contains("Invalid active")));
-    }
-
-    @Test
-    void legacyLedgerProjectsToOrdinaryCommentsWithoutBooleanFields() {
-        var comparison = SFMSourceComparisonFixtures.reviewWalkthrough();
-        var operation = comparison.operations().get(3);
-        var decision = new SFMReviewLedger.Decision(SFMReviewLedger.ReviewState.REVIEWED,
-                SFMReviewLedger.HumanDecision.APPROVED, operation.beforeHash(), "old-hash");
-        var rule = new SFMReviewSessionV1.LiteralUtf8Range("doc", 0, 0, sha(""), sha(""));
-        var comments = SFMLegacyReviewLedgerProjection.project(operation, decision, rule);
-        assertEquals(2, comments.size());
-        assertEquals(List.of("#reviewed", "#approved", "#stale"),
-                SFMReviewSessionV1Kernel.derivedHashtags(comments.get(0).text()));
-        assertEquals("legacy_ledger", comments.get(0).provenance().kind());
-        assertEquals(List.of("#problem", "#audit-forbidden"),
-                SFMReviewSessionV1Kernel.derivedHashtags(comments.get(1).text()));
     }
 
     private static void assertRanges(SFMReviewSessionV1 session, int start, int end) {

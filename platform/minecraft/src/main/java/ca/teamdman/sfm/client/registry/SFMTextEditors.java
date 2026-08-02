@@ -2,9 +2,9 @@ package ca.teamdman.sfm.client.registry;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
-import ca.teamdman.sfm.client.text_editor.SFMDrawCanvasTextEditorRegistration;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenV1Registration;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenV2Registration;
+import ca.teamdman.sfm.client.text_editor.SFMTextEditorV3Registration;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
@@ -38,9 +38,9 @@ public class SFMTextEditors {
             SFMTextEditScreenV2Registration::new
     );
 
-    public static final SFMRegistryObject<ISFMTextEditorRegistration, SFMDrawCanvasTextEditorRegistration> DRAW = REGISTERER.register(
-            "draw",
-            SFMDrawCanvasTextEditorRegistration::new
+    public static final SFMRegistryObject<ISFMTextEditorRegistration, SFMTextEditorV3Registration> V3 = REGISTERER.register(
+            "text_editor_v3",
+            SFMTextEditorV3Registration::new
     );
 
     public static void register(IEventBus bus) {

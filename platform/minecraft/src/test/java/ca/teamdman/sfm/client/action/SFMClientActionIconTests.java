@@ -25,7 +25,7 @@ public class SFMClientActionIconTests {
     @Test
     public void unrelatedDeveloperActionRetainsTextOnlyFallback() {
         OpenTitleScreenDevScreenAction action = new OpenTitleScreenDevScreenAction(
-                SFMTitleScreenDevScreen.DRAW_CANVAS
+                SFMTitleScreenDevScreen.TEXT_EDITOR
         );
 
         assertTrue(action.itemIcon(CONTEXT).isEmpty());

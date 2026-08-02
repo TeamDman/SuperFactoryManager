@@ -7,6 +7,8 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add panelized Text Editor v3, read-only grammar viewing, and review changes/comments/hashtags explorers
+-- Retire the title-screen SFM Dev chooser and superseded managed-bundle/source-review entry points
 -- Add command-palette actions for vanilla keybindings and setting, incrementing, or decrementing GUI scale
 -- Add panel stacks with hierarchical close/move actions, deterministic Ctrl+number focus, and Ctrl+Tab traversal
 -- Add per-panel scale and content/scale rotation actions with visible stack and scale affordances

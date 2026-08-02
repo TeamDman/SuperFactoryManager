@@ -134,12 +134,10 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
-    public void applySourceReviewFixtureCommand(String command) {
-        add(new ApplySourceReviewFixturePuppetAction(command));
-        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
-    }
-    public void applyReviewCommentFixtureCommand(String command) {
-        add(new ApplyReviewCommentFixturePuppetAction(command));
+    public void assertReviewExplorer(
+            AssertReviewExplorerPuppetAction.Projection projection
+    ) {
+        add(new AssertReviewExplorerPuppetAction(projection));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 

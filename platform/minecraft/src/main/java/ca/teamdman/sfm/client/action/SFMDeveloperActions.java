@@ -23,12 +23,6 @@ public final class SFMDeveloperActions {
                     () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.INPUT_DIAG)
             );
 
-    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> DRAW_CANVAS =
-            REGISTERER.register(
-                    "developer/open_draw_canvas",
-                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.DRAW_CANVAS)
-            );
-
     public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> FILE_EXPLORER =
             REGISTERER.register(
                     "developer/open_file_explorer",
@@ -46,15 +40,6 @@ public final class SFMDeveloperActions {
                     "developer/open_item_icon_picker",
                     () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.ITEM_ICON_PICKER)
             );
-
-    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> SOURCE_REVIEW =
-            REGISTERER.register(
-                    "developer/open_source_review",
-                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.SOURCE_REVIEW)
-            );
-    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> COMMENT_REVIEW =
-            REGISTERER.register("developer/open_comment_review",
-                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.COMMENT_REVIEW));
 
     public static final SFMRegistryObject<SFMClientAction<?>, CreateDeveloperWorldAction> CREATE_WORLD =
             REGISTERER.register(

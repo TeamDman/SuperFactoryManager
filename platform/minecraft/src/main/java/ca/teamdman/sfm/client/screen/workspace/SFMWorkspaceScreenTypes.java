@@ -26,6 +26,31 @@ public final class SFMWorkspaceScreenTypes {
             SFMTerminalScreenType::new
     );
 
+    public static final SFMRegistryObject<SFMClientScreenType, SFMTextEditorScreenType> TEXT_EDITOR = REGISTERER.register(
+            "text_editor",
+            SFMTextEditorScreenType::new
+    );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMGrammarScreenType> GRAMMAR = REGISTERER.register(
+            "grammar",
+            SFMGrammarScreenType::new
+    );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMReviewExplorerScreenType> REVIEW_CHANGES = REGISTERER.register(
+            "explorer/changes",
+            () -> new SFMReviewExplorerScreenType(SFMReviewExplorerScreenType.Projection.CHANGES)
+    );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMReviewExplorerScreenType> REVIEW_COMMENTS = REGISTERER.register(
+            "explorer/comments",
+            () -> new SFMReviewExplorerScreenType(SFMReviewExplorerScreenType.Projection.COMMENTS)
+    );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMReviewExplorerScreenType> REVIEW_HASHTAGS = REGISTERER.register(
+            "explorer/comments/hashtags",
+            () -> new SFMReviewExplorerScreenType(SFMReviewExplorerScreenType.Projection.HASHTAGS)
+    );
+
     private SFMWorkspaceScreenTypes() {
     }
 

@@ -44,18 +44,6 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
     );
 
     @SFMLocalizationDatagen
-    public static final LocalizationEntry DRAW_CANVAS_TITLE = new LocalizationEntry(
-            "gui.sfm.client_action.developer.draw_canvas.title",
-            "Draw Canvas"
-    );
-
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry DRAW_CANVAS_DESCRIPTION = new LocalizationEntry(
-            "gui.sfm.client_action.developer.draw_canvas.description",
-            "Open an empty SFM Draw canvas"
-    );
-
-    @SFMLocalizationDatagen
     public static final LocalizationEntry FILE_EXPLORER_TITLE = new LocalizationEntry(
             "gui.sfm.client_action.developer.file_explorer.title",
             "File Explorer"
@@ -91,22 +79,6 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
             "Search the Minecraft item registry and choose a typed icon"
     );
 
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry SOURCE_REVIEW_TITLE = new LocalizationEntry(
-            "gui.sfm.client_action.developer.source_review.title",
-            "Source Review Ledger"
-    );
-
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry SOURCE_REVIEW_DESCRIPTION = new LocalizationEntry(
-            "gui.sfm.client_action.developer.source_review.description",
-            "Review fixture-driven source changes with persistent decisions and audit status"
-    );
-    @SFMLocalizationDatagen public static final LocalizationEntry COMMENT_REVIEW_TITLE = new LocalizationEntry(
-            "gui.sfm.client_action.developer.comment_review.title", "Review Comments");
-    @SFMLocalizationDatagen public static final LocalizationEntry COMMENT_REVIEW_DESCRIPTION = new LocalizationEntry(
-            "gui.sfm.client_action.developer.comment_review.description", "Review before/after source with overlapping comments, derived hashtags, styles, and migration diagnostics");
-
     private final SFMTitleScreenDevScreen devScreen;
 
     public OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen devScreen) {
@@ -118,12 +90,9 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
         return switch (devScreen) {
             case TEXT_EDITOR -> TEXT_EDITOR_TITLE.getComponent();
             case INPUT_DIAG -> INPUT_DIAGNOSTICS_TITLE.getComponent();
-            case DRAW_CANVAS -> DRAW_CANVAS_TITLE.getComponent();
             case FILE_EXPLORER -> FILE_EXPLORER_TITLE.getComponent();
             case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_TITLE.getComponent();
             case ITEM_ICON_PICKER -> ITEM_ICON_PICKER_TITLE.getComponent();
-            case SOURCE_REVIEW -> SOURCE_REVIEW_TITLE.getComponent();
-            case COMMENT_REVIEW -> COMMENT_REVIEW_TITLE.getComponent();
         };
     }
 
@@ -132,12 +101,9 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
         return switch (devScreen) {
             case TEXT_EDITOR -> TEXT_EDITOR_DESCRIPTION.getComponent();
             case INPUT_DIAG -> INPUT_DIAGNOSTICS_DESCRIPTION.getComponent();
-            case DRAW_CANVAS -> DRAW_CANVAS_DESCRIPTION.getComponent();
             case FILE_EXPLORER -> FILE_EXPLORER_DESCRIPTION.getComponent();
             case INSTANCE_FILE_EXPLORER -> INSTANCE_FILE_EXPLORER_DESCRIPTION.getComponent();
             case ITEM_ICON_PICKER -> ITEM_ICON_PICKER_DESCRIPTION.getComponent();
-            case SOURCE_REVIEW -> SOURCE_REVIEW_DESCRIPTION.getComponent();
-            case COMMENT_REVIEW -> COMMENT_REVIEW_DESCRIPTION.getComponent();
         };
     }
 
@@ -150,10 +116,6 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
         if (devScreen == SFMTitleScreenDevScreen.ITEM_ICON_PICKER) {
             return Optional.of(SFMItemIcon.vanilla("compass", "Item icon picker"));
         }
-        if (devScreen == SFMTitleScreenDevScreen.SOURCE_REVIEW) {
-            return Optional.of(SFMItemIcon.vanilla("writable_book", "Source review ledger"));
-        }
-        if (devScreen == SFMTitleScreenDevScreen.COMMENT_REVIEW) return Optional.of(SFMItemIcon.vanilla("writable_book", "Review comments"));
         return Optional.empty();
     }
 

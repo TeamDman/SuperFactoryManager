@@ -1,9 +1,9 @@
-# Draw editor layers, commands, and canvas workspace plan
+# Text Editor v3 layers, commands, and canvas workspace plan
 
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Reference-only worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`
-**Last updated:** 2026-07-21
+**Last updated:** 2026-08-02
 
 ## How to update this plan
 
@@ -22,6 +22,42 @@ Keep one current implementation focus. Work from 1.19.2, commit a coherent
 baseline slice, and use `sfm-propagate-changes.exe git merge` for normal
 Minecraft-version branches. The feature worktrees above are evidence to
 inspect, not branches to merge or edit.
+
+## Product-direction correction — Text Editor v3 and panel composition (2026-08-02)
+
+The former Draw name is retired as a product identity. The canvas/layer editor
+is Text Editor v3, selected through the text-editor registry and usable as a
+panel component as well as a full-screen compatibility host. The old title
+screen SFM Dev chooser and the Draw screen's fixed SFML/G4 button are not
+supported entry points.
+
+The grammar document is opened explicitly through the shared panel action:
+
+```text
+sfm:panel/open sfm:grammar
+```
+
+The general editor entry point is:
+
+```text
+sfm:panel/open sfm:text_editor [editor-id]
+```
+
+An omitted editor id selects the configured default; an explicit id selects a
+registered implementation such as v3. The editor contract must be a reusable
+focusable widget/panel with a full-screen adapter, not a screen-only API. The
+G4 document remains read-only and is not implicitly inserted into the primary
+program layer. Detailed implementation and acceptance criteria live in
+P-4 of the release plan.
+
+**Implementation checkpoint — 2026-08-02:** The fixed SFML/G4 entry point and
+its reachable insertion behavior have been removed. Grammar now opens through
+the panel scene above, while `sfm:panel/open sfm:text_editor [editor-id]`
+selects a registered editor and hosts Text Editor v3 through the shared panel
+contract. Review source leaves use the same read-only panel path. The former
+`SFMDrawCanvasScreen` remains as the internal compatibility implementation
+base for the public `SFMTextEditorV3Screen` identity; no Draw registration or
+player-facing Draw title remains.
 
 ## Purpose
 

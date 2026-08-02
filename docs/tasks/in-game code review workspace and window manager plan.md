@@ -161,6 +161,11 @@ review story has equivalent passing puppets. The review-session/comment kernel,
 stores, selectors, persistence, editing components, styles, and useful visual
 behavior survive the migration.
 
+**Migration completed — 2026-08-02:** The legacy review action ids, ledger and
+comment workspaces, and fixture-only puppets are deleted. The shared review
+explorer projections now provide changes, comments, and hashtags through the
+panel workspace; the review-session/comment kernel remains in place.
+
 ### Canonical action hierarchy
 
 Action ids use slash-separated concepts. The panel family is

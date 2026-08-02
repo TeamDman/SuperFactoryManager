@@ -7,8 +7,6 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerWorkspace;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMPathFileExplorerSource;
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.screen.item_picker.SFMItemPickerScreen;
-import ca.teamdman.sfm.client.screen.review.SFMSourceComparisonWorkspace;
-import ca.teamdman.sfm.client.screen.review.comment.SFMReviewCommentWorkspace;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenTitleScreenOpenContext;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
@@ -40,12 +38,6 @@ public enum SFMTitleScreenDevScreen {
             return new SFMInputDiagnosticsScreen(titleScreen);
         }
     },
-    DRAW_CANVAS("draw-canvas", Component.literal("Draw Canvas")) {
-        @Override
-        public Screen create(TitleScreen titleScreen) {
-            return new SFMDrawCanvasScreen(titleScreen);
-        }
-    },
     FILE_EXPLORER("file-explorer", Component.literal("File Explorer")) {
         @Override
         public Screen create(TitleScreen titleScreen) {
@@ -69,18 +61,6 @@ public enum SFMTitleScreenDevScreen {
                     SFMItemIcon.vanilla("chest", "Chest"),
                     ignored -> {}
             );
-        }
-    },
-    SOURCE_REVIEW("source-review", Component.literal("Source Review Ledger")) {
-        @Override
-        public Screen create(TitleScreen titleScreen) {
-            return SFMSourceComparisonWorkspace.create(titleScreen);
-        }
-    },
-    COMMENT_REVIEW("comment-review", Component.literal("Review Comments")) {
-        @Override
-        public Screen create(TitleScreen titleScreen) {
-            return SFMReviewCommentWorkspace.create(titleScreen);
         }
     };
 

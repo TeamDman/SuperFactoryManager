@@ -44,6 +44,11 @@ public interface ISFMTextEditScreenOpenContext {
         return false;
     }
 
+    /** Whether the editor must present the document without allowing edits. */
+    default boolean readOnly() {
+        return false;
+    }
+
     default void onTryClose(
             String latestContent,
             Runnable finalizeClose

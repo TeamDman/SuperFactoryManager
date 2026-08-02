@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.screen.workspace.SFMTestScreenType;
+import ca.teamdman.sfm.client.screen.workspace.SFMReviewExplorerScreenType;
+import ca.teamdman.sfm.client.screen.workspace.SFMTextEditorScreenType;
 import com.mojang.brigadier.ParseResults;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -77,6 +79,44 @@ class OpenPanelActionTests {
         tree.getCompletionSuggestions(tree.parse("sfm action invoke sfm:panel/open ", source)).join();
 
         org.junit.jupiter.api.Assertions.assertEquals(callsAfterCompile, catalogCalls.get());
+    }
+
+    @Test
+    void reviewChangesSceneRequiresBothSelectors() {
+        OpenPanelAction action = new OpenPanelAction(
+                OpenPanelAction.Direction.FOCUSED,
+                () -> List.of(Map.entry(
+                        new ResourceLocation("sfm", "explorer/changes"),
+                        new SFMReviewExplorerScreenType(SFMReviewExplorerScreenType.Projection.CHANGES)
+                ))
+        );
+        SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(List.of(
+                Map.entry(ACTION_ID, action)
+        ));
+        SFMClientActionSource source = new SFMClientActionSource(SFMClientActionContext.create(null, () -> true));
+
+        assertFalse(isExecutable(tree.parse(
+                "sfm action invoke sfm:panel/open sfm:explorer/changes \"mod 4.34.0\"", source)));
+        assertTrue(isExecutable(tree.parse(
+                "sfm action invoke sfm:panel/open sfm:explorer/changes \"mod 4.34.0\" \"HEAD\"", source)));
+    }
+
+    @Test
+    void textEditorSceneAcceptsNamespacedEditorId() {
+        OpenPanelAction action = new OpenPanelAction(
+                OpenPanelAction.Direction.FOCUSED,
+                () -> List.of(Map.entry(
+                        new ResourceLocation("sfm", "text_editor"),
+                        new SFMTextEditorScreenType()
+                ))
+        );
+        SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(List.of(
+                Map.entry(ACTION_ID, action)
+        ));
+        SFMClientActionSource source = new SFMClientActionSource(SFMClientActionContext.create(null, () -> true));
+
+        assertTrue(isExecutable(tree.parse(
+                "sfm action invoke sfm:panel/open sfm:text_editor sfm:text_editor_v3", source)));
     }
 
     private static boolean isExecutable(ParseResults<SFMClientActionSource> parsed) {

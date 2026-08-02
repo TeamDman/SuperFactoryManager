@@ -136,6 +136,8 @@ sfm:terminal/server/connect [address]
 ```
 
 Examples include `sfm:panel/open sfm:terminal` and
+`sfm:panel/open sfm:text_editor [editor-id]`,
+`sfm:panel/open sfm:grammar`, and
 `sfm:panel/open/right sfm:size_display`. Because these are unpublished
 prospective actions, `sfm:workspace/open_to_side` should be replaced and its
 puppets/keybindings migrated rather than retained indefinitely as an alias.
@@ -305,7 +307,7 @@ artifact warning, which is not a test failure.
 
 ## Review explorer composition batch P-3
 
-### P-3.1 Multi-lane revision selectors
+### [x] P-3.1 Multi-lane revision selectors
 
 `sfm:explorer/changes <before-selector> <after-selector>` resolves two
 independent selectors across every maintained Minecraft-version worktree known
@@ -326,7 +328,7 @@ The composed invocation is:
 sfm:panel/open sfm:explorer/changes "mod 4.34.0" "git head"
 ```
 
-### P-3.2 Comment and hashtag explorers
+### [x] P-3.2 Comment and hashtag explorers
 
 Preserve the existing `Comment{text, selection_rule}` authority: one selector
 may evaluate to regions in multiple files, sides, and lanes. Provide
@@ -335,7 +337,7 @@ may evaluate to regions in multiple files, sides, and lanes. Provide
 derived only from comment text using the existing kernel grammar; region leaves
 retain comment identity, provenance, resolution status, and document revision.
 
-### P-3.3 Comment-driven before/after presentation
+### [x] P-3.3 Comment-driven before/after presentation
 
 Opening a before/after leaf presents that one immutable source revision with
 all applicable comment styles. Diff producers emit comments such as `#removed`
@@ -346,7 +348,7 @@ slots and stacks. A tombstone leaf explains that the revision is absent and
 retains the file/lane/side identity needed to present additions and deletions
 coherently.
 
-### P-3.4 Review-surface migration
+### [x] P-3.4 Review-surface migration
 
 Build review from the shared explorer, panel, preview, comment, and selector
 substrates. Retire `developer/open_source_review` and
@@ -357,13 +359,128 @@ stores, selectors, styles, persistence, and reusable comment editing
 components. Do not recreate the deleted managed-bundle inbox as the transport
 for the new explorer.
 
-### P-3.5 Verifiable multi-version review story
+### [x] P-3.5 Verifiable multi-version review story
 
 A live puppet opens a two-lane change explorer, proves four before/after leaves
 including added/deleted tombstones, opens leaves with Space and `Ctrl+Enter`,
 preserves a terminal panel, rotates a stack, displays derived
 `#removed`/`#added` styles, and shows comment and hashtag projections whose
 selectors span more than one file.
+
+## Text editor v3 and obsolete developer-surface batch P-4
+
+### [x] P-4.1 Retire the SFM Dev title-screen surface
+
+Remove the IDE-only `SFM Dev` button from the vanilla title screen and delete
+the chooser screen it opens. The command palette remains the discovery and
+execution surface for developer workflows. Preserve useful developer actions
+such as creating a developer world and running tests, but migrate screen
+opening to canonical panel scenes or direct palette actions rather than
+recreating the chooser. Remove obsolete chooser-only registrations, tests, and
+puppet references after equivalent palette coverage exists.
+
+### [x] P-4.2 Replace Draw's G4 button with a panel scene
+
+Remove the Draw screen's fixed `SFML`/G4 button, tooltip, drag-to-insert
+behavior, and reachable embedded grammar preview state. Register the grammar
+document as an explicit panel scene, with the canonical invocation:
+
+```text
+sfm:panel/open sfm:grammar
+```
+
+The grammar scene opens the bundled `SFML.g4` content through the text-editor
+panel contract as a read-only document. Its content is not inserted into the
+edited program implicitly; grammar insertion, if retained later, is a
+separate explicit command with a deliberate placement argument.
+
+### [x] P-4.3 Rename the canvas editor to Text Editor v3
+
+Rename the player-facing and registry identity from Draw to Text Editor v3.
+The existing canvas/layer implementation becomes the v3 editor rather than a
+separate Draw product. Update class/registration names, editor ids, titles,
+configuration labels, keybinding text, command-palette metadata, tests,
+puppets, and fixtures consistently. Do not leave `sfm:draw` as the preferred
+or silently discoverable editor id after migration; preserve only an explicit
+compatibility alias if a separate release decision requires one.
+
+### [x] P-4.4 Widgetize the text-editor contract
+
+Split editor behavior from full-screen ownership. An editor registration must
+be able to create a panel/widget with the shared text-edit contract, lifecycle
+context, bounds, focus state, child input routing, save/close operations, and
+dirty-state confirmation. A thin full-screen adapter may continue to host the
+same component for existing keybindings and legacy callers, but it must not
+duplicate editing logic.
+
+Extend the typed `sfm:panel/open` scene registry with:
+
+```text
+sfm:panel/open sfm:text_editor [editor-id]
+```
+
+The `editor-id` argument is optional. Without it, use the configured default
+editor; with it, resolve an in-memory suggestion from the text-editor registry
+and open that implementation. The argument identifies the editor
+implementation, not the document. Document/source context remains a separate
+typed open context so grammar, review leaves, and ordinary files can reuse the
+same widget.
+
+### [x] P-4.5 Acceptance and migration proof
+
+Add pure contract tests for panel lifecycle, focus/input routing, dirty close,
+save/close, default-editor selection, and explicit editor-id selection. Add
+palette and live puppet evidence proving that `sfm:text_editor` opens the
+default editor, an explicit v3 editor opens in a panel, `sfm:grammar` opens a
+read-only grammar document, the old SFM Dev button is absent, and the removed
+G4 button cannot be reached through the v3 screen. Review explorers must open
+their immutable before/after leaves through this same panelized document path.
+
+### Combined goal batch P-3/P-4 — review explorers and Text Editor v3 [ready]
+
+This combined batch is the next implementation boundary. P-4 establishes the
+panelized Text Editor v3 and retires the obsolete developer/Draw entry points;
+P-3 then uses that shared document surface for multi-lane review explorers.
+The batch includes P-3.1 through P-3.5 and P-4.1 through P-4.5. It excludes
+release packaging, cross-version propagation, GPU/slug rendering, upstream
+Facet/Vox Java work, and publication.
+
+**Goal text:** Complete P-3.1 through P-3.5 and P-4.1 through P-4.5 in this
+plan on canonical 1.19.2, with focused pure tests, palette coverage, and live
+puppet evidence.
+
+### P-3/P-4 completion evidence — 2026-08-02
+
+- Added the shared `SFMReviewExplorerModel` projections for changes,
+  comments, and hashtags. Changes retain stable file/lane/before/after shape
+  and explicit missing tombstones; source leaves open through the panelized
+  read-only Text Editor v3 path.
+- Removed the title-screen SFM Dev button/chooser and the obsolete source,
+  comment-review, and managed-bundle action/screen surfaces. The review
+  session/comment kernel remains the authority for comment projections.
+- Added `sfm:panel/open sfm:grammar` and
+  `sfm:panel/open sfm:text_editor [editor-id]`; the grammar scene is
+  read-only and the optional editor id resolves through the text-editor
+  registry. The former canvas editor is now registered and labelled as Text
+  Editor v3, with a reusable panel adapter and full-screen compatibility host.
+  The old private canvas helper block remains only as an internal compatibility
+  base; its SFML button, insertion path, and embedded preview are no longer
+  reachable from the v3 surface.
+- Focused tests cover explorer tree shape/navigation, tombstones, action
+  selector arity, and panel context validation/identity. The canonical
+  compile completed successfully through
+  `sfm-propagate-changes.exe run compile --branch 1.19.2`.
+- The final full suite completed with `430 found, 428 passed, 0 failed, 0
+  skipped, 2 aborted`; both aborts are the established Windows symlink
+  privilege assumptions in the file-explorer portability tests.
+- The live `title_screen_review_explorer` puppet passed and produced the
+  changes/tombstone, stacked immutable source, comments, and hashtags captures
+  under:
+  `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_rev-20260802-171629-032`.
+- The live `title_screen_text_editor_panel` puppet passed and produced the
+  grammar, configured-default, and explicit v3 panel captures under:
+  `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_tex-20260802-174031-177`.
+  Both live runs emitted only the known non-portable artifact warning.
 
 ## Resolved design decisions — 2026-08-02
 
