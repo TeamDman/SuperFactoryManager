@@ -74,7 +74,7 @@ public final class PanelScaleAction implements SFMClientAction<SFMScreenMultiple
         if (!workspace.setFocusedGuiScale(requested)) return 0;
         context.getSource().sendFeedback(Component.literal(
                 requested == null ? "Panel GUI scale cleared" : "Panel GUI scale set to " + requested));
-        return 1;
+        return PanelActionSupport.closePaletteAfter(1);
     }
 
     static int maximumScale(Minecraft minecraft) {

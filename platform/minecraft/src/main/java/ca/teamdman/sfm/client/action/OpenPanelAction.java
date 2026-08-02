@@ -92,19 +92,41 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
     static int openPanel(SFMClientActionContext actionContext, SFMScreenPanel panel, Direction direction) {
         @Nullable Screen origin = actionContext.originatingHost() instanceof Screen screen ? screen : null;
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen instanceof SFMCommandPaletteScreen palette) palette.onClose();
-        if (direction == Direction.FOCUSED) {
-            SFMScreenMultiplexer.openFocused(origin, panel, SFMWorkspacePanelMetadata.ordinary());
+        boolean paletteWasOpen = minecraft.screen instanceof SFMCommandPaletteScreen;
+
+        if (origin instanceof SFMScreenMultiplexer) {
+            // Mutate the captured workspace while it is still alive underneath
+            // the palette. Closing the palette first can cause Minecraft's GUI
+            // layer restoration to win over the mutation on the next tick.
+            if (direction == Direction.FOCUSED) {
+                SFMScreenMultiplexer.openFocused(origin, panel, SFMWorkspacePanelMetadata.ordinary());
+            } else {
+                SFMWorkspaceSide side = switch (direction) {
+                    case LEFT -> SFMWorkspaceSide.LEFT;
+                    case RIGHT -> SFMWorkspaceSide.RIGHT;
+                    case ABOVE -> SFMWorkspaceSide.ABOVE;
+                    case BELOW -> SFMWorkspaceSide.BELOW;
+                    case FOCUSED -> throw new AssertionError("Focused panel opening was handled above");
+                };
+                SFMScreenMultiplexer.openToSide(origin, side, panel);
+            }
+            if (paletteWasOpen) ((SFMCommandPaletteScreen) minecraft.screen).onClose();
             return 1;
         }
-        SFMWorkspaceSide side = switch (direction) {
-            case LEFT -> SFMWorkspaceSide.LEFT;
-            case RIGHT -> SFMWorkspaceSide.RIGHT;
-            case ABOVE -> SFMWorkspaceSide.ABOVE;
-            case BELOW -> SFMWorkspaceSide.BELOW;
-            case FOCUSED -> throw new AssertionError("Focused panel opening was handled above");
-        };
-        SFMScreenMultiplexer.openToSide(origin, side, panel);
+
+        if (paletteWasOpen) ((SFMCommandPaletteScreen) minecraft.screen).onClose();
+        if (direction == Direction.FOCUSED) {
+            SFMScreenMultiplexer.openFocused(origin, panel, SFMWorkspacePanelMetadata.ordinary());
+        } else {
+            SFMWorkspaceSide side = switch (direction) {
+                case LEFT -> SFMWorkspaceSide.LEFT;
+                case RIGHT -> SFMWorkspaceSide.RIGHT;
+                case ABOVE -> SFMWorkspaceSide.ABOVE;
+                case BELOW -> SFMWorkspaceSide.BELOW;
+                case FOCUSED -> throw new AssertionError("Focused panel opening was handled above");
+            };
+            SFMScreenMultiplexer.openToSide(origin, side, panel);
+        }
         return 1;
     }
 

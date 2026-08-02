@@ -23,7 +23,9 @@ public final class ClosePanelAction implements SFMClientAction<SFMScreenMultiple
 
     @Override
     public int execute(SFMScreenMultiplexer workspace, CommandContext<SFMClientActionSource> context) {
-        return workspace.closeFocused() == ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult.APPLIED
-                ? 1 : 0;
+        return PanelActionSupport.closePaletteAfter(
+                workspace.closeFocused() == ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult.APPLIED
+                        ? 1 : 0
+        );
     }
 }

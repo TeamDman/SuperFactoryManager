@@ -238,6 +238,61 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void pressScreenKey(int keyCode, int modifiers) {
+        Screen screen = minecraft.screen;
+        if (screen == null) {
+            throw new IllegalStateException("Expected a screen before injecting a key");
+        }
+        screen.keyPressed(keyCode, 0, modifiers);
+    }
+
+    @Override
+    public void assertWorkspaceState(
+            int totalEntries,
+            int visibleEntries,
+            int focusedSlotEntries,
+            String expectedFocusedNarration,
+            int expectedFocusedScale
+    ) {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected an SFM workspace but found "
+                    + (minecraft.screen == null ? "no screen" : minecraft.screen.getClass().getName()));
+        }
+        if (multiplexer.panels().size() != totalEntries) {
+            throw new IllegalStateException("Expected " + totalEntries + " entries but found " + multiplexer.panels().size());
+        }
+        if (multiplexer.visiblePanelEntries().size() != visibleEntries) {
+            throw new IllegalStateException("Expected " + visibleEntries + " visible entries but found "
+                    + multiplexer.visiblePanelEntries().size());
+        }
+        if (multiplexer.focusedSlotEntries().size() != focusedSlotEntries) {
+            throw new IllegalStateException("Expected focused stack size " + focusedSlotEntries
+                    + " but found " + multiplexer.focusedSlotEntries().size());
+        }
+        for (var entry : multiplexer.visiblePanelEntries()) {
+            if (multiplexer.panelBounds(entry.id()) == null) {
+                throw new IllegalStateException("Visible entry has no allocated bounds: " + entry.id());
+            }
+            if (multiplexer.panelContentBounds(entry.id()) == null) {
+                throw new IllegalStateException("Visible entry has no logical content bounds: " + entry.id());
+            }
+        }
+        var focused = multiplexer.visiblePanelEntries().stream()
+                .filter(entry -> entry.id().equals(multiplexer.focusedPanelId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Focused entry is not visible"));
+        if (expectedFocusedNarration != null && !expectedFocusedNarration.isEmpty()
+                && !focused.panel().narration().getString().contains(expectedFocusedNarration)) {
+            throw new IllegalStateException("Focused entry narration did not contain " + expectedFocusedNarration);
+        }
+        if (expectedFocusedScale >= 0
+                && !java.util.Objects.equals(focused.metadata().guiScaleOverride(), expectedFocusedScale)) {
+            throw new IllegalStateException("Focused entry scale did not equal " + expectedFocusedScale
+                    + ": " + focused.metadata().guiScaleOverride());
+        }
+    }
+
+    @Override
     public void openTerminal() {
         SFMScreenMultiplexer.openToSide(minecraft.screen,
                 new SFMTerminalPanel(SFMTerminalServiceFactory.createRepl()));
@@ -453,7 +508,11 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                 throw new IllegalStateException("Explorer root did not match " + expectedRootName);
             }
         }
-        SFMReadOnlyTextPanel viewer = multiplexer.panels().stream()
+        int focusedIndex = multiplexer.panelIds().indexOf(multiplexer.focusedPanelId());
+        SFMReadOnlyTextPanel viewer = focusedIndex >= 0
+                && multiplexer.panels().get(focusedIndex) instanceof SFMReadOnlyTextPanel focusedViewer
+                ? focusedViewer
+                : multiplexer.panels().stream()
                 .filter(SFMReadOnlyTextPanel.class::isInstance)
                 .map(SFMReadOnlyTextPanel.class::cast)
                 .findFirst().orElse(null);
@@ -480,6 +539,27 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                     || second.x() - first.x() - first.width() != 2) {
                 throw new IllegalStateException("Expected equal-share horizontal allocation; first=" + first + ", second=" + second);
             }
+        }
+    }
+
+    @Override
+    public void assertFileExplorerPreviewFocus(boolean previewFocused) {
+        SFMScreenMultiplexer multiplexer = requireFileExplorerMultiplexer();
+        SFMWorkspacePanelId explorerId = null;
+        SFMWorkspacePanelId viewerId = null;
+        for (int index = 0; index < multiplexer.panels().size(); index++) {
+            if (multiplexer.panels().get(index) instanceof SFMFileExplorerPanel) {
+                explorerId = multiplexer.panelIds().get(index);
+            } else if (multiplexer.panels().get(index) instanceof SFMReadOnlyTextPanel) {
+                viewerId = multiplexer.panelIds().get(index);
+            }
+        }
+        if (explorerId == null) throw new IllegalStateException("Workspace has no explorer panel");
+        if (viewerId == null) throw new IllegalStateException("Workspace has no preview panel");
+        SFMWorkspacePanelId expected = previewFocused ? viewerId : explorerId;
+        if (!expected.equals(multiplexer.focusedPanelId())) {
+            throw new IllegalStateException("Expected " + (previewFocused ? "preview" : "explorer")
+                    + " focus but found " + multiplexer.focusedPanelId());
         }
     }
 
@@ -756,13 +836,17 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
             throw new IllegalStateException("Expected SFM screen multiplexer before focusing a panel");
         }
-        if (panelIndex < 0 || panelIndex >= multiplexer.panels().size()) {
+        var visible = multiplexer.visiblePanelEntries();
+        if (panelIndex < 0 || panelIndex >= visible.size()) {
             throw new IllegalArgumentException("Workspace panel index is out of range: " + panelIndex);
         }
-        double mouseX = (panelIndex + 0.5D) * multiplexer.width / multiplexer.panels().size();
-        double mouseY = multiplexer.height / 2D;
+        var entry = visible.get(panelIndex);
+        SFMScreenPanelBounds bounds = multiplexer.panelBounds(entry.id());
+        if (bounds == null) throw new IllegalStateException("Visible workspace panel has no allocated bounds");
+        double mouseX = bounds.x() + bounds.width() / 2D;
+        double mouseY = bounds.y() + bounds.height() / 2D;
         multiplexer.mouseClicked(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
-        return multiplexer.focusedPanel() == panelIndex;
+        return multiplexer.focusedPanelId().equals(entry.id());
     }
 
     @Override

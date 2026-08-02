@@ -38,6 +38,6 @@ public final class RotatePanelAction implements SFMClientAction<SFMScreenMultipl
         boolean changed = kind == Kind.CONTENT
                 ? workspace.rotateVisibleContent(delta)
                 : workspace.rotateVisibleScale(delta);
-        return changed ? 1 : 0;
+        return PanelActionSupport.closePaletteAfter(changed ? 1 : 0);
     }
 }

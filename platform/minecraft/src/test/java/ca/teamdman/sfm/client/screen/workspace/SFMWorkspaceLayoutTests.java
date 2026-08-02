@@ -99,6 +99,19 @@ class SFMWorkspaceLayoutTests {
     }
 
     @Test
+    void removingTheFinalPanelLeavesAnEmptySafeLayout() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.single(left);
+        SFMWorkspacePanelId leftId = layout.focusedPanel();
+
+        assertTrue(layout.remove(leftId));
+
+        assertTrue(layout.panels().isEmpty());
+        assertTrue(layout.visiblePanels().isEmpty());
+        assertTrue(layout.bounds(new SFMScreenPanelBounds(0, 0, 100, 40), 2).isEmpty());
+        assertNull(layout.focusedPanel());
+    }
+
+    @Test
     void stackAllocatesOnlyActivePanelAndRetainsBothIdentitiesWhenFlipped() {
         SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.stack(0,
                 SFMWorkspaceLayout.panel(left), SFMWorkspaceLayout.panel(right)));
@@ -199,6 +212,53 @@ class SFMWorkspaceLayoutTests {
                 .map(SFMWorkspaceLayout.PanelEntry::id).toList());
         assertSame(left, layout.panel(leftId));
         assertSame(right, layout.panel(rightId));
+    }
+
+    @Test
+    void movingUsesPhysicalDirectionAndCanCreateAnEdgeSlotFromAStack() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(left, right);
+        SFMWorkspacePanelId leftId = layout.panels().get(0).id();
+        SFMWorkspacePanelId rightId = layout.panels().get(1).id();
+        assertTrue(layout.focus(leftId));
+
+        assertTrue(layout.move(leftId, SFMWorkspaceSide.RIGHT));
+        assertEquals(List.of(rightId, leftId), layout.slotEntries(rightId).stream()
+                .map(SFMWorkspaceLayout.PanelEntry::id).toList());
+        assertEquals(leftId, layout.focusedPanel());
+
+        SFMWorkspaceLayout edge = SFMWorkspaceLayout.group(SFMWorkspaceLayout.stack(0,
+                SFMWorkspaceLayout.panel(left), SFMWorkspaceLayout.panel(right)));
+        SFMWorkspacePanelId edgeLeft = edge.panels().stream()
+                .filter(entry -> entry.panel() == left).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId edgeRight = edge.panels().stream()
+                .filter(entry -> entry.panel() == right).findFirst().orElseThrow().id();
+        assertTrue(edge.focus(edgeLeft));
+        assertTrue(edge.move(edgeLeft, SFMWorkspaceSide.RIGHT));
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> bounds = edge.bounds(
+                new SFMScreenPanelBounds(0, 0, 100, 100), 2);
+        assertTrue(bounds.get(edgeLeft).x() > bounds.get(edgeRight).x());
+        assertEquals(edgeLeft, edge.focusedPanel());
+    }
+
+    @Test
+    void directionalInsertionAroundAStackKeepsTheStackAsOneSlot() {
+        SFMScreenPanel stackedPeer = new SFMTestScreenPanel("stacked-peer");
+        SFMScreenPanel below = new SFMTestScreenPanel("below");
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(left),
+                SFMWorkspaceLayout.stack(0, SFMWorkspaceLayout.panel(right), SFMWorkspaceLayout.panel(stackedPeer))
+        ));
+        SFMWorkspacePanelId rightId = layout.panels().stream()
+                .filter(entry -> entry.panel() == right).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId belowId = layout.insert(rightId, SFMWorkspaceSide.BELOW, below);
+
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> bounds = layout.bounds(
+                new SFMScreenPanelBounds(0, 0, 102, 102), 2);
+        assertEquals(bounds.get(rightId).x(), bounds.get(belowId).x());
+        assertTrue(bounds.get(belowId).y() > bounds.get(rightId).y());
+        assertEquals(2, layout.slotEntries(rightId).size());
+        assertTrue(layout.slotEntries(rightId).stream().anyMatch(entry -> entry.panel() == right));
+        assertTrue(layout.slotEntries(rightId).stream().anyMatch(entry -> entry.panel() == stackedPeer));
     }
 
     @Test

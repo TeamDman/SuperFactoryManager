@@ -31,6 +31,8 @@ public final class MovePanelAction implements SFMClientAction<SFMScreenMultiplex
 
     @Override
     public int execute(SFMScreenMultiplexer workspace, CommandContext<SFMClientActionSource> context) {
-        return workspace.moveFocused(side) == SFMWorkspacePanelIntentResult.APPLIED ? 1 : 0;
+        return PanelActionSupport.closePaletteAfter(
+                workspace.moveFocused(side) == SFMWorkspacePanelIntentResult.APPLIED ? 1 : 0
+        );
     }
 }

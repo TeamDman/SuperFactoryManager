@@ -27,6 +27,16 @@ public interface ISFMGamePuppetRuntime {
 
     void executeCommandPalette(String command);
 
+    void pressScreenKey(int keyCode, int modifiers);
+
+    void assertWorkspaceState(
+            int totalEntries,
+            int visibleEntries,
+            int focusedSlotEntries,
+            String expectedFocusedNarration,
+            int expectedFocusedScale
+    );
+
     void openTerminal();
 
     void executeTerminal(String command);
@@ -82,6 +92,8 @@ public interface ISFMGamePuppetRuntime {
             String expectedViewerText,
             boolean rememberOrRequireViewerIdentity
     );
+
+    void assertFileExplorerPreviewFocus(boolean previewFocused);
 
     boolean isOverlay(Class<? extends Overlay> expectedType);
 

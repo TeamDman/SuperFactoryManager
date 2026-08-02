@@ -166,14 +166,25 @@ public final class SFMWorkspaceLayout {
         Objects.requireNonNull(side);
         PanelNode moved = find(root, panelId);
         if (moved == null) return false;
-        List<PanelEntry> visible = visiblePanels();
-        int sourceIndex = indexOf(visible, panelId);
-        if (sourceIndex < 0) return false;
-        int destinationIndex = side.before() ? sourceIndex - 1 : sourceIndex + 1;
-        if (destinationIndex < 0 || destinationIndex >= visible.size()) return false;
-        SFMWorkspacePanelId destination = visible.get(destinationIndex).id();
+        if (!visiblePanels().stream().anyMatch(entry -> entry.id().equals(panelId))) return false;
+        List<PanelEntry> sourceSlot = slotEntries(panelId);
+        SFMWorkspacePanelId destination = directionalNeighbor(panelId, side);
+        if (destination == null && sourceSlot.size() <= 1) return false;
         root = normalize(remove(root, panelId));
-        root = pushIntoNearestStack(root, destination, moved);
+        if (destination != null) {
+            root = pushIntoNearestStack(root, destination, moved);
+        } else {
+            // An edge move is still useful when the source slot has a stack: detach the
+            // visible entry into a newly-created neighboring slot rather than silently
+            // treating the action as a no-op. A single-entry edge slot has nowhere to go.
+            SFMWorkspacePanelId anchor = sourceSlot.stream()
+                    .map(PanelEntry::id)
+                    .filter(id -> find(root, id) != null)
+                    .findFirst()
+                    .orElse(null);
+            if (anchor == null) return false;
+            root = normalize(insert(root, anchor, side, moved));
+        }
         focusedPanel = panelId;
         return true;
     }
@@ -360,28 +371,34 @@ public final class SFMWorkspaceLayout {
     }
 
     private static Node insert(Node node, SFMWorkspacePanelId source, SFMWorkspaceSide side, PanelNode inserted) {
-        if (node instanceof PanelNode panel) {
-            if (!panel.id().equals(source)) return panel;
-            Track oldTrack = new Track(panel, 1.0, DEFAULT_MINIMUM_PIXELS);
-            Track newTrack = new Track(inserted, 1.0, DEFAULT_MINIMUM_PIXELS);
-            return new LinearNode(
-                    side.axis(),
-                    side.before() ? List.of(newTrack, oldTrack) : List.of(oldTrack, newTrack)
-            );
-        }
-        if (node instanceof StackNode stack) {
-            List<Node> children = new ArrayList<>(stack.children());
-            for (int index = 0; index < children.size(); index++) {
-                children.set(index, insert(children.get(index), source, side, inserted));
-            }
-            return new StackNode(children, stack.active());
-        }
+        if (node == null || !contains(node, source)) return node;
+        if (node instanceof PanelNode panel) return wrapAdjacent(panel, side, inserted);
+        if (node instanceof StackNode) return wrapAdjacent(node, side, inserted);
+
         LinearNode linear = (LinearNode) node;
-        List<Track> children = new ArrayList<>(linear.children().size());
-        for (Track child : linear.children()) {
-            children.add(child.withNode(insert(child.node(), source, side, inserted)));
+        List<Track> children = new ArrayList<>(linear.children());
+        for (int index = 0; index < children.size(); index++) {
+            Track child = children.get(index);
+            if (!contains(child.node(), source)) continue;
+            if (linear.axis() == side.axis() && child.node() instanceof StackNode) {
+                Track insertedTrack = new Track(inserted, 1.0, DEFAULT_MINIMUM_PIXELS);
+                if (side.before()) children.add(index, insertedTrack);
+                else children.add(index + 1, insertedTrack);
+                return new LinearNode(linear.axis(), children);
+            }
+            children.set(index, child.withNode(insert(child.node(), source, side, inserted)));
+            return new LinearNode(linear.axis(), children);
         }
-        return new LinearNode(linear.axis(), children);
+        return node;
+    }
+
+    private static Node wrapAdjacent(Node existing, SFMWorkspaceSide side, PanelNode inserted) {
+        Track oldTrack = new Track(existing, 1.0, DEFAULT_MINIMUM_PIXELS);
+        Track newTrack = new Track(inserted, 1.0, DEFAULT_MINIMUM_PIXELS);
+        return new LinearNode(
+                side.axis(),
+                side.before() ? List.of(newTrack, oldTrack) : List.of(oldTrack, newTrack)
+        );
     }
 
     private static Node remove(Node node, SFMWorkspacePanelId panelId) {
@@ -442,6 +459,7 @@ public final class SFMWorkspaceLayout {
     }
 
     private static Node normalize(Node node) {
+        if (node == null) return null;
         if (node instanceof StackNode stack) {
             return new StackNode(stack.children().stream().map(SFMWorkspaceLayout::normalize).toList(), stack.active());
         }
@@ -473,6 +491,7 @@ public final class SFMWorkspaceLayout {
             int dividerPixels,
             Map<SFMWorkspacePanelId, SFMScreenPanelBounds> answer
     ) {
+        if (node == null) return;
         if (node instanceof PanelNode panel) {
             answer.put(panel.id(), bounds);
             return;
@@ -647,6 +666,7 @@ public final class SFMWorkspaceLayout {
             SFMWorkspacePanelId focused,
             List<PanelEntry> answer
     ) {
+        if (node == null) return;
         if (node instanceof StackNode stack) {
             for (Node child : stack.children()) {
                 if (contains(child, focused)) {
@@ -759,6 +779,56 @@ public final class SFMWorkspaceLayout {
         return -1;
     }
 
+    private @Nullable SFMWorkspacePanelId directionalNeighbor(
+            SFMWorkspacePanelId source,
+            SFMWorkspaceSide side
+    ) {
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 1_000_000, 1_000_000);
+        SFMScreenPanelBounds sourceBounds = bounds(viewport, 0).get(source);
+        if (sourceBounds == null) return null;
+
+        SFMWorkspacePanelId best = null;
+        double bestScore = Double.POSITIVE_INFINITY;
+        for (PanelEntry candidate : visiblePanels()) {
+            if (candidate.id().equals(source)) continue;
+            SFMScreenPanelBounds candidateBounds = bounds(viewport, 0).get(candidate.id());
+            if (candidateBounds == null) continue;
+            int gap;
+            int crossDistance;
+            if (side.axis() == SFMWorkspaceAxis.HORIZONTAL) {
+                gap = side.before()
+                        ? sourceBounds.x() - candidateBounds.x() - candidateBounds.width()
+                        : candidateBounds.x() - sourceBounds.x() - sourceBounds.width();
+                if (gap < 0) continue;
+                crossDistance = intervalDistance(
+                        sourceBounds.y(), sourceBounds.y() + sourceBounds.height(),
+                        candidateBounds.y(), candidateBounds.y() + candidateBounds.height()
+                );
+            } else {
+                gap = side.before()
+                        ? sourceBounds.y() - candidateBounds.y() - candidateBounds.height()
+                        : candidateBounds.y() - sourceBounds.y() - sourceBounds.height();
+                if (gap < 0) continue;
+                crossDistance = intervalDistance(
+                        sourceBounds.x(), sourceBounds.x() + sourceBounds.width(),
+                        candidateBounds.x(), candidateBounds.x() + candidateBounds.width()
+                );
+            }
+            double score = gap * 1_000_000.0 + crossDistance;
+            if (score < bestScore) {
+                bestScore = score;
+                best = candidate.id();
+            }
+        }
+        return best;
+    }
+
+    private static int intervalDistance(int firstStart, int firstEnd, int secondStart, int secondEnd) {
+        if (firstEnd < secondStart) return secondStart - firstEnd;
+        if (secondEnd < firstStart) return firstStart - secondEnd;
+        return 0;
+    }
+
     public record PanelEntry(
             SFMWorkspacePanelId id,
             SFMScreenPanel panel,
@@ -814,6 +884,7 @@ public final class SFMWorkspaceLayout {
     }
 
     private static boolean isVisible(Node node, SFMWorkspacePanelId id) {
+        if (node == null) return false;
         if (node instanceof PanelNode panel) return panel.id().equals(id);
         if (node instanceof StackNode stack) return isVisible(stack.children().get(stack.active()), id);
         return ((LinearNode) node).children().stream().anyMatch(track -> isVisible(track.node(), id));

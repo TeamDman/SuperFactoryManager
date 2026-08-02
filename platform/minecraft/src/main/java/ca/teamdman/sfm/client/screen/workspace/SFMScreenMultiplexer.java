@@ -109,6 +109,12 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 SFMWorkspaceLayout.panel(first), SFMWorkspaceLayout.panel(second)))
                 : SFMWorkspaceLayout.group(SFMWorkspaceLayout.vertical(
                 SFMWorkspaceLayout.panel(first), SFMWorkspaceLayout.panel(second)));
+        SFMWorkspacePanelId insertedId = layout.panels().stream()
+                .filter(entry -> entry.panel() == panel)
+                .findFirst()
+                .orElseThrow()
+                .id();
+        layout.focus(insertedId);
         SFMScreenChangeHelpers.setScreen(SFMScreenMultiplexer.create(origin, layout));
     }
 
@@ -211,6 +217,12 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     public @Nullable SFMScreenPanelBounds panelBounds(SFMWorkspacePanelId panelId) {
         return panelBounds.get(panelId);
+    }
+
+    /** Returns the logical content allocation after applying the entry's render scale. */
+    public @Nullable SFMScreenPanelBounds panelContentBounds(SFMWorkspacePanelId panelId) {
+        SFMWorkspaceLayout.PanelEntry entry = layout.entry(panelId);
+        return entry == null ? null : contentBounds(entry);
     }
 
     @Override
@@ -341,7 +353,9 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (panelGroup != null && Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_M) {
+        boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0 || Screen.hasControlDown();
+        boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0 || Screen.hasShiftDown();
+        if (panelGroup != null && control && keyCode == GLFW.GLFW_KEY_M) {
             SFMScreenPanel focused = layout.panel(layout.focusedPanel());
             if (focused != null) {
                 panelGroup.toggleMaximize(focused);
@@ -349,14 +363,14 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 return true;
             }
         }
-        if (Screen.hasControlDown() && keyCode >= GLFW.GLFW_KEY_1 && keyCode <= GLFW.GLFW_KEY_9) {
+        if (control && keyCode >= GLFW.GLFW_KEY_1 && keyCode <= GLFW.GLFW_KEY_9) {
             int requestedIndex = keyCode - GLFW.GLFW_KEY_1;
             List<SFMWorkspaceLayout.PanelEntry> panels = layout.visiblePanels();
             if (requestedIndex < panels.size()) layout.focus(panels.get(requestedIndex).id());
             return requestedIndex < panels.size();
         }
-        if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_TAB) {
-            int direction = Screen.hasShiftDown() ? -1 : 1;
+        if (control && keyCode == GLFW.GLFW_KEY_TAB) {
+            int direction = shift ? -1 : 1;
             if (layout.traverse(direction)) {
                 refreshLayout(true);
                 return true;
@@ -517,16 +531,25 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMScreenPanelBounds bounds
     ) {
         List<SFMWorkspaceLayout.PanelEntry> slot = layout.slotEntries(entry.id());
-        int x = bounds.x() + bounds.width() - 4;
-        int y = bounds.y() + bounds.height() - 12;
         if (slot.size() > 1) {
-            StringBuilder tabs = new StringBuilder();
+            int boxSize = 11;
+            int gap = 2;
+            int totalWidth = slot.size() * boxSize + (slot.size() - 1) * gap;
+            int startX = Math.max(bounds.x() + 2, bounds.x() + bounds.width() - totalWidth - 3);
+            int y = Math.max(bounds.y() + 2, bounds.y() + bounds.height() - boxSize - 3);
             for (int index = 0; index < slot.size(); index++) {
-                if (index > 0) tabs.append(' ');
-                tabs.append(index + 1);
+                SFMWorkspaceLayout.PanelEntry tab = slot.get(index);
+                int x = startX + index * (boxSize + gap);
+                int background = tab.id().equals(layout.focusedPanel()) ? 0xFF55FFFF : 0xCC303030;
+                int foreground = tab.id().equals(layout.focusedPanel()) ? 0xFF101010 : 0xFFFFFFFF;
+                fill(poseStack, x, y, x + boxSize, y + boxSize, background);
+                String label = Integer.toString(index + 1);
+                SFMFontUtils.draw(poseStack, this.font, label,
+                        x + (boxSize - this.font.width(label)) / 2,
+                        y + 2,
+                        foreground,
+                        true);
             }
-            SFMFontUtils.draw(poseStack, this.font, tabs.toString(),
-                    Math.max(bounds.x() + 2, x - this.font.width(tabs.toString())), y, 0xFFFFFFFF, true);
         }
         if (entry.metadata().guiScaleOverride() != null) {
             String label = "gui scale " + entry.metadata().guiScaleOverride();

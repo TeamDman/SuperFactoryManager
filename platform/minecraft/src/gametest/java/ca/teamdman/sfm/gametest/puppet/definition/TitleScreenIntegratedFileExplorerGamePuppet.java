@@ -33,7 +33,7 @@ public final class TitleScreenIntegratedFileExplorerGamePuppet {
 
         puppet.pressFileExplorerKey(GLFW.GLFW_KEY_RIGHT);
         puppet.pressFileExplorerKey(GLFW.GLFW_KEY_DOWN);
-        puppet.pressFileExplorerKey(GLFW.GLFW_KEY_ENTER);
+        puppet.pressFileExplorerKey(GLFW.GLFW_KEY_SPACE);
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.assertFileExplorerWorkspace(
                 2,
@@ -42,18 +42,21 @@ public final class TitleScreenIntegratedFileExplorerGamePuppet {
                 "alpha content from dropped root",
                 true
         );
-        puppet.capture("first-preview", caption("First text activation created one exact 50/50 preview split."));
+        puppet.assertFileExplorerPreviewFocus(false);
+        puppet.capture("first-preview", caption("Space opened the explorer-owned preview while preserving explorer focus."));
 
-        puppet.clickFileExplorerRow(2);
+        puppet.pressFileExplorerKey(GLFW.GLFW_KEY_DOWN);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, GLFW.GLFW_MOD_CONTROL);
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.assertFileExplorerWorkspace(
-                2,
+                3,
                 "sfm-file-explorer-drop-fixture",
                 "beta.txt",
                 "beta replacement content",
                 true
         );
-        puppet.capture("replaced-preview", caption("Single-click replaced content in the same viewer panel."));
+        puppet.assertFileExplorerPreviewFocus(true);
+        puppet.capture("stacked-preview", caption("Ctrl+Enter opened a new preview entry in the explorer-owned slot and focused it."));
         puppet.closeScreenNaturally();
     }
 

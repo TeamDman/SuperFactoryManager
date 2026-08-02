@@ -260,9 +260,10 @@ entry in visible slot order, making a visited stacked entry visible;
 For a selected file, Space and `Ctrl+Enter` locate the most recently created
 preview slot owned by that explorer; if none exists, create one to the right.
 Each open pushes a typed preview entry into that slot. Space leaves explorer
-focus unchanged; `Ctrl+Enter` focuses the preview slot. A selected directory
-uses Space to expand/collapse rather than producing a file preview. Owner/role
-checks make terminal and unrelated panels ineligible targets.
+focus unchanged; `Ctrl+Enter` focuses the newly pushed preview entry. Existing
+entries remain in the stack for deterministic `Ctrl+Tab` traversal; terminal
+and unrelated panels remain ineligible targets. A selected directory uses
+Space to expand/collapse rather than producing a file preview.
 
 ### P-2.5 Per-entry scale and independent rotations
 
@@ -282,6 +283,25 @@ bottom-right corner and identify the visible entry. Show `gui scale N` when an
 entry overrides the global scale. Puppets and headless observations must expose
 slot order, stack order, visible entry, focus, dimensions, and scale so the
 behavior can be asserted without relying only on screenshots.
+
+### P-2 implementation evidence
+
+The current P-2 goal has implemented the typed layout ownership model,
+identity-preserving directional movement, close/collapse behavior, deterministic
+`Ctrl+number` and `Ctrl+Tab` traversal, per-entry scale and independent
+content/scale rotations, and numbered stack plus scale affordances. The
+multiplexer exposes both physical panel bounds and logical content bounds after
+entry scaling.
+
+Pure coverage passes for `SFMWorkspaceLayoutTests` and
+`SFMFileExplorerWorkspaceTests`. The live `title_screen_workspace` puppet proves
+stack traversal, reverse traversal, scale mutation, physical movement with
+identity/focus/scale preservation, visible-slot mouse focus, close, and
+reopen. The live `title_screen_integrated_file_explorer` puppet proves Space
+opens one explorer-owned preview without moving focus and `Ctrl+Enter` pushes a
+new preview entry into that slot while focusing it. These witnesses emit screenshots and
+headless assertions; the only remaining CLI output is the known non-portable
+artifact warning, which is not a test failure.
 
 ## Review explorer composition batch P-3
 

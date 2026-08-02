@@ -151,6 +151,27 @@ public final class SFMGamePuppetHelper {
         add(new ExecuteCommandPalettePuppetAction(command));
     }
 
+    public void pressScreenKey(int keyCode, int modifiers) {
+        add(new PressScreenKeyPuppetAction(keyCode, modifiers));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void assertWorkspaceState(
+            int totalEntries,
+            int visibleEntries,
+            int focusedSlotEntries,
+            String expectedFocusedNarration,
+            int expectedFocusedScale
+    ) {
+        add(new AssertWorkspaceStatePuppetAction(
+                totalEntries,
+                visibleEntries,
+                focusedSlotEntries,
+                expectedFocusedNarration,
+                expectedFocusedScale
+        ));
+    }
+
     public void openTerminal() {
         add(new OpenTerminalPuppetAction());
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
@@ -362,6 +383,10 @@ public final class SFMGamePuppetHelper {
                 expectedViewerText,
                 rememberOrRequireViewerIdentity
         ));
+    }
+
+    public void assertFileExplorerPreviewFocus(boolean previewFocused) {
+        add(new AssertFileExplorerPreviewFocusPuppetAction(previewFocused));
     }
 
     /**
