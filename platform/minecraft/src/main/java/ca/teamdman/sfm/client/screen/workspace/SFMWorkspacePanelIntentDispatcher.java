@@ -19,27 +19,37 @@ public final class SFMWorkspacePanelIntentDispatcher {
         Objects.requireNonNull(intent);
         SFMScreenPanel sourcePanel = layout.panel(source);
         if (sourcePanel == null) return Outcome.unavailable();
-        if (intent instanceof SFMWorkspacePanelIntent.OpenAsTab) return Outcome.unsupported();
+        if (intent instanceof SFMWorkspacePanelIntent.OpenAsTab open) {
+            SFMScreenPanel panel = open.panel();
+            SFMWorkspacePanelId inserted = layout.pushToStack(source, panel, open.metadata());
+            return new Outcome(SFMWorkspacePanelIntentResult.APPLIED, inserted, null, null, false);
+        }
         if (intent instanceof SFMWorkspacePanelIntent.OpenToSide open) {
-            SFMWorkspacePanelId inserted = layout.insert(source, open.side(), open.panel());
-            return new Outcome(SFMWorkspacePanelIntentResult.APPLIED, inserted, null, null);
+            SFMWorkspacePanelId inserted = layout.insert(source, open.side(), open.panel(), open.metadata());
+            return new Outcome(SFMWorkspacePanelIntentResult.APPLIED, inserted, null, null, false);
+        }
+        if (intent instanceof SFMWorkspacePanelIntent.Move move) {
+            return layout.move(source, move.side())
+                    ? new Outcome(SFMWorkspacePanelIntentResult.APPLIED, null, null, null, true)
+                    : Outcome.unavailable();
         }
         layout.remove(source);
-        return new Outcome(SFMWorkspacePanelIntentResult.APPLIED, null, source, sourcePanel);
+        return new Outcome(SFMWorkspacePanelIntentResult.APPLIED, null, source, sourcePanel, false);
     }
 
     public record Outcome(
             SFMWorkspacePanelIntentResult result,
             @Nullable SFMWorkspacePanelId inserted,
             @Nullable SFMWorkspacePanelId removed,
-            @Nullable SFMScreenPanel removedPanel
+            @Nullable SFMScreenPanel removedPanel,
+            boolean moved
     ) {
         private static Outcome unavailable() {
-            return new Outcome(SFMWorkspacePanelIntentResult.UNAVAILABLE, null, null, null);
+            return new Outcome(SFMWorkspacePanelIntentResult.UNAVAILABLE, null, null, null, false);
         }
 
         private static Outcome unsupported() {
-            return new Outcome(SFMWorkspacePanelIntentResult.UNSUPPORTED, null, null, null);
+            return new Outcome(SFMWorkspacePanelIntentResult.UNSUPPORTED, null, null, null, false);
         }
     }
 }

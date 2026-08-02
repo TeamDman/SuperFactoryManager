@@ -61,4 +61,5 @@ class SFMFileExplorerWorkspaceTests {
         assertEquals("two.txt", viewer.path());
         assertEquals("replacement", viewer.text());
     }
+
 }

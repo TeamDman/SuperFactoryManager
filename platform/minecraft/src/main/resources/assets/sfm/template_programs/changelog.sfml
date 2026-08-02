@@ -8,6 +8,9 @@ NAME "Changelog"
 
 ---- 4.35.0 PRE ----
 -- Add command-palette actions for vanilla keybindings and setting, incrementing, or decrementing GUI scale
+-- Add panel stacks with hierarchical close/move actions, deterministic Ctrl+number focus, and Ctrl+Tab traversal
+-- Add per-panel scale and content/scale rotation actions with visible stack and scale affordances
+-- Route explorer previews through the explorer-owned preview slot, with Space preserving explorer focus and Ctrl+Enter focusing the preview
 -- Separate SFM Key Binds from Minecraft Controls in the command palette
 -- Add numeric GUI-scale suggestions and a countdown before command-palette GameTests
 -- Announce pass/fail counts when command-palette GameTests complete

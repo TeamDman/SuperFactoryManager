@@ -126,8 +126,9 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
             case GLFW.GLFW_KEY_END -> model.selectLast();
             case GLFW.GLFW_KEY_RIGHT -> model.expandSelection();
             case GLFW.GLFW_KEY_LEFT -> model.collapseSelectionOrSelectParent();
-            case GLFW.GLFW_KEY_SPACE -> model.toggleSelection();
-            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> activateSelection();
+            case GLFW.GLFW_KEY_SPACE -> activateSelection(false);
+            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> activateSelection(
+                    (modifiers & GLFW.GLFW_MOD_CONTROL) != 0);
             default -> { return false; }
         }
         keepSelectionVisible();
@@ -143,9 +144,9 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
         SFMFileExplorerEntry selected = model.visibleEntries().get(index).entry();
         long clickTime = Util.getMillis();
         if (!selected.directory() && presentations.isTextLike(selected)) {
-            activateSelection();
+            activateSelection(false);
         } else if (lastClickIndex == index && clickTime - lastClickTime <= 300L) {
-            activateSelection();
+            activateSelection(false);
         }
         lastClickIndex = index;
         lastClickTime = clickTime;
@@ -258,7 +259,7 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
         );
     }
 
-    private void activateSelection() {
+    private void activateSelection(boolean focusPreview) {
         model.selection().map(SFMFileExplorerModel.VisibleEntry::entry).ifPresent(entry -> {
             if (!entry.directory() && !presentations.isTextLike(entry)) {
                 statusMessage = "Preview unavailable: " + entry.path() + " is not text-like";
@@ -266,7 +267,8 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
             }
             model.activateSelection().ifPresent(intent -> {
                 statusMessage = "Open requested: " + intent.entry().path() + " (read-only)";
-                openIntentConsumer.accept(intent);
+                openIntentConsumer.accept(new SFMFileExplorerModel.OpenIntent(
+                        intent.sourceName(), intent.entry(), focusPreview));
             });
         });
     }

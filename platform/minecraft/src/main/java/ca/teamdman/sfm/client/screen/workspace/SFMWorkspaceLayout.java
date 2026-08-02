@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Mutable workspace state backed by a normalized n-ary tree of linear splits.
@@ -19,15 +20,20 @@ public final class SFMWorkspaceLayout {
     private long nextPanelId;
     private SFMWorkspacePanelId focusedPanel;
     private final IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelId> persistentPanelIds;
+    private final IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelMetadata> persistentPanelMetadata;
 
     private SFMWorkspaceLayout(Node root, long nextPanelId, SFMWorkspacePanelId focusedPanel) {
         this.root = root;
         this.nextPanelId = nextPanelId;
         this.focusedPanel = focusedPanel;
         this.persistentPanelIds = new IdentityHashMap<>();
+        this.persistentPanelMetadata = new IdentityHashMap<>();
         List<PanelEntry> entries = new ArrayList<>();
         collectPanels(root, entries);
-        entries.forEach(entry -> persistentPanelIds.put(entry.panel(), entry.id()));
+        entries.forEach(entry -> {
+            persistentPanelIds.put(entry.panel(), entry.id());
+            persistentPanelMetadata.put(entry.panel(), entry.metadata());
+        });
     }
 
     public static SFMWorkspaceLayout single(SFMScreenPanel panel) {
@@ -57,12 +63,14 @@ public final class SFMWorkspaceLayout {
         validateUniquePanels(spec);
         IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelId> ids = new IdentityHashMap<>();
         long[] nextId = {0};
-        Node root = materialize(spec, ids, nextId);
+        IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelMetadata> metadata = new IdentityHashMap<>();
+        Node root = materialize(spec, ids, metadata, nextId);
         List<PanelEntry> panels = new ArrayList<>();
         collectPanels(root, panels);
         if (panels.isEmpty()) throw new IllegalArgumentException("Panel group must contain a panel");
         SFMWorkspaceLayout layout = new SFMWorkspaceLayout(root, nextId[0], panels.get(0).id());
         layout.persistentPanelIds.putAll(ids);
+        layout.persistentPanelMetadata.putAll(metadata);
         return layout;
     }
 
@@ -74,7 +82,7 @@ public final class SFMWorkspaceLayout {
         Objects.requireNonNull(spec);
         validateUniquePanels(spec);
         long[] candidateNextId = {nextPanelId};
-        Node candidate = materialize(spec, persistentPanelIds, candidateNextId);
+        Node candidate = materialize(spec, persistentPanelIds, persistentPanelMetadata, candidateNextId);
         List<PanelEntry> candidatePanels = new ArrayList<>();
         collectPanels(candidate, candidatePanels);
         if (candidatePanels.isEmpty()) throw new IllegalArgumentException("Panel group must contain a panel");
@@ -102,16 +110,125 @@ public final class SFMWorkspaceLayout {
             SFMWorkspaceSide side,
             SFMScreenPanel panel
     ) {
+        return insert(source, side, panel, SFMWorkspacePanelMetadata.ordinary());
+    }
+
+    public SFMWorkspacePanelId insert(
+            SFMWorkspacePanelId source,
+            SFMWorkspaceSide side,
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata
+    ) {
         Objects.requireNonNull(source);
         Objects.requireNonNull(side);
         Objects.requireNonNull(panel);
+        Objects.requireNonNull(metadata);
         if (find(source) == null) throw new IllegalArgumentException("Unknown source panel: " + source);
         if (persistentPanelIds.containsKey(panel)) throw new IllegalArgumentException("Panel instance is already attached");
         SFMWorkspacePanelId inserted = new SFMWorkspacePanelId(nextPanelId++);
         persistentPanelIds.put(panel, inserted);
-        root = normalize(insert(root, source, side, new PanelNode(inserted, panel)));
+        persistentPanelMetadata.put(panel, metadata);
+        root = normalize(insert(root, source, side, new PanelNode(inserted, panel, metadata)));
         focusedPanel = inserted;
         return inserted;
+    }
+
+    /** Pushes a new entry into the focused slot and makes it the visible entry. */
+    public SFMWorkspacePanelId pushToFocusedStack(
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata
+    ) {
+        return pushToStack(focusedPanel, panel, metadata);
+    }
+
+    /** Pushes a new entry into the slot containing {@code source}, even when that slot is not focused. */
+    public SFMWorkspacePanelId pushToStack(
+            SFMWorkspacePanelId source,
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata
+    ) {
+        Objects.requireNonNull(panel);
+        Objects.requireNonNull(metadata);
+        Objects.requireNonNull(source);
+        if (find(root, source) == null) throw new IllegalArgumentException("Unknown source panel: " + source);
+        if (persistentPanelIds.containsKey(panel)) throw new IllegalArgumentException("Panel instance is already attached");
+        SFMWorkspacePanelId inserted = new SFMWorkspacePanelId(nextPanelId++);
+        persistentPanelIds.put(panel, inserted);
+        persistentPanelMetadata.put(panel, metadata);
+        root = pushIntoNearestStack(root, source, new PanelNode(inserted, panel, metadata));
+        focusedPanel = inserted;
+        return inserted;
+    }
+
+    /** Moves the visible entry into the adjacent slot without cloning its identity or content. */
+    public boolean move(SFMWorkspacePanelId panelId, SFMWorkspaceSide side) {
+        Objects.requireNonNull(panelId);
+        Objects.requireNonNull(side);
+        PanelNode moved = find(root, panelId);
+        if (moved == null) return false;
+        List<PanelEntry> visible = visiblePanels();
+        int sourceIndex = indexOf(visible, panelId);
+        if (sourceIndex < 0) return false;
+        int destinationIndex = side.before() ? sourceIndex - 1 : sourceIndex + 1;
+        if (destinationIndex < 0 || destinationIndex >= visible.size()) return false;
+        SFMWorkspacePanelId destination = visible.get(destinationIndex).id();
+        root = normalize(remove(root, panelId));
+        root = pushIntoNearestStack(root, destination, moved);
+        focusedPanel = panelId;
+        return true;
+    }
+
+    /** Traverses visible slots and then entries within a stacked slot. */
+    public boolean traverse(int direction) {
+        if (direction == 0) return false;
+        List<PanelEntry> stack = focusedSlotEntries();
+        if (stack.size() > 1) return rotateFocusedSlot(direction);
+        List<PanelEntry> visible = visiblePanels();
+        int index = indexOf(visible, focusedPanel);
+        if (index < 0 || visible.isEmpty()) return false;
+        int next = Math.floorMod(index + direction, visible.size());
+        return focus(visible.get(next).id());
+    }
+
+    public boolean rotateVisibleContent(int direction) {
+        if (direction == 0) return false;
+        List<PanelEntry> visible = visiblePanels();
+        if (visible.size() < 2) return false;
+        List<PanelEntry> ordered = new ArrayList<>(visible);
+        if (direction < 0) Collections.reverse(ordered);
+        for (int index = 0; index < ordered.size() - 1; index++) {
+            PanelEntry current = ordered.get(index);
+            PanelEntry next = ordered.get(index + 1);
+            PanelNode currentNode = find(root, current.id());
+            PanelNode nextNode = find(root, next.id());
+            root = replacePayload(root, current.id(), nextNode.panel(), currentNode.metadata());
+            root = replacePayload(root, next.id(), currentNode.panel(), nextNode.metadata());
+        }
+        rebuildPersistentIndexes();
+        return true;
+    }
+
+    public boolean rotateVisibleScale(int direction) {
+        if (direction == 0) return false;
+        List<PanelEntry> visible = visiblePanels();
+        if (visible.size() < 2) return false;
+        List<SFMWorkspacePanelMetadata> metadata = visible.stream().map(PanelEntry::metadata).toList();
+        for (int index = 0; index < visible.size(); index++) {
+            int source = direction > 0
+                    ? Math.floorMod(index - 1, visible.size())
+                    : Math.floorMod(index + 1, visible.size());
+            updateMetadata(visible.get(index).id(), metadata.get(source));
+        }
+        return true;
+    }
+
+    public boolean setFocusedGuiScale(@Nullable Integer scale) {
+        PanelNode focused = find(root, focusedPanel);
+        if (focused == null) return false;
+        SFMWorkspacePanelMetadata metadata = scale == null
+                ? focused.metadata().clearGuiScaleOverride()
+                : focused.metadata().withGuiScaleOverride(scale);
+        return updateMetadata(focusedPanel, metadata);
     }
 
     /** Sets the allocation constraint on the track directly containing this panel. */
@@ -128,16 +245,21 @@ public final class SFMWorkspaceLayout {
     public boolean remove(SFMWorkspacePanelId panelId) {
         Objects.requireNonNull(panelId);
         List<PanelEntry> before = panels();
+        List<PanelEntry> visibleBefore = visiblePanels();
         int removedIndex = indexOf(before, panelId);
+        int removedVisibleIndex = indexOf(visibleBefore, panelId);
         if (removedIndex < 0) return false;
         SFMScreenPanel removedPanel = before.get(removedIndex).panel();
         root = normalize(remove(root, panelId));
         persistentPanelIds.remove(removedPanel);
+        persistentPanelMetadata.remove(removedPanel);
         List<PanelEntry> after = panels();
         if (after.isEmpty()) {
             focusedPanel = null;
         } else if (panelId.equals(focusedPanel)) {
-            focusedPanel = after.get(Math.min(removedIndex, after.size() - 1)).id();
+            List<PanelEntry> visibleAfter = visiblePanels();
+            int targetIndex = removedVisibleIndex < 0 ? 0 : removedVisibleIndex;
+            focusedPanel = visibleAfter.get(Math.min(targetIndex, visibleAfter.size() - 1)).id();
         }
         return true;
     }
@@ -151,7 +273,10 @@ public final class SFMWorkspaceLayout {
     /** Every panel identity seen by this group, including leaves hidden by a temporary maximize shape. */
     public List<PanelEntry> allPanels() {
         return persistentPanelIds.entrySet().stream()
-                .map(entry -> new PanelEntry(entry.getValue(), entry.getKey()))
+                .map(entry -> new PanelEntry(
+                        entry.getValue(),
+                        entry.getKey(),
+                        persistentPanelMetadata.getOrDefault(entry.getKey(), SFMWorkspacePanelMetadata.ordinary())))
                 .sorted(java.util.Comparator.comparingLong(entry -> entry.id().value()))
                 .toList();
     }
@@ -159,6 +284,53 @@ public final class SFMWorkspaceLayout {
     public SFMScreenPanel panel(SFMWorkspacePanelId panelId) {
         PanelNode found = find(panelId);
         return found == null ? null : found.panel();
+    }
+
+    public @Nullable PanelEntry entry(SFMWorkspacePanelId panelId) {
+        PanelNode found = find(panelId);
+        return found == null ? null : new PanelEntry(found.id(), found.panel(), found.metadata());
+    }
+
+    public SFMWorkspacePanelMetadata metadata(SFMWorkspacePanelId panelId) {
+        PanelNode found = find(root, panelId);
+        return found == null ? null : found.metadata();
+    }
+
+    public boolean updateMetadata(SFMWorkspacePanelId panelId, SFMWorkspacePanelMetadata metadata) {
+        Objects.requireNonNull(metadata);
+        PanelNode found = find(root, panelId);
+        if (found == null) return false;
+        persistentPanelMetadata.put(found.panel(), metadata);
+        root = updateMetadata(root, panelId, metadata);
+        return true;
+    }
+
+    /** Visible entries in layout order; hidden stack entries are intentionally omitted. */
+    public List<PanelEntry> visiblePanels() {
+        List<PanelEntry> answer = new ArrayList<>();
+        collectVisiblePanels(root, answer);
+        return List.copyOf(answer);
+    }
+
+    /** Entries that share the focused panel's slot, in stack order. */
+    public List<PanelEntry> focusedSlotEntries() {
+        return slotEntries(focusedPanel);
+    }
+
+    /** Entries that share the slot containing the supplied visible or hidden entry. */
+    public List<PanelEntry> slotEntries(SFMWorkspacePanelId panelId) {
+        List<PanelEntry> answer = new ArrayList<>();
+        collectFocusedSlot(root, panelId, answer);
+        return List.copyOf(answer);
+    }
+
+    public boolean rotateFocusedSlot(int direction) {
+        if (direction == 0) return false;
+        Rotation rotation = rotateSlot(root, focusedPanel, direction);
+        if (!rotation.changed()) return false;
+        root = rotation.node();
+        focusedPanel = rotation.focused();
+        return true;
     }
 
     public Map<SFMWorkspacePanelId, SFMScreenPanelBounds> bounds(
@@ -401,7 +573,7 @@ public final class SFMWorkspaceLayout {
     private static void collectPanels(Node node, List<PanelEntry> answer) {
         if (node == null) return;
         if (node instanceof PanelNode panel) {
-            answer.add(new PanelEntry(panel.id(), panel.panel()));
+            answer.add(new PanelEntry(panel.id(), panel.panel(), panel.metadata()));
             return;
         }
         if (node instanceof StackNode stack) {
@@ -411,29 +583,217 @@ public final class SFMWorkspaceLayout {
         for (Track child : ((LinearNode) node).children()) collectPanels(child.node(), answer);
     }
 
+    private static void collectVisiblePanels(Node node, List<PanelEntry> answer) {
+        if (node == null) return;
+        if (node instanceof PanelNode panel) {
+            answer.add(new PanelEntry(panel.id(), panel.panel(), panel.metadata()));
+            return;
+        }
+        if (node instanceof StackNode stack) {
+            Node active = stack.children().get(stack.active());
+            collectVisiblePanels(active, answer);
+            return;
+        }
+        for (Track child : ((LinearNode) node).children()) collectVisiblePanels(child.node(), answer);
+    }
+
+    private static boolean contains(Node node, SFMWorkspacePanelId panelId) {
+        return find(node, panelId) != null;
+    }
+
+    /** Adds to the deepest existing stack on the focused path, or creates one at a leaf. */
+    private static Node pushIntoNearestStack(
+            Node node,
+            SFMWorkspacePanelId focused,
+            PanelNode inserted
+    ) {
+        if (node instanceof StackNode stack) {
+            List<Node> children = new ArrayList<>(stack.children());
+            for (int index = 0; index < children.size(); index++) {
+                Node child = children.get(index);
+                if (!contains(child, focused)) continue;
+                if (child instanceof PanelNode panel && panel.id().equals(focused)) {
+                    children.add(inserted);
+                    return new StackNode(children, children.size() - 1);
+                }
+                Node changed = pushIntoNearestStack(child, focused, inserted);
+                if (changed != child) {
+                    children.set(index, changed);
+                    return new StackNode(children, stack.active());
+                }
+                children.add(inserted);
+                return new StackNode(children, children.size() - 1);
+            }
+            return node;
+        }
+        if (node instanceof LinearNode linear) {
+            List<Track> children = new ArrayList<>(linear.children());
+            for (int index = 0; index < children.size(); index++) {
+                Track child = children.get(index);
+                if (!contains(child.node(), focused)) continue;
+                Node changed = pushIntoNearestStack(child.node(), focused, inserted);
+                children.set(index, child.withNode(changed));
+                return new LinearNode(linear.axis(), children);
+            }
+            return node;
+        }
+        PanelNode panel = (PanelNode) node;
+        if (!panel.id().equals(focused)) return node;
+        return new StackNode(List.of(panel, inserted), 1);
+    }
+
+    private static void collectFocusedSlot(
+            Node node,
+            SFMWorkspacePanelId focused,
+            List<PanelEntry> answer
+    ) {
+        if (node instanceof StackNode stack) {
+            for (Node child : stack.children()) {
+                if (contains(child, focused)) {
+                    for (Node entry : stack.children()) collectPanels(entry, answer);
+                    return;
+                }
+            }
+            return;
+        }
+        if (node instanceof LinearNode linear) {
+            for (Track child : linear.children()) {
+                if (contains(child.node(), focused)) {
+                    collectFocusedSlot(child.node(), focused, answer);
+                    return;
+                }
+            }
+            return;
+        }
+        PanelNode panel = (PanelNode) node;
+        if (panel.id().equals(focused)) answer.add(new PanelEntry(panel.id(), panel.panel(), panel.metadata()));
+    }
+
+    private static Node updateMetadata(
+            Node node,
+            SFMWorkspacePanelId panelId,
+            SFMWorkspacePanelMetadata metadata
+    ) {
+        if (node instanceof PanelNode panel) {
+            return panel.id().equals(panelId)
+                    ? new PanelNode(panel.id(), panel.panel(), metadata)
+                    : panel;
+        }
+        if (node instanceof StackNode stack) {
+            List<Node> children = stack.children().stream()
+                    .map(child -> updateMetadata(child, panelId, metadata)).toList();
+            return new StackNode(children, stack.active());
+        }
+        LinearNode linear = (LinearNode) node;
+        List<Track> children = linear.children().stream()
+                .map(child -> child.withNode(updateMetadata(child.node(), panelId, metadata))).toList();
+        return new LinearNode(linear.axis(), children);
+    }
+
+    private static Node replacePayload(
+            Node node,
+            SFMWorkspacePanelId panelId,
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata
+    ) {
+        if (node instanceof PanelNode current) {
+            return current.id().equals(panelId)
+                    ? new PanelNode(current.id(), panel, metadata)
+                    : current;
+        }
+        if (node instanceof StackNode stack) {
+            return new StackNode(stack.children().stream()
+                    .map(child -> replacePayload(child, panelId, panel, metadata)).toList(), stack.active());
+        }
+        LinearNode linear = (LinearNode) node;
+        return new LinearNode(linear.axis(), linear.children().stream()
+                .map(child -> child.withNode(replacePayload(child.node(), panelId, panel, metadata))).toList());
+    }
+
+    private void rebuildPersistentIndexes() {
+        persistentPanelIds.clear();
+        persistentPanelMetadata.clear();
+        List<PanelEntry> entries = new ArrayList<>();
+        collectPanels(root, entries);
+        for (PanelEntry entry : entries) {
+            persistentPanelIds.put(entry.panel(), entry.id());
+            persistentPanelMetadata.put(entry.panel(), entry.metadata());
+        }
+    }
+
+    private static Rotation rotateSlot(Node node, SFMWorkspacePanelId focused, int direction) {
+        if (node instanceof StackNode stack) {
+            for (Node child : stack.children()) {
+                if (!contains(child, focused)) continue;
+                if (child instanceof PanelNode) {
+                    List<Node> children = new ArrayList<>(stack.children());
+                    int active = Math.floorMod(stack.active() + direction, children.size());
+                    return new Rotation(new StackNode(children, active), ((PanelNode) children.get(active)).id(), true);
+                }
+                Rotation nested = rotateSlot(child, focused, direction);
+                if (nested.changed()) {
+                    List<Node> children = new ArrayList<>(stack.children());
+                    int index = children.indexOf(child);
+                    children.set(index, nested.node());
+                    return new Rotation(new StackNode(children, stack.active()), nested.focused(), true);
+                }
+            }
+            return new Rotation(node, focused, false);
+        }
+        if (node instanceof LinearNode linear) {
+            for (Track child : linear.children()) {
+                if (!contains(child.node(), focused)) continue;
+                Rotation nested = rotateSlot(child.node(), focused, direction);
+                if (!nested.changed()) return nested;
+                List<Track> children = new ArrayList<>(linear.children());
+                int index = children.indexOf(child);
+                children.set(index, child.withNode(nested.node()));
+                return new Rotation(new LinearNode(linear.axis(), children), nested.focused(), true);
+            }
+        }
+        return new Rotation(node, focused, false);
+    }
+
     private static int indexOf(List<PanelEntry> panels, SFMWorkspacePanelId panelId) {
         for (int i = 0; i < panels.size(); i++) if (panels.get(i).id().equals(panelId)) return i;
         return -1;
     }
 
-    public record PanelEntry(SFMWorkspacePanelId id, SFMScreenPanel panel) {
+    public record PanelEntry(
+            SFMWorkspacePanelId id,
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata
+    ) {
+        public PanelEntry {
+            Objects.requireNonNull(id);
+            Objects.requireNonNull(panel);
+            Objects.requireNonNull(metadata);
+        }
+
+        public PanelEntry(SFMWorkspacePanelId id, SFMScreenPanel panel) {
+            this(id, panel, SFMWorkspacePanelMetadata.ordinary());
+        }
     }
 
     private static Node materialize(
             LayoutSpec spec,
             IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelId> ids,
+            IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelMetadata> metadata,
             long[] nextId
     ) {
         if (spec instanceof PanelSpec panel) {
             SFMWorkspacePanelId id = ids.computeIfAbsent(panel.panel(), ignored -> new SFMWorkspacePanelId(nextId[0]++));
-            return new PanelNode(id, panel.panel());
+            SFMWorkspacePanelMetadata entryMetadata = metadata.computeIfAbsent(
+                    panel.panel(), ignored -> SFMWorkspacePanelMetadata.ordinary());
+            return new PanelNode(id, panel.panel(), entryMetadata);
         }
         if (spec instanceof StackSpec stack) {
-            return new StackNode(stack.children().stream().map(child -> materialize(child, ids, nextId)).toList(), stack.active());
+            return new StackNode(stack.children().stream()
+                    .map(child -> materialize(child, ids, metadata, nextId)).toList(), stack.active());
         }
         LinearSpec linear = (LinearSpec) spec;
         return new LinearNode(linear.axis(), linear.children().stream()
-                .map(child -> new Track(materialize(child, ids, nextId), 1.0, DEFAULT_MINIMUM_PIXELS)).toList());
+                .map(child -> new Track(materialize(child, ids, metadata, nextId), 1.0, DEFAULT_MINIMUM_PIXELS)).toList());
     }
 
     private static void validateUniquePanels(LayoutSpec spec) {
@@ -491,7 +851,20 @@ public final class SFMWorkspaceLayout {
     private sealed interface Node permits PanelNode, LinearNode, StackNode {
     }
 
-    private record PanelNode(SFMWorkspacePanelId id, SFMScreenPanel panel) implements Node {
+    private record PanelNode(
+            SFMWorkspacePanelId id,
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata
+    ) implements Node {
+        private PanelNode {
+            Objects.requireNonNull(id);
+            Objects.requireNonNull(panel);
+            Objects.requireNonNull(metadata);
+        }
+
+        private PanelNode(SFMWorkspacePanelId id, SFMScreenPanel panel) {
+            this(id, panel, SFMWorkspacePanelMetadata.ordinary());
+        }
     }
 
     private record LinearNode(SFMWorkspaceAxis axis, List<Track> children) implements Node {
@@ -524,6 +897,9 @@ public final class SFMWorkspaceLayout {
     }
 
     private record Configuration(Node node, boolean changed) {
+    }
+
+    private record Rotation(Node node, SFMWorkspacePanelId focused, boolean changed) {
     }
 
     private record Activation(Node node, boolean found) {

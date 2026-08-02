@@ -7,16 +7,36 @@ public sealed interface SFMWorkspacePanelIntent {
     record Close() implements SFMWorkspacePanelIntent {
     }
 
-    record OpenToSide(SFMWorkspaceSide side, SFMScreenPanel panel) implements SFMWorkspacePanelIntent {
+    record OpenToSide(
+            SFMWorkspaceSide side,
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata
+    ) implements SFMWorkspacePanelIntent {
         public OpenToSide {
             Objects.requireNonNull(side);
             Objects.requireNonNull(panel);
+            Objects.requireNonNull(metadata);
+        }
+
+        public OpenToSide(SFMWorkspaceSide side, SFMScreenPanel panel) {
+            this(side, panel, SFMWorkspacePanelMetadata.ordinary());
         }
     }
 
-    record OpenAsTab(SFMScreenPanel panel) implements SFMWorkspacePanelIntent {
+    record OpenAsTab(SFMScreenPanel panel, SFMWorkspacePanelMetadata metadata) implements SFMWorkspacePanelIntent {
         public OpenAsTab {
             Objects.requireNonNull(panel);
+            Objects.requireNonNull(metadata);
+        }
+
+        public OpenAsTab(SFMScreenPanel panel) {
+            this(panel, SFMWorkspacePanelMetadata.ordinary());
+        }
+    }
+
+    record Move(SFMWorkspaceSide side) implements SFMWorkspacePanelIntent {
+        public Move {
+            Objects.requireNonNull(side);
         }
     }
 }

@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceSide;
 import net.minecraftforge.eventbus.api.IEventBus;
 
 public final class SFMCommandPaletteActions {
@@ -53,6 +54,71 @@ public final class SFMCommandPaletteActions {
     public static final SFMRegistryObject<SFMClientAction<?>, OpenPanelAction> OPEN_PANEL_BELOW = REGISTERER.register(
             "panel/open/below",
             () -> new OpenPanelAction(OpenPanelAction.Direction.BELOW)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, ClosePanelAction> CLOSE_PANEL = REGISTERER.register(
+            "panel/close",
+            ClosePanelAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, MovePanelAction> MOVE_PANEL_LEFT = REGISTERER.register(
+            "panel/move/left",
+            () -> new MovePanelAction(SFMWorkspaceSide.LEFT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, MovePanelAction> MOVE_PANEL_RIGHT = REGISTERER.register(
+            "panel/move/right",
+            () -> new MovePanelAction(SFMWorkspaceSide.RIGHT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, MovePanelAction> MOVE_PANEL_ABOVE = REGISTERER.register(
+            "panel/move/above",
+            () -> new MovePanelAction(SFMWorkspaceSide.ABOVE)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, MovePanelAction> MOVE_PANEL_BELOW = REGISTERER.register(
+            "panel/move/below",
+            () -> new MovePanelAction(SFMWorkspaceSide.BELOW)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PanelScaleAction> SET_PANEL_SCALE = REGISTERER.register(
+            "panel/scale/set",
+            () -> new PanelScaleAction(PanelScaleAction.Operation.SET)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PanelScaleAction> INCREASE_PANEL_SCALE = REGISTERER.register(
+            "panel/scale/increase",
+            () -> new PanelScaleAction(PanelScaleAction.Operation.INCREASE)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PanelScaleAction> DECREASE_PANEL_SCALE = REGISTERER.register(
+            "panel/scale/decrease",
+            () -> new PanelScaleAction(PanelScaleAction.Operation.DECREASE)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PanelScaleAction> CLEAR_PANEL_SCALE = REGISTERER.register(
+            "panel/scale/clear",
+            () -> new PanelScaleAction(PanelScaleAction.Operation.CLEAR)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, RotatePanelAction> ROTATE_CONTENT_LEFT = REGISTERER.register(
+            "panel/rotate/content/left",
+            () -> new RotatePanelAction(RotatePanelAction.Kind.CONTENT, RotatePanelAction.Direction.LEFT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, RotatePanelAction> ROTATE_CONTENT_RIGHT = REGISTERER.register(
+            "panel/rotate/content/right",
+            () -> new RotatePanelAction(RotatePanelAction.Kind.CONTENT, RotatePanelAction.Direction.RIGHT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, RotatePanelAction> ROTATE_SCALE_LEFT = REGISTERER.register(
+            "panel/rotate/scale/left",
+            () -> new RotatePanelAction(RotatePanelAction.Kind.SCALE, RotatePanelAction.Direction.LEFT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, RotatePanelAction> ROTATE_SCALE_RIGHT = REGISTERER.register(
+            "panel/rotate/scale/right",
+            () -> new RotatePanelAction(RotatePanelAction.Kind.SCALE, RotatePanelAction.Direction.RIGHT)
     );
 
     public static final SFMRegistryObject<SFMClientAction<?>, OpenKeyBindingScreenAction> MANAGE_KEY_BINDINGS = REGISTERER.register(

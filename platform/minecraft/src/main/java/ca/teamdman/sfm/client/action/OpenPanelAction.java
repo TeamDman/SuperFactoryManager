@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMClientScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetadata;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceSide;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -92,12 +93,16 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
         @Nullable Screen origin = actionContext.originatingHost() instanceof Screen screen ? screen : null;
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen instanceof SFMCommandPaletteScreen palette) palette.onClose();
+        if (direction == Direction.FOCUSED) {
+            SFMScreenMultiplexer.openFocused(origin, panel, SFMWorkspacePanelMetadata.ordinary());
+            return 1;
+        }
         SFMWorkspaceSide side = switch (direction) {
             case LEFT -> SFMWorkspaceSide.LEFT;
             case RIGHT -> SFMWorkspaceSide.RIGHT;
             case ABOVE -> SFMWorkspaceSide.ABOVE;
             case BELOW -> SFMWorkspaceSide.BELOW;
-            case FOCUSED -> SFMWorkspaceSide.RIGHT;
+            case FOCUSED -> throw new AssertionError("Focused panel opening was handled above");
         };
         SFMScreenMultiplexer.openToSide(origin, side, panel);
         return 1;

@@ -164,4 +164,59 @@ class SFMWorkspaceLayoutTests {
         assertEquals(leftId, layout.panels().get(0).id());
         assertEquals(rightId, layout.panels().get(1).id());
     }
+
+    @Test
+    void focusedOpenPushesIntoTheFocusedSlotAndTraversalVisitsEveryEntry() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.single(left);
+        SFMWorkspacePanelId leftId = layout.focusedPanel();
+        SFMWorkspacePanelId rightId = layout.pushToFocusedStack(
+                right,
+                SFMWorkspacePanelMetadata.explorerPreview(leftId.toString())
+        );
+
+        assertEquals(rightId, layout.focusedPanel());
+        assertEquals(List.of(leftId, rightId), layout.focusedSlotEntries().stream()
+                .map(SFMWorkspaceLayout.PanelEntry::id).toList());
+        assertEquals(List.of(rightId), layout.visiblePanels().stream()
+                .map(SFMWorkspaceLayout.PanelEntry::id).toList());
+
+        assertTrue(layout.traverse(-1));
+        assertEquals(leftId, layout.focusedPanel());
+        assertTrue(layout.traverse(1));
+        assertEquals(rightId, layout.focusedPanel());
+    }
+
+    @Test
+    void movingPreservesEntryIdentityAndPushesIntoTheNeighborSlot() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(left, right);
+        SFMWorkspacePanelId leftId = layout.panels().get(0).id();
+        SFMWorkspacePanelId rightId = layout.panels().get(1).id();
+        assertTrue(layout.focus(leftId));
+
+        assertTrue(layout.move(leftId, SFMWorkspaceSide.RIGHT));
+        assertEquals(leftId, layout.focusedPanel());
+        assertEquals(List.of(rightId, leftId), layout.slotEntries(rightId).stream()
+                .map(SFMWorkspaceLayout.PanelEntry::id).toList());
+        assertSame(left, layout.panel(leftId));
+        assertSame(right, layout.panel(rightId));
+    }
+
+    @Test
+    void contentAndScaleRotationsAreIndependentVisibleEntryAssignments() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(left, right);
+        SFMWorkspacePanelId leftId = layout.panels().get(0).id();
+        SFMWorkspacePanelId rightId = layout.panels().get(1).id();
+        layout.updateMetadata(leftId, SFMWorkspacePanelMetadata.ordinary().withGuiScaleOverride(2));
+        layout.updateMetadata(rightId, SFMWorkspacePanelMetadata.ordinary().withGuiScaleOverride(4));
+
+        assertTrue(layout.rotateVisibleScale(1));
+        assertEquals(4, layout.metadata(leftId).guiScaleOverride());
+        assertEquals(2, layout.metadata(rightId).guiScaleOverride());
+
+        assertTrue(layout.rotateVisibleContent(1));
+        assertSame(right, layout.panel(leftId));
+        assertSame(left, layout.panel(rightId));
+        assertEquals(4, layout.metadata(leftId).guiScaleOverride());
+        assertEquals(2, layout.metadata(rightId).guiScaleOverride());
+    }
 }
