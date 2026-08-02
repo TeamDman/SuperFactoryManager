@@ -21,15 +21,14 @@ class SFMVoxTerminalServiceTests {
     }
 
     @Test
-    void unavailableEndpointFallsBackToJavaLocalBackend() {
+    void unavailableEndpointStaysRustDisconnectedInsteadOfFallingBack() {
         try (SFMVoxTerminalService vox = unavailableService(new SFMJavaLocalTerminalService())) {
             SFMTerminalService.SFMTerminalSession session = vox.openSession();
 
             SFMTerminalResponse response = session.execute("pwd");
 
-            assertTrue(response.success());
-            assertTrue(response.lines().get(0).equals("Vox unavailable; Java-local fallback active"));
-            assertTrue(response.lines().stream().anyMatch(line -> line.equals("/")));
+            assertFalse(response.success());
+            assertTrue(response.lines().get(0).startsWith("Rust terminal unavailable:"));
             assertTrue(vox.latestSnapshot().isEmpty());
         }
     }

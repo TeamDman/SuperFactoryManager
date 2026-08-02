@@ -48,7 +48,10 @@ public final class SFMDeveloperWorldLauncher {
         String worldId = nextWorldId(minecraft);
         pendingWorldCreation = new PendingWorldCreation(worldId, runGameTests);
 
-        RegistryAccess.Frozen registryAccess = RegistryAccess.BUILTIN.get();
+        // Forge mutates biome metadata while starting a server.  A fresh copy
+        // is required here so a later developer world does not reuse biomes
+        // that were already modified by the previous integrated server.
+        RegistryAccess registryAccess = RegistryAccess.builtinCopy();
         Registry<WorldPreset> presets = registryAccess.registryOrThrow(Registry.WORLD_PRESET_REGISTRY);
         WorldGenSettings worldGenSettings = presets
                 .getOrCreateHolderOrThrow(WorldPresets.FLAT)

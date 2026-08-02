@@ -88,7 +88,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 
         if (!active.worldCreationStarted) {
             active.worldCreationStarted = true;
-            RegistryAccess.Frozen registryAccess = RegistryAccess.BUILTIN.get();
+            RegistryAccess registryAccess = RegistryAccess.builtinCopy();
             Registry<WorldPreset> presets = registryAccess.registryOrThrow(Registry.WORLD_PRESET_REGISTRY);
             WorldGenSettings worldGenSettings = presets
                     .getOrCreateHolderOrThrow(WorldPresets.FLAT)

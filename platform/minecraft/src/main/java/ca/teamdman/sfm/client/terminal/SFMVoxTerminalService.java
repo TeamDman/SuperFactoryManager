@@ -30,7 +30,6 @@ import org.facet.vox.generated.TerminalTextInput;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -40,6 +39,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -48,8 +48,8 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>Rust owns the PTY, VT state, and rasterization. Java only sends terminal
  * input and retains the latest bounded full-frame PNG for presentation. The
- * Java-local service is still available as an explicit degradation path when
- * the endpoint cannot be reached.
+ * Java-local service is a separate explicit REPL surface, never an implicit
+ * fallback for this scene.
  */
 public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private static final int REQUEST_WIDTH = 120;
@@ -61,7 +61,6 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private static final long FRAME_POLL_MILLIS = 50;
 
     private final InetSocketAddress endpoint;
-    private final SFMTerminalService fallbackService;
     private final ConnectionOptions connectionOptions;
     private final Duration callTimeout;
     private final ExecutorService driver;
@@ -79,14 +78,21 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private int requestedHeight = REQUEST_HEIGHT;
     private boolean polling;
     private boolean snapshotInFlight;
+    private boolean connectionInFlight;
+    private long nextConnectionAttemptNanos;
     private boolean closed;
 
     public SFMVoxTerminalService(InetSocketAddress endpoint) {
-        this(endpoint, new SFMJavaLocalTerminalService());
+        this(endpoint, ConnectionOptions.builder()
+                .handshakeTimeout(Duration.ofMillis(500))
+                .idleTimeout(DEFAULT_TIMEOUT)
+                .closeTimeout(Duration.ofSeconds(1))
+                .build(), DEFAULT_TIMEOUT);
     }
 
+    /** Retained as a source-compatible constructor; the fallback is deliberately ignored. */
     public SFMVoxTerminalService(InetSocketAddress endpoint, SFMTerminalService fallbackService) {
-        this(endpoint, fallbackService, ConnectionOptions.builder()
+        this(endpoint, ConnectionOptions.builder()
                 .handshakeTimeout(Duration.ofMillis(500))
                 .idleTimeout(DEFAULT_TIMEOUT)
                 .closeTimeout(Duration.ofSeconds(1))
@@ -95,11 +101,9 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
 
     public SFMVoxTerminalService(
             InetSocketAddress endpoint,
-            SFMTerminalService fallbackService,
             ConnectionOptions connectionOptions,
             Duration callTimeout) {
         this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
-        this.fallbackService = Objects.requireNonNull(fallbackService, "fallbackService");
         this.connectionOptions = Objects.requireNonNull(connectionOptions, "connectionOptions");
         this.callTimeout = requirePositive(callTimeout, "callTimeout");
         this.driver = Executors.newSingleThreadExecutor(runnable -> {
@@ -114,10 +118,67 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         });
     }
 
+    /** Retained as a source-compatible constructor; the fallback is deliberately ignored. */
+    public SFMVoxTerminalService(
+            InetSocketAddress endpoint,
+            SFMTerminalService ignoredFallback,
+            ConnectionOptions connectionOptions,
+            Duration callTimeout) {
+        this(endpoint, connectionOptions, callTimeout);
+    }
+
     @Override
     public SFMTerminalSession openSession() {
         startPolling();
-        return new Session(fallbackService.openSession());
+        return new Session();
+    }
+
+    @Override
+    public void requestConnect() {
+        startPolling();
+        synchronized (lock) {
+            if (closed || sessionId != null || connectionInFlight
+                    || failure != null && System.nanoTime() < nextConnectionAttemptNanos) return;
+            connectionInFlight = true;
+        }
+        try {
+            driver.execute(() -> {
+                try {
+                    ensureConnected();
+                } catch (Exception ignored) {
+                    // The panel exposes the failure and keeps the retry button available.
+                } finally {
+                    synchronized (lock) {
+                        connectionInFlight = false;
+                    }
+                }
+            });
+        } catch (RejectedExecutionException ignored) {
+            synchronized (lock) {
+                connectionInFlight = false;
+            }
+        }
+    }
+
+    @Override
+    public boolean isConnected() {
+        synchronized (lock) {
+            return sessionId != null;
+        }
+    }
+
+    @Override
+    public boolean isConnecting() {
+        synchronized (lock) {
+            return connectionInFlight;
+        }
+    }
+
+    @Override
+    public Optional<String> failureMessage() {
+        synchronized (lock) {
+            return Optional.ofNullable(failure);
+        }
     }
 
     /** Returns the latest bounded frame received from Vox, if any. */
@@ -224,6 +285,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             if (closed) return;
             closeTransportLocked(false);
             failure = null;
+            nextConnectionAttemptNanos = 0;
             latestSnapshot = null;
             latestContent = null;
             clientSequence = 0;
@@ -286,6 +348,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 // replacement client.
                 if (!closed && client == currentClient && Objects.equals(sessionId, currentSession)) {
                     failure = "Vox terminal snapshot unavailable: " + describe(error);
+                    nextConnectionAttemptNanos = System.nanoTime() + Duration.ofSeconds(2).toNanos();
                     latestSnapshot = null;
                     latestContent = null;
                     closeTransportLocked();
@@ -322,30 +385,45 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         synchronized (lock) {
             if (closed) throw new IllegalStateException("Vox terminal service is closed");
             if (sessionId != null) return;
-            // A failed optional endpoint is retryable. The server may be started
-            // after Minecraft, so a prior fallback must not poison this service.
             failure = null;
+        }
 
-            try {
-                connection = VoxConnection.connect(endpoint, freshConnectionOptions());
-                CompletableFuture<Void> closedFuture = connection.start(driver);
-                awaitConnectionOpen(closedFuture);
-                lane = connection.openLane(TerminalServiceDescriptor.INSTANCE, LaneOptions.defaults());
-                await(lane.opened(), "opening terminal lane");
-                client = new TerminalClient(lane);
-                TerminalCapabilities capabilities = new TerminalCapabilities(
-                        true, true, true, false, true, false, false, false,
-                        requestedWidth, requestedHeight, MAX_FRAME_BYTES);
-                TerminalConnectRequest request = new TerminalConnectRequest(
-                        "sfm-terminal", requestedWidth, requestedHeight, capabilities, nextSequence());
-                TerminalConnectResult connected = requireSuccess(
-                        await(client.connect(request), "connecting terminal"), "connecting terminal");
+        VoxConnection newConnection = null;
+        ServiceLane newLane = null;
+        try {
+            newConnection = VoxConnection.connect(endpoint, freshConnectionOptions());
+            CompletableFuture<Void> closedFuture = newConnection.start(driver);
+            awaitConnectionOpen(newConnection, closedFuture);
+            newLane = newConnection.openLane(TerminalServiceDescriptor.INSTANCE, LaneOptions.defaults());
+            await(newLane.opened(), "opening terminal lane");
+            TerminalClient newClient = new TerminalClient(newLane);
+            TerminalCapabilities capabilities = new TerminalCapabilities(
+                    true, true, true, false, true, false, false, false,
+                    requestedWidth, requestedHeight, MAX_FRAME_BYTES);
+            TerminalConnectRequest request = new TerminalConnectRequest(
+                    "sfm-terminal", requestedWidth, requestedHeight, capabilities, nextSequence());
+            TerminalConnectResult connected = requireSuccess(
+                    await(newClient.connect(request), "connecting terminal"), "connecting terminal");
+            synchronized (lock) {
+                if (closed) {
+                    newLane.close();
+                    newConnection.close();
+                    return;
+                }
+                connection = newConnection;
+                lane = newLane;
+                client = newClient;
                 sessionId = connected.sessionId();
-            } catch (Exception error) {
-                failure = "Vox terminal unavailable: " + describe(error);
-                closeTransportLocked();
-                throw new IllegalStateException(failure, error);
             }
+        } catch (Exception error) {
+            if (newLane != null) newLane.close();
+            if (newConnection != null) newConnection.close();
+            synchronized (lock) {
+                failure = "Vox terminal unavailable: " + describe(error);
+                nextConnectionAttemptNanos = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+                closeTransportLocked();
+            }
+            throw new IllegalStateException(failure, error);
         }
     }
 
@@ -504,7 +582,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         }
     }
 
-    private SFMTerminalResponse execute(String command, SFMTerminalSession fallbackSession) {
+    private SFMTerminalResponse execute(String command) {
         String workingDirectory = workingDirectory();
         try {
             ensureConnected();
@@ -530,12 +608,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 latestSnapshot = null;
                 latestContent = null;
             }
-            SFMTerminalResponse local = fallbackSession.execute(command);
-            List<String> lines = new ArrayList<>();
-            lines.add("Vox unavailable; Java-local fallback active");
-            lines.add(describe(error));
-            lines.addAll(local.lines());
-            return new SFMTerminalResponse(local.success(), lines, local.workingDirectory());
+            return SFMTerminalResponse.error(
+                    "Rust terminal unavailable: " + describe(error), workingDirectory);
         }
     }
 
@@ -559,14 +633,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         }
     }
 
-    private void awaitConnectionOpen(CompletableFuture<Void> closedFuture) throws Exception {
+    private void awaitConnectionOpen(VoxConnection currentConnection, CompletableFuture<Void> closedFuture) throws Exception {
         long deadline = System.nanoTime() + callTimeout.toNanos();
-        while (connection.state() != ConnectionState.OPEN && System.nanoTime() < deadline) {
+        while (currentConnection.state() != ConnectionState.OPEN && System.nanoTime() < deadline) {
             if (closedFuture.isDone()) await(closedFuture, "opening Vox connection");
             Thread.sleep(5);
         }
-        if (connection.state() != ConnectionState.OPEN) {
-            throw new IllegalStateException("connection did not open: " + connection.state());
+        if (currentConnection.state() != ConnectionState.OPEN) {
+            throw new IllegalStateException("connection did not open: " + currentConnection.state());
         }
     }
 
@@ -662,23 +736,17 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     private final class Session implements SFMTerminalSession {
-        private final SFMTerminalSession fallbackSession;
-
-        private Session(SFMTerminalSession fallbackSession) {
-            this.fallbackSession = Objects.requireNonNull(fallbackSession, "fallbackSession");
-        }
-
         @Override
         public SFMTerminalResponse execute(String command) {
             if (command == null || command.isBlank()) {
                 return SFMTerminalResponse.ok(List.of(), workingDirectory());
             }
-            return SFMVoxTerminalService.this.execute(command, fallbackSession);
+            return SFMVoxTerminalService.this.execute(command);
         }
 
         @Override
         public String workingDirectory() {
-            return fallbackSession.workingDirectory();
+            return SFMVoxTerminalService.this.workingDirectory();
         }
     }
 }

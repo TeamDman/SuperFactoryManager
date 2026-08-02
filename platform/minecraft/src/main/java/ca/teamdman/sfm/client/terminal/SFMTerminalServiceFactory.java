@@ -26,20 +26,16 @@ public final class SFMTerminalServiceFactory {
         return new SFMJavaLocalTerminalService();
     }
 
-    /** Creates a Rust-preferred terminal with Java-local fallback. */
+    /** Creates the Rust scene; unavailable Vox is represented as a disconnected placeholder. */
     public static SFMTerminalService createRust() {
         InetSocketAddress endpoint = configuredEndpoint().orElseThrow();
-        return createRustOrFallback(endpoint);
+        return instantiateRust(endpoint).orElseGet(() -> new SFMUnavailableTerminalService(endpoint));
     }
 
     /** Creates the optional Rust implementation without making Vox a Java compile-time dependency. */
     public static SFMTerminalService createRust(InetSocketAddress endpoint) {
         return instantiateRust(endpoint).orElseThrow(() -> new IllegalStateException(
                 "Rust/Vox terminal support is not present in this Java-only artifact"));
-    }
-
-    private static SFMTerminalService createRustOrFallback(InetSocketAddress endpoint) {
-        return instantiateRust(endpoint).orElseGet(SFMJavaLocalTerminalService::new);
     }
 
     private static Optional<SFMTerminalService> instantiateRust(InetSocketAddress endpoint) {

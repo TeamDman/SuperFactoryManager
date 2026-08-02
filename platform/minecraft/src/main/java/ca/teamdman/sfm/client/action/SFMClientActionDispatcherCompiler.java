@@ -51,6 +51,9 @@ public final class SFMClientActionDispatcherCompiler {
 
         LiteralArgumentBuilder<SFMClientActionSource> help = LiteralArgumentBuilder.literal("help");
         SuggestionProvider<SFMClientActionSource> actionIdSuggestions = (context, builder) -> {
+            // This provider reads the immutable compiled action map only. Any
+            // filesystem, network, or repository scan belongs in an explicit
+            // preloaded snapshot and must never run during palette completion.
             for (ResourceLocation id : actions.keySet()) {
                 builder.suggest(id.toString());
             }

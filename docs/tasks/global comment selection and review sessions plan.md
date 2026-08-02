@@ -1,5 +1,8 @@
 # Global comment selection and review sessions plan
 
+**Plan status:** Active
+**Last updated:** 2026-08-02
+
 ## Purpose
 
 Replace the provisional boolean review ledger with a general comment system
@@ -32,6 +35,35 @@ comment substrate described here rather than expanding the boolean ledger.
 The first migration should preserve the existing puppet as a compatibility
 fixture by projecting a legacy decision into comments such as `#reviewed`,
 `#approved`, and `#audit-forbidden`.
+
+### Product-direction correction — 2026-08-02
+
+The managed repository-review bundle was an earlier attempt to transport a
+fixed before/after review into Minecraft. It proved the comment kernel against
+real repository bytes, but it is superseded by direct revision-lane selectors
+and composable explorers. Release-plan item P-1.2 removes the Java importer,
+dedicated workspace, Rust `review prepare` producer, managed inbox, bundle
+schema/fixture, tests, and puppet. Git history preserves that experiment; it is
+not a compatibility surface for the unpublished release.
+
+This removal does **not** remove `review/session`,
+`review-comment-session-v1`, comment selection/evaluation, persistence,
+derived hashtags, style rules, or the comment editing UI. Those are the
+authoritative substrate. New adapters populate revision lanes and document
+revisions directly from explicit selectors rather than reconstructing the old
+bundle abstraction.
+
+The required projections are:
+
+- `sfm:explorer/changes <before-selector> <after-selector>`:
+  `file → revision lane → before|after`;
+- `sfm:explorer/comments`: `comment → file → region`; and
+- `sfm:explorer/comments/hashtags`: `hashtag → file → region`.
+
+Opening a region presents one immutable before/after document revision with
+all applicable comment styles. Diff engines express added/removed presentation
+through ordinary `#added` and `#removed` comments; a fixed two-pane diff screen
+is not the primary review composition.
 
 ## Confirmed SFML matcher correction
 
@@ -642,34 +674,35 @@ The coordinator owns the shared schema and canonical plans. Feature agents work
 from one reviewed `1.19.2` baseline, do not update canonical plan copies, and
 return tests plus captioned puppets before an integration goal merges anything.
 
-### Active real-repository review wave — 2026-07-22
+### Historical real-repository bundle wave — 2026-07-22 (superseded)
 
-The shared handoff is frozen in
-[`../architecture/repository-review-bundle-v1.md`](../architecture/repository-review-bundle-v1.md).
-All tracks branch from the same contract commit. The coordinator alone updates
-these canonical plans, merges accepted work, installs a changed Rust CLI into
-`PATH`, and captures the final merged proof. Feature tracks do not edit `.g4`
-files or propagate to later Minecraft versions.
+The shared handoff was frozen in the now-superseded
+`repository-review-bundle-v1` contract, recoverable from Git history after
+P-1.2 removes the live artifact.
+All tracks branched from the same contract commit. The coordinator alone
+updated these canonical plans, merged accepted work, installed the changed
+Rust CLI into `PATH`, and captured the final merged proof. Feature tracks did
+not edit `.g4` files or propagate to later Minecraft versions.
 
 1. **Repository bundle producer** — read a Git revision pair or prepared
-   directories, build complete byte-accurate snapshots, calculate deterministic
-   file/text changes, validate limits, and atomically write a named bundle into
-   the managed inbox. Facet remains the Rust serialization authority.
-2. **Bundle loader and session lifecycle** — validate the same fixture in Java,
-   enumerate the managed inbox, expose a typed command-palette open action,
-   import generated comments with provenance, and deterministically reopen the
-   existing persisted session.
-3. **Real review workspace** — replace the frozen comparison fixture with a
+   directories, built complete byte-accurate snapshots, calculated
+   deterministic file/text changes, validated limits, and atomically wrote a
+   named bundle into the managed inbox. Facet was the Rust serialization
+   authority for that experiment.
+2. **Bundle loader and session lifecycle** — validated the fixture in Java,
+   enumerated the managed inbox, exposed a typed command-palette open action,
+   imported generated comments with provenance, and deterministically reopened
+   the persisted session.
+3. **Real review workspace** — replaced the frozen comparison fixture with a
    responsive changed-file tree and before/after source panels backed by the
-   loader, create literal review comments through the existing kernel, and
-   prove the full interaction at 1200x720.
+   loader, created literal review comments through the existing kernel, and
+   proved the interaction at 1200x720.
 
-The real proof pair is SFM `d07bef66c` to `8e9946d9f`. Acceptance requires the
-Rust command to prepare that pair, the game to open it through the command
-palette, a reviewer to browse a changed file and add a comment, and close/reopen
-to restore the same session and comment. Track tests, local puppets, merged Java
-compile/full tests, Rust checks, source audit, inspected merged puppets, and a
-clean canonical worktree are mandatory.
+The historical proof pair was SFM `d07bef66c` to `8e9946d9f`. Acceptance at
+that time required the Rust command to prepare the pair, the game to open it
+through the command palette, a reviewer to browse a changed file and add a
+comment, and close/reopen to restore the same session and comment. Those gates
+are evidence about the deleted experiment, not current implementation work.
 
 #### Real-repository wave result — 2026-07-22
 
@@ -684,11 +717,11 @@ and reserve source-panel space for comments.
 
 The real `d07bef66c` to `8e9946d9f` bundle has id
 `sha256:704c12c4894ecb227c0b604934fc66ab8ba62182467b69d8517f36ac5fd0e36d`.
-It contains 1,983 files in each snapshot, 34,483,411 and 34,485,631 bytes, two
+It contained 1,983 files in each snapshot, 34,483,411 and 34,485,631 bytes, two
 changed paths, and two deterministic operations. The merged 1200x720 puppet
-opens that managed-inbox bundle, browses and searches its changed Java files,
-selects after-side UTF-8 bytes `[0,51)`, creates one human `#question` comment,
-closes, and restores the same one-comment session. This proves the literal
+opened that managed-inbox bundle, browsed and searched its changed Java files,
+selected after-side UTF-8 bytes `[0,51)`, created one human `#question` comment,
+closed, and restored the same one-comment session. This proved the literal
 selection/persistence baseline; it does not claim structural selector
 migration, AST correspondence, approval completion policy, or multi-version
 release coverage, which remain Phases 4, 5, 7, and 8.
@@ -814,7 +847,20 @@ Both Java and Rust now consume and deterministically round-trip the fixture.
 
 ### [ ] Phase 7 — Multi-version release review and derived approval
 
-- Build release sessions spanning all Minecraft-version before/after lanes.
+- Build release sessions whose default lane set spans every maintained
+  Minecraft-version worktree known to the SFM toolchain, ordered oldest to
+  newest, with an optional filter for narrower reviews.
+- Resolve independent before/after selectors per lane. The initial typed forms
+  are `mod <version>` (the per-lane `<version>-<minecraft-version>` tag) and
+  `git head` (that lane's current HEAD).
+- Project one unified changes explorer as
+  `file → lane/branch → before|after`; two lanes with both sides produce four
+  leaves. Always retain both side leaves; use an explicit tombstone when an
+  added/deleted file is absent from one revision. Keep unresolved lanes visible
+  with diagnostics rather than silently omitting them.
+- Project comments as `comment → file → region` and derived hashtags as
+  `hashtag → file → region`, retaining comment identity, provenance, selector
+  status, side, lane, and immutable document revision at every leaf.
 - Add cross-document/version selectors and moved-file diagnostics.
 - Implement a first trusted version-aware transformation rule, such as a
   reviewed Forge-to-NeoForge import adaptation.
@@ -829,7 +875,9 @@ Both Java and Rust now consume and deterministically round-trip the fixture.
 - Add uncovered/problem/suspended/ambiguous jump lists and summary counts.
 - Puppet a real SFM release pair across at least two version lanes, including an
   added after region, removed before method, overlapping human/audit comments,
-  F2 navigation, session reopen, snapshot advance, and migration failure.
+  four-leaf changes tree, comment/hashtag explorers, explorer-owned stacked
+  previews, F2 navigation, session reopen, snapshot advance, and migration
+  failure.
 
 ## Proposed structural selector and migration wave — 2026-07-23
 

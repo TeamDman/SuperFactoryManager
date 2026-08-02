@@ -15,7 +15,6 @@ pub mod paths;
 pub(crate) mod payload_fetcher;
 pub mod prism;
 pub mod propagate;
-pub mod repository_review_bundle_v1;
 pub mod review_session_v1;
 pub mod sfm_path;
 pub mod source_archive;

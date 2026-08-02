@@ -5,10 +5,11 @@ import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMClientScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
-import ca.teamdman.sfm.common.localization.LocalizationEntry;
-import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceSide;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -22,37 +23,41 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-public final class OpenScreenToSideAction implements SFMClientAction<SFMClientActionContext> {
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry TITLE = new LocalizationEntry(
-            "gui.sfm.client_action.workspace.open_to_side.title",
-            "Open screen to the side"
-    );
-
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry DESCRIPTION = new LocalizationEntry(
-            "gui.sfm.client_action.workspace.open_to_side.description",
-            "Open registered SFM content in a side-by-side workspace"
-    );
-
-    private final Supplier<List<Map.Entry<ResourceLocation, SFMClientScreenType>>> screenTypes;
-
-    public OpenScreenToSideAction() {
-        this(OpenScreenToSideAction::registeredScreenTypes);
+/** Opens a registered typed panel scene through the canonical panel action family. */
+public final class OpenPanelAction implements SFMClientAction<SFMClientActionContext> {
+    public enum Direction {
+        FOCUSED,
+        LEFT,
+        RIGHT,
+        ABOVE,
+        BELOW
     }
 
-    OpenScreenToSideAction(Supplier<List<Map.Entry<ResourceLocation, SFMClientScreenType>>> screenTypes) {
-        this.screenTypes = screenTypes;
+    private final Direction direction;
+    private final Supplier<List<Map.Entry<ResourceLocation, SFMClientScreenType>>> screenTypes;
+
+    public OpenPanelAction(Direction direction) {
+        this(direction, OpenPanelAction::registeredScreenTypes);
+    }
+
+    OpenPanelAction(
+            Direction direction,
+            Supplier<List<Map.Entry<ResourceLocation, SFMClientScreenType>>> screenTypes
+    ) {
+        this.direction = Objects.requireNonNull(direction);
+        this.screenTypes = Objects.requireNonNull(screenTypes);
     }
 
     @Override
     public Component title() {
-        return TITLE.getComponent();
+        return Component.literal(direction == Direction.FOCUSED
+                ? "Open panel"
+                : "Open panel " + direction.name().toLowerCase());
     }
 
     @Override
     public Component description() {
-        return DESCRIPTION.getComponent();
+        return Component.literal("Open a typed SFM scene in the panel workspace");
     }
 
     @Override
@@ -73,21 +78,28 @@ public final class OpenScreenToSideAction implements SFMClientAction<SFMClientAc
     public int execute(
             SFMClientActionContext target,
             CommandContext<SFMClientActionSource> context
-    ) {
-        throw new IllegalStateException("A registered screen type and its arguments are required");
+    ) throws CommandSyntaxException {
+        throw new SimpleCommandExceptionType(Component.literal(
+                "Provide a panel scene and any required scene arguments")).create();
     }
 
-    private int open(
-            CommandContext<SFMClientActionSource> commandContext,
-            SFMScreenPanel panel
-    ) {
+    private int open(CommandContext<SFMClientActionSource> commandContext, SFMScreenPanel panel) {
         SFMClientActionContext actionContext = commandContext.getSource().context();
+        return openPanel(actionContext, panel, direction);
+    }
+
+    static int openPanel(SFMClientActionContext actionContext, SFMScreenPanel panel, Direction direction) {
         @Nullable Screen origin = actionContext.originatingHost() instanceof Screen screen ? screen : null;
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen instanceof SFMCommandPaletteScreen palette) {
-            palette.onClose();
-        }
-        SFMScreenMultiplexer.openToSide(origin, panel);
+        if (minecraft.screen instanceof SFMCommandPaletteScreen palette) palette.onClose();
+        SFMWorkspaceSide side = switch (direction) {
+            case LEFT -> SFMWorkspaceSide.LEFT;
+            case RIGHT -> SFMWorkspaceSide.RIGHT;
+            case ABOVE -> SFMWorkspaceSide.ABOVE;
+            case BELOW -> SFMWorkspaceSide.BELOW;
+            case FOCUSED -> SFMWorkspaceSide.RIGHT;
+        };
+        SFMScreenMultiplexer.openToSide(origin, side, panel);
         return 1;
     }
 

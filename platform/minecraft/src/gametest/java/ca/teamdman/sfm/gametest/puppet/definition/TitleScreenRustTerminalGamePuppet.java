@@ -24,8 +24,28 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.waitTicks(10);
+        // The Rust scene must remain a truthful disconnected surface before
+        // the lifecycle action starts a companion server; it must not borrow
+        // the Java-local REPL help or input strip.
         puppet.openCommandPalette();
-        puppet.executeCommandPalette("sfm action invoke sfm:terminal/start-rust-server");
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/open sfm:terminal");
+        puppet.waitTicks(30);
+        puppet.capture("rust-terminal-disconnected", Component.literal("SFM Terminal ")
+                .withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Rust-authoritative terminal shows an explicit disconnected state.")));
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
+        puppet.waitTicks(10);
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:terminal/server/start");
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:terminal/server/connect");
+        puppet.capture("rust-terminal-lifecycle-actions", Component.literal("SFM Terminal ")
+                .withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Rust terminal lifecycle actions do not open or replace a panel.")));
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/open sfm:terminal");
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.capture("rust-terminal-escape-guidance", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)

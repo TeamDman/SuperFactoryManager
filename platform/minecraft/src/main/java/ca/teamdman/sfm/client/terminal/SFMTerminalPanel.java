@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
+import java.util.Optional;
 
 /** Composable terminal leaf. Rust/Vox frames are presented when that backend is configured. */
 public final class SFMTerminalPanel implements SFMScreenPanel {
@@ -51,6 +52,12 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private int renderHeight;
     private int pressedMouseButtons;
     private boolean suppressPasteRelease;
+    private boolean startRequested;
+    private String connectionStatus;
+    private int startButtonLeft;
+    private int startButtonTop;
+    private int startButtonRight;
+    private int startButtonBottom;
 
     public SFMTerminalPanel(SFMTerminalService service) {
         this(new SFMTerminalClient(service), service instanceof SFMTerminalRemoteService remote ? remote : null);
@@ -63,12 +70,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private SFMTerminalPanel(SFMTerminalClient client, SFMTerminalRemoteService remoteService) {
         this.client = client;
         this.remoteService = remoteService;
-        scrollback.appendAll(List.of(
-                remoteService == null
-                        ? "Java-local terminal · Rust/Vox unavailable fallback"
-                        : "Rust-authoritative terminal · full PNG Vox mode",
-                "Type pwd, ls, cat <file>, echo <text>, or write <file> <text>"
-        ));
+        this.connectionStatus = remoteService == null
+                ? "Java-local terminal"
+                : "Rust terminal is disconnected";
+        if (remoteService == null) {
+            scrollback.appendAll(List.of(
+                    "Java-local terminal · explicit REPL mode",
+                    "Type pwd, ls, cat <file>, echo <text>, or write <file> <text>"
+            ));
+        }
     }
 
     @Override
@@ -87,6 +97,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         this.minecraft = minecraft;
         this.bounds = bounds;
         this.context = context;
+        if (remoteService != null) remoteService.requestConnect();
     }
 
     @Override
@@ -96,7 +107,13 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             int cellWidth = Math.max(1, minecraft.font.width("W"));
             int cellHeight = Math.max(1, minecraft.font.lineHeight + 2);
             remoteService.resize(bounds.width() / cellWidth, bounds.height() / cellHeight);
+            remoteService.requestConnect();
         }
+    }
+
+    @Override
+    public void tick() {
+        if (remoteService != null) remoteService.requestConnect();
     }
 
     @Override
@@ -125,9 +142,13 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         renderHeight = Math.max(1, contentBottom - contentTop - 4);
         SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
                 bounds.y() + 8, TEXT, false);
-        if (remoteService != null && pngRenderer.render(poseStack, minecraft, left, contentTop, width,
-                renderHeight, remoteService.latestFrame())) {
-            renderFocusHint(poseStack, minecraft, left, width, contentBottom);
+        if (remoteService != null) {
+            if (pngRenderer.render(poseStack, minecraft, left, contentTop, width,
+                    renderHeight, remoteService.latestFrame())) {
+                renderFocusHint(poseStack, minecraft, left, width, contentBottom);
+                return;
+            }
+            renderDisconnected(poseStack, minecraft, left, width, contentTop, contentBottom);
             return;
         }
         int y = contentTop;
@@ -362,6 +383,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (remoteService != null && mouseX >= startButtonLeft && mouseX < startButtonRight
+                && mouseY >= startButtonTop && mouseY < startButtonBottom) {
+            startRustServer();
+            return true;
+        }
         if (!containsTerminalPoint(mouseX, mouseY)) return false;
         if (remoteService == null) return false;
         int mask = mouseMask(button);
@@ -437,6 +463,68 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         String prompt = "> " + input + (focused ? "_" : "");
         SFMFontUtils.draw(poseStack, minecraft.font,
                 minecraft.font.plainSubstrByWidth(prompt, width), left, inputY, MUTED, false);
+    }
+
+    private void renderDisconnected(
+            PoseStack poseStack,
+            Minecraft minecraft,
+            int left,
+            int width,
+            int contentTop,
+            int contentBottom
+    ) {
+        String state = remoteService.isConnected()
+                ? "Rust terminal connected; waiting for its first frame"
+                : remoteService.isConnecting()
+                ? "Connecting to the Rust terminal server..."
+                : connectionStatus;
+        SFMFontUtils.draw(poseStack, minecraft.font, state, left, contentTop + 8, TEXT, false);
+        int nextY = contentTop + 8 + minecraft.font.lineHeight + 8;
+        Optional<String> failure = remoteService.failureMessage();
+        if (failure.isPresent()) {
+            String message = minecraft.font.plainSubstrByWidth(failure.get(), width);
+            SFMFontUtils.draw(poseStack, minecraft.font, message, left, nextY, ERROR, false);
+            nextY += minecraft.font.lineHeight + 8;
+        } else {
+            SFMFontUtils.draw(poseStack, minecraft.font,
+                    "Start teamy-terminal or retry the configured endpoint.", left, nextY, MUTED, false);
+            nextY += minecraft.font.lineHeight + 8;
+        }
+        int buttonWidth = Math.min(180, Math.max(120, width));
+        startButtonLeft = left;
+        startButtonTop = Math.min(nextY, contentBottom - 26);
+        startButtonRight = startButtonLeft + buttonWidth;
+        startButtonBottom = Math.min(contentBottom, startButtonTop + 22);
+        GuiComponent.fill(poseStack, startButtonLeft, startButtonTop,
+                startButtonRight, startButtonBottom, 0xFF28506A);
+        String label = startRequested ? "Starting..." : "Start / Retry Rust server";
+        SFMFontUtils.draw(poseStack, minecraft.font, label,
+                startButtonLeft + 8, startButtonTop + 6, TEXT, false);
+    }
+
+    private void startRustServer() {
+        if (startRequested || remoteService == null) return;
+        startRequested = true;
+        connectionStatus = "Starting the Rust terminal server...";
+        Minecraft currentMinecraft = minecraft;
+        Thread thread = new Thread(() -> {
+            try {
+                SFMTerminalServiceFactory.startRustServer(null);
+                remoteService.reconnect();
+                remoteService.requestConnect();
+                if (currentMinecraft != null) currentMinecraft.execute(() -> {
+                    startRequested = false;
+                    connectionStatus = "Connecting to the Rust terminal server...";
+                });
+            } catch (Exception error) {
+                if (currentMinecraft != null) currentMinecraft.execute(() -> {
+                    startRequested = false;
+                    connectionStatus = "Rust terminal server could not be started";
+                });
+            }
+        }, "sfm-rust-terminal-start");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private void renderFocusHint(PoseStack poseStack, Minecraft minecraft, int left, int width, int contentBottom) {

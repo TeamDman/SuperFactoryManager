@@ -647,12 +647,18 @@ public final class SFMCommandPaletteScreen extends Screen {
 
     private void executeInput() {
         String rawCommand = commandInput().stripLeading();
+        var source = new SFMClientActionSource(actionContext);
+        var parsed = SFMClientActions.commandTree().parse(rawCommand, source);
         String prepared = SFMClientCommandInsertion.prepare(
                 rawCommand,
                 SFMClientActions.commandTree(),
-                new SFMClientActionSource(actionContext)
+                source
         );
         if (!prepared.equals(rawCommand)) {
+            if (SFMClientCommandInsertion.hasAvailableLiteralChildren(parsed)) {
+                this.error = "Choose an available suggestion before providing the next argument";
+                return;
+            }
             this.input.setValue(prepared);
             this.insertedRequiredArgumentSeparator = true;
             this.input.moveCursorToEnd();

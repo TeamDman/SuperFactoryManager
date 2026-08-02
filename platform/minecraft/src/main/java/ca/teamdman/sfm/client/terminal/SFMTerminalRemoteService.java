@@ -4,6 +4,15 @@ import java.util.Optional;
 
 /** Optional remote-terminal capability kept free of the Vox generated API. */
 public interface SFMTerminalRemoteService extends SFMTerminalService, AutoCloseable {
+    /** Request a non-blocking connection attempt for a panel that is already open. */
+    void requestConnect();
+
+    boolean isConnected();
+
+    boolean isConnecting();
+
+    Optional<String> failureMessage();
+
     boolean resize(int columns, int rows);
 
     boolean sendKey(int keyCode, int modifiers, boolean pressed, boolean repeat);

@@ -83,18 +83,32 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     public static void openToSide(@Nullable Screen origin, SFMScreenPanel panel) {
+        openToSide(origin, SFMWorkspaceSide.RIGHT, panel);
+    }
+
+    public static void openToSide(
+            @Nullable Screen origin,
+            SFMWorkspaceSide side,
+            SFMScreenPanel panel
+    ) {
         if (origin instanceof SFMScreenMultiplexer multiplexer) {
             multiplexer.submit(
                     multiplexer.layout.focusedPanel(),
-                    new SFMWorkspacePanelIntent.OpenToSide(SFMWorkspaceSide.RIGHT, panel)
+                    new SFMWorkspacePanelIntent.OpenToSide(side, panel)
             );
             return;
         }
-        SFMScreenChangeHelpers.setScreen(new SFMScreenMultiplexer(
-                origin,
-                new SFMPreviousScreenPanel(origin),
-                panel
-        ));
+        SFMScreenPanel previous = new SFMPreviousScreenPanel(origin);
+        SFMScreenPanel first = side == SFMWorkspaceSide.LEFT || side == SFMWorkspaceSide.ABOVE
+                ? panel : previous;
+        SFMScreenPanel second = side == SFMWorkspaceSide.LEFT || side == SFMWorkspaceSide.ABOVE
+                ? previous : panel;
+        SFMWorkspaceLayout layout = side.axis() == SFMWorkspaceAxis.HORIZONTAL
+                ? SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(first), SFMWorkspaceLayout.panel(second)))
+                : SFMWorkspaceLayout.group(SFMWorkspaceLayout.vertical(
+                SFMWorkspaceLayout.panel(first), SFMWorkspaceLayout.panel(second)));
+        SFMScreenChangeHelpers.setScreen(SFMScreenMultiplexer.create(origin, layout));
     }
 
     public void openToSide(SFMScreenPanel panel) {

@@ -1,8 +1,8 @@
 # Release checkpoint and feature graduation plan
 
-**Plan status:** Active  
-**Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-01  
+**Plan status:** Active
+**Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
+**Last updated:** 2026-08-02
 **Update rules:** Keep this plan executable. Record decisions and evidence beside the affected work item, keep at most one current implementation focus, and update this file after every release-scope or artifact-policy change. Do not mark a phase complete from compilation alone; attach the command and the artifact or runtime evidence that proves it.
 
 ## Purpose
@@ -46,18 +46,333 @@ Out of scope for this checkpoint:
 - `docs/tasks/cc tweaked integration plan.md` is marked Complete. Parking CC for a release is therefore a new product-scope decision; it must not silently rewrite the historical completion record.
 - `docs/tasks/dependency source management v3 plan.md` is active and is the source of truth for lockfile projection. The 1.19.2 lock classifies `cc-tweaked` as a loader-managed optional mod and now classifies `vox-java` as compile/runtime/bundle with an explicit bounded policy.
 - `docs/architecture/vox-java-jar-in-jar-packaging-research.md` records the existing Jar-in-Jar precedent. Forge 1.19.2 and the Rust builder both have the packaging path; the remaining release gates are source provenance/reachability, Gradle resolution of the source-built artifact, and clean-install runtime proof.
-- The recent Rust/SFM terminal commits are local unpublished functionality, including Rust input/frame routing and solo bridge actions. The normal Java-local fallback must remain usable when the Rust service is absent.
+- The recent Rust/SFM terminal commits are local unpublished functionality, including Rust input/frame routing and solo bridge actions. The independent Java-local REPL must remain usable when the Rust service is absent; it is not rendered as an inline fallback inside the Rust terminal scene.
 - The existing `--solo` behavior is a run-time classpath selection, not a feature profile: it may omit loader-managed integration mod jars and deobfuscated project dependencies while retaining required plain libraries. It must not become the Gradle contributor default or silently disable JEI, CC:Tweaked, Mekanism, or other independently declared integrations.
 
-## User-testing evidence — 2026-08-01
+## Historical user-testing evidence — 2026-08-01 (resolved)
 
-These observations are release-correctness inputs, not requests to paper over the test harness:
+These observations were release-correctness inputs. Release item 0.3 and the
+Batch 1 evidence below record their completed fixes:
 
-- The command palette opens with `sfm action invoke`. Typing `open` does not currently fuzzy-rank the available action results. The implementation calls the Brigadier-backed completion path directly, while existing SFML intellisense tests already use string-distance/ranking algorithms. The likely fix is a hybrid candidate layer: Brigadier remains authoritative for parse ranges, availability, typed arguments, and execution; an existing fuzzy scorer ranks action-id candidates when the cursor is in the action-id slot.
-- The Rust-backed SFM terminal still renders the Java-local `> _` input strip below the PNG blit. `SFMTerminalPanel` currently calls `renderInput(...)` on the Rust frame path, even though input is sent directly to the Rust service. The Rust path should give the frame the full terminal content region and must not display or submit Java-buffered input.
-- Triple-Escape closes the terminal correctly, but the sequence has no visible progress cue. `SFMTerminalFocusSequence` currently exposes only `FORWARD`, `EXIT`, and `JAVA_FOCUS`; the panel needs a non-invasive status indicator such as “Press Esc 2 more times within 1.5 seconds to close” while the sequence is active. The same discoverability treatment should cover triple-Tab focus traversal.
+- Typing `open` originally did not fuzzy-rank action results. The hybrid
+  candidate layer now ranks the action-id slot while Brigadier remains
+  authoritative for parse ranges, availability, arguments, and execution.
+- The Rust PNG path originally rendered the Java-local `> _` input strip. The
+  Rust frame now owns the full terminal content region.
+- Triple-Escape and triple-Tab originally lacked progress cues. Their
+  time-bounded status indicators are now covered by focused tests and puppets.
 
-These findings should be included in the acceptance matrix before a release candidate is called user-ready.
+Do not reopen these completed findings unless a new regression is observed.
+
+## User-testing evidence — 2026-08-02
+
+These observations supersede the assumption that the palette/workspace slice
+is complete. The requirements below preserve the concrete interaction laws,
+not only the names of the proposed features.
+
+- The command intended to open SFM “Key Binds” currently constructs
+  Minecraft's `ControlsScreen`. SFM shortcut editing and Minecraft Controls are
+  distinct destinations and need unambiguous ids, titles, and target tests.
+- `sfm:review/open_bundle` belongs to the superseded managed-bundle review
+  experiment. Its suggestion provider calls
+  `SFMManagedReviewBundleRepository.listBundles()` during completion, which
+  enumerates and fully parses every JSON bundle on the client thread. The
+  action, Rust producer, managed-inbox model, dedicated workspace, fixtures,
+  tests, puppets, and supporting documentation will be removed. The independent
+  review-session/comment kernel and `review-comment-session-v1` fixture remain.
+- The bundle incident is also a command-palette design failure: completion,
+  ranking, titles, availability, and argument discovery run on input paths and
+  must never perform filesystem, network, process, Git, or unbounded parsing
+  work. Current source inspection finds the bundle provider as the only
+  blocking `.suggests(...)` implementation; the registry-backed action ids,
+  bounded GUI-scale values, and registered screen-type nodes are in-memory.
+  A complete audit and a reusable guardrail are still required.
+- Plain `Tab` belongs to the focused child. `Ctrl+Tab` and
+  `Ctrl+Shift+Tab` traverse the multiplexer; `Ctrl+1` and `Ctrl+2` continue to
+  select visible slots directly.
+- Explorer Space and `Ctrl+Enter` both open a selected file through an
+  explorer-owned preview stack. Space keeps explorer focus; `Ctrl+Enter`
+  focuses the resulting preview. Neither operation may target a terminal or a
+  panel owned by another workflow.
+- `sfm:workspace/open_to_side sfm:test_screen` can misleadingly report “No
+  available sub-actions”, then mutate the command as though a valid separator
+  were accepted. Incomplete commands must show the missing argument and scene
+  candidates without becoming executable or inserting phantom syntax.
+- The size-display puppet panel must become an ordinary scene and expose its
+  logical width, height, and effective scale through the same panel action
+  surface used by production content.
+- The Rust terminal has exactly two presentation states: disconnected shows a
+  Start/Retry control and no Java REPL help; connected shows only the
+  Rust-authoritative frame. `sfm:repl/open` remains an independent Java-local
+  action.
+- At GUI scale 7, Java currently appears to stretch a smaller Rust PNG. The
+  eventual bridge contract must preserve the requested `columns × rows`, let
+  Rust increase font/cell pixel dimensions, and present the resulting frame
+  without Java bitmap upscaling. CPU `fontdue` is the correctness baseline;
+  Teamy Studio slug/GPU adoption remains later work.
+
+## Action vocabulary decision — 2026-08-02
+
+New action ids use `/` to express conceptual hierarchy. Underscores remain
+valid inside one atomic resource name, but they do not flatten verbs, objects,
+or directions. The canonical panel family is:
+
+```text
+sfm:panel/open <scene> [scene arguments]
+sfm:panel/open/left <scene> [scene arguments]
+sfm:panel/open/right <scene> [scene arguments]
+sfm:panel/open/above <scene> [scene arguments]
+sfm:panel/open/below <scene> [scene arguments]
+sfm:panel/close
+sfm:panel/move/left|right|above|below
+sfm:panel/scale/set <n>
+sfm:panel/scale/increase
+sfm:panel/scale/decrease
+sfm:panel/scale/clear
+sfm:panel/rotate/content/left|right
+sfm:panel/rotate/scale/left|right
+sfm:terminal/server/start [address]
+sfm:terminal/server/connect [address]
+```
+
+Examples include `sfm:panel/open sfm:terminal` and
+`sfm:panel/open/right sfm:size_display`. Because these are unpublished
+prospective actions, `sfm:workspace/open_to_side` should be replaced and its
+puppets/keybindings migrated rather than retained indefinitely as an alias.
+`sfm:panel/open sfm:terminal` is the sole terminal-opening action;
+`sfm:terminal/open` is retired. The terminal-specific actions only manage the
+Rust server/connection lifecycle and do not open a panel. `sfm:repl/open`
+remains the independent Java-local REPL entry point.
+
+## Completed goal — Release cleanup and completion safety P-1 (2026-08-02)
+
+| Id | Work | Completion evidence |
+| --- | --- | --- |
+| P-1.1 | Separate SFM “Key Binds” from Minecraft “Controls”. The Key Binds action opens `SFMKeyBindingScreen`; a separately named Minecraft Controls action may continue to open `ControlsScreen`. | Complete. `SFMKeybindingNavigationActionTests` passes and `title_screen_dynamic_key_bindings` captured both destinations under `title_screen_dyn-20260802-140946-423`. |
+| P-1.2 | Delete the superseded bundle-review subsystem: `review/open_bundle`, its registration, Java `review/repository` and `screen/review/repository` packages, Rust `review prepare` and `repository_review_bundle_v1`, bundle-only architecture document/fixture, focused tests, and repository-review puppets/helpers. Preserve `review/session`, `screen/review/comment`, and `review-comment-session-v1`. Do not delete users' existing AppData files. | Complete. Source audit found no retired references; Rust tests pass `362/362` with one intentional ignore; `SFMReviewSessionV1Tests` and `SFMReviewCommentKernelDataSourceTests` pass. Existing user AppData was not touched. |
+| P-1.3 | Audit every completion producer and candidate-construction path, including `.suggests(...)`, `configureCommandNode`, `SFMClientScreenType.createCommandNode`, action-id ranking, titles, and availability. Move any I/O or corpus work behind explicit asynchronous loading and immutable bounded snapshots. Add a regression seam proving completion does not invoke a supplied blocking loader, plus diagnostics for unexpectedly slow providers without using a flaky wall-clock assertion as the primary proof. | Complete. The audit table below records the only live providers; immutable-map/catalog regression tests and `SFMClientActionPaletteSuggestionTests` pass. Palette metadata is extracted without triggering Minecraft language loading in headless tests; slow completion is diagnostic-only. |
+| P-1.4 | Introduce the hierarchical `sfm:panel/open...` command family and fix incomplete-argument UX. A parent requiring a scene/argument is non-executable, lists available scene candidates, identifies the missing argument, and never reports “No available sub-actions” or inserts a separator when candidates exist. Register `sfm:size_display` and `sfm:terminal`; remove `workspace/open_to_side` and `terminal/open` after command/keybinding/puppet migration. | Complete. `OpenPanelActionTests`, `SFMClientCommandInsertionTests`, and `SFMClientActionPaletteSuggestionTests` pass; retired IDs are absent; `title_screen_workspace` captured directional open/close/reopen under `title_screen_wor-20260802-141102-221`. |
+| P-1.5 | Give the Rust terminal explicit disconnected/connected presentation. Disconnected shows status and Start/Retry only; connected shows the Rust PNG only; Java REPL instructions never leak into the Rust scene. Rename lifecycle commands to `terminal/server/start` and `terminal/server/connect`; neither command opens a panel. | Complete. `SFMVoxTerminalServiceTests` and `SFMUnavailableTerminalServiceTests` pass; `title_screen_rust_terminal` captured disconnected/lifecycle/guidance/input/alternate-screen/reconnect states under `title_screen_rus-20260802-141350-220`, with 16 machine-readable terminal artifacts and required/forbidden assertions. |
+
+### P-1 completion audit notes
+
+The first implementation pass now has the following structural evidence:
+
+- Completion candidates are built from the immutable compiled action map. Search
+  labels are cached at command-tree construction, while availability remains a
+  contextual check; no completion provider performs repository, filesystem, or
+  network I/O.
+- The only live suggestion providers are the immutable action-id provider,
+  bounded GUI-scale integers, and registered panel-scene providers. The former
+  managed-bundle provider was deleted. Completion duration is logged when it
+  exceeds the diagnostic threshold, and a panel-scene regression test proves
+  its catalog is not reloaded during completion.
+- The retired bundle source/fixture/test/puppet references are absent from
+  Java/Rust source. The Rust CLI suite is the first independent verification
+  gate for that deletion.
+- The key-bindings puppet now captures Minecraft Controls and SFM Key Binds as
+  distinct destinations. The Rust-terminal puppet now captures the
+  pre-server disconnected state, then exercises lifecycle start, PNG input,
+  alternate-screen restoration, restart, cancellation, and machine-readable
+  terminal-content artifacts with required/forbidden text assertions.
+
+#### Completion-provider audit
+
+| Candidate path | Current implementation | Blocking work allowed during completion | Evidence/guardrail |
+| --- | --- | --- | --- |
+| `SFMClientActionDispatcherCompiler` action-id suggestions | Iterates the immutable compiled action map | None; no filesystem, network, process, Git, or parsing work | Source inspection plus the immutable-provider comment |
+| `SFMClientActionCommandTree` palette ranking | Uses action id/path/title/description cached when the command tree is constructed | Contextual availability checks only; no label recomputation | `SFMClientActionPaletteSuggestionTests` and cached `ActionSearchMetadata` |
+| `SFMGuiScaleAction` numeric arguments | Offers the bounded integer range `0..maxGuiScale` | Bounded in-memory range construction only | `SFMGuiScaleActionTests` verifies the complete numeric domain |
+| `OpenPanelAction` scene arguments | Materializes registered scene types once while compiling the command tree | Registered command-node construction only; no reload during completion | `OpenPanelActionTests.completionDoesNotReinvokeACompletedSceneCatalog` |
+| Action titles, descriptions, and availability | Titles/descriptions are cached for ranking; availability resolves against the current action context | No I/O or corpus enumeration | `SFMClientActionCommandTree` slow-completion diagnostic logs providers exceeding 100 ms |
+
+The audit found no remaining completion producer that performs synchronous
+repository, filesystem, network, process, Git, or unbounded parsing work. The
+slow-completion log is diagnostic evidence rather than a timing-based test
+assertion; structural tests remain the primary regression guard.
+
+The incomplete-argument guard distinguishes literal child choices from
+required argument nodes. This prevents stale asynchronous suggestions from
+blocking manually entered values while still requiring a panel scene literal
+to be selected before scene-specific arguments are entered.
+
+The completed goal was:
+
+> Complete P-1.1 through P-1.5 in `docs/tasks/release checkpoint and slim artifact plan.md` and the linked action, panel, comment, snapshot, and terminal plans on canonical 1.19.2, with focused tests and live puppet evidence; do not begin P-2 panel-stack implementation, P-3 review explorers, or GPU/slug rendering.
+
+The goal is complete. The authoritative verification boundary passed on
+2026-08-02:
+
+- Canonical `run compile --branch 1.19.2 --no-refresh` passed. The CLI emitted
+  one known non-portable-artifact warning; portability was not made a hard
+  failure for this checkpoint.
+- Focused filters passed: `SFMKeybindingNavigationActionTests`,
+  `OpenPanelActionTests`, `SFMClientCommandInsertionTests`,
+  `SFMClientActionPaletteSuggestionTests`, `SFMVoxTerminalServiceTests`,
+  `SFMUnavailableTerminalServiceTests`, `SFMReviewSessionV1Tests`, and
+  `SFMReviewCommentKernelDataSourceTests`.
+- Live puppets passed with exit 0: `title_screen_dynamic_key_bindings`,
+  `title_screen_workspace`, and `title_screen_rust_terminal`, each run
+  through the canonical CLI with `--wait-for-build-lock` and `--log-file`.
+- `git diff --check` passed; the Rust CLI suite and source audit also passed.
+
+P-2 panel-stack semantics, P-3 review explorers, clean-install packaging, and
+GPU/slug rendering remain planned work and were not started by this goal.
+
+## Panel state and navigation batch P-2
+
+### P-2.1 Slot, stack, entry, and ownership model
+
+A layout slot owns geometry and an ordered stack of panel entries. A panel
+entry owns stable identity, scene/content state, optional GUI-scale override,
+and provenance such as `explorer-preview(owner=<explorer-id>)`. The focused
+slot, visible entry, and child focus are distinct. Pushing an entry makes it
+visible but does not necessarily move slot focus.
+
+### P-2.2 Hierarchical panel operations
+
+Implement the action family recorded above. `panel/open` pushes into the
+focused slot; directional open creates a neighboring slot; `panel/close`
+closes the visible entry and collapses an empty slot. Directional move removes
+the visible entry from its source stack and pushes that same entry, preserving
+its identity and complete view/content state, onto the neighboring destination
+stack; it creates that neighboring slot when none exists and collapses the
+source slot when it becomes empty. It never clones a panel or aliases a second
+copy of its state. Action help, completion, keybindings, and puppet commands
+all use the same registered operation metadata.
+
+### P-2.3 Deterministic keyboard traversal
+
+Plain `Tab` is forwarded to the child. `Ctrl+number` focuses the numbered
+visible slot without changing its visible entry. `Ctrl+Tab` traverses every
+entry in visible slot order, making a visited stacked entry visible;
+`Ctrl+Shift+Tab` is the exact inverse. The required forward witness is:
+
+```text
+[>1, [2,3], 4]
+[1, >[2,3], 4]
+[1, >[3,2], 4]
+[1, [3,2], >4]
+```
+
+### P-2.4 Explorer-owned preview routing
+
+For a selected file, Space and `Ctrl+Enter` locate the most recently created
+preview slot owned by that explorer; if none exists, create one to the right.
+Each open pushes a typed preview entry into that slot. Space leaves explorer
+focus unchanged; `Ctrl+Enter` focuses the preview slot. A selected directory
+uses Space to expand/collapse rather than producing a file preview. Owner/role
+checks make terminal and unrelated panels ineligible targets.
+
+### P-2.5 Per-entry scale and independent rotations
+
+Scale is part of panel-entry view configuration, not the global Minecraft GUI
+setting. `scale 2` must expose more logical width/height than `scale 4` in
+equal-sized slots, as shown by two size-display scenes. Content rotation moves
+content assignments among only the currently visible entries while preserving
+slot geometry and scale assignments; scale rotation moves scale assignments
+among only the currently visible entries while preserving geometry and
+content. Hidden entries remain unchanged in their existing stacks. Binding
+both actions to one key composes the two transformations.
+
+### P-2.6 Stack and scale affordances
+
+When a slot contains multiple entries, show compact numbered boxes in its
+bottom-right corner and identify the visible entry. Show `gui scale N` when an
+entry overrides the global scale. Puppets and headless observations must expose
+slot order, stack order, visible entry, focus, dimensions, and scale so the
+behavior can be asserted without relying only on screenshots.
+
+## Review explorer composition batch P-3
+
+### P-3.1 Multi-lane revision selectors
+
+`sfm:explorer/changes <before-selector> <after-selector>` resolves two
+independent selectors across every maintained Minecraft-version worktree known
+to the SFM toolchain, ordered oldest to newest. An optional lane filter can
+narrow that default set without changing selector semantics. `mod 4.34.0`
+means the `4.34.0-<minecraft-version>` tag for each lane; `git head` means that
+lane's current HEAD. The projection is
+`file → lane/branch → before|after`; two lanes therefore expose four leaves for
+every file node. If a file does not exist on one side, that side remains as an
+explicit missing/tombstone leaf rather than disappearing. Resolution
+diagnostics remain visible per lane. If either selector cannot resolve for one
+lane, retain that lane with a diagnostic placeholder; do not silently omit it
+or fail otherwise resolvable lanes.
+
+The composed invocation is:
+
+```text
+sfm:panel/open sfm:explorer/changes "mod 4.34.0" "git head"
+```
+
+### P-3.2 Comment and hashtag explorers
+
+Preserve the existing `Comment{text, selection_rule}` authority: one selector
+may evaluate to regions in multiple files, sides, and lanes. Provide
+`sfm:explorer/comments` as `comment → file → region` and
+`sfm:explorer/comments/hashtags` as `hashtag → file → region`. Hashtags remain
+derived only from comment text using the existing kernel grammar; region leaves
+retain comment identity, provenance, resolution status, and document revision.
+
+### P-3.3 Comment-driven before/after presentation
+
+Opening a before/after leaf presents that one immutable source revision with
+all applicable comment styles. Diff producers emit comments such as `#removed`
+for before-side regions and `#added` for after-side regions; their style rules
+produce familiar red/green review coloring. The primary experience is not a
+fixed two-file diff panel: users compose before and after leaves through panel
+slots and stacks. A tombstone leaf explains that the revision is absent and
+retains the file/lane/side identity needed to present additions and deletions
+coherently.
+
+### P-3.4 Review-surface migration
+
+Build review from the shared explorer, panel, preview, comment, and selector
+substrates. Retire `developer/open_source_review` and
+`developer/open_comment_review` and delete their fixture-only workspace shells
+after their still-useful comment/session and visual behaviors have migrated and
+equivalent panel/explorer puppets pass. Preserve the review-session kernel,
+stores, selectors, styles, persistence, and reusable comment editing
+components. Do not recreate the deleted managed-bundle inbox as the transport
+for the new explorer.
+
+### P-3.5 Verifiable multi-version review story
+
+A live puppet opens a two-lane change explorer, proves four before/after leaves
+including added/deleted tombstones, opens leaves with Space and `Ctrl+Enter`,
+preserves a terminal panel, rotates a stack, displays derived
+`#removed`/`#added` styles, and shows comment and hashtag projections whose
+selectors span more than one file.
+
+## Resolved design decisions — 2026-08-02
+
+- The managed repository-review bundle producer/importer/workspace is dropped
+  in favor of direct revision selectors feeding the comment/session model.
+- `sfm:panel/open sfm:terminal` is the sole terminal-opening action. Hierarchical
+  `sfm:terminal/server/start` and `sfm:terminal/server/connect` actions manage
+  lifecycle only; `sfm:terminal/open` is removed.
+- Every participating file/lane has both before and after leaves. A missing
+  revision is represented by an explicit tombstone leaf.
+- Panels are moved rather than duplicated. `sfm:panel/move/<direction>`
+  transfers the visible entry intact to the neighboring slot, creating or
+  collapsing slots as needed; no duplicate panel action is provided.
+- Content and scale rotations include only the currently visible entry in each
+  slot. Hidden stacked entries remain unchanged and in their owning stacks.
+- Change explorers default to every maintained SFM worktree known to the
+  toolchain, ordered oldest to newest. An optional lane filter may narrow the
+  view.
+- A selector failure in one review lane leaves that lane visible with a
+  diagnostic placeholder. It neither disappears nor prevents resolved lanes
+  from being inspected.
+- After equivalent panel/explorer behavior and puppets exist,
+  `sfm:developer/open_source_review`, `sfm:developer/open_comment_review`, and
+  their fixture-only workspace shells are removed. The reusable
+  review-session/comment kernel, stores, persistence, selectors, styles, and
+  editing components remain.
+
+All panel/review product-input gates D-1 through D-5 are resolved. They are no
+longer implementation blockers for P-2 or P-3.
 
 ## Confirmed constraints
 
@@ -198,7 +513,7 @@ Do not begin implementation in a later phase while an earlier decision gate is u
 - `SFMTerminalPanel` now gives the Rust/Vox PNG the full terminal content area and does not render the Java-local `> _` input strip on that path; the Java-local REPL prompt remains unchanged.
 - `SFMTerminalFocusSequence` exposes localized, time-bounded progress state for Escape and Tab. The Rust-terminal puppet visibly captured “Press Esc 2 more times within 1.5 seconds to close terminal” and “Press Tab 2 more times within 1.5 seconds to return focus to Minecraft.”
 - `SFMClientActionCommandTree.getPaletteSuggestions(...)` adds fuzzy action-id/title discovery only in the palette action-id slot. Brigadier remains authoritative for availability, parse ranges, typed arguments, and execution; the JUnit regression proves unavailable actions stay out and the selected action executes through Brigadier.
-- The command-palette puppet visibly captured the live `sfm action invoke open` query with ranked results including `sfm:repl/open`, `sfm:terminal/open`, `sfm:palette/open`, and `sfm:theme/open_file`.
+- The command-palette puppet visibly captured the live `sfm action invoke open` query with ranked results including the then-current `sfm:terminal/open`. P-1 retires that action in favor of `sfm:panel/open sfm:terminal`; the capture remains historical fuzzy-ranking evidence.
 - The installed propagation CLI also now reports Windows `os_error=5` lock failures explicitly, warns immediately, and caps the ambiguous retry at 10 seconds instead of waiting 15 minutes. Its `check-all.ps1` gate passed with 363 tests passing and 1 ignored.
 
 ### Jar-in-Jar packaging evidence — 2026-08-01
@@ -578,7 +893,7 @@ R-4A.5.`
 
 ### Phase 5 — Graduate feature acceptance and companion distribution [ ]
 
-**Work:** Close the remaining terminal and command-palette release gates, document how `teamy-terminal.exe` is installed or launched, retain the Java-local fallback, and keep CC as an external optional integration. Verify that the Gradle Java-only profile is a contributor path while the Rust CLI full profile remains the release path; do not use profile selection to conceal missing functionality.
+**Work:** Close the remaining terminal and command-palette release gates, document how `teamy-terminal.exe` is installed or launched, retain the independently openable Java-local REPL, and keep CC as an external optional integration. Verify that the Gradle Java-only profile is a contributor path while the Rust CLI full profile remains the release path; do not use profile selection to conceal missing functionality.
 
 **Validation:** Exercise the default Java-local path, clean launch without the Rust service, launch with the Rust service when enabled, the relevant optional-mod combinations, and the packaged artifact with nested Vox.
 
@@ -598,7 +913,7 @@ The user-testing fixes above are prerequisites for calling the Rust terminal or 
 
 **Work:** Update version resources and changelog, build the full artifact, collect and audit it, stage isolated installs, verify clean loader launches, run gameplay/puppet/smoke tests, prepare release notes, and update the selected PR/issue records.
 
-**Validation:** Compare artifact contents and sizes against the approved budget; inspect manifests, nested JARs, dependency closure, and classifier. Verify the full artifact outside userdev and capture the exact commands/results. Check the documented companion-server behavior and Java-local fallback.
+**Validation:** Compare artifact contents and sizes against the approved budget; inspect manifests, nested JARs, dependency closure, and classifier. Verify the full artifact outside userdev and capture the exact commands/results. Check the documented companion-server behavior, disconnected Rust scene, and independently openable Java-local REPL.
 
 **Completion criteria:** The release candidate is reproducible from a clean checkout, has a complete support/dependency statement, passes the agreed cross-version matrix, and has a clearly documented rollback/checkpoint ref. Publication remains a separate explicit user-approved action.
 

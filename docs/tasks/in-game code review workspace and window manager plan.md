@@ -106,7 +106,7 @@ If we have a concept of virtual desktop-like things, then does that mean we have
 **Plan status:** Active; multiplexer/explorer foundation integrated, review slice planning in progress
 **Primary planning root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Related reference worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`  
-**Last updated:** 2026-07-21
+**Last updated:** 2026-08-02
 
 ## How to update this plan
 
@@ -140,6 +140,131 @@ environment, and future amalgamation contracts are owned by the separate
 [snapshot episodes and deterministic action environments plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md).
 This workspace is a consumer of those models rather than their only host.
 
+## User-testing checkpoint — 2026-08-02
+
+The release plan's P-1/P-2/P-3 items are the executable work breakdown. This
+document owns the panel-state and composition laws those items consume.
+
+### Superseded review surface
+
+`sfm:review/open_bundle` and the managed bundle-review implementation are to be
+deleted, including the Rust producer and dedicated repository-review workspace.
+They were a completed experiment that proved real repository bytes could reach
+the comment kernel, but the managed inbox and fixed bundle workspace are not
+the desired product. Preserve the independent review-session/comment model and
+record the synchronous completion incident as a palette-wide audit requirement.
+
+`sfm:developer/open_source_review` and
+`sfm:developer/open_comment_review` are temporary migration witnesses only.
+Their fixture shells and action ids must disappear after the panel/explorer
+review story has equivalent passing puppets. The review-session/comment kernel,
+stores, selectors, persistence, editing components, styles, and useful visual
+behavior survive the migration.
+
+### Canonical action hierarchy
+
+Action ids use slash-separated concepts. The panel family is
+`panel/open[/<direction>]`, `panel/close`,
+`panel/move/<direction>`, `panel/scale/{set|increase|decrease|clear}`,
+`panel/rotate/content/{left|right}`, and
+`panel/rotate/scale/{left|right}`. Do not introduce flattened forms such as
+`rotate_content_right`. The unpublished `workspace/open_to_side` action is
+replaced after its call sites and puppets migrate; it is not a permanent alias.
+
+`sfm:panel/open sfm:terminal` is the sole terminal-opening action.
+`sfm:terminal/open` is retired. `sfm:terminal/server/start` and
+`sfm:terminal/server/connect` manage lifecycle only and never implicitly open
+or replace a panel. The Java-local `sfm:repl/open` action remains separate.
+
+Scene ids and scene arguments remain typed children of this action family. At
+minimum the registry exposes `sfm:size_display`, `sfm:terminal`,
+`sfm:explorer/changes`, `sfm:explorer/comments`, and
+`sfm:explorer/comments/hashtags`. The command palette must distinguish a
+missing scene or scene argument from an executable action and must not insert a
+separator after reporting no candidates.
+
+### Normative panel-state model
+
+- A **slot** owns one visible layout region and an ordered stack of entries.
+- A **panel entry** owns stable identity, scene/content state, optional GUI
+  scale override, and provenance/role metadata.
+- The **visible entry**, **focused slot**, and **focused child component** are
+  independent state.
+- Pushing an entry makes it visible. It moves slot focus only when the invoking
+  operation explicitly requests focus.
+- Moving an entry removes the visible entry from its source stack and pushes
+  that same identity and state onto the neighboring destination stack. The
+  destination slot is created when absent; an emptied source slot collapses.
+  Moving never creates a second entry or aliases panel state.
+- Content and scale rotations operate only across the currently visible entry
+  in each slot. Hidden entries remain unchanged in their owning stacks.
+- Explorer previews carry `explorer-preview(owner=<explorer-id>)`. Only a slot
+  carrying that ownership is eligible for later previews from that explorer.
+- Closing the visible entry reveals the next entry; closing the final entry
+  collapses the slot and repairs focus deterministically.
+
+### Normative keyboard traversal
+
+Plain `Tab` is sent to the focused child. `Ctrl+number` focuses the numbered
+visible slot without rotating its stack. `Ctrl+Tab` visits each panel entry in
+visible slot order; entering another entry in the same slot makes that entry
+visible while the slot stays focused. `Ctrl+Shift+Tab` is the exact inverse.
+The required transition witness is:
+
+```text
+[>1, [2,3], 4]
+[1, >[2,3], 4]
+[1, >[3,2], 4]
+[1, [3,2], >4]
+```
+
+Terminal/editor-specific Tab behavior therefore remains available without
+removing keyboard access to the surrounding workspace.
+
+### Normative explorer-open behavior
+
+For a selected file, Space and `Ctrl+Enter` find the most recent preview slot
+owned by that explorer; if no such slot exists, create one to the right. Each
+open pushes a new typed preview entry into that slot—“clobber” means changing
+the visible entry, not deleting the prior entry. Space keeps explorer focus;
+`Ctrl+Enter` focuses the preview. A selected directory uses Space to
+expand/collapse. Terminals and unrelated panels are never eligible preview
+targets.
+
+### Scale and rotation behavior
+
+GUI scale is an optional per-entry view setting. In equal-sized slots, a
+size-display entry at scale 2 must report more logical width/height than one at
+scale 4. Content and scale are independently rotatable fields: rotating
+content preserves region geometry and scale assignments, while rotating scale
+preserves geometry and content. Binding both operations to one key composes the
+transformations. Each rotation includes only the currently visible entry from
+each slot; hidden entries remain unchanged in their owning stacks.
+
+Slots with stacks show compact numbered boxes in the bottom-right corner and
+identify the visible entry. Entries with scale overrides show `gui scale N`.
+Automation exposes slot order, stack order, visible entry, focus, ownership,
+dimensions, and effective scale as structured/text artifacts in addition to
+screenshots.
+
+### Review explorer composition
+
+The change explorer is parameterized by independent before/after selectors and
+projects `file → revision lane → before|after`. Its default lane set is every
+maintained Minecraft-version worktree known to the SFM toolchain, ordered
+oldest to newest; an optional lane filter can narrow the view. It unifies those
+branches rather than opening one fixed two-pane diff. Both leaves remain
+present for every participating file/lane; an absent added/deleted side is a
+typed tombstone rather than a missing tree node. An unresolved selector keeps
+its lane visible with a diagnostic placeholder while resolved lanes remain
+usable. Comment and
+hashtag explorers project the existing comment-session kernel as
+`comment → file → region` and `hashtag → file → region`. Opening any leaf uses
+the explorer-owned preview behavior above. Before/after leaves present one
+immutable source revision with applicable comment styles; diff colors are
+produced through `#removed`/`#added` comments rather than a special-purpose
+diff panel.
+
 ## Current integrated baseline (2026-07-21)
 
 Tracks 1 and 3 were integrated through
@@ -159,65 +284,23 @@ merging the first integration branch are retained as coordination history;
 future tracks branch from the current reviewed baseline and return through a
 fresh explicitly named integration step when concurrent work requires it.
 
-## Immediate next step
+## Current execution order
 
-### [~] 0.1 Establish vocabulary, ownership boundaries, and the first release slice
+The earlier “Open Review Workspace” first slice was completed as the historical
+managed-bundle experiment recorded below and is no longer current direction.
+The global comment/session plan now owns durable selectors, relocation,
+approval, and colorization. Execute the numbered release-plan batches in order:
 
-Before implementation, inspect the existing audit, Arborium/JavaParser, Draw,
-mount, console/palette, editor, and Minecraft screen/overlay seams. Turn that
-evidence into explicit design choices for:
+1. P-1 removes the bundle experiment, audits completion latency, establishes
+   hierarchical panel actions, and corrects terminal presentation;
+2. P-2 implements slot stacks, focus traversal, explorer-owned previews,
+   per-entry scale, rotations, and observable badges; and
+3. P-3 composes multi-lane changes and comment/hashtag explorers over the
+   preserved comment-session kernel.
 
-1. what artifact stores reviewed state and how it survives new commits;
-2. the granularity and identity of a reviewable unit across edits;
-3. which operations live outside Minecraft versus in the in-game workspace;
-4. whether panels host full `Screen` instances or narrower panel/content
-   interfaces adapted from screens; and
-5. which one end-to-end workflow proves enough value to belong in the next
-   release.
-
-#### Working first release slice
-
-The recommended slice is **Open Review Workspace**:
-
-1. open the workspace from the command palette;
-2. select before and after source snapshots;
-3. browse files through the existing explorer;
-4. open a changed source file as code-oriented comparison panels;
-5. view line/range fallback operations plus any available AST-aware
-   annotations without replacing code presentation with a generic AST tree;
-6. mark a source range or comparison operation human reviewed;
-7. independently mark it human approved while showing audit approval as a
-   separate read-only dimension; and
-8. close and reopen the same snapshot pair with the decisions restored.
-
-The first implementation may use deterministic fixtures and a line/range
-comparison while the Rust structured comparator is developed. A
-`SourceComparison` provider boundary allows the viewer to consume richer
-file-add/delete/rename, symbol-rename, body-change, formatting-only, and
-ambiguous/unknown operations later.
-
-#### Accepted review-presentation direction (2026-07-21)
-
-Canvas geometry is an interaction and presentation mechanism, not the durable
-identity of reviewed source. A dragged rectangle may select visible glyphs or
-source ranges and may be restored as a highlight, but persisting screen-space
-coordinates is insufficient: wrapping, font scale, panel resizing, formatting,
-and later edits can all move the same source.
-
-The durable review artifact should instead identify the compared source
-snapshots and store approved/reviewed source anchors. Candidate anchors include
-exact byte or character ranges with surrounding-content hashes, stable glyph
-ids within a document snapshot, structured comparison-operation ids, and AST
-nodes where the parser can identify them conservatively. The renderer derives
-rectangles and canvas adornments from those anchors when it presents the
-document. A thumbs-up operation over a rectangle therefore resolves the current
-selection to durable source anchors before recording approval.
-
-This permits a patch-like or structured sidecar artifact containing reviewed or
-approved segments without requiring annotations to be embedded in the source
-file or a textual diff. The exact schema, relocation behavior after edits, and
-distinction between human reviewed, human approved, and audit approved remain
-part of this task's release-slice decision.
+The historical track records below remain evidence about code already present;
+they are not instructions to restore deleted bundle or `workspace/open_to_side`
+surfaces.
 
 ## Parallel experiment tracks
 
@@ -1178,14 +1261,14 @@ Track 7 belongs above the multiplexer routing seam and below application
 panels. It can begin independently of semantic source comparison and Vox; the
 Episode Inspector consumes its recordings.
 
-### Active Track 6 real-repository slice — 2026-07-22
+### Historical Track 6 real-repository bundle slice — 2026-07-22 (superseded)
 
-Track 6 now advances from its frozen comparison fixture to the portable
-[`repository review bundle v1`](../architecture/repository-review-bundle-v1.md).
-The host prepares immutable before/after repository snapshots and comparison
-operations; Minecraft opens a named bundle from its managed inbox. The first
-observable slice uses real SFM revisions `d07bef66c` and `8e9946d9f` and must
-show:
+Track 6 advanced from its frozen comparison fixture to the now-superseded
+`repository-review-bundle-v1` contract.
+The host prepared immutable before/after repository snapshots and comparison
+operations; Minecraft opened a named bundle from its managed inbox. The first
+observable slice used real SFM revisions `d07bef66c` and `8e9946d9f` and
+showed:
 
 1. command-palette selection of **Open review session**;
 2. the real changed-file tree with themed ItemStack identities;
@@ -1193,28 +1276,28 @@ show:
 4. creation of a literal review comment through the global comment kernel;
 5. closing and reopening the deterministic session with that comment restored.
 
-The bundle producer, loader/session lifecycle, and workspace are independent
-feature tracks sharing one frozen fixture. The coordinator owns their merge
+The bundle producer, loader/session lifecycle, and workspace were independent
+feature tracks sharing one frozen fixture. The coordinator owned their merge
 order and final puppet. Semantic Java correspondence, structural selectors,
 comment migration to a third snapshot, AST refactoring operations, and release
-coverage remain subsequent slices; the baseline comparison may be textual but
-must already expose stable UTF-8 byte selections.
+coverage were subsequent slices; the baseline comparison exposed stable UTF-8
+byte selections.
 
 #### Track 6 real-repository result — 2026-07-22
 
-Track 6 now consumes a real, immutable repository-review bundle rather than the
-comparison fixture. The integrated surface opens a named managed-inbox bundle
-from the command palette, displays ItemStack file identities and changed-file
-search, renders responsive before/after source, makes a nonempty after-side
-UTF-8 selection, persists a literal comment through the shared review kernel,
-and restores it after close/reopen. Six inspected 1200x720 frames cover open,
+Track 6 consumed a real, immutable repository-review bundle rather than the
+comparison fixture. The integrated surface opened a named managed-inbox bundle
+from the command palette, displayed ItemStack file identities and changed-file
+search, rendered responsive before/after source, made a nonempty after-side
+UTF-8 selection, persisted a literal comment through the shared review kernel,
+and restored it after close/reopen. Six inspected 1200x720 frames covered open,
 browse, search, selection, comment creation, and restored session state.
 
-This slice deliberately keeps comparison production textual. The next Track 6
-work is structural Java correspondence, durable selector suggestions and
-migration to a third snapshot, followed by coverage/jump-list policy. It must
-reuse this bundle/session seam rather than teaching the presentation layer to
-read Git or inventing a second comment authority.
+This slice deliberately kept comparison production textual. The bundle seam is
+now removed by release-plan P-1.2. Subsequent structural correspondence,
+durable selector, migration, coverage, and jump-list work reuses the preserved
+comment/session authority while explicit revision selectors supply the source
+documents; it must not recreate the managed inbox or a second comment model.
 
 ### Responsive evidence and composition wave — completed 2026-07-22
 
@@ -1370,8 +1453,9 @@ The size-display puppet supplies full, half, equal-thirds, and nested allocation
 proof. Together they completed 30 scenarios and 210 captures in one Minecraft
 process; the browsable contact sheet is the generated
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/index.html`.
-The next Track 6 slice remains structural correspondence and durable selector
-migration; it was not started by this wave.
+At that checkpoint, structural correspondence and durable selector migration
+had not started. Current P-3 work reaches those capabilities through explicit
+revision selectors and the comment/session model, not the deleted bundle seam.
 
 #### Size-display redesign — 2026-07-25
 

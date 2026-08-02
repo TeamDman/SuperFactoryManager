@@ -1,19 +1,21 @@
 package ca.teamdman.sfm.client.action;
 
-import ca.teamdman.sfm.client.screen.SFMKeyBindingScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.controls.ControlsScreen;
 import net.minecraft.network.chat.Component;
 
-public final class OpenKeyBindingScreenAction implements SFMClientAction<SFMClientActionContext> {
+/** Opens Minecraft's built-in Controls screen; SFM Key Binds has a separate action. */
+public final class OpenMinecraftControlsAction implements SFMClientAction<SFMClientActionContext> {
     @Override
     public Component title() {
-        return Component.literal("Open SFM Key Binds");
+        return Component.literal("Open Minecraft Controls");
     }
 
     @Override
     public Component description() {
-        return Component.literal("Open SFM's key-bind editor for client actions");
+        return Component.literal("Open Minecraft's built-in Controls screen");
     }
 
     @Override
@@ -23,7 +25,8 @@ public final class OpenKeyBindingScreenAction implements SFMClientAction<SFMClie
 
     @Override
     public int execute(SFMClientActionContext target, CommandContext<SFMClientActionSource> context) {
-        SFMScreenChangeHelpers.setOrPushScreen(new SFMKeyBindingScreen());
+        Minecraft minecraft = Minecraft.getInstance();
+        SFMScreenChangeHelpers.setOrPushScreen(new ControlsScreen(minecraft.screen, minecraft.options));
         return 1;
     }
 }

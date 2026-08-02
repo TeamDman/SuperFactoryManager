@@ -2,7 +2,7 @@
 
 **Plan status:** Proposed  
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-07-21
+**Last updated:** 2026-08-02
 
 ## How to update this plan
 
@@ -211,34 +211,36 @@ serialization tests.
 
 ## Phase 0 — Close the contracts
 
-### Frozen review-snapshot subset — 2026-07-22
+### Historical review-snapshot subset — 2026-07-22 (superseded transport)
 
-The first real-repository review wave freezes the snapshot/comparison subset in
-[`../architecture/repository-review-bundle-v1.md`](../architecture/repository-review-bundle-v1.md)
-and its shared JSON fixture. It fixes normalized repository paths, strict
-UTF-8/base64 file bytes, deterministic semantic hashing, explicit resource
-bounds, byte-range comparison selections, and the managed-inbox handoff.
+The first real-repository review wave froze a snapshot/comparison subset in the
+`repository-review-bundle-v1` contract and shared JSON fixture. It fixed
+normalized repository paths, strict UTF-8/base64 file bytes, deterministic
+semantic hashing, explicit resource bounds, byte-range comparison selections,
+and a managed-inbox handoff.
 
-This closes the snapshot vocabulary needed by review without prematurely
-freezing the episode, event, action, transition, observation, or timeline
-schemas below. The Rust producer and Java importer must both pass the shared
-fixture before Phase 0.1 can be marked complete in full.
+The byte/path/hash lessons remain useful evidence, but the bundle and managed
+inbox are not the future snapshot transport. Release-plan P-1.2 removes the
+Rust producer, Java importer, schema document, and fixture. Phase 0.1 must
+define and test the general snapshot vocabulary directly; it no longer depends
+on passing the deleted bundle fixture.
 
 #### Review-snapshot implementation result — 2026-07-22
 
-The frozen review subset is implemented across Rust and Java. Rust accepts Git
-revision pairs or bounded directories, emits full immutable snapshots plus a
-deterministic textual comparison, validates the shared fixture and adversarial
-path/content cases, and atomically publishes to the managed inbox. Java strictly
-loads the same contract and projects generated comments into a deterministic
-persistent review-session identity. The real SFM proof pair `d07bef66c` to
+The frozen review subset was implemented across Rust and Java. Rust accepted
+Git revision pairs or bounded directories, emitted full immutable snapshots
+plus a deterministic textual comparison, validated the shared fixture and
+adversarial path/content cases, and atomically published to the managed inbox.
+Java loaded the same contract and projected generated comments into a
+deterministic persistent review-session identity. The real SFM proof pair `d07bef66c` to
 `8e9946d9f` produced 1,983-file snapshots and bundle id
 `sha256:704c12c4894ecb227c0b604934fc66ab8ba62182467b69d8517f36ac5fd0e36d`.
 
-This completes only the review-snapshot subset. Phase 0 remains open for the
-episode/event/action/transition vocabulary, and Phase 1 remains open for general
-snapshot/episode adapters and full-frame round trips. Later storage compression
-must continue to export this lossless full-snapshot form.
+This was historical evidence only. Phase 0 remains open for the
+episode/event/action/transition vocabulary, and Phase 1 remains open for
+general snapshot/episode adapters and full-frame round trips. Future storage
+may reuse the validated normalization and bounded-decoding laws without
+retaining the bundle schema, command, or inbox.
 
 ### [ ] 0.1 Define snapshot and episode vocabulary
 
@@ -275,8 +277,8 @@ input histories remain observably different.
   an AST parser, or Vox.
 - Provide canonicalize, validate, hash, inspect, and extract-frame operations.
 - Keep optimized blob/delta storage out of the first implementation.
-- The active review wave implements the frozen repository-snapshot subset plus
-  Git-tree/directory sources and a deterministic textual comparison producer.
+- Any later Git-tree/directory adapter populates this general snapshot model;
+  it must not restore the deleted repository-review bundle producer.
 
 ### [ ] 1.2 Java snapshot and episode models
 
@@ -285,8 +287,9 @@ input histories remain observably different.
 - Bound file count, content bytes, event count, and decoded allocation.
 - Add shared fixture conformance tests between Rust-produced and Java-produced
   documents.
-- The active review wave imports named bundles from the managed inbox and
-  projects comparison operations into the existing global review session.
+- Review consumers resolve explicit revision selectors into lanes/documents and
+  feed the global comment/session model directly; they do not import named
+  bundles from a managed inbox.
 
 ### [ ] 1.3 Full-frame round-trip proof
 

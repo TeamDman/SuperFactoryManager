@@ -19,6 +19,10 @@ public final class OpenReplAction implements SFMClientAction<SFMClientActionCont
 
     @Override
     public int execute(SFMClientActionContext target, CommandContext<SFMClientActionSource> context) {
-        return OpenTerminalAction.open(target, SFMTerminalServiceFactory.createRepl());
+        return OpenPanelAction.openPanel(
+                target,
+                new ca.teamdman.sfm.client.terminal.SFMTerminalPanel(SFMTerminalServiceFactory.createRepl()),
+                OpenPanelAction.Direction.FOCUSED
+        );
     }
 }

@@ -20,6 +20,39 @@ The motivating reference implementation is Teamy Studio at
 This is a design and implementation plan, not permission to make the Minecraft
 mod depend on Teamy Studio or on a Rust process at runtime.
 
+## User-testing follow-up — 2026-08-02
+
+The next SFM bridge slice is a presentation-state correction, not a renderer
+optimization. The terminal panel must expose two explicit states:
+
+- disconnected: show status plus Start/Retry, with no stale Java-local REPL
+  help text in the Rust panel; and
+- connected: show only the Rust-authoritative frame and route input/resize to
+  Vox.
+
+Register the terminal and the puppet size-display surface as panel scenes so
+`sfm:panel/open sfm:terminal` and the layout witnesses use one action surface.
+The Java-local `sfm:repl/open` path remains independently available.
+
+The GUI-scale-7 blur report establishes a separate frame-contract item: the
+requested `columns × rows` is stable while Rust receives the panel's logical
+dimensions and chooses larger font/cell pixel dimensions. Java presents the
+resulting native-sized frame rather than stretching a smaller PNG. The current
+CPU `fontdue` path is sufficient for this correctness proof. Teamy Terminal
+owns the later slug/GPU renderer and dirty-upload optimization; those are not
+part of the immediate panel/action goal.
+
+### Batch 3 planning items
+
+- **V-3.1:** implement and test disconnected/connected terminal presentation,
+  including Start/Retry and stale-frame rejection;
+- **V-3.2:** expose terminal and size-display scenes through the panel registry;
+- **V-3.3:** document and test the logical-size/cell-metric frame contract at
+  normal scale and GUI scale 7, asserting stable columns/rows, larger Rust
+  font/cell pixels, native frame dimensions, and no Java bitmap upscaling; and
+- **V-3.4:** keep scrollback, persistent swapchain targets, dirty uploads, and
+  slug/GPU rasterization as subsequent renderer slices.
+
 The Rust terminal implementation is now planned as a separate public
 MPL-2.0 `TeamDman/teamy-terminal` repository rather than as a dependency on the
 larger Teamy Studio application. Its core/Vulkan/font workspace, bootstrap,
@@ -28,18 +61,19 @@ recorded in the authoritative [Teamy Terminal Repository and Vulkan Renderer Pla
 
 ## Product outcome
 
-The command palette can open a terminal panel inside the SFM multiplexer. The
-same Java screen and typed terminal contract work in three modes:
+The command palette can open composable terminal scenes inside the SFM
+multiplexer. Java-local REPL scenes and the Rust terminal share typed service
+contracts where useful, but they are distinct user-facing surfaces:
 
-1. **Java-local virtual terminal** — the default and always-available mode.
+1. **Java-local virtual REPL** — the default and always-available Java mode.
    Java owns the service and client in-process, backed by a bounded in-memory
    virtual file system and a safe command set.
-2. **Java-local filesystem terminal** — an explicitly selected mode that can
+2. **Java-local filesystem REPL** — an explicitly selected Java mode that can
    inspect or edit approved roots such as the mounted Minecraft instance. It
    uses the same service contract but applies path containment, size, encoding,
    and mutation policy before touching disk.
-3. **Vox/Rust terminal** — an optional development-environment mode. Java is a
-   thin Vox client and Rust is authoritative for the PTY, command execution, VT
+3. **Vox/Rust terminal scene** — an optional development-environment surface.
+   Java is a thin Vox client and Rust is authoritative for the PTY, command execution, VT
    parsing, scrollback, colors, cursor state, and terminal rasterization. The
    first presentation mode is a bounded full PNG snapshot; Java uploads and
    displays that image in the panel and sends input/resize messages back. It
@@ -48,33 +82,38 @@ same Java screen and typed terminal contract work in three modes:
 
 ### Explicit user-facing modes and lifecycle actions
 
-The command palette must make backend selection explicit instead of silently
-changing the meaning of one action based on a JVM property:
+Opening a scene and managing the optional Rust server are separate operations:
 
 - `sfm:repl/open` always opens the Java-local virtual terminal. It remains
   useful even when a Rust server is running.
-- `sfm:terminal/open` tries to open the Rust-backed terminal using the current
-  Rust server endpoint. If the endpoint is absent or unavailable, it opens a
-  visibly labelled retryable fallback rather than permanently disabling the
-  panel.
-- `sfm:terminal/connect-rust-server [address]` accepts an optional
+- `sfm:panel/open sfm:terminal` is the sole action that opens the Rust terminal
+  scene. The scene is disconnected or connected; it never silently becomes a
+  Java-local REPL.
+- `sfm:terminal/server/connect [address]` accepts an optional
   `HOST:PORT` (also `:PORT` for loopback), otherwise using the client-configured
-  default endpoint. It updates the current Rust terminal connection and can be
-  invoked after the Minecraft client has already started.
-- `sfm:terminal/start-rust-server [address]` launches the configured
+  default endpoint. It updates the Rust terminal connection without opening or
+  replacing a panel and can be invoked after Minecraft has started.
+- `sfm:terminal/server/start [address]` launches the configured
   `teamy-terminal.exe serve [address]` process hidden, reuses an already-live
-  endpoint, and then connects the Rust terminal. SFM must track only processes
-  it started so an explicitly launched server is never killed accidentally.
+  endpoint, and then connects existing/future terminal scenes without opening
+  one. SFM tracks only processes it started so an explicitly launched server is
+  never killed accidentally.
+
+The unpublished `sfm:terminal/open`,
+`sfm:terminal/connect-rust-server`, and
+`sfm:terminal/start-rust-server` ids are retired migration inputs, not retained
+aliases. `sfm:panel/open sfm:terminal` is the sole terminal-opening action;
+`sfm:terminal/server/start` and `sfm:terminal/server/connect` are lifecycle-only.
 
 The client config should own the default loopback address/port (initially
 `127.0.0.1:63946`) and an optional executable path. The JVM property remains a
 test/puppet override during migration, not the normal manual-launch contract.
 
-The first two modes must remain useful when Rust is not installed, the game is
+The Java-local modes remain useful when Rust is not installed, the game is
 offline, the endpoint is stopped, authentication fails, or the protocol is
-incompatible. A failed optional connection produces a visible status and a
-fallback or launch suggestion; it must not disable mounted editing or ordinary
-SFM gameplay.
+incompatible. A failed optional connection leaves the Rust scene disconnected
+with status and Start/Retry controls. It does not inject Java REPL content into
+that scene or disable mounted editing or ordinary SFM gameplay.
 
 ## Boundary and ownership
 
@@ -170,19 +209,17 @@ arbitrary host-process launch.
 
 ## Screen and command-palette integration
 
-Add a typed command-palette action such as **Open terminal** with parameters
-for backend preference, initial working root, and optional session name. The
-action opens a terminal leaf in the current SFM multiplexer; outside the
-multiplexer it follows the existing open/push behavior.
+Register `sfm:terminal` as a typed panel scene. The generic
+`sfm:panel/open[/direction]` family opens it in the current multiplexer or
+creates a multiplexer when needed. Backend preference is not an opening
+argument: this scene always represents the Rust terminal connection.
 
-The screen should expose, at minimum:
+The scene exposes exactly two presentation states:
 
-- connection/backend status (`Java local`, `Rust connected`, `fallback`, or
-  `unavailable`) with an explanation;
-- terminal text/cell rendering, cursor, selection, and scrollback;
-- a compact session/control strip that does not steal the terminal's logical
-  area; and
-- actions for reconnect, switch backend, copy, clear, snapshot, and close.
+- **Disconnected:** connection status plus Start/Retry; no terminal PNG and no
+  Java-local REPL instructions.
+- **Connected:** the Rust-owned terminal frame, cursor, selection, and
+  scrollback plus non-obscuring lifecycle/status affordances.
 
 The terminal panel is a normal composable leaf. It must work as a full-screen
 panel and inside horizontal, vertical, tab, and nested split layouts. Rust
@@ -226,10 +263,9 @@ The Java texture panel owns upload, resource lifetime, clipping, aspect-ratio
 policy, GUI-scale/layout bounds, and dropped/stale-frame handling. Rust owns
 the font rasterization and terminal appearance in texture mode. A resize of
 the multiplexer leaf sends a bounded render-target request to Rust; Java never
-accepts arbitrary remote layout instructions. The frame protocol should allow
-the Java-local backend to use the same presentation seam with a locally
-rendered fallback, or to select the structured-cell renderer when a texture
-stream is unavailable.
+accepts arbitrary remote layout instructions. The frame protocol may be reused
+by other renderers, but failure of the Rust texture stream transitions this
+scene to disconnected state rather than switching it to a Java-local backend.
 
 The live frame envelope should include a monotonically increasing sequence,
 session id, pixel width/height, logical panel bounds, pixel format, stride,
@@ -242,20 +278,20 @@ archive/replay from a presentation frame intended for immediate upload.
 Texture mode is an optional capability negotiated at connect time. Its proof
 must show: the unmistakable Teamy Studio terminal appearance, keyboard input
 round-tripping to the Rust session, resize/re-render behavior, a dropped-frame
-or disconnect state, and fallback to the Java-local terminal without losing
-the session's useful status. Captures should include full-screen, nested-panel,
+or disconnect state, and a useful disconnected status while the separately
+openable Java-local REPL remains available. Captures should include full-screen, nested-panel,
 narrow-window, and supported GUI-scale layouts. This is a presentation mode
 for terminal content, not a way to send Minecraft panels or executable UI over
 the wire.
 
 ## Phased implementation
 
-### Active delegation wave — 2026-07-25
+### Historical delegation wave — 2026-07-25 (completed)
 
-The first concrete batch is deliberately split across independent repositories
-and worktrees. Agents must commit their own branches and report tests/evidence;
-the coordinator owns canonical-plan edits, review, merge order, and the final
-Minecraft proof.
+The first concrete batch was split across independent repositories and
+worktrees. Agents committed their own branches and reported tests/evidence;
+the coordinator owned canonical-plan edits, review, merge order, and the final
+Minecraft proof. This section records that completed coordination history.
 
 | Track | Branch / worktree | Acceptance target |
 | --- | --- | --- |
@@ -263,11 +299,11 @@ Minecraft proof.
 | Vox terminal contract | `teamy/vox-java-terminal-contract` / `G:\Programming\Repos\facet-worktrees\vox-java-terminal-contract` | Generated portable session/input/resize/frame/cancellation/error DTOs plus deterministic schema and round-trip fixtures on the reviewed `teamy/vox-java` base. |
 | Teamy Studio frame probe | `teamy/terminal-frame-probe` / `G:\Programming\Repos\teamy-studio-terminal-frame-probe` | Headless off-screen terminal capture, PNG artifact, bounded raw/compressed frame seam, and readback/latency evidence without native GPU-handle interop. |
 
-The contract and frame-probe tracks may proceed in parallel with the Java-local
-slice. Integration is coordinator-owned: first review the generated contract,
+The contract and frame-probe tracks proceeded in parallel with the Java-local
+slice. Integration was coordinator-owned: first review the generated contract,
 then adapt the Java service/panel, and only afterward connect the optional Rust
-texture presentation. No agent should edit the canonical `1.19.2` worktree or
-silently broaden the scope into the colour-picker bridge.
+texture presentation. Agents did not edit the canonical `1.19.2` worktree or
+broaden the scope into the colour-picker bridge.
 
 ### Delegation wave results — 2026-07-25
 
@@ -312,8 +348,9 @@ The packaged contract review is complete, and the coordinator-owned portable
 Cargo/xtask acquisition route is now implemented. The reviewed contract was
 merged into and pushed on `TeamDman/facet` `main` at
 `aa75598dabb2138b18365cdf0d97ca94a34c5319`; SFM now pins that published
-revision in its canonical 1.19.2 lockfile. The Java-local backend remains the
-default while the optional Vox adapter is implemented and verified.
+revision in its canonical 1.19.2 lockfile. At that checkpoint, the Java-local
+backend remained the default while the optional Vox adapter was being
+implemented and verified.
 
 Coordinator status after the standalone terminal baseline: `teamy-terminal`
 main contains the bounded core scrollback/reflow, dirty rendering, Tracy
@@ -325,7 +362,7 @@ is now consumed by SFM through the pinned `TeamDman/facet` `main` revision and
 the portable Cargo/xtask source-build recipe. A workspace-relative Maven URL
 is not used, and generated runtime sources are not vendored into SFM.
 
-The integration order is therefore:
+The integration order at that checkpoint was:
 
 1. Keep the generated contract boundary at `26fda8736` reviewed and the
    published Facet `main` revision pinned through the SFM-supported Cargo
@@ -333,9 +370,14 @@ The integration order is therefore:
 2. Keep the canonical compile/test and Java-local command-palette puppet proof
    green from the canonical worktree.
 3. Implement and prove the optional `SFMVoxBridge` against the pinned generated
-   Java contract while preserving Java-local fallback.
-4. Re-run the same terminal scenario against the optional Rust endpoint, then
-   pursue the separate texture-presentation experiment.
+   Java contract while preserving the independent Java-local REPL.
+4. Re-run the terminal scenario against the optional Rust endpoint, then pursue
+   the separate texture-presentation experiment.
+
+Later sections record completion of that adapter work. This list is not the
+current execution order. The release-plan P-1 panel-scene and lifecycle
+migration is complete on canonical 1.19.2; the remaining work in this plan is
+the later Rust scrollback, packaging, and clean-install acceptance tracks.
 
 ### Canonical Java-local validation — 2026-07-26
 
@@ -358,8 +400,9 @@ from the actual propagation CLI, rather than only the focused class tests:
 
 The proof caught and fixed two bookkeeping-level correctness issues: the
 scrollback viewport now preserves the viewed row while new output arrives
-and clamps only when bounded retention evicts that row, and the puppet uses
-the canonical fully-qualified `sfm action invoke sfm:terminal/open` command.
+and clamps only when bounded retention evicts that row. At that historical
+checkpoint the puppet used `sfm action invoke sfm:terminal/open`; release-plan
+P-1 migrates it to `sfm:panel/open sfm:terminal`.
 The Java-local phase is committed as `c996521da` in the canonical worktree and
 has been propagated baseline-first through every version worktree from
 `1.19.4` through `26.1.2`; all version worktrees were clean after the merge.
@@ -530,16 +573,19 @@ The implementation status for those gates is now:
    libraries while omitting loader-managed mod jars and deobfuscated outputs.
    The lockfile projection regression and the rebuilt effective smoke
    classpath both prove `vox-java` is present and Mekanism is absent.
-2. **Complete.** `repl/open` is Java-local, `terminal/open` is Rust-preferred
-   with fallback, and endpoint/executable defaults live in `SFMClientConfig`.
-   `terminal/connect-rust-server [address]` accepts `HOST:PORT`, `:PORT`, or a
-   bare port; JVM properties remain explicit test/puppet overrides.
+2. **Historical baseline complete; action migration pending P-1.** `repl/open`
+   is Java-local, the old `terminal/open` action opened the Rust-preferred
+   surface, and endpoint/executable defaults live in `SFMClientConfig`. The old
+   `terminal/connect-rust-server [address]` accepted `HOST:PORT`, `:PORT`, or a
+   bare port. P-1 replaces those Rust ids with the panel scene and
+   `terminal/server/connect`; JVM properties remain test/puppet overrides.
 3. **Complete.** `SFMVoxTerminalService` clears transient connection failure
    state and retries on later resize/execute requests.
-4. **Complete.** `terminal/start-rust-server [address]` launches the configured
-   `teamy-terminal.exe serve HOST:PORT` with no console window, waits for TCP
-   readiness, and then opens the Rust-backed panel. The Java-only action does
-   not probe or depend on the Rust process.
+4. **Historical baseline complete; action migration pending P-1.** The old
+   `terminal/start-rust-server [address]` launches the configured
+   `teamy-terminal.exe serve HOST:PORT` with no console window and waits for TCP
+   readiness. P-1 renames it to `terminal/server/start` and removes the implicit
+   panel open. The Java-local REPL does not probe or depend on the Rust process.
 5. **In progress.** The Rust-start puppet proves Java-started Rust, full PNG
    frames, `1..100`, and cyan `Write-Host` output. Remaining lifecycle work is
    a focused restart/stop matrix and explicit manual proof of every ordering
@@ -595,9 +641,9 @@ timing and changed the automation hook to obtain a synchronous command frame;
 the live capture
 `build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-title_screen-20260728-000407-517/title_screen_rust_terminal/1280x720_auto/figure_02_rust-terminal-powershell-cyan.png`
 now visibly contains the Rust-rendered range and cyan `Write-Host` output.
-The remaining proof is a live puppet that captures control-key editing,
-mouse-mode delivery, streaming `1..10000` output, triple-Esc/triple-Tab
-behavior, and disconnect/retry handling.
+That historical remaining-proof list was closed by the live P-1/P-2
+verification recorded below; it is retained as the original acceptance
+boundary, not as an open blocker.
 
 ### User-testing follow-up — 2026-08-01
 
@@ -720,6 +766,26 @@ ConPTY startup frame from becoming a false failure. Rust scrollback remains a
 later extension; this content witness is intentionally a bounded visible-grid
 artifact rather than a scrollback replacement.
 
+### Release checkpoint P-1 closure — 2026-08-02
+
+The canonical release-checkpoint goal completed its terminal boundary. The
+focused `SFMVoxTerminalServiceTests` and
+`SFMUnavailableTerminalServiceTests` passed, and the live
+`title_screen_rust_terminal` puppet passed with `failed=0`. Its run is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_rus-20260802-141350-220/`;
+it contains disconnected/lifecycle/guidance/input/alternate-screen/reconnect
+captures. The puppet also wrote 16 machine-readable terminal-content artifacts
+under `platform/minecraft/runGameTestPreview/terminal-content/`, including
+required/forbidden assertions for Ctrl+C interruption, `1..10000`, paste,
+alternate-screen restoration, cancellation, and cyan PowerShell output.
+
+The old terminal-opening and lifecycle ids are not compatibility aliases. Use
+`sfm:panel/open sfm:terminal` to open the scene and
+`sfm:terminal/server/start` or `sfm:terminal/server/connect` only to manage
+the Rust endpoint. Rust scrollback, crisp font-size negotiation without Java
+bitmap upscaling, clean-install companion-server packaging, and the later
+Vulkan/slug renderer remain open plan items.
+
 Final focused verification for this slice is green: Teamy Terminal's six
 `vox_server` tests pass; SFM's `SFMTerminalFocusSequenceTests` pass 3/3; and
 `SFMClientActionPaletteSuggestionTests` pass 2/2. The focused real puppet
@@ -794,8 +860,8 @@ state to distinguish Java-local proof from Rust-connected proof.
   portable frame in a headless proof first; do not make Minecraft depend on a
   shared native GPU handle.
 - Capture connected texture mode, input round-trip, resize, stale/disconnected
-  frame handling, and Java-local fallback before considering native graphics
-  interop.
+  frame handling, and independent Java-local REPL availability before
+  considering native graphics interop.
 
 ### Phase 4 — Development-environment capabilities
 
@@ -834,5 +900,6 @@ terminal's symbol/handle metadata can become useful to the in-game interface.
 
 The colour-picker bridge is therefore deferred as the first cross-language
 demo. The reusable colour-input header-slot refactor may still land as local UI
-infrastructure, but terminal lifecycle, Java-local fallback, and one useful
-Rust-backed operation are the next user-visible bridge milestones.
+infrastructure, but terminal lifecycle, independent Java-local REPL
+availability, and one useful Rust-backed operation are the next user-visible
+bridge milestones.

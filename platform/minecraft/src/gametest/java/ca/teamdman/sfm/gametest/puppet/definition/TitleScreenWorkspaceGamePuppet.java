@@ -13,7 +13,7 @@ import net.minecraft.network.chat.Component;
 public final class TitleScreenWorkspaceGamePuppet {
     private static final int TITLE_SCREEN_FADE_IN_TICKS = 20;
     private static final String OPEN_COMMAND =
-            "sfm action invoke sfm:workspace/open_to_side sfm:test_screen ";
+            "sfm action invoke sfm:panel/open/right sfm:test_screen ";
 
     private TitleScreenWorkspaceGamePuppet() {
     }

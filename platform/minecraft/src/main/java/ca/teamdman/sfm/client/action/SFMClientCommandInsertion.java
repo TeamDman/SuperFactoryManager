@@ -45,4 +45,18 @@ public final class SFMClientCommandInsertion {
         String withoutSeparator = command.stripTrailing();
         return prepare(withoutSeparator, tree, source).equals(withoutSeparator + " ");
     }
+
+    /**
+     * Reports whether the parsed terminal node has literal child choices.
+     * Required argument nodes are deliberately excluded: users may type those
+     * values manually, while a literal scene/action choice should be selected
+     * from the available suggestions first.
+     */
+    public static boolean hasAvailableLiteralChildren(ParseResults<SFMClientActionSource> parsed) {
+        if (parsed == null) return false;
+        List<ParsedCommandNode<SFMClientActionSource>> nodes = parsed.getContext().getNodes();
+        if (nodes.isEmpty()) return false;
+        return nodes.get(nodes.size() - 1).getNode().getChildren().stream()
+                .anyMatch(child -> child instanceof LiteralCommandNode<?>);
+    }
 }

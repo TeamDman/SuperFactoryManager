@@ -38,6 +38,13 @@ public class SFMClientCommandInsertionTests {
     }
 
     @Test
+    public void requiredArgumentActionDoesNotPretendItsFreeFormValueIsASubAction() {
+        var parsed = tree.parse("sfm action invoke sfm:echo", source);
+        org.junit.jupiter.api.Assertions.assertFalse(
+                SFMClientCommandInsertion.hasAvailableLiteralChildren(parsed));
+    }
+
+    @Test
     public void terminalAndOptionalActionsRemainExecutableWithoutMutation() {
         assertEquals("sfm action invoke sfm:terminal", prepare("sfm action invoke sfm:terminal"));
         assertEquals("sfm action invoke sfm:optional", prepare("sfm action invoke sfm:optional"));

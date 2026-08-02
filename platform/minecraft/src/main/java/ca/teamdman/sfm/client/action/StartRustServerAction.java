@@ -11,13 +11,13 @@ import net.minecraft.network.chat.Component;
 
 import java.net.InetSocketAddress;
 
-/** Starts the configured Rust CLI server and opens its terminal endpoint. */
+/** Starts the configured Rust CLI server without opening or replacing a panel. */
 public final class StartRustServerAction implements SFMClientAction<SFMClientActionContext> {
     @Override
     public Component title() { return Component.literal("Start Rust terminal server"); }
 
     @Override
-    public Component description() { return Component.literal("Start teamy-terminal serve without opening a console window, then connect"); }
+    public Component description() { return Component.literal("Start teamy-terminal serve without opening or replacing a panel"); }
 
     @Override
     public SFMClientActionRequirement<SFMClientActionContext> requirement() {
@@ -37,7 +37,9 @@ public final class StartRustServerAction implements SFMClientAction<SFMClientAct
         String raw = ConnectRustServerAction.optionalAddress(context);
         try {
             InetSocketAddress endpoint = SFMTerminalServiceFactory.startRustServer(raw);
-            return OpenTerminalAction.open(target, SFMTerminalServiceFactory.createRust(endpoint));
+            context.getSource().sendFeedback(Component.literal(
+                    "Rust terminal server started and is reachable at " + endpoint));
+            return 1;
         } catch (Exception error) {
             throw new SimpleCommandExceptionType(Component.literal(
                     "Could not start Rust terminal server: " + error.getMessage())).create();

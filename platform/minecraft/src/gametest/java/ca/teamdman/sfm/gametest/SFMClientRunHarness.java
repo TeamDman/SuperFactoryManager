@@ -184,7 +184,7 @@ public class SFMClientRunHarness {
         puppetWorldCreationStarted = true;
 
         Minecraft minecraft = Minecraft.getInstance();
-        RegistryAccess.Frozen registryAccess = RegistryAccess.BUILTIN.get();
+        RegistryAccess registryAccess = RegistryAccess.builtinCopy();
         Registry<WorldPreset> presets = registryAccess.registryOrThrow(Registry.WORLD_PRESET_REGISTRY);
         WorldGenSettings worldGenSettings = presets
                 .getOrCreateHolderOrThrow(WorldPresets.FLAT)

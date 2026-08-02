@@ -30,9 +30,29 @@ public final class SFMCommandPaletteActions {
             EchoAction::new
     );
 
-    public static final SFMRegistryObject<SFMClientAction<?>, OpenScreenToSideAction> OPEN_SCREEN_TO_SIDE = REGISTERER.register(
-            "workspace/open_to_side",
-            OpenScreenToSideAction::new
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenPanelAction> OPEN_PANEL = REGISTERER.register(
+            "panel/open",
+            () -> new OpenPanelAction(OpenPanelAction.Direction.FOCUSED)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenPanelAction> OPEN_PANEL_LEFT = REGISTERER.register(
+            "panel/open/left",
+            () -> new OpenPanelAction(OpenPanelAction.Direction.LEFT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenPanelAction> OPEN_PANEL_RIGHT = REGISTERER.register(
+            "panel/open/right",
+            () -> new OpenPanelAction(OpenPanelAction.Direction.RIGHT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenPanelAction> OPEN_PANEL_ABOVE = REGISTERER.register(
+            "panel/open/above",
+            () -> new OpenPanelAction(OpenPanelAction.Direction.ABOVE)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenPanelAction> OPEN_PANEL_BELOW = REGISTERER.register(
+            "panel/open/below",
+            () -> new OpenPanelAction(OpenPanelAction.Direction.BELOW)
     );
 
     public static final SFMRegistryObject<SFMClientAction<?>, OpenKeyBindingScreenAction> MANAGE_KEY_BINDINGS = REGISTERER.register(
@@ -40,14 +60,24 @@ public final class SFMCommandPaletteActions {
             OpenKeyBindingScreenAction::new
     );
 
-    public static final SFMRegistryObject<SFMClientAction<?>, OpenReviewBundleAction> OPEN_REVIEW_BUNDLE = REGISTERER.register(
-            "review/open_bundle",
-            OpenReviewBundleAction::new
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenMinecraftControlsAction> OPEN_MINECRAFT_CONTROLS = REGISTERER.register(
+            "controls/open",
+            OpenMinecraftControlsAction::new
     );
 
-    public static final SFMRegistryObject<SFMClientAction<?>, OpenTerminalAction> OPEN_TERMINAL = REGISTERER.register(
-            "terminal/open",
-            OpenTerminalAction::new
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMGuiScaleAction> SET_GUI_SCALE = REGISTERER.register(
+            "ui/gui_scale/set",
+            () -> new SFMGuiScaleAction(SFMGuiScaleAction.Operation.SET)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMGuiScaleAction> INCREMENT_GUI_SCALE = REGISTERER.register(
+            "ui/gui_scale/increment",
+            () -> new SFMGuiScaleAction(SFMGuiScaleAction.Operation.INCREMENT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMGuiScaleAction> DECREMENT_GUI_SCALE = REGISTERER.register(
+            "ui/gui_scale/decrement",
+            () -> new SFMGuiScaleAction(SFMGuiScaleAction.Operation.DECREMENT)
     );
 
     public static final SFMRegistryObject<SFMClientAction<?>, OpenReplAction> OPEN_REPL = REGISTERER.register(
@@ -56,12 +86,12 @@ public final class SFMCommandPaletteActions {
     );
 
     public static final SFMRegistryObject<SFMClientAction<?>, ConnectRustServerAction> CONNECT_RUST_SERVER = REGISTERER.register(
-            "terminal/connect-rust-server",
+            "terminal/server/connect",
             ConnectRustServerAction::new
     );
 
     public static final SFMRegistryObject<SFMClientAction<?>, StartRustServerAction> START_RUST_SERVER = REGISTERER.register(
-            "terminal/start-rust-server",
+            "terminal/server/start",
             StartRustServerAction::new
     );
 

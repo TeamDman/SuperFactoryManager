@@ -25,11 +25,11 @@ class SFMClientActionPaletteSuggestionTests {
         AtomicInteger workspaceCount = new AtomicInteger();
         SFMClientActionCommandTree tree = tree(
                 Map.entry(
-                        new ResourceLocation("sfm", "terminal/open"),
+                        new ResourceLocation("sfm", "panel/open"),
                         new TestAction("Open terminal", terminalCount, true)
                 ),
                 Map.entry(
-                        new ResourceLocation("sfm", "workspace/open"),
+                        new ResourceLocation("sfm", "panel/open/right"),
                         new TestAction("Open workspace", workspaceCount, true)
                 ),
                 Map.entry(
@@ -44,7 +44,7 @@ class SFMClientActionPaletteSuggestionTests {
                 .getList();
 
         assertEquals(
-                List.of("sfm:terminal/open", "sfm:workspace/open"),
+                List.of("sfm:panel/open", "sfm:panel/open/right"),
                 suggestions.stream().map(suggestion -> suggestion.getText()).toList()
         );
         assertEquals(1, tree.execute("sfm action invoke " + suggestions.get(0).getText(), source));
@@ -54,8 +54,8 @@ class SFMClientActionPaletteSuggestionTests {
 
     @Test
     void fuzzyQueryExcludesUnavailableActions() {
-        ResourceLocation availableId = new ResourceLocation("sfm", "terminal/open");
-        ResourceLocation unavailableId = new ResourceLocation("sfm", "workspace/open");
+        ResourceLocation availableId = new ResourceLocation("sfm", "panel/open");
+        ResourceLocation unavailableId = new ResourceLocation("sfm", "panel/open/right");
         SFMClientActionCommandTree tree = tree(
                 Map.entry(availableId, new TestAction("Open terminal", new AtomicInteger(), true)),
                 Map.entry(unavailableId, new TestAction("Open workspace", new AtomicInteger(), false))
