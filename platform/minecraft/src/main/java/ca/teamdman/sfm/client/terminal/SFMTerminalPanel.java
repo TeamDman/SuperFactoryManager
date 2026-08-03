@@ -193,9 +193,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 + "java_render_total_us={} java_render_max_us={} java_upload_attempts={} "
                 + "java_upload_failures={} java_upload_total_us={} java_upload_max_us={} "
                 + "java_png_decode_attempts={} java_png_decode_total_us={} java_png_decode_max_us={} "
+                + "java_decoded_image_allocations={} java_decoded_image_closes={} "
+                + "java_encoded_buffer_allocations={} java_encoded_buffer_reuses={} "
+                + "java_encoded_buffer_replacements={} java_encoded_buffer_closes={} "
+                + "java_encoded_buffer_capacity={} java_encoded_buffer_capacity_max={} "
                 + "java_texture_allocations={} java_texture_allocation_total_us={} "
-                + "java_texture_allocation_max_us={} java_texture_registrations={} "
+                + "java_texture_allocation_max_us={} java_texture_reuses={} "
+                + "java_texture_replacements={} java_texture_closes={} java_texture_registrations={} "
                 + "java_texture_registration_total_us={} java_texture_registration_max_us={} "
+                + "java_texture_uploads={} java_texture_upload_total_us={} java_texture_upload_max_us={} "
                 + "java_stale_frames={} java_dropped_frames={} java_coalesced_frames={} "
                 + "java_frames_presented={} java_sequence_presented={} payload_bytes={} "
                 + "rust_total_us={} backend_id={} transport_id={} panel_width={} panel_height={} "
@@ -206,11 +212,19 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 micros(telemetry.renderNanosMax()), telemetry.uploadAttempts(), telemetry.uploadFailures(),
                 micros(telemetry.uploadNanosTotal()), micros(telemetry.uploadNanosMax()),
                 telemetry.pngDecodeAttempts(), micros(telemetry.pngDecodeNanosTotal()),
-                micros(telemetry.pngDecodeNanosMax()), telemetry.dynamicTextureAllocations(),
+                micros(telemetry.pngDecodeNanosMax()), telemetry.decodedImageAllocations(),
+                telemetry.decodedImageCloses(), telemetry.encodedBufferAllocations(),
+                telemetry.encodedBufferReuses(), telemetry.encodedBufferReplacements(),
+                telemetry.encodedBufferCloses(), telemetry.encodedBufferCapacity(),
+                telemetry.encodedBufferCapacityMax(), telemetry.dynamicTextureAllocations(),
                 micros(telemetry.dynamicTextureAllocationNanosTotal()),
-                micros(telemetry.dynamicTextureAllocationNanosMax()), telemetry.dynamicTextureRegistrations(),
+                micros(telemetry.dynamicTextureAllocationNanosMax()), telemetry.dynamicTextureReuses(),
+                telemetry.dynamicTextureReplacements(), telemetry.dynamicTextureCloses(),
+                telemetry.dynamicTextureRegistrations(),
                 micros(telemetry.dynamicTextureRegistrationNanosTotal()),
-                micros(telemetry.dynamicTextureRegistrationNanosMax()), telemetry.staleFrames(),
+                micros(telemetry.dynamicTextureRegistrationNanosMax()), telemetry.dynamicTextureUploads(),
+                micros(telemetry.dynamicTextureUploadNanosTotal()),
+                micros(telemetry.dynamicTextureUploadNanosMax()), telemetry.staleFrames(),
                 telemetry.droppedFrames(), telemetry.coalescedFrames(), telemetry.framesPresented(),
                 telemetry.sequencePresented(), frame.payload().length, metadata.rustTotalUs(),
                 metadata.backendId(), metadata.transportId(), metadata.panelWidth(), metadata.panelHeight(),

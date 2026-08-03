@@ -13,12 +13,26 @@ public final class SFMTerminalPngTelemetry {
     private long pngDecodeAttempts;
     private long pngDecodeNanosTotal;
     private long pngDecodeNanosMax;
+    private long decodedImageAllocations;
+    private long decodedImageCloses;
+    private long encodedBufferAllocations;
+    private long encodedBufferReuses;
+    private long encodedBufferReplacements;
+    private long encodedBufferCloses;
+    private long encodedBufferCapacity;
+    private long encodedBufferCapacityMax;
     private long dynamicTextureAllocations;
     private long dynamicTextureAllocationNanosTotal;
     private long dynamicTextureAllocationNanosMax;
+    private long dynamicTextureReuses;
+    private long dynamicTextureReplacements;
+    private long dynamicTextureCloses;
     private long dynamicTextureRegistrations;
     private long dynamicTextureRegistrationNanosTotal;
     private long dynamicTextureRegistrationNanosMax;
+    private long dynamicTextureUploads;
+    private long dynamicTextureUploadNanosTotal;
+    private long dynamicTextureUploadNanosMax;
     private long staleFrames;
     private long droppedFrames;
     private long coalescedFrames;
@@ -29,9 +43,15 @@ public final class SFMTerminalPngTelemetry {
             long renderCalls, long renderSuccesses, long renderNanosTotal, long renderNanosMax,
             long uploadAttempts, long uploadFailures, long uploadNanosTotal, long uploadNanosMax,
             long pngDecodeAttempts, long pngDecodeNanosTotal, long pngDecodeNanosMax,
+            long decodedImageAllocations, long decodedImageCloses,
+            long encodedBufferAllocations, long encodedBufferReuses, long encodedBufferReplacements,
+            long encodedBufferCloses, long encodedBufferCapacity, long encodedBufferCapacityMax,
             long dynamicTextureAllocations, long dynamicTextureAllocationNanosTotal,
-            long dynamicTextureAllocationNanosMax, long dynamicTextureRegistrations,
+            long dynamicTextureAllocationNanosMax, long dynamicTextureReuses,
+            long dynamicTextureReplacements, long dynamicTextureCloses, long dynamicTextureRegistrations,
             long dynamicTextureRegistrationNanosTotal, long dynamicTextureRegistrationNanosMax,
+            long dynamicTextureUploads, long dynamicTextureUploadNanosTotal,
+            long dynamicTextureUploadNanosMax,
             long staleFrames, long droppedFrames, long coalescedFrames, long framesPresented,
             long sequencePresented) {}
 
@@ -39,9 +59,14 @@ public final class SFMTerminalPngTelemetry {
         return new Snapshot(renderCalls, renderSuccesses, renderNanosTotal, renderNanosMax,
                 uploadAttempts, uploadFailures, uploadNanosTotal, uploadNanosMax,
                 pngDecodeAttempts, pngDecodeNanosTotal, pngDecodeNanosMax,
+                decodedImageAllocations, decodedImageCloses,
+                encodedBufferAllocations, encodedBufferReuses, encodedBufferReplacements,
+                encodedBufferCloses, encodedBufferCapacity, encodedBufferCapacityMax,
                 dynamicTextureAllocations, dynamicTextureAllocationNanosTotal,
-                dynamicTextureAllocationNanosMax, dynamicTextureRegistrations,
+                dynamicTextureAllocationNanosMax, dynamicTextureReuses,
+                dynamicTextureReplacements, dynamicTextureCloses, dynamicTextureRegistrations,
                 dynamicTextureRegistrationNanosTotal, dynamicTextureRegistrationNanosMax,
+                dynamicTextureUploads, dynamicTextureUploadNanosTotal, dynamicTextureUploadNanosMax,
                 staleFrames, droppedFrames, coalescedFrames, framesPresented, sequencePresented);
     }
 
@@ -70,11 +95,51 @@ public final class SFMTerminalPngTelemetry {
         pngDecodeNanosMax = Math.max(pngDecodeNanosMax, duration);
     }
 
+    synchronized void recordDecodedImageAllocation() {
+        decodedImageAllocations = increment(decodedImageAllocations);
+    }
+
+    synchronized void recordDecodedImageClose() {
+        decodedImageCloses = increment(decodedImageCloses);
+    }
+
+    synchronized void recordEncodedBufferAllocation(int capacity) {
+        encodedBufferAllocations = increment(encodedBufferAllocations);
+        recordEncodedBufferCapacity(capacity);
+    }
+
+    synchronized void recordEncodedBufferReuse(int capacity) {
+        encodedBufferReuses = increment(encodedBufferReuses);
+        recordEncodedBufferCapacity(capacity);
+    }
+
+    synchronized void recordEncodedBufferReplacement(int capacity) {
+        encodedBufferReplacements = increment(encodedBufferReplacements);
+        recordEncodedBufferCapacity(capacity);
+    }
+
+    synchronized void recordEncodedBufferClose() {
+        encodedBufferCloses = increment(encodedBufferCloses);
+        encodedBufferCapacity = 0;
+    }
+
     synchronized void recordDynamicTextureAllocation(long elapsedNanos) {
         long duration = nonNegative(elapsedNanos);
         dynamicTextureAllocations = increment(dynamicTextureAllocations);
         dynamicTextureAllocationNanosTotal = add(dynamicTextureAllocationNanosTotal, duration);
         dynamicTextureAllocationNanosMax = Math.max(dynamicTextureAllocationNanosMax, duration);
+    }
+
+    synchronized void recordDynamicTextureReuse() {
+        dynamicTextureReuses = increment(dynamicTextureReuses);
+    }
+
+    synchronized void recordDynamicTextureReplacement() {
+        dynamicTextureReplacements = increment(dynamicTextureReplacements);
+    }
+
+    synchronized void recordDynamicTextureClose() {
+        dynamicTextureCloses = increment(dynamicTextureCloses);
     }
 
     synchronized void recordDynamicTextureRegistration(long elapsedNanos) {
@@ -84,6 +149,13 @@ public final class SFMTerminalPngTelemetry {
         dynamicTextureRegistrationNanosMax = Math.max(dynamicTextureRegistrationNanosMax, duration);
     }
 
+    synchronized void recordDynamicTextureUpload(long elapsedNanos) {
+        long duration = nonNegative(elapsedNanos);
+        dynamicTextureUploads = increment(dynamicTextureUploads);
+        dynamicTextureUploadNanosTotal = add(dynamicTextureUploadNanosTotal, duration);
+        dynamicTextureUploadNanosMax = Math.max(dynamicTextureUploadNanosMax, duration);
+    }
+
     synchronized void recordStaleFrame() { staleFrames = increment(staleFrames); }
     synchronized void recordDroppedFrame() { droppedFrames = increment(droppedFrames); }
     synchronized void recordCoalescedFrame() { coalescedFrames = increment(coalescedFrames); }
@@ -91,6 +163,12 @@ public final class SFMTerminalPngTelemetry {
     synchronized void recordPresented(long sequence) {
         framesPresented = increment(framesPresented);
         sequencePresented = sequence;
+    }
+
+    private void recordEncodedBufferCapacity(int capacity) {
+        long boundedCapacity = Math.max(0, capacity);
+        encodedBufferCapacity = boundedCapacity;
+        encodedBufferCapacityMax = Math.max(encodedBufferCapacityMax, boundedCapacity);
     }
 
     private static long increment(long value) { return value == Long.MAX_VALUE ? value : value + 1; }

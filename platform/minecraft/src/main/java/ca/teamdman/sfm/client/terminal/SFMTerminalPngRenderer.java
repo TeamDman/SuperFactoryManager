@@ -1,33 +1,44 @@
 package ca.teamdman.sfm.client.terminal;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.system.MemoryUtil;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 /** Uploads the latest Rust-owned full-frame PNG on the Minecraft render thread. */
 final class SFMTerminalPngRenderer {
-    private static final ResourceLocation TEXTURE = new ResourceLocation("sfm", "terminal_rust_frame");
+    private static final AtomicLong NEXT_TEXTURE_ID = new AtomicLong();
     private static final int MAX_IMAGE_DIMENSION = 4096;
     private static final long MAX_IMAGE_PIXELS = 16L * 1024L * 1024L;
+    private static final int MIN_ENCODED_BUFFER_CAPACITY = 4 * 1024;
+    private static final int MAX_ENCODED_PNG_BYTES = 64 * 1024 * 1024;
 
+    private final ResourceLocation textureLocation = new ResourceLocation(
+            "sfm", "terminal_rust_frame/" + NEXT_TEXTURE_ID.incrementAndGet());
+    private final SFMTerminalPngResourceState resources = new SFMTerminalPngResourceState();
+    private final SFMTerminalPngTelemetry telemetry = new SFMTerminalPngTelemetry();
     private DynamicTexture texture;
+    private ByteBuffer encodedBuffer;
     private long sequence = Long.MIN_VALUE;
     private int imageWidth;
     private int imageHeight;
     private boolean failed;
-    private final SFMTerminalPngTelemetry telemetry = new SFMTerminalPngTelemetry();
 
     SFMTerminalPngTelemetry.Snapshot telemetry() {
         return telemetry.snapshot();
+    }
+
+    ResourceLocation textureLocation() {
+        return textureLocation;
     }
 
     boolean render(PoseStack poseStack, Minecraft minecraft, int x, int y, int width, int height,
@@ -38,15 +49,20 @@ final class SFMTerminalPngRenderer {
             if (snapshot.isEmpty()) return false;
             SFMTerminalFrame frame = snapshot.get();
             if (frame.sequence() < sequence) telemetry.recordStaleFrame();
-            if (!frame.png() || !frame.full() || !isPng(frame.payload())) {
+            if (!frame.png() || !frame.full()) {
                 telemetry.recordDroppedFrame();
                 return false;
             }
             if (frame.sequence() == sequence && failed) return false;
             if (frame.sequence() != sequence) {
+                byte[] payload = frame.payload();
+                if (!isPng(payload)) {
+                    telemetry.recordDroppedFrame();
+                    return false;
+                }
                 try {
                     if (failed) telemetry.recordCoalescedFrame();
-                    upload(minecraft, frame);
+                    upload(minecraft, frame, payload);
                 } catch (IOException | RuntimeException error) {
                     sequence = frame.sequence();
                     failed = true;
@@ -66,8 +82,8 @@ final class SFMTerminalPngRenderer {
             int drawHeight = Math.max(1, (int) Math.floor(imageHeight * scale));
             int drawX = x + (width - drawWidth) / 2;
             int drawY = y + (height - drawHeight) / 2;
-            minecraft.getTextureManager().bindForSetup(TEXTURE);
-            RenderSystem.setShaderTexture(0, TEXTURE);
+            minecraft.getTextureManager().bindForSetup(textureLocation);
+            RenderSystem.setShaderTexture(0, textureLocation);
             GuiComponent.blit(poseStack, drawX, drawY, drawWidth, drawHeight,
                     0, 0, imageWidth, imageHeight, imageWidth, imageHeight);
             telemetry.recordPresented(frame.sequence());
@@ -80,60 +96,161 @@ final class SFMTerminalPngRenderer {
 
     void close(Minecraft minecraft) {
         if (texture != null) {
-            minecraft.getTextureManager().register(TEXTURE, MissingTextureAtlasSprite.getTexture());
+            minecraft.getTextureManager().release(textureLocation);
+            if (resources.textureClosed()) {
+                telemetry.recordDynamicTextureClose();
+            }
             texture = null;
         }
+        if (encodedBuffer != null) {
+            MemoryUtil.memFree(encodedBuffer);
+            encodedBuffer = null;
+            if (resources.encodedBufferClosed()) telemetry.recordEncodedBufferClose();
+        }
         sequence = Long.MIN_VALUE;
+        imageWidth = 0;
+        imageHeight = 0;
         failed = false;
     }
 
-    private void upload(Minecraft minecraft, SFMTerminalFrame frame) throws IOException {
+    private void upload(Minecraft minecraft, SFMTerminalFrame frame, byte[] payload) throws IOException {
         long uploadStartedNanos = System.nanoTime();
         telemetry.recordUploadStarted();
         try {
-            byte[] payload = frame.payload();
-            ByteBuffer encoded = MemoryUtil.memAlloc(payload.length);
-            NativeImage image;
+            ByteBuffer encoded = encodedPayload(payload);
+            NativeImage image = null;
             try {
-                encoded.put(payload).flip();
                 long decodeStartedNanos = System.nanoTime();
                 try {
                     image = NativeImage.read(encoded);
+                    telemetry.recordDecodedImageAllocation();
                 } finally {
                     telemetry.recordPngDecode(System.nanoTime() - decodeStartedNanos);
                 }
+                int width = image.getWidth();
+                int height = image.getHeight();
+                if (width <= 0 || height <= 0 || width > MAX_IMAGE_DIMENSION
+                        || height > MAX_IMAGE_DIMENSION
+                        || (long) width * height > MAX_IMAGE_PIXELS) {
+                    throw new IOException("Rust terminal PNG dimensions exceed the presentation bound");
+                }
+                SFMTerminalPngResourceState.TextureKey key = new SFMTerminalPngResourceState.TextureKey(
+                        width, height, image.format().name(), frame.metadata().backendId());
+                SFMTerminalPngResourceState.Change change = resources.textureChange(key);
+                if (change == SFMTerminalPngResourceState.Change.REUSE) {
+                    uploadIntoExistingTexture(image);
+                    telemetry.recordDynamicTextureReuse();
+                } else {
+                    replaceTexture(minecraft, image, key, change);
+                }
+                imageWidth = width;
+                imageHeight = height;
+                sequence = frame.sequence();
+                failed = false;
             } finally {
-                MemoryUtil.memFree(encoded);
+                if (image != null) {
+                    image.close();
+                    telemetry.recordDecodedImageClose();
+                }
             }
-            int width = image.getWidth();
-            int height = image.getHeight();
-            if (width <= 0 || height <= 0 || width > MAX_IMAGE_DIMENSION
-                    || height > MAX_IMAGE_DIMENSION
-                    || (long) width * height > MAX_IMAGE_PIXELS) {
-                image.close();
-                throw new IOException("Rust terminal PNG dimensions exceed the presentation bound");
-            }
-            long allocationStartedNanos = System.nanoTime();
-            DynamicTexture next;
-            try {
-                next = new DynamicTexture(image);
-            } finally {
-                telemetry.recordDynamicTextureAllocation(System.nanoTime() - allocationStartedNanos);
-            }
-            long registrationStartedNanos = System.nanoTime();
-            try {
-                minecraft.getTextureManager().register(TEXTURE, next);
-            } finally {
-                telemetry.recordDynamicTextureRegistration(System.nanoTime() - registrationStartedNanos);
-            }
-            texture = next;
-            imageWidth = width;
-            imageHeight = height;
-            sequence = frame.sequence();
-            failed = false;
         } finally {
             telemetry.recordUploadFinished(System.nanoTime() - uploadStartedNanos);
         }
+    }
+
+    private ByteBuffer encodedPayload(byte[] payload) throws IOException {
+        if (payload.length == 0 || payload.length > MAX_ENCODED_PNG_BYTES) {
+            throw new IOException("Rust terminal PNG payload exceeds the presentation bound");
+        }
+        SFMTerminalPngResourceState.Change change = resources.encodedBufferChange(payload.length);
+        if (change != SFMTerminalPngResourceState.Change.REUSE) {
+            int capacity = nextEncodedCapacity(payload.length);
+            ByteBuffer next = MemoryUtil.memAlloc(capacity);
+            if (encodedBuffer != null) {
+                MemoryUtil.memFree(encodedBuffer);
+                telemetry.recordEncodedBufferClose();
+            }
+            encodedBuffer = next;
+            resources.encodedBufferCommitted(capacity);
+            if (change == SFMTerminalPngResourceState.Change.ALLOCATE) {
+                telemetry.recordEncodedBufferAllocation(capacity);
+            } else {
+                telemetry.recordEncodedBufferReplacement(capacity);
+            }
+        } else {
+            telemetry.recordEncodedBufferReuse(resources.encodedCapacity());
+        }
+        encodedBuffer.clear();
+        encodedBuffer.put(payload).flip();
+        return encodedBuffer;
+    }
+
+    private void uploadIntoExistingTexture(NativeImage image) throws IOException {
+        if (texture == null) throw new IOException("Reusable terminal texture is unavailable");
+        NativeImage pixels = texture.getPixels();
+        if (pixels == null
+                || pixels.getWidth() != image.getWidth()
+                || pixels.getHeight() != image.getHeight()
+                || pixels.format() != image.format()) {
+            throw new IOException("Reusable terminal texture storage is incompatible");
+        }
+        pixels.copyFrom(image);
+        uploadTexture(texture);
+    }
+
+    private void replaceTexture(
+            Minecraft minecraft,
+            NativeImage image,
+            SFMTerminalPngResourceState.TextureKey key,
+            SFMTerminalPngResourceState.Change change
+    ) throws IOException {
+        long allocationStartedNanos = System.nanoTime();
+        DynamicTexture next = new DynamicTexture(image.getWidth(), image.getHeight(), false);
+        telemetry.recordDynamicTextureAllocation(System.nanoTime() - allocationStartedNanos);
+        boolean registered = false;
+        try {
+            NativeImage pixels = next.getPixels();
+            if (pixels == null || pixels.format() != image.format()) {
+                throw new IOException("Allocated terminal texture storage is incompatible");
+            }
+            pixels.copyFrom(image);
+            uploadTexture(next);
+            long registrationStartedNanos = System.nanoTime();
+            // TextureManager.register replaces and closes the old texture at this
+            // renderer-specific location. Do not close it again here.
+            minecraft.getTextureManager().register(textureLocation, next);
+            telemetry.recordDynamicTextureRegistration(System.nanoTime() - registrationStartedNanos);
+            registered = true;
+            if (change.closesPrevious()) {
+                telemetry.recordDynamicTextureReplacement();
+                telemetry.recordDynamicTextureClose();
+            }
+            texture = next;
+            resources.textureCommitted(key);
+        } finally {
+            if (!registered) {
+                next.close();
+                telemetry.recordDynamicTextureClose();
+            }
+        }
+    }
+
+    private void uploadTexture(DynamicTexture target) {
+        long startedNanos = System.nanoTime();
+        try {
+            target.upload();
+        } finally {
+            telemetry.recordDynamicTextureUpload(System.nanoTime() - startedNanos);
+        }
+    }
+
+    static int nextEncodedCapacity(int requiredCapacity) {
+        if (requiredCapacity <= 0 || requiredCapacity > MAX_ENCODED_PNG_BYTES) {
+            throw new IllegalArgumentException("Encoded PNG capacity is outside the presentation bound");
+        }
+        int capacity = MIN_ENCODED_BUFFER_CAPACITY;
+        while (capacity < requiredCapacity && capacity <= MAX_ENCODED_PNG_BYTES / 2) capacity *= 2;
+        return Math.max(requiredCapacity, capacity);
     }
 
     private static boolean isPng(byte[] payload) {
