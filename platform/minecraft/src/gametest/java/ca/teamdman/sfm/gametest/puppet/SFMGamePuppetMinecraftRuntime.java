@@ -315,9 +315,13 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     public void restartRustTerminalServer() {
         SFMTerminalPanel panel = requireTerminalPanel();
         SFMTerminalServiceFactory.stopOwnedRustServer();
-        panel.reconnectForAutomation();
         try {
             SFMTerminalServiceFactory.startRustServer(null);
+            // Keep the panel's old transport closed over the intentional
+            // outage.  Clear/reconnect only after the replacement endpoint
+            // has passed the readiness probe, otherwise its background
+            // poller can race startup and latch a transient refusal.
+            panel.reconnectForAutomation();
         } catch (Exception error) {
             throw new IllegalStateException("Rust terminal server restart failed", error);
         }
