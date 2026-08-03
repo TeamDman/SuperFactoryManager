@@ -204,7 +204,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 + "java_texture_uploads={} java_texture_upload_total_us={} java_texture_upload_max_us={} "
                 + "java_stale_frames={} java_dropped_frames={} java_coalesced_frames={} "
                 + "java_frames_presented={} java_sequence_presented={} payload_bytes={} "
-                + "rust_total_us={} backend_id={} transport_id={} panel_width={} panel_height={} "
+                + "rust_total_us={} rust_pty_drain_us={} rust_snapshot_us={} rust_font_load_us={} "
+                + "rust_raster_us={} rust_encode_us={} backend_id={} transport_id={} "
+                + "panel_width={} panel_height={} "
                 + "cell_width={} cell_height={} font_pixel_size={}";
         Object[] fields = {
                 metadata.correlationId(), metadata.requestSequence(), frame.sequence(),
@@ -227,6 +229,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 micros(telemetry.dynamicTextureUploadNanosMax()), telemetry.staleFrames(),
                 telemetry.droppedFrames(), telemetry.coalescedFrames(), telemetry.framesPresented(),
                 telemetry.sequencePresented(), frame.payload().length, metadata.rustTotalUs(),
+                metadata.ptyDrainUs(), metadata.snapshotUs(), metadata.fontLoadUs(),
+                metadata.rasterUs(), metadata.encodeUs(),
                 metadata.backendId(), metadata.transportId(), metadata.panelWidth(), metadata.panelHeight(),
                 metadata.cellWidth(), metadata.cellHeight(), metadata.fontPixelSize()
         };
