@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -53,6 +54,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private int pressedMouseButtons;
     private boolean suppressPasteRelease;
     private boolean startRequested;
+    private long lastLoggedPresentationSequence = Long.MIN_VALUE;
     private String connectionStatus;
     private int startButtonLeft;
     private int startButtonTop;
@@ -97,6 +99,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         this.minecraft = minecraft;
         this.bounds = bounds;
         this.context = context;
+        this.lastLoggedPresentationSequence = Long.MIN_VALUE;
         if (remoteService != null) {
             resized(minecraft, bounds);
             remoteService.requestConnect();
@@ -126,6 +129,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (remoteService != null) remoteService.close();
         minecraft = null;
         context = null;
+        lastLoggedPresentationSequence = Long.MIN_VALUE;
     }
 
     @Override
@@ -147,8 +151,13 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
                 bounds.y() + 8, TEXT, false);
         if (remoteService != null) {
+            Optional<SFMTerminalFrame> frame = remoteService.latestFrame();
             if (pngRenderer.render(poseStack, minecraft, left, contentTop, width,
-                    renderHeight, remoteService.latestFrame())) {
+                    renderHeight, frame)) {
+                if (frame.isPresent() && frame.get().sequence() != lastLoggedPresentationSequence) {
+                    lastLoggedPresentationSequence = frame.get().sequence();
+                    logPresentationTiming(frame.get(), pngRenderer.telemetry());
+                }
                 renderFocusHint(poseStack, minecraft, left, width, contentBottom);
                 return;
             }
@@ -173,6 +182,45 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             renderInput(poseStack, minecraft, left, width, inputY, focused);
         }
         renderFocusHint(poseStack, minecraft, left, width, contentBottom);
+    }
+
+    private void logPresentationTiming(
+            SFMTerminalFrame frame,
+            SFMTerminalPngTelemetry.Snapshot telemetry) {
+        SFMTerminalFrameMetadata metadata = frame.metadata();
+        String message = "SFM_TERMINAL_PRESENTATION_TIMING correlation_id={} request_sequence={} "
+                + "frame_sequence={} java_render_calls={} java_render_successes={} "
+                + "java_render_total_us={} java_render_max_us={} java_upload_attempts={} "
+                + "java_upload_failures={} java_upload_total_us={} java_upload_max_us={} "
+                + "java_png_decode_attempts={} java_png_decode_total_us={} java_png_decode_max_us={} "
+                + "java_texture_allocations={} java_texture_allocation_total_us={} "
+                + "java_texture_allocation_max_us={} java_texture_registrations={} "
+                + "java_texture_registration_total_us={} java_texture_registration_max_us={} "
+                + "java_stale_frames={} java_dropped_frames={} java_coalesced_frames={} "
+                + "java_frames_presented={} java_sequence_presented={} payload_bytes={} "
+                + "rust_total_us={} backend_id={} transport_id={} panel_width={} panel_height={} "
+                + "cell_width={} cell_height={} font_pixel_size={}";
+        Object[] fields = {
+                metadata.correlationId(), metadata.requestSequence(), frame.sequence(),
+                telemetry.renderCalls(), telemetry.renderSuccesses(), micros(telemetry.renderNanosTotal()),
+                micros(telemetry.renderNanosMax()), telemetry.uploadAttempts(), telemetry.uploadFailures(),
+                micros(telemetry.uploadNanosTotal()), micros(telemetry.uploadNanosMax()),
+                telemetry.pngDecodeAttempts(), micros(telemetry.pngDecodeNanosTotal()),
+                micros(telemetry.pngDecodeNanosMax()), telemetry.dynamicTextureAllocations(),
+                micros(telemetry.dynamicTextureAllocationNanosTotal()),
+                micros(telemetry.dynamicTextureAllocationNanosMax()), telemetry.dynamicTextureRegistrations(),
+                micros(telemetry.dynamicTextureRegistrationNanosTotal()),
+                micros(telemetry.dynamicTextureRegistrationNanosMax()), telemetry.staleFrames(),
+                telemetry.droppedFrames(), telemetry.coalescedFrames(), telemetry.framesPresented(),
+                telemetry.sequencePresented(), frame.payload().length, metadata.rustTotalUs(),
+                metadata.backendId(), metadata.transportId(), metadata.panelWidth(), metadata.panelHeight(),
+                metadata.cellWidth(), metadata.cellHeight(), metadata.fontPixelSize()
+        };
+        SFM.LOGGER.info(message, fields);
+    }
+
+    private static long micros(long nanos) {
+        return nanos <= 0 ? 0 : nanos / 1_000L;
     }
 
     @Override

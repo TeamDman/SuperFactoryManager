@@ -67,6 +67,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private final ConnectionOptions connectionOptions;
     private final Duration callTimeout;
     private final ExecutorService driver;
+    private final ExecutorService connectionDriver;
     private final ScheduledExecutorService poller;
     private final SFMVoxTerminalTelemetry telemetry = new SFMVoxTerminalTelemetry();
     private final Object lock = new Object();
@@ -113,7 +114,12 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         this.connectionOptions = Objects.requireNonNull(connectionOptions, "connectionOptions");
         this.callTimeout = requirePositive(callTimeout, "callTimeout");
         this.driver = Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "sfm-vox-terminal-driver");
+            Thread thread = new Thread(runnable, "sfm-vox-terminal-request");
+            thread.setDaemon(true);
+            return thread;
+        });
+        this.connectionDriver = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "sfm-vox-terminal-connection");
             thread.setDaemon(true);
             return thread;
         });
@@ -213,6 +219,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     private SFMTerminalFrameMetadata frameMetadata(TerminalSnapshot snapshot) {
+        var timing = snapshot.timing();
         return new SFMTerminalFrameMetadata(
                 snapshot.requestSequence(),
                 snapshot.logicalColumns(),
@@ -224,19 +231,20 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 snapshot.fontPixelSize(),
                 "rust.cpu.fontdue",
                 "vox",
+                timing.ptyDrainUs(),
                 0L,
+                timing.terminalSnapshotUs(),
+                timing.fontLoadUs(),
+                timing.rasterUs(),
                 0L,
-                0L,
-                0L,
-                0L,
-                0L,
-                0L,
-                0L,
+                timing.pngEncodeUs(),
+                timing.totalUs(),
                 snapshot.correlationId());
     }
 
     private static SFMVoxTerminalTelemetry.NativeFrameMetadata nativeFrameMetadata(
             TerminalSnapshot snapshot) {
+        var timing = snapshot.timing();
         return new SFMVoxTerminalTelemetry.NativeFrameMetadata(
                 snapshot.sequence(),
                 snapshot.requestSequence(),
@@ -250,7 +258,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 "rust.cpu.fontdue",
                 "vox",
                 snapshot.correlationId(),
-                0L,
+                timing.totalUs(),
                 snapshot.payload().length);
     }
 
@@ -360,6 +368,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             closeTransportLocked(true);
         }
         driver.shutdownNow();
+        connectionDriver.shutdownNow();
         poller.shutdownNow();
     }
 
@@ -485,7 +494,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         ServiceLane newLane = null;
         try {
             newConnection = VoxConnection.connect(endpoint, freshConnectionOptions());
-            CompletableFuture<Void> closedFuture = newConnection.start(driver);
+            // The request executor may be synchronously waiting for this
+            // connection to open. Drive the transport on its own executor so
+            // requestConnect() cannot deadlock before the first lane opens.
+            CompletableFuture<Void> closedFuture = newConnection.start(connectionDriver);
             awaitConnectionOpen(newConnection, closedFuture);
             newLane = newConnection.openLane(TerminalServiceDescriptor.INSTANCE, LaneOptions.defaults());
             await(newLane.opened(), "opening terminal lane");
@@ -775,10 +787,12 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 + "payload_bytes={} backend_id={} transport_id={} rust_timing_source={} stale={}";
         Object[] fields = {
                 snapshot.correlationId(), snapshot.requestSequence(), snapshot.sequence(),
-                0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L,
+                snapshot.timing().totalUs(), snapshot.timing().ptyDrainUs(), 0L,
+                snapshot.timing().terminalSnapshotUs(), snapshot.timing().fontLoadUs(),
+                snapshot.timing().rasterUs(), 0L, snapshot.timing().pngEncodeUs(),
                 voxWaitUs, javaPollUs, logicalColumns, logicalRows, panelWidth, panelHeight,
                 cellWidth, cellHeight, snapshot.fontPixelSize(), snapshot.payload().length,
-                "rust.cpu.fontdue", "vox", "rust-tracing", stale
+                "rust.cpu.fontdue", "vox", "snapshot-metadata", stale
         };
         if (javaPollUs >= 100_000) {
             SFM.LOGGER.info(message, fields);

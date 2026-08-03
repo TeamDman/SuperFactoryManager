@@ -103,7 +103,7 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.capture("rust-terminal-ctrl-c-interrupt", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Ctrl+C interrupts a running Rust-owned PowerShell command.")));
-        puppet.writeTerminalContent("ctrl-c-interrupt", "❯", "10000");
+        puppet.writeTerminalContent("ctrl-c-interrupt", "❯", "line:10000");
         puppet.executeTerminal("1..100");
         puppet.waitTicks(30);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_HOME);
@@ -142,11 +142,14 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.restartRustTerminalServer();
         puppet.waitTicks(30);
         puppet.writeTerminalContent("rust-server-reconnected", "❯", null);
-        puppet.executeTerminal("1..10000 | ForEach-Object { Write-Output $_; Start-Sleep -Milliseconds 1 }");
+        puppet.executeTerminal(" 1..10000 | ForEach-Object { Write-Output $_; Start-Sleep -Milliseconds 1 }");
         puppet.waitTicks(10);
         puppet.cancelTerminal();
         puppet.waitTicks(30);
-        puppet.writeTerminalContent("cancel-rpc", "❯", "10000");
+        // The visible output window is intentionally moving while the command
+        // runs, so assert the stable post-cancellation prompt rather than a
+        // particular number that may have just scrolled out of view.
+        puppet.writeTerminalContent("cancel-rpc", "line:❯", "line:10000");
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);

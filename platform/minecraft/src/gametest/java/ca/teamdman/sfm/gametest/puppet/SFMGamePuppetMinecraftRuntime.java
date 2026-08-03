@@ -68,6 +68,7 @@ import java.util.List;
 import java.util.UUID;
 
 final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
+    private static final long TERMINAL_CONTENT_ASSERTION_TIMEOUT_MILLIS = 3_000L;
     private final ActivePuppet active;
 
     private final Minecraft minecraft;
@@ -340,13 +341,30 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     @Override
     public void writeTerminalContent(String artifactName, String requiredText, String forbiddenText) {
         SFMTerminalPanel panel = requireTerminalPanel();
-        String content = panel.contentForAutomation();
-        if (requiredText != null && !content.contains(requiredText)) {
+        String content = "";
+        long deadline = System.nanoTime()
+                + TERMINAL_CONTENT_ASSERTION_TIMEOUT_MILLIS * 1_000_000L;
+        do {
+            content = panel.contentForAutomation();
+            boolean requiredSatisfied = requiredText == null
+                    || containsTerminalAssertionText(content, requiredText);
+            boolean forbiddenSatisfied = forbiddenText == null
+                    || !containsTerminalAssertionText(content, forbiddenText);
+            if (requiredSatisfied && forbiddenSatisfied) break;
+            if (System.nanoTime() >= deadline) break;
+            try {
+                Thread.sleep(25L);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        } while (true);
+        if (requiredText != null && !containsTerminalAssertionText(content, requiredText)) {
             throw new IllegalStateException(
                     "Terminal content artifact " + artifactName + " is missing required text "
                             + quoted(requiredText) + ":\n" + content);
         }
-        if (forbiddenText != null && content.contains(forbiddenText)) {
+        if (forbiddenText != null && containsTerminalAssertionText(content, forbiddenText)) {
             throw new IllegalStateException(
                     "Terminal content artifact " + artifactName + " contains forbidden text "
                             + quoted(forbiddenText) + ":\n" + content);
@@ -369,6 +387,19 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                 requiredText,
                 forbiddenText
         );
+    }
+
+    /**
+     * Content assertions normally search the complete visible witness. A
+     * {@code line:...} assertion searches trimmed terminal rows instead, so
+     * a literal echoed in the prompt command is not mistaken for output.
+     */
+    private static boolean containsTerminalAssertionText(String content, String assertionText) {
+        if (assertionText.startsWith("line:")) {
+            String assertedLine = assertionText.substring("line:".length()).strip();
+            return content.lines().map(String::strip).anyMatch(assertedLine::equals);
+        }
+        return content.contains(assertionText);
     }
 
     @Override
