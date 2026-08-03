@@ -43,12 +43,12 @@ CPU `fontdue` path is sufficient for this correctness proof. Teamy Terminal
 owns the later slug/GPU renderer and dirty-upload optimization; those are not
 part of the immediate panel/action goal.
 
-Native-size/cell-metric negotiation and the correlated multi-second lag witness
-are now complete. The next performance gate is to repair the measured baseline
-before choosing among Rust CPU, Rust GPU/slug, or Java cell rendering: retain
-font/glyph/frame/texture resources across draws and compatible resizes, add the
-missing Facet Java `Tx`/`Rx` runtime/codegen slice, and replace Java's 50 ms
-unary snapshot poller with a bounded Rust-to-Java frame subscription. Teamy
+Native-size/cell-metric negotiation, the correlated multi-second lag witness,
+and retained font/glyph/frame/texture resources are now complete. The next
+performance gate before choosing among Rust CPU, Rust GPU/slug, or Java cell
+rendering is to add the missing Facet Java `Tx`/`Rx` runtime/codegen slice and
+replace Java's 50 ms unary snapshot poller with a bounded Rust-to-Java frame
+subscription. Teamy
 Terminal Phase 3.6.2a/3.6.2b is authoritative for the cross-repository design;
 the SFM work items below own the Java consumer, presentation resources, and
 end-to-end proof.
@@ -126,10 +126,10 @@ triple-Escape close. The live records show Rust totals around 0.75–1.1 seconds
 with font loading around 0.7–1.0 seconds, while Java PNG decode, texture
 allocation/registration, and render/present work are low-millisecond samples.
 The high-scale run reached effective GUI scale 7 with native `547×303` panel
-metrics and crisp screenshots; its final 4K capture exceeded the harness action
-budget after the terminal proof, so that environment-duration limitation is
-retained for a later harness-scaling slice. Rust and Java clocks are never
-subtracted as if synchronized.
+metrics and crisp screenshots. The later retained-resource acceptance run
+corrected the inaccurately named one-minute whole-puppet watchdog and completed
+all 13 captures at 4K. Rust and Java clocks are never subtracted as if
+synchronized.
 
 ### [ ] V-4.1a Consume a Vox Tx/Rx frame subscription and remove live polling
 
@@ -170,7 +170,7 @@ The normal and high-scale puppets retain machine-readable content/screenshots
 and demonstrate lower change-to-present latency than the measured polling
 baseline without unexplained drops.
 
-### [ ] V-4.1b Retain compatible Java presentation resources
+### [x] V-4.1b Retain compatible Java presentation resources
 
 Apply Teamy Terminal 3.6.2a's lifetime rules at the Minecraft boundary. Keep a
 single registered `DynamicTexture` and compatible upload storage across frame
@@ -188,12 +188,38 @@ capacity as specified by Teamy Terminal 3.6.2a. SFM acceptance consumes a
 pinned artifact containing that implementation and records cold/warm cache
 identity and counters; it must not infer reuse merely from lower elapsed time.
 
-**Validation:** Stable-size pushed frames do not increase dynamic-texture
+**Validation:** Stable-size received frames do not increase dynamic-texture
 registration/allocation once per sequence; replacement and close counts match
 dimension/context changes; visual output, stale-frame rejection, and panel
 clipping remain unchanged. The correlated warm run reports no repeated Rust
 font discovery/renderer construction and no Java texture churn, including
 normal scale, GUI scale 7, split panels, reconnect, and A→B→A resize.
+
+**Completion evidence — 2026-08-03:** Commit `ce8c53f44` retains one unique
+registered `DynamicTexture` per panel renderer, updates/uploads compatible
+dimensions in place, grows and reuses the off-heap encoded-PNG buffer, closes
+decoded `NativeImage` temporaries explicitly, and replaces/closes resources
+exactly once when dimensions or backend identity change. Focused lifecycle
+tests cover stable size, A→B→A, buffer growth/reuse, backend changes, exact
+closes, telemetry, and split-panel texture identities. Commit `343f10f72`
+correlates Java presentation counters with Rust font/raster/encode stages.
+
+The installed Teamy Terminal executable is the clean pinned implementation at
+`1c5fd0d`. Normal puppet run `sfm-title_screen-20260803-112610-670` passes with
+139 uploads, two allocations/registrations for the deliberate resize, and 137
+in-place texture reuses; 137 warm samples report `rust_font_load_us=0` and the
+two cold samples are the initial and intentionally restarted Rust processes.
+GUI-scale-7 run `sfm-title_screen-20260803-113254-252` passes at 3840×2130,
+effective scale 7, native 547×303 panel pixels, 13 inspected captures, and all
+machine-readable terminal-content assertions. It records 134 uploads, two
+registrations, 132 reuses, and 132 zero-font-load samples. Commit `4c2846618`
+waits for Windows listener teardown before starting the replacement process,
+proves distinct ready PIDs across reconnect, and gives screenshot-heavy 4K
+puppets an honest two-minute whole-run watchdog without relaxing their
+individual action bounds. The preserved evidence logs are
+`retained-resources-{normal,scale7}-console.log` under the terminal-guide
+artifact directory. V-4.1a remains intentionally open: these acceptance runs
+still use the historical 50 ms unary snapshot poller.
 
 ### [ ] V-4.2 Introduce explicit presentation backends and capabilities
 
