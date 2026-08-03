@@ -18,6 +18,7 @@ NAME "Changelog"
 -- Add copy and paste support to the draw canvas
 -- Improve draw canvas selection highlight positioning while panning
 -- Add a draw canvas Done button tooltip for the Shift+Enter shortcut
+-- Fix manager screen crash when opening before tick-time history is populated, fixes #535
 
 ---- 4.34.0 ----
 -- Update zh_cn localizations, thanks @ZHAY10086 #526
