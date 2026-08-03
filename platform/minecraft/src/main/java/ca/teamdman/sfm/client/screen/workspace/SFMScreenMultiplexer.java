@@ -207,6 +207,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return layout.focusedPanel();
     }
 
+    /** Exact visible panel targeted by focused-panel actions. */
+    public @Nullable SFMScreenPanel focusedPanelInstance() {
+        return layout.panel(layout.focusedPanel());
+    }
+
     public List<SFMScreenPanel> panels() {
         return layout.panels().stream().map(SFMWorkspaceLayout.PanelEntry::panel).toList();
     }
@@ -265,15 +270,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         }
         panelBounds = layout.bounds(new SFMScreenPanelBounds(0, 0, this.width, this.height), DIVIDER_WIDTH);
         if (!notifyPanels || this.minecraft == null) return;
-        Set<SFMWorkspacePanelId> visibleIds = layout.visiblePanels().stream()
-                .map(SFMWorkspaceLayout.PanelEntry::id)
-                .collect(java.util.stream.Collectors.toSet());
-        for (SFMWorkspacePanelId openedId : List.copyOf(openedPanels)) {
-            if (visibleIds.contains(openedId)) continue;
-            SFMScreenPanel hidden = openedPanelInstances.remove(openedId);
-            if (hidden != null) hidden.closed();
-            openedPanels.remove(openedId);
-        }
+        // A hidden stack entry remains a live panel. Closing it here destroys
+        // panel-local state (notably its PTY and selected transport) merely
+        // because another entry became visible in the same slot. Panels close
+        // only when removed from the layout or when the workspace itself closes.
         for (SFMWorkspaceLayout.PanelEntry entry : layout.visiblePanels()) {
             if (openedPanels.contains(entry.id())) {
                 SFMScreenPanel opened = openedPanelInstances.get(entry.id());

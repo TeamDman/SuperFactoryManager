@@ -42,6 +42,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private final SFMTerminalClient client;
     private final SFMTerminalRemoteService remoteService;
     private final SFMTerminalPngRenderer pngRenderer = new SFMTerminalPngRenderer();
+    private final SFMTerminalRgbaRenderer rgbaRenderer = new SFMTerminalRgbaRenderer();
     private final SFMTerminalScrollback scrollback = new SFMTerminalScrollback();
     private final SFMTerminalFocusSequence focusSequence = new SFMTerminalFocusSequence();
     private String input = "";
@@ -62,6 +63,13 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private int startButtonTop;
     private int startButtonRight;
     private int startButtonBottom;
+    private boolean transportSelectorFocused;
+    private boolean transportDropdownOpen;
+    private int transportSelectionIndex;
+    private int transportButtonLeft;
+    private int transportButtonTop;
+    private int transportButtonRight;
+    private int transportButtonBottom;
 
     public SFMTerminalPanel(SFMTerminalService service) {
         this(new SFMTerminalClient(service), service instanceof SFMTerminalRemoteService remote ? remote : null);
@@ -128,7 +136,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public void closed() {
-        if (minecraft != null) pngRenderer.close(minecraft);
+        if (minecraft != null) {
+            pngRenderer.close(minecraft);
+            rgbaRenderer.close(minecraft);
+        }
         if (remoteService != null) remoteService.close();
         minecraft = null;
         context = null;
@@ -156,9 +167,18 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 bounds.y() + 8, TEXT, false);
         if (remoteService != null) {
             Optional<SFMTerminalFrame> frame = remoteService.latestFrame();
-            if ((frame.isPresent() || remoteService.canPresentRetainedFrame())
-                    && pngRenderer.render(poseStack, minecraft, left, contentTop, width,
-                    renderHeight, frame)) {
+            boolean presented = false;
+            if (frame.isPresent() || remoteService.canPresentRetainedFrame()) {
+                boolean png = frame.map(SFMTerminalFrame::png)
+                        .orElseGet(() -> remoteService.activeTransportId()
+                                .map("full-png"::equals).orElse(true));
+                presented = png
+                        ? pngRenderer.render(poseStack, minecraft, left, contentTop, width,
+                        renderHeight, frame)
+                        : rgbaRenderer.render(poseStack, minecraft, left, contentTop, width,
+                        renderHeight, frame);
+            }
+            if (presented) {
                 if (frame.isPresent() && isNewPresentation(
                         lastLoggedPresentationStreamIdentity,
                         lastLoggedPresentationSequence,
@@ -168,9 +188,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                     logPresentationTiming(frame.get(), pngRenderer.telemetry());
                 }
                 renderFocusHint(poseStack, minecraft, left, width, contentBottom);
+                renderTransportSelector(poseStack, minecraft);
                 return;
             }
             renderDisconnected(poseStack, minecraft, left, width, contentTop, contentBottom);
+            renderTransportSelector(poseStack, minecraft);
             return;
         }
         int y = contentTop;
@@ -260,6 +282,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (remoteService != null && transportSelectorFocused) {
+            return transportSelectorKeyPressed(keyCode);
+        }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             if (focusSequence.escape(System.nanoTime()) == SFMTerminalFocusSequence.Decision.EXIT) {
                 if (context != null) context.submit(new ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent.Close());
@@ -271,9 +296,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             SFMTerminalFocusSequence.Decision decision = focusSequence.tab(System.nanoTime());
             if (decision == SFMTerminalFocusSequence.Decision.JAVA_FOCUS) {
-                // Returning false lets Minecraft's Screen focus traversal own
-                // this third Tab instead of sending it to the PTY.
-                return false;
+                transportSelectorFocused = true;
+                transportDropdownOpen = false;
+                synchronizeTransportSelection();
+                return true;
             }
             if (remoteService != null) remoteService.sendKey(keyCode, modifiers, true, false);
             else input += "\t";
@@ -334,6 +360,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
         if (remoteService == null) return false;
+        if (transportSelectorFocused) return true;
         if (suppressPasteRelease && keyCode == GLFW.GLFW_KEY_V) {
             suppressPasteRelease = false;
             return true;
@@ -348,6 +375,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public boolean charTyped(char character, int modifiers) {
         if (remoteService != null) {
+            if (transportSelectorFocused) return true;
             if (character >= 0x20 && character != 0x7F) {
                 remoteService.sendText(String.valueOf(character));
             }
@@ -463,10 +491,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     /** Validates and returns machine-readable Vox push evidence for puppets. */
     public String assertPushEvidenceForAutomation(boolean reconnectExpected) {
-        if (remoteService instanceof SFMVoxTerminalService voxService) {
-            return voxService.assertPushEvidenceForAutomation(reconnectExpected);
+        if (remoteService == null) {
+            throw new IllegalStateException("Terminal panel is not backed by a remote service");
         }
-        throw new IllegalStateException("Terminal panel is not backed by the Vox push service");
+        return remoteService.assertPushEvidenceForAutomation(reconnectExpected);
     }
 
     @Override
@@ -483,6 +511,25 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (remoteService != null && button == 0
+                && mouseX >= transportButtonLeft && mouseX < transportButtonRight
+                && mouseY >= transportButtonTop && mouseY < transportButtonBottom) {
+            transportSelectorFocused = true;
+            transportDropdownOpen = !transportDropdownOpen;
+            synchronizeTransportSelection();
+            return true;
+        }
+        if (remoteService != null && button == 0 && transportDropdownOpen) {
+            List<SFMTerminalTransportOption> options = remoteService.transportOptions();
+            int rowHeight = minecraft == null ? 14 : minecraft.font.lineHeight + 6;
+            int index = (int) ((mouseY - transportButtonBottom) / rowHeight);
+            if (mouseX >= transportButtonLeft && mouseX < transportButtonRight
+                    && index >= 0 && index < options.size()) {
+                transportSelectionIndex = index;
+                selectCurrentTransport();
+                return true;
+            }
+        }
         if (remoteService != null && mouseX >= startButtonLeft && mouseX < startButtonRight
                 && mouseY >= startButtonTop && mouseY < startButtonBottom) {
             startRustServer();
@@ -524,6 +571,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     public SFMTerminalClient client() {
         return client;
+    }
+
+    /** Panel-local action surface; callers must resolve this exact focused panel first. */
+    public SFMTerminalTransportChangeResult requestTransport(String transportId) {
+        if (remoteService == null) {
+            return SFMTerminalTransportChangeResult.rejected(
+                    "Focused panel is not a Rust terminal");
+        }
+        return remoteService.requestTransport(transportId);
     }
 
     private boolean containsTerminalPoint(double mouseX, double mouseY) {
@@ -641,5 +697,98 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 bounds.x() + bounds.width() - 4, contentBottom, 0xD0101218);
         SFMFontUtils.draw(poseStack, minecraft.font,
                 minecraft.font.plainSubstrByWidth(message.getString(), width), left, y, MUTED, false);
+    }
+
+    private void renderTransportSelector(PoseStack poseStack, Minecraft minecraft) {
+        if (remoteService == null) return;
+        int height = minecraft.font.lineHeight + 6;
+        int width = Math.min(230, Math.max(120, bounds.width() / 2));
+        transportButtonRight = bounds.x() + bounds.width() - 6;
+        transportButtonLeft = transportButtonRight - width;
+        transportButtonTop = bounds.y() + 4;
+        transportButtonBottom = transportButtonTop + height;
+        int background = transportSelectorFocused ? 0xFF315568 : 0xE0223038;
+        GuiComponent.fill(poseStack, transportButtonLeft, transportButtonTop,
+                transportButtonRight, transportButtonBottom, background);
+        String requested = remoteService.requestedTransportId();
+        String active = remoteService.activeTransportId().orElse("");
+        String value = requested.isBlank() ? "discovering..." : requested;
+        if (!active.isBlank() && !active.equals(requested)) value = requested + " -> " + active;
+        else if (!requested.isBlank() && active.isBlank()) value += " (pending)";
+        String label = "Transport: " + value + (transportDropdownOpen ? " ^" : " v");
+        SFMFontUtils.draw(poseStack, minecraft.font,
+                minecraft.font.plainSubstrByWidth(label, width - 8),
+                transportButtonLeft + 4, transportButtonTop + 3, TEXT, false);
+        if (!transportDropdownOpen) return;
+
+        List<SFMTerminalTransportOption> options = remoteService.transportOptions();
+        int rowTop = transportButtonBottom;
+        for (int index = 0; index < options.size(); index++) {
+            SFMTerminalTransportOption option = options.get(index);
+            int rowBottom = rowTop + height;
+            int rowColor = index == transportSelectionIndex ? 0xFF315568 : 0xF018252D;
+            GuiComponent.fill(poseStack, transportButtonLeft, rowTop,
+                    transportButtonRight, rowBottom, rowColor);
+            int color = option.supported() ? TEXT : ERROR;
+            SFMFontUtils.draw(poseStack, minecraft.font,
+                    minecraft.font.plainSubstrByWidth(option.label(), width - 8),
+                    transportButtonLeft + 4, rowTop + 3, color, false);
+            rowTop = rowBottom;
+        }
+    }
+
+    private boolean transportSelectorKeyPressed(int keyCode) {
+        List<SFMTerminalTransportOption> options = remoteService.transportOptions();
+        if (keyCode == GLFW.GLFW_KEY_TAB) {
+            transportSelectorFocused = false;
+            transportDropdownOpen = false;
+            focusSequence.reset();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            transportDropdownOpen = false;
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER
+                || keyCode == GLFW.GLFW_KEY_SPACE) {
+            if (!transportDropdownOpen) {
+                transportDropdownOpen = true;
+                synchronizeTransportSelection();
+            } else {
+                selectCurrentTransport();
+            }
+            return true;
+        }
+        if (options.isEmpty()) return true;
+        if (keyCode == GLFW.GLFW_KEY_HOME) transportSelectionIndex = 0;
+        else if (keyCode == GLFW.GLFW_KEY_END) transportSelectionIndex = options.size() - 1;
+        else if (keyCode == GLFW.GLFW_KEY_UP) {
+            transportSelectionIndex = Math.floorMod(transportSelectionIndex - 1, options.size());
+        } else if (keyCode == GLFW.GLFW_KEY_DOWN) {
+            transportSelectionIndex = (transportSelectionIndex + 1) % options.size();
+        } else {
+            return true;
+        }
+        transportDropdownOpen = true;
+        return true;
+    }
+
+    private void synchronizeTransportSelection() {
+        List<SFMTerminalTransportOption> options = remoteService.transportOptions();
+        String requested = remoteService.requestedTransportId();
+        for (int index = 0; index < options.size(); index++) {
+            if (options.get(index).id().equals(requested)) {
+                transportSelectionIndex = index;
+                return;
+            }
+        }
+        transportSelectionIndex = Math.min(transportSelectionIndex, Math.max(0, options.size() - 1));
+    }
+
+    private void selectCurrentTransport() {
+        List<SFMTerminalTransportOption> options = remoteService.transportOptions();
+        if (transportSelectionIndex < 0 || transportSelectionIndex >= options.size()) return;
+        requestTransport(options.get(transportSelectionIndex).id());
+        transportDropdownOpen = false;
     }
 }

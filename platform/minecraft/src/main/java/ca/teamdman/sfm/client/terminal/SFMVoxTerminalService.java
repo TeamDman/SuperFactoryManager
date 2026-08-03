@@ -21,12 +21,22 @@ import org.facet.vox.generated.TerminalDisconnectRequest;
 import org.facet.vox.generated.TerminalError;
 import org.facet.vox.generated.TerminalFrameEncoding;
 import org.facet.vox.generated.TerminalFrameEvent;
+import org.facet.vox.generated.TerminalFrameOrigin;
 import org.facet.vox.generated.TerminalFrameKind;
+import org.facet.vox.generated.TerminalAlphaMode;
+import org.facet.vox.generated.TerminalColorSpace;
 import org.facet.vox.generated.TerminalInputResult;
 import org.facet.vox.generated.TerminalKeyInput;
 import org.facet.vox.generated.TerminalMouseInput;
 import org.facet.vox.generated.TerminalOperationResult;
 import org.facet.vox.generated.TerminalPublicationTelemetry;
+import org.facet.vox.generated.TerminalPresentationCapabilitiesRequest;
+import org.facet.vox.generated.TerminalPresentationCapabilitiesResult;
+import org.facet.vox.generated.TerminalPresentationMode;
+import org.facet.vox.generated.TerminalRasterFrameEvent;
+import org.facet.vox.generated.TerminalRasterFrameKind;
+import org.facet.vox.generated.TerminalRasterRegion;
+import org.facet.vox.generated.TerminalRasterSubscribeRequest;
 import org.facet.vox.generated.TerminalResizeRequest;
 import org.facet.vox.generated.TerminalResizeResult;
 import org.facet.vox.generated.TerminalServiceDescriptor;
@@ -81,10 +91,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private final SFMVoxTerminalTelemetry telemetry = new SFMVoxTerminalTelemetry();
     private final SFMVoxTerminalFrameInbox frameInbox =
             new SFMVoxTerminalFrameInbox(MAX_FRAME_BYTES);
+    private final SFMTerminalRgbaCompositor rgbaCompositor =
+            new SFMTerminalRgbaCompositor(SFMTerminalRasterLimits.RGBA8_V1_DEFAULTS);
     private final Object lock = new Object();
     private VoxConnection connection;
     private ServiceLane lane;
     private TerminalClient client;
+    private ServiceLane rasterLane;
+    private TerminalClient rasterClient;
     private String sessionId;
     private String failure;
     private TerminalSnapshot latestSnapshot;
@@ -92,6 +106,30 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private VoxRx<TerminalFrameEvent> frameReceiver;
     private CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> subscriptionCall;
     private SFMVoxTerminalFrameInbox.Subscription subscription;
+    private VoxRx<TerminalRasterFrameEvent> rasterFrameReceiver;
+    private CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> rasterSubscriptionCall;
+    private RasterSubscription rasterSubscription;
+    private List<TerminalPresentationMode> presentationModes = List.of();
+    private List<SFMTerminalTransportOption> terminalTransportOptions = undiscoveredTransportOptions();
+    private String requestedTransportId = SFMTerminalTransportId.FULL_PNG.wireId();
+    private String activeTransportId;
+    private SFMTerminalFrame pendingRasterFrame;
+    private long rasterSubscriptionGeneration;
+    private boolean transportExplicitlyRequested;
+    private String acceptedRasterTransportGeneration = "";
+    private String rasterConnectionEpoch = "";
+    private String rasterSessionEpoch = "";
+    private long rasterLastTerminalSequence;
+    private long rasterLastFrameSequence;
+    private long rasterSubscriptionsStarted;
+    private long rasterFramesReceived;
+    private long rasterFramesAccepted;
+    private long rasterFramesRejected;
+    private long rasterStaleFrames;
+    private long rasterFullFrames;
+    private long rasterDirtyFrames;
+    private long rasterFullResyncFrames;
+    private TerminalPublicationTelemetry latestRasterPublication;
     private final AtomicLong clientSequence = new AtomicLong();
     private int requestedWidth = REQUEST_WIDTH;
     private int requestedHeight = REQUEST_HEIGHT;
@@ -112,6 +150,17 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private record DetachedSubscription(
             VoxRx<TerminalFrameEvent> receiver,
             CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> call) {}
+
+    private record RasterSubscription(
+            long generation,
+            String sessionId,
+            String transportGeneration,
+            TerminalPresentationMode mode) {}
+
+    private record DetachedRasterSubscription(
+            VoxRx<TerminalRasterFrameEvent> receiver,
+            CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> call,
+            ServiceLane lane) {}
 
     private record DetachedTransport(
             TerminalClient client,
@@ -267,7 +316,55 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     /** Validates and serializes the live bounded-push invariants for puppet evidence. */
+    @Override
     public String assertPushEvidenceForAutomation(boolean reconnectExpected) {
+        synchronized (lock) {
+            if (rasterSubscriptionsStarted > 0) {
+                if (activeTransportId == null || rasterFramesAccepted < 1
+                        || rasterLastFrameSequence < 1 || latestRasterPublication == null) {
+                    throw new IllegalStateException(
+                            "Java raster subscription has no accepted live evidence"
+                                    + " requested=" + requestedTransportId
+                                    + " active=" + activeTransportId
+                                    + " subscriptions=" + rasterSubscriptionsStarted
+                                    + " received=" + rasterFramesReceived
+                                    + " accepted=" + rasterFramesAccepted
+                                    + " rejected=" + rasterFramesRejected
+                                    + " stale=" + rasterStaleFrames
+                                    + " lane=" + (rasterLane == null ? "none" : rasterLane.state())
+                                    + " failure=" + failure);
+                }
+                TerminalPublicationTelemetry producer = latestRasterPublication;
+                if (producer.pendingDepth() < 0 || producer.pendingDepth() > 1
+                        || producer.pendingDepthMax() < 0 || producer.pendingDepthMax() > 1) {
+                    throw new IllegalStateException("Rust raster producer violated its bounded pending depth");
+                }
+                String result = String.join("\n",
+                        "transport=vox.txrx.raster",
+                        "requested_transport=" + requestedTransportId,
+                        "active_transport=" + activeTransportId,
+                        "transport_generation=" + acceptedRasterTransportGeneration,
+                        "raster_subscriptions_started=" + rasterSubscriptionsStarted,
+                        "raster_frames_received=" + rasterFramesReceived,
+                        "raster_frames_accepted=" + rasterFramesAccepted,
+                        "raster_frames_rejected=" + rasterFramesRejected,
+                        "raster_stale_frames=" + rasterStaleFrames,
+                        "raster_full_frames=" + rasterFullFrames,
+                        "raster_dirty_frames=" + rasterDirtyFrames,
+                        "raster_full_resync_frames=" + rasterFullResyncFrames,
+                        "latest_terminal_sequence=" + rasterLastTerminalSequence,
+                        "latest_frame_sequence=" + rasterLastFrameSequence,
+                        "producer_renders_started=" + producer.rendersStarted(),
+                        "producer_renders_completed=" + producer.rendersCompleted(),
+                        "producer_frames_pushed=" + producer.framesPushed(),
+                        "producer_pending_depth=" + producer.pendingDepth(),
+                        "producer_pending_depth_max=" + producer.pendingDepthMax(),
+                        "producer_mutation_to_send_us=" + producer.mutationToSendUs(),
+                        "producer_credit_wait_us=" + producer.creditWaitUs());
+                SFM.LOGGER.info("SFM_VOX_TERMINAL_RASTER_EVIDENCE {}", result.replace('\n', ' '));
+                return result + "\n";
+            }
+        }
         SFMVoxTerminalTelemetry.Snapshot evidence = telemetry.snapshot();
         SFMVoxTerminalFrameInbox.Snapshot inbox = frameInbox.snapshot();
         SFMVoxTerminalTelemetry.ProducerMetadata producer = evidence.latestProducer()
@@ -342,12 +439,86 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
 
     @Override
     public Optional<SFMTerminalFrame> latestFrame() {
+        synchronized (lock) {
+            if (pendingRasterFrame != null) {
+                SFMTerminalFrame frame = pendingRasterFrame;
+                pendingRasterFrame = null;
+                return Optional.of(frame);
+            }
+        }
         return frameInbox.takeLatest();
     }
 
     @Override
     public boolean canPresentRetainedFrame() {
-        return isConnected() && frameInbox.isLive();
+        synchronized (lock) {
+            return sessionId != null && (activeTransportId != null || frameInbox.isLive());
+        }
+    }
+
+    @Override
+    public List<SFMTerminalTransportOption> transportOptions() {
+        synchronized (lock) {
+            return terminalTransportOptions;
+        }
+    }
+
+    @Override
+    public String requestedTransportId() {
+        synchronized (lock) {
+            return requestedTransportId;
+        }
+    }
+
+    @Override
+    public Optional<String> activeTransportId() {
+        synchronized (lock) {
+            return Optional.ofNullable(activeTransportId);
+        }
+    }
+
+    @Override
+    public SFMTerminalTransportChangeResult requestTransport(String transportId) {
+        final String requested;
+        try {
+            requested = SFMTerminalTransportId.fromWireId(transportId).wireId();
+        } catch (IllegalArgumentException error) {
+            return SFMTerminalTransportChangeResult.rejected(error.getMessage());
+        }
+        final String currentSession;
+        final long generation;
+        synchronized (lock) {
+            if (closed) return SFMTerminalTransportChangeResult.rejected("Rust terminal is closed");
+            SFMTerminalTransportOption option = terminalTransportOptions.stream()
+                    .filter(candidate -> candidate.id().equals(requested))
+                    .findFirst()
+                    .orElse(null);
+            if (option == null || !option.supported()) {
+                String reason = option == null ? "not advertised by the server" : option.unavailableReason();
+                return SFMTerminalTransportChangeResult.rejected(
+                        "Terminal transport '" + requested + "' is unavailable: " + reason);
+            }
+            if (requested.equals(requestedTransportId)
+                    && (requested.equals(activeTransportId) || rasterSubscription != null)) {
+                return SFMTerminalTransportChangeResult.accepted(
+                        "Terminal transport is already " + requested);
+            }
+            requestedTransportId = requested;
+            transportExplicitlyRequested = true;
+            rasterSubscriptionGeneration = incrementGeneration(
+                    rasterSubscriptionGeneration, "terminal raster subscription generation");
+            generation = rasterSubscriptionGeneration;
+            currentSession = sessionId;
+        }
+        if (currentSession == null) {
+            return SFMTerminalTransportChangeResult.accepted(
+                    "Terminal transport " + requested + " will activate after connection");
+        }
+        if (!submitDriver(() -> switchRasterSubscription(currentSession, requested, generation))) {
+            return SFMTerminalTransportChangeResult.rejected("Rust terminal transport switch could not be queued");
+        }
+        return SFMTerminalTransportChangeResult.accepted(
+                "Requested terminal transport " + requested + "; awaiting full resynchronization");
     }
 
     private SFMTerminalFrameMetadata frameMetadata(TerminalSnapshot snapshot) {
@@ -591,7 +762,6 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         CallOptions.withIdleTimeout(SUBSCRIPTION_IDLE_TIMEOUT));
         synchronized (lock) {
             if (!frameInbox.isCurrent(currentSubscription)) {
-                channel.rx().close();
                 currentCall.cancel(true);
                 return;
             }
@@ -758,6 +928,484 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         }
     }
 
+    private static List<SFMTerminalTransportOption> undiscoveredTransportOptions() {
+        return Arrays.stream(SFMTerminalTransportId.values())
+                .map(id -> new SFMTerminalTransportOption(
+                        id.wireId(), "rust-cpu-fontdue",
+                        id == SFMTerminalTransportId.DIRTY_RAW_RGBA ? "dirty" : "full",
+                        1, false, "awaiting server capabilities"))
+                .toList();
+    }
+
+    static List<SFMTerminalTransportOption> intersectPresentationModes(
+            List<TerminalPresentationMode> modes) {
+        return Arrays.stream(SFMTerminalTransportId.values()).map(id -> {
+            List<TerminalPresentationMode> advertised = modes.stream()
+                    .filter(mode -> mode.transportId().equals(id.wireId()))
+                    .toList();
+            TerminalPresentationMode supported = advertised.stream()
+                    .filter(SFMVoxTerminalService::javaSupports)
+                    .findFirst().orElse(null);
+            if (supported != null) {
+                return new SFMTerminalTransportOption(
+                        supported.transportId(), supported.rendererId(), supported.damageModeId(),
+                        supported.transportVersion(), true, "");
+            }
+            TerminalPresentationMode first = advertised.stream().findFirst().orElse(null);
+            String reason = first == null
+                    ? "not advertised by the server"
+                    : "advertised contract is not supported by the Java presenter";
+            return new SFMTerminalTransportOption(
+                    id.wireId(), first == null ? "" : first.rendererId(),
+                    first == null ? "" : first.damageModeId(),
+                    first == null ? 0 : first.transportVersion(), false, reason);
+        }).toList();
+    }
+
+    private static boolean javaSupports(TerminalPresentationMode mode) {
+        if (!"rust-cpu-fontdue".equals(mode.rendererId())
+                || mode.transportVersion() != 1
+                || mode.frameContractVersion() != 1
+                || mode.origin() != TerminalFrameOrigin.TOP_LEFT
+                || mode.alphaMode() != TerminalAlphaMode.STRAIGHT
+                || mode.colorSpace() != TerminalColorSpace.SRGB
+                || mode.maxPixelWidth() <= 0 || mode.maxPixelWidth() > 4096
+                || mode.maxPixelHeight() <= 0 || mode.maxPixelHeight() > 4096
+                || mode.maxFrameBytes() <= 0 || mode.maxRegions() <= 0) {
+            return false;
+        }
+        return switch (mode.transportId()) {
+            case "full-png" -> "full".equals(mode.damageModeId())
+                    && mode.encoding() == TerminalFrameEncoding.PNG
+                    && mode.steadyFrameKind() == TerminalRasterFrameKind.FULL;
+            case "full-raw-rgba" -> "full".equals(mode.damageModeId())
+                    && mode.encoding() == TerminalFrameEncoding.RGBA8
+                    && mode.steadyFrameKind() == TerminalRasterFrameKind.FULL;
+            case "dirty-raw-rgba" -> "dirty".equals(mode.damageModeId())
+                    && mode.encoding() == TerminalFrameEncoding.RGBA8
+                    && mode.steadyFrameKind() == TerminalRasterFrameKind.DIRTY_REGIONS;
+            default -> false;
+        };
+    }
+
+    private void discoverPresentationModes(TerminalClient currentClient, String currentSession)
+            throws Exception {
+        TerminalPresentationCapabilitiesResult result = requireSuccess(
+                await(currentClient.presentationCapabilities(
+                        new TerminalPresentationCapabilitiesRequest(currentSession, nextSequence())),
+                        "reading terminal presentation capabilities"),
+                "reading terminal presentation capabilities");
+        if (!currentSession.equals(result.sessionId())) {
+            throw new IllegalStateException("terminal presentation capabilities returned another session");
+        }
+        List<TerminalPresentationMode> modes = List.copyOf(result.modes());
+        List<SFMTerminalTransportOption> options = intersectPresentationModes(modes);
+        String selected;
+        long generation;
+        synchronized (lock) {
+            if (closed || client != currentClient || !Objects.equals(sessionId, currentSession)) {
+                throw new IllegalStateException("terminal capability discovery was superseded");
+            }
+            presentationModes = modes;
+            terminalTransportOptions = options;
+            boolean requestedSupported = options.stream().anyMatch(option ->
+                    option.supported() && option.id().equals(requestedTransportId));
+            if (!requestedSupported) {
+                if (transportExplicitlyRequested) {
+                    throw new IllegalStateException(
+                            "requested terminal transport is not supported: " + requestedTransportId);
+                }
+                boolean defaultSupported = options.stream().anyMatch(option ->
+                        option.supported() && option.id().equals(result.defaultTransportId()));
+                if (!defaultSupported) {
+                    throw new IllegalStateException(
+                            "server default terminal transport has no Java presenter: "
+                                    + result.defaultTransportId());
+                }
+                requestedTransportId = result.defaultTransportId();
+            }
+            selected = requestedTransportId;
+            rasterSubscriptionGeneration = incrementGeneration(
+                    rasterSubscriptionGeneration, "terminal raster subscription generation");
+            generation = rasterSubscriptionGeneration;
+        }
+        switchRasterSubscription(currentSession, selected, generation);
+    }
+
+    private TerminalPresentationMode presentationMode(String transportId) {
+        return presentationModes.stream()
+                .filter(mode -> mode.transportId().equals(transportId) && javaSupports(mode))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void switchRasterSubscription(
+            String currentSession,
+            String transportId,
+            long generation) {
+        try {
+            VoxConnection currentConnection;
+            TerminalPresentationMode mode;
+            synchronized (lock) {
+                if (closed || !Objects.equals(sessionId, currentSession)
+                        || generation != rasterSubscriptionGeneration
+                        || !requestedTransportId.equals(transportId)) return;
+                currentConnection = connection;
+                mode = presentationMode(transportId);
+                if (currentConnection == null || mode == null) {
+                    failure = "Terminal transport '" + transportId + "' is unavailable";
+                    return;
+                }
+                closeRasterSubscriptionLocked();
+            }
+            startRasterSubscription(currentConnection, currentSession, mode, generation);
+        } catch (Exception error) {
+            synchronized (lock) {
+                if (generation == rasterSubscriptionGeneration
+                        && Objects.equals(sessionId, currentSession)) {
+                    failure = "Vox terminal transport switch failed: " + describe(error);
+                }
+            }
+        }
+    }
+
+    private void startRasterSubscription(
+            VoxConnection currentConnection,
+            String currentSession,
+            TerminalPresentationMode mode,
+            long generation) throws Exception {
+        ServiceLane currentRasterLane = currentConnection.openLane(
+                TerminalServiceDescriptor.INSTANCE, LaneOptions.defaults());
+        await(currentRasterLane.opened(), "opening terminal raster lane");
+        TerminalClient currentClient = new TerminalClient(currentRasterLane);
+        VoxChannels.Pair<TerminalRasterFrameEvent> channel = VoxChannels.channel(
+                TerminalRasterFrameEvent.ADAPTER);
+        long requestSequence = nextSequence();
+        String wireGeneration = "sfm-" + generation + "-" + requestSequence;
+        long maxFrameBytes = Math.min(MAX_FRAME_BYTES, mode.maxFrameBytes());
+        int maxRegions = Math.min(SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS, mode.maxRegions());
+        RasterSubscription currentSubscription = new RasterSubscription(
+                generation, currentSession, wireGeneration, mode);
+        synchronized (lock) {
+            if (closed || connection != currentConnection || !Objects.equals(sessionId, currentSession)
+                    || generation != rasterSubscriptionGeneration) {
+                channel.rx().close();
+                currentRasterLane.close();
+                return;
+            }
+            rasterLane = currentRasterLane;
+            rasterClient = currentClient;
+            rasterSubscription = currentSubscription;
+            rasterFrameReceiver = channel.rx();
+            acceptedRasterTransportGeneration = "";
+            rasterConnectionEpoch = "";
+            rasterSessionEpoch = "";
+            rasterLastTerminalSequence = 0;
+            rasterLastFrameSequence = 0;
+            if (mode.encoding() == TerminalFrameEncoding.RGBA8) {
+                rgbaCompositor.expectGeneration(wireGeneration);
+            }
+            rasterSubscriptionsStarted = incrementGeneration(
+                    rasterSubscriptionsStarted, "raster subscriptions started");
+            SFM.LOGGER.info(
+                    "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_STARTED session={} transport={} generation={} lane={}",
+                    currentSession,
+                    mode.transportId(),
+                    wireGeneration,
+                    currentRasterLane.state());
+        }
+        CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> currentCall =
+                currentClient.subscribeRasterFrames(
+                        new TerminalRasterSubscribeRequest(
+                                currentSession,
+                                mode.rendererId(),
+                                mode.damageModeId(),
+                                mode.transportId(),
+                                mode.transportVersion(),
+                                wireGeneration,
+                                0,
+                                0,
+                                maxFrameBytes,
+                                maxRegions,
+                                requestSequence,
+                                correlationId("raster-subscribe", requestSequence)),
+                        channel.tx(),
+                        CallOptions.withIdleTimeout(SUBSCRIPTION_IDLE_TIMEOUT));
+        synchronized (lock) {
+            if (!isCurrentRasterSubscriptionLocked(currentSubscription)) {
+                currentRasterLane.close();
+                return;
+            }
+            rasterSubscriptionCall = currentCall;
+        }
+        currentCall.whenComplete((result, error) ->
+                rasterSubscriptionCompleted(currentSubscription, result, error));
+        try {
+            subscriptionReceiver.execute(() -> receiveRasterFrames(currentSubscription, channel.rx()));
+        } catch (RejectedExecutionException error) {
+            synchronized (lock) {
+                if (rasterLane == currentRasterLane) closeRasterSubscriptionLocked();
+                else currentRasterLane.close();
+            }
+            throw error;
+        }
+    }
+
+    private void receiveRasterFrames(
+            RasterSubscription currentSubscription,
+            VoxRx<TerminalRasterFrameEvent> receiver) {
+        Throwable receiverFailure = null;
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
+                TerminalRasterFrameEvent event = receiver.receive();
+                if (event == null) break;
+                acceptRasterFrame(currentSubscription, event);
+            }
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            receiverFailure = error;
+        } catch (Exception error) {
+            receiverFailure = error;
+        } finally {
+            rasterReceiverStopped(currentSubscription, receiverFailure);
+        }
+    }
+
+    private void acceptRasterFrame(
+            RasterSubscription currentSubscription,
+            TerminalRasterFrameEvent event) {
+        try {
+            synchronized (lock) {
+                rasterFramesReceived = incrementGeneration(rasterFramesReceived, "raster frames received");
+                if (!isCurrentRasterSubscriptionLocked(currentSubscription)) {
+                    rasterStaleFrames = incrementGeneration(rasterStaleFrames, "raster stale frames");
+                    return;
+                }
+                validateRasterEnvelopeLocked(currentSubscription, event);
+                org.facet.vox.generated.TerminalRasterFrame nativeFrame = event.frame();
+                byte[] presentedPayload;
+                boolean png;
+                if (nativeFrame.encoding() == TerminalFrameEncoding.PNG) {
+                    validatePngRasterFrame(currentSubscription, event);
+                    presentedPayload = nativeFrame.payload();
+                    png = true;
+                } else {
+                    SFMTerminalRasterFrame rasterFrame = toRasterFrame(event);
+                    SFMTerminalRasterLimits negotiated = new SFMTerminalRasterLimits(
+                            currentSubscription.mode().maxPixelWidth(),
+                            currentSubscription.mode().maxPixelHeight(),
+                            Math.min(currentSubscription.mode().maxFrameBytes(),
+                                    SFMTerminalRasterLimits.RGBA8_V1_MAX_PAYLOAD_BYTES),
+                            Math.min(currentSubscription.mode().maxRegions(),
+                                    SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS));
+                    SFMTerminalRasterFrameValidator.validateRgba8(rasterFrame, negotiated);
+                    if (rgbaCompositor.apply(rasterFrame)
+                            == SFMTerminalRgbaCompositor.ApplyResult.STALE_GENERATION) return;
+                    presentedPayload = rgbaCompositor.pixels();
+                    png = false;
+                }
+                SFMTerminalFrame frame = new SFMTerminalFrame(
+                        event.frameSequence(), true, png, presentedPayload,
+                        rasterFrameMetadata(event),
+                        streamIdentity(event.connectionEpoch(), event.sessionEpoch())
+                                + ":" + event.transportGeneration());
+                pendingRasterFrame = frame;
+                activeTransportId = event.transportId();
+                acceptedRasterTransportGeneration = event.transportGeneration();
+                rasterConnectionEpoch = event.connectionEpoch();
+                rasterSessionEpoch = event.sessionEpoch();
+                rasterLastTerminalSequence = event.terminalSequence();
+                rasterLastFrameSequence = event.frameSequence();
+                rasterFramesAccepted = incrementGeneration(rasterFramesAccepted, "raster frames accepted");
+                if (event.frame().kind() == TerminalRasterFrameKind.FULL) {
+                    rasterFullFrames = incrementGeneration(rasterFullFrames, "raster full frames");
+                } else {
+                    rasterDirtyFrames = incrementGeneration(rasterDirtyFrames, "raster dirty frames");
+                }
+                if (event.fullResync()) {
+                    rasterFullResyncFrames = incrementGeneration(
+                            rasterFullResyncFrames, "raster full resynchronization frames");
+                }
+                latestRasterPublication = event.publication();
+                failure = null;
+                if (event.fullResync()) {
+                    SFM.LOGGER.info(
+                            "SFM_VOX_TERMINAL_RASTER_ACTIVE session={} transport={} generation={} frame_sequence={}",
+                            event.sessionId(),
+                            event.transportId(),
+                            event.transportGeneration(),
+                            event.frameSequence());
+                }
+            }
+        } catch (RuntimeException error) {
+            synchronized (lock) {
+                if (isCurrentRasterSubscriptionLocked(currentSubscription)) {
+                    rasterFramesRejected = incrementGeneration(
+                            rasterFramesRejected, "raster frames rejected");
+                    failure = "Rejected malformed terminal raster frame: " + describe(error);
+                    SFM.LOGGER.warn(
+                            "SFM_VOX_TERMINAL_RASTER_FRAME_REJECTED session={} transport={} generation={} "
+                                    + "terminal_sequence={} frame_sequence={} base_frame_sequence={} "
+                                    + "full_resync={} frame_kind={} frame_encoding={} failure={}",
+                            event.sessionId(),
+                            event.transportId(),
+                            event.transportGeneration(),
+                            event.terminalSequence(),
+                            event.frameSequence(),
+                            event.baseFrameSequence(),
+                            event.fullResync(),
+                            event.frame().kind(),
+                            event.frame().encoding(),
+                            failure,
+                            error);
+                }
+            }
+        }
+    }
+
+    private void validateRasterEnvelopeLocked(
+            RasterSubscription currentSubscription,
+            TerminalRasterFrameEvent event) {
+        TerminalPresentationMode mode = currentSubscription.mode();
+        long negotiatedBytes = Math.min(MAX_FRAME_BYTES, mode.maxFrameBytes());
+        int negotiatedRegions = Math.min(SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS, mode.maxRegions());
+        if (!currentSubscription.sessionId().equals(event.sessionId())
+                || !currentSubscription.transportGeneration().equals(event.transportGeneration())
+                || !mode.rendererId().equals(event.rendererId())
+                || !mode.damageModeId().equals(event.damageModeId())
+                || !mode.transportId().equals(event.transportId())
+                || mode.transportVersion() != event.transportVersion()
+                || mode.frameContractVersion() != event.frameContractVersion()
+                || negotiatedBytes != event.maxFrameBytes()
+                || negotiatedRegions != event.maxRegions()
+                || event.terminalSequence() < 0 || event.frameSequence() <= 0
+                || event.frame().payload().length > negotiatedBytes) {
+            throw new IllegalArgumentException("raster event does not match its negotiated subscription");
+        }
+        boolean first = acceptedRasterTransportGeneration.isEmpty();
+        if (first) {
+            if (!event.fullResync()
+                    || event.frame().kind() != TerminalRasterFrameKind.FULL
+                    || event.baseFrameSequence() != 0) {
+                throw new IllegalArgumentException(
+                        "replacement transport must begin with a full resynchronization"
+                                + " [full_resync=" + event.fullResync()
+                                + ", frame_kind=" + event.frame().kind()
+                                + ", base_frame_sequence=" + event.baseFrameSequence() + "]");
+            }
+        } else if (!acceptedRasterTransportGeneration.equals(event.transportGeneration())
+                || !rasterConnectionEpoch.equals(event.connectionEpoch())
+                || !rasterSessionEpoch.equals(event.sessionEpoch())
+                || event.terminalSequence() < rasterLastTerminalSequence
+                || event.frameSequence() <= rasterLastFrameSequence) {
+            throw new IllegalArgumentException("stale or out-of-order raster event");
+        }
+    }
+
+    private static void validatePngRasterFrame(
+            RasterSubscription subscription,
+            TerminalRasterFrameEvent event) {
+        org.facet.vox.generated.TerminalRasterFrame frame = event.frame();
+        if (!"full-png".equals(subscription.mode().transportId())
+                || frame.encoding() != TerminalFrameEncoding.PNG
+                || frame.kind() != TerminalRasterFrameKind.FULL
+                || frame.origin() != TerminalFrameOrigin.TOP_LEFT
+                || frame.alphaMode() != TerminalAlphaMode.STRAIGHT
+                || frame.colorSpace() != TerminalColorSpace.SRGB
+                || frame.width() <= 0 || frame.width() > subscription.mode().maxPixelWidth()
+                || frame.height() <= 0 || frame.height() > subscription.mode().maxPixelHeight()
+                || frame.stride() != 0 || !frame.regions().isEmpty()
+                || !frame.complete()
+                || !isPng(frame.payload())) {
+            throw new IllegalArgumentException("malformed full-png raster frame");
+        }
+    }
+
+    private static SFMTerminalRasterFrame toRasterFrame(TerminalRasterFrameEvent event) {
+        org.facet.vox.generated.TerminalRasterFrame frame = event.frame();
+        if (frame.encoding() != TerminalFrameEncoding.RGBA8
+                || frame.origin() != TerminalFrameOrigin.TOP_LEFT
+                || frame.alphaMode() != TerminalAlphaMode.STRAIGHT
+                || frame.colorSpace() != TerminalColorSpace.SRGB
+                || !frame.complete()) {
+            throw new IllegalArgumentException("raw raster metadata does not match RGBA8 contract v1");
+        }
+        List<SFMTerminalRasterRegion> regions = frame.regions().stream()
+                .map(region -> new SFMTerminalRasterRegion(
+                        region.x(), region.y(), region.width(), region.height(), region.stride(),
+                        region.payloadOffset(), region.payloadLength()))
+                .toList();
+        return new SFMTerminalRasterFrame(
+                SFMTerminalTransportId.fromWireId(event.transportId()),
+                event.transportVersion(), event.frameContractVersion(), event.transportGeneration(),
+                event.frameSequence(), event.baseFrameSequence(), event.fullResync(),
+                SFMTerminalRasterEncoding.RGBA8,
+                frame.kind() == TerminalRasterFrameKind.FULL
+                        ? SFMTerminalRasterFrameKind.FULL
+                        : SFMTerminalRasterFrameKind.DIRTY_REGIONS,
+                SFMTerminalRasterOrigin.TOP_LEFT,
+                SFMTerminalRasterAlphaMode.STRAIGHT,
+                SFMTerminalRasterColorSpace.SRGB,
+                frame.width(), frame.height(), frame.stride(), frame.payload(), regions);
+    }
+
+    private static SFMTerminalFrameMetadata rasterFrameMetadata(TerminalRasterFrameEvent event) {
+        org.facet.vox.generated.TerminalRasterFrame frame = event.frame();
+        var timing = frame.timing();
+        var surface = frame.surface();
+        return new SFMTerminalFrameMetadata(
+                event.frameSequence(), frame.logicalColumns(), frame.logicalRows(),
+                frame.width(), frame.height(), surface.cellWidth(), surface.cellHeight(),
+                surface.fontPixelSize(), event.rendererId(), event.transportId(),
+                timing.ptyDrainUs(), 0L, timing.terminalSnapshotUs(), timing.fontLoadUs(),
+                timing.rasterUs(), timing.payloadPackUs(), timing.pngEncodeUs(), timing.totalUs(),
+                event.correlationId());
+    }
+
+    private void rasterSubscriptionCompleted(
+            RasterSubscription currentSubscription,
+            VoxResult<TerminalOperationResult, TerminalError> result,
+            Throwable error) {
+        synchronized (lock) {
+            if (!isCurrentRasterSubscriptionLocked(currentSubscription)) return;
+            if (error == null && result != null && result.isSuccess()) return;
+            failure = "Vox terminal raster subscription failed: "
+                    + (error == null ? describeSubscriptionResult(result) : describe(error));
+            SFM.LOGGER.warn(
+                    "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_FAILED session={} transport={} generation={} failure={}",
+                    currentSubscription.sessionId(),
+                    currentSubscription.mode().transportId(),
+                    currentSubscription.transportGeneration(),
+                    failure,
+                    error);
+        }
+    }
+
+    private void rasterReceiverStopped(RasterSubscription currentSubscription, Throwable error) {
+        synchronized (lock) {
+            if (!isCurrentRasterSubscriptionLocked(currentSubscription)) return;
+            failure = error == null
+                    ? "Vox terminal raster subscription closed"
+                    : "Vox terminal raster subscription unavailable: " + describe(error);
+            SFM.LOGGER.warn(
+                    "SFM_VOX_TERMINAL_RASTER_RECEIVER_STOPPED session={} transport={} generation={} failure={}",
+                    currentSubscription.sessionId(),
+                    currentSubscription.mode().transportId(),
+                    currentSubscription.transportGeneration(),
+                    failure,
+                    error);
+        }
+    }
+
+    private boolean isCurrentRasterSubscriptionLocked(RasterSubscription candidate) {
+        return candidate != null
+                && rasterSubscription == candidate
+                && candidate.generation() == rasterSubscriptionGeneration
+                && Objects.equals(candidate.sessionId(), sessionId)
+                && candidate.transportGeneration().equals(
+                rasterSubscription == null ? "" : rasterSubscription.transportGeneration());
+    }
+
     private void ensureConnected() throws Exception {
         long attemptGeneration;
         synchronized (lock) {
@@ -801,7 +1449,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 client = newClient;
                 sessionId = newSessionId;
             }
-            startFrameSubscription(newClient, newSessionId);
+            discoverPresentationModes(newClient, newSessionId);
         } catch (Exception error) {
             if (newLane != null) newLane.close();
             if (newConnection != null) newConnection.close();
@@ -1307,6 +1955,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private void closeTransportLocked(boolean requestDisconnect) {
         transportGeneration = incrementGeneration(transportGeneration, "terminal transport generation");
         closeFrameSubscriptionLocked();
+        closeRasterSubscriptionLocked();
         DetachedTransport detached = new DetachedTransport(
                 client, sessionId, lane, connection, requestDisconnect);
         client = null;
@@ -1315,6 +1964,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         sessionId = null;
         latestSnapshot = null;
         latestContent = null;
+        pendingRasterFrame = null;
+        activeTransportId = null;
+        presentationModes = List.of();
+        terminalTransportOptions = undiscoveredTransportOptions();
         if (detached.client() != null || detached.lane() != null || detached.connection() != null) {
             scheduleTransportCleanup(() -> closeDetachedTransport(detached));
         }
@@ -1338,8 +1991,50 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     private void closeDetachedSubscription(DetachedSubscription detached) {
-        if (detached.receiver() != null) detached.receiver().close();
-        if (detached.call() != null) detached.call().cancel(true);
+        // Retire the request with one lifecycle signal. Cancelling the call
+        // ends the remote producer and releases its request slot; also closing
+        // the Rx would enqueue a competing channel reset for the same work.
+        if (detached.call() != null) {
+            detached.call().cancel(true);
+        } else if (detached.receiver() != null) {
+            detached.receiver().close();
+        }
+    }
+
+    private void closeRasterSubscriptionLocked() {
+        DetachedRasterSubscription detached = new DetachedRasterSubscription(
+                rasterFrameReceiver, rasterSubscriptionCall, rasterLane);
+        rasterSubscription = null;
+        rasterFrameReceiver = null;
+        rasterSubscriptionCall = null;
+        rasterLane = null;
+        rasterClient = null;
+        acceptedRasterTransportGeneration = "";
+        rasterConnectionEpoch = "";
+        rasterSessionEpoch = "";
+        rasterLastTerminalSequence = 0;
+        rasterLastFrameSequence = 0;
+        if (detached.lane() != null) {
+            // Queue LaneClose before the replacement LaneOpen. The peer's
+            // later LaneAccept then provides an ordered barrier proving that
+            // any old in-flight channel messages have been observed.
+            detached.lane().close();
+        } else if (detached.receiver() != null || detached.call() != null) {
+            scheduleTransportCleanup(() -> closeDetachedRasterSubscription(detached));
+        }
+    }
+
+    private void closeDetachedRasterSubscription(DetachedRasterSubscription detached) {
+        // Raster streaming owns a dedicated service lane on the same Vox
+        // connection. Replacing that lane cancels only its request and channel;
+        // the control/input lane and Rust PTY session remain untouched.
+        if (detached.lane() != null) {
+            detached.lane().close();
+        } else if (detached.call() != null) {
+            detached.call().cancel(true);
+        } else if (detached.receiver() != null) {
+            detached.receiver().close();
+        }
     }
 
     private void closeDetachedTransport(DetachedTransport detached) {

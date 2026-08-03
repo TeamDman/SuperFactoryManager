@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.terminal;
 
 import java.util.Optional;
+import java.util.List;
 
 /** Optional remote-terminal capability kept free of the Vox generated API. */
 public interface SFMTerminalRemoteService extends SFMTerminalService, AutoCloseable {
@@ -29,6 +30,26 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
 
     Optional<SFMTerminalFrame> latestFrame();
 
+    /** Server capability intersection shown by this panel's transport selector. */
+    default List<SFMTerminalTransportOption> transportOptions() {
+        return List.of();
+    }
+
+    /** Latest user request, including while its replacement stream awaits a full resync. */
+    default String requestedTransportId() {
+        return "";
+    }
+
+    /** Transport of the last accepted frame; remains stable during an in-flight switch. */
+    default Optional<String> activeTransportId() {
+        return Optional.empty();
+    }
+
+    /** Requests a non-blocking stream replacement without replacing the PTY/session. */
+    default SFMTerminalTransportChangeResult requestTransport(String transportId) {
+        return SFMTerminalTransportChangeResult.rejected("Terminal transport selection is unavailable");
+    }
+
     /** True while an empty latest-frame handoff may reuse the renderer's current texture. */
     default boolean canPresentRetainedFrame() {
         return isConnected();
@@ -39,6 +60,11 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
     int logicalHeight();
 
     String contentForAutomation();
+
+    /** Optional machine-readable proof supplied by push-capable transports. */
+    default String assertPushEvidenceForAutomation(boolean reconnectExpected) {
+        throw new IllegalStateException("Terminal service does not expose push evidence");
+    }
 
     boolean cancel();
 

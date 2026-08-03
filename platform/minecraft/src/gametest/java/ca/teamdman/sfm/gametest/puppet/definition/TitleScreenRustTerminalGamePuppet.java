@@ -59,6 +59,8 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.capture("rust-terminal-tab-focus-traversal", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Three-Tab focus traversal remains inside the workspace.")));
+        // The selector owns focus after the third Tab; a fourth returns to PTY input.
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_TAB);
         puppet.typeTerminalText("Write-Output alpha beta");
         puppet.pressTerminalKey(GLFW.GLFW_KEY_BACKSPACE, GLFW.GLFW_MOD_CONTROL);
         puppet.typeTerminalText("gamma");

@@ -9,6 +9,12 @@ import java.time.Duration;
 import java.util.List;
 
 import org.facet.vox.ConnectionOptions;
+import org.facet.vox.generated.TerminalAlphaMode;
+import org.facet.vox.generated.TerminalColorSpace;
+import org.facet.vox.generated.TerminalFrameEncoding;
+import org.facet.vox.generated.TerminalFrameOrigin;
+import org.facet.vox.generated.TerminalPresentationMode;
+import org.facet.vox.generated.TerminalRasterFrameKind;
 import org.junit.jupiter.api.Test;
 
 class SFMVoxTerminalServiceTests {
@@ -61,6 +67,36 @@ class SFMVoxTerminalServiceTests {
                     "Minecraft-thread terminal callbacks must only enqueue work; elapsed="
                             + elapsedMillis + "ms");
         }
+    }
+
+    @Test
+    void capabilityIntersectionRequiresTheExactStableContractTuples() {
+        List<SFMTerminalTransportOption> options = SFMVoxTerminalService.intersectPresentationModes(List.of(
+                mode("full-png", "full", TerminalFrameEncoding.PNG, TerminalRasterFrameKind.FULL),
+                mode("full-raw-rgba", "full", TerminalFrameEncoding.RGBA8, TerminalRasterFrameKind.FULL),
+                mode("dirty-raw-rgba", "dirty", TerminalFrameEncoding.RGBA8,
+                        TerminalRasterFrameKind.DIRTY_REGIONS)));
+
+        assertEquals(List.of("full-png", "full-raw-rgba", "dirty-raw-rgba"),
+                options.stream().map(SFMTerminalTransportOption::id).toList());
+        assertTrue(options.stream().allMatch(SFMTerminalTransportOption::supported));
+
+        List<SFMTerminalTransportOption> malformed = SFMVoxTerminalService.intersectPresentationModes(List.of(
+                mode("dirty-raw-rgba", "full", TerminalFrameEncoding.RGBA8,
+                        TerminalRasterFrameKind.DIRTY_REGIONS)));
+        assertTrue(malformed.stream().noneMatch(SFMTerminalTransportOption::supported));
+        assertTrue(malformed.stream().allMatch(option -> !option.unavailableReason().isBlank()));
+    }
+
+    private static TerminalPresentationMode mode(
+            String transport,
+            String damage,
+            TerminalFrameEncoding encoding,
+            TerminalRasterFrameKind kind) {
+        return new TerminalPresentationMode(
+                "rust-cpu-fontdue", damage, transport, 1, encoding, kind, 1,
+                TerminalFrameOrigin.TOP_LEFT, TerminalAlphaMode.STRAIGHT, TerminalColorSpace.SRGB,
+                1280, 720, 4 * 1024 * 1024L, 64);
     }
 
     private static SFMVoxTerminalService unavailableService(SFMTerminalService fallback) {

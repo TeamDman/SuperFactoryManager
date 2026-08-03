@@ -383,8 +383,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalStateException("Could not write terminal content " + file, error);
         }
         SFM.LOGGER.info(
-                "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN puppet={} artifact={} file={} chars={} required={} forbidden={}",
+                "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN puppet={} variant={} artifact={} file={} chars={} required={} forbidden={}",
                 active.definition.puppetName(),
+                active.viewportVariant.id(),
                 safeArtifactName,
                 file.getFileName(),
                 content.length(),
@@ -398,7 +399,8 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         String safeArtifactName = validateCaptureName(artifactName);
         String evidence = requireTerminalPanel().assertPushEvidenceForAutomation(reconnectExpected);
         Path directory = minecraft.gameDirectory.toPath().resolve("terminal-content");
-        Path file = directory.resolve(active.definition.puppetName() + "__" + safeArtifactName + ".txt");
+        Path file = directory.resolve(
+                active.definition.puppetName() + "__" + safeArtifactName + "__push-evidence.txt");
         try {
             Files.createDirectories(directory);
             Files.writeString(file, evidence, StandardCharsets.UTF_8);
@@ -406,8 +408,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalStateException("Could not write terminal push evidence " + file, error);
         }
         SFM.LOGGER.info(
-                "SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN puppet={} artifact={} file={} chars={}",
+                "SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN puppet={} variant={} artifact={} file={} chars={}",
                 active.definition.puppetName(),
+                active.viewportVariant.id(),
                 safeArtifactName,
                 file.getFileName(),
                 evidence.length()
@@ -627,11 +630,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     private SFMTerminalPanel requireTerminalPanel() {
-        return requireTerminalMultiplexer().panels().stream()
-                .filter(SFMTerminalPanel.class::isInstance)
-                .map(SFMTerminalPanel.class::cast)
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Workspace has no terminal panel"));
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        if (multiplexer.focusedPanelInstance() instanceof SFMTerminalPanel terminal) return terminal;
+        throw new IllegalStateException("Focused workspace panel is not a terminal");
     }
 
     private SFMScreenPanelBounds terminalBounds(SFMScreenMultiplexer multiplexer) {

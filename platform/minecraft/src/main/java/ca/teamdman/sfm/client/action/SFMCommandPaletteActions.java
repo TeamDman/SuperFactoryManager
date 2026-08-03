@@ -161,6 +161,11 @@ public final class SFMCommandPaletteActions {
             StartRustServerAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, SetTerminalTransportAction> SET_TERMINAL_TRANSPORT = REGISTERER.register(
+            "terminal/transport/set",
+            SetTerminalTransportAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, SFMThemeAction> THEME_RELOAD = REGISTERER.register(
             "theme/reload",
             () -> new SFMThemeAction(SFMThemeAction.Operation.RELOAD)

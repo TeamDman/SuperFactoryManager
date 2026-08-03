@@ -216,7 +216,7 @@ impl ArtifactLockfileV4 {
             .artifacts
             .iter()
             .filter(|artifact| {
-                artifact.owner.as_ref().map_or(true, |owner| {
+                artifact.owner.as_ref().is_none_or(|owner| {
                     dependency_components
                         .contains(&(owner.dependency_id.as_str(), owner.component_id.as_str()))
                 })

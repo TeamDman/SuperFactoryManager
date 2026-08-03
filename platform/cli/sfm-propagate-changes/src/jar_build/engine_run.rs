@@ -3427,6 +3427,26 @@ struct GamePuppetPreviewArtifact {
     metadata: GamePuppetPreviewCaptureMetadata,
 }
 
+#[derive(Debug)]
+struct GamePuppetPreviewTerminalArtifact {
+    puppet_name: String,
+    variant: String,
+    artifact_name: String,
+    kind: String,
+    relative_path: PathBuf,
+    bytes: u64,
+    hash: ContentHash,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct GamePuppetPreviewTerminalArtifactMetadata {
+    puppet_name: String,
+    variant: String,
+    artifact_name: String,
+    file_name: String,
+    kind: String,
+}
+
 #[derive(Clone, Debug, Default)]
 struct GamePuppetPreviewCaptureMetadata {
     puppet: Option<String>,
@@ -3464,6 +3484,9 @@ pub(crate) struct GamePuppetPreviewManifest {
     #[facet(rename = "captureProfile")]
     pub(crate) capture_profile: GamePuppetPreviewCaptureProfile,
     pub(crate) captures: Vec<GamePuppetPreviewManifestCapture>,
+    #[facet(rename = "terminalArtifacts")]
+    #[facet(default)]
+    pub(crate) terminal_artifacts: Vec<GamePuppetPreviewManifestTerminalArtifact>,
 }
 
 #[derive(Debug, Facet)]
@@ -3499,6 +3522,17 @@ pub(crate) struct GamePuppetPreviewManifestCapture {
     pub(crate) screen: Option<String>,
     #[facet(rename = "hudHidden")]
     pub(crate) hud_hidden: Option<bool>,
+}
+
+#[derive(Debug, Facet)]
+pub(crate) struct GamePuppetPreviewManifestTerminalArtifact {
+    pub(crate) puppet: String,
+    pub(crate) artifact: String,
+    pub(crate) variant: String,
+    pub(crate) kind: String,
+    pub(crate) path: String,
+    pub(crate) bytes: u64,
+    pub(crate) hash: ContentHash,
 }
 
 #[derive(Clone, Debug, Facet)]
@@ -3632,8 +3666,84 @@ fn publish_game_puppet_preview_artifacts(
     }
     artifacts.sort_by_key(|artifact| artifact.figure_number);
 
+    let terminal_artifact_metadata = parse_game_puppet_terminal_artifact_metadata(launch_output)?;
+    let terminal_staging_dir = working_dir.join("terminal-content");
+    let mut terminal_artifacts = Vec::new();
+    let mut terminal_destinations = BTreeSet::new();
+    for metadata in terminal_artifact_metadata {
+        if !is_safe_preview_name(&metadata.puppet_name)
+            || !is_safe_preview_name(&metadata.artifact_name)
+            || !is_safe_variant_id(&metadata.variant)
+            || !is_safe_terminal_artifact_file_name(&metadata.file_name)
+        {
+            eyre::bail!(
+                "Terminal artifact marker was not safely namespaced: {}",
+                metadata.file_name
+            );
+        }
+        let staging_path = terminal_staging_dir.join(&metadata.file_name);
+        let bytes = fs::read(&staging_path).wrap_err_with(|| {
+            format!(
+                "Terminal artifact marker reported a missing or unreadable file: {}",
+                staging_path.display()
+            )
+        })?;
+        let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
+        let relative_path = preview_run_relative_root
+            .join(&metadata.puppet_name)
+            .join(metadata.variant.replace('@', "_"))
+            .join(game_puppet_preview_terminal_artifact_file_name(
+                &metadata.artifact_name,
+                &metadata.kind,
+            )?);
+        if !terminal_destinations.insert(relative_path.clone()) {
+            eyre::bail!(
+                "Terminal artifact markers produced duplicate destination {}",
+                relative_path.display()
+            );
+        }
+        let destination = artifact_root.join(&relative_path);
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .wrap_err_with(|| format!("Failed to create {}", parent.display()))?;
+        }
+        fs::write(&destination, &bytes).wrap_err_with(|| {
+            format!(
+                "Failed to publish terminal artifact {} to {}",
+                staging_path.display(),
+                destination.display()
+            )
+        })?;
+        tracing::info!(
+            preview_terminal_artifact = %destination.display(),
+            kind = %metadata.kind,
+            "Game puppet terminal artifact"
+        );
+        terminal_artifacts.push(GamePuppetPreviewTerminalArtifact {
+            puppet_name: metadata.puppet_name,
+            variant: metadata.variant,
+            artifact_name: metadata.artifact_name,
+            kind: metadata.kind,
+            relative_path,
+            bytes: u64::try_from(bytes.len()).wrap_err("Terminal artifact exceeded u64")?,
+            hash,
+        });
+    }
+    terminal_artifacts.sort_by(|left, right| {
+        (&left.puppet_name, &left.variant, &left.artifact_name, &left.kind)
+            .cmp(&(&right.puppet_name, &right.variant, &right.artifact_name, &right.kind))
+    });
+
     let manifest_path = artifact_root.join("preview-manifest.json");
-    let manifest = render_game_puppet_preview_manifest(plan, run_options, &artifacts)?;
+    let manifest = render_game_puppet_preview_manifest(
+        plan,
+        run_options,
+        &artifacts,
+        &terminal_artifacts,
+    )?;
+    let run_manifest_path = preview_run_root.join("preview-manifest.json");
+    fs::write(&run_manifest_path, manifest.as_bytes())
+        .wrap_err_with(|| format!("Failed to write {}", run_manifest_path.display()))?;
     fs::write(&manifest_path, manifest)
         .wrap_err_with(|| format!("Failed to write {}", manifest_path.display()))?;
     let index_path = preview_run_root.join("index.html");
@@ -3642,6 +3752,7 @@ fn publish_game_puppet_preview_artifacts(
     fs::write(artifact_root.join("index.html"), render_game_puppet_preview_contact_sheet(&artifacts, false))
         .wrap_err("Failed to write latest viewport contact sheet")?;
     tracing::info!(preview_contact_sheet = %index_path.display(), "Game puppet viewport contact sheet");
+    tracing::info!(preview_manifest = %run_manifest_path.display(), "Durable game puppet preview manifest");
     Ok(manifest_path)
 }
 
@@ -3750,6 +3861,47 @@ fn parse_game_puppet_capture_metadata(
     captures
 }
 
+fn parse_game_puppet_terminal_artifact_metadata(
+    launch_output: &str,
+) -> eyre::Result<Vec<GamePuppetPreviewTerminalArtifactMetadata>> {
+    const CONTENT_MARKER: &str = "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN";
+    const PUSH_EVIDENCE_MARKER: &str = "SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN";
+    let mut artifacts = Vec::new();
+    let mut reported_files = BTreeSet::new();
+    for line in launch_output.lines() {
+        let kind = if line.contains(PUSH_EVIDENCE_MARKER) {
+            "push-evidence"
+        } else if line.contains(CONTENT_MARKER) {
+            "terminal-content"
+        } else {
+            continue;
+        };
+        let fields = line
+            .split_whitespace()
+            .filter_map(|field| field.split_once('='))
+            .collect::<BTreeMap<_, _>>();
+        let field = |name: &str| {
+            fields
+                .get(name)
+                .copied()
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| eyre::eyre!("Terminal artifact marker omitted {name}: {line}"))
+        };
+        let file_name = field("file")?.to_string();
+        if !reported_files.insert(file_name.clone()) {
+            eyre::bail!("Terminal artifact file was reported more than once: {file_name}");
+        }
+        artifacts.push(GamePuppetPreviewTerminalArtifactMetadata {
+            puppet_name: field("puppet")?.to_string(),
+            variant: field("variant")?.to_string(),
+            artifact_name: field("artifact")?.to_string(),
+            file_name,
+            kind: kind.to_string(),
+        });
+    }
+    Ok(artifacts)
+}
+
 fn parse_game_puppet_preview_viewport(fields: &BTreeMap<&str, &str>) -> Option<GamePuppetPreviewVariantObservation> {
     let number = |name| fields.get(name)?.parse::<u16>().ok();
     Some(GamePuppetPreviewVariantObservation {
@@ -3773,6 +3925,29 @@ fn is_safe_variant_id(value: &str) -> bool {
 
 fn game_puppet_preview_artifact_file_name(figure_number: u32, capture_name: &str) -> String {
     format!("figure_{figure_number:02}_{capture_name}.png")
+}
+
+fn is_safe_terminal_artifact_file_name(value: &str) -> bool {
+    Path::new(value).file_name().and_then(|name| name.to_str()) == Some(value)
+        && Path::new(value)
+            .extension()
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("txt"))
+        && value.bytes().all(|byte| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit()
+                || matches!(byte, b'_' | b'-' | b'.')
+        })
+}
+
+fn game_puppet_preview_terminal_artifact_file_name(
+    artifact_name: &str,
+    kind: &str,
+) -> eyre::Result<String> {
+    match kind {
+        "terminal-content" => Ok(format!("terminal_{artifact_name}.txt")),
+        "push-evidence" => Ok(format!("terminal_{artifact_name}__push-evidence.txt")),
+        _ => eyre::bail!("Unsupported terminal artifact kind {kind}"),
+    }
 }
 
 fn parse_game_puppet_preview_camera(
@@ -3809,6 +3984,7 @@ fn render_game_puppet_preview_manifest(
     plan: &BuildPlan,
     run_options: &RunOptions,
     artifacts: &[GamePuppetPreviewArtifact],
+    terminal_artifacts: &[GamePuppetPreviewTerminalArtifact],
 ) -> eyre::Result<String> {
     let manifest = GamePuppetPreviewManifest {
         branch: plan.branch_name.as_ref().to_string(),
@@ -3840,6 +4016,18 @@ fn render_game_puppet_preview_manifest(
                 camera: artifact.metadata.camera.clone(),
                 screen: artifact.metadata.screen.clone(),
                 hud_hidden: artifact.metadata.hud_hidden,
+            })
+            .collect(),
+        terminal_artifacts: terminal_artifacts
+            .iter()
+            .map(|artifact| GamePuppetPreviewManifestTerminalArtifact {
+                puppet: artifact.puppet_name.clone(),
+                artifact: artifact.artifact_name.clone(),
+                variant: artifact.variant.clone(),
+                kind: artifact.kind.clone(),
+                path: artifact.relative_path.to_string_lossy().replace('\\', "/"),
+                bytes: artifact.bytes,
+                hash: artifact.hash,
             })
             .collect(),
     };
@@ -3908,12 +4096,14 @@ mod game_puppet_preview_tests {
     use super::GamePuppetPreviewCaptureProfile;
     use super::GamePuppetPreviewManifest;
     use super::GamePuppetPreviewManifestCapture;
+    use super::GamePuppetPreviewManifestTerminalArtifact;
     use super::GamePuppetPreviewVariantObservation;
     use super::GamePuppetPreviewViewport;
     use super::create_game_puppet_preview_run_root;
     use super::game_puppet_preview_artifact_file_name;
     use super::is_safe_preview_name;
     use super::parse_game_puppet_capture_metadata;
+    use super::parse_game_puppet_terminal_artifact_metadata;
     use super::render_game_puppet_preview_contact_sheet;
     use super::png_dimensions;
     use tempfile::tempdir;
@@ -4059,6 +4249,15 @@ mod game_puppet_preview_tests {
                 screen: Some("SFM \"editor\"".to_string()),
                 hud_hidden: Some(true),
             }],
+            terminal_artifacts: vec![GamePuppetPreviewManifestTerminalArtifact {
+                puppet: "move_1_stack_direct_walkthrough".to_string(),
+                artifact: "full_png".to_string(),
+                variant: "1280x720@auto".to_string(),
+                kind: "terminal-content".to_string(),
+                path: "runs/example/terminal_full_png.txt".to_string(),
+                bytes: 42,
+                hash,
+            }],
         };
 
         let json = facet_json::to_string_pretty(&manifest).expect("preview manifest should serialize");
@@ -4069,7 +4268,35 @@ mod game_puppet_preview_tests {
         assert!(json.contains("\"clearTransientOverlays\": false"));
         assert!(json.contains(&format!("\"hash\": \"{hash}\"")));
         assert!(json.contains("\"screen\": \"SFM \\\"editor\\\"\""));
+        assert!(json.contains("\"terminalArtifacts\""));
+        assert!(json.contains("\"kind\": \"terminal-content\""));
         assert!(!json.contains("minecraft_version"));
+    }
+
+    #[test]
+    fn terminal_artifact_metadata_distinguishes_content_from_push_evidence() {
+        let metadata = parse_game_puppet_terminal_artifact_metadata(
+            "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN puppet=terminal_transport variant=1280x720@auto artifact=full_png file=terminal_transport__full_png.txt chars=42\n\
+             SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN puppet=terminal_transport variant=1280x720@auto artifact=full_png file=terminal_transport__full_png__push-evidence.txt chars=99",
+        )
+        .expect("terminal artifact markers should parse");
+
+        assert_eq!(metadata.len(), 2);
+        assert_eq!(metadata[0].kind, "terminal-content");
+        assert_eq!(metadata[0].variant, "1280x720@auto");
+        assert_eq!(metadata[1].kind, "push-evidence");
+        assert_ne!(metadata[0].file_name, metadata[1].file_name);
+    }
+
+    #[test]
+    fn duplicate_terminal_artifact_files_are_rejected() {
+        let error = parse_game_puppet_terminal_artifact_metadata(
+            "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN puppet=p variant=1280x720@auto artifact=a file=p__a.txt\n\
+             SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN puppet=p variant=1280x720@auto artifact=a file=p__a.txt",
+        )
+        .expect_err("duplicate source files must not silently overwrite evidence");
+
+        assert!(error.to_string().contains("reported more than once"));
     }
 
     #[test]
