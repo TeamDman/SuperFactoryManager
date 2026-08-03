@@ -1,0 +1,175 @@
+{
+  "schema": "sfm.vox-terminal-raster-transports-evidence.v1",
+  "captured_at": "2026-08-03",
+  "branch": "1.19.2",
+  "revisions": {
+    "sfm_implementation": "3a42558605ff4eb05ec06b0f10732c72bbb79aed",
+    "teamy_terminal": "008cc64",
+    "facet": "71fc22e9defc07ca2258b45ff51fb89a93c74389"
+  },
+  "facet_package": {
+    "coordinate": "org.facet:vox-java:0.10.0-rc.5",
+    "blake3_20_hex": "7e30d059e0b53ec54b02517b504d5fadbcd60d32"
+  },
+  "contract": {
+    "renderer_id": "rust-cpu-fontdue",
+    "transport_ids": [
+      "full-png",
+      "full-raw-rgba",
+      "dirty-raw-rgba"
+    ],
+    "raw_layout": "bounded versioned RGBA8, top-left, straight alpha, sRGB",
+    "selection_scope": "focused Rust-terminal panel",
+    "switching": "requested and active states remain distinct until a fresh full resynchronization frame is accepted"
+  },
+  "headless_reference": {
+    "path": "G:/Programming/Repos/teamy-terminal/docs/evidence/rust-cpu-raster-transports-3.6.3.json",
+    "direct_full_rgba_fnv1a64": "7baf134396475c74",
+    "composed_dirty_rgba_fnv1a64": "7baf134396475c74",
+    "exact_equivalence": true,
+    "full_raw_payload_bytes": 364800,
+    "dirty_raw_payload_bytes": 6080
+  },
+  "runs": [
+    {
+      "name": "normal",
+      "run_id": "sfm-title_screen-20260803-182559-878",
+      "command": "sfm-propagate-changes.exe puppet run sfm:title_screen_rust_terminal_transport --branch 1.19.2 --artifact-source G:\\Programming\\Repos\\fv\\vox\\java\\target --wait-for-build-lock --width 1280 --height 720 --variant 1280x720@auto",
+      "result": "passed",
+      "viewport": {
+        "framebuffer_width": 1280,
+        "framebuffer_height": 720,
+        "logical_width": 427,
+        "logical_height": 240,
+        "effective_gui_scale": 3
+      },
+      "captures": {
+        "full_png": "blake3:0330f573c924b43d9fee8574d393eafb087b746c",
+        "full_raw_rgba": "blake3:fdf2c215b63d21f75ef90bcc58abc898cd8bfc04",
+        "dirty_raw_rgba": "blake3:0d7407b5b24689e500f56e42608f52643bd4bd7f",
+        "independent_panels": "blake3:3c6b754ec6aa7e0fb028cf5f53ec44ed95bf99aa"
+      },
+      "content_artifacts": {
+        "full_png": "blake3:7d4f929b467c6750054749c7b0a9f0d668f6dd43",
+        "full_raw_rgba": "blake3:640cd8e074d277705f47fd672f0ac4fa5d99c2fc",
+        "dirty_raw_rgba": "blake3:93474c3fe483109ae8b4c515af4de515a3ec6a34",
+        "independent_right": "blake3:fdc42640e4d34763ec69c2904cdbf9d1572d1e33"
+      },
+      "push_evidence": {
+        "all_rejected_frames": 0,
+        "maximum_pending_depth": 1,
+        "full_png": {
+          "received": 14,
+          "accepted": 14,
+          "stale": 0,
+          "full_resync": 1
+        },
+        "full_raw_rgba": {
+          "received": 18,
+          "accepted": 18,
+          "stale": 0,
+          "full_resync": 2
+        },
+        "dirty_raw_rgba": {
+          "received": 25,
+          "accepted": 24,
+          "stale": 1,
+          "full_frames": 19,
+          "dirty_frames": 5,
+          "full_resync": 3
+        },
+        "independent_right": {
+          "received": 14,
+          "accepted": 14,
+          "stale": 0,
+          "full_resync": 3
+        }
+      }
+    },
+    {
+      "name": "gui_scale_7",
+      "run_id": "sfm-title_screen-20260803-182901-119",
+      "command": "sfm-propagate-changes.exe puppet run sfm:title_screen_rust_terminal_transport --branch 1.19.2 --artifact-source G:\\Programming\\Repos\\fv\\vox\\java\\target --wait-for-build-lock --width 3840 --height 2130 --variant 3840x2130@7",
+      "result": "passed",
+      "viewport": {
+        "framebuffer_width": 3840,
+        "framebuffer_height": 2130,
+        "logical_width": 549,
+        "logical_height": 305,
+        "effective_gui_scale": 7
+      },
+      "captures": {
+        "full_png": "blake3:7bc754701e6e2f0ae3360a124c587d5ef9d3d4f4",
+        "full_raw_rgba": "blake3:726f6036888fdb08011eafd74e2efc91895dcaa0",
+        "dirty_raw_rgba": "blake3:5fd2242502f98bed83b96f2f16907ad5289094c3",
+        "independent_panels": "blake3:c7a55daea098e81f6d8c3b2d57ee0a8d3247bd94"
+      },
+      "content_artifacts": {
+        "full_png": "blake3:97e01c22a542b519f13a3e328e0c9cdada539f28",
+        "full_raw_rgba": "blake3:8d1d88d8e4197562b7ec22e45d3e11d5380ea380",
+        "dirty_raw_rgba": "blake3:1ccde66e2fb9e20527fb3e53b274c1524dc5fe36",
+        "independent_right": "blake3:5953c18cd1a74743e047c668b4d92c85d7dc690a"
+      },
+      "push_evidence": {
+        "all_rejected_frames": 0,
+        "maximum_pending_depth": 1,
+        "full_png": {
+          "received": 14,
+          "accepted": 14,
+          "stale": 0,
+          "full_resync": 1
+        },
+        "full_raw_rgba": {
+          "received": 18,
+          "accepted": 18,
+          "stale": 0,
+          "full_resync": 2
+        },
+        "dirty_raw_rgba": {
+          "received": 25,
+          "accepted": 24,
+          "stale": 1,
+          "full_frames": 19,
+          "dirty_frames": 5,
+          "full_resync": 3
+        },
+        "independent_right": {
+          "received": 13,
+          "accepted": 13,
+          "stale": 0,
+          "full_resync": 3
+        }
+      }
+    }
+  ],
+  "durable_artifacts": {
+    "root": "platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview",
+    "per_run_manifest": "runs/<run_id>/preview-manifest.json",
+    "per_run_contact_sheet": "runs/<run_id>/index.html",
+    "contents": "Each run contains four captioned screenshots plus separate terminal-content and push-evidence text files with hashes in the run manifest."
+  },
+  "covered_behaviors": [
+    "keyboard-operable panel-local Transport dropdown",
+    "focused-panel sfm:terminal/transport/set action",
+    "requested versus active transport transition",
+    "full resynchronization before activation",
+    "retired-generation stale-frame rejection",
+    "session and input preservation across switches",
+    "1..100 output through dirty regions",
+    "independent left full-png and right full-raw-rgba panels",
+    "native-size normal and GUI-scale-7 presentation without bitmap stretching",
+    "separate machine-readable terminal text and push telemetry artifacts"
+  ],
+  "validation": {
+    "sfm": [
+      "sfm-propagate-changes.exe test run --branch 1.19.2",
+      "sfm-propagate-changes.exe dependency migrate --check --branch 1.19.2",
+      "platform/cli/sfm-propagate-changes/check-all.ps1"
+    ],
+    "teamy_terminal": [
+      "cargo test -p teamy-terminal-core",
+      "cargo test -p teamy-terminal-frame -p teamy-terminal-font -p teamy-terminal-cli"
+    ],
+    "result": "passed"
+  }
+}

@@ -21,6 +21,8 @@ NAME "Changelog"
 -- Add a Rust-authoritative Vox terminal scene with full-PNG presentation and an explicit disconnected state
 -- Improve Rust-authoritative terminal responsiveness by retaining fonts, glyphs, frame buffers, and Minecraft textures between frames
 -- Replace periodic Rust-terminal snapshot polling with bounded pushed Vox frame subscriptions
+-- Add panel-local Rust terminal transport selection for full PNG, full RGBA, and dirty RGBA while preserving the shell session
+-- Add strict raster validation and durable screenshot, terminal-content, and push-telemetry puppet evidence
 -- Make owned Rust terminal server restarts wait for listener shutdown before reconnecting
 -- Add hierarchical panel-opening actions and lifecycle-only Rust terminal server actions
 -- Retire the superseded managed-bundle review surface while preserving comment and review-session behavior

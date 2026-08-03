@@ -44,13 +44,13 @@ owns the later slug/GPU renderer and dirty-upload optimization; those are not
 part of the immediate panel/action goal.
 
 Native-size/cell-metric negotiation, the correlated multi-second lag witness,
-retained font/glyph/frame/texture resources, and bounded Rust-to-Java Vox
-`Tx`/`Rx` frame delivery are now complete. The next performance gate before
-choosing among Rust CPU, Rust GPU/slug, or Java cell rendering is to preserve
-and name the CPU reference renderer/transport paths, then run the independent
-renderer/transport comparison. Teamy Terminal Phase 3.6.3 and later Phase 3.6
-items are authoritative for the cross-repository design; the SFM work items
-below own the Java consumer, presentation resources, and end-to-end proof.
+retained font/glyph/frame/texture resources, bounded Rust-to-Java Vox `Tx`/`Rx`
+frame delivery, and V-4.2a's three named CPU presentation transports are now
+complete. The next independent contracts are Teamy Terminal 3.6.4's true
+Rust GPU/slug backend and SFM V-4.2b's semantic-cell transport; neither changes
+the default until V-4.5/V-4.6 compare visual and temporal evidence. Teamy
+Terminal Phase 3.6 remains authoritative for Rust renderer work; the SFM work
+items below own Java consumers, presentation resources, and end-to-end proof.
 
 ### Batch 3 planning items
 
@@ -247,7 +247,54 @@ individual action bounds. The preserved evidence logs are
 artifact directory. Those runs are the historical polling baseline; V-4.1a's
 later completion evidence above proves that the 50 ms poller has been removed.
 
-### [ ] V-4.2a Introduce CPU presentation transports and the panel selector
+### [x] V-4.2a Introduce CPU presentation transports and the panel selector
+
+**Completion notes — 2026-08-03:** SFM commit `3a4255860` adds a typed,
+bounded Java raster validator/compositor plus retained full-raw and dirty-raw
+presentation alongside the existing full-PNG presenter. The focused-panel
+`sfm:terminal/transport/set <transport-id>` action and visible keyboard
+dropdown share one panel-local transition path. Requested and active transport
+remain distinct until a fresh full-resync frame from a new generation is
+accepted; the PTY, input stream, and last accepted image remain live while the
+replacement subscription starts. Closed/replaced targets and unsupported
+choices fail explicitly, retired-generation and base-mismatched frames are
+rejected, and two panels retain independent subscriptions.
+
+Facet/Vox commits `fa54d1ec`, `ae3bd147`, `a02161cc`, and `71fc22e9d` provide
+the typed raster schema, lane-scoped bindings, and isolated sibling raster-lane
+lifecycle. Teamy Terminal commits `0d9d10d`, `8722dda`, `a4be3d6`, and
+`008cc64` provide the three push transports, retained renderer resources,
+canonical dirty composition, initial full resync, PNG stride correction, and
+headless evidence. SFM pins the resulting `org.facet:vox-java:0.10.0-rc.5`
+artifact at BLAKE3 prefix `7e30d059e0b53ec54b02517b504d5fadbcd60d32`
+in canonical lock schema 4. Default Gradle remains Rust-optional because the
+panel's automation proof is exposed through the dependency-free remote-service
+interface rather than directly naming the Vox implementation.
+
+The real-bridge puppet passes at normal scale in run
+`sfm-title_screen-20260803-182559-878` and at GUI scale 7 in run
+`sfm-title_screen-20260803-182901-119`. Each durable run manifest records four
+captioned screenshots and separate hashed terminal-content/push-evidence files
+for full PNG, full raw RGBA, dirty raw RGBA, and the independent right panel.
+All checkpoints report zero rejected frames, every replacement observes a full
+resync, the one stale frame is the expected retired-generation race, and
+producer pending depth is at most one. The GUI-7 witness uses a 3840×2130
+framebuffer, effective scale 7, and native logical 549×305 panel dimensions;
+visual inspection found crisp glyphs without Java bitmap stretching. Terminal
+content proves session preservation, complete `1..100` dirty output, and an
+independent right-panel command.
+
+Machine-readable evidence is checked in at
+`docs/architecture/evidence/vox-terminal-raster-transports-1.19.2.json`; the
+matching Teamy headless proof is
+`docs/evidence/rust-cpu-raster-transports-3.6.3.json`. Validation passed with
+`sfm-propagate-changes.exe test run --branch 1.19.2`,
+`sfm-propagate-changes.exe dependency migrate --check --branch 1.19.2`, the
+SFM CLI `check-all.ps1` gate (364 passed, one ignored), contributor-default
+`compileJava compileGameTestJava`, Teamy core (15), CLI (36 plus integrations),
+font (11), and frame (6) tests. Two unrelated symlink JUnit cases abort on
+Windows when the process lacks symbolic-link privilege; the canonical SFM test
+command still exits successfully.
 
 Keep the existing Rust-authoritative terminal session independent from the
 presentation backend. Add an explicit Java panel presentation interface whose
