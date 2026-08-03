@@ -742,7 +742,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         Duration peakTickTime = Duration.ZERO;
         for (int i = 0; i < menu.tickTimes.length; i++) {
             Duration candidate = menu.tickTimes[i];
-            if (candidate.compareTo(peakTickTime) > 0) {
+            if (candidate != null && candidate.compareTo(peakTickTime) > 0) {
                 peakTickTime = candidate;
             }
         }
@@ -780,7 +780,8 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         bufferbuilder.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
         int mouseTickTimeIndex = -1;
         for (int i = 0; i < menu.tickTimes.length; i++) {
-            long y = menu.tickTimes[i].toNanos();
+            Duration tickTime = menu.tickTimes[i];
+            long y = tickTime == null ? 0 : tickTime.toNanos();
             float normalizedTickTime = y == 0 ? 0 : (float) (Math.log10(y) / Math.log10(yMax));
             int plotPosY = plotY + plotHeight - (int) (normalizedTickTime * plotHeight);
 
@@ -813,7 +814,8 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         if (mouseTickTimeIndex != -1) { // We are hovering over the plot
             // Draw the tick time text for the hovered point instead of peak
             {
-                long hoveredTickTimeNanoseconds = menu.tickTimes[mouseTickTimeIndex].toNanos();
+                Duration hoveredTickTime = menu.tickTimes[mouseTickTimeIndex];
+                long hoveredTickTimeNanoseconds = hoveredTickTime == null ? 0 : hoveredTickTime.toNanos();
                 var hoveredTickTimeMilliseconds = hoveredTickTimeNanoseconds / 1_000_000f;
                 String formattedMillis = format.format(hoveredTickTimeMilliseconds);
                 ChatFormatting lagColor = getMillisecondColour(hoveredTickTimeMilliseconds);
