@@ -43,33 +43,39 @@ CPU `fontdue` path is sufficient for this correctness proof. Teamy Terminal
 owns the later slug/GPU renderer and dirty-upload optimization; those are not
 part of the immediate panel/action goal.
 
-The next correctness gate is native-size/cell-metric negotiation. The next
-performance gate is to reproduce the user's current multi-second lag with
-correlated measurements before choosing among Rust CPU, Rust GPU/slug, or Java
-cell rendering.
+Native-size/cell-metric negotiation and the correlated multi-second lag witness
+are now complete. The next performance gate is to repair the measured baseline
+before choosing among Rust CPU, Rust GPU/slug, or Java cell rendering: retain
+font/glyph/frame/texture resources across draws and compatible resizes, add the
+missing Facet Java `Tx`/`Rx` runtime/codegen slice, and replace Java's 50 ms
+unary snapshot poller with a bounded Rust-to-Java frame subscription. Teamy
+Terminal Phase 3.6.2a/3.6.2b is authoritative for the cross-repository design;
+the SFM work items below own the Java consumer, presentation resources, and
+end-to-end proof.
 
 ### Batch 3 planning items
 
 - **[x] V-3.1:** implement and test disconnected/connected terminal presentation,
   including Start/Retry and stale-frame rejection;
 - **[x] V-3.2:** expose terminal and size-display scenes through the panel registry;
-- **[~] V-3.3:** document and test the logical-size/cell-metric frame contract at
+- **[x] V-3.3:** document and test the logical-size/cell-metric frame contract at
   normal scale and GUI scale 7, asserting stable columns/rows, larger Rust
   font/cell pixels, native frame dimensions, and no Java bitmap upscaling; and
 - **[ ] V-3.4:** execute the evidence-driven renderer/transport comparison
   detailed below. Rust scrollback remains a separate functionality slice.
 
-## Terminal performance and rendering comparison program — 2026-08-02
+## Terminal performance and rendering comparison program — 2026-08-02, revised 2026-08-03
 
-The current user-visible symptom is a perceived multi-second delay in the
-Rust-backed Minecraft terminal. CPU `fontdue` rasterization is the leading
-hypothesis, but the current standalone Rust Tracy captures cannot prove the
-cause of a bridged delay. The active path also performs Rust frame generation,
-GPU or CPU readback where applicable, PNG encoding, Vox polling/transport,
-Java PNG decoding, `NativeImage` allocation, Minecraft dynamic-texture
-registration/upload, render-thread scheduling, scaling, and panel
-presentation. Every stage is a candidate until the correlated SFM witness says
-otherwise.
+The motivating user-visible symptom was a multi-second delay in the
+Rust-backed Minecraft terminal. The correlated V-4.1/V-4.4 witness identifies
+repeated Rust font discovery/renderer construction as the dominant measured
+current-path stage, while Java decode/texture/presentation was low-millisecond
+in the sampled run. That evidence authorizes the V-4.1a/V-4.1b baseline
+repairs; it does not excuse later candidates from measuring Rust frame
+generation, GPU or CPU readback where applicable, PNG encoding, Vox
+transport/backpressure, Java PNG decoding, `NativeImage` allocation,
+Minecraft texture upload, render-thread scheduling, scaling, and final panel
+presentation.
 
 The comparison must vary renderer and transport independently:
 
@@ -124,6 +130,70 @@ metrics and crisp screenshots; its final 4K capture exceeded the harness action
 budget after the terminal proof, so that environment-duration limitation is
 retained for a later harness-scaling slice. Rust and Java clocks are never
 subtracted as if synchronized.
+
+### [ ] V-4.1a Consume a Vox Tx/Rx frame subscription and remove live polling
+
+Replace `SFMVoxTerminalService`'s `FRAME_POLL_MILLIS` scheduler with the typed
+Facet/Vox terminal frame subscription defined by Teamy Terminal 3.6.2b. The
+expected direction is a `Tx<TerminalFrameEvent>` method argument: Java creates
+the channel pair, passes the sending endpoint to the Rust handler, and consumes
+the paired `Rx`. Facet's Java runtime currently rejects request channels as
+outside its unary slice, so the reviewed Java channel runtime,
+credit/backpressure tests, generated terminal binding, packaged JAR, and
+immutable SFM toolchain pin are prerequisites to this integration.
+
+Consume frames on a dedicated receiver executor. Validate connection/session
+epoch, monotonically increasing terminal/frame sequences, negotiated bounds,
+payload kind, and correlation metadata before retaining only the newest frame
+awaiting render-thread presentation. A new subscription must begin with a full
+latest-state frame; disconnect/reconnect closes the old request-scoped channel,
+rejects late old-epoch frames, opens a fresh subscription, and receives a full
+resynchronization frame. Do not model raw Vox channels as durable streams.
+Keep unary `snapshot` available for explicit screenshot, diagnostic, and
+resynchronization calls, but steady-state telemetry and tests must show zero
+periodic snapshot requests.
+
+Rust begins publication immediately when its PTY/session actor mutates the VT
+sequence. There is no debounce/minimum frame interval to tune to zero. The
+producer permits one render/send in flight and one newest pending sequence;
+credit pressure or a slow Java/render thread coalesces obsolete intermediate
+states instead of queueing full PNGs. Preserve counters for mutation-to-send,
+credit wait, pre-render coalescing, Java receive/supersede, render scheduling,
+and first presentation so this result remains comparable to V-4.1/V-4.4.
+
+**Validation:** The real endpoint must push output with no further Java input
+or unary frame call, show intermediate and final states during a long command,
+remain idle without a polling loop, and stay bounded under a deliberately slow
+receiver. Cover resize, Ctrl+C, alternate screen, cancellation, channel drop,
+server restart, full reconnect/resync, old-epoch rejection, and two sessions.
+The normal and high-scale puppets retain machine-readable content/screenshots
+and demonstrate lower change-to-present latency than the measured polling
+baseline without unexplained drops.
+
+### [ ] V-4.1b Retain compatible Java presentation resources
+
+Apply Teamy Terminal 3.6.2a's lifetime rules at the Minecraft boundary. Keep a
+single registered `DynamicTexture` and compatible upload storage across frame
+sequences; update/upload it in place when dimensions and format are unchanged.
+Replace and close it exactly once only when resize, format, backend, or context
+loss requires a new allocation. If PNG decoding still requires a temporary
+`NativeImage`, bound and close that object explicitly and retain separate
+decode/allocation versus texture-registration telemetry. An A→B→A resize must
+not leak registrations and should reuse bounded compatible storage where the
+Minecraft API safely permits it.
+
+The Rust side concurrently retains process-wide font discovery/face data,
+size-specific `TerminalFont`/glyph caches, frame buffers, and PNG scratch
+capacity as specified by Teamy Terminal 3.6.2a. SFM acceptance consumes a
+pinned artifact containing that implementation and records cold/warm cache
+identity and counters; it must not infer reuse merely from lower elapsed time.
+
+**Validation:** Stable-size pushed frames do not increase dynamic-texture
+registration/allocation once per sequence; replacement and close counts match
+dimension/context changes; visual output, stale-frame rejection, and panel
+clipping remain unchanged. The correlated warm run reports no repeated Rust
+font discovery/renderer construction and no Java texture churn, including
+normal scale, GUI scale 7, split panels, reconnect, and A→B→A resize.
 
 ### [ ] V-4.2 Introduce explicit presentation backends and capabilities
 
@@ -243,14 +313,18 @@ edit canonical plans or generated Vox outputs.
 | Track | Repository/ownership | Parallel output |
 | --- | --- | --- |
 | S0 — lag witness and Java telemetry | canonical-oldest SFM terminal/panel and puppet surfaces | V-4.1/V-4.4 current-path manifest |
-| S1 — Rust CPU and pixel transports | Teamy Terminal CPU/font/frame paths | full/dirty PNG/raw reference artifacts |
+| S1a — retained Rust CPU resources | Teamy Terminal CPU/font/frame/session paths | bounded face/size/glyph/frame/encode caches and cold/warm witness |
+| S1b — Rust push producer | Teamy Terminal PTY/session/publication path after reviewed channel schema | immediate latest-state publication with bounded coalescing/backpressure |
 | S2 — Rust GPU/slug | isolated Teamy Studio audit plus Teamy Terminal Vulkan backend | true GPU glyph artifacts and stage timings |
 | S3 — Java vanilla font | isolated 1.19.2 SFM worktree | semantic-cell vanilla renderer and captures |
 | S4 — Java Caskaydia font | isolated 1.19.2 SFM worktree/resources | same-font Java renderer, licensing, captures |
-| S5 — semantic Vox capability | isolated Facet/Vox contract worktree | bounded cells/damage schema, generated round trips, immutable revision |
+| S5 — Vox channel and semantic capability | isolated Facet/Vox runtime/codegen/contract worktree | credit-controlled Java `Tx`/`Rx`, frame subscription, then bounded cells/damage schema and generated round trips |
+| S5b — SFM push/texture consumer | canonical-oldest SFM terminal service/presenter | latest-only channel receive, no frame poller, texture reuse, reconnect/full-resync evidence |
 | S6 — comparison reports | renderer-independent artifact tooling | HTML/JSON visual and temporal matrix |
 
-S1–S6 may proceed in parallel after the shared schema draft. S3/S4 follow the
+S1a, S5's Java-channel runtime, and S6 may begin in parallel. S1b/S5b integrate
+after the reviewed generated frame-subscription contract; renderer tracks may
+continue against the frozen renderer-neutral snapshot seams. S3/S4 follow the
 oldest-branch-first rule and are integrated on canonical 1.19.2 before any
 `sfm-propagate-changes.exe git merge`. S5 must not change Cloud Terrastodon.
 The V-4.5 matrix and V-4.6 default decision are integration gates after all
@@ -822,7 +896,7 @@ The server process must remain owned by the Rust CLI, not reimplemented in
 Java. Java owns only process launch, endpoint selection, transport state, and
 the panel; Rust remains authoritative for terminal visual state.
 
-### Interactive Rust bridge: direct input and periodic publication — 2026-07-27
+### Interactive Rust bridge: direct input and polling baseline — 2026-07-27
 
 This follow-up closes the most important correctness gap in the first PNG
 proof. `send_text` now means exact bytes and no longer adds an implicit Enter;
@@ -838,6 +912,11 @@ SFM maps panel coordinates to logical terminal cells for click, release, drag,
 move, and wheel events. SFM also owns a 50 ms snapshot poller using the
 server's sequence witness; unchanged snapshots carry no PNG payload, avoiding
 repainting/uploading an unchanged full frame.
+
+This paragraph records the historical correctness/evidence implementation.
+V-4.1a supersedes it for the target bridge: live frames use a bounded Vox
+`Tx`/`Rx` subscription, while unary snapshot remains an explicit capture and
+resynchronization operation rather than a periodic publication mechanism.
 
 The hosted panel uses a 1.5-second triple-key escape hatch: the first two Esc
 or Tab presses are forwarded to the terminal, the third Esc submits the panel
