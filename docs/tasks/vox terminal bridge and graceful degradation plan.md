@@ -46,11 +46,16 @@ part of the immediate panel/action goal.
 Native-size/cell-metric negotiation, the correlated multi-second lag witness,
 retained font/glyph/frame/texture resources, bounded Rust-to-Java Vox `Tx`/`Rx`
 frame delivery, and V-4.2a's three named CPU presentation transports are now
-complete. The next independent contracts are Teamy Terminal 3.6.4's true
-Rust GPU/slug backend and SFM V-4.2b's semantic-cell transport; neither changes
-the default until V-4.5/V-4.6 compare visual and temporal evidence. Teamy
-Terminal Phase 3.6 remains authoritative for Rust renderer work; the SFM work
-items below own Java consumers, presentation resources, and end-to-end proof.
+complete. The next goal-sized vertical slice is Teamy Terminal 3.6.2c and
+3.6.4a–3.6.4e together with SFM V-4.2c: add the true no-window
+`rust-gpu-slug` backend, migrate the contract from a transport-only generation
+to an atomic renderer/transport presentation generation, and select the two
+axes independently from a focused SFM terminal panel. V-4.2b semantic cells
+and V-4.3 Java font renderers remain independent later work. CPU/full-PNG stays
+the initial default until V-4.5/V-4.6 compare visual and temporal evidence.
+Teamy Terminal Phase 3.6 remains authoritative for Rust renderer work; the SFM
+items below own Java capability consumption, panel controls, presentation
+resources, and end-to-end proof.
 
 ### Batch 3 planning items
 
@@ -83,6 +88,15 @@ The comparison must vary renderer and transport independently:
 | Rust CPU `fontdue` | Caskaydia Cove Nerd Font Mono | full PNG baseline, full raw pixels, dirty pixels/tiles where supported |
 | Rust Vulkan slug | the same named/versioned Caskaydia face | GPU readback plus the same portable pixel transports; no assumed native-handle sharing |
 | Java/Minecraft text | vanilla Minecraft font and Caskaydia Cove Nerd Font Mono | bounded semantic terminal cells/damage, never lossy plain transcript text |
+
+Here `renderer` always means the final rasterizer. A renderer capability has
+non-selectable `rasterization_owner`: `server` means Teamy Terminal/Rust creates
+pixels before Vox, while `client` means SFM/Java creates pixels after receiving
+semantic cells. Ownership is not a third dropdown and must not be inferred from
+an id prefix. The selected transport determines the bounded wire payload, and
+capability tuples enforce compatibility: Rust CPU/GPU renderers use pixel
+transports; Java font renderers use semantic cells. Java's texture upload/blit
+path for Rust pixels is a presenter, not a Java renderer.
 
 The Java Caskaydia comparator must use the same face version and verify its
 font bytes/hash and license provenance. If Minecraft 1.19.2 and later versions
@@ -225,7 +239,10 @@ normal scale, GUI scale 7, split panels, reconnect, and A→B→A resize.
 registered `DynamicTexture` per panel renderer, updates/uploads compatible
 dimensions in place, grows and reuses the off-heap encoded-PNG buffer, closes
 decoded `NativeImage` temporaries explicitly, and replaces/closes resources
-exactly once when dimensions or backend identity change. Focused lifecycle
+exactly once when dimensions or the then-current backend identity change.
+V-4.2c supersedes that conservative CPU-only identity rule: a renderer switch
+may reuse the texture when dimensions and pixel format remain compatible.
+Focused lifecycle
 tests cover stable size, A→B→A, buffer growth/reuse, backend changes, exact
 closes, telemetry, and split-panel texture identities. Commit `343f10f72`
 correlates Java presentation counters with Rust font/raster/encode stages.
@@ -299,7 +316,7 @@ command still exits successfully.
 Keep the existing Rust-authoritative terminal session independent from the
 presentation backend. Add an explicit Java panel presentation interface whose
 implementations consume `full-png`, `full-raw-rgba`, or `dirty-raw-rgba` from
-Teamy Terminal 3.6.3. Backend, raster/damage mode, and transport names must
+Teamy Terminal 3.6.3. Renderer, raster/damage mode, and transport names must
 appear independently in configuration, capability negotiation, screenshots,
 content artifacts, traces, and result manifests; unsupported combinations fail
 clearly instead of silently falling back and spoiling a comparison. Full and
@@ -321,7 +338,8 @@ the dropdown chooses the desired transport for the next connection. While
 connected, changing it preserves the Rust session/PTY and visible last accepted
 frame, performs a bounded request-scoped resubscription, waits for a complete
 resynchronization frame carrying the requested transport id and a fresh
-transport generation, and only then reports the choice as active. Late frames
+presentation generation (renamed from the historical transport-only field by
+V-4.2c), and only then reports the choice as active. Late frames
 from the retired generation are rejected. Selection must not block Minecraft's
 render thread, restart the shell, lose input, or affect another terminal panel.
 Failure leaves an explicit error and requested/active state instead of claiming
@@ -367,6 +385,182 @@ cursor shape/location, selection, full-refresh/damage regions, logical grid,
 cell metrics, session, and sequence. Rust remains authoritative for PTY, VT,
 scrollback, terminal modes, and damage semantics. Java owns only the chosen
 Minecraft presentation and input/layout integration.
+
+The server advertises the semantic-cell source contract, not fake Java
+renderer implementations. SFM intersects that source capability with its
+locally registered client-owned renderers to form valid presentation tuples
+such as `java-vanilla + semantic-cells`. Plain transcript text is never an
+acceptable substitute.
+
+### [ ] V-4.2c Add panel-local renderer selection and prove the GPU bridge slice
+
+This item depends on completed V-4.2a and Teamy Terminal 3.6.2c plus
+3.6.4a–3.6.4e; it does **not** depend on V-4.2b. It is complete only when the
+new GPU renderer is usable through the actual Minecraft panel, not merely
+advertised by a server fixture.
+
+#### Contract and Java model
+
+Consume the migrated Facet/Vox raster contract with
+`default_renderer_id`, `default_transport_id`, and one
+`presentation_generation` guarding the complete `renderer_id` +
+`damage_mode_id` + `transport_id` + `transport_version` tuple. Repin the
+canonical toolchain lock to the reviewed immutable Facet revision and exact
+Vox Java artifact hash, regenerate/import through the supported dependency
+flow, and keep contributor-default Gradle/IDE synchronization Rust-optional.
+Ordinary Java compilation must neither require Cargo/Teamy Terminal/Vulkan nor
+connect to a Rust server; Vox-specific generated types stay behind the
+existing optional/reflection boundary.
+
+Consume and preserve each capability's closed `rasterization_owner` value
+(`server` or `client`) in typed state, telemetry, captions, and artifacts.
+Reject unknown ownership and invalid owner/transport combinations without
+falling back or deriving behavior from renderer names. This V-4.2c slice
+advertises and selects only the two server-owned Rust renderers. V-4.2b/V-4.3
+later add semantic-cell source capabilities and combine them on the client with
+locally implemented `java-vanilla` and `java-caskaydia` renderers; the Rust
+server must not pretend to implement or advertise those Java rasterizers.
+
+Replace the current transport-grouped/first-mode selection logic with typed
+renderer and presentation models (for example `SFMTerminalRendererId` and
+`SFMTerminalPresentationModeOption`). Remove the hard filter that accepts only
+`rust-cpu-fontdue`; otherwise duplicate transport ids advertised by CPU and
+GPU would collapse to an arbitrary first mode. Cache all valid advertised
+tuples and the reason a known renderer or tuple is unavailable. `renderer_id`
+is the canonical new-raster identity in service state, logs, captions, and
+artifacts. Keep legacy `backend_id` handling only where an old snapshot API
+still requires it.
+
+Renderer and transport are independent user choices but one atomic service
+transition. Changing either axis combines the new value with the panel's
+currently requested value on the other axis, validates the resulting tuple,
+and requests one fresh presentation generation. If rapid choices overlap,
+serialize/cancel obsolete transitions so only the newest requested tuple may
+become active. Unsupported combinations, closed targets, connection changes,
+GPU initialization/render errors, and timeouts preserve the old active tuple
+and last accepted image and expose an explicit requested-versus-active error;
+they never silently select CPU, another transport, or another panel.
+
+The first accepted event for a new tuple must be a complete resynchronization
+frame carrying that exact renderer, transport, and generation. Reject retired
+generation, wrong-renderer, wrong-transport, non-monotonic, malformed, and
+dirty-without-valid-base frames before touching presentation resources. A
+successful CPU→GPU→CPU cycle preserves the Rust session/PTY, input,
+scrollback, prompt, terminal sequence, and alternate-screen state. Compatible
+RGBA dimensions/format may reuse the panel's Java texture/upload resources;
+do not allocate or register a new texture solely because `renderer_id`
+changed. Replacement and closure remain exact when dimensions/format truly
+change.
+
+#### Panel and action surface
+
+Evolve the existing compact Transport control into one keyboard-accessible
+**Presentation** menu/popover containing two explicit, non-flattened selectors:
+
+- **Renderer:** `rust-cpu-fontdue` or `rust-gpu-slug`, showing requested and
+  active values while a transition is pending; and
+- **Transport:** `full-png`, `full-raw-rgba`, or `dirty-raw-rgba`, likewise
+  showing requested and active values.
+
+Do not present the six cross-product tuples as a flat list and do not add
+`rust-gpu-slug` to the Transport list. Populate both selectors from the
+captured panel's cached capability tuples intersected with Java pixel
+presenters. Disable unavailable values with an actionable reason. While
+disconnected, retain the desired tuple for the next connection and show
+availability as cached/unknown honestly. Clicking the control focuses that
+panel; keyboard use must not leak terminal input or require desktop UI
+automation.
+
+Add the hierarchical action
+`sfm:terminal/renderer/set <renderer-id>` alongside the existing
+`sfm:terminal/transport/set <transport-id>`. Both actions resolve the focused
+workspace slot and its top/active Rust-terminal panel, capture that exact panel
+identity before asynchronous work, use the same transition method as the UI,
+and leave focus otherwise unchanged. A Java-local REPL, non-terminal panel,
+obscured panel lower in a stack, closed/replaced target, or absent focused
+panel fails explicitly rather than finding a different terminal. Suggestions
+and tooltips use cached bounded capabilities only: no synchronous Vox call,
+filesystem/font scan, Vulkan initialization, or renderer construction may run
+on command-palette candidate enumeration or Minecraft's render thread.
+
+#### Expected compatibility matrix
+
+On a server that advertises a usable Vulkan device, the vertical slice must
+exercise this matrix through the same Java pixel-presentation interfaces:
+
+| Renderer | `full-png` | `full-raw-rgba` | `dirty-raw-rgba` |
+| --- | --- | --- | --- |
+| `rust-cpu-fontdue` | required/current reference | required/current reference | required/current reference |
+| `rust-gpu-slug` | required | required | required |
+
+If implementation discovers a genuine technical reason one GPU tuple cannot
+be supported, stop and update this plan with evidence before reducing the
+matrix; omitting it at runtime without a reviewed plan change does not satisfy
+the goal. No native GPU-handle sharing is part of this slice: GPU results use
+bounded portable PNG/RGBA readback so transport remains independently
+measurable.
+
+#### Tests, puppet, and evidence
+
+Add deterministic Java tests for capability parsing/defaults, tuple
+intersection without duplicate collapse, explicit rasterization ownership,
+unknown-owner and owner/transport rejection, renderer and transport suggestions,
+focused/stacked-panel targeting, target capture across focus/close races,
+disconnected selection, overlapping transitions, requested-versus-active
+state, unsupported/unavailable choices, CPU→GPU→CPU full resync, stale/wrong
+tuple rejection, compatible texture reuse, exact resource closure, and two
+panels with independent renderer/transport choices. Injected capability/device
+failures must prove explicit unavailable/error UI and no silent fallback.
+
+Extend the real Rust-terminal puppet at normal GUI scale and supported GUI
+scale 7. It must:
+
+1. start `teamy-terminal serve` without a visible native Teamy window or
+   taskbar entry and connect through the existing lifecycle action;
+2. render one deterministic styled fixture and PowerShell output through all
+   six matrix combinations, preserving machine-readable terminal text/content
+   witnesses independently of screenshot interpretation;
+3. perform CPU→GPU→CPU in one panel, proving one retained prompt/session and
+   accepted full resync for each new presentation generation;
+4. keep a CPU terminal in one panel and a GPU terminal in another, then send
+   independent commands and prove no cross-panel selection or frame leakage;
+5. cover `1..100`, cyan `Write-Host`, resize, split panels, alternate screen,
+   wide/Unicode/fallback and the difficult slug glyph sheet, with native panel
+   dimensions and no Java bitmap stretch; and
+6. capture the unavailable-GPU presentation through a deterministic injected
+   test seam when the live machine has Vulkan, while the live GPU path itself
+   must pass on a supported Windows/Vulkan machine.
+
+Each run-local manifest records SFM, Teamy Terminal, Facet, generated artifact,
+font, GPU/driver, and shader revisions; requested/active renderer and transport;
+presentation generation; terminal/frame sequences; native/grid/cell metrics;
+full/dirty bytes and regions; Rust geometry/band/cache, GPU submit/completion,
+readback, encode/pack, Vox credit/send timings; and Java receive/decode,
+allocation/reuse, upload, scheduling, present, stale/drop/coalescing counters.
+Keep screenshots, content artifacts, push telemetry, and cold/warm resource
+evidence together. CPU-versus-GPU exact pixels are not required, but each
+backend must be deterministic against itself and direct-full versus composed-
+dirty must match exactly for that backend; cross-renderer assertions cover
+semantic content, dimensions, style/color, glyph occupancy, known slug
+artifacts, and bounded perceptual difference.
+
+Run the canonical SFM compile/test/dependency checks through
+`sfm-propagate-changes.exe`, the CLI `check-all.ps1` gate when CLI code or lock
+projection changes, and the focused/live puppet. Update the gameplay changelog
+for the new Presentation selector and GPU renderer. Do not run Gradle directly.
+Do not propagate to newer Minecraft branches, publish a release, push
+repositories, alter Teamy Studio, implement semantic cells/Java renderers, or
+choose a new default in this goal; those are explicit later integration steps.
+
+**Completion criteria:** From a focused SFM terminal panel, the user can
+independently select CPU or true no-window GPU rasterization and any of the
+three pixel transports through the Presentation UI or typed actions. Switching
+preserves the Rust-authoritative session, panels remain independent, stale and
+failed transitions are safe and visible, all six supported tuples have durable
+normal/GUI-scale-7 evidence, contributor-default Java development remains
+Rust-optional, and the resulting telemetry is sufficient for V-4.5/V-4.6 to
+compare rather than guess. Rasterization ownership is explicit metadata rather
+than a third selector, and CPU/full-PNG remains the default.
 
 ### [ ] V-4.3 Implement the two Java text/font comparators
 
@@ -471,19 +665,26 @@ edit canonical plans or generated Vox outputs.
 | S0 — lag witness and Java telemetry | canonical-oldest SFM terminal/panel and puppet surfaces | V-4.1/V-4.4 current-path manifest |
 | S1a — retained Rust CPU resources | Teamy Terminal CPU/font/frame/session paths | bounded face/size/glyph/frame/encode caches and cold/warm witness |
 | S1b — Rust push producer | Teamy Terminal PTY/session/publication path after reviewed channel schema | immediate latest-state publication with bounded coalescing/backpressure |
-| S2 — Rust GPU/slug | isolated Teamy Studio audit plus Teamy Terminal Vulkan backend | true GPU glyph artifacts and stage timings |
+| S2a — slug correctness oracle | Teamy Terminal only; Teamy Studio read-only | provenance, directional band contract, difficult-glyph fixtures |
+| S2b — no-window Vulkan runtime | Teamy Terminal renderer crate | retained device/targets, trivial readback, no-HWND and failure proofs |
+| S2c — Rust GPU/slug integration | Teamy Terminal after S2a/S2b interfaces freeze | true GPU glyph backend, three portable transports, stage timings |
 | S3 — Java vanilla font | isolated 1.19.2 SFM worktree | semantic-cell vanilla renderer and captures |
 | S4 — Java Caskaydia font | isolated 1.19.2 SFM worktree/resources | same-font Java renderer, licensing, captures |
 | S5 — Vox channel and semantic capability | isolated Facet/Vox runtime/codegen/contract worktree | credit-controlled Java `Tx`/`Rx`, frame subscription, then bounded cells/damage schema and generated round trips |
+| S5c — raster presentation migration | one isolated Facet/Vox integration worktree and one lock owner | default renderer, presentation generation, tuple round trips, immutable generated artifact |
 | S5b — SFM push/texture consumer | canonical-oldest SFM terminal service/presenter | latest-only channel receive, no frame poller, texture reuse, reconnect/full-resync evidence |
+| S5d — SFM renderer selector | isolated 1.19.2 SFM worktree against fake capabilities, then canonical integration | typed tuple model, Presentation UI/actions, targeting/lifecycle tests |
 | S6 — comparison reports | renderer-independent artifact tooling | HTML/JSON visual and temporal matrix |
 
-S1a, S5's Java-channel runtime, and S6 may begin in parallel. S1b/S5b integrate
-after the reviewed generated frame-subscription contract; renderer tracks may
-continue against the frozen renderer-neutral snapshot seams. S3/S4 follow the
-oldest-branch-first rule and are integrated on canonical 1.19.2 before any
-`sfm-propagate-changes.exe git merge`. S5 must not change Cloud Terrastodon.
-The V-4.5 matrix and V-4.6 default decision are integration gates after all
+For the next goal, S2a, S2b, S5c, and S5d's fake-capability Java work may begin
+in parallel. S2c follows the frozen S2a/S2b interfaces; Teamy service
+integration and canonical SFM import follow the reviewed S5c generated
+contract. One integration owner controls generated Vox output, the SFM lock,
+and canonical plan updates. The V-4.2c live normal/GUI-scale-7 matrix is the
+join gate and must run from canonical 1.19.2 after immutable imports. S3/S4
+remain later semantic work, follow the oldest-branch-first rule, and are not
+propagated before acceptance. S5 must not change Cloud Terrastodon. The V-4.5
+matrix and V-4.6 default decision are later integration gates after all
 candidate artifacts are available. The corresponding Rust implementation
 details and source-of-truth statuses live in Teamy Terminal Phase 3.6; this SFM
 plan owns Minecraft presentation, end-to-end bridge evidence, and propagation.
@@ -508,14 +709,15 @@ contracts where useful, but they are distinct user-facing surfaces:
    uses the same service contract but applies path containment, size, encoding,
    and mutation policy before touching disk.
 3. **Vox/Rust terminal scene** — an optional development-environment surface.
-   Java is a thin Vox client and Rust is authoritative for the PTY, command execution, VT
-   parsing, scrollback, colors, cursor state, and terminal visual semantics. The
-   first presentation mode is a bounded full PNG snapshot; Java uploads and
-   displays that image in the panel and sends input/resize messages back. It
-   may negotiate a Rust pixel renderer or a Java semantic-cell renderer without
-   moving terminal-state authority into Java. It may later provide richer VT
-   behavior, semantic prompt/symbol information, compilation, audit, and other
-   repository tooling.
+   Java is a thin Vox client and Rust is authoritative for the PTY, command
+   execution, VT parsing, scrollback, colors, cursor state, and terminal visual
+   semantics. The historical first presentation was bounded full PNG; the
+   current raster contract independently negotiates a Rust renderer and one of
+   full PNG, full raw RGBA, or dirty raw RGBA. Java uploads/displays the result
+   and sends input/resize messages back. Later semantic-cell Java renderers may
+   be negotiated without moving terminal-state authority into Java. The scene
+   may later expose richer prompt/symbol information, compilation, audit, and
+   other repository tooling.
 
 ### Explicit user-facing modes and lifecycle actions
 
@@ -666,38 +868,25 @@ panel and inside horizontal, vertical, tab, and nested split layouts. Rust
 frames describe terminal content; the Java panel owns all layout and theme
 decisions.
 
-## Rust-owned PNG presentation
+## Rust-owned portable pixel presentation
 
-The initial Rust-backed presentation is deliberately a complete PNG frame
-rather than a cell protocol or native GPU-handle interop. Rust owns the PTY,
-VT state, font rasterization, and pixel contents; Java receives a bounded full
-PNG, decodes it on the Minecraft render thread, uploads it to a dynamic
-texture, and blits it inside the terminal panel. Keyboard, mouse, resize,
-focus, and paste events travel in the opposite direction through the same
-session. This gives us an end-to-end correctness proof before optimizing
-unchanged glyphs, dirty regions, or GPU paths.
+The historical first Rust-backed presentation deliberately used a complete PNG
+frame rather than a cell protocol or native GPU-handle interop. That proof is
+complete. V-4.2a now also carries bounded full and dirty raw RGBA through the
+same ownership boundary, and V-4.2c adds Teamy Terminal's no-window Vulkan slug
+renderer without changing the Java panel contract. Rust owns the PTY, VT
+state, chosen font rasterization, and pixel contents; Java validates, uploads,
+and blits the selected portable frame. Keyboard, mouse, resize, focus, and
+paste travel in the opposite direction through the same session.
 
-The eventual texture-stream experiment can replace the PNG payload without
-changing the ownership boundary or panel contract. Teamy Studio can render
-its terminal into an off-screen target using its existing DirectX/font
-pipeline; Java then owns a Minecraft texture resource and blits the received
-frame inside a terminal panel. Native GPU-handle interop remains out of scope
-for the first implementation.
-
-The process boundary needs to be treated honestly: a DirectX GPU texture
-handle cannot normally be handed directly to Minecraft's separate LWJGL/OpenGL
-context. The first transport must therefore be a bounded pixel-frame protocol
-(for example RGBA/BGRA tiles or a compressed frame) with sequence number,
-dimensions, stride/format, dirty rectangles, and an optional cursor/selection
-overlay. PNG is appropriate for puppet screenshots, saved snapshots, and a
-low-frequency proof because it is easy to validate and archive, but encoding a
-full PNG for every keystroke is needlessly latency- and CPU-sensitive. The live
-MVP should therefore permit raw or losslessly compressed dirty tiles, with a
-PNG/keyframe fallback when a full refresh is needed. A later native
-shared-resource experiment may use explicit
-DirectX/OpenGL interop only if it can prove device/context ownership, lifetime,
-security, and graceful fallback. It must not be assumed merely because both
-sides call the result a texture.
+The process boundary is treated honestly: a Rust Vulkan image cannot normally
+be handed directly to Minecraft's separate LWJGL/OpenGL context. The accepted
+contract therefore uses bounded portable PNG/RGBA frames with sequence,
+dimensions, stride/format, full/dirty regions, cursor/selection already
+composited by Rust, and one presentation generation. PNG remains useful for
+artifacts/keyframes; raw and dirty raw expose the latency/bandwidth trade-off.
+A later native shared-resource experiment may proceed only with explicit
+cross-API ownership, synchronization, lifetime, security, and failure proof.
 
 The Java texture panel owns upload, resource lifetime, clipping, aspect-ratio
 policy, GUI-scale/layout bounds, and dropped/stale-frame handling. Rust owns
@@ -715,14 +904,14 @@ frames and may drop intermediate frames while retaining the newest complete
 frame. The protocol must distinguish a terminal snapshot PNG intended for
 archive/replay from a presentation frame intended for immediate upload.
 
-Texture mode is an optional capability negotiated at connect time. Its proof
-must show: the unmistakable Teamy Studio terminal appearance, keyboard input
-round-tripping to the Rust session, resize/re-render behavior, a dropped-frame
-or disconnect state, and a useful disconnected status while the separately
-openable Java-local REPL remains available. Captures should include full-screen, nested-panel,
-narrow-window, and supported GUI-scale layouts. This is a presentation mode
-for terminal content, not a way to send Minecraft panels or executable UI over
-the wire.
+Pixel presentation is an optional capability negotiated at connect time. Its
+proof must identify the selected Teamy Terminal renderer and transport, show
+keyboard input round-tripping to the Rust session, resize/re-render behavior,
+stale/drop/disconnect handling, and a useful disconnected status while the
+separately openable Java-local REPL remains available. Captures include full-
+screen, nested/split-panel, narrow-window, and supported GUI-scale layouts.
+This is terminal content, not a way to send Minecraft panels or executable UI
+over the wire.
 
 ## Phased implementation
 
@@ -1285,26 +1474,27 @@ Capture at the supported viewport/GUI-scale matrix, including a narrow layout.
 The report should include the backend status in captions and preserve enough
 state to distinguish Java-local proof from Rust-connected proof.
 
-### Phase 3 — Vox/Rust adapter
+### Historical Phase 3 outline — Vox/Rust adapter (superseded by V-4 items)
 
 - Implement `SFMVoxBridge` endpoint lifecycle and the generated terminal
   service adapter against the frozen `org.facet:vox-java` artifact.
-- Add the Rust-side Teamy Studio adapter that maps its terminal control-plane
+- Add the Rust-side Teamy Terminal adapter that maps its terminal control-plane
   operations and frames into the portable schema.
 - Add connected, authentication failure, schema mismatch, timeout, malformed
   frame, cancellation, reconnect, and clean shutdown states.
 - Re-run the same puppet scenario against both Java-local and Rust backends;
   the screen and action model should not fork.
 
-### Phase 3a — Texture presentation experiment
+### Historical Phase 3a outline — Texture presentation experiment (superseded)
 
 - Add a negotiated `texture-frame` capability alongside the structured-cell
   capability.
 - Implement a bounded RGBA/BGRA frame or dirty-tile message, Java-side texture
   upload, sequence/lifetime checks, and resize requests.
-- Adapt Teamy Studio's DirectX off-screen terminal renderer to produce the
-  portable frame in a headless proof first; do not make Minecraft depend on a
-  shared native GPU handle.
+- Use Teamy Terminal's portable CPU path and the V-4.2c true no-window Vulkan
+  renderer; Teamy Studio's historical DirectX probe is evidence only and is
+  not an implementation dependency. Do not make Minecraft depend on a shared
+  native GPU handle.
 - Capture connected texture mode, input round-trip, resize, stale/disconnected
   frame handling, and independent Java-local REPL availability before
   considering native graphics interop.
